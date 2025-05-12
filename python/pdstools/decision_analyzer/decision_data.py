@@ -733,7 +733,13 @@ class DecisionAnalyzer:
         stage_orders = (
             df.group_by(self.level)
             .agg(pl.min("StageOrder"))
-            .with_columns(pl.col(self.level).cast(pl.Enum(self.AvailableNBADStages)))
+            .with_columns(
+                pl.col(self.level)
+                .cast(pl.Utf8)
+                .cast(
+                    pl.Enum(self.AvailableNBADStages)
+                )  # weird polars behaviour(version: 1.29), try removing in later patches
+            )
         )
 
         def aggregate_over_remaining_stages(df, stage, remaining_stages):

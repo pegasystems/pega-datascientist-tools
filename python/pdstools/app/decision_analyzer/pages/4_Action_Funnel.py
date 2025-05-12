@@ -7,6 +7,7 @@ from da_streamlit_utils import (
     get_current_index,
     get_data_filters,
     show_filtered_counts,
+    polars_lazyframe_hashing,
 )
 
 from pdstools.decision_analyzer.utils import (
@@ -33,6 +34,19 @@ This helps answering questions like: Where do my “cards offers” get dropped?
 """
 
 ensure_data()
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def decision_funnel(
+    scope,
+    additional_filters,
+    return_df=False,
+):
+    return st.session_state.decision_data.plot.decision_funnel(
+        scope=scope, additional_filters=additional_filters, return_df=return_df
+    )
+
+
 st.session_state["sidebar"] = st.sidebar
 if "local_filters" in st.session_state:
     del st.session_state["local_filters"]
@@ -96,11 +110,9 @@ with st.container(border=True):
         """)
         if "scope" not in st.session_state:
             st.session_state.scope = scope_options[0]
-        remanining_funnel, filtered_funnel = (
-            st.session_state.decision_data.plot.decision_funnel(
-                scope=st.session_state.scope,
-                additional_filters=st.session_state["local_filters"],
-            )
+        remanining_funnel, filtered_funnel = decision_funnel(
+            scope=st.session_state.scope,
+            additional_filters=st.session_state["local_filters"],
         )
         st.plotly_chart(
             remanining_funnel,
@@ -128,7 +140,7 @@ action got dropped in which stage and by what component.
 """
 
 data = st.session_state.decision_data.decision_data.filter(
-    pl.col("pxRecordType") != "FILTERED_OUT"
+    pl.col("pxRecordType") == "FILTERED_OUT"
 )
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])

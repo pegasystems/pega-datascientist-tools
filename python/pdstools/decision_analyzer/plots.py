@@ -311,22 +311,13 @@ class Plot:
 
         return fig, warning_message
 
-    polars_lazyframe_hashing = {
-        pl.LazyFrame: lambda x: hash(x.explain(optimized=False)),
-        pl.Expr: lambda x: str(x.inspect()),
-        # datetime.datetime: lambda x: x.strftime("%Y%m%d%H%M%S")
-    }
-    import streamlit as st
-
-    @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def decision_funnel(
-        _self,
+        self,
         scope: str,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         return_df=False,
-        # models=[],  # trick to make streamlit caching work even if dataframe has filters applied
     ):
-        remaining_df, filter_df = _self._decision_data.getFunnelData(
+        remaining_df, filter_df = self._decision_data.getFunnelData(
             scope, additional_filters
         )
         if return_df:
@@ -340,14 +331,14 @@ class Plot:
         remaining_fig = (
             px.funnel(
                 remaining_df.sort(
-                    [_self._decision_data.level, "count", scope]
+                    [self._decision_data.level, "count", scope]
                 ).collect(),
                 y="average_actions",
-                x=_self._decision_data.level,
+                x=self._decision_data.level,
                 color=scope,
                 # title=f"Distribution of {scope}s over the stages",
                 hover_data=["count", "average_actions"],
-                labels={_self._decision_data.level: "Stage"},
+                labels={self._decision_data.level: "Stage"},
                 template="pega",
                 color_discrete_map=color_map,
             )
@@ -364,11 +355,11 @@ class Plot:
         filter_fig = px.bar(
             filter_df,
             x="average_actions",
-            y=_self._decision_data.level,
+            y=self._decision_data.level,
             color=scope,
             hover_data=["count", "average_actions"],
             color_discrete_map=color_map,
-            category_orders={"StageGroup": _self._decision_data.AvailableNBADStages},
+            category_orders={"StageGroup": self._decision_data.AvailableNBADStages},
         ).update_layout(
             template="plotly_white",
             xaxis_title="Filtered Actions per Decision",
