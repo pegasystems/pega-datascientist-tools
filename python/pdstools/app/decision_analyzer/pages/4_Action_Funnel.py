@@ -128,7 +128,7 @@ action got dropped in which stage and by what component.
 """
 
 data = st.session_state.decision_data.decision_data.filter(
-    pl.col("pxComponentType") != "Result"
+    pl.col("pxRecordType") != "FILTERED_OUT"
 )
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])

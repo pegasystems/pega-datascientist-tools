@@ -197,7 +197,9 @@ class DecisionAnalyzer:
 
         self.preaggregated_decision_data_filterview = (
             self.decision_data.group_by(
-                self.preaggregation_columns.union({self.level, "StageOrder"})
+                self.preaggregation_columns.union(
+                    {self.level, "StageOrder", "pxRecordType"}
+                )
             )
             .agg(exprs)
             .collect()
@@ -358,7 +360,9 @@ class DecisionAnalyzer:
         self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
-        filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+        filtered_df = apply_filter(
+            self.getPreaggregatedFilterView, additional_filters
+        ).filter(pl.col("pxRecordType") == "FILTERED_OUT")
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters)
@@ -732,10 +736,15 @@ class DecisionAnalyzer:
             .with_columns(pl.col(self.level).cast(pl.Enum(self.AvailableNBADStages)))
         )
 
-        # Get aggregates for existing stages as before
         def aggregate_over_remaining_stages(df, stage, remaining_stages):
             return (
-                df.filter(pl.col(self.level).is_in(remaining_stages))
+                df.filter(
+                    (pl.col(self.level) == remaining_stages[0])
+                    | (
+                        pl.col(self.level).is_in(remaining_stages[1:])
+                        & (pl.col("pxRecordType") == "FILTERED_OUT")
+                    )
+                )
                 .group_by(group_by_columns)
                 .agg(aggregations)
                 .with_columns(pl.lit(stage).alias(self.level))
