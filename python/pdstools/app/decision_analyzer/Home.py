@@ -13,7 +13,7 @@ from pdstools.decision_analyzer.decision_data import DecisionAnalyzer
 
 st.set_page_config(layout="wide")
 pl.enable_string_cache()  # Done here, but also put in ensure_data()
-pl.Config.set_engine_affinity(engine="streaming")
+# pl.Config.set_engine_affinity(engine="streaming") this is still buggy, probably can turn back on in the future polars patches
 
 app_version, tag_date = "V0.1", "18 Jun 2024"
 

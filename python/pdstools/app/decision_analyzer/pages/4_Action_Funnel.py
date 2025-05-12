@@ -28,7 +28,7 @@ from pdstools.decision_analyzer.utils import (
 This gives a view of which actions are filtered out where in the
 decision funnel, but also by what component.
 
-This helps answering questions like: Where do my “cards offers” get dropped? Wat gets filtered in which stage?
+This helps answering questions like: Where do my “cards offers” get dropped? What gets filtered in which stage?
 
 """
 
@@ -86,24 +86,34 @@ with st.session_state["sidebar"]:
 
 
 with st.container(border=True):
-    st.write("""
-    The Funnel illustrates how many actions arrived to each Stage.
+    remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
+    with remaining_tab:
+        st.write("""
+        The Funnel illustrates how many actions arrived to each Stage.
 
-    The **Granularity** defines the breakdown of the chart. You can for example look at
-    Groups, Issues, individual Actions or, if available, Treatments.
-    """)
-    if "scope" not in st.session_state:
-        st.session_state.scope = scope_options[0]
+        The **Granularity** defines the breakdown of the chart. You can for example look at
+        Groups, Issues, individual Actions or, if available, Treatments.
+        """)
+        if "scope" not in st.session_state:
+            st.session_state.scope = scope_options[0]
+        remanining_funnel, filtered_funnel = (
+            st.session_state.decision_data.plot.decision_funnel(
+                scope=st.session_state.scope,
+                NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
+                additional_filters=st.session_state["local_filters"],
+            )
+        )
+        st.plotly_chart(
+            remanining_funnel,
+            use_container_width=True,
+        )
+        scope_index = get_current_index(scope_options, "scope")
 
-    st.plotly_chart(
-        st.session_state.decision_data.plot.decision_funnel(
-            scope=st.session_state.scope,
-            NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
-            additional_filters=st.session_state["local_filters"],
-        ),
-        use_container_width=True,
-    )
-    scope_index = get_current_index(scope_options, "scope")
+    with filtered_tab:
+        st.plotly_chart(
+            filtered_funnel,
+            use_container_width=True,
+        )
     st.selectbox(
         "Granularity:",
         options=scope_options,

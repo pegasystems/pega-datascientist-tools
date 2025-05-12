@@ -289,9 +289,11 @@ class DecisionAnalyzer:
         available_fields = []
 
         if categoricalOnly:
-            schema_keys = self.decision_data.select(
-                cs.string(include_categorical=True)
-            ).schema.keys()
+            schema_keys = (
+                self.decision_data.select(cs.string(include_categorical=True))
+                .collect_schema()
+                .keys()
+            )
 
             for field in self.fields_for_data_filtering:
                 if field in schema_keys:
@@ -372,26 +374,44 @@ class DecisionAnalyzer:
 
         return distribution_data
 
+    # import streamlit as st
+    # @st.cache_data
     def getFunnelData(
-        self, level, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.LazyFrame:
-        funnelData = self.aggregate_remaining_per_stage(
-            df=apply_filter(self.getPreaggregatedFilterView, additional_filters),
-            group_by_columns=[level],
-            aggregations=pl.sum("Decisions").alias("count"),
-        ).filter(pl.col("count") > 0)
-        interaction_count = (
+        # Apply filtering once to the pre-aggregated view
+        filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+
+        interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters)
             .select("pxInteractionID")
-            .collect()
-            .n_unique()
-        )
-        funnelData = funnelData.with_columns(
-            interaction_count=pl.lit(interaction_count),
-            average_actions=pl.col("count") / pl.lit(interaction_count),
+            .unique()
+            .count()
         )
 
-        return funnelData
+        # Compute remaining actions funnel
+        funnelData = self.aggregate_remaining_per_stage(
+            df=filtered_df,
+            group_by_columns=[scope],
+            aggregations=pl.sum("Decisions").alias("count"),
+        ).filter(pl.col("count") > 0)
+
+        # Compute filtered funnel view
+        filtered_funnel = (
+            filtered_df.group_by([self.level, scope])
+            .agg(count=pl.sum("Decisions"))
+            .collect()
+        )
+
+        interaction_count = interaction_count_expr.collect().item()
+        average_actions_expr = (
+            pl.lit(interaction_count).alias("interaction_count"),
+            (pl.col("count") / pl.lit(interaction_count)).alias("average_actions"),
+        )
+
+        return funnelData.with_columns(
+            average_actions_expr
+        ), filtered_funnel.with_columns(average_actions_expr)
 
     def getFilterComponentData(
         self, top_n, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
@@ -570,7 +590,6 @@ class DecisionAnalyzer:
     def get_optionality_funnel(self, df=None):
         if df is None:
             df = self.sample
-        action_order = ["0", "1", "2", "3", "4", "5", "6", "7+"]
         optionality_funnel = (
             self.get_optionality_data(df)
             .with_columns(
@@ -580,9 +599,8 @@ class DecisionAnalyzer:
                 .alias("available_actions")
             )
             .with_columns(
-                pl.col("available_actions").cast(pl.Enum(categories=action_order)),
-                pl.col("StageGroup").cast(
-                    pl.Enum(list(self.NBADStages_Mapping.values()))
+                pl.col("available_actions").cast(
+                    pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"])
                 ),
             )
             .group_by(["StageGroup", "available_actions"])
@@ -730,7 +748,11 @@ class DecisionAnalyzer:
         Workhorse function to convert the raw Decision Analyzer data (filter view) to
         the aggregates remaining per stage, ensuring all stages are represented.
         """
-        stage_orders = df.group_by(self.level).agg(pl.min("StageOrder"))
+        stage_orders = (
+            df.group_by(self.level)
+            .agg(pl.min("StageOrder"))
+            .with_columns(pl.col(self.level).cast(pl.Enum(self.NBADStages_FilterView)))
+        )
 
         # Get aggregates for existing stages as before
         def aggregate_over_remaining_stages(df, stage, remaining_stages):
@@ -738,7 +760,7 @@ class DecisionAnalyzer:
                 df.filter(pl.col(self.level).is_in(remaining_stages))
                 .group_by(group_by_columns)
                 .agg(aggregations)
-                .with_columns(pl.lit(stage).alias(self.level).cast(pl.Categorical))
+                .with_columns(pl.lit(stage).alias(self.level))
             )
 
         aggs = {
@@ -747,8 +769,12 @@ class DecisionAnalyzer:
             )
             for (i, stage) in enumerate(self.NBADStages_FilterView)
         }
-        remaining_view = pl.concat(aggs.values()).join(
-            stage_orders, on=self.level, how="left"
+        remaining_view = (
+            pl.concat(aggs.values())
+            .with_columns(
+                pl.col(self.level).cast(stage_orders.collect_schema()[self.level])
+            )
+            .join(stage_orders, on=self.level, how="left")
         )
 
         return remaining_view

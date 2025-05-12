@@ -313,38 +313,54 @@ class Plot:
 
         return fig, warning_message
 
-    # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
+    polars_lazyframe_hashing = {
+        pl.LazyFrame: lambda x: hash(x.explain(optimized=False)),
+        pl.Expr: lambda x: str(x.inspect()),
+        # datetime.datetime: lambda x: x.strftime("%Y%m%d%H%M%S")
+    }
+    import streamlit as st
+
+    @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def decision_funnel(
-        self,
+        _self,
         scope: str,
         NBADStages_Mapping: dict,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         return_df=False,
         # models=[],  # trick to make streamlit caching work even if dataframe has filters applied
     ):
-        df = self._decision_data.getFunnelData(scope, additional_filters)
+        remaining_df, filter_df = _self._decision_data.getFunnelData(
+            scope, additional_filters
+        )
         if return_df:
-            return df
-        fig = (
+            return remaining_df, filter_df
+
+        unique_scope_values = filter_df.select("pyIssue").unique().to_series().to_list()
+        colors = px.colors.qualitative.Light24
+        color_map = {
+            val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)
+        }
+        remaining_fig = (
             px.funnel(
-                df.with_columns(
+                remaining_df.with_columns(
                     # TODO perhaps the re-mapping of stage names can be done in plotly as well
                     # instead of changing the data like we do here
-                    pl.col(self._decision_data.level)
+                    pl.col(_self._decision_data.level)
                     .cast(pl.Utf8)
                     .replace(NBADStages_Mapping)
                     # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
                 )
-                .sort([self._decision_data.level, "count", scope])
+                .sort([_self._decision_data.level, "count", scope])
                 .collect(),
                 y="average_actions",
-                x=self._decision_data.level,
+                x=_self._decision_data.level,
                 color=scope,
                 # title=f"Distribution of {scope}s over the stages",
                 hover_data=["count", "average_actions"],
-                labels={self._decision_data.level: "Stage"},
+                labels={_self._decision_data.level: "Stage"},
                 template="pega",
+                color_discrete_map=color_map,
             )
             .update_xaxes(
                 categoryorder="array",
@@ -354,9 +370,23 @@ class Plot:
                 showlegend=True,
                 xaxis_title="",
                 legend_title_text=f"{NBADScope_Mapping[scope]}",
+                legend=dict(traceorder="reversed"),
             )
         )
-        return fig
+        filter_fig = px.bar(
+            filter_df,
+            x="average_actions",
+            y=_self._decision_data.level,
+            color=scope,
+            hover_data=["count", "average_actions"],
+            color_discrete_map=color_map,
+            category_orders={"StageGroup": _self._decision_data.NBADStages_FilterView},
+        ).update_layout(
+            template="plotly_white",
+            xaxis_title="Filtered Actions per Decision",
+        )
+
+        return remaining_fig, filter_fig
 
     def filtering_components(
         self,
@@ -555,9 +585,12 @@ class Plot:
         if return_df:
             return df
         ranks = (
-            # TODO: generalize ["Arbitration", "Final"], consider using generic aggregation func
             apply_filter(df, reference)
-            .filter(pl.col(self._decision_data.level).is_in(["Arbitration", "Final"]))
+            .filter(
+                pl.col(self._decision_data.level).is_in(
+                    self._decision_data.stages_from_arbitration_down
+                )
+            )
             .select("pxRank")
             .collect()
         )
