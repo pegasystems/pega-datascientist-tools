@@ -220,8 +220,8 @@ def find_lever_value(
                 (
                     pl.when(pl.col("pyName") == action)
                     .then(pl.lit(lever))
-                    .otherwise(pl.col("Weight"))
-                ).alias("Weight")
+                    .otherwise(pl.col("Levers"))
+                ).alias("Levers")
             ]
         )
         action_win_percentage = (

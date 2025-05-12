@@ -7,6 +7,7 @@ from da_streamlit_utils import (
     get_current_index,
     get_data_filters,
     show_filtered_counts,
+    polars_lazyframe_hashing,
 )
 
 from pdstools.decision_analyzer.utils import (
@@ -28,11 +29,24 @@ from pdstools.decision_analyzer.utils import (
 This gives a view of which actions are filtered out where in the
 decision funnel, but also by what component.
 
-This helps answering questions like: Where do my “cards offers” get dropped? Wat gets filtered in which stage?
+This helps answering questions like: Where do my “cards offers” get dropped? What gets filtered in which stage?
 
 """
 
 ensure_data()
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def decision_funnel(
+    scope,
+    additional_filters,
+    return_df=False,
+):
+    return st.session_state.decision_data.plot.decision_funnel(
+        scope=scope, additional_filters=additional_filters, return_df=return_df
+    )
+
+
 st.session_state["sidebar"] = st.sidebar
 if "local_filters" in st.session_state:
     del st.session_state["local_filters"]
@@ -86,24 +100,31 @@ with st.session_state["sidebar"]:
 
 
 with st.container(border=True):
-    st.write("""
-    The Funnel illustrates how many actions arrived to each Stage.
+    remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
+    with remaining_tab:
+        st.write("""
+        The Funnel illustrates how many actions arrived to each Stage.
 
-    The **Granularity** defines the breakdown of the chart. You can for example look at
-    Groups, Issues, individual Actions or, if available, Treatments.
-    """)
-    if "scope" not in st.session_state:
-        st.session_state.scope = scope_options[0]
-
-    st.plotly_chart(
-        st.session_state.decision_data.plot.decision_funnel(
+        The **Granularity** defines the breakdown of the chart. You can for example look at
+        Groups, Issues, individual Actions or, if available, Treatments.
+        """)
+        if "scope" not in st.session_state:
+            st.session_state.scope = scope_options[0]
+        remanining_funnel, filtered_funnel = decision_funnel(
             scope=st.session_state.scope,
-            NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
             additional_filters=st.session_state["local_filters"],
-        ),
-        use_container_width=True,
-    )
-    scope_index = get_current_index(scope_options, "scope")
+        )
+        st.plotly_chart(
+            remanining_funnel,
+            use_container_width=True,
+        )
+        scope_index = get_current_index(scope_options, "scope")
+
+    with filtered_tab:
+        st.plotly_chart(
+            filtered_funnel,
+            use_container_width=True,
+        )
     st.selectbox(
         "Granularity:",
         options=scope_options,
@@ -119,7 +140,7 @@ action got dropped in which stage and by what component.
 """
 
 data = st.session_state.decision_data.decision_data.filter(
-    pl.col("pxComponentType") != "Result"
+    pl.col("pxRecordType") == "FILTERED_OUT"
 )
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])

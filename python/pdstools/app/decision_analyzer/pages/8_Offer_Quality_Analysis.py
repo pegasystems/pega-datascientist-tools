@@ -80,9 +80,6 @@ with st.session_state["sidebar"]:
         "Select Stage",
         options=stage_options,
         index=stage_index,
-        format_func=lambda option: st.session_state.decision_data.NBADStages_Mapping[
-            option
-        ],
         key="stage",
     )
 
@@ -105,8 +102,7 @@ st.plotly_chart(
     offer_quality_piecharts(
         vf,
         propensityTH=propensityTH,
-        NBADStages_FilterView=st.session_state.decision_data.NBADStages_FilterView,
-        NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
+        AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
     ),
     use_container_width=True,
 )

@@ -41,9 +41,6 @@ with st.session_state["sidebar"]:
         "Select Stage",
         options=stage_options,
         index=stage_index,
-        format_func=lambda option: st.session_state.decision_data.NBADStages_Mapping[
-            option
-        ],
         key="stage",
     )
 distribution_data = st.session_state.decision_data.getDistributionData(

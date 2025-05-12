@@ -100,16 +100,9 @@ class DecisionAnalyzer:
 
             self.NBADStages_FilterView = self.AvailableNBADStages
             self.NBADStages_RemainingView = self.AvailableNBADStages
-            self.NBADStages_Mapping = {
-                "Arbitration": "Arbitration"
-            }  # doesn't it have "Final" implicitly? for rank 1 or other threshold that user can define
 
-        # TODO: subset this against the stages that are actually available in the data. This can be less
-        # or more. There is work for dev in DSM and NBAD to tag the various stages. This should probably
-        # start with a superset in the right order.
         # TODO: support human-friendly names, to show "Final" as "Presented" for example
         elif self.extract_type == "decision_analyzer":
-            # self.AvailableNBADStages = list(audit_tag_mapping.keys())
             stage_df = (
                 self.unfiltered_raw_decision_data.group_by(self.level)
                 .agg(pl.min("StageOrder"))
@@ -124,19 +117,6 @@ class DecisionAnalyzer:
             stage_df = stage_df.sort("StageOrder")
             self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
-            # self.NBADStages_RemainingView = list(
-            #     map(lambda x: "After " + x, self.AvailableNBADStages)
-            # )
-            self.NBADStages_RemainingView = list(
-                map(lambda x: x, self.AvailableNBADStages)
-            )
-
-            self.NBADStages_FilterView = self.AvailableNBADStages
-            self.NBADStages_Mapping = {
-                j: self.NBADStages_RemainingView[i]
-                for (i, j) in enumerate(self.NBADStages_FilterView)
-            }
-
         self.plot = Plot(self)
 
     @cached_property
@@ -146,9 +126,7 @@ class DecisionAnalyzer:
         will just be [Arbitration, Final] but as we get more stages in there
         may be more here.
         """
-        return self.NBADStages_FilterView[
-            self.NBADStages_FilterView.index("Arbitration") :
-        ]
+        return self.AvailableNBADStages[self.AvailableNBADStages.index("Arbitration") :]
 
     @cached_property
     def arbitration_stage(self):
@@ -219,7 +197,9 @@ class DecisionAnalyzer:
 
         self.preaggregated_decision_data_filterview = (
             self.decision_data.group_by(
-                self.preaggregation_columns.union({self.level, "StageOrder"})
+                self.preaggregation_columns.union(
+                    {self.level, "StageOrder", "pxRecordType"}
+                )
             )
             .agg(exprs)
             .collect()
@@ -289,9 +269,11 @@ class DecisionAnalyzer:
         available_fields = []
 
         if categoricalOnly:
-            schema_keys = self.decision_data.select(
-                cs.string(include_categorical=True)
-            ).schema.keys()
+            schema_keys = (
+                self.decision_data.select(cs.string(include_categorical=True))
+                .collect_schema()
+                .keys()
+            )
 
             for field in self.fields_for_data_filtering:
                 if field in schema_keys:
@@ -345,7 +327,7 @@ class DecisionAnalyzer:
         return options
 
     def getPossibleStageValues(self):
-        options = self.NBADStages_FilterView
+        options = self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
         # [
         #     stage
@@ -372,26 +354,46 @@ class DecisionAnalyzer:
 
         return distribution_data
 
+    # import streamlit as st
+    # @st.cache_data
     def getFunnelData(
-        self, level, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.LazyFrame:
-        funnelData = self.aggregate_remaining_per_stage(
-            df=apply_filter(self.getPreaggregatedFilterView, additional_filters),
-            group_by_columns=[level],
-            aggregations=pl.sum("Decisions").alias("count"),
-        ).filter(pl.col("count") > 0)
-        interaction_count = (
+        # Apply filtering once to the pre-aggregated view
+        filtered_df = apply_filter(
+            self.getPreaggregatedFilterView, additional_filters
+        ).filter(pl.col("pxRecordType") == "FILTERED_OUT")
+
+        interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters)
             .select("pxInteractionID")
-            .collect()
-            .n_unique()
-        )
-        funnelData = funnelData.with_columns(
-            interaction_count=pl.lit(interaction_count),
-            average_actions=pl.col("count") / pl.lit(interaction_count),
+            .unique()
+            .count()
         )
 
-        return funnelData
+        # Compute remaining actions funnel
+        funnelData = self.aggregate_remaining_per_stage(
+            df=filtered_df,
+            group_by_columns=[scope],
+            aggregations=pl.sum("Decisions").alias("count"),
+        ).filter(pl.col("count") > 0)
+
+        # Compute filtered funnel view
+        filtered_funnel = (
+            filtered_df.group_by([self.level, scope])
+            .agg(count=pl.sum("Decisions"))
+            .collect()
+        )
+
+        interaction_count = interaction_count_expr.collect().item()
+        average_actions_expr = (
+            pl.lit(interaction_count).alias("interaction_count"),
+            (pl.col("count") / pl.lit(interaction_count)).alias("average_actions"),
+        )
+
+        return funnelData.with_columns(
+            average_actions_expr
+        ), filtered_funnel.with_columns(average_actions_expr)
 
     def getFilterComponentData(
         self, top_n, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
@@ -570,7 +572,6 @@ class DecisionAnalyzer:
     def get_optionality_funnel(self, df=None):
         if df is None:
             df = self.sample
-        action_order = ["0", "1", "2", "3", "4", "5", "6", "7+"]
         optionality_funnel = (
             self.get_optionality_data(df)
             .with_columns(
@@ -580,9 +581,8 @@ class DecisionAnalyzer:
                 .alias("available_actions")
             )
             .with_columns(
-                pl.col("available_actions").cast(pl.Enum(categories=action_order)),
-                pl.col("StageGroup").cast(
-                    pl.Enum(list(self.NBADStages_Mapping.values()))
+                pl.col("available_actions").cast(
+                    pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"])
                 ),
             )
             .group_by(["StageGroup", "available_actions"])
@@ -730,25 +730,44 @@ class DecisionAnalyzer:
         Workhorse function to convert the raw Decision Analyzer data (filter view) to
         the aggregates remaining per stage, ensuring all stages are represented.
         """
-        stage_orders = df.group_by(self.level).agg(pl.min("StageOrder"))
+        stage_orders = (
+            df.group_by(self.level)
+            .agg(pl.min("StageOrder"))
+            .with_columns(
+                pl.col(self.level)
+                .cast(pl.Utf8)
+                .cast(
+                    pl.Enum(self.AvailableNBADStages)
+                )  # weird polars behaviour(version: 1.29), try removing in later patches
+            )
+        )
 
-        # Get aggregates for existing stages as before
         def aggregate_over_remaining_stages(df, stage, remaining_stages):
             return (
-                df.filter(pl.col(self.level).is_in(remaining_stages))
+                df.filter(
+                    (pl.col(self.level) == remaining_stages[0])
+                    | (
+                        pl.col(self.level).is_in(remaining_stages[1:])
+                        & (pl.col("pxRecordType") == "FILTERED_OUT")
+                    )
+                )
                 .group_by(group_by_columns)
                 .agg(aggregations)
-                .with_columns(pl.lit(stage).alias(self.level).cast(pl.Categorical))
+                .with_columns(pl.lit(stage).alias(self.level))
             )
 
         aggs = {
             stage: aggregate_over_remaining_stages(
-                df, stage, self.NBADStages_FilterView[i:]
+                df, stage, self.AvailableNBADStages[i:]
             )
-            for (i, stage) in enumerate(self.NBADStages_FilterView)
+            for (i, stage) in enumerate(self.AvailableNBADStages)
         }
-        remaining_view = pl.concat(aggs.values()).join(
-            stage_orders, on=self.level, how="left"
+        remaining_view = (
+            pl.concat(aggs.values())
+            .with_columns(
+                pl.col(self.level).cast(stage_orders.collect_schema()[self.level])
+            )
+            .join(stage_orders, on=self.level, how="left")
         )
 
         return remaining_view
@@ -773,10 +792,10 @@ class DecisionAnalyzer:
             Value Finder style, available action counts per group_by category
         """
         dfs = []
-        for i, stage in enumerate(self.NBADStages_FilterView):
+        for i, stage in enumerate(self.AvailableNBADStages):
             stage_df = (
                 # TODO refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
-                df.filter(pl.col(self.level).is_in(self.NBADStages_FilterView[i:]))
+                df.filter(pl.col(self.level).is_in(self.AvailableNBADStages[i:]))
                 .group_by(group_by)
                 .agg(
                     pl.sum(

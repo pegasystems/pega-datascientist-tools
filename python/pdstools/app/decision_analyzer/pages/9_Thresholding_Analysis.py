@@ -91,7 +91,7 @@ st.plotly_chart(
 
 # st.write(current_threshold)
 xxx = st.session_state.decision_data.getDistributionData(
-    "Final",
+    "Output",
     ["pyIssue", "pyGroup"],
     trend=False,
     additional_filters=(

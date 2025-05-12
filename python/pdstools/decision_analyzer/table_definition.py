@@ -10,6 +10,12 @@ class TableConfig(TypedDict):
 
 
 DecisionAnalyzer: Dict[str, TableConfig] = {
+    "pxRecordType": {
+        "label": "pxRecordType",
+        "default": False,
+        "type": pl.Categorical,
+        "required": True,
+    },
     "Primary_pySubjectID": {  # Primary_pySubjectID
         "label": "pySubjectID",
         "default": False,
