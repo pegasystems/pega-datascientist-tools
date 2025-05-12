@@ -45,11 +45,9 @@ class Plot:
     def distribution_as_treemap(
         self, df: pl.LazyFrame, stage: str, scope_options: List[str]
     ):
-        NBADStages_Mapping = self._decision_data.NBADStages_Mapping
         fig = px.treemap(
             df.collect(),
-            path=[px.Constant(f"All Actions {NBADStages_Mapping[stage]}")]
-            + scope_options,
+            path=[px.Constant(f"All Actions {stage}")] + scope_options,
             values="Decisions",
             template="pega",
         ).update_traces(
@@ -324,7 +322,6 @@ class Plot:
     def decision_funnel(
         _self,
         scope: str,
-        NBADStages_Mapping: dict,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         return_df=False,
         # models=[],  # trick to make streamlit caching work even if dataframe has filters applied
@@ -342,17 +339,9 @@ class Plot:
         }
         remaining_fig = (
             px.funnel(
-                remaining_df.with_columns(
-                    # TODO perhaps the re-mapping of stage names can be done in plotly as well
-                    # instead of changing the data like we do here
-                    pl.col(_self._decision_data.level)
-                    .cast(pl.Utf8)
-                    .replace(NBADStages_Mapping)
-                    # Replacing with "remaining" view labels
-                    .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                )
-                .sort([_self._decision_data.level, "count", scope])
-                .collect(),
+                remaining_df.sort(
+                    [_self._decision_data.level, "count", scope]
+                ).collect(),
                 y="average_actions",
                 x=_self._decision_data.level,
                 color=scope,
@@ -364,7 +353,6 @@ class Plot:
             )
             .update_xaxes(
                 categoryorder="array",
-                categoryarray=list(NBADStages_Mapping.values()),
             )
             .update_layout(
                 showlegend=True,
@@ -380,7 +368,7 @@ class Plot:
             color=scope,
             hover_data=["count", "average_actions"],
             color_discrete_map=color_map,
-            category_orders={"StageGroup": _self._decision_data.NBADStages_FilterView},
+            category_orders={"StageGroup": _self._decision_data.AvailableNBADStages},
         ).update_layout(
             template="plotly_white",
             xaxis_title="Filtered Actions per Decision",
@@ -602,16 +590,7 @@ class Plot:
         if return_df:
             return df
         fig = px.box(
-            df.with_columns(
-                # TODO perhaps the re-mapping of stage names can be done in plotly as well
-                # instead of changing the data like we do here
-                pl.col(self._decision_data.level)
-                .cast(pl.Utf8)
-                .replace(
-                    self._decision_data.NBADStages_Mapping
-                )  # Replacing with "remaining" view labels
-                .cast(pl.Enum(list(self._decision_data.NBADStages_Mapping.values())))
-            ).collect(),
+            df.collect(),
             x=self._decision_data.level,
             y="nOffers",
             color=self._decision_data.level,
@@ -626,13 +605,13 @@ class Plot:
         )
         fig.update_xaxes(
             categoryorder="array",
-            categoryarray=list(self._decision_data.NBADStages_Mapping.values()),
+            categoryarray=list(self._decision_data.self.AvailableNBADStages),
             title="",
         )
 
         return fig
 
-    def optionality_trend(self, df: pl.LazyFrame, NBADStages_Mapping, return_df=False):
+    def optionality_trend(self, df: pl.LazyFrame, return_df=False):
         # Collect the data to inspect the unique days
         collected_df = df.collect()
         if return_df:
@@ -644,14 +623,7 @@ class Plot:
 
             # Create a scatter plot instead of a line plot
             fig = px.scatter(
-                collected_df.with_columns(
-                    pl.col(self._decision_data.level)
-                    .cast(pl.Utf8)
-                    .replace(
-                        NBADStages_Mapping
-                    )  # Replacing with "remaining" view labels
-                    .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ),
+                collected_df,
                 x="day",
                 y="nOffers",
                 color=self._decision_data.level,
@@ -660,13 +632,7 @@ class Plot:
         else:
             # Create the line plot as usual
             fig = px.line(
-                collected_df.with_columns(
-                    pl.col(self._decision_data.level)
-                    # .replace(
-                    #     NBADStages_Mapping
-                    # )  # Replacing with "remaining" view labels
-                    .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ),
+                collected_df,
                 x="day",
                 y="nOffers",
                 color=self._decision_data.level,
@@ -683,8 +649,7 @@ class Plot:
 def offer_quality_piecharts(
     df: pl.LazyFrame,
     propensityTH,
-    NBADStages_FilterView,
-    NBADStages_Mapping,
+    AvailableNBADStages,
     return_df=False,
     level="StageGroup",
 ):
@@ -701,21 +666,21 @@ def offer_quality_piecharts(
     )
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
     df = {}
-    NBADStages_FilterView = NBADStages_FilterView[:5]
-    for stage in NBADStages_FilterView[:5]:
+    AvailableNBADStages = AvailableNBADStages[:5]
+    for stage in AvailableNBADStages[:5]:
         df[(stage,)] = all_frames[(stage,)]
     if return_df:
         return df
 
     fig = make_subplots(
         rows=1,
-        cols=len(NBADStages_FilterView),
-        specs=[[{"type": "domain"}] * len(NBADStages_FilterView)],
-        subplot_titles=[NBADStages_Mapping[v] for v in NBADStages_FilterView],
+        cols=len(AvailableNBADStages),
+        specs=[[{"type": "domain"}] * len(AvailableNBADStages)],
+        subplot_titles=AvailableNBADStages,
         horizontal_spacing=0.1,
     )
 
-    for i, stage in enumerate(NBADStages_FilterView):
+    for i, stage in enumerate(AvailableNBADStages):
         plotdf = df[(stage,)].drop(level)
         fig.add_trace(
             go.Pie(

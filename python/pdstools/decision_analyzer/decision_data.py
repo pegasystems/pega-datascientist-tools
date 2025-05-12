@@ -100,16 +100,9 @@ class DecisionAnalyzer:
 
             self.NBADStages_FilterView = self.AvailableNBADStages
             self.NBADStages_RemainingView = self.AvailableNBADStages
-            self.NBADStages_Mapping = {
-                "Arbitration": "Arbitration"
-            }  # doesn't it have "Final" implicitly? for rank 1 or other threshold that user can define
 
-        # TODO: subset this against the stages that are actually available in the data. This can be less
-        # or more. There is work for dev in DSM and NBAD to tag the various stages. This should probably
-        # start with a superset in the right order.
         # TODO: support human-friendly names, to show "Final" as "Presented" for example
         elif self.extract_type == "decision_analyzer":
-            # self.AvailableNBADStages = list(audit_tag_mapping.keys())
             stage_df = (
                 self.unfiltered_raw_decision_data.group_by(self.level)
                 .agg(pl.min("StageOrder"))
@@ -124,19 +117,6 @@ class DecisionAnalyzer:
             stage_df = stage_df.sort("StageOrder")
             self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
-            # self.NBADStages_RemainingView = list(
-            #     map(lambda x: "After " + x, self.AvailableNBADStages)
-            # )
-            self.NBADStages_RemainingView = list(
-                map(lambda x: x, self.AvailableNBADStages)
-            )
-
-            self.NBADStages_FilterView = self.AvailableNBADStages
-            self.NBADStages_Mapping = {
-                j: self.NBADStages_RemainingView[i]
-                for (i, j) in enumerate(self.NBADStages_FilterView)
-            }
-
         self.plot = Plot(self)
 
     @cached_property
@@ -146,9 +126,7 @@ class DecisionAnalyzer:
         will just be [Arbitration, Final] but as we get more stages in there
         may be more here.
         """
-        return self.NBADStages_FilterView[
-            self.NBADStages_FilterView.index("Arbitration") :
-        ]
+        return self.AvailableNBADStages[self.AvailableNBADStages.index("Arbitration") :]
 
     @cached_property
     def arbitration_stage(self):
@@ -347,7 +325,7 @@ class DecisionAnalyzer:
         return options
 
     def getPossibleStageValues(self):
-        options = self.NBADStages_FilterView
+        options = self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
         # [
         #     stage
@@ -751,7 +729,7 @@ class DecisionAnalyzer:
         stage_orders = (
             df.group_by(self.level)
             .agg(pl.min("StageOrder"))
-            .with_columns(pl.col(self.level).cast(pl.Enum(self.NBADStages_FilterView)))
+            .with_columns(pl.col(self.level).cast(pl.Enum(self.AvailableNBADStages)))
         )
 
         # Get aggregates for existing stages as before
@@ -765,9 +743,9 @@ class DecisionAnalyzer:
 
         aggs = {
             stage: aggregate_over_remaining_stages(
-                df, stage, self.NBADStages_FilterView[i:]
+                df, stage, self.AvailableNBADStages[i:]
             )
-            for (i, stage) in enumerate(self.NBADStages_FilterView)
+            for (i, stage) in enumerate(self.AvailableNBADStages)
         }
         remaining_view = (
             pl.concat(aggs.values())
@@ -799,10 +777,10 @@ class DecisionAnalyzer:
             Value Finder style, available action counts per group_by category
         """
         dfs = []
-        for i, stage in enumerate(self.NBADStages_FilterView):
+        for i, stage in enumerate(self.AvailableNBADStages):
             stage_df = (
                 # TODO refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
-                df.filter(pl.col(self.level).is_in(self.NBADStages_FilterView[i:]))
+                df.filter(pl.col(self.level).is_in(self.AvailableNBADStages[i:]))
                 .group_by(group_by)
                 .agg(
                     pl.sum(

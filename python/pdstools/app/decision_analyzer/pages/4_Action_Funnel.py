@@ -99,7 +99,6 @@ with st.container(border=True):
         remanining_funnel, filtered_funnel = (
             st.session_state.decision_data.plot.decision_funnel(
                 scope=st.session_state.scope,
-                NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
                 additional_filters=st.session_state["local_filters"],
             )
         )

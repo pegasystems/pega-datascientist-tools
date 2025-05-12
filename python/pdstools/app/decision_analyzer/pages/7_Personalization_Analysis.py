@@ -67,9 +67,6 @@ with st.container(border=True):
         "Select Stage",
         options=stage_options,
         index=stage_index,
-        format_func=lambda option: st.session_state.decision_data.NBADStages_Mapping[
-            option
-        ],
         key="optionality_stage",
     )
 
@@ -103,7 +100,6 @@ optionality_data_with_trend_per_stage = (
 
 fig, warning = st.session_state.decision_data.plot.optionality_trend(
     optionality_data_with_trend_per_stage,
-    NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
 )
 if warning is not None:
     st.warning(warning)
