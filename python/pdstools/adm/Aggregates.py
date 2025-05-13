@@ -357,7 +357,7 @@ class Aggregates:
         if self.datamart.model_data is None:
             raise ValueError("Model summaries needs model data")
 
-        model_data = cdh_utils._apply_query(self.datamart.model_data, query=query)
+        model_data = cdh_utils._apply_query(self.datamart.model_data, query=query, allow_empty=True)
         grouping = []
 
         if by_period:
@@ -725,7 +725,7 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
         """
 
-        start_date, end_date = cdh_utils.get_start_end_date_args(
+        start_date, end_date = cdh_utils._get_start_end_date_args(
             self.datamart.model_data, start_date, end_date, window
         )
 
@@ -1043,7 +1043,7 @@ class Aggregates:
             Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
         """
 
-        start_date, end_date = cdh_utils.get_start_end_date_args(
+        start_date, end_date = cdh_utils._get_start_end_date_args(
             self.datamart.model_data, start_date, end_date, window
         )
 
@@ -1088,8 +1088,6 @@ class Aggregates:
             .collect()
             .lazy()
         )
-
-        # print(best_worst_channel_summary.collect())
 
         if by_period is None:
             return (

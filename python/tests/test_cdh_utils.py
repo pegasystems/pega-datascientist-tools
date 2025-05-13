@@ -392,13 +392,17 @@ def test_log_odds():
 
     output_polars_python = input.with_columns(
         LogOdds=pl.map_batches(
-                exprs=["Positives", pl.col("ResponseCount") - pl.col("Positives")],
-                function=lambda data: cdh_utils.bin_log_odds(data[0], data[1]),
-                return_dtype=pl.Float64,  # pl.List(pl.Float64),
-            ).explode().round(5),
+            exprs=["Positives", pl.col("ResponseCount") - pl.col("Positives")],
+            function=lambda data: cdh_utils.bin_log_odds(data[0], data[1]),
+            return_dtype=pl.Float64,  # pl.List(pl.Float64),
+        )
+        .explode()
+        .round(5),
     )
 
-    log_odds_expected_results = [round(x,5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]]
+    log_odds_expected_results = [
+        round(x, 5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]
+    ]
 
     expected_output = input.with_columns(
         pl.Series(name="LogOdds", values=log_odds_expected_results)
@@ -753,3 +757,38 @@ def test_extract_keys():
         "Customer": [None, "Anonymous", "Known", "Known", None, None],
         "Customer_2": [None, None, None, None, "Known", None],
     }
+
+
+# "%Y-%m-%d %H:%M:%S"
+#     - "%Y%m%dT%H%M%S.%f %Z"
+#     - "%d-%b-%y"
+#     - "%d%b%Y:%H:%M:%S"
+#     - "%Y%m%d"
+
+
+def test_parse_pega_date_time_formats():
+    df = pl.DataFrame(
+        {
+            "Snappy": [
+                "2020-01-01 15:05:03",
+                "20241201T150503.847 GMT",
+                # "31-Mar-23", # should work?! polars panics
+                "31032023:15:05:03",
+                "20180316T134127.847345",
+                "20180316T134127.8",
+                "20180316T134127",
+                "20241201",
+            ]
+        }
+    ).with_columns(
+        cdh_utils.parse_pega_date_time_formats("Snappy").alias("SnapshotTime"),
+        cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_dtype=pl.Date).alias("SnapshotDate"),
+        cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_fmt="%d%m%Y:%H:%M:%S").alias("SnapshotTime2"),
+    )
+
+    assert df.schema['SnapshotTime'] == pl.Datetime
+    assert df.schema['SnapshotDate'] == pl.Date
+    assert df['SnapshotTime'].to_list()[2] is None
+    assert df.select(pl.col('SnapshotTime').is_not_null().sum()).item() == 6
+    assert df['SnapshotTime2'].to_list()[2] is not None
+    assert df.select(pl.col('SnapshotTime2').is_not_null().sum()).item() == 7

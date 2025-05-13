@@ -247,10 +247,6 @@ class Prediction:
             (
                 df.filter(pl.col.pyModelType == "PREDICTION")
                 .with_columns(
-                    # Unlike ADM we only support one pattern currently
-                    SnapshotTime=pl.col("pySnapShotTime")
-                    .str.slice(0, 8)
-                    .str.strptime(pl.Date, "%Y%m%d"),
                     Performance=pl.col("pyValue").cast(pl.Float32),
                 )
                 .rename(
@@ -264,6 +260,13 @@ class Prediction:
             # collect/lazy hopefully helps to zoom in into issues
             .collect().lazy()
         )
+        schema = predictions_raw_data_prepped.collect_schema()
+        if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
+            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
+                SnapshotTime=cdh_utils.parse_pega_date_time_formats(
+                    "pySnapShotTime", timestamp_dtype=pl.Date
+                )
+            )
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
@@ -325,6 +328,66 @@ class Prediction:
         )
 
         self.predictions = cdh_utils._apply_query(self.predictions, query)
+
+    @classmethod
+    def from_pdc(cls, df: pl.LazyFrame):
+        pdc_data = cdh_utils._read_pdc(df)
+
+        snapshotType = "Daily"
+        prediction_data = (
+            pdc_data.filter(pl.col("ModelType").str.starts_with("Prediction"))
+            .filter(pl.col("Name") == "auc")
+            .with_columns(
+                pyModelId=pl.format("{}!{}", pl.col("ModelClass"), pl.col("ModelName")),
+                # pyUnscaledPerformance=(pl.col("Performance").cast(pl.Float64) / 100), # not unscaled, it's not 'flipped' so can be < 50
+                pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
+                pyModelType=pl.lit("PREDICTION"),
+                pysnapshotday=pl.col("SnapshotTime").str.slice(0, 8),
+                pySnapshotType=pl.lit(snapshotType),
+            )
+            .rename(
+                {
+                    "SnapshotTime": "pySnapShotTime",
+                    "Positives": "pyPositives",
+                    "Negatives": "pyNegatives",
+                    "ResponseCount": "pyCount",
+                    "Name": "pyName",
+                    "Performance": "pyValue",
+                }
+            )
+            .cast(
+                {
+                    "pyNegatives": pl.Float64,
+                    "pyPositives": pl.Float64,
+                    "pyCount": pl.Float64,
+                }
+            )
+            .drop(
+                [
+                    "ModelClass",
+                    "ModelID",
+                    "ModelName",
+                    "ModelType",
+                    "ADMModelType",
+                    "TotalPositives",
+                    "TotalResponses",
+                ]
+                + [
+                    c
+                    for c in [
+                        "pxObjClass",
+                        "pzInsKey",
+                        "Channel",
+                        "Direction",
+                        "Issue",
+                        "Group",
+                    ]
+                    if c in pdc_data.collect_schema().names()
+                ]
+            )
+        )
+
+        return Prediction(prediction_data)
 
     @staticmethod
     def from_mock_data(days=70):
@@ -507,12 +570,14 @@ class Prediction:
         if not custom_predictions:
             custom_predictions = []
 
-        start_date, end_date = cdh_utils.get_start_end_date_args(
+        start_date, end_date = cdh_utils._get_start_end_date_args(
             self.predictions, start_date, end_date, window
         )
 
         query = pl.col("SnapshotTime").is_between(start_date, end_date)
-        prediction_data = cdh_utils._apply_query(self.predictions, query=query, allow_empty=True)
+        prediction_data = cdh_utils._apply_query(
+            self.predictions, query=query, allow_empty=True
+        )
 
         if by_period is not None:
             period_expr = [
