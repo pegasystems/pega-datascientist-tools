@@ -425,6 +425,8 @@ class ADMDatamart:
         )
         if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
+        else:
+            df = df.with_columns(pl.col("SnapshotTime").cast(pl.Datetime))
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
