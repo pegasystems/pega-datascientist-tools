@@ -261,17 +261,12 @@ class Prediction:
             .collect().lazy()
         )
         schema = predictions_raw_data_prepped.collect_schema()
-        print(schema)
         if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
                 SnapshotTime=cdh_utils.parse_pega_date_time_formats(
-                    "pySnapShotTime"
-                ).cast(pl.Date)
+                    "pySnapShotTime", timestamp_dtype=pl.Date
+                )
             )
-        # else:
-        #     predictions_raw_data_prepped = predictions_raw_data_prepped.rename({"pySnapShotTime": "SnapshotTime"})
-        print(predictions_raw_data_prepped.collect_schema())
-        print(predictions_raw_data_prepped.collect())
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
@@ -391,13 +386,6 @@ class Prediction:
                 ]
             )
         )
-        # Bit of a hack - PDS tools ADMDatamart expects a string as that is the
-        # type in the PRPC tables, but in the S3 caching we store snapshottime as
-        # a date for size. Here we cast it back to a string if that's the case.
-        if prediction_data.collect_schema().get("pySnapShotTime").is_temporal():
-            prediction_data = prediction_data.with_columns(
-                pySnapShotTime=pl.col("pySnapShotTime").dt.strftime("%Y%m%d")
-            )
 
         return Prediction(prediction_data)
 

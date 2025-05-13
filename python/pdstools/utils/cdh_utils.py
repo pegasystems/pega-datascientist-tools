@@ -24,7 +24,7 @@ from typing import (
 )
 
 import polars as pl
-
+from polars._typing import PolarsTemporalType
 from .types import QUERY
 
 F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
@@ -227,6 +227,7 @@ def _extract_keys(
 def parse_pega_date_time_formats(
     timestamp_col="SnapshotTime",
     timestamp_fmt: Optional[str] = None,
+    timestamp_dtype: Optional[PolarsTemporalType] = pl.Datetime,
 ):
     """Parses Pega DateTime formats.
 
@@ -240,7 +241,7 @@ def parse_pega_date_time_formats(
 
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
 
-    In the implementation, the third expression uses timestamp_fmt or %Y.
+    In the implementation, the last expression uses timestamp_fmt or %Y.
     This is a bit of a hack, because if we pass None, it tries to infer automatically.
     Inferring raises when it can't find an appropriate format, so that's not good.
 
@@ -250,32 +251,37 @@ def parse_pega_date_time_formats(
         The column to parse
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
+    timestamp_dtype: PolarsTemporalType, default = pl.Datetime
+        The data type to convert into. Can be either Date, Datetime, or Time.
     """
 
-    return (
+    result = (
         pl.coalesce(
-            pl.col(timestamp_col).str.to_datetime(
-                "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.strptime(
+                timestamp_dtype, "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
             ),
-            pl.col(timestamp_col).str.to_datetime(
-                "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.strptime(
+                timestamp_dtype, "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
             ),
-            pl.col(timestamp_col).str.to_datetime(
-                "%d-%b-%y", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.strptime(
+                timestamp_dtype, "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
             ),
-            pl.col(timestamp_col).str.to_datetime(
-                "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.slice(0, 8).str.strptime(
+                timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"
             ),
-            pl.col(timestamp_col).str.slice(0, 8).str.to_datetime(
-                "%Y%m%d", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.strptime(
+                timestamp_dtype, "%d-%b-%y", strict=False, ambiguous="null"
             ),
-            pl.col(timestamp_col).str.to_datetime(
-                timestamp_fmt or "%Y", strict=False, ambiguous="null"
+            pl.col(timestamp_col).str.strptime(
+                timestamp_dtype, timestamp_fmt or "%Y", strict=False, ambiguous="null"
             ),
         )
-        .dt.replace_time_zone(None)
-        .dt.cast_time_unit("ns")
     )
+
+    if (timestamp_dtype != pl.Date):
+        result = result.dt.replace_time_zone(None).dt.cast_time_unit("ns")
+
+    return result
 
 
 def safe_range_auc(auc: float) -> float:
