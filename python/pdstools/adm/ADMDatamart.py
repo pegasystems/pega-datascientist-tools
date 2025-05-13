@@ -34,7 +34,7 @@ class ADMDatamart:
 
     To initialize this class, either
     1. Initialize directly with the model_df and predictor_df polars LazyFrames
-    2. Use one of the class methods: `from_ds_export`, `from_s3` or `from_dataflow_export`
+    2. Use one of the class methods: `from_ds_export`, `from_s3`, `from_dataflow_export` etc.
 
     This class will read in the data from different sources, properly structure them
     from further analysis, and apply correct typing and useful renaming.
@@ -314,6 +314,85 @@ class ADMDatamart:
             extract_pyname_keys=extract_pyname_keys,
         )
 
+    @classmethod
+    def from_pdc(cls, df: pl.LazyFrame):
+        pdc_data = cdh_utils._read_pdc(df)
+
+        adm_data = (
+            pdc_data.filter(pl.col("ModelType") == "AdaptiveModel")
+            .with_columns(
+                pl.col("Performance").cast(pl.Float32),
+                # pl.col("Positives").cast(pl.Float32),
+                pl.col("Negatives").cast(pl.Float32),
+                pl.col("TotalPositives").cast(pl.Float32),
+                pl.col("TotalResponses").cast(pl.Float32),
+                # pl.col("ResponseCount").cast(pl.Float32),
+                pyTotalPredictors=pl.lit(None),
+                pyActivePredictors=pl.lit(None),
+                # CTR=(pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives"))),
+                # ElapsedDays=(pl.col("Day").max() - pl.col("Day")).dt.total_days(),
+                # see US-648869 and related items on the model technique
+                pyModelTechnique=pl.when(pl.col("ADMModelType") == "GRADIENT_BOOST")
+                .then(pl.lit("GradientBoost"))
+                .otherwise(pl.lit("NaiveBayes")),
+            )
+            .rename(
+                {
+                    "ModelClass": "pyAppliesToClass",
+                    "ModelID": "pyModelID",
+                    "ModelName": "pyConfigurationName",
+                    "Negatives": "pyNegatives",
+                    "TotalPositives": "pyPositives",
+                    "TotalResponses": "pyResponseCount",
+                    "SnapshotTime": "pySnapshotTime",
+                    "Performance": "pyPerformance",
+                }
+            )
+            .with_columns(
+                [
+                    (
+                        pl.col(c).alias(f"py{c}")
+                        if c in pdc_data.collect_schema().names()
+                        else pl.lit("").alias(f"py{c}")
+                    )
+                    for c in [
+                        "Channel",
+                        "Direction",
+                        "Issue",
+                        "Group",
+                        "Name",
+                        "Treatment",
+                    ]
+                ]
+            )
+            .drop(
+                [
+                    # "TotalResponses",
+                    # "TotalPositives",
+                    "ResponseCount",
+                    "Positives",
+                    "ModelType",
+                    "ADMModelType",
+                ]
+                + [
+                    c
+                    for c in [
+                        "pxObjClass",
+                        "pzInsKey",
+                        "Channel",
+                        "Direction",
+                        "Issue",
+                        "Group",
+                        "Name",
+                        "Treatment",
+                    ]
+                    if c in pdc_data.collect_schema().names()
+                ]
+            )
+        )
+
+        return ADMDatamart(model_df=adm_data, extract_pyname_keys=True)
+
     def _validate_model_data(
         self,
         df: Optional[pl.LazyFrame],
@@ -344,9 +423,7 @@ class ADMDatamart:
                 pl.lit(0)
             ),
         )
-        # TODO it could be just a date, in that case we can just cast
-        # Also, rather than not datetime, we probably want is categorical/string
-        if not isinstance(schema["SnapshotTime"], pl.Datetime):
+        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
@@ -374,6 +451,8 @@ class ADMDatamart:
                 / (pl.col("BinResponseCount") + pl.lit(1))
             ),
         )
+        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+            df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         if "PredictorCategory" not in schema.names():
             df = self.apply_predictor_categorization(df)

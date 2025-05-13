@@ -187,3 +187,6 @@ class CDHGuidelines:
         df.columns = _NBAD_Prediction_header
 
         return df
+
+    def get_all_limits(self) -> pl.DataFrame:
+        return _pega_cloud_limits

@@ -57,6 +57,7 @@ def preds_fewdays():
 
 
 def test_available(preds_singleday):
+    print(preds_singleday.predictions.collect())
     assert preds_singleday.is_available
     assert preds_singleday.is_valid
 

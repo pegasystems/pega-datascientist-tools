@@ -235,6 +235,8 @@ def parse_pega_date_time_formats(
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
     - "%d-%b-%y"
+    - "%d%b%Y:%H:%M:%S"
+    - "%Y%m%d"
 
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
 
@@ -263,6 +265,9 @@ def parse_pega_date_time_formats(
             ),
             pl.col(timestamp_col).str.to_datetime(
                 "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.slice(0, 8).str.to_datetime(
+                "%Y%m%d", strict=False, ambiguous="null"
             ),
             pl.col(timestamp_col).str.to_datetime(
                 timestamp_fmt or "%Y", strict=False, ambiguous="null"
@@ -1215,7 +1220,7 @@ def safe_flatten_list(alist: List) -> List:
     return unique_alist if len(unique_alist) > 0 else None
 
 
-def get_start_end_date_args(
+def _get_start_end_date_args(
     data: Union[pl.Series, pl.LazyFrame, pl.DataFrame],
     start_date: Optional[datetime.datetime] = None,
     end_date: Optional[datetime.datetime] = None,
@@ -1261,3 +1266,46 @@ def get_start_end_date_args(
         )
 
     return start_date, end_date
+
+
+# Reads PDC data. TODO: generalize the arg to be a File, string, or LazyFrame etc.
+def _read_pdc(pdc_data: pl.LazyFrame):
+    required_cols = set(
+        [
+            "ModelType",
+            "ModelClass",
+            "ModelName",
+            "ModelID",
+            "Performance",
+            "Name",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+            "TotalPositives",
+            "TotalResponses",
+        ]
+    )
+    optional_cols = set(
+        [
+            "Channel",
+            "Direction",
+            "Name",
+            "Group",
+            "Issue",
+            "ADMModelType",  # introduced later see US-648869
+        ]
+    )
+
+    df_cols = set(pdc_data.collect_schema().names())
+    if not required_cols.issubset(df_cols):
+        raise ValueError(
+            f"Required columns missing: {required_cols.difference(df_cols)}"
+        )
+    pdc_data = pdc_data.select(
+        required_cols.union(optional_cols.intersection(df_cols))
+    )
+    if "ADMModelType" not in df_cols:
+        pdc_data = pdc_data.with_columns(ADMModelType = pl.lit(None))
+
+    return pdc_data
