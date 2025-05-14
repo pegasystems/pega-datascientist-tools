@@ -267,6 +267,10 @@ class Prediction:
                     "pySnapShotTime", timestamp_dtype=pl.Date
                 )
             )
+        else:
+            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
+                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date)
+            )
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
@@ -342,7 +346,7 @@ class Prediction:
                 # pyUnscaledPerformance=(pl.col("Performance").cast(pl.Float64) / 100), # not unscaled, it's not 'flipped' so can be < 50
                 pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
                 pyModelType=pl.lit("PREDICTION"),
-                pysnapshotday=pl.col("SnapshotTime").str.slice(0, 8),
+                # pysnapshotday=pl.col("SnapshotTime").str.slice(0, 8), # I don't think we need that. If we do, be careful that SnapshotTime can be a parsed datetime already.
                 pySnapshotType=pl.lit(snapshotType),
             )
             .rename(

@@ -772,12 +772,13 @@ def test_parse_pega_date_time_formats():
             "Snappy": [
                 "2020-01-01 15:05:03",
                 "20241201T150503.847 GMT",
-                # "31-Mar-23", # should work?! polars panics
+                # "31-Mar-23", # should work?! or give null. polars panics in 1.28
                 "31032023:15:05:03",
                 "20180316T134127.847345",
                 "20180316T134127.8",
                 "20180316T134127",
                 "20241201",
+                # "09MAY2025:06:00:05" # Polars panics. Invariant when calling StrpTimeState.parse was not upheld. https://github.com/pola-rs/polars/issues/22495
             ]
         }
     ).with_columns(
