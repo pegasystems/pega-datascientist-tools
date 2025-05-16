@@ -92,6 +92,7 @@ class BaseClient(Generic[_HttpxClientT]):
         self,
         method,
         endpoint: str,
+        headers: Union[httpx.Headers, None] = None,
         data: Union[httpx._types.RequestData, None] = None,
         **params,
     ) -> httpx.Request:
@@ -99,6 +100,7 @@ class BaseClient(Generic[_HttpxClientT]):
             method,
             url=self._base_url.join(endpoint),
             content=json.dumps(data) if data else None,
+            headers=headers,
             params=params,
         )
 
@@ -298,10 +300,16 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             return response
 
     def patch(
-        self, endpoint, data: Union[httpx._types.RequestData, None] = None, **params
+        self,
+        endpoint,
+        data: Union[httpx._types.RequestData, None] = None,
+        headers: Union[httpx.Headers, None] = None,
+        **params,
     ):
         logger.info((self._base_url, endpoint))
-        response = self._request(method="patch", endpoint=endpoint, data=data, **params)
+        response = self._request(
+            method="patch", endpoint=endpoint, data=data, headers=headers, **params
+        )
         if response.status_code != 200:
             raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
