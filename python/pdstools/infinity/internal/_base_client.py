@@ -92,7 +92,7 @@ class BaseClient(Generic[_HttpxClientT]):
         self,
         method,
         endpoint: str,
-        headers: Union[httpx.Headers, None] = None,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
         data: Union[httpx._types.RequestData, None] = None,
         **params,
     ) -> httpx.Request:
@@ -247,10 +247,13 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         method,
         endpoint,
         data: Union[httpx._types.RequestData, None] = None,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
         # cast_to: Type[ResponseT], #TODO(someday): implement casting of responses
         **params,
     ) -> httpx.Response:
-        request = self._build_request(method, endpoint, data=data, **params)
+        request = self._build_request(
+            method, endpoint, data=data, headers=headers, **params
+        )
         try:
             response = self._client.send(request)
         except httpx.TimeoutException as err:
@@ -274,10 +277,17 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         if method.lower() == "get":
             return self.get(endpoint=endpoint, **params)
 
-    def get(self, endpoint: str, **params):
+    def get(
+        self,
+        endpoint: str,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
+        **params,
+    ):
         logger.info((self._base_url, endpoint, params))
 
-        response = self._request(method="get", endpoint=endpoint, **params)
+        response = self._request(
+            method="get", endpoint=endpoint, headers=headers, **params
+        )
 
         if response.status_code != 200:
             raise self.handle_pega_exception(endpoint, params, response)
@@ -287,10 +297,13 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         endpoint: str,
         data: Union[httpx._types.RequestData, None] = None,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
-        response = self._request(method="post", endpoint=endpoint, data=data, **params)
+        response = self._request(
+            method="post", endpoint=endpoint, headers=headers, data=data, **params
+        )
         if response.status_code not in (200, 201, 202):
             raise self.handle_pega_exception(endpoint, params, response)
 
@@ -303,7 +316,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         endpoint,
         data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx.Headers, None] = None,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -315,10 +328,16 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         return response.json()
 
     def put(
-        self, endpoint, data: Union[httpx._types.RequestData, None] = None, **params
+        self,
+        endpoint,
+        data: Union[httpx._types.RequestData, None] = None,
+        headers: Union[httpx._types.HeaderTypes, None] = None,
+        **params,
     ):
         logger.info((self._base_url, endpoint))
-        response = self._request(method="put", endpoint=endpoint, data=data, **params)
+        response = self._request(
+            method="put", endpoint=endpoint, data=data, headers=headers, **params
+        )
         if response.status_code != 200:
             raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
