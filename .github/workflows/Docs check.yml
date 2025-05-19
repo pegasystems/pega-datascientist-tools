@@ -5,6 +5,9 @@ on:
     paths:
       - python/**
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
@@ -19,7 +22,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.13
 
       - name: Enable caching
         uses: astral-sh/setup-uv@v3
