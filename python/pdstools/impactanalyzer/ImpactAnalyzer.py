@@ -6,15 +6,18 @@ import json
 import polars as pl
 import polars.selectors as cs
 
+from .Plots import Plots
 from ..utils.cdh_utils import _polars_capitalize, _apply_query
 from ..utils.types import QUERY
 from ..pega_io.File import read_ds_export
 
 
 class ImpactAnalyzer:
-    ia_data: pl.DataFrame
+    # Raw dq
+    ia_data: pl.LazyFrame
 
     def __init__(self, raw_data: pl.LazyFrame):
+        self.plot = Plots(ia=self)
 
         # Column names may be PDC specific, we should be changing once w got more sources going
 
@@ -44,47 +47,20 @@ class ImpactAnalyzer:
                 ]
             )
             .rename(lambda x: x.removesuffix("_Control"))
+            .with_columns(Reference=pl.lit(False))
         )
 
         ia_metrics_data = (
             pl.concat([nba_data, other_data], how="diagonal_relaxed")
             # date trunc would happen here, with a simple agg on impression, accepts and actionvalueperimp
-            .sort(["SnapshotTime", "ChannelName", "ExperimentName"])
-            .with_columns(
-                CTR=pl.col("Accepts") / pl.col("Impressions"),
-            )
-            # .with_columns(
-            #     pl.repeat(pl.col("CTR").top_k_by("Reference", k=1), pl.len())
-            #     .over(["ChannelName", "SnapshotTime"])
-            #     .alias("CTR_Reference"),
-            #     # pl.repeat(
-            #     #     pl.col("ActionValuePerImp").top_k_by("Reference", k=1), pl.len()
-            #     # )
-            #     # .over(["ChannelName", "SnapshotTime"])
-            #     # .alias("ActionValuePerImp_Reference"),
-            # )
-            # .with_columns(
-            #     CTR_Lift=(pl.col("CTR_Reference") - pl.col("CTR")) / pl.col("CTR"),
-            #     Value_Lift=(
-            #         pl.col("ActionValuePerImp_Reference") - pl.col("ActionValuePerImp")
-            #     )
-            #     / pl.col("ActionValuePerImp"),
-            #     # TODO confidence intervals and significance
-            # )
-            .drop(cs.ends_with("_Reference"))
-            .rename({"ChannelName": "Channel"})
+            .sort(
+                ["SnapshotTime", "ChannelName", "ExperimentName", "Reference"]
+            ).rename({"ChannelName": "Channel"})
         )
-        ia_metrics_data
 
         # self.data = _polars_capitalize(data)
         # Initialize impact_data with the required fields
         self.ia_data = ia_metrics_data
-        # self.impact_data = pl.DataFrame({
-        #     "positives": [0],
-        #     "negatives": [0],
-        #     "total_value": [0.0],
-        #     "experiment_type": [""]
-        # })
 
     @classmethod
     def from_pdc(
@@ -159,3 +135,30 @@ class ImpactAnalyzer:
                 .drop(["LastDataReceived", "AggregationFrequency"])
                 .sort(["SnapshotTime", "ChannelName", "ExperimentName"])
             )
+
+    def _summarize(self, by: List[str]):
+        return (
+            self.ia_data.sort("ExperimentName", "Reference")
+            .group_by(by + ["ExperimentName", "Reference"], maintain_order=True)
+            .agg(
+                CTR=pl.sum("Accepts") / pl.sum("Impressions"),
+                ActionValuePerImp=pl.sum("ActionValuePerImp") / pl.sum("Impressions"),
+            )
+            .with_columns(
+                pl.repeat(pl.col("CTR").first(), pl.len())
+                .over(None if by == [] else by)
+                .alias("CTR_Reference"),
+                pl.repeat(pl.col("ActionValuePerImp").first(), pl.len())
+                .over(None if by == [] else by)
+                .alias("ActionValuePerImp_Reference"),
+            )
+            .with_columns(
+                CTR_Lift=(pl.col("CTR") - pl.col("CTR_Reference")) / pl.col("CTR"),
+                Value_Lift=(
+                    pl.col("ActionValuePerImp") - pl.col("ActionValuePerImp_Reference")
+                )
+                / pl.col("ActionValuePerImp"),
+                # TODO confidence intervals and significance
+            )
+            # .drop(cs.ends_with("_Reference"))
+        )
