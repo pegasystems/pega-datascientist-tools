@@ -27,7 +27,10 @@ def test_from_pdc():
     collected_data = analyzer.ia_data.collect()
     assert collected_data.height > 0
     assert "ExperimentName" in collected_data.columns
-    assert "CTR" in collected_data.columns
-    # assert "CTR_Lift" in collected_data.columns
-    # assert "Value_Lift" in collected_data.columns
+
+    # Verify summarizations
+    agg = analyzer._summarize(by=[]).collect()
+    assert "CTR" in agg.columns
+    assert "CTR_Lift" in agg.columns
+    assert "Value_Lift" in agg.columns
 

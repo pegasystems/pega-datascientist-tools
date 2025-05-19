@@ -160,5 +160,5 @@ class ImpactAnalyzer:
                 / pl.col("ActionValuePerImp"),
                 # TODO confidence intervals and significance
             )
-            # .drop(cs.ends_with("_Reference"))
+            .drop(cs.ends_with("_Reference"))
         )
