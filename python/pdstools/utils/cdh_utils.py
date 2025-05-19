@@ -1257,12 +1257,14 @@ def _get_start_end_date_args(
         if window is None or start_date is None:
             end_date = data_max_date
         else:
-            end_date = start_date + window - datetime.timedelta(days=1)
+            if start_date:
+                end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
         if window is None:
             start_date = data_min_date
         else:
-            start_date = end_date - window + datetime.timedelta(days=1)
+            if end_date:
+                start_date = end_date - window + datetime.timedelta(days=1)
 
     # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
 
