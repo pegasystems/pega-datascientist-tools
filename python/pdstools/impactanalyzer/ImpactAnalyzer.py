@@ -163,9 +163,14 @@ class ImpactAnalyzer:
 
         return ImpactAnalyzer(df)
 
+    # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self):
         return self._summarize(by=["Channel"])
-    
+
+    # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
+    def overall_summary(self):
+        return self._summarize(by=[])
+
     def _summarize(self, by: List[str]):
         return (
             self.ia_data.sort(by + ["Experiment"])
@@ -185,4 +190,4 @@ class ImpactAnalyzer:
                 / pl.col("ActionValuePerImp"),
                 # TODO confidence intervals and significance
             )
-        )
+        ).select(by + ["Experiment", "CTR", "CTR_Lift", "Value_Lift"])
