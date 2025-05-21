@@ -14,12 +14,34 @@ from ..pega_io.File import read_ds_export
 
 class ImpactAnalyzer:
     ia_data: pl.LazyFrame
+    standard_IA_experiment_names = [
+        "LeverPriority",
+        "NBAPrioritization",
+        "ModelControl",
+        "PropensityPriority",
+        "EngagementPolicy",
+    ]
 
     def __init__(self, raw_data: pl.LazyFrame):
         self.plot = Plots(ia=self)
 
-        # print(raw_data.head(6).collect())
-        # Column names may be PDC specific, we should be changing once w got more sources going
+        # Column names may still be PDC specific, we should be changing once w got more sources going
+
+        required_cols = [
+            "SnapshotTime",
+            "ExperimentName",
+            "IsActive",
+            "ChannelName",
+            "Impressions_NBA",
+            "Impressions_Control",
+            "Accepts_NBA",
+            "Accepts_Control",
+            "ActionValuePerImp_NBA",
+            "ActionValuePerImp_Control",
+        ]
+        missing_cols = set(required_cols).difference(raw_data.collect_schema().names())
+        if len(missing_cols) > 0:
+            raise ValueError(f"Missing required inputs: {missing_cols}")
 
         nba_data = (
             raw_data.filter(pl.col("IsActive"))
@@ -60,6 +82,7 @@ class ImpactAnalyzer:
             pl.concat([nba_data, other_data], how="diagonal_relaxed")
             .sort("SnapshotTime", "ChannelName", "ExperimentName")
             .rename({"ChannelName": "Channel", "ExperimentName": "Experiment"})
+            .with_columns(pl.col("Experiment").str.strip_prefix("NBAHealth_"))
         )
 
     @classmethod
@@ -122,7 +145,7 @@ class ImpactAnalyzer:
         df = (
             wide_data.select(
                 [
-                    "SnapshotTime",  # will be overwritten but nicely at the front
+                    "SnapshotTime",
                     "ExperimentName",
                     "IsActive",
                     "LastDataReceived",
@@ -165,11 +188,37 @@ class ImpactAnalyzer:
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self):
-        return self._summarize(by=["Channel"])
+        summ = (
+            self._summarize(by=["Channel"])
+            .collect()
+            .pivot(on="Experiment", values="CTR_Lift", index="Channel")
+            .drop("NBA")
+        )
+        for col in self.standard_IA_experiment_names:
+            if not col in summ.collect_schema().names():
+                summ = summ.with_columns(pl.lit(None).cast(pl.Float64).alias(col))
+
+        summ = summ.select(
+            "Channel", pl.exclude("Channel").name.prefix("EngagementLift_")
+        )
+        return summ.select(sorted(summ.collect_schema().names())).lazy()
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def overall_summary(self):
-        return self._summarize(by=[])
+        summ = (
+            self._summarize(by=[])
+            .with_columns(Dummy=None)
+            .collect()
+            .pivot(on="Experiment", values="CTR_Lift", index="Dummy")
+            .drop("Dummy", "NBA")
+        )
+
+        for col in self.standard_IA_experiment_names:
+            if not col in summ.collect_schema().names():
+                summ = summ.with_columns(pl.lit(None).cast(pl.Float64).alias(col))
+
+        summ = summ.select(pl.all().name.prefix("EngagementLift_"))
+        return summ.select(sorted(summ.collect_schema().names())).lazy()
 
     def _summarize(self, by: List[str]):
         return (

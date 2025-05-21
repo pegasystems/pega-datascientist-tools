@@ -40,7 +40,7 @@ class Plots(LazyNamespace):
         if by is None:
             by = []
 
-        plot_data = self.ia._summarize(by)
+        plot_data = self.ia._summarize(by).filter(pl.col("Experiment") != "NBA")
 
         if return_df:
             return plot_data
@@ -50,7 +50,7 @@ class Plots(LazyNamespace):
 
         # todo add some faceting if by != None
         fig = px.bar(
-            plot_data.filter(pl.col("Reference").not_()).collect(),
+            plot_data.collect(),
             y="Experiment",
             x="CTR_Lift",
             template="pega",
@@ -73,7 +73,7 @@ class Plots(LazyNamespace):
         if by is None:
             by = ["SnapshotTime"] # todo or perhaps + Channel, if so use for faceting maybe
 
-        plot_data = self.ia._summarize(by)
+        plot_data = self.ia._summarize(by).filter(pl.col("Experiment") != "NBA")
 
         if return_df:
             return plot_data
@@ -82,7 +82,7 @@ class Plots(LazyNamespace):
             title = "Overview"
 
         fig = px.line(
-            plot_data.filter(pl.col("Reference").not_()).collect(),
+            plot_data.collect(),
             y="CTR_Lift",
             x="SnapshotTime",
             color="Experiment",
