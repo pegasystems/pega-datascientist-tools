@@ -51,7 +51,7 @@ class Plots(LazyNamespace):
         # todo add some faceting if by != None
         fig = px.bar(
             plot_data.filter(pl.col("Reference").not_()).collect(),
-            y="ExperimentName",
+            y="Experiment",
             x="CTR_Lift",
             template="pega",
         )
@@ -85,7 +85,7 @@ class Plots(LazyNamespace):
             plot_data.filter(pl.col("Reference").not_()).collect(),
             y="CTR_Lift",
             x="SnapshotTime",
-            color="ExperimentName",
+            color="Experiment",
             template="pega",
         )
 
