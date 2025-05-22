@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -27,7 +27,7 @@ class Aggregates:
         """Gets the last snapshot of the given table
 
         This method filters the data to include only the rows from the most recent snapshot time.
-        
+
         Parameters
         ----------
         data : Optional[pl.LazyFrame], optional
@@ -50,7 +50,7 @@ class Aggregates:
         return df.filter(
             # For safety consider to .over("ModelID"), if product improves so snapshots
             # get written not in bulk but per model? Downside is that
-            # very old model IDs that never got used anymore would still show up. 
+            # very old model IDs that never got used anymore would still show up.
             pl.col("SnapshotTime").fill_null(strategy="zero")
             == pl.col("SnapshotTime").fill_null(strategy="zero").max()
         )
@@ -357,7 +357,9 @@ class Aggregates:
         if self.datamart.model_data is None:
             raise ValueError("Model summaries needs model data")
 
-        model_data = cdh_utils._apply_query(self.datamart.model_data, query=query, allow_empty=True)
+        model_data = cdh_utils._apply_query(
+            self.datamart.model_data, query=query, allow_empty=True
+        )
         grouping = []
 
         if by_period:
@@ -591,9 +593,11 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name").alias("NewActionsAtOrAfter")
+                    pl.col("Name")
+                    .alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode().unique(),
+                    .list.explode()
+                    .unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -791,6 +795,7 @@ class Aggregates:
                 )
             )
             .sort("Channel", "Direction", "DateRange Min")
+            .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
 
     def summary_by_configuration(self) -> pl.DataFrame:
@@ -809,16 +814,16 @@ class Aggregates:
             - Configuration - The name of the model configuration
             - Channel - The channel name (if available in context keys)
             - Direction - The direction (if available in context keys)
-            
+
             Model Information:
             - AGB - Indicates if Adaptive Gradient Boosting is used ("Yes", "No", or "Unknown")
             - ModelID - The number of unique model IDs for this configuration
-            
+
             Action Statistics:
             - Actions - The number of unique actions in this configuration
             - Unique Treatments - The number of unique treatments (if available)
             - Used for (Issues) - A comma-separated list of issues this configuration is used for (if available)
-            
+
             Performance Metrics:
             - ResponseCount - The total number of responses for this configuration
             - Positives - The total number of positive responses for this configuration
@@ -902,27 +907,27 @@ class Aggregates:
         -------
         pl.DataFrame or None
             A Polars DataFrame containing the predictor summary with the following fields:
-            
+
             Identification:
             - ModelID - The model ID (only if model_id parameter is None)
             - PredictorName - The name of the predictor
-            
+
             Status and Type:
             - EntryType - The entry type (Active, Inactive, etc.)
             - isActive - Boolean indicating if the predictor is active
             - Type - The predictor type
             - GroupIndex - The group index of the predictor
-            
+
             Performance Metrics:
             - Responses - The number of responses for this predictor
             - Positives - The number of positive responses for this predictor
             - Univariate Performance - The univariate performance of the predictor (AUC)
-            
+
             Binning Information:
             - Bins - The number of bins for this predictor
             - Missing % - The percentage of responses in the MISSING bin
             - Residual % - The percentage of responses in the RESIDUAL bin
-            
+
             Returns None if the required data is not available or an error is encountered.
         """
         try:
