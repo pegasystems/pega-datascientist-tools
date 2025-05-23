@@ -40,7 +40,7 @@ class Plots(LazyNamespace):
         if by is None:
             by = []
 
-        plot_data = self.ia._summarize(by).filter(pl.col("Experiment") != "NBA")
+        plot_data = self.ia._summarize_control_groups(by).filter(pl.col("Experiment") != "NBA")
 
         if return_df:
             return plot_data
@@ -73,7 +73,7 @@ class Plots(LazyNamespace):
         if by is None:
             by = ["SnapshotTime"] # todo or perhaps + Channel, if so use for faceting maybe
 
-        plot_data = self.ia._summarize(by).filter(pl.col("Experiment") != "NBA")
+        plot_data = self.ia._summarize_control_groups(by).filter(pl.col("Experiment") != "NBA")
 
         if return_df:
             return plot_data
