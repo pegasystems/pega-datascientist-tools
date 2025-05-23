@@ -121,7 +121,7 @@ class ImpactAnalyzer:
         if isinstance(pdc_source, dict):
             return cls._from_pdc_json(pdc_source, query=query, return_df=return_df)
         else:
-            with open(pdc_source) as pdc_json_data:
+            with open(pdc_source, encoding="utf-8") as pdc_json_data:
                 return cls._from_pdc_json(
                     json.load(pdc_json_data), query=query, return_df=return_df
                 )
