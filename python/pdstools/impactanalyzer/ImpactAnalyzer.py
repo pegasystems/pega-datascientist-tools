@@ -24,22 +24,14 @@ class ImpactAnalyzer:
             "NBAHealth_NBA",
         ),
         "Adaptive Models vs Random Propensity": (
-            "NBAHealth_ModelControl",
-            "NBAHealth_PropensityPriority",
+            # "NBAHealth_ModelControl",
+            # "NBAHealth_PropensityPriority",
+            "NBAHealth_ModelControl_1",
+            "NBAHealth_ModelControl_2",
         ),
     }
 
     default_ia_controlgroups = {
-        # ID of the experiment
-        "MktType": [
-            "NBAPrioritization",
-            "PropensityPriority",
-            "LeverPriority",
-            "EngagementPolicy",
-            "ModelControl",
-            "ModelControl",
-            None,
-        ],
         # ID of the control groups
         "MktValue": [
             "NBAHealth_NBAPrioritization",
@@ -50,13 +42,14 @@ class ImpactAnalyzer:
             "NBAHealth_ModelControl_2",  # NBAHealth_ModelControl_2 is conceptually the same as NBAHealth_PropensityPriority and will be phased out in Pega 24.1/24.2.
             "NBAHealth_NBA",  # None in the VBD data
         ],
-        "pyReason": [
-            "Control",
-            "Control",
-            "Control",
-            "Control",
-            "Control",
-            "Control",
+        # ID of the associated experiment
+        "MktType": [
+            "NBAPrioritization",
+            "PropensityPriority",
+            "LeverPriority",
+            "EngagementPolicy",
+            "ModelControl",
+            None,
             None,
         ],
         "Description": [
@@ -78,7 +71,6 @@ class ImpactAnalyzer:
         required_cols = [
             "SnapshotTime",
             "ControlGroup",
-            # "IsActive",
             "Impressions",
             "Accepts",
             "ValuePerImpression",
@@ -146,7 +138,7 @@ class ImpactAnalyzer:
         if len(json_data["pxResults"]) != 1:
             raise Exception("Expected just one result under 1st level pxResults.")
         # lets hope the time format is consistent!
-        # can we use utils here?
+        # can we use cdh_utils here?
         date = datetime.strptime(
             json_data["pxResults"][0]["SnapshotTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
@@ -160,8 +152,23 @@ class ImpactAnalyzer:
         if query is not None:
             wide_data = _apply_query(wide_data, query=query)
 
+        if return_df:
+            return wide_data.drop(
+                "Heading",
+                "RunType",
+                "ApplicationStack",
+                "KeyIdentifier",
+                "ExperimentLabel",
+                "pzInsKey",
+                "Guidance",
+                "pxObjClass",
+                "Type",
+                "ExperimentColor",
+            )
+
         df = (
             wide_data.filter(pl.col("IsActive"))
+            .filter(pl.col("ChannelName") != "All channels")
             .select(
                 [
                     "SnapshotTime",
@@ -222,7 +229,7 @@ class ImpactAnalyzer:
             df.filter(ExperimentName="NBAHealth_ModelControl")
             .group_by(["SnapshotTime", "Channel"])
             .agg(
-                ControlGroup=pl.lit("NBAHealth_PropensityPriority"),
+                ControlGroup=pl.lit("NBAHealth_ModelControl_2"),
                 Impressions=pl.col("Impressions_NBA").first(),
                 Accepts=pl.col("Accepts_NBA").first(),
                 # these two we can't currently reproduce from the data, for the reference group they're 1.0 by definition
@@ -263,6 +270,9 @@ class ImpactAnalyzer:
             )
             .with_columns(
                 ValuePerImpression=pl.lit(None).cast(pl.Float64),
+                ControlGroup=pl.when(pl.col("ControlGroup") == "NBAHealth_ModelControl")
+                .then(pl.lit("NBAHealth_ModelControl_1"))
+                .otherwise("ControlGroup"),
             )
         )
 
@@ -274,46 +284,46 @@ class ImpactAnalyzer:
             # .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_")) # TODO lookup
         )
 
-        if return_df:
-            return result
-
         return ImpactAnalyzer(result)
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
-    def summary_by_channel(self):
-        summ = (
-            self._summarize_control_groups(by=["Channel"])
+    def summary_by_channel(self) -> pl.LazyFrame:
+        return (
+            self.summarize_experiments(by="Channel")
+            .with_columns(Dummy=pl.lit(None))
             .collect()
-            .pivot(on="Experiment", values="CTR_Lift", index="Channel")
-            .drop("NBA")
+            .pivot(
+                on="Experiment",
+                index="Channel",
+                values=["CTR_Lift", "Value_Lift"],
+                separator=" ",
+            )
+            .lazy()
         )
-        for col in self.standard_IA_experiment_names:
-            if not col in summ.collect_schema().names():
-                summ = summ.with_columns(pl.lit(None).cast(pl.Float64).alias(col))
-
-        summ = summ.select(
-            "Channel", pl.exclude("Channel").name.prefix("EngagementLift_")
-        )
-        return summ.select(sorted(summ.collect_schema().names())).lazy()
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
-    def overall_summary(self):
-        summ = (
-            self._summarize_control_groups(by=[])
-            .with_columns(Dummy=None)
+    def overall_summary(self) -> pl.LazyFrame:
+        return (
+            self.summarize_experiments()
+            .with_columns(Dummy=pl.lit(None))
             .collect()
-            .pivot(on="Experiment", values="CTR_Lift", index="Dummy")
-            .drop("Dummy", "NBA")
+            .pivot(
+                on="Experiment",
+                index="Dummy",
+                values=["CTR_Lift", "Value_Lift"],
+                separator=" ",
+            )
+            .drop("Dummy")
+            .lazy()
         )
 
-        for col in self.standard_IA_experiment_names:
-            if not col in summ.collect_schema().names():
-                summ = summ.with_columns(pl.lit(None).cast(pl.Float64).alias(col))
-
-        summ = summ.select(pl.all().name.prefix("EngagementLift_"))
-        return summ.select(sorted(summ.collect_schema().names())).lazy()
-
-    def _summarize_control_groups(self, by: List[str]):
+    def summarize_control_groups(
+        self, by: Optional[Union[List[str], str]] = None, drop_internal_cols=True
+    ) -> pl.LazyFrame:
+        if not by:
+            by = []
+        if isinstance(by, str):
+            by = [by]
         return (
             self.ia_data.sort(by + ["ControlGroup"])
             .group_by(by + ["ControlGroup"], maintain_order=True)
@@ -323,35 +333,59 @@ class ImpactAnalyzer:
                 ValuePerImpression=weighted_average_polars(
                     "ValuePerImpression", "Impressions"
                 ),
-                # CTR_NBA=pl.sum("Accepts_NBA") / pl.sum("Impressions_NBA"),
-                # ActionValuePerImp_NBA=pl.sum("ActionValuePerImp_NBA")
-                # / pl.sum("Impressions_NBA"),
+                # this is only a backup in case the associated value per impression is missing like in PDC data
+                Backup_ValueLift=weighted_average_polars("ValueLift", "Impressions"),
             )
-            # .with_columns(
-            #     CTR_Lift=(pl.col("CTR_NBA") - pl.col("CTR")) / pl.col("CTR"),
-            #     Value_Lift=(
-            #         pl.col("ActionValuePerImp_NBA") - pl.col("ActionValuePerImp")
-            #     )
-            #     / pl.col("ActionValuePerImp"),
-            #     # TODO confidence intervals and significance
-            # )
+            .drop(["Backup_ValueLift"] if drop_internal_cols else [])
         )
 
-    def _summarize_experiments(self, by: List[str]):
+    def summarize_experiments(self, by: Optional[Union[List[str], str]] = None) -> pl.LazyFrame:
+        if not by:
+            by = []
+        if isinstance(by, str):
+            by = [by]
+
         def _lift_pl(control, test):
-            return (
-                pl.col("CTR").filter(ControlGroup=control).first()
-                - pl.col("CTR").filter(ControlGroup=test).first()
-            ) / pl.col("CTR").filter(ControlGroup=test).first()
+            return (pl.col(control) - pl.col(test)) / pl.col(control)
 
-        control_groups_summary = self._summarize_control_groups(by)
+        control_groups_summary = self.summarize_control_groups(
+            by, drop_internal_cols=False
+        )
 
-        return control_groups_summary.group_by(None if by == [] else by).agg(
-            [
-                _lift_pl(
-                    ImpactAnalyzer.default_ia_experiments[experiment][0],
-                    ImpactAnalyzer.default_ia_experiments[experiment][1],
-                ).alias(experiment)
-                for experiment in ImpactAnalyzer.default_ia_experiments
-            ]
+        return (
+            pl.LazyFrame(
+                {
+                    "Experiment": ImpactAnalyzer.default_ia_experiments.keys(),
+                    "Control": [
+                        v[0] for v in ImpactAnalyzer.default_ia_experiments.values()
+                    ],
+                    "Test": [
+                        v[1] for v in ImpactAnalyzer.default_ia_experiments.values()
+                    ],
+                }
+            )
+            .join(
+                control_groups_summary.select(
+                    *by, pl.exclude(by).name.suffix("_Control")
+                ),
+                how="left",
+                left_on="Control",
+                right_on="ControlGroup_Control",
+            )
+            .join(
+                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Test")),
+                how="left",
+                left_on=["Test"] + by,
+                right_on=["ControlGroup_Test"] + by,
+            )
+            .with_columns(
+                Control_Fraction=pl.col("Impressions_Control")
+                / (pl.col("Impressions_Control") + pl.col("Impressions_Test")),
+                CTR_Lift=_lift_pl("CTR_Control", "CTR_Test" ), # TODO I got myself confused now
+                # this is temp and should only be tried when the value per impression is missing like in PDC data
+                Value_Lift=pl.col("Backup_ValueLift_Control"),
+                # TODO figure out confidence intervals etc.
+            )
+            .drop(cs.starts_with("Backup_"))
+            .sort(["Experiment"] + by)
         )

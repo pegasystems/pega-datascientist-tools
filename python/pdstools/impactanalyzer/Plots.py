@@ -40,13 +40,13 @@ class Plots(LazyNamespace):
         if by is None:
             by = []
 
-        plot_data = self.ia._summarize_control_groups(by).filter(pl.col("Experiment") != "NBA")
+        plot_data = self.ia.summarize_experiments(by=by)
 
         if return_df:
             return plot_data
 
         if title is None:
-            title = "Overview"
+            title = "Overview Impact Analyzer Experiments"
 
         # todo add some faceting if by != None
         fig = px.bar(
@@ -73,13 +73,13 @@ class Plots(LazyNamespace):
         if by is None:
             by = ["SnapshotTime"] # todo or perhaps + Channel, if so use for faceting maybe
 
-        plot_data = self.ia._summarize_control_groups(by).filter(pl.col("Experiment") != "NBA")
+        plot_data = self.ia.summarize_experiments(by=by)
 
         if return_df:
             return plot_data
 
         if title is None:
-            title = "Overview"
+            title = "Trend of CTR Lift for Impact Analyzer Experiments"
 
         fig = px.line(
             plot_data.collect(),

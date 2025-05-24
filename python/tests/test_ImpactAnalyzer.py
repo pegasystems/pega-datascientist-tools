@@ -34,7 +34,7 @@ def test_from_pdc():
     assert "ControlGroup" in collected_data.columns
 
     # Verify summarizations
-    agg = analyzer._summarize_control_groups(by=[]).collect()
+    agg = analyzer.summarize_control_groups(by=[]).collect()
     assert agg.columns == ["ControlGroup",	"Impressions",	"Accepts",	"CTR",	"ValuePerImpression"]
 
     # # Verify against the numbers from Pega in the data
@@ -58,29 +58,30 @@ def test_from_pdc():
     # ]
 
 
-# def test_overall_summary(simple_ia):
-#     summary = simple_ia.overall_summary().collect()
+def test_overall_summary(simple_ia):
+    summary = simple_ia.overall_summary().collect()
 
-#     assert summary.width == 5
-#     assert summary.height == 1
-#     assert summary['EngagementLift_EngagementPolicy'].item() is None
-#     assert round(summary['EngagementLift_LeverPriority'].item(), 6) == 0.002653
-#     assert round(summary['EngagementLift_NBAPrioritization'].item(), 6) == 0.002215
-#     assert round(summary['EngagementLift_ModelControl'].item(), 6) == 0.009563
-#     assert round(summary['EngagementLift_PropensityPriority'].item(), 6) == 0.003784
+    assert summary.height == 1
+    assert summary.width == 10
+    assert summary['CTR_Lift NBA vs Only Eligibility Rules'].item() is None
+    # TODO double check these numbers against the original ones
+    assert round(summary['CTR_Lift NBA vs No Levers'].item(), 6) == -0.002653
+    assert round(summary['CTR_Lift NBA vs Random'].item(), 6) == -0.002215
+    assert round(summary['CTR_Lift Adaptive Models vs Random Propensity'].item(), 6) == -0.009563
+    assert round(summary['CTR_Lift NBA vs Propensity Only'].item(), 6) == -0.003784
 
-# def test_summary_by_channel(simple_ia):
-#     summary = simple_ia.summary_by_channel().collect()
+def test_summary_by_channel(simple_ia):
+    summary = simple_ia.summary_by_channel().collect()
 
-#     assert summary.width == 6
-#     assert summary.height == 5
+    assert summary.width == 11
+    assert summary.height == 5
 
 
-# def test_plots(simple_ia):
-#     from plotly.graph_objs import Figure
+def test_plots(simple_ia):
+    from plotly.graph_objs import Figure
 
-#     assert isinstance(simple_ia.plot.trend(return_df=True), pl.LazyFrame)
-#     assert isinstance(simple_ia.plot.overview(return_df=True), pl.LazyFrame)
+    assert isinstance(simple_ia.plot.trend(return_df=True), pl.LazyFrame)
+    assert isinstance(simple_ia.plot.overview(return_df=True), pl.LazyFrame)
 
-#     assert isinstance(simple_ia.plot.trend(), Figure)
-#     assert isinstance(simple_ia.plot.overview(), Figure)
+    assert isinstance(simple_ia.plot.trend(), Figure)
+    assert isinstance(simple_ia.plot.overview(), Figure)
