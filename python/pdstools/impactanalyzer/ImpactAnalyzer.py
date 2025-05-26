@@ -16,6 +16,7 @@ class ImpactAnalyzer:
     ia_data: pl.LazyFrame
 
     default_ia_experiments = {
+        # lists test and control groups for the default experiments
         "NBA vs Random": ("NBAHealth_NBAPrioritization", "NBAHealth_NBA"),
         "NBA vs Propensity Only": ("NBAHealth_PropensityPriority", "NBAHealth_NBA"),
         "NBA vs No Levers": ("NBAHealth_LeverPriority", "NBAHealth_NBA"),
@@ -81,11 +82,13 @@ class ImpactAnalyzer:
         if len(missing_cols) > 0:
             raise ValueError(f"Missing required inputs: {missing_cols}")
 
-        self.ia_data = raw_data.select(
-            raw_data.collect_schema().names()[
-                0 : raw_data.collect_schema().names().index("***")
-            ]
-        )
+        self.ia_data = raw_data
+        
+        # .select(
+        #     raw_data.collect_schema().names()[
+        #         0 : raw_data.collect_schema().names().index("***") # hacky wacky way to exclude redundant columns
+        #     ]
+        # )
 
     @classmethod
     def from_pdc(
@@ -93,6 +96,7 @@ class ImpactAnalyzer:
         pdc_source: Union[os.PathLike, str, dict],
         *,
         query: Optional[QUERY] = None,
+        return_input_df: Optional[bool] = False,
         return_df: Optional[bool] = False,
     ):
         """Create an ImpactAnalyzer instance from a PDC file
@@ -103,6 +107,10 @@ class ImpactAnalyzer:
             The full path to the PDC file
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
+        return_input_df : Optional[QUERY], optional
+            Debugging option to return the wide data from the raw JSON file as a DataFrame, by default False
+        return_df : Optional[QUERY], optional
+            Returns the processed input data as a DataFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
 
         Returns
         -------
@@ -111,11 +119,11 @@ class ImpactAnalyzer:
 
         """
         if isinstance(pdc_source, dict):
-            return cls._from_pdc_json(pdc_source, query=query, return_df=return_df)
+            return cls._from_pdc_json(pdc_source, query=query, return_input_df=return_input_df, return_df=return_df)
         else:
             with open(pdc_source, encoding="utf-8") as pdc_json_data:
                 return cls._from_pdc_json(
-                    json.load(pdc_json_data), query=query, return_df=return_df
+                    json.load(pdc_json_data), query=query, return_input_df=return_input_df, return_df=return_df
                 )
 
     @classmethod
@@ -124,9 +132,10 @@ class ImpactAnalyzer:
         json_data: dict,
         *,
         query: Optional[QUERY] = None,
+        return_input_df: Optional[bool] = False,
         return_df: Optional[bool] = False,
     ):
-        """Create an ImpactAnalyzer instance from PDC JSON data
+        """Internal method to create an ImpactAnalyzer instance from PDC JSON data
 
         The PDC data is really structured as a list of expriments: control group A vs control group B. There
         is no explicit indicator whether the B's are really the same customers or not. The PDC data also contains
@@ -152,13 +161,13 @@ class ImpactAnalyzer:
         if query is not None:
             wide_data = _apply_query(wide_data, query=query)
 
-        if return_df:
+        if return_input_df:
             return wide_data.drop(
                 "Heading",
                 "RunType",
                 "ApplicationStack",
                 "KeyIdentifier",
-                "ExperimentLabel",
+                # "ExperimentLabel",
                 "pzInsKey",
                 "Guidance",
                 "pxObjClass",
@@ -215,8 +224,8 @@ class ImpactAnalyzer:
             Accepts=pl.col("Accepts_NBA").top_k_by("Impressions_NBA", k=1).first(),
             # these two we can't currently reproduce from the data, for NBA they're 1.0 by definition
             ValuePerImpression=pl.lit(None).cast(pl.Float64),
-            ValueLift=pl.lit(1.0),
-            ValueLiftInterval=pl.lit(0.0),
+            Pega_ValueLift=pl.lit(1.0),
+            Pega_ValueLiftInterval=pl.lit(0.0),
         )
 
         # ModelControl conducts an experiment of random p vs model p. Model p was running as a separate control group
@@ -234,8 +243,8 @@ class ImpactAnalyzer:
                 Accepts=pl.col("Accepts_NBA").first(),
                 # these two we can't currently reproduce from the data, for the reference group they're 1.0 by definition
                 ValuePerImpression=pl.lit(None).cast(pl.Float64),
-                ValueLift=pl.lit(1.0),
-                ValueLiftInterval=pl.lit(0.0),
+                Pega_ValueLift=pl.lit(1.0),
+                Pega_ValueLiftInterval=pl.lit(0.0),
             )
         )
 
@@ -248,18 +257,17 @@ class ImpactAnalyzer:
                 "Accepts_Control",
                 "ActionValuePerImp_Control",
                 # these two we can't currently reproduce from the data as ActionValuePerImp is not set
-                "ValueLift",
-                "ValueLiftInterval",
-                # for debugging
-                pl.lit(None).alias("***"),
-                "Impressions_NBA",
-                "Accepts_NBA",
-                "ActionValuePerImp_NBA",
-                "AcceptRate_Control",
-                "AcceptRate_NBA",
-                "EngagementLift",
-                "EngagementLiftInterval",
-                "IsSignificant",
+                pl.col("ValueLift", "ValueLiftInterval").name.prefix("Pega_"),
+                # # for debugging
+                # pl.lit(None).alias("***"),
+                # "Impressions_NBA",
+                # "Accepts_NBA",
+                # "ActionValuePerImp_NBA",
+                # "AcceptRate_Control",
+                # "AcceptRate_NBA",
+                # "EngagementLift",
+                # "EngagementLiftInterval",
+                # "IsSignificant",
             )
             .rename(lambda x: x.removesuffix("_Control"))
             .rename(
@@ -283,6 +291,9 @@ class ImpactAnalyzer:
             ).sort("SnapshotTime", "Channel", "ControlGroup")
             # .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_")) # TODO lookup
         )
+
+        if return_df:
+            return result
 
         return ImpactAnalyzer(result)
 
@@ -334,9 +345,9 @@ class ImpactAnalyzer:
                     "ValuePerImpression", "Impressions"
                 ),
                 # this is only a backup in case the associated value per impression is missing like in PDC data
-                Backup_ValueLift=weighted_average_polars("ValueLift", "Impressions"),
+                Pega_ValueLift=weighted_average_polars("Pega_ValueLift", "Impressions"),
             )
-            .drop(["Backup_ValueLift"] if drop_internal_cols else [])
+            .drop(["Pega_ValueLift"] if drop_internal_cols else [])
         )
 
     def summarize_experiments(self, by: Optional[Union[List[str], str]] = None) -> pl.LazyFrame:
@@ -345,8 +356,8 @@ class ImpactAnalyzer:
         if isinstance(by, str):
             by = [by]
 
-        def _lift_pl(control, test):
-            return (pl.col(control) - pl.col(test)) / pl.col(control)
+        def _lift_pl(test, control):
+            return (pl.col(test) - pl.col(control)) / pl.col(control)
 
         control_groups_summary = self.summarize_control_groups(
             by, drop_internal_cols=False
@@ -356,36 +367,36 @@ class ImpactAnalyzer:
             pl.LazyFrame(
                 {
                     "Experiment": ImpactAnalyzer.default_ia_experiments.keys(),
-                    "Control": [
-                        v[0] for v in ImpactAnalyzer.default_ia_experiments.values()
-                    ],
                     "Test": [
                         v[1] for v in ImpactAnalyzer.default_ia_experiments.values()
+                    ],
+                    "Control": [
+                        v[0] for v in ImpactAnalyzer.default_ia_experiments.values()
                     ],
                 }
             )
             .join(
                 control_groups_summary.select(
-                    *by, pl.exclude(by).name.suffix("_Control")
+                    *by, pl.exclude(by).name.suffix("_Test")
                 ),
                 how="left",
-                left_on="Control",
-                right_on="ControlGroup_Control",
+                left_on="Test",
+                right_on="ControlGroup_Test",
             )
             .join(
-                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Test")),
+                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Control")),
                 how="left",
-                left_on=["Test"] + by,
-                right_on=["ControlGroup_Test"] + by,
+                left_on=["Control"] + by,
+                right_on=["ControlGroup_Control"] + by,
             )
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
                 / (pl.col("Impressions_Control") + pl.col("Impressions_Test")),
-                CTR_Lift=_lift_pl("CTR_Control", "CTR_Test" ), # TODO I got myself confused now
+                CTR_Lift=_lift_pl("CTR_Test", "CTR_Control" ), # TODO I got myself confused now
                 # this is temp and should only be tried when the value per impression is missing like in PDC data
-                Value_Lift=pl.col("Backup_ValueLift_Control"),
+                Value_Lift=pl.col("Pega_ValueLift_Control"),
                 # TODO figure out confidence intervals etc.
             )
-            .drop(cs.starts_with("Backup_"))
+            .drop(cs.starts_with("Pega_"))
             .sort(["Experiment"] + by)
         )
