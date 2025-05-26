@@ -83,7 +83,7 @@ class ImpactAnalyzer:
             raise ValueError(f"Missing required inputs: {missing_cols}")
 
         self.ia_data = raw_data
-        
+
         # .select(
         #     raw_data.collect_schema().names()[
         #         0 : raw_data.collect_schema().names().index("***") # hacky wacky way to exclude redundant columns
@@ -119,11 +119,19 @@ class ImpactAnalyzer:
 
         """
         if isinstance(pdc_source, dict):
-            return cls._from_pdc_json(pdc_source, query=query, return_input_df=return_input_df, return_df=return_df)
+            return cls._from_pdc_json(
+                pdc_source,
+                query=query,
+                return_input_df=return_input_df,
+                return_df=return_df,
+            )
         else:
             with open(pdc_source, encoding="utf-8") as pdc_json_data:
                 return cls._from_pdc_json(
-                    json.load(pdc_json_data), query=query, return_input_df=return_input_df, return_df=return_df
+                    json.load(pdc_json_data),
+                    query=query,
+                    return_input_df=return_input_df,
+                    return_df=return_df,
                 )
 
     @classmethod
@@ -299,6 +307,32 @@ class ImpactAnalyzer:
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self) -> pl.LazyFrame:
+        """Summarization of the experiments in Impact Analyzer split by Channel.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        pl.LazyFrame
+            Summary across all running Impact Analyzer experiments as a dataframe with the following fields:
+
+            Channel Identification:
+            - Channel: The channel name
+
+            Performance Metrics:
+            - CTR_Lift Adaptive Models vs Random Propensity: Lift in Engagement when testing prioritization with just Adaptive Models vs just Random Propensity
+            - CTR_Lift NBA vs No Levers: Lift in Engagement for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
+            - CTR_Lift NBA vs Only Eligibility Rules: Lift in Engagement for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
+            - CTR_Lift NBA vs Propensity Only: Lift in Engagement for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
+            - CTR_Lift NBA vs Random: Lift in Engagement for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+            - Value_Lift Adaptive Models vs Random Propensity: Lift in Expected Value when testing prioritization with just Adaptive Models vs just Random Propensity
+            - Value_Lift NBA vs No Levers: Lift in Expected Value for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
+            - Value_Lift NBA vs Only Eligibility Rules: Lift in Expected Value for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
+            - Value_Lift NBA vs Propensity Only: Lift in Expected Value for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
+            - Value_Lift NBA vs Random: Lift in Expected Value for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+        """
+
         return (
             self.summarize_experiments(by="Channel")
             .with_columns(Dummy=pl.lit(None))
@@ -313,7 +347,30 @@ class ImpactAnalyzer:
         )
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
+
     def overall_summary(self) -> pl.LazyFrame:
+        """Summarization of the experiments in Impact Analyzer.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        pl.LazyFrame
+            Summary across all running Impact Analyzer experiments as a dataframe with the following fields:
+
+            Performance Metrics:
+            - CTR_Lift Adaptive Models vs Random Propensity: Lift in Engagement when testing prioritization with just Adaptive Models vs just Random Propensity
+            - CTR_Lift NBA vs No Levers: Lift in Engagement for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
+            - CTR_Lift NBA vs Only Eligibility Rules: Lift in Engagement for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
+            - CTR_Lift NBA vs Propensity Only: Lift in Engagement for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
+            - CTR_Lift NBA vs Random: Lift in Engagement for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+            - Value_Lift Adaptive Models vs Random Propensity: Lift in Expected Value when testing prioritization with just Adaptive Models vs just Random Propensity
+            - Value_Lift NBA vs No Levers: Lift in Expected Value for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
+            - Value_Lift NBA vs Only Eligibility Rules: Lift in Expected Value for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
+            - Value_Lift NBA vs Propensity Only: Lift in Expected Value for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
+            - Value_Lift NBA vs Random: Lift in Expected Value for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+        """
         return (
             self.summarize_experiments()
             .with_columns(Dummy=pl.lit(None))
@@ -350,7 +407,9 @@ class ImpactAnalyzer:
             .drop(["Pega_ValueLift"] if drop_internal_cols else [])
         )
 
-    def summarize_experiments(self, by: Optional[Union[List[str], str]] = None) -> pl.LazyFrame:
+    def summarize_experiments(
+        self, by: Optional[Union[List[str], str]] = None
+    ) -> pl.LazyFrame:
         if not by:
             by = []
         if isinstance(by, str):
@@ -376,15 +435,15 @@ class ImpactAnalyzer:
                 }
             )
             .join(
-                control_groups_summary.select(
-                    *by, pl.exclude(by).name.suffix("_Test")
-                ),
+                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Test")),
                 how="left",
                 left_on="Test",
                 right_on="ControlGroup_Test",
             )
             .join(
-                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Control")),
+                control_groups_summary.select(
+                    *by, pl.exclude(by).name.suffix("_Control")
+                ),
                 how="left",
                 left_on=["Control"] + by,
                 right_on=["ControlGroup_Control"] + by,
@@ -392,7 +451,9 @@ class ImpactAnalyzer:
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
                 / (pl.col("Impressions_Control") + pl.col("Impressions_Test")),
-                CTR_Lift=_lift_pl("CTR_Test", "CTR_Control" ), # TODO I got myself confused now
+                CTR_Lift=_lift_pl(
+                    "CTR_Test", "CTR_Control"
+                ),  # TODO I got myself confused now
                 # this is temp and should only be tried when the value per impression is missing like in PDC data
                 Value_Lift=pl.col("Pega_ValueLift_Control"),
                 # TODO figure out confidence intervals etc.
