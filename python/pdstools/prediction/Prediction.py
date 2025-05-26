@@ -547,7 +547,7 @@ class Prediction:
             - ChannelDirectionGroup: Combined Channel/Direction identifier
             - isValid: Boolean indicating if the prediction data is valid
             - isStandardNBADPrediction: Boolean indicating if this is a standard NBAD prediction
-            - isMultiChannelPrediction: Boolean indicating if this is a multi-channel prediction
+            - isMultiChannelPrediction: Boolean indicating if this is a multichannel prediction
             - ControlPercentage: Percentage of responses in control group
             - TestPercentage: Percentage of responses in test group
 
@@ -562,11 +562,11 @@ class Prediction:
             - Negatives_Test: Sum of negative responses in test group
             - Negatives_Control: Sum of negative responses in control group
             - Negatives_NBA: Sum of negative responses in NBA group
-            - CTR: Click-through rate (Positives / (Positives + Negatives))
-            - CTR_Test: Click-through rate for test group
-            - CTR_Control: Click-through rate for control group
-            - CTR_NBA: Click-through rate for NBA group
-            - Lift: Lift value ((CTR_Test - CTR_Control) / CTR_Control)
+            - CTR: Clickthrough rate (Positives over Positives + Negatives)
+            - CTR_Test: Clickthrough rate for test group (model propensitities)
+            - CTR_Control: Clickthrough rate for control group (random propensities)
+            - CTR_NBA: Clickthrough rate for NBA group (available only when Impact Analyzer is used)
+            - Lift: Lift in Engagement when testing prioritization with just Adaptive Models vs just Random Propensity
 
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
