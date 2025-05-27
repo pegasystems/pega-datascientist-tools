@@ -332,7 +332,9 @@ class ADMDatamart:
                 # CTR=(pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives"))),
                 # ElapsedDays=(pl.col("Day").max() - pl.col("Day")).dt.total_days(),
                 # see US-648869 and related items on the model technique
-                pyModelTechnique=pl.when(pl.col("ADMModelType") == "GRADIENT_BOOST")
+                pyModelTechnique=pl.when(
+                    pl.col("ADMModelType").is_in(["GRADIENT_BOOST", "GradientBoost"])
+                )
                 .then(pl.lit("GradientBoost"))
                 .otherwise(pl.lit("NaiveBayes")),
             )
