@@ -647,17 +647,27 @@ class Aggregates:
     ) -> pl.LazyFrame:
         standard_configurations_set = set([x.upper() for x in standard_configurations])
 
-        return model_data.group_by(grouping).agg(
+        result = model_data.group_by(grouping).agg(
             pl.col("Configuration")
             .cast(pl.Utf8)
             .str.to_uppercase()
             .is_in(standard_configurations_set)
             .any(ignore_nulls=False)
             .alias("usesNBAD"),
+            
+            # For debugging:
+            pl.col("ModelTechnique").unique().sort(),
+            pl.col("Configuration").unique().sort().alias("Configurations"),
+
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
             .alias("usesAGB"),
         )
+        
+        if debug:
+            return result
+        else:
+            return result.drop("ModelTechnique", "Configurations")
 
     def summary_by_channel(
         self,
@@ -851,6 +861,7 @@ class Aggregates:
             .group_by(group_by_cols)
             .agg(
                 [
+                    # subtly different code from channel_summary
                     pl.when((pl.col("ModelTechnique") == "GradientBoost").any())
                     .then(pl.lit("Yes"))
                     .when(pl.col("ModelTechnique").is_null().any())
