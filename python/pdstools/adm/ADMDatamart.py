@@ -315,7 +315,7 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame):
+    def from_pdc(cls, df: pl.LazyFrame, return_df = False):
         pdc_data = cdh_utils._read_pdc(df)
 
         adm_data = (
@@ -392,6 +392,9 @@ class ADMDatamart:
                 ]
             )
         )
+
+        if return_df:
+            return adm_data
 
         return ADMDatamart(model_df=adm_data, extract_pyname_keys=True)
 
