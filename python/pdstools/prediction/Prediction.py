@@ -334,7 +334,7 @@ class Prediction:
         self.predictions = cdh_utils._apply_query(self.predictions, query)
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame):
+    def from_pdc(cls, df: pl.LazyFrame, return_df = False):
         pdc_data = cdh_utils._read_pdc(df)
 
         snapshotType = "Daily"
@@ -390,6 +390,9 @@ class Prediction:
                 ]
             )
         )
+
+        if return_df:
+            return prediction_data
 
         return Prediction(prediction_data)
 

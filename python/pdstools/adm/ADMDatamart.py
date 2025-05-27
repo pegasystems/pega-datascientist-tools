@@ -315,7 +315,7 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame):
+    def from_pdc(cls, df: pl.LazyFrame, return_df = False):
         pdc_data = cdh_utils._read_pdc(df)
 
         adm_data = (
@@ -332,7 +332,9 @@ class ADMDatamart:
                 # CTR=(pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives"))),
                 # ElapsedDays=(pl.col("Day").max() - pl.col("Day")).dt.total_days(),
                 # see US-648869 and related items on the model technique
-                pyModelTechnique=pl.when(pl.col("ADMModelType") == "GRADIENT_BOOST")
+                pyModelTechnique=pl.when(
+                    pl.col("ADMModelType").is_in(["GRADIENT_BOOST", "GradientBoost"])
+                )
                 .then(pl.lit("GradientBoost"))
                 .otherwise(pl.lit("NaiveBayes")),
             )
@@ -390,6 +392,9 @@ class ADMDatamart:
                 ]
             )
         )
+
+        if return_df:
+            return adm_data
 
         return ADMDatamart(model_df=adm_data, extract_pyname_keys=True)
 
