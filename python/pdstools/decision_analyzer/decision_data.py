@@ -358,7 +358,9 @@ class DecisionAnalyzer:
 
         if self.extract_type == "explainability_extract":
             df = df.with_columns(
-                pl.lit("Arbitration").alias(self.level), pl.lit(1).alias("StageOrder")
+                pl.lit("Arbitration").alias(self.level),
+                pl.lit(1).alias("StageOrder"),
+                pl.lit("FILTERED_OUT").alias("pxRecordType"),
             )
 
         preproc_df = (
@@ -414,9 +416,7 @@ class DecisionAnalyzer:
         self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
-        filtered_df = apply_filter(
-            self.getPreaggregatedFilterView, additional_filters
-        ).filter(pl.col("pxRecordType") == "FILTERED_OUT")
+        filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters)
@@ -434,7 +434,8 @@ class DecisionAnalyzer:
 
         # Compute filtered funnel view
         filtered_funnel = (
-            filtered_df.group_by([self.level, scope])
+            filtered_df.filter(pl.col("pxRecordType") == "FILTERED_OUT")
+            .group_by([self.level, scope])
             .agg(count=pl.sum("Decisions"))
             .collect()
         )
@@ -881,13 +882,14 @@ class DecisionAnalyzer:
         )
 
         def _offer_counts(stage):
+            stage_values = nOffersPerStage[self.level].to_list()
             return (
                 (
                     nOffersPerStage.filter(pl.col(self.level) == stage)
                     .select("nOffers")
                     .item()
                 )
-                if stage in nOffersPerStage[self.level]
+                if stage in stage_values
                 else 0
             )
 
