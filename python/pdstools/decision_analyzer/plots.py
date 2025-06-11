@@ -147,13 +147,12 @@ class Plot:
     def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
         if df is None:
             df = self._decision_data.sample
-        plotData = (
-            self._decision_data.get_optionality_data(df)
-            .filter(pl.col(self._decision_data.level) == stage)
-            .collect()
+        plotData = self._decision_data.get_optionality_data(df).filter(
+            pl.col(self._decision_data.level) == stage
         )
         if return_df:
             return plotData
+        plotData = plotData.collect()
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(

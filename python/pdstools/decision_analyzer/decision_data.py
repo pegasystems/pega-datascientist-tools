@@ -68,7 +68,9 @@ class DecisionAnalyzer:
         # all columns are present?
         validate_columns(raw_data, get_table_definition(self.extract_type))
         # cast datatypes
-        raw_data = process(df=raw_data, table=self.extract_type, raise_on_unknown=False)
+        raw_data = process(
+            df=raw_data, table=self.extract_type, raise_on_unknown=False
+        ).set_sorted(column="pxInteractionID")
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
         # TODO subset against available fields in the data
@@ -246,23 +248,71 @@ class DecisionAnalyzer:
 
     @cached_property
     def sample(self):
-        def _sample_it(s: pl.Series) -> pl.Series:
-            import numpy as np
+        """
+        Create a sample of the data by selecting a random subset of interaction IDs.
+        This implementation is optimized to avoid collecting all unique IDs first,
+        which is expensive for large datasets.
 
-            unique_ids = s.unique()  # should this be approximate?
-            num_samples = min(len(unique_ids), 30000)
-            sampled_ids = np.random.choice(unique_ids, num_samples, replace=False)
-            return s.is_in(sampled_ids)
+        Instead, it:
+        1. Uses the hash of interaction IDs to deterministically sample them
+        2. Samples at approximately the rate needed to get ~30,000 interactions
+        3. Only collects the columns needed for downstream analysis
+        """
+        needed_columns = [
+            "pxInteractionID",
+            "pyChannel",
+            "pyDirection",
+            "pyIssue",
+            "pyGroup",
+            self.level,
+            "StageOrder",
+            "pxRank",
+            "Priority",
+            "Propensity",
+            "Value",
+            "Context Weight",
+            "Levers",
+            "pySubjectID",
+            "pxRecordType",
+            "pyName",
+            "day",
+        ]
 
+        # Filter to only keep columns that exist in the data
+        available_cols = set(self.decision_data.collect_schema().names())
+        columns_to_keep = [col for col in needed_columns if col in available_cols]
+
+        # Get total count and approximate unique count of interaction IDs
+        # This is much faster than collecting all unique IDs
+        print("In sample function")
+        approx_count = (
+            self.decision_data.set_sorted("pxInteractionID")
+            .select(pl.n_unique("pxInteractionID").alias("unique_count"))
+            .collect()
+            .item()
+        )
+        print(f"Calculated approximate interaction count: {approx_count}")
+        target_sample_size = 50000
+        sample_rate = min(1.0, target_sample_size / max(1, approx_count))
+
+        # Use hash-based sampling for efficiency - this is deterministic per interaction ID
+        # but doesn't require collecting all unique IDs first
         df = (
-            self.decision_data.with_columns(
-                pl.col("pxInteractionID").map_batches(_sample_it).alias("_sample")
+            self.decision_data.select(columns_to_keep)
+            .with_columns(
+                [
+                    (
+                        pl.col("pxInteractionID").hash() % 1000 < 1000 * sample_rate
+                    ).alias("_sample")
+                ]
             )
             .filter(pl.col("_sample"))
             .drop("_sample")
             .collect()
+            .shrink_to_fit()
             .lazy()
         )
+
         return df
 
     def getAvailableFieldsForFiltering(self, categoricalOnly=False):
@@ -306,15 +356,19 @@ class DecisionAnalyzer:
 
         if self.extract_type == "explainability_extract":
             df = df.with_columns(
-                pl.lit("Arbitration").alias(self.level), pl.lit(1).alias("StageOrder")
+                pl.lit("Arbitration").alias(self.level),
+                pl.lit(1).alias("StageOrder"),
+                pl.lit("FILTERED_OUT").alias("pxRecordType"),
             )
 
         preproc_df = (
-            df.with_columns(
+            df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+            .with_columns(
                 pl.col(self.level).cast(pl.Categorical(ordering="physical")),
             )
-            .with_columns(pl.col(pl.Categorical).exclude(self.level).cast(pl.Utf8))
-            .filter(pl.col("pyName").is_not_null())
+            .filter(
+                pl.col("pyName").is_not_null()
+            )  # Why do we have null pyName values? this takes too much processing time
         )
         return preproc_df
 
@@ -360,9 +414,7 @@ class DecisionAnalyzer:
         self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
-        filtered_df = apply_filter(
-            self.getPreaggregatedFilterView, additional_filters
-        ).filter(pl.col("pxRecordType") == "FILTERED_OUT")
+        filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters)
@@ -380,7 +432,8 @@ class DecisionAnalyzer:
 
         # Compute filtered funnel view
         filtered_funnel = (
-            filtered_df.group_by([self.level, scope])
+            filtered_df.filter(pl.col("pxRecordType") == "FILTERED_OUT")
+            .group_by([self.level, scope])
             .agg(count=pl.sum("Decisions"))
             .collect()
         )
@@ -497,9 +550,7 @@ class DecisionAnalyzer:
         We have to go back to the interaction level data, no way to
         use pre-aggregations unfortunately.
         """
-        total_interactions = (
-            df.select(pl.n_unique("pxInteractionID")).collect().row(0)[0]
-        )
+        total_interactions = df.select("pxInteractionID").collect().unique().height
         expr = [
             pl.len().alias("nOffers"),
             pl.col("Propensity")
@@ -744,13 +795,7 @@ class DecisionAnalyzer:
 
         def aggregate_over_remaining_stages(df, stage, remaining_stages):
             return (
-                df.filter(
-                    (pl.col(self.level) == remaining_stages[0])
-                    | (
-                        pl.col(self.level).is_in(remaining_stages[1:])
-                        & (pl.col("pxRecordType") == "FILTERED_OUT")
-                    )
-                )
+                df.filter(pl.col(self.level).is_in(remaining_stages))
                 .group_by(group_by_columns)
                 .agg(aggregations)
                 .with_columns(pl.lit(stage).alias(self.level))
@@ -835,13 +880,14 @@ class DecisionAnalyzer:
         )
 
         def _offer_counts(stage):
+            stage_values = nOffersPerStage[self.level].to_list()
             return (
                 (
                     nOffersPerStage.filter(pl.col(self.level) == stage)
                     .select("nOffers")
                     .item()
                 )
-                if stage in nOffersPerStage[self.level]
+                if stage in stage_values
                 else 0
             )
 
@@ -907,7 +953,7 @@ class DecisionAnalyzer:
                 [
                     pl.col("pyName")
                     .filter(pl.col(x) <= win_rank)
-                    .count()
+                    .len()
                     .cast(
                         pl.Int32
                     )  # thinks they are unsigned int, 33-34 returns big number
