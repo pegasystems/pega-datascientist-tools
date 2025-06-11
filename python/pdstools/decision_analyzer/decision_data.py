@@ -258,7 +258,6 @@ class DecisionAnalyzer:
         2. Samples at approximately the rate needed to get ~30,000 interactions
         3. Only collects the columns needed for downstream analysis
         """
-        # List of columns needed based on usage throughout the code
         needed_columns = [
             "pxInteractionID",
             "pyChannel",
@@ -293,7 +292,6 @@ class DecisionAnalyzer:
             .item()
         )
         print(f"Calculated approximate interaction count: {approx_count}")
-        # Calculate sample rate to get around 30,000 interaction IDs
         target_sample_size = 50000
         sample_rate = min(1.0, target_sample_size / max(1, approx_count))
 
