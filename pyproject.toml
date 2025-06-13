@@ -8,7 +8,7 @@ include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-"*" = ['*.qmd']
+"*" = ['*.qmd', '*.sql']
 
 [project]
 name = "pdstools"
@@ -18,7 +18,6 @@ readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
 license = {text = "Apache-2.0"}
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
@@ -58,7 +57,7 @@ all = ['pdstools[app, pega_io, onnx]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse']
 tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
-explanations = ['duckdb', "ipywidgets", "plotly", "pyarrow"]
+explanations = ['duckdb', "plotly", "pyarrow"]
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

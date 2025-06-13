@@ -1,21 +1,20 @@
-__all__ = ["GradientBoostGlobalExplanations", "DataFilter"]
+__all__ = ["GradientBoostGlobalExplanations", "DataLoader", "Plotter"]
 
 import json
 import logging
-import os
 import pathlib
 import shutil
 from datetime import datetime, timedelta
 from enum import Enum
 from glob import glob
-from typing import Literal, TypedDict, get_args
+from importlib_resources import files
+from typing import List, Literal, TypedDict, get_args
 
 import duckdb
-import ipywidgets as widgets
+import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
-from IPython.display import display
-from plotly.subplots import make_subplots
+from .resources import queries as queries_data
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +69,6 @@ class GradientBoostGlobalExplanations:
     SEP = ", "
     LEFT_PREFIX = "l"
     RIGHT_PREFIX = "r"
-    QUERIES_FOLDER = "resources/queries/explanations"
 
     def __init__(
         self,
@@ -100,8 +98,6 @@ class GradientBoostGlobalExplanations:
         self.memory_limit = memory_limit
         self.thread_count = thread_count
 
-        basePath = pathlib.Path().resolve().parent.parent
-        self.queries_folder = f"{basePath}/{self.QUERIES_FOLDER}"
         self.output_folder = output_folder
         self.progress_bar = progress_bar
 
@@ -154,20 +150,18 @@ class GradientBoostGlobalExplanations:
 
         self.conn.close()
 
-    def explore(self):
-        """Explore the global explanation aggregate data in an interactive widget."""
-        explorer = _PredictorContributionExplorer(self.output_folder)
-        explorer.display()
-
     def _populate_selected_files(self):
         last_n_days = [
             (self.start_date + timedelta(days=x)).strftime("%Y%m%d")
             for x in range((self.end_date - self.start_date).days + 1)
         ]
+        logger.info(f'Searching for files for model {self.model_name} from {self.start_date} to {self.end_date}')
         files_ = []
         for day in last_n_days:
             file_pattern = f"{self.data_folder}/{self.model_name}*{day}*.parquet"
+            logger.info(f"Searching for files with pattern: {file_pattern}")
             file_paths = glob(file_pattern)
+            logger.info(f"Found files: {file_paths}")
             for file_path in file_paths:
                 if pathlib.Path(file_path).exists():
                     files_.append(file_path)
@@ -206,8 +200,7 @@ class GradientBoostGlobalExplanations:
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
             else _TABLE_NAME.SYMBOLIC_OVERALL
         )
-        with open(f"{self.queries_folder}/{sql_file.value}.sql", "r") as fr:
-            return fr.read()
+        return files(queries_data).joinpath(f"{sql_file.value}.sql").read_text()
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
@@ -215,14 +208,13 @@ class GradientBoostGlobalExplanations:
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
             else _TABLE_NAME.SYMBOLIC
         )
-        with open(f"{self.queries_folder}/{sql_file.value}.sql", "r") as fr:
-            return fr.read()
+
+        return files(queries_data).joinpath(f"{sql_file.value}.sql").read_text()
 
     def _get_create_table_sql_formatted(
         self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
     ):
-        with open(f"{self.queries_folder}/{_TABLE_NAME.CREATE.value}.sql", "r") as fr:
-            sql = fr.read()
+        sql = files(queries_data).joinpath(f"{_TABLE_NAME.CREATE.value}.sql").read_text()
 
         f_sql = f"{
             sql.format(
@@ -405,8 +397,23 @@ class GradientBoostGlobalExplanations:
         return self._clean_query(where_condition)
 
 
-class DataFilter:
-    to_select = [
+class DataLoader:
+    _CONTRIBUTION = "contribution"
+    _CONTRIBUTION_ABS = "|contribution|"
+    _CONTRIBUTION_WEIGHTED = "contribution_weighted"
+    _CONTRIBUTION_WEIGHTED_ABS = "|contribution_weighted|"
+    _FREQUENCY = "frequency"
+    _CONTRIBUTION_MIN = "contribution_min"
+    _CONTRIBUTION_MAX = "contribution_max"
+
+    _CONTRIBUTION_CALCULATION = Literal[
+        _CONTRIBUTION,
+        _CONTRIBUTION_ABS,
+        _CONTRIBUTION_WEIGHTED,
+        _CONTRIBUTION_WEIGHTED_ABS,
+    ]
+
+    _TO_SELECT = [
         "partition",
         "contribution",
         "contribution_abs",
@@ -418,53 +425,26 @@ class DataFilter:
         "contribution_0",
         "contribution_100",
     ]
-    allowed_contexts = []
-    _data_updates = []
-
-    _CONTRIBUTION_CALCULATION = Literal[
-        "contribution",
-        "|contribution|",
-        "contribution_weighted",
-        "|contribution_weighted|",
-    ]
 
     _CONTRIBUTIONS_EXP = [
-        pl.col("contribution").mean().alias("contribution"),
-        pl.col("contribution_abs").mean().alias("|contribution|"),
+        pl.col("contribution").mean().alias(_CONTRIBUTION),
+        pl.col("contribution_abs").mean().alias(_CONTRIBUTION_ABS),
         (
             (pl.col("contribution") * pl.col("frequency")).mean()
             / pl.col("frequency").sum()
-        ).alias("contribution_weighted"),
+        ).alias(_CONTRIBUTION_WEIGHTED),
         (
             (pl.col("contribution_abs") * pl.col("frequency")).mean()
             / pl.col("frequency").sum()
-        ).alias("|contribution_weighted|"),
-        pl.col("frequency").sum().alias("frequency"),
-        pl.col("contribution_0").min().alias("contribution_min"),
-        pl.col("contribution_100").max().alias("contribution_max"),
+        ).alias(_CONTRIBUTION_WEIGHTED_ABS),
+        pl.col("frequency").sum().alias(_FREQUENCY),
+        pl.col("contribution_0").min().alias(_CONTRIBUTION_MIN),
+        pl.col("contribution_100").max().alias(_CONTRIBUTION_MAX),
     ]
 
     def __init__(self, data_location):
-        self.df_contextual = pl.concat(
-            [
-                pl.scan_parquet(f"{data_location}/NUMERIC_BATCH_*.parquet").select(
-                    self.to_select
-                ),
-                pl.scan_parquet(f"{data_location}/SYMBOLIC_BATCH_*.parquet").select(
-                    self.to_select
-                ),
-            ]
-        ).sort(by="predictor_name")
-        self.df_overall = pl.concat(
-            [
-                pl.scan_parquet(f"{data_location}/NUMERIC_OVERALL.parquet").select(
-                    self.to_select
-                ),
-                pl.scan_parquet(f"{data_location}/SYMBOLIC_OVERALL.parquet").select(
-                    self.to_select
-                ),
-            ]
-        ).sort(by="predictor_name")
+        self.data_location = data_location
+        self._scan_data()
 
         self.context_df = pl.from_dicts(
             [
@@ -473,7 +453,146 @@ class DataFilter:
             ]
         )
 
-        # self._init_widgets()
+    def _scan_data(self):
+        self.df_contextual = pl.concat(
+            [
+                pl.scan_parquet(f"{self.data_location}/NUMERIC_BATCH_*.parquet").select(
+                    self._TO_SELECT
+                ),
+                pl.scan_parquet(
+                    f"{self.data_location}/SYMBOLIC_BATCH_*.parquet"
+                ).select(self._TO_SELECT),
+            ]
+        ).sort(by="predictor_name")
+
+        self.df_overall = pl.concat(
+            [
+                pl.scan_parquet(f"{self.data_location}/NUMERIC_OVERALL.parquet").select(
+                    self._TO_SELECT
+                ),
+                pl.scan_parquet(
+                    f"{self.data_location}/SYMBOLIC_OVERALL.parquet"
+                ).select(self._TO_SELECT),
+            ]
+        ).sort(by="predictor_name")
+
+    def get_predictor_contributions(
+        self,
+        contexts: ContextInfo | List[ContextInfo] = None,
+        predictors: str | List[str] = None,
+        limit: int = 10,
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        contribution_calculation: _CONTRIBUTION_CALCULATION = _CONTRIBUTION,
+    ) -> pl.DataFrame:
+        if not isinstance(contexts, List) and contexts is not None:
+            contexts = [contexts]
+        if isinstance(contexts, List):
+            contexts = self._get_context_filters(contexts)
+
+        if isinstance(predictors, str):
+            predictors = [predictors]
+        elif predictors is None:
+            predictors = []
+
+        base_df = self._get_base_df(contexts)
+
+        sort_columns = {
+            predictor: self._get_sort_column(predictor, contribution_calculation)
+            for predictor in predictors
+        }
+        df = self._get_aggregates(base_df, predictors).with_columns(
+            (
+                pl.col("predictor_name").replace(
+                    sort_columns, default=contribution_calculation
+                )
+            ).alias("sort_column"),
+        )
+
+        df = df.with_columns(
+            pl.coalesce(
+                pl.when(pl.col("sort_column") == col).then(pl.col(col))
+                for col in df.collect_schema().names()
+            )
+            .cast(pl.Float32)
+            .abs()
+            .alias("sort_value")
+        )
+
+        df_top_k = df.select(
+            pl.all()
+            .top_k_by(contribution_calculation, k=limit, reverse=descending)
+            .over(self._get_sort_over_columns(predictors), mapping_strategy="explode")
+        )
+
+        if missing:
+            df_top_k = pl.concat(
+                [
+                    df_top_k,
+                    df.filter(pl.col("predictor_name") == "MISSING").select(pl.all()),
+                ]
+            ).unique()
+
+        if remaining:
+            remaining_base_df = base_df.join(
+                df_top_k, on=self._get_group_by_columns(predictors), how="anti"
+            )
+
+            if len(predictors) == 0:
+                remaining_base_df = remaining_base_df.with_columns(
+                    pl.lit("REMAINING").alias("predictor_name"),
+                    pl.lit(_PREDICTOR_TYPE.SYMBOLIC.value).alias("predictor_type"),
+                )
+            else:
+                remaining_base_df = remaining_base_df.with_columns(
+                    pl.lit("REMAINING").alias("bin_contents"),
+                    pl.lit(0).cast(pl.Int64).alias("bin_order"),
+                )
+
+            remaining_df = self._get_aggregates(
+                remaining_base_df, predictors
+            ).with_columns(
+                (
+                    pl.col("predictor_name").replace(
+                        sort_columns, default=contribution_calculation
+                    )
+                ).alias("sort_column"),
+            )
+
+            remaining_df = remaining_df.with_columns(
+                pl.coalesce(
+                    pl.when(pl.col("sort_column") == col).then(pl.col(col))
+                    for col in remaining_df.collect_schema().names()
+                )
+                .cast(pl.Float32)
+                .abs()
+                .alias("sort_value")
+            )
+
+            df_top_k = pl.concat([df_top_k, remaining_df])
+
+        df_sorted = df_top_k.sort(
+            by=[*self._get_sort_over_columns(predictors), "sort_value"]
+        )
+
+        columns = [
+            contribution_calculation,
+            "predictor_name",
+            "bin_contents",
+            "sort_column",
+            "sort_value",
+            self._FREQUENCY,
+            self._CONTRIBUTION_MIN,
+            self._CONTRIBUTION_MAX,
+            "partition",
+        ]
+
+        columns = [
+            column for column in columns if column in df_sorted.collect_schema().names()
+        ]
+
+        return df_sorted.collect().select(columns)
 
     def get_context_keys(self) -> list:
         """Get the context keys for the current data filter.
@@ -485,7 +604,35 @@ class DataFilter:
         """
         return self.context_df.select(pl.exclude("filter_string")).columns
 
-    def get_context_filters(self, context_keys: ContextInfo = None) -> list[str]:
+    def _get_filtered_context_df(
+        self, context_infos: List[ContextInfo] | ContextInfo = []
+    ) -> pl.DataFrame:
+        if not isinstance(context_infos, list):
+            context_infos = [context_infos]
+
+        if len(context_infos) == 0:
+            df = self.context_df
+        else:
+            df = pl.DataFrame()
+            for context_info in context_infos:
+                # print(context_info)
+                expr = [
+                    pl.col(column_name) == column_value
+                    for column_name, column_value in context_info.items()
+                ]
+
+                df = pl.concat([df, self.context_df.filter(expr)])
+        return df
+
+    def _get_context_filters(
+        self, context_infos: List[ContextInfo] | ContextInfo = []
+    ) -> list[str]:
+        df = self._get_filtered_context_df(context_infos)
+        return df.select("filter_string").unique().to_series().to_list()
+
+    def get_context_infos(
+        self, context_infos: List[ContextInfo] | ContextInfo = []
+    ) -> List[ContextInfo]:
         """Get the possible context key filters for the provided context info.
 
         Parameters
@@ -498,39 +645,47 @@ class DataFilter:
         list[str]
             A list of context key partitions.
         """
-        if context_keys is None:
-            df = self.context_df
+        df = self._get_filtered_context_df(context_infos)
+        return df.select(pl.exclude("filter_string")).unique().to_dicts()
 
+    def _get_base_df(self, contexts: List[str]) -> pl.LazyFrame:
+        if contexts is None:
+            # print("No contexts provided, returning overall data")
+            return self.df_overall.with_columns(pl.lit("").alias("partition"))
         else:
-            for key, value in context_keys.items():
-                df = self.context_df.filter(pl.col(key) == value)
-
-        return df.select("filter_string").to_series().to_list()
-
-    def _get_base_df(self, context: str) -> pl.LazyFrame:
-        if context is None:
-            return self.df_overall
-        else:
+            # print(f"returning for {contexts}")
             return self.df_contextual.filter(
-                pl.col("partition").str.contains(context, literal=True)
+                pl.col("partition").str.contains_any(contexts)
             )
 
-    def _get_predictor_contributions(
-        self, df: pl.LazyFrame, predictor: str
-    ) -> pl.LazyFrame:
-        return (
-            df.filter(pl.col("predictor_name") == predictor)
-            .group_by(["bin_contents", "bin_order"])
-            .agg(self._CONTRIBUTIONS_EXP)
+    def _get_group_by_columns(self, predictors: List[str]) -> List[str]:
+        columns = (
+            ["predictor_name", "bin_contents", "bin_order"]
+            if len(predictors) > 0
+            else ["predictor_name", "predictor_type"]
         )
+        columns.append("partition")
+        return columns
 
-    def _get_model_contributions(self, df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.group_by(["predictor_name", "predictor_type"]).agg(
-            self._CONTRIBUTIONS_EXP
-        )
+    def _get_sort_over_columns(self, predictors: List[str]) -> List[str]:
+        columns = ["predictor_name"] if len(predictors) > 0 else []
+        columns.append("partition")
+        return columns
+
+    def _get_aggregates(self, df: pl.LazyFrame, predictors: List[str]) -> pl.LazyFrame:
+        if len(predictors) > 0:
+            return (
+                df.filter(pl.col("predictor_name").is_in(predictors))
+                .group_by(self._get_group_by_columns(predictors))
+                .agg(self._CONTRIBUTIONS_EXP)
+            )
+        else:
+            return df.group_by(self._get_group_by_columns(predictors)).agg(
+                self._CONTRIBUTIONS_EXP
+            )
 
     def _get_sort_column(
-        self, predictor: str, contribution_calculation: _CONTRIBUTION_CALCULATION
+        self, predictor, contribution_calculation: _CONTRIBUTION_CALCULATION
     ) -> str:
         if predictor is None:
             return contribution_calculation
@@ -548,676 +703,162 @@ class DataFilter:
                 else contribution_calculation
             )
 
-    def _get_sort_expression(self, sort_column: str) -> pl.Expr:
-        if sort_column in list(get_args(self._CONTRIBUTION_CALCULATION)):
-            return pl.col(sort_column).abs()
-        else:
-            return pl.col(sort_column)
-
-    def _get_remaining(
-        self, to_exclude: pl.LazyFrame, context: str, join_on: str, predictor: str
-    ) -> pl.DataFrame:
+    def _get_sort_expression(
+        self, predictor: str, contribution_calculation: _CONTRIBUTION_CALCULATION
+    ) -> List[pl.Expr]:
+        sort_column = self._get_sort_column(predictor, contribution_calculation)
         return (
-            self._get_base_df(context)
-            .filter(
-                (
-                    pl.col("predictor_name")
-                    == pl.lit(predictor).fill_null(pl.col("predictor_name"))
-                )
-            )
-            .join(to_exclude, on=join_on, how="anti")
-            .select(self._CONTRIBUTIONS_EXP)
-            .with_columns(
-                pl.lit("REMAINING").alias("predictor_name"),
-                pl.lit("REMAINING").alias("bin_contents"),
-                pl.lit(-2).cast(pl.Int64).alias("bin_order"),
-            )
+            pl.col(sort_column).abs()
+            if sort_column in list(get_args(self._CONTRIBUTION_CALCULATION))
+            else pl.col(sort_column)
         )
 
-    def plot_predictor_contributions(
-        self,
-        context: str = None,
-        predictor: str = None,
-        limit: int = 10,
+
+class Plotter:
+    """A class to plot the contributions of predictors or predictor values."""
+
+    @classmethod
+    def plot_overall_contributions(
+        cls,
+        data_loader: DataLoader,
+        context: ContextInfo = None,
+        top_n: int = 20,
+        top_k: int = 20,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_calculation: _CONTRIBUTION_CALCULATION = "|contribution|",
-    ) -> go.Figure:
-        """Plot the contributions of predictors or predictor values.
-
-        Parameters
-        ----------
-        context : str, optional
-            The context key partition to filter on.
-        predictor : str, optional
-            The predictor name to filter on.
-        limit : int, optional
-            The number of top contributors to display.
-        descending : bool, optional
-            Whether to sort the contributions in descending order.
-        missing : bool, optional
-            Whether to include missing values in the plot.
-        remaining : bool, optional
-            Whether to include remaining values in the plot.
-        contribution_calculation : _CONTRIBUTION_CALCULATION, optional
-            The type of contribution calculation to use.
-
-        Returns
-        -------
-        None
-        """
-        df = self.get_predictor_contributions(
+        contribution_calculation: DataLoader._CONTRIBUTION_CALCULATION = DataLoader._CONTRIBUTION,
+    ) -> List[go.Figure]:
+        df = data_loader.get_predictor_contributions(
             context,
-            predictor,
-            limit,
+            None,
+            top_n,
             descending,
             missing,
             remaining,
             contribution_calculation,
         )
-        columns = df.columns
 
-        title = (
-            f"Contributions for {'context: ' + context if context else 'whole model'}"
+        predictors = (
+            df.filter(pl.col("predictor_name") != "REMAINING")
+            .select("predictor_name")
+            .unique()
+            .to_series()
+            .to_list()
         )
-        if predictor:
-            title += f", predictor: {predictor}"
-        title += f" ({contribution_calculation})"
 
-        title = f"{contribution_calculation} for {'specific context partition' if context else 'whole model'}"
-        if predictor:
-            title = f"Predictor value contributions: {predictor}"
+        df_predictors = data_loader.get_predictor_contributions(
+            context,
+            predictors,
+            top_k,
+            descending,
+            missing,
+            remaining,
+            contribution_calculation,
+        )
+        return [cls._plot_overall_contributions(df, context), *cls._plot_predictor_contributions(df_predictors)]
+
+    @staticmethod
+    def _plot_overall_contributions(
+        df: pl.DataFrame, context: ContextInfo
+    ) -> go.Figure:
+        title = "Overall average predictor contributions for "
+        if context is None:
+            title += "the whole model"
         else:
-            title = "Average predictor contributions"
-        
-        if context:
-            context_dict = json.loads(context)["partition"]
-            fig = make_subplots(
-                rows=2 if context else 1,
-                cols=1,
-                subplot_titles=["Context Partition", title],
-                vertical_spacing=0.1,
-                row_heights=[0.3, 0.7],
-                specs=[[{"type": "table"}], [{"type": "scatter"}]],
-            )
+            title += f"{' '.join(context.values())}"
 
-            table_trace = go.Table(
-                header=dict(values=["Context key", "Context value"], align="left"),
-                cells=dict(
-                    values=[list(context_dict.keys()), list(context_dict.values())],
-                    align="left",
-                ),
-            )
-            fig.add_trace(table_trace, row=1, col=1)
-
-            bar_trace = go.Bar(
-                x=df[columns[0]].to_list(),
-                y=df[columns[1]].to_list(),
-                orientation="h",
-                marker=dict(
-                    color=df[columns[0]].to_list(),
-                    colorscale="RdBu",
-                    cmid=0.0,
-                ),
-                hoverinfo="x+y+text",
-                text=df[columns[2]].to_list(),
-                texttemplate="Frequency: %{text}",
-            )
-            fig.add_trace(bar_trace, row=2, col=1)
-
-            fig.update_layout(
-                title=title + " for context partition",
-                xaxis_title=columns[0],
-                yaxis_title=predictor if predictor else 'Predictor',
-                height=600
-            )
-        else:
-            fig = go.Figure()
-            fig.add_trace(
-                go.Bar(
-                    x=df[columns[0]].to_list(),
-                    y=df[columns[1]].to_list(),
-                    orientation="h",
-                    marker=dict(
-                        color=df[columns[0]].to_list(),
-                        colorscale="RdBu",
-                        cmid=0.0,
-                    ),
-                    hoverinfo="x+y+text",
-                    text=df[columns[2]].to_list(),
-                    texttemplate="Frequency: %{text}",
-                )
-            )
-            fig.update_layout(
-                title=title+ " for whole model",
-                xaxis_title=columns[0],
-                yaxis_title=predictor if predictor else 'Predictor',
-                height=360
-            )
-
+        fig = px.bar(df, x=df.columns[0], y=df.columns[1], orientation="h", title=title)
+        fig.data[0].marker = {
+            "color": df[df.columns[0]].to_list(),
+            "colorscale": "RdBu_r",
+            "cmid": 0.0,
+        }
+        fig.update_layout(
+            xaxis_title=df.columns[0],
+            yaxis_title='Predictor',
+            height=600
+        )
         return fig
 
-    def get_predictor_contributions(
-        self,
-        context: str = None,
-        predictor: str = None,
-        limit: int = 10,
+    @classmethod
+    def plot_predictor_contributions(
+        cls,
+        data_loader: DataLoader,
+        context: ContextInfo,
+        top_n: int = 20,
+        top_k: int = 20,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_calculation: _CONTRIBUTION_CALCULATION = "|contribution|",
-    ) -> pl.DataFrame:
-        base_df = self._get_base_df(context)
-        df = (
-            self._get_model_contributions(base_df)
-            if predictor is None
-            else self._get_predictor_contributions(base_df, predictor)
-        )
-
-        sort_column = self._get_sort_column(predictor, contribution_calculation)
-        sort_expression = self._get_sort_expression(sort_column)
-
-        df_sorted = df.sort(
-            by=sort_expression,
-            descending=descending,
-        )
-
-        y_column = "predictor_name" if predictor is None else "bin_contents"
-        columns = [
+        contribution_calculation: DataLoader._CONTRIBUTION_CALCULATION = DataLoader._CONTRIBUTION,
+    ) -> List[go.Figure]:
+        df_context = data_loader.get_predictor_contributions(
+            [context],
+            [],
+            top_n,
+            descending,
+            missing,
+            remaining,
             contribution_calculation,
-            y_column,
-            "frequency",
-            "contribution_min",
-            "contribution_max",
-        ]
-
-        if sort_column not in columns:
-            columns.append(sort_column)
-
-        df_top = df_sorted.limit(limit).select(columns)
-
-        if missing:
-            df_missing = df.filter(pl.col(y_column) == "MISSING").select(columns)
-            df_top = pl.concat([df_top, df_missing])
-
-        if remaining:
-            df_remaining = self._get_remaining(
-                df_top.select(y_column).unique(),
-                context,
-                join_on=y_column,
-                predictor=predictor,
-            ).select(columns)
-            df_top = pl.concat([df_top, df_remaining])
-
-        df_top = (
-            df_top.drop_nulls()
-            .unique(y_column)
-            .sort(
-                by=sort_expression,
-                descending=descending,
-            )
         )
-
-        return df_top.collect().select(columns)
-    
-    def get_predictor_names(self):
-        """Get the predictor names from the data.
-
-        Returns
-        -------
-        list
-            A list of predictor names.
-        """
-        return self.df_overall.select("predictor_name").unique().collect().to_series().to_list()
-
-    def _init_widgets(self):
-        self.context_filters = []
-        for context_key in self.context_keys:
-            options = self.context_df[context_key].unique().to_list()
-            context_filter = widgets.Combobox(
-                placeholder=f"Select {context_key}",
-                options=options,
-                description=f"{context_key}",
-                ensure_option=False,
-                disabled=False,
-            )
-            context_filter.observe(self._results, names="value")
-            self.context_filters.append(context_filter)
-
-        self.filter_results = widgets.Text(
-            description="Filtering For", disabled=True, value="whole_model"
-        )
-
-        context_filter_container = widgets.VBox(self.context_filters)
-        self.widget = widgets.HBox([context_filter_container, self.filter_results])
-
-    def _get_filtered_options(self):
-        filtered_result = self.context_df
-        for f in [item for item in self.context_filters if item.value != ""]:
-            filtered_result = filtered_result.filter(pl.col(f.description) == f.value)
-
-        for f in [item for item in self.context_filters]:
-            f.options = filtered_result[f.description].unique().to_list()
-            if len(f.options) == 1:
-                f.value = f.options[0]
-
-        self.allowed_contexts = filtered_result.to_dicts()
-
-        if len(self.allowed_contexts) == 1:
-            filter_string = f"{json.dumps(filtered_result.to_dicts()[0])}".replace(
-                ", ", ","
-            ).replace(": ", ":")
-        else:
-            filter_string = None
-        return filter_string
-
-    def _update_filter_results(self, filter_string):
-        if filter_string is None:
-            self.filter_results.value = "whole_model"
-        else:
-            self.filter_results.value = filter_string
-
-    def _results(self, value):
-        filter_string = self._get_filtered_options()
-        self._update_filter_results(filter_string)
-        for _data_update in self._data_updates:
-            _data_update(self)
-
-    def _add_to__data_update(self, update):
-        self._data_updates.append(update)
-
-    def display(self):
-        return display(self.widget)
-
-    def _get_data(self):
-        filter_string = self.filter_results.value
-        if filter_string == "whole_model":
-            return self.df_overall, filter_string
-        else:
-            return self.df_contextual.filter(
-                pl.col("partition").str.contains(filter_string, literal=True)
-            ), filter_string
-
-    def _get_data_aggregate(self):
-        filter_string = self.filter_results.value
-        if filter_string == "whole_model":
-            df = self.df_overall
-        else:
-            df = self.df_contextual.filter(
-                pl.col("partition").str.contains(filter_string, literal=True)
-            )
-
-        return df.group_by(["predictor_name", "predictor_type"]).agg(
-            (
-                pl.col("frequency")
-                * pl.col("contribution_abs")
-                / pl.col("frequency").sum()
-            )
-            .mean()
-            .alias("|contribution_weighted|"),
-            (pl.col("frequency") * pl.col("contribution") / pl.col("frequency").sum())
-            .mean()
-            .alias("contribution_weighted"),
-            pl.col("contribution_abs").mean().alias("|contribution|"),
-            pl.col("contribution").mean().alias("contribution"),
-        ), filter_string
-
-
-class _OverAllPredictorContributions:
-    _predictor_options = ["BOTH", "SYMBOLIC", "NUMERIC"]
-
-    _predictor_option_drop_down_w = widgets.Dropdown(
-        placeholder="Select predictor types",
-        options=_predictor_options,
-        description="Predictor types",
-        ensure_option=True,
-        disabled=False,
-        value=_predictor_options[0],
-    )
-
-    _weighted_mean_w = widgets.Checkbox(
-        value=True, description="Weight average by frequency", disabled=False
-    )
-
-    _absolute_mean_w = widgets.Checkbox(
-        value=False, description="Use absolute contribtuion", disabled=False
-    )
-
-    _limit_w = widgets.IntSlider(
-        min=1,
-        max=100,
-        step=1,
-        description="Limit",
-        ensure_option=True,
-        disabled=False,
-        orientation="horizontal",
-        readout=True,
-        readout_format="d",
-        value=10,
-    )
-
-    _title_w = widgets.HTML(
-        value="<h3>Context: Whole Model</h3>",
-        placeholder="Context Information",
-    )
-
-    _fig_w = go.FigureWidget()
-
-    def __init__(self, data, title_context):
-        self.title_context = title_context
-        self.data = data
-        self._init_widgets()
-
-    def _update_data(self, data):
-        self.data = data
-        self._init_widgets()
-
-    def _update_dataframe(self):
-        if self._predictor_option_drop_down_w.value == "BOTH":
-            df_filtered = self.data
-        else:
-            df_filtered = self.data.filter(
-                pl.col("predictor_type") == self._predictor_option_drop_down_w.value
-            )
-        return df_filtered
-
-    def _update_figure(self, df):
-        if self._weighted_mean_w.value:
-            column = "contribution_weighted"
-        else:
-            column = "contribution"
-
-        if self._absolute_mean_w.value:
-            column = "|" + column + "|"
-
-        print(column)
-        df = df.sort([pl.col(column).abs(), "predictor_name"], descending=True).limit(
-            self._limit_w.value
-        )
-
-        with self._fig_w.batch_update():
-            self._fig_w.add_trace(go.Bar(orientation="h"))
-            self._fig_w.update_layout(
-                title=f"Avg {'absolute ' if self._absolute_mean_w.value else ''}{'' if self._predictor_option_drop_down_w.value == 'BOTH' else self._predictor_option_drop_down_w.value.lower() + ' '}predictor contribution",
-                xaxis={"title": {"text": column}},
-                yaxis={"title": {"text": "Predictor name"}},
-                height=max(400, 20 * df.shape[0]),
-            )
-
-            self._title_w.value = f"<h3>Context: {self.title_context}<h3>"
-
-            self._fig_w.data[0].x = df[column].to_list()
-            self._fig_w.data[0].y = df["predictor_name"].to_list()
-            self._fig_w.data[0].marker = {
-                "color": df[column].to_list(),
-                "colorscale": "RdBu",
-                "cmid": 0.0,
-            }
-
-    def _data_update(self, data_filter: DataFilter):
-        new_data, self.title_context = data_filter._get_data_aggregate()
-        self._update_data(new_data)
-
-    def _response(self, change):
-        resulting_df = self._update_dataframe()
-        self._update_figure(resulting_df)
-
-    def _init_widgets(self):
-        self._predictor_option_drop_down_w.observe(self._response, names="value")
-        self._weighted_mean_w.observe(self._response, names="value")
-        self._absolute_mean_w.observe(self._response, names="value")
-        self._limit_w.observe(self._response, names="value")
-
-        selectors = widgets.HBox([self._predictor_option_drop_down_w, self._limit_w])
-        check_boxes = widgets.HBox([self._weighted_mean_w, self._absolute_mean_w])
-        self.widget = widgets.VBox([self._title_w, selectors, check_boxes, self._fig_w])
-
-        self._response("init")
-
-    def display(self):
-        display(self.widget)
-
-
-class _OverAllPredictorContributionsByValue:
-    _sort_options = ["contribution", "frequency", "contibution weighted by freq"]
-
-    _sort_by_w = widgets.Dropdown(
-        placeholder="Select sort scheme",
-        options=_sort_options,
-        description="Sort by",
-        ensure_option=True,
-        disabled=False,
-        value=_sort_options[0],
-    )
-
-    _limit_w = widgets.IntSlider(
-        min=1,
-        max=100,
-        step=1,
-        description="Limit",
-        ensure_option=True,
-        disabled=False,
-        orientation="horizontal",
-        readout=True,
-        readout_format="d",
-        value=10,
-    )
-
-    _show_remaining_w = widgets.Checkbox(
-        value=True, description="Aggregate remaining", disabled=False
-    )
-
-    _show_missing_w = widgets.Checkbox(
-        value=False, description="Force missing", disabled=False
-    )
-
-    _title_w = widgets.HTML(
-        value="<h3>Context: Whole Model</h3>",
-        placeholder="Context Information",
-    )
-
-    _fig_w = go.FigureWidget()
-
-    def __init__(self, data, title_context):
-        self.title_context = title_context
-        self._to_select = [
-            "contribution",
-            "contribution_abs",
-            "frequency",
-            "predictor_type",
-            "predictor_name",
-            "bin_contents",
-            "bin_order",
-            "partition",
-        ]
-        self._init_data(data)
-
-    def _init_data(self, data):
-        self.data = data
-        self._predictor_names = data["predictor_name"].unique().to_list()
-        self._init_widgets()
-
-    def _update_data(self, data):
-        self.data = data
-        self._predictor_names = data["predictor_name"].unique().to_list()
-        self._update_widgets()
-
-    def _update_dataframe(self, predictor__is_symbolic):
-        if predictor__is_symbolic:
-            if self._sort_by_w.value == "frequency":
-                sorted_df = self.data.filter(
-                    pl.col("predictor_name") == self._predictor_w.value
-                ).sort(by="frequency", descending=True)
-            elif self._sort_by_w.value == "contribution":
-                sorted_df = self.data.filter(
-                    pl.col("predictor_name") == self._predictor_w.value
-                ).sort(
-                    by=[pl.col("contribution").abs(), "predictor_name"], descending=True
-                )
-            elif self._sort_by_w.value == "contibution weighted by freq":
-                sorted_df = self.data.filter(
-                    pl.col("predictor_name") == self._predictor_w.value
-                ).sort(
-                    by=[
-                        pl.col("frequency") * pl.col("contribution").abs(),
-                        "predictor_name",
-                    ],
-                    descending=True,
-                )
-
-            top_n = sorted_df.limit(self._limit_w.value).select(
-                ["contribution", "frequency", "bin_contents"]
-            )
-
-            if self._show_remaining_w.value:
-                remaining = (
-                    sorted_df.slice(self._limit_w.value)
-                    .filter(
-                        (pl.col("bin_contents") != "MISSING")
-                        | ~pl.lit(self._show_missing_w.value)
-                    )
-                    .select(
-                        [
-                            pl.mean("contribution"),
-                            pl.sum("frequency"),
-                            pl.lit("REMAINING").alias("bin_contents"),
-                        ]
-                    )
-                )
-                resulting_df = pl.concat([top_n, remaining])
-            else:
-                resulting_df = top_n
-
-            if (
-                self._show_missing_w.value
-                and resulting_df.filter(pl.col("bin_contents") == "MISSING")
-                .select(pl.len())
-                .item()
-                == 0
-            ):
-                resulting_df = pl.concat(
-                    [
-                        resulting_df,
-                        sorted_df.filter(pl.col("bin_contents") == "MISSING").select(
-                            ["contribution", "frequency", "bin_contents"]
-                        ),
-                    ]
-                )
-            return resulting_df
-        else:
-            return self.data.filter(
-                pl.col("predictor_name") == self._predictor_w.value
-            ).sort(pl.col("bin_order"), descending=False)
-
-    def _is_symbolic(self):
-        predictor_type = (
-            self.data.filter(pl.col("predictor_name") == self._predictor_w.value)
-            .select("predictor_type")
+        predictors = (
+            df_context.filter(pl.col("predictor_name") != "REMAINING")
+            .select("predictor_name")
             .unique()
-            .item()
+            .to_series()
+            .to_list()
         )
+        df = data_loader.get_predictor_contributions(
+            context,
+            predictors,
+            top_k,
+            descending,
+            missing,
+            remaining,
+            contribution_calculation,
+        )
+        return [
+            cls._plot_context_table(context),
+            cls._plot_overall_contributions(df_context, context),
+            *cls._plot_predictor_contributions(df),
+        ]
 
-        _is_symbolic = predictor_type == "SYMBOLIC"
-        self._sort_by_w.disabled = not _is_symbolic
-        self._show_remaining_w.disabled = not _is_symbolic
-        self._show_missing_w.disabled = not _is_symbolic
-        self._limit_w.disabled = not _is_symbolic
+    @staticmethod
+    def _plot_predictor_contributions(df: pl.DataFrame) -> go.Figure:
+        predictors = df.select("predictor_name").unique().to_series().to_list()
+        plots = []
+        for predictor in predictors:
+            predictor_df = df.filter(pl.col("predictor_name") == predictor)
 
-        return _is_symbolic
-
-    def _update_figure(self, df):
-        with self._fig_w.batch_update():
-            self._fig_w.add_trace(go.Bar(orientation="h"))
-            self._fig_w.update_layout(
-                title=f"Avg contribution for {self._predictor_w.value}",
-                xaxis={"title": {"text": "contribution"}},
-                yaxis={"title": {"text": "Predictor value"}},
-                height=max(400, 20 * df.shape[0]),
+            fig = px.bar(
+                predictor_df,
+                x=predictor_df.columns[0],
+                y=predictor_df.columns[2],
+                orientation="h",
+                title=f"Contributions for {predictor}",
             )
-
-            self._title_w.value = f"<h3>Context: {self.title_context}</h3>"
-
-            self._fig_w.data[0].x = df["contribution"].to_list()
-            self._fig_w.data[0].y = df["bin_contents"].to_list()
-            self._fig_w.data[0].marker = {
-                "color": df["contribution"].to_list(),
-                "colorscale": "RdBu",
+            fig.data[0].marker = {
+                "color": predictor_df[predictor_df.columns[0]].to_list(),
+                "colorscale": "RdBu_r",
                 "cmid": 0.0,
             }
+            fig.update_layout(
+                yaxis_title=predictor,
+            )
+            plots.append(fig)
+        return plots
 
-    def _response(self, change):
-        predictor__is_symbolic = self._is_symbolic()
-        resulting_df = self._update_dataframe(predictor__is_symbolic)
-        self._update_figure(resulting_df)
-
-    def _data_update(self, data_filter: DataFilter):
-        new_data, self.title_context = data_filter._get_data()
-        self._update_data(new_data)
-
-    def _update_widgets(self):
-        self._predictor_w.observe(self._response, names="value")
-        self._predictor_w.options = self._predictor_names
-        self._sort_by_w.observe(self._response, names="value")
-        self._limit_w.observe(self._response, names="value")
-        self._show_remaining_w.observe(self._response, names="value")
-        self._show_missing_w.observe(self._response, names="value")
-
-        selectors = widgets.HBox([self._predictor_w, self._sort_by_w, self._limit_w])
-        check_boxes = widgets.HBox([self._show_remaining_w, self._show_missing_w])
-        self.widget = widgets.VBox([self._title_w, selectors, check_boxes, self._fig_w])
-
-        self._response("init")
-
-    def _init_widgets(self):
-        self._predictor_w = widgets.Combobox(
-            placeholder="Select Predictor",
-            options=self._predictor_names,
-            description="Predictor",
-            ensure_option=True,
-            disabled=False,
-            value=self._predictor_names[0],
+    @staticmethod
+    def _plot_context_table(context_info: ContextInfo) -> go.Figure:
+        fig = go.Figure(
+            go.Table(
+                header=dict(values=["Context key", "Context value"], align="left"),
+                cells=dict(
+                    values=[list(context_info.keys()), list(context_info.values())],
+                    align="left",
+                ),
+            )
         )
-        self._update_widgets()
-
-    def display(self):
-        display(self.widget)
-
-
-class _PredictorContributionExplorer:
-    _filter_head = widgets.HTML(
-        value="<h2>Context Filter</h2>",
-    )
-
-    _graph_head = widgets.HTML(
-        value="<h2>Contribution Graphs</h2>",
-    )
-
-    def __init__(self, data_folder=".tmp/out"):
-        data_path = pathlib.Path(data_folder)
-        if data_path.exists() and data_path.is_dir():
-            with os.scandir(data_path) as it:
-                if not any(it):
-                    raise FileNotFoundError(f"No files found at {data_path}")
-        else:
-            raise FileNotFoundError(f"No folder found at {data_path}")
-
-        self.data_filter = DataFilter(data_folder)
-        self.over_all_widget = _OverAllPredictorContributions(
-            *self.data_filter._get_data_aggregate()
-        )
-        self.by_value_widget = _OverAllPredictorContributionsByValue(
-            *self.data_filter._get_data()
-        )
-        self.data_filter._add_to__data_update(self.over_all_widget._data_update)
-        self.data_filter._add_to__data_update(self.by_value_widget._data_update)
-
-        self.tabs = widgets.Tab()
-        self.tabs.children = [self.over_all_widget.widget, self.by_value_widget.widget]
-        self.tabs.titles = ["Overall Contribution", "Contribution by Value"]
-        self.widget = widgets.VBox(
-            [self._filter_head, self.data_filter.widget, self._graph_head, self.tabs]
-        )
-
-    def display(self):
-        display(self.widget)
+        fig.update_layout(title="Context Information", height=200)
+        return fig

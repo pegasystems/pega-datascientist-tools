@@ -1,0 +1,3 @@
+DATA_FOLDER="/Users/henre/Repositories/pega-datascientist-tools/data/explanations"
+MODEL_NAME="TelcoGb_Model"
+TO_DATE="2025-05-19"

@@ -35,4 +35,10 @@ python/*.ipynb_checkpoints/*
 r/tests/testthat/d/tmp2
 **/cache
 .venv
-examples/explanations/.tmp/out/
+**/_site/
+**/.tmp/
+**/.quarto/
+python/pdstools/reports/GlobalExplanations/by-context/
+
+
+

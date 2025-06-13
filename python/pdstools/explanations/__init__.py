@@ -1,3 +1,3 @@
-from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations, DataFilter
+from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations, DataLoader, Plotter
 
-__all__ = ["GradientBoostGlobalExplanations", "DataFilter"]
+__all__ = ["GradientBoostGlobalExplanations", "DataLoader", "Plotter"]
