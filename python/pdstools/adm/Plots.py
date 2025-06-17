@@ -335,7 +335,7 @@ class Plots(LazyNamespace):
             agg_expr.append(pl.sum("ResponseCount"))
 
         df = (
-            df.with_columns(pl.col("SnapshotTime"))
+            df.with_columns(pl.col("SnapshotTime").dt.truncate(every=every))
             .group_by(grouping_columns + ["SnapshotTime"])
             .agg(agg_expr)
             .sort("SnapshotTime", by_col)
@@ -353,14 +353,8 @@ class Plots(LazyNamespace):
         plot_metric = metric
         if not cumulative:
             plot_metric = f"{metric}_change"
-            df = (
-                df.group_by_dynamic(
-                    "SnapshotTime", every=every, group_by=grouping_columns
-                )
-                .agg(pl.max(metric))
-                .with_columns(
-                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
-                )
+            df = df.with_columns(
+                pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
             )
 
         if return_df:
@@ -471,6 +465,7 @@ class Plots(LazyNamespace):
         self,
         model_id: str,
         *,
+        active_range: bool = True,
         return_df: bool = False,
     ):
         df = (
@@ -491,12 +486,21 @@ class Plots(LazyNamespace):
                 )
             )
             .filter(
-                pl.col("PredictorName") == "Classifier", pl.col("ModelID") == model_id
+                PredictorName = "Classifier", ModelID = model_id
             )
         ).sort("BinIndex")
 
+        if active_range:
+            active_ranges = self.datamart.active_ranges(model_id).collect()
+            if active_ranges.height > 0:
+                active_range_info = active_ranges.to_dicts()[0]
+                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                    pl.col("BinIndex") <= active_range_info["idx_max"]
+                )
+                df = df.filter(active_range_filter_expr)
+
         if df.select(pl.first().len()).collect().item() == 0:
-            raise ValueError(f"There is no data for the provided modelid {model_id}")
+            raise ValueError(f"There is no data for the provided modelid '{model_id}'")
 
         if return_df:
             return df
@@ -950,15 +954,17 @@ class Plots(LazyNamespace):
         *,
         top_predictors: int = 20,
         top_groups: Optional[int] = None,
-        by: Optional[Union[str, pl.Expr]] = "Name",
+        by: str = "Name",
         active_only: bool = False,
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        if type(by) is pl.Expr:
-            by_col = by.meta.output_name()
+        if isinstance(by, str):
+            by_name = by
         else:
-            by_col = by
+            by = by.alias("Predictor")
+            by_name = "Predictor"
+
         df = self.datamart.aggregates.predictor_performance_pivot(
             query=query,
             by=by,
@@ -967,15 +973,16 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
+        df = df.collect().transpose(
+            include_header=True, header_name=by_name, column_names=by_name
+        )
+
         if return_df:
             return df.lazy()
 
         title = "over all models"
-        df = df.collect().transpose(
-            include_header=True, header_name="PredictorNames", column_names=by_col
-        )
         fig = px.imshow(
-            df.select(pl.all().exclude("PredictorNames")),
+            df.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
@@ -983,7 +990,7 @@ class Plots(LazyNamespace):
             ),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df["PredictorNames"],
+            y=df[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
