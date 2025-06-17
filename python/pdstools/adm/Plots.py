@@ -335,7 +335,7 @@ class Plots(LazyNamespace):
             agg_expr.append(pl.sum("ResponseCount"))
 
         df = (
-            df.with_columns(pl.col("SnapshotTime").dt.truncate(every=every))
+            df.with_columns(pl.col("SnapshotTime"))
             .group_by(grouping_columns + ["SnapshotTime"])
             .agg(agg_expr)
             .sort("SnapshotTime", by_col)
@@ -353,8 +353,14 @@ class Plots(LazyNamespace):
         plot_metric = metric
         if not cumulative:
             plot_metric = f"{metric}_change"
-            df = df.with_columns(
-                pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
+            df = (
+                df.group_by_dynamic(
+                    "SnapshotTime", every=every, group_by=grouping_columns
+                )
+                .agg(pl.last(metric))
+                .with_columns(
+                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
+                )
             )
 
         if return_df:
@@ -485,18 +491,16 @@ class Plots(LazyNamespace):
                     self.datamart.context_keys,
                 )
             )
-            .filter(
-                PredictorName = "Classifier", ModelID = model_id
-            )
+            .filter(PredictorName="Classifier", ModelID=model_id)
         ).sort("BinIndex")
 
         if active_range:
             active_ranges = self.datamart.active_ranges(model_id).collect()
             if active_ranges.height > 0:
                 active_range_info = active_ranges.to_dicts()[0]
-                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
-                    pl.col("BinIndex") <= active_range_info["idx_max"]
-                )
+                active_range_filter_expr = (
+                    pl.col("BinIndex") >= active_range_info["idx_min"]
+                ) & (pl.col("BinIndex") <= active_range_info["idx_max"])
                 df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
