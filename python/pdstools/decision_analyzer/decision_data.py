@@ -944,16 +944,16 @@ class DecisionAnalyzer:
         if filters is None:
             filters = pl.col("pxRank") <= win_rank
 
-        global_sensitivity = (
+        sensitivity = (
             apply_filter(
                 self.reRank(), filters
             )  # don't put filters in rerank function, we need to filter after reranking!
             # .filter(pl.col("rank_PVCL") <= win_rank)
             .select(
                 [
-                    pl.col("pyName")
+                    pl.col("pxInteractionID")
                     .filter(pl.col(x) <= win_rank)
-                    .len()
+                    .n_unique()
                     .cast(
                         pl.Int32
                     )  # thinks they are unsigned int, 33-34 returns big number
@@ -991,7 +991,7 @@ class DecisionAnalyzer:
             )
             .melt(variable_name="Factor", value_name="Influence")
         )
-        return global_sensitivity
+        return sensitivity
 
     def get_offer_variability_stats(self, stage):
         offer_variability_data = self.getActionVariationData(stage)
@@ -1038,7 +1038,7 @@ class DecisionAnalyzer:
                 how="inner",
             )
             .group_by(groupby_cols)
-            .agg(Decisions=pl.count())
+            .agg(Decisions=pl.len())
             .sort("Decisions", descending=True)
             .filter(pl.col("Decisions") > 0)
             .head(top_k)
@@ -1047,18 +1047,15 @@ class DecisionAnalyzer:
 
     def losing_to(self, interactions, win_rank, groupby_cols, top_k):
         return (
-            self.arbitration_stage.join(
+            self.sample.filter(pl.col("pxRank") <= win_rank)
+            .join(
                 interactions,
                 on="pxInteractionID",
                 how="inner",
             )
             .group_by(groupby_cols)
-            .agg(
-                Actions=pl.col("pxRank")
-                .where(pl.col("pxRank") <= win_rank.win_rank)
-                .count()
-            )
-            .sort("Actions", descending=True)
-            .filter(pl.col("Actions") > 0)
+            .agg(Decisions=pl.len())
+            .sort("Decisions", descending=True)
+            .filter(pl.col("Decisions") > 0)
             .head(top_k)
         )

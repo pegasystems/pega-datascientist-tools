@@ -94,12 +94,26 @@ with st.session_state["sidebar"]:
 
 # st.write(st.session_state.to_dict().keys())
 
+
+def get_groupby_columns(scope_options, current_scope_key):
+    """
+    Get the columns to group by for win/loss analysis.
+    Returns [current_scope] + [next_scope_level] if next level exists.
+    This creates the y-axis (current scope) and color grouping (next scope level).
+    """
+    current_index = get_current_index(scope_options, current_scope_key)
+    groupby_cols = [st.session_state[current_scope_key]]
+
+    # Add the next scope level for color grouping if it exists
+    next_index = current_index + 1
+    if next_index < len(scope_options):
+        groupby_cols.append(scope_options[next_index])
+
+    return groupby_cols
+
+
 if st.session_state.local_filters != []:
-    groupby_cols = [st.session_state.scope] + (
-        [scope_options[get_current_index(scope_options, "scope") + 1]]
-        if (get_current_index(scope_options, "scope") + 1) < len(scope_options)
-        else []
-    )
+    groupby_cols = get_groupby_columns(scope_options, "scope")
 
     interactions_where_comparison_group_wins = (
         st.session_state.decision_data.get_winning_or_losing_interactions(
@@ -121,7 +135,7 @@ if st.session_state.local_filters != []:
             win=False,
         )
     )
-    losing_to = st.session_state.decision_data.winning_from(
+    losing_to = st.session_state.decision_data.losing_to(
         interactions=interactions_where_comparison_group_loses,
         win_rank=st.session_state.win_rank,
         groupby_cols=groupby_cols,
@@ -143,12 +157,7 @@ if st.session_state.local_filters != []:
             st.session_state.decision_data.plot.distribution(
                 winning_from,
                 st.session_state.scope,
-                (
-                    scope_options[get_current_index(scope_options, "scope") + 1]
-                    if (get_current_index(scope_options, "scope") + 1)
-                    < len(scope_options)
-                    else None
-                ),
+                groupby_cols[1] if len(groupby_cols) > 1 else None,
                 "Decisions",
                 horizontal=True,
                 # models=models,
@@ -167,12 +176,7 @@ if st.session_state.local_filters != []:
             st.session_state.decision_data.plot.distribution(
                 losing_to,
                 st.session_state.scope,
-                (
-                    scope_options[get_current_index(scope_options, "scope") + 1]
-                    if (get_current_index(scope_options, "scope") + 1)
-                    < len(scope_options)
-                    else None
-                ),
+                groupby_cols[1] if len(groupby_cols) > 1 else None,
                 "Decisions",
                 horizontal=True,
             ),

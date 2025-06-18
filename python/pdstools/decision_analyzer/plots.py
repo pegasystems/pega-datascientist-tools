@@ -469,7 +469,7 @@ class Plot:
             color=breakdown,
             orientation="h" if horizontal else "v",
             template="pega",
-        ).update_layout(legend_title_text=f"{NBADScope_Mapping[scope]}")
+        ).update_layout(legend_title_text=f"{NBADScope_Mapping[breakdown]}")
 
         if horizontal:
             fig = (
