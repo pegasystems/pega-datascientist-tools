@@ -220,7 +220,7 @@ def test_predictor_performance(sample: ADMDatamart):
     assert "PredictorPerformance" in df.collect_schema().names()
     assert (
         round(df.select(pl.col("PredictorPerformance").top_k(1)).collect().item(), 2)
-        == 0.86
+        == 86.38
     )
 
     plot = sample.plot.predictor_performance()
@@ -232,7 +232,7 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert df.shape == (60, 3)
     assert "PredictorCategory" in df.columns
     assert "PredictorPerformance" in df.columns
-    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 0.62
+    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 62.49
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)

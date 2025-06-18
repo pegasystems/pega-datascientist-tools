@@ -106,6 +106,13 @@ def test_predictor_counts(dm_aggregates):
     assert dm_aggregates.predictor_counts().collect().shape[0] == 78
     assert dm_aggregates.predictor_counts().collect().shape[1] == 5
 
+def test_predictors_overview(dm_aggregates):
+    assert dm_aggregates.predictors_overview().collect().height == 1800
+    assert dm_aggregates.predictors_overview().collect().width == 12
+
+def test_predictors_global_overview(dm_aggregates):
+    assert dm_aggregates.predictors_global_overview().collect().height == 89
+    assert dm_aggregates.predictors_global_overview().collect().width == 7
 
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
