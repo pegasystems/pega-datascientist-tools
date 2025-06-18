@@ -11,6 +11,11 @@ import polars as pl
 # boundaries and descriptions should be in sync with that one
 # https://pegasystems.sharepoint.com/:x:/s/SP-1-1CustomerEngagement/EZRI5aEOxMlMiieFQL6HysEBheX1S96zmy-t4HROK3tG7w?e=NaLYUD
 
+# TODO: future proof the list of models/predictions with the upcoming support for AGB
+# https://git.pega.io/projects/PEGAMKTNG/repos/pega-marketing/pull-requests/23314/overview
+# and also with multi-level models with certain suffices. Double check with AB. For example,
+# Mobile_Click_Through_Rate_Customer should be ok. For some customers, this is currently flagged.
+
 _data = {
     "Issues": [1, 5, 25, None],
     "Groups per Issue": [1, 5, 25, None],

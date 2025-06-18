@@ -424,10 +424,13 @@ class Reports(LazyNamespace):
         predictor_binning: bool = False,
     ) -> tuple[Optional[Path], list[str]]:
         """
-        Export aggregated data to an Excel file.
+        Export raw data to an Excel file.
+
         This method exports the last snapshots of model_data, predictor summary,
         and optionally predictor_binning data to separate sheets in an Excel file.
-        If a specific table is not available, it will be skipped without causing the export to fail.
+
+        If a specific table is not available or too large, it will be skipped without 
+        causing the export to fail.
 
         Parameters
         ----------
@@ -455,7 +458,7 @@ class Reports(LazyNamespace):
 
         name = Path(name)
         tabs = {
-            "modeldata_last_snapshot": self.datamart.aggregates.last(
+            "adm_models": self.datamart.aggregates.last(
                 table="model_data"
             ).with_columns(
                 pl.col("ResponseCount").cast(pl.Int64),
@@ -465,7 +468,10 @@ class Reports(LazyNamespace):
         }
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_overview"] = self.datamart.aggregates.predictors_overview()
+            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
+
+        if self.datamart.predictor_data is not None:
+            tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
 
         if predictor_binning and self.datamart.predictor_data is not None:
             columns = [

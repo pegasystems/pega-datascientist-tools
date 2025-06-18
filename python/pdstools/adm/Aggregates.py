@@ -593,11 +593,9 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
+                    pl.col("Name").alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
+                    .list.explode().unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -654,16 +652,14 @@ class Aggregates:
             .is_in(standard_configurations_set)
             .any(ignore_nulls=False)
             .alias("usesNBAD"),
-            
             # For debugging:
             pl.col("ModelTechnique").unique().sort(),
             pl.col("Configuration").unique().sort().alias("Configurations"),
-
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
             .alias("usesAGB"),
         )
-        
+
         if debug:
             return result
         else:
@@ -894,11 +890,55 @@ class Aggregates:
 
         return configuration_summary
 
+    def predictors_global_overview(
+        self,
+    ) -> pl.LazyFrame:
+        """
+        Generate a global overview of all predictors across all models.
+
+        This method provides a summary of predictor performance and characteristics
+        across all models, including the number of responses, positives, and performance metrics.
+
+        Returns
+        -------
+        pl.LazyFrame
+            A Polars LazyFrame containing the global predictor overview with the following fields:
+
+            - PredictorName - The name of the predictor
+            - Response Count - The total number of responses for this predictor
+            - Positives - The total number of positive responses for this predictor
+            - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
+        """
+
+        data = self.last(table="predictor_data")
+
+        global_overview = (
+            data.filter(pl.col("EntryType") != "Classifier")
+            .filter(BinIndex=1)
+            .group_by("PredictorName")
+            .agg(
+                [
+                    # weighted performance
+                    pl.sum("ResponseCount").alias("Response Count"),
+                    pl.col("ModelID")
+                    .filter(EntryType="Active")
+                    .n_unique()
+                    .alias("Active in Models"),
+                    (pl.min("Performance") * 100).alias("Min"),
+                    (pl.mean("Performance") * 100).alias("Mean"),
+                    (pl.median("Performance") * 100).alias("Median"),
+                    (pl.max("Performance") * 100).alias("Max"),
+                ]
+            )
+            .sort(["Mean", "PredictorName"], descending=False)
+        )
+        return global_overview
+
     def predictors_overview(
         self,
         model_id: Optional[str] = None,
         additional_aggregations: Optional[list] = None,
-    ) -> Optional[pl.DataFrame]:
+    ) -> Optional[pl.LazyFrame]:
         """
         Generate a summary of the last snapshot of predictor data.
 
@@ -916,8 +956,8 @@ class Aggregates:
 
         Returns
         -------
-        pl.DataFrame or None
-            A Polars DataFrame containing the predictor summary with the following fields:
+        pl.LazyFrame or None
+            A Polars LazyFrame containing the predictor summary with the following fields:
 
             Identification:
             - ModelID - The model ID (only if model_id parameter is None)

@@ -1288,25 +1288,12 @@ If predictors perform poorly across all models, that may be because of data sour
 :::
 
 ```{python}
-# weighted performance
-
-
 if datamart.predictor_data is not None:
     bad_predictors = (
-        datamart.predictor_data.filter(pl.col("PredictorName") != "Classifier")
-        .group_by("PredictorName")
-        .agg(
-            [
-                pl.sum("BinResponseCount").alias("Response Count"),
-                (pl.min("Performance") * 100).alias("Min"),
-                (pl.mean("Performance") * 100).alias("Mean"),
-                (pl.median("Performance") * 100).alias("Median"),
-                (pl.max("Performance") * 100).alias("Max"),
-            ]
-        )
+        datamart.aggregates.predictors_global_overview()
         .filter(pl.col("Mean") < cdh_guidelines.min("Model Performance"))
-        .sort(["Mean", "PredictorName"], descending=False)
-    ).collect()
+        .collect()
+    )
     # responses_column_index = bad_predictors.columns.index("Response Count")
 
     display(
@@ -1316,7 +1303,7 @@ if datamart.predictor_data is not None:
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
             cdh_guidelines=cdh_guidelines,
-            highlight_limits = {"Responses" : "Response Count"}
+            highlight_limits={"Responses": "Response Count"},
         )
         .tab_options(container_height="400px", container_overflow_y=True)
         .tab_spanner(
@@ -1487,74 +1474,60 @@ For the full list of models, export the data into an Excel sheet from Pega or fr
 All below lists are guidance. With new treatments/actions being introduced regularly, you would expect a small percentage of the models to be at their initial stages, but that percentage should be small.
 
 ```{python}
-
-maturity_criteria = [
-    pl.len().alias("Number of models in last snapshot"),
-
-    pl.col("Name")
-    .filter(pl.col("ResponseCount") < cdh_guidelines.min("Responses"))
-    .len()
-    .alias("Models that have never been used"),
-
-    pl.col("Name")
-    .filter(
+maturity_criteria = {
+    "Number of models in last snapshot": True,
+    f"Models that have never been used (responses = 0)": (
+        pl.col("ResponseCount") < cdh_guidelines.min("Responses")
+    ),
+    f"Models that have been used (responses > 0) but never received a positive response": (
         (pl.col("Positives") < cdh_guidelines.min("Positive Responses"))
         & (pl.col("ResponseCount") >= cdh_guidelines.min("Responses"))
-    )
-    .count()
-    .alias("Models that have been used but never received a positive response"),
-
-    pl.col("Name")
-    .filter(
-        (
-            pl.col("Positives") < cdh_guidelines.best_practice_min("Positive Responses")
-        )
+    ),
+    f"Models that are still in an immature phase of learning (positives < {int(cdh_guidelines.best_practice_min('Positive Responses'))})": (
+        (pl.col("Positives") < cdh_guidelines.best_practice_min("Positive Responses"))
         & (pl.col("Positives") >= cdh_guidelines.min("Positive Responses"))
-    )
-    .count()
-    .alias("Models that are still in an immature phase of learning"),
-
-    pl.col("Name")
-    .filter(
+    ),
+    "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)": (
         (pl.col("Performance") == 0.5)
         & (
-            pl.col("Positives") >= cdh_guidelines.best_practice_min("Positive Responses")
+            pl.col("Positives")
+            >= cdh_guidelines.best_practice_min("Positive Responses")
         )
-    )
-    .count()
-    .alias(
-        "Models that have received sufficient responses but are still at their minimum performance"
     ),
-
-    pl.col("Name")
-    .filter(
+    f"Models that have received sufficient responses but still have a low performance (AUC < {cdh_guidelines.min('Model Performance')})": (
         (pl.col("Performance") > 0.5)
         & (pl.col("Performance") < (cdh_guidelines.min("Model Performance") / 100))
         & (
-            pl.col("Positives") >= cdh_guidelines.best_practice_min("Positive Responses")
+            pl.col("Positives")
+            >= cdh_guidelines.best_practice_min("Positive Responses")
         )
-    )
-    .count()
-    .alias(
-        "Models that have received sufficient responses but still have a low performance"
     ),
-
-    pl.col("Name")
-    .filter(
+    f"Models with sufficient positive responses (≥ {int(cdh_guidelines.best_practice_min('Positive Responses'))}) and a decent performance (≥ {cdh_guidelines.min('Model Performance')})": (
         (pl.col("Performance") >= (cdh_guidelines.min("Model Performance") / 100))
         & (
             pl.col("Positives")
             >= cdh_guidelines.best_practice_min("Positive Responses")
         )
-    )
-    .count()
-    .alias("Models with sufficient responses and a decent performance"),
-]
+    ),
+}
 
-maturity_overview = (
-    last_data.select([pl.lit(1).alias("Dummy")] + maturity_criteria)
-    .unpivot(index="Dummy", variable_name="Category", value_name="Number of Models")
-    .drop("Dummy")
+maturity_overview = pl.concat(
+    [
+        last_data.group_by(None)
+        .agg(
+            pl.lit(name).alias("Category"),
+            pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+            (
+                cdh_utils.weighted_average_polars(
+                    pl.col("Performance").filter(filter_expression),
+                    pl.col("ResponseCount").filter(filter_expression),
+                )
+                * 100.0
+            ).alias("Average Performance"),
+        )
+        .drop("literal")
+        for name, filter_expression in maturity_criteria.items()
+    ]
 )
 
 display(
@@ -1562,11 +1535,11 @@ display(
         maturity_overview,
         title="Model Maturity Overview",
         cdh_guidelines=cdh_guidelines,
+    ).fmt_number(
+        decimals=2,
+        columns=["Average Performance"],
     )
 )
-
-# TODO: see if we can just combine the long descriptions below into one nice table view
-
 ```
 
 ### Models that have never been used
@@ -1613,25 +1586,31 @@ In the analysis below we count the number of models in each of the groups analys
 by = ["SnapshotTime", "Channel", "Direction"]
 facet = "Channel/Direction"
 
-df = (
-    datamart.model_data.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
-    .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
-    .group_by(by)
-    .agg(
-        maturity_criteria
+maturity_trend = (
+    pl.concat(
+        [
+            datamart.model_data.group_by(by).agg(
+                pl.lit(name).alias("Category"),
+                pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                (
+                    cdh_utils.weighted_average_polars(
+                        pl.col("Performance").filter(filter_expression),
+                        pl.col("ResponseCount").filter(filter_expression),
+                    )
+                    * 100.0
+                ).alias("Average Performance"),
+            )
+            for name, filter_expression in maturity_criteria.items()
+        ]
     )
-    .sort(["Channel", "Direction", "SnapshotTime"], descending=True)
-)
-
-df = df.with_columns(
-    pl.concat_str(facet.split("/"), separator="/").alias(facet)
-).with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
-
-# df.collect()
+    .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
+    .with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
+    .sort(["SnapshotTime"])
+).collect()
 
 try:
     fig = px.line(
-        df.unpivot(index=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
+        maturity_trend,
         x="SnapshotTime",
         y="Number of Models",
         color="Category",
@@ -1644,12 +1623,7 @@ try:
     fig.update_layout(legend_title_text="Model Maturity")
     fig = fig_update_facet_height(fig, 3, 200, 250)
 
-    fig.update_layout(legend=dict(
-        yanchor="bottom",
-        y=-400,
-        xanchor="left",
-        x=0
-    ))
+    fig.update_layout(legend=dict(yanchor="bottom", y=-400, xanchor="left", x=0))
 
     fig.show()
 except Exception as e:

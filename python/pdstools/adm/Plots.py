@@ -485,18 +485,16 @@ class Plots(LazyNamespace):
                     self.datamart.context_keys,
                 )
             )
-            .filter(
-                PredictorName = "Classifier", ModelID = model_id
-            )
+            .filter(PredictorName="Classifier", ModelID=model_id)
         ).sort("BinIndex")
 
         if active_range:
             active_ranges = self.datamart.active_ranges(model_id).collect()
             if active_ranges.height > 0:
                 active_range_info = active_ranges.to_dicts()[0]
-                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
-                    pl.col("BinIndex") <= active_range_info["idx_max"]
-                )
+                active_range_filter_expr = (
+                    pl.col("BinIndex") >= active_range_info["idx_min"]
+                ) & (pl.col("BinIndex") <= active_range_info["idx_max"])
                 df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
@@ -683,26 +681,27 @@ class Plots(LazyNamespace):
 
         metric = "PredictorPerformance" if metric == "Performance" else metric
         try:
+            flds = [
+                "Channel",
+                "PredictorName",
+                "ModelID",
+                "Name",
+                "ResponseCountBin",
+                "EntryType",
+                "Type",
+                "PredictorCategory",
+                "Configuration",
+                facet,
+                metric,
+            ]
+            flds = flds + [f for f in self.datamart.context_keys if f not in flds]
             df = cdh_utils._apply_query(
                 self.datamart.aggregates.last(table="combined_data")
-                .select(
-                    {
-                        "Channel",
-                        "PredictorName",
-                        "ModelID",
-                        "Name",
-                        "ResponseCountBin",
-                        "Type",
-                        "PredictorCategory",
-                        "Configuration",
-                        metric,
-                        facet,
-                    }
-                    | set(
-                        self.datamart.context_keys,
-                    )
+                .with_columns(
+                    pl.col("PredictorPerformance") * 100.0,
                 )
-                .filter(pl.col("PredictorName") != "Classifier")
+                .select(flds)
+                .filter(pl.col("EntryType") != "Classifier")
                 .unique(subset=["ModelID", "PredictorName"], keep="first")
                 .rename({"PredictorCategory": "Legend"}),
                 query=query,
@@ -812,6 +811,7 @@ class Plots(LazyNamespace):
             "Direction",
             "PredictorName",
             "ResponseCountBin",
+            "EntryType",
             "Type",
             "PredictorCategory",
             metric,
@@ -830,8 +830,11 @@ class Plots(LazyNamespace):
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data")
+            .with_columns(
+                pl.col("PredictorPerformance") * 100.0,
+            )
             .select(select_columns)
-            .filter(pl.col("PredictorName") != "Classifier"),
+            .filter(pl.col("EntryType") != "Classifier"),
             query=query,
         )
 
