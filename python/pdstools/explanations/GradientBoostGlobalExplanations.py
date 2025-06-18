@@ -155,13 +155,13 @@ class GradientBoostGlobalExplanations:
             (self.start_date + timedelta(days=x)).strftime("%Y%m%d")
             for x in range((self.end_date - self.start_date).days + 1)
         ]
-        logger.info(f'Searching for files for model {self.model_name} from {self.start_date} to {self.end_date}')
+        logger.debug(f'Searching for files for model {self.model_name} from {self.start_date} to {self.end_date}')
         files_ = []
         for day in last_n_days:
             file_pattern = f"{self.data_folder}/{self.model_name}*{day}*.parquet"
-            logger.info(f"Searching for files with pattern: {file_pattern}")
+            logger.debug(f"Searching for files with pattern: {file_pattern}")
             file_paths = glob(file_pattern)
-            logger.info(f"Found files: {file_paths}")
+            logger.debug(f"Found files: {file_paths}")
             for file_path in file_paths:
                 if pathlib.Path(file_path).exists():
                     files_.append(file_path)
