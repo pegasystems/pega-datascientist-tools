@@ -37,7 +37,8 @@ def test_ExportTables(sample: ADMDatamart):
     assert excel.exists()
     spreadsheet = load_workbook(excel)
     assert spreadsheet.sheetnames == [
-        "modeldata_last_snapshot",
+        "adm_models",
+        "predictors_detail",
         "predictors_overview",
         "predictor_binning",
     ]
@@ -53,7 +54,8 @@ def test_ExportTables_NoBinning(sample: ADMDatamart):
     assert pathlib.Path(excel).exists()
     spreadsheet = load_workbook(excel)
     assert spreadsheet.sheetnames == [
-        "modeldata_last_snapshot",
+        "adm_models",
+        "predictors_detail",
         "predictors_overview",
     ]
     # TODO we could go further and check the size of the sheets
@@ -80,7 +82,7 @@ def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamar
     assert pathlib.Path(excel).exists()
     spreadsheet = load_workbook(excel)
     assert spreadsheet.sheetnames == [
-        "modeldata_last_snapshot",
+        "adm_models",
     ]
     # TODO we could go further and check the size of the sheets
     # spreadsheet = read_excel(excel, sheet_name=None)

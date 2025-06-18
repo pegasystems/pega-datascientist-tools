@@ -687,26 +687,27 @@ class Plots(LazyNamespace):
 
         metric = "PredictorPerformance" if metric == "Performance" else metric
         try:
+            flds = [
+                "Channel",
+                "PredictorName",
+                "ModelID",
+                "Name",
+                "ResponseCountBin",
+                "EntryType",
+                "Type",
+                "PredictorCategory",
+                "Configuration",
+                facet,
+                metric,
+            ]
+            flds = flds + [f for f in self.datamart.context_keys if f not in flds]
             df = cdh_utils._apply_query(
                 self.datamart.aggregates.last(table="combined_data")
-                .select(
-                    {
-                        "Channel",
-                        "PredictorName",
-                        "ModelID",
-                        "Name",
-                        "ResponseCountBin",
-                        "Type",
-                        "PredictorCategory",
-                        "Configuration",
-                        metric,
-                        facet,
-                    }
-                    | set(
-                        self.datamart.context_keys,
-                    )
+                .with_columns(
+                    pl.col("PredictorPerformance") * 100.0,
                 )
-                .filter(pl.col("PredictorName") != "Classifier")
+                .select(flds)
+                .filter(pl.col("EntryType") != "Classifier")
                 .unique(subset=["ModelID", "PredictorName"], keep="first")
                 .rename({"PredictorCategory": "Legend"}),
                 query=query,
@@ -816,6 +817,7 @@ class Plots(LazyNamespace):
             "Direction",
             "PredictorName",
             "ResponseCountBin",
+            "EntryType",
             "Type",
             "PredictorCategory",
             metric,
@@ -834,8 +836,11 @@ class Plots(LazyNamespace):
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data")
+            .with_columns(
+                pl.col("PredictorPerformance") * 100.0,
+            )
             .select(select_columns)
-            .filter(pl.col("PredictorName") != "Classifier"),
+            .filter(pl.col("EntryType") != "Classifier"),
             query=query,
         )
 
