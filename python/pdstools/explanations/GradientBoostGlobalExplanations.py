@@ -216,7 +216,7 @@ class GradientBoostGlobalExplanations:
     ):
         sql = files(queries_data).joinpath(f"{_TABLE_NAME.CREATE.value}.sql").read_text()
 
-        f_sql = f"{
+        f_sql = f"""{
             sql.format(
                 MEMORY_LIMIT=self.memory_limit,
                 ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
@@ -224,12 +224,12 @@ class GradientBoostGlobalExplanations:
                 SELECTED_FILES=self._get_selected_files(),
                 PREDICTOR_TYPE=predictor_type.value,
             )
-        }"
+        }"""
 
         return self._clean_query(f_sql)
 
     def _get_overall_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition):
-        f_sql = f"{
+        f_sql = f"""{
             sql.format(
                 THREAD_COUNT=self.thread_count,
                 MEMORY_LIMIT=self.memory_limit,
@@ -239,14 +239,14 @@ class GradientBoostGlobalExplanations:
                 TABLE_NAME=tbl_name.value,
                 WHERE_CONDITION=where_condition,
             )
-        }"
+        }"""
 
         return self._clean_query(f_sql)
 
     def _get_batch_sql_formatted(
         self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"
     ):
-        f_sql = f"{
+        f_sql = f"""{
             sql.format(
                 THREAD_COUNT=self.thread_count,
                 MEMORY_LIMIT=self.memory_limit,
@@ -256,7 +256,7 @@ class GradientBoostGlobalExplanations:
                 TABLE_NAME=tbl_name.value,
                 WHERE_CONDITION=where_condition,
             )
-        }"
+        }"""
 
         return self._clean_query(f_sql)
 
