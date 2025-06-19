@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from glob import glob
 from importlib_resources import files
+from importlib import resources
 from typing import List, Literal, TypedDict, get_args
 
 import duckdb
@@ -108,8 +109,24 @@ class GradientBoostGlobalExplanations:
         output_path = pathlib.Path(self.output_folder)
         if output_path.exists() and output_path.is_dir() and overwrite:
             shutil.rmtree(output_path)
-        output_path.mkdir(parents=True, exist_ok=overwrite)
+        output_path.mkdir(parents=True, exist_ok=True)
 
+    def download_report_template(self, report_folder: str = "reports"):
+
+        def copy_resource_folder(package: str, folder: str, dest: pathlib.Path):
+            source = resources.files(package).joinpath(folder)
+            
+            for item in source.rglob("*"):
+                if item.is_file():
+                    relative_path = item.relative_to(source)
+                    
+                    dest_path = dest / relative_path
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    with item.open('rb') as src_file, open(dest_path, 'wb') as dst_file:
+                        shutil.copyfileobj(src_file, dst_file)
+            
+        copy_resource_folder("pdstools.reports", "GlobalExplanations", pathlib.Path(report_folder))
+        
     def process(self):
         """Process explanation parquet files and save calculated aggregates.
 
