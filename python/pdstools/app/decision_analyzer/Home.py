@@ -79,6 +79,4 @@ if raw_data is not None:
 
         if "decision_data" in st.session_state:
             extract_type = st.session_state.decision_data.extract_type
-            # pages = get_pages(extract_type)
-            # hide_pages(pages)
             st.success("Data reading is complete. You can proceed now.")

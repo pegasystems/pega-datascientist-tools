@@ -47,7 +47,7 @@ adm = [
 pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
-app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
+app = ['pdstools[healthcheck]', 'streamlit>=1.23']
 onnx = [
     'scikit-learn==1.5.1',
     'skl2onnx==1.17.0',

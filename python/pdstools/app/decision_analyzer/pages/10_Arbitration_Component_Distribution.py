@@ -12,10 +12,16 @@ from pdstools.decision_analyzer.utils import NBADScope_Mapping
 "# Arbitration Component Distribution"
 
 """
-A closer look at the values associated with actions.
+Analyze the distribution of Prioritization Components, recognizing that since prioritization uses a multiplication formula, components with excessively high or low value ranges may dominate the decision-making process.
+Use histograms to visualize the volume of actions within specific value ranges, and box plots to perform detailed distribution analysis.
 
-* Is my value distribution very skewed? Are there actions with significantly different values than the others?
-* What's the range of the values?
+Key questions this analysis helps answer:
+
+* **Distribution Analysis**: Are any of your prioritization components (Propensity, Value, Context Weight, or Levers) heavily skewed? Does this align with your business expectations?
+
+* **Component Ranges**: What is the range and spread of each component? For instance, if Value ranges from 0.1 to 100, the multiplication-based prioritization may be dominated by this component.
+
+* **Action Comparison**: Do certain actions have significantly different component values compared to others? This can reveal potential configuration issues or business rule impacts.
 
 """
 ensure_data()
