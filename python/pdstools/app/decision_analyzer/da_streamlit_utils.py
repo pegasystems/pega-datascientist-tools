@@ -4,7 +4,6 @@ from typing import List
 
 import polars as pl
 import streamlit as st
-from st_pages import Page
 
 from pdstools.decision_analyzer.data_read_utils import (
     get_da_data_path,
@@ -21,7 +20,7 @@ from pdstools.decision_analyzer.plots import (
     #     optionality_trend,
     #     prio_factor_boxplots,
     #     rank_boxplot,
-    value_distribution,
+    plot_priority_component_distribution,
     #     trend_chart,
 )
 
@@ -251,40 +250,6 @@ def get_data_filters(
     return queries
 
 
-def _create_page(relative_path, name):
-    current_dir = os.path.dirname(__file__)
-    return Page(os.path.join(current_dir, relative_path), name)
-
-
-def get_pages(extract_type):
-    if extract_type == "explainability_extract":
-        pages = [
-            _create_page("pages/4-Action_Funnel.py", "Action Funnel"),
-            _create_page("pages/8-Offer_Quality_Analysis.py", "Offer Quality Analysis"),
-            _create_page("pages/9-Thresholding_Analysis.py", "Thresholding Analysis"),
-            _create_page(
-                "pages/10-Business_Value_Analysis.py", "Business Value Analysis"
-            ),
-            _create_page(
-                "pages/11-Business_Lever_Analysis.py", "Business Lever Analysis"
-            ),
-            _create_page("pages/12-Impact_Analysis.py", "Impact Analysis"),
-        ]
-    elif extract_type == "decision_analyzer":
-        pages = [
-            _create_page("pages/8-Offer_Quality_Analysis.py", "Offer Quality Analysis"),
-            _create_page("pages/9-Thresholding_Analysis.py", "Thresholding Analysis"),
-            _create_page(
-                "pages/10-Business_Value_Analysis.py", "Business Value Analysis"
-            ),
-            _create_page(
-                "pages/11-Business_Lever_Analysis.py", "Business Lever Analysis"
-            ),
-            _create_page("pages/12-Impact_Analysis.py", "Impact Analysis"),
-        ]
-    return pages
-
-
 def get_options():
     is_ec2 = os.getcwd() == "/app"
     if is_ec2:
@@ -373,8 +338,10 @@ def handle_direct_file_path():
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-def st_value_distribution(value_data: pl.LazyFrame, scope: str):
-    return value_distribution(value_data, scope)
+def st_priority_component_distribution(
+    value_data: pl.LazyFrame, component, granularity
+):
+    return plot_priority_component_distribution(value_data, component, granularity)
 
 
 # def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:

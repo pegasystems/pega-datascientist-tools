@@ -88,13 +88,12 @@ def filtered_action_counts(
         A DataFrame with action counts filtered based on the given propensity and priority thresholds.
     """
 
-    required_cols = groupby_cols + [
+    additional_cols = [
         "pyName",
-        "Propensity",  # TODO generalize this stuff
-        "Stage",
-        "StageGroup",
+        "Propensity",
         "Priority",
     ]
+    required_cols = list(set(groupby_cols + additional_cols))
     # TODO below is a pattern (to check required columns) we probably need all over the place - but maybe at the level of the streamlit pages
     for col in required_cols:
         if col not in df.collect_schema().names():

@@ -469,7 +469,7 @@ class Plot:
             color=breakdown,
             orientation="h" if horizontal else "v",
             template="pega",
-        ).update_layout(legend_title_text=f"{NBADScope_Mapping[scope]}")
+        ).update_layout(legend_title_text=f"{NBADScope_Mapping[breakdown]}")
 
         if horizontal:
             fig = (
@@ -740,17 +740,32 @@ def getTrendChart(
     return fig
 
 
-def value_distribution(value_data: pl.LazyFrame, scope: str):
-    fig = px.histogram(
+def plot_priority_component_distribution(
+    value_data: pl.LazyFrame, component: str, granularity: str
+):
+    histogram = px.histogram(
         value_data.collect(),
-        x="Value_max",
+        x=component,
         nbins=20,
-        title="Value Distribution",
-        color=scope,
+        title=f"{component} Distribution",
+        color=granularity,
         template="pega",
     ).update_layout(
-        legend_title_text=f"{NBADScope_Mapping[scope]}",
-        xaxis_title="Value",
+        legend_title_text=NBADScope_Mapping[granularity],
+        xaxis_title=component,
         yaxis_title="Number of Actions",
     )
-    return fig
+
+    box_plot = px.box(
+        value_data.collect(),
+        x=granularity,
+        y=component,
+        title=f"{component} Distribution by Issue",
+        template="pega",
+    ).update_layout(
+        xaxis_title=NBADScope_Mapping[granularity],
+        yaxis_title=component,
+        showlegend=False,
+    )
+
+    return histogram, box_plot
