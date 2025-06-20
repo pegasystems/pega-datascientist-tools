@@ -193,7 +193,7 @@ except Exception as e:
 ```
 
 ::: callout-tip
-The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
+The charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 ## Model Performance

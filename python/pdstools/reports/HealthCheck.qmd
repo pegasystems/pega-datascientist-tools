@@ -200,9 +200,9 @@ else:
 
 ```
 
-This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees. Off-line reports for Naive Bayes Adaptive models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
-We provide guidance and best practices where possible. However these are generic guidelines and may or may not be applicable to the specific use case and situation of the implementation. The recommendations are strongly geared towards the CDH use cases and may not apply to, for example, Process AI.
+We provide guidance and best practices as much as possible. However these guidelines are generic and may or may not be applicable to a specific use case or implementation. The recommendations are strongly geared towards the CDH and may not apply to, for example, Process AI.
 
 ```{python}
 # Start with a global bubble chart. Maybe later replace by
@@ -233,7 +233,7 @@ except Exception as e:
 ```
 
 ::: {.callout-tip title="Guidance"}
-The [Plotly](https://plotly.com/python/) charts have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
+The charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 # Overview of the Channels
@@ -244,7 +244,7 @@ If a channel has two model configurations with a naming pattern like “Adm_1234
 
 The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel.
 
-In the view below, we look at the last 30 days of data (or shorter if the data is for less than 30 days).
+In the view below, we look at the last **30 days** of data (or shorter if the data is for less than 30 days).
 
 ```{python}
 df_channel_overview = (
@@ -397,7 +397,7 @@ configurations it seems that the framework **{framework_usage}**.
 :::
 
 ::: callout-note
-The total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be different. Ultimately, the real counts per channel can only be derived from interaction history data.
+In the ADM models, the total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be off. Ultimately, the real counts per channel can only be derived from **Interaction History data**.
 :::
 
 ## Exclude unused Channels
@@ -406,20 +406,20 @@ Channels with very few or no responses will be excluded from subsequent analyses
 
 # Overview of the Predictions
 
-When data from Prediction Studio is made available to this notebook, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
+When data from Prediction Studio is available, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
 
 ::: {.content-hidden when-meta="analysis.predictions"}
 However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used.
 :::
 
 ::: {.content-hidden unless-meta="analysis.predictions"}
-Predictions monitor performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
+Predictions measure performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
 
 Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
 
 $Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$
 
-with "test" the model group and "control" random test group. A lift of 0% means the model group is doing no better than the random group. A lift of 100% means the models are giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2% and is configured in Prediction Studio and Impact Analyzer (when using NBAD).
+with "test" the model group and "control" random test group. A lift of 0% means the model group is doing no better than the random group. A lift of 100% means the models are giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2% and is configured in Prediction Studio and Impact Analyzer (when using NBA Designer).
 
 ```{python}
 if prediction_file_path:
@@ -521,6 +521,7 @@ try:
 
     plt = predictions.plot.responsecount_trend("1w")
     plt.update_layout(autosize=True, height=400, )
+    plt.update_yaxes(title="Weekly Responses")
 
     plt.show()
 except Exception as e:
@@ -1303,7 +1304,7 @@ if datamart.predictor_data is not None:
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
             cdh_guidelines=cdh_guidelines,
-            highlight_limits={"Responses": "Response Count"},
+            highlight_limits={"Responses":[ "Response Count Min", "Response Count Max"]},
         )
         .tab_options(container_height="400px", container_overflow_y=True)
         .tab_spanner(
@@ -1544,7 +1545,7 @@ display(
 
 ### Models that have never been used
 
-These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
+These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created during decisioning, but they were never selected to show to the customer, so never received any responses.
 
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 
@@ -1552,7 +1553,7 @@ Often these represent actions that never made it into production and were only u
 
 These models have been used but never received a “positive” response. This means the action/treatments that these models represent have been selected, so an “impression” has been made to the customer, but they never received a “positive” response.
 
-This could be because no customer ever found the proposition attractive, but it could also be because the response loop is not working correctly. Possibly Pega “believes” the user received the action but the actual channel application did never show it.
+This could be because no customer ever found the proposition attractive, but it could also be because the response loop is not working correctly. Possibly the response loop is set up so that Pega decisions automatically are counted as “negatives“ even if the channel application did never show it to the user.
 
 ### Models that are still in an immature phase of learning
 
@@ -1632,6 +1633,11 @@ except Exception as e:
 
 ## Number of Responses over Time
 
+::: {.callout-tip title="Guidance"}
+-   Look out for consecutive days without any responses
+-   Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+:::
+
 ```{python}
 facets = "Configuration"
 unique_count = len(datamart.unique_configurations)
@@ -1648,7 +1654,8 @@ try:
 
     response_counts = fig_update_facet_height(response_counts, facet_cols, 200, 250)
     response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
-    response_counts.update_layout(yaxis_title="Response Count")
+    response_counts.update_layout(yaxis_title="Responses")
+    response_counts.for_each_yaxis(lambda yaxis: yaxis.update(title="Responses"))
 
     response_counts.show()
 except ValueError as e:

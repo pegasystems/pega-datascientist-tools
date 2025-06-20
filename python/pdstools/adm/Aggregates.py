@@ -538,7 +538,8 @@ class Aggregates:
             (
                 model_data.group_by(
                     ([] if grouping is None else grouping)
-                    + ["Name"]
+                    + ["Name"] 
+                    + (["Treatment"] if "Treatment" in self.datamart.context_keys else [])
                     + (["Issue"] if "Issue" in self.datamart.context_keys else [])
                     + (["Group"] if "Group" in self.datamart.context_keys else [])
                 )
@@ -905,7 +906,7 @@ class Aggregates:
             A Polars LazyFrame containing the global predictor overview with the following fields:
 
             - PredictorName - The name of the predictor
-            - Response Count - The total number of responses for this predictor
+            - Response Count Min/Max - The total number of responses for this predictor
             - Positives - The total number of positive responses for this predictor
             - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
         """
@@ -919,7 +920,8 @@ class Aggregates:
             .agg(
                 [
                     # weighted performance
-                    pl.sum("ResponseCount").alias("Response Count"),
+                    pl.min("ResponseCount").alias("Response Count Min"),
+                    pl.max("ResponseCount").alias("Response Count Max"),
                     pl.col("ModelID")
                     .filter(EntryType="Active")
                     .n_unique()

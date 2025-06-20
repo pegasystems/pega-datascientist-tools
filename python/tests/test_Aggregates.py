@@ -92,7 +92,6 @@ def dm_minimal():
 
     return ADMDatamart(model_df=data.lazy())
 
-
 def test_init(dm_aggregates):
     assert dm_aggregates
 
@@ -112,7 +111,7 @@ def test_predictors_overview(dm_aggregates):
 
 def test_predictors_global_overview(dm_aggregates):
     assert dm_aggregates.predictors_global_overview().collect().height == 89
-    assert dm_aggregates.predictors_global_overview().collect().width == 7
+    assert dm_aggregates.predictors_global_overview().collect().width == 8
 
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
@@ -166,16 +165,64 @@ def test_summary_by_channel(dm_aggregates):
     ]
 
 def test_summary_by_channel_timeslices(dm_minimal):
-    s1 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31)).collect()
+    s1 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31), debug=True).collect()
+    
     assert s1["Actions"].to_list() == [1,2]
     assert s1["New Actions"].to_list() == [1,2]
     assert s1["Used Actions"].to_list() == [1,1]
     assert s1["isValid"].to_list() == [False,True]
+
     s2 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 2, 1), end_date=datetime(2033, 2, 28)).collect()
     assert s2["Actions"].to_list() == [1,2]
     assert s2["New Actions"].to_list() == [0,1]
     assert s2["Used Actions"].to_list() == [1,1]
     assert s2["isValid"].to_list() == [False,True]
+
+def test_used_actions():
+    events = [
+        # A1 and A2 are both used in january
+        ("20330101", "A", "A1", 100, 1000, "Mobile", "Inbound"),
+        ("20330101", "A", "A2", 500, 1000, "Mobile", "Inbound"),
+        ("20330115", "A", "A1", 150, 1500, "Mobile", "Inbound"),
+        ("20330115", "A", "A2", 600, 1200, "Mobile", "Inbound"),    
+        # But neither is used in february    
+        # See issue 370: if there are treatments, with different counts, that should not lead to flagging as used action
+        ("20330201", "A", "A1", 150, 1500, "Mobile", "Inbound"),
+        ("20330201", "A", "A2", 600, 1200, "Mobile", "Inbound"),
+        ("20330228", "A", "A1", 150, 1500, "Mobile", "Inbound"),
+        ("20330228", "A", "A2", 600, 1200, "Mobile", "Inbound"),
+        # Two are used in march
+        ("20330301", "B", "A1", 150, 1500, "Mobile", "Inbound"),
+        ("20330301", "A", "A2", 600, 1200, "Mobile", "Inbound"),
+        ("20330328", "B", "A1", 160, 1600, "Mobile", "Inbound"),
+        ("20330328", "A", "A2", 700, 1400, "Mobile", "Inbound"),
+    ]
+
+    data = pl.DataFrame(
+        modeldata_from_scratch().collect().to_dicts()[0]
+        | {
+            v: [e[i] for e in events]
+            for i, v in enumerate(
+                [
+                    "SnapshotTime",
+                    "Name",
+                    "Treatment",
+                    "Positives",
+                    "ResponseCount",
+                    "Channel",
+                    "Direction",
+                ]
+            )
+        }
+    ).with_columns(ModelID=pl.format("ModelID_{}", "Name"))
+
+    dm_used = ADMDatamart(model_df=data.lazy())
+
+    summary = dm_used.aggregates.summary_by_channel().collect()
+    assert summary['Used Actions'].to_list() == [2]
+
+    summary = dm_used.aggregates.summary_by_channel(by_period="1mo").collect()
+    assert summary['Used Actions'].to_list() == [1,0,2]
 
 def test_custom_channel_mapping(dm_aggregates):
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
