@@ -21,7 +21,7 @@ from pdstools.decision_analyzer.plots import (
     #     optionality_trend,
     #     prio_factor_boxplots,
     #     rank_boxplot,
-    value_distribution,
+    plot_priority_component_distribution,
     #     trend_chart,
 )
 
@@ -373,8 +373,10 @@ def handle_direct_file_path():
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-def st_value_distribution(value_data: pl.LazyFrame, scope: str):
-    return value_distribution(value_data, scope)
+def st_priority_component_distribution(
+    value_data: pl.LazyFrame, component, granularity
+):
+    return plot_priority_component_distribution(value_data, component, granularity)
 
 
 # def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:
