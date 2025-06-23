@@ -1,0 +1,6 @@
+---
+title: "{CONTEXT_STR}"
+format: html
+---
+
+{{{{< embed {ALL_CONTEXT_FILENAME}#{CONTEXT_LABEL} >}}}}

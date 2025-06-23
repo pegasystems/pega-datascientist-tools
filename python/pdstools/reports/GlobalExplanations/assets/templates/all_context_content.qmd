@@ -1,0 +1,14 @@
+The top 10 predictors contributions for the context `{CONTEXT_STR}`.
+
+```{{python}}
+#| label: {CONTEXT_LABEL}
+
+plots = ExplanationsDataPlotter.plot_predictor_contributions(
+    data_loader,
+    {CONTEXT})
+
+for plot in plots:
+    title = plot.layout['title']['text']
+    display(Markdown(f'### {{title}}'), plot)
+
+```
