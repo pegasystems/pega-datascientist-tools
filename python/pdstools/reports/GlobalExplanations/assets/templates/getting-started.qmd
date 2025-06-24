@@ -8,8 +8,8 @@ This report contains a break down of the average predictor contributions made to
 
 ### Overview
 
-The overview page shows top-10 predictors that, on average, had the heighest contribution to the model predictions.
-In addition to the average contributions for those top 10 predictors, the overview page also shows the average contributions for each predictor values. For symbolic predictors, the top-10 predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles.
+The overview page shows top-{TOP_N} predictors that, on average, had the heighest contribution to the model predictions.
+In addition to the average contributions for those top-{TOP_N} predictors, the overview page also shows the average contributions for each predictor values. For symbolic predictors, the top-{TOP_N} predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles.
 
 ### By context
 

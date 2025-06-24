@@ -1,14 +1,20 @@
-The top 10 predictors contributions for the context `{CONTEXT_STR}`.
-
 ```{{python}}
 #| label: {CONTEXT_LABEL}
 
-plots = ExplanationsDataPlotter.plot_predictor_contributions(
+header_tbl, overall_fig, predictor_figs = ExplanationsDataPlotter.plot_contributions_by_context(
     data_loader,
-    {CONTEXT})
+    {CONTEXT},
+    top_n = {TOP_N},
+    top_k = {TOP_K},
+)
 
-for plot in plots:
+title = header_tbl.layout['title']['text']
+display(Markdown(f'### {{title}}'), header_tbl)
+
+title = overall_fig.layout['title']['text']
+display(Markdown(f'### {{title}}'), overall_fig)
+
+for plot in predictor_figs:
     title = plot.layout['title']['text']
     display(Markdown(f'### {{title}}'), plot)
-
 ```

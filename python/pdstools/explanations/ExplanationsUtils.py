@@ -38,4 +38,8 @@ class _COL(Enum):
     CONTRIBUTION_WEIGHTED_ABS = "contribution_weighted_abs"
     FREQUENCY = "frequency"
 
+class _SPECIAL(Enum):
+    REMAINING = "remaining"
+    MISSING = "missing"
+
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})

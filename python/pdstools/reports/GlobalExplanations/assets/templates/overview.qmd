@@ -3,23 +3,27 @@ title: "Overview"
 ---
 
 ## Predictor contributions at model level
-The top-10 predictors over the entire model, selected by their absolute average contribution to predictions
+The top-{TOP_N} predictors over the entire model, selected by their absolute average contribution to predictions
 
 ```{{python}}
 from pdstools.explanations import ExplanationsDataLoader as DataLoader, ExplanationsDataPlotter as DataPlotter
 
 data_loader = DataLoader("{DATA_FOLDER}")
-plots = DataPlotter.plot_overall_contributions(data_loader, top_n={TOP_N}, top_k={TOP_K})
-plots[0].show()
+overall_plot, predictor_plots = DataPlotter.plot_contributions_for_overall(
+    data_loader, 
+    top_n={TOP_N}, 
+    top_k={TOP_K}
+)
+overall_plot.show()
 ```
 
 ## Predictor value contributions at model level
-The predictor value contributions for the top-10 predictors. Similar to above, the predictor values are selected by their absolute average contribution to predictions.
+The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their absolute average contribution to predictions.
 
 ```{{python}}
 #| output: asis
 from IPython.display import display, Markdown
-for plot in plots[1:]:
+for plot in predictor_plots:
     title = plot.layout['title']['text']
     plot.layout['title']['text'] = ''
     display(Markdown(f'### {{title}}'), plot)

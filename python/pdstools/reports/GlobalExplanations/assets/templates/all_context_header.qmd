@@ -3,12 +3,11 @@ title: "By Context"
 skip_exec: true
 ---
 
-The top 10 predictor's contribtuions per context.
+The top-{TOP_N} predictor's contributions per context.
 
 ```{{python}}
 
 from pdstools.explanations import ExplanationsDataLoader as DataLoader, ExplanationsDataPlotter
-import json
 from IPython.display import display, Markdown
 
 data_loader = DataLoader("{DATA_FOLDER}")

@@ -18,6 +18,7 @@ PARAMS_FILENAME = "params.yml"
 # these are the templates used to generate the context files
 # and the overview file
 TEMPLATES_FOLDER = "./assets/templates"
+INTRODUCTION_FILENAME = "getting-started.qmd"
 OVERVIEW_FILENAME = "overview.qmd"
 ALL_CONTEXT_HEADER_TEMPLATE = "all_context_header.qmd"
 ALL_CONTEXT_CONTENT_TEMPLATE = "all_context_content.qmd"
@@ -84,11 +85,11 @@ Report generation initialized with the following parameters:
         with open(f'{TEMPLATES_FOLDER}/{template_filename}', 'r') as fr:
             return fr.read()
 
-    def _write_context_file(self,
-                            filename: str, 
-                            template: str, 
-                            context_string: str, 
-                            context_label: str):
+    def _write_single_context_file(self,
+                                   filename: str, 
+                                   template: str, 
+                                   context_string: str, 
+                                   context_label: str):
         
         with open(filename, "w") as fw:
             f_context_template = f"""{
@@ -99,29 +100,34 @@ Report generation initialized with the following parameters:
                 )
             }"""
             fw.write(f_context_template)
- 
-    @staticmethod           
-    def _write_header_to_file(filename: str,
-                            template: str,
-                            input_folder: str):
-        with open(filename, "w") as writer:
-            writer.write(f"""{
-                template.format(
-                    DATA_FOLDER=input_folder)}""")
+            
+    def _write_header_to_file(self):
+        
+        template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
+        
+        f_template = f"""{template.format(
+            DATA_FOLDER=self.data_folder,
+            TOP_N = self.top_n
+        )}"""
+            
+        with open(self.all_context_filepath, "w") as writer:
+            writer.write(f_template)
     
-    @staticmethod        
-    def _append_content_to_file(filename: str,
+    def _append_content_to_file(self,
                             template: str,
                             context_string: str,
                             context_label: str,
                             context: ContextInfo):
-        with open(filename, "a") as writer:
-            f_content_template = f"""{
-                template.format(
-                    CONTEXT_STR=context_string,
-                    CONTEXT_LABEL=context_label,
-                    CONTEXT=json.dumps(context),)}
-            """
+        
+        with open(self.all_context_filepath, "a") as writer:
+            f_content_template = f"""{template.format(
+                CONTEXT_STR=context_string,
+                CONTEXT_LABEL=context_label,
+                CONTEXT=json.dumps(context),
+                TOP_N=self.top_n,
+                TOP_K=self.top_k,
+            )}"""
+            
             writer.write("\n")
             writer.write(f_content_template)
 
@@ -130,35 +136,29 @@ Report generation initialized with the following parameters:
         data_loader = DataLoader(self.data_folder)
         contexts = data_loader.get_context_infos()
         
-        header_template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
-        content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
-        context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
-        
         # write header
-        self._write_header_to_file(
-            filename=self.all_context_filepath,
-            template=header_template,
-            input_folder=self.data_folder
-        )
+        self._write_header_to_file()
         
         # write content
+        context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
+        single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
+        
         for context in contexts:
             context_string = self._get_context_string(context)
             context_label = ('plt-' + context_string).lower()
-            context_file_name = f"{context_label}.qmd"
-            context_location = f"{self.context_folder}/{context_file_name}"
             
             self._append_content_to_file(
-                filename=self.all_context_filepath,
-                template=content_template,
+                template=context_content_template,
                 context_string=context_string,
                 context_label=context_label,
                 context=context
             )
             
-            self._write_context_file(
-                filename=context_location,
-                template=context_template,
+            single_context_filename = f"{self.context_folder}/{context_label}.qmd"
+            
+            self._write_single_context_file(
+                filename=single_context_filename,
+                template=single_context_template,
                 context_string=context_string,
                 context_label=context_label
             )
@@ -177,7 +177,22 @@ Report generation initialized with the following parameters:
         with open(OVERVIEW_FILENAME, 'w') as f:
             f.write(f_template)
 
+    def _generate_introduction_qmd(self):
+        
+        with open(f'{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}', 'r') as fr:
+            template = fr.read()
+        
+        f_template = f"""{template.format(
+            TOP_N=self.top_n,
+        )}"""
+        
+        with open(INTRODUCTION_FILENAME, 'w') as f:
+            f.write(f_template)
+            
     def run(self):
+        
+        self._generate_introduction_qmd()
+        print("Generated introduction QMD file.")
         
         self._generate_overview_qmd()
         print("Generated overview QMD file.")
