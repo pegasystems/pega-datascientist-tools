@@ -97,6 +97,7 @@ Report generation initialized with the following parameters:
                     ALL_CONTEXT_FILENAME=ALL_CONTEXT_FILENAME,
                     CONTEXT_STR=context_string,
                     CONTEXT_LABEL=context_label,
+                    TOP_N=self.top_n
                 )
             }"""
             fw.write(f_context_template)
