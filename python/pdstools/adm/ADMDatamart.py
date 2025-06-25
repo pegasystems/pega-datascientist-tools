@@ -7,7 +7,7 @@ import logging
 import os
 from functools import cached_property
 from pathlib import Path
-from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -315,7 +315,7 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame, return_df = False):
+    def from_pdc(cls, df: pl.LazyFrame, return_df=False):
         pdc_data = cdh_utils._read_pdc(df)
 
         adm_data = (
@@ -462,37 +462,52 @@ class ADMDatamart:
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         if "PredictorCategory" not in schema.names():
-            df = self.apply_predictor_categorization(df)
+            df = self.apply_predictor_categorization(
+                df=df
+            )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
         return df
 
     def apply_predictor_categorization(
         self,
-        df: Optional[pl.LazyFrame] = None,
         categorization: Union[
-            pl.Expr, Callable[..., pl.Expr]
+            pl.Expr, Callable[..., pl.Expr], Dict[str, Union[str, List[str]]]
         ] = cdh_utils.default_predictor_categorization,
+        *,
+        use_regexp: bool = False,
+        df: Optional[pl.LazyFrame] = None,
     ):
         """Apply a new predictor categorization to the datamart tables
 
         In certain plots, we use the predictor categorization to indicate what 'kind'
         a certain predictor is, such as IH, Customer, etc. Call this method with a
-        custom Polars Expression (or a method that returns one) - and it will be applied
-        to the predictor data (and the combined dataset too).
+        custom Polars Expression (or a method that returns one) or a simple mapping
+        and it will be applied to the predictor data (and the combined dataset too).
+        When the categorization provides no match, the existing categories are kept
+        as they are.
 
         For a reference implementation of a custom predictor categorization,
         refer to `pdstools.utils.cdh_utils.default_predictor_categorization`.
 
         Parameters
         ----------
+        categorization : Union[pl.Expr, Callable[..., pl.Expr], Dict[str, Union[str, List[str]]]]
+            A Polars Expression (or method that returns one) that returns the
+            predictor categories. Should be based on Polars' when.then.otherwise syntax.
+            Alternatively can be a dictionary of categories to (list of) string matches
+            which can be either exact (the default) or regular expressions.
+            By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
+        use_regexp: bool, optional
+            Treat the mapping patterns in the `categorization` dictionary as regular expressions
+            rather than plain strings. When treated as regular expressions, they will be
+            interpreted in non-strict mode, so invalid expressions will return in no match. See
+            https://docs.pola.rs/api/python/stable/reference/series/api/polars.Series.str.contains.html
+            for exact behavior of the regular expressions.
+            By default, False
         df : Optional[pl.LazyFrame], optional
             A Polars Lazyframe to apply the categorization to.
             If not provided, applies it over the predictor data and combined datasets.
             By default, None
-        categorization : Union[pl.Expr, Callable[..., pl.Expr]]
-            A polars Expression (or method that returns one) to apply the mapping with.
-            Should be based on Polars' when.then.otherwise syntax.
-            By default, `pdstools.utils.cdh_utils.default_predictor_categorization`
 
         See also
         --------
@@ -502,29 +517,77 @@ class ADMDatamart:
         --------
         >>> dm = ADMDatamart(my_data) #uses the OOTB predictor categorization
 
+        >>> # Uses a custom Polars expression to set the categories
         >>> dm.apply_predictor_categorization(categorization=pl.when(
         >>> pl.col("PredictorName").cast(pl.Utf8).str.contains("Propensity")
         >>> ).then(pl.lit("External Model")
-        >>> ).otherwise(pl.lit("Adaptive Model)")
+        >>> )
 
-        >>> # Now, every subsequent plot will use the custom categorization
+        >>> # Uses a simple dictionary to set the categories
+        >>> dm.apply_predictor_categorization(categorization={
+        >>> "External Model" : ["Score", "Propensity"]}
+        >>> )
+        
         """
 
-        categorization_expr: pl.Expr = (
-            categorization() if callable(categorization) else categorization
-        )
+        def categorization_dict_to_polars_expr(categorization):
+            # Dynamically constructing when/otherwise expression
+            # see https://stackoverflow.com/questions/78818920/how-to-generate-when-then-constructs-in-polars-dynamically
+            expr = pl
+            for key, values in categorization.items():
+                if not isinstance(values, list):
+                    values = [values]
+                for value in values:
+                    expr = expr.when(
+                        pl.col("PredictorName")
+                        .cast(pl.Utf8)
+                        .str.contains(value, literal=not use_regexp, strict=False)
+                    ).then(pl.lit(key))
+            return expr
+
+        categorization_expr: pl.Expr = None
+        if isinstance(categorization, dict) and len(categorization) > 0:
+            categorization_expr = categorization_dict_to_polars_expr(categorization)
+        elif callable(categorization):
+            categorization_expr = categorization()
+        elif isinstance(categorization, pl.Expr):
+            categorization_expr = categorization
+        else:
+            return df
+
+        def set_categories(df):
+            if "PredictorCategory" in df.collect_schema().names():
+                predictor_mapping = (
+                    df.filter(pl.col("EntryType") != "Classifier")
+                    .select("PredictorName", "PredictorCategory")
+                    .unique()
+                    .with_columns(NewPredictorCategory=categorization_expr)
+                    .with_columns(
+                        PredictorCategory=pl.coalesce(
+                            "NewPredictorCategory", "PredictorCategory"
+                        )
+                    )
+                    .drop("NewPredictorCategory")
+                )
+                df = df.drop("PredictorCategory").join(
+                    predictor_mapping, on="PredictorName", how="left"
+                )
+            else:
+                predictor_mapping = (
+                    df.filter(pl.col("EntryType") != "Classifier")
+                    .select(pl.col("PredictorName").unique())
+                    .with_columns(PredictorCategory=categorization_expr)
+                )
+                df = df.join(predictor_mapping, on="PredictorName", how="left")
+            return df
 
         if df is not None:
-            return df.with_columns(PredictorCategory=categorization_expr)
+            return set_categories(df)
 
         if hasattr(self, "predictor_data") and self.predictor_data is not None:
-            self.predictor_data = self.predictor_data.with_columns(
-                PredictorCategory=categorization_expr
-            )
+            self.predictor_data = set_categories(self.predictor_data)
         if hasattr(self, "combined_data") and self.combined_data is not None:
-            self.combined_data = self.combined_data.with_columns(
-                PredictorCategory=categorization_expr
-            )
+            self.combined_data = set_categories(self.combined_data)
 
     def save_data(
         self,
@@ -640,9 +703,9 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent
         """
         return set(
-            self.predictor_data.select(
-                pl.col("PredictorCategory").unique().sort()
-            ).collect()["PredictorCategory"]
+            self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
+            .filter(pl.col("PredictorCategory").is_not_null())
+            .collect()["PredictorCategory"]
         )
 
     # min and max score (sum of log odds) per model, plus some extra summary statistics per model

@@ -116,7 +116,9 @@ def default_predictor_categorization(
         x = pl.col(x)
     x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
     return (
-        pl.when(x.str.split(".").list.len() > 1)
+        pl.when(x == "Classifier")
+        .then(pl.lit(None).cast(pl.Utf8))
+        .when(x.str.split(".").list.len() > 1)
         .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))
     ).alias("PredictorCategory")
@@ -255,30 +257,28 @@ def parse_pega_date_time_formats(
         The data type to convert into. Can be either Date, Datetime, or Time.
     """
 
-    result = (
-        pl.coalesce(
-            pl.col(timestamp_col).str.strptime(
-                timestamp_dtype, "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
-            ),
-            pl.col(timestamp_col).str.strptime(
-                timestamp_dtype, "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
-            ),
-            pl.col(timestamp_col).str.strptime(
-                timestamp_dtype, "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
-            ),
-            pl.col(timestamp_col).str.slice(0, 8).str.strptime(
-                timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"
-            ),
-            pl.col(timestamp_col).str.strptime(
-                timestamp_dtype, "%d-%b-%y", strict=False, ambiguous="null"
-            ),
-            pl.col(timestamp_col).str.strptime(
-                timestamp_dtype, timestamp_fmt or "%Y", strict=False, ambiguous="null"
-            ),
-        )
+    result = pl.coalesce(
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype, "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
+        ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype, "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+        ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype, "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
+        ),
+        pl.col(timestamp_col)
+        .str.slice(0, 8)
+        .str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype, "%d-%b-%y", strict=False, ambiguous="null"
+        ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype, timestamp_fmt or "%Y", strict=False, ambiguous="null"
+        ),
     )
 
-    if (timestamp_dtype != pl.Date):
+    if timestamp_dtype != pl.Date:
         result = result.dt.replace_time_zone(None).dt.cast_time_unit("ns")
 
     return result
@@ -763,6 +763,7 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
 
 # TODO all these should perhaps be consistently named _polars
 
+
 def z_ratio(
     pos_col: Union[str, pl.Expr] = pl.col("BinPositives"),
     neg_col: Union[str, pl.Expr] = pl.col("BinNegatives"),
@@ -816,8 +817,10 @@ def z_ratio(
 
 # TODO all these should perhaps be consistently named _polars
 
+
 def lift(
-    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"), neg_col: Union[str, pl.Expr] = pl.col("BinNegatives")
+    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"),
+    neg_col: Union[str, pl.Expr] = pl.col("BinNegatives"),
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
@@ -866,6 +869,7 @@ def bin_log_odds(bin_pos: List[float], bin_neg: List[float]) -> List[float]:
         for pos, neg in zip(bin_pos, bin_neg)
     ]
 
+
 def log_odds_polars(
     positives: Union[pl.Expr, str] = pl.col("Positives"),
     negatives: Union[pl.Expr, str] = pl.col("ResponseCount") - pl.col("Positives"),
@@ -884,6 +888,7 @@ def log_odds_polars(
         # .round(2)
         .alias("LogOdds")
     )
+
 
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
@@ -1310,10 +1315,8 @@ def _read_pdc(pdc_data: pl.LazyFrame):
         raise ValueError(
             f"Required columns missing: {required_cols.difference(df_cols)}"
         )
-    pdc_data = pdc_data.select(
-        required_cols.union(optional_cols.intersection(df_cols))
-    )
+    pdc_data = pdc_data.select(required_cols.union(optional_cols.intersection(df_cols)))
     if "ADMModelType" not in df_cols:
-        pdc_data = pdc_data.with_columns(ADMModelType = pl.lit(None))
+        pdc_data = pdc_data.with_columns(ADMModelType=pl.lit(None))
 
     return pdc_data

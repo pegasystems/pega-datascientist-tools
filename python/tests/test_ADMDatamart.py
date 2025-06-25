@@ -37,7 +37,7 @@ def test_cached_properties(sample: ADMDatamart):
 
     assert sample.unique_configurations == {"OmniAdaptiveModel"}
 
-    assert sample.unique_predictor_categories == {"Customer", "IH", "Param", "Primary"}
+    assert sample.unique_predictor_categories == {"Customer", "IH", "Param"}
 
 
 def test_write_then_load(sample: ADMDatamart):
@@ -111,11 +111,132 @@ def test_active_range_Pega8():
     ar = dm.active_ranges().collect()
 
     assert ar["nActivePredictors"].to_list() == [19, 17, 11, 3]
-    assert ar["idx_min"].to_list() == [2, 0, 0, 1] # the R version is +1 so 3, 1, 1, 2
-    assert ar["idx_max"].to_list() == [10, 10, 2, 4] 
-    assert [round(x,6) for x in ar["AUC_Datamart"].to_list()] == [0.533401, 0.562353, 0.559777, 0.628571]
-    assert [round(x,7) for x in ar["AUC_ActiveRange"].to_list()] == [0.5334013, 0.5623530, 0.5597765, 0.5476054]
-    assert [round(x,7) for x in ar["AUC_FullRange"].to_list()] == [0.5460856, 0.5652007, 0.5597765, 0.5781145]
-    assert [round(x,6) for x in ar["score_min"].to_list()] == [-0.620929, -0.600759, -0.749120, -1.425557]
-    assert [round(x,6) for x in ar["score_max"].to_list()] == [0.468903, 0.681244, 1.454179, -0.425495]
+    assert ar["idx_min"].to_list() == [2, 0, 0, 1]  # the R version is +1 so 3, 1, 1, 2
+    assert ar["idx_max"].to_list() == [10, 10, 2, 4]
+    assert [round(x, 6) for x in ar["AUC_Datamart"].to_list()] == [
+        0.533401,
+        0.562353,
+        0.559777,
+        0.628571,
+    ]
+    assert [round(x, 7) for x in ar["AUC_ActiveRange"].to_list()] == [
+        0.5334013,
+        0.5623530,
+        0.5597765,
+        0.5476054,
+    ]
+    assert [round(x, 7) for x in ar["AUC_FullRange"].to_list()] == [
+        0.5460856,
+        0.5652007,
+        0.5597765,
+        0.5781145,
+    ]
+    assert [round(x, 6) for x in ar["score_min"].to_list()] == [
+        -0.620929,
+        -0.600759,
+        -0.749120,
+        -1.425557,
+    ]
+    assert [round(x, 6) for x in ar["score_max"].to_list()] == [
+        0.468903,
+        0.681244,
+        1.454179,
+        -0.425495,
+    ]
 
+def _check_cat(dm, pred_name):
+    return (
+        dm.predictor_data.filter(PredictorName=pred_name)
+        .select(pl.col("PredictorCategory").unique())
+        .collect()
+        .item()
+    )
+
+def test_predictor_categorization_default(sample):
+    default_cats = (
+        sample.predictor_data.select(pl.col("PredictorCategory").unique())
+        .filter(pl.col("PredictorCategory").is_not_null())
+        .sort("PredictorCategory")
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    assert default_cats == ["Customer", "IH", "Param"]
+
+    # print(sample.predictor_data.select("PredictorName", "PredictorCategory").unique().sort("PredictorName").collect().to_pandas())
+
+    assert _check_cat(sample, "Customer.HealthMatter") == "Customer"
+    assert _check_cat(sample, "IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince") == "IH"
+    assert _check_cat(sample, "Classifier") is None
+
+
+def test_predictor_categorization_custom_expression(sample):
+    categorization = pl.when(
+        pl.col("PredictorName").cast(pl.Utf8).str.contains("Score")
+    ).then(pl.lit("External Model"))
+
+    sample.apply_predictor_categorization(categorization)
+
+    cats = (
+        sample.predictor_data.select(pl.col("PredictorCategory").unique())
+        .filter(pl.col("PredictorCategory").is_not_null())
+        .sort("PredictorCategory")
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    # print(
+    #     sample.predictor_data.select("PredictorName", "PredictorCategory")
+    #     .unique()
+    #     .sort("PredictorName")
+    #     .collect()
+    # )
+    assert cats == ["Customer", "External Model", "IH", "Param"]
+    assert _check_cat(sample, "Customer.RiskScore") == "External Model"
+
+def test_predictor_categorization_dictionary(sample):
+    categorization = {"XGBoost Model" : "Score"}
+
+    sample.apply_predictor_categorization(categorization)
+
+    cats = (
+        sample.predictor_data.select(pl.col("PredictorCategory").unique())
+        .filter(pl.col("PredictorCategory").is_not_null())
+        .sort("PredictorCategory")
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    # print(
+    #     sample.predictor_data.select("PredictorName", "PredictorCategory")
+    #     .unique()
+    #     .sort("PredictorName")
+    #     .collect()
+    # )
+    assert cats == ["Customer", "IH", "Param", "XGBoost Model"]
+    assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
+
+def test_predictor_categorization_dictionary_regexps(sample):
+
+    # Using a reg exp w/o setting the flag should not match anything
+    categorization = {"XGBoost Model" : "Score$"}
+    sample.apply_predictor_categorization(categorization)
+
+    cats = (
+        sample.predictor_data.select(pl.col("PredictorCategory").unique())
+        .filter(pl.col("PredictorCategory").is_not_null())
+        .sort("PredictorCategory")
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    assert "XGBoost Model" not in cats
+
+    # But with the flag we should get some more results
+    categorization = {"XGBoost Model" : "Score$"}
+    sample.apply_predictor_categorization(categorization, use_regexp=True)
+
+    cats = (
+        sample.predictor_data.select(pl.col("PredictorCategory").unique())
+        .filter(pl.col("PredictorCategory").is_not_null())
+        .sort("PredictorCategory")
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    assert "XGBoost Model" in cats
