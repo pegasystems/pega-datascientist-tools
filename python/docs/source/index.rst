@@ -23,6 +23,7 @@ Welcome to the PDS Tools Python documentation
    articles/AGBModelVisualisation
    articles/vf_analysis
    articles/explainability_extract
+   articles/decision_analyzer
 
 .. toctree::
    :maxdepth: 1
