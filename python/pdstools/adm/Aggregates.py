@@ -916,7 +916,7 @@ class Aggregates:
         global_overview = (
             data.filter(pl.col("EntryType") != "Classifier")
             .filter(BinIndex=1)
-            .group_by("PredictorName")
+            .group_by("PredictorName", "PredictorCategory")
             .agg(
                 [
                     # weighted performance
@@ -932,7 +932,7 @@ class Aggregates:
                     (pl.max("Performance") * 100).alias("Max"),
                 ]
             )
-            .sort(["Mean", "PredictorName"], descending=False)
+            .sort(["PredictorName"], descending=True)
         )
         return global_overview
 
@@ -988,9 +988,9 @@ class Aggregates:
 
             if model_id is not None:
                 data = data.filter(pl.col("ModelID") == model_id)
-                group_cols = ["PredictorName"]
+                group_cols = ["PredictorName", "PredictorCategory"]
             else:
-                group_cols = ["ModelID", "PredictorName"]
+                group_cols = ["ModelID", "PredictorName", "PredictorCategory"]
 
             default_aggs = [
                 pl.last("ResponseCount").cast(pl.Int64).alias("Responses"),
@@ -1032,7 +1032,7 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # really? swallowing?
+        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
