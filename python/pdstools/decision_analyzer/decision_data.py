@@ -482,7 +482,15 @@ class DecisionAnalyzer:
         # TODO: make generic to support situations where P, V, C or L are missing?
         # NOTE: Should we calculate for different stages?
         rank_exprs = [
-            pl.col(x)
+            pl.struct(
+                [
+                    x,
+                    "StageOrder",
+                    pl.col("pyIssue").rank() * -1,
+                    pl.col("pyGroup").rank() * -1,
+                    pl.col("pyName").rank() * -1,
+                ]
+            )
             .rank(descending=True, method="dense", seed=1)
             .over(["pxInteractionID"])
             .cast(pl.Int16)
