@@ -271,3 +271,8 @@ def test_plots():
     assert isinstance(prediction.plot.lift_trend("2d", return_df=True), pl.LazyFrame)
     assert prediction.plot.responsecount_trend("1m") is not None
     assert prediction.plot.ctr_trend("5d") is not None
+
+    assert isinstance(prediction.plot.performance_trend(return_df=True), pl.LazyFrame)
+    assert isinstance(prediction.plot.lift_trend(return_df=True), pl.LazyFrame)
+    assert isinstance(prediction.plot.responsecount_trend(return_df=True), pl.LazyFrame)
+    assert isinstance(prediction.plot.ctr_trend(return_df=True), pl.LazyFrame)
