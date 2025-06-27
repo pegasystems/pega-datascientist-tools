@@ -210,6 +210,9 @@ class Plots(LazyNamespace):
             "Performance",
             "SuccessRate",
             "ResponseCount",
+            "ModelTechnique",
+            "SnapshotTime",
+            "LastUpdate",
             *self.datamart.context_keys,
         ]
         if facet is not None:
