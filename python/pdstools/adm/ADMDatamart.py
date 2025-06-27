@@ -423,19 +423,37 @@ class ADMDatamart:
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
+        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+            df = df.with_columns(
+                SnapshotTime=cdh_utils.parse_pega_date_time_formats()
+            ).sort("SnapshotTime", "ModelID")
+        else:
+            df = df.with_columns(pl.col("SnapshotTime").cast(pl.Datetime)).sort(
+                "SnapshotTime", "ModelID"
+            )
+
         df = df.with_columns(
             SuccessRate=(pl.col("Positives") / pl.col("ResponseCount")).fill_nan(
                 pl.lit(0)
             ),
+            LastUpdate=self._last_update_expr(),
         )
-        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
-            df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
-        else:
-            df = df.with_columns(pl.col("SnapshotTime").cast(pl.Datetime))
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
         return df
+
+    @staticmethod
+    def _last_update_expr() -> pl.Expr:
+        return (
+            pl.when(
+                (pl.col("ResponseCount").diff(1) != 0)
+                | (pl.col("Positives").diff(1) != 0)
+            )
+            .then("SnapshotTime")
+            .forward_fill()
+            .over("ModelID")
+        )
 
     def _validate_predictor_data(
         self, df: Optional[pl.LazyFrame]
@@ -527,7 +545,7 @@ class ADMDatamart:
         >>> dm.apply_predictor_categorization(categorization={
         >>> "External Model" : ["Score", "Propensity"]}
         >>> )
-        
+
         """
 
         def categorization_dict_to_polars_expr(categorization):

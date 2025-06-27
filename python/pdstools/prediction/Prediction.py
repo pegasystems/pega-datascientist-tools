@@ -49,21 +49,25 @@ class PredictionPlots(LazyNamespace):
         self,
         period: str,
         query: Optional[QUERY],
-        return_df: bool,
         metric: str,
         title: str,
+        hover_data=None,
         facet_row: str = None,
         facet_col: str = None,
-        bar_mode: bool = False,
     ):
         plot_df = self.prediction.summary_by_channel(by_period=period).with_columns(
             Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
         )
 
-        plot_df = cdh_utils._apply_query(plot_df, query)
-
-        if return_df:
-            return plot_df
+        plot_df = (
+            cdh_utils._apply_query(plot_df, query)
+            .with_columns(
+                Period=pl.format(
+                    "{} days", ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32)
+                )
+            )
+            .rename({"DateRange Min": "Date"})
+        )
 
         date_range = (
             cdh_utils._apply_query(self.prediction.predictions, query)
@@ -78,36 +82,36 @@ class PredictionPlots(LazyNamespace):
             .item()
         )
 
-        if bar_mode:
-            plt = px.bar(
-                plot_df.filter(pl.col("isMultiChannelPrediction").not_())
-                .filter(pl.col("Channel") != "Unknown")
-                .sort("DateRange Min")
-                .collect(),
-                x="DateRange Min",
-                y=metric,
-                barmode="group",
-                facet_row=facet_row,
-                facet_col=facet_col,
-                color="Prediction",
-                title=f"{title}<br>{date_range}",
-                template="pega",
-            )
-        else:
-            plt = px.line(
-                plot_df.filter(pl.col("isMultiChannelPrediction").not_())
-                .filter(pl.col("Channel") != "Unknown")
-                .sort("DateRange Min")
-                .collect(),
-                x="DateRange Min",
-                y=metric,
-                facet_row=facet_row,
-                facet_col=facet_col,
-                color="Prediction",
-                title=f"{title}<br>{date_range}",
-                template="pega",
-                markers=True,
-            )
+        # plt = px.bar(
+        #     plot_df.filter(pl.col("isMultiChannelPrediction").not_())
+        #     .filter(pl.col("Channel") != "Unknown")
+        #     .sort("Date")
+        #     .collect(),
+        #     x="Date",
+        #     y=metric,
+        #     barmode="group",
+        #     facet_row=facet_row,
+        #     facet_col=facet_col,
+        #     color="Prediction",
+        #     title=f"{title}<br><sub>{date_range}</sub>",
+        #     template="pega",
+        #     hover_data=hover_data,
+        # )
+        plt = px.line(
+            plot_df.filter(pl.col("isMultiChannelPrediction").not_())
+            .filter(pl.col("Channel") != "Unknown")
+            .sort("Date")
+            .collect(),
+            x="Date",
+            y=metric,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            color="Prediction",
+            title=f"{title}<br><sub>{date_range}</sub>",
+            template="pega",
+            markers=True,
+            hover_data=hover_data,
+        )
 
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
             legend_title_text="Channel"
@@ -118,7 +122,7 @@ class PredictionPlots(LazyNamespace):
         if facet_col is not None:
             plt.update_xaxes(title="")
 
-        return plt
+        return plt, plot_df
 
     def performance_trend(
         self,
@@ -127,16 +131,31 @@ class PredictionPlots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        result = self._prediction_trend(
+        plt, plt_data = self._prediction_trend(
             query=query,
             period=period,
-            return_df=return_df,
             metric="Performance",
             title="Prediction Performance",
+            hover_data={
+                "Period": True,
+                "Positives": True,
+                "Negatives": True,                
+                "Positives_Test": True,
+                "Negatives_Test": True,
+                "CTR_Test": ":.3%",
+                "Positives_Control": True,
+                "Negatives_Control": True,
+                "CTR_Control": ":.3%",
+                "Positives_NBA": True,
+                "Negatives_NBA": True,
+                "CTR_NBA": ":.3%",
+            },
         )
-        if not return_df:
-            result.update_yaxes(range=[50, 100])
-        return result
+        if return_df:
+            return plt_data
+
+        plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
+        return plt
 
     def lift_trend(
         self,
@@ -145,16 +164,36 @@ class PredictionPlots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        result = self._prediction_trend(
+        plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
-            return_df=return_df,
             metric="Lift",
+            hover_data={
+                "Period": True,
+                "Positives": True,
+                "Negatives": True,                
+                "Positives_Test": True,
+                "Negatives_Test": True,
+                "CTR_Test": ":.3%",
+                "Positives_Control": True,
+                "Negatives_Control": True,
+                "CTR_Control": ":.3%",
+                "Positives_NBA": True,
+                "Negatives_NBA": True,
+                "CTR_NBA": ":.3%",
+            },
             title="Prediction Lift",
         )
-        if not return_df:
-            result.update_yaxes(tickformat=",.2%")
-        return result
+        if return_df:
+            return plt_data
+
+        data_max = plt_data.select(pl.col("Lift").max()).collect().item()
+        plt.update_yaxes(
+            range=[-1, max(1, data_max * 1.2)],
+            tickformat=",.2%",
+            title="Engagement Lift",
+        )
+        return plt
 
     def ctr_trend(
         self,
@@ -164,18 +203,32 @@ class PredictionPlots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        result = self._prediction_trend(
+        plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
-            return_df=return_df,
             metric="CTR",
+            hover_data={
+                "Period": True,
+                "Positives": True,
+                "Negatives": True,                
+                "Positives_Test": True,
+                "Negatives_Test": True,
+                "CTR_Test": ":.3%",
+                "Positives_Control": True,
+                "Negatives_Control": True,
+                "CTR_Control": ":.3%",
+                "Positives_NBA": True,
+                "Negatives_NBA": True,
+                "CTR_NBA": ":.3%",
+            },
             title="Prediction CTR",
             facet_row="Prediction" if facetting else None,
         )
-        if not return_df:
-            result.update_yaxes(tickformat=",.3%")
-            result.update_layout(yaxis={"rangemode": "tozero"})
-        return result
+        if return_df:
+            return plt_data
+
+        plt.update_yaxes(tickformat=",.3%", rangemode="tozero")
+        return plt
 
     def responsecount_trend(
         self,
@@ -185,18 +238,33 @@ class PredictionPlots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        result = self._prediction_trend(
+        plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
-            return_df=return_df,
             metric="Responses",
+            hover_data={
+                "Period": True,
+                "Positives": True,
+                "Negatives": True,                
+                "Positives_Test": True,
+                "Negatives_Test": True,
+                "CTR_Test": ":.3%",
+                "Positives_Control": True,
+                "Negatives_Control": True,
+                "CTR_Control": ":.3%",
+                "Positives_NBA": True,
+                "Negatives_NBA": True,
+                "CTR_NBA": ":.3%",
+            },
             title="Prediction Responses",
             facet_col="Prediction" if facetting else None,
-            bar_mode=True,
+            # bar_mode=True,
         )
-        if not return_df:
-            result.update_layout(yaxis_title="Responses")
-        return result
+        if return_df:
+            return plt_data
+
+        plt.update_layout(yaxis_title="Responses")
+        return plt
 
 
 class Prediction:
@@ -334,7 +402,7 @@ class Prediction:
         self.predictions = cdh_utils._apply_query(self.predictions, query)
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame, return_df = False):
+    def from_pdc(cls, df: pl.LazyFrame, return_df=False):
         pdc_data = cdh_utils._read_pdc(df)
 
         snapshotType = "Daily"

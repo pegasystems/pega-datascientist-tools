@@ -544,6 +544,8 @@ class Aggregates:
                     + (["Group"] if "Group" in self.datamart.context_keys else [])
                 )
                 .agg(
+                    # TODO: consider aligning with the LastUsed column
+                    # something like LastUsed in this time range
                     (
                         pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
                     ).alias("is_used"),
