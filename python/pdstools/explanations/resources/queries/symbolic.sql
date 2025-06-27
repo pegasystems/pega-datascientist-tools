@@ -10,8 +10,8 @@ WITH sym_grp AS (
       , IFNULL(NULLIF(trim({LEFT_PREFIX}.symbolic_value), ''), 'MISSING') AS bin_contents
       , AVG(ABS({LEFT_PREFIX}.shap_coeff)) AS contribution_abs
       , AVG({LEFT_PREFIX}.shap_coeff) AS contribution
-      , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
-      , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
+      , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_min
+      , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_max
       , COUNT(*) AS frequency
   FROM {TABLE_NAME} AS {LEFT_PREFIX} 
   WHERE {WHERE_CONDITION}
@@ -29,7 +29,7 @@ SELECT
 , ROW_NUMBER() OVER(PARTITION BY {LEFT_PREFIX}.partition, predictor_name ORDER BY frequency DESC) AS bin_order
 , contribution_abs
 , contribution
-, contribution_0
-, contribution_100
+, contribution_min
+, contribution_max
 , frequency
 FROM sym_grp AS {LEFT_PREFIX}

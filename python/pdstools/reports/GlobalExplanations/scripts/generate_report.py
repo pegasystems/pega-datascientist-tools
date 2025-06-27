@@ -1,115 +1,209 @@
-import datetime
 import json
 import os
+import yaml
 
-from pdstools.explanations import DataLoader, GradientBoostGlobalExplanations
+from pdstools.explanations import ExplanationsDataLoader as DataLoader, ContextInfo
 
+CONTEXT_FOLDER = "by-context"
 
-def _process_data(data_location: str, model_name: str, end_date: datetime, output_folder: str):
-    explanations = GradientBoostGlobalExplanations(
-        data_folder=data_location,
-        model_name=model_name,
-        overwrite=True,
-        end_date=end_date,
-        output_folder=output_folder,
-    )
-    print(f"Processing data for model {model_name} until {end_date}")
-    explanations.process()
+TOP_N = 10
+TOP_K = 10
+VERBOSE_DEFAULT = False
+DATA_FOLDER = "aggregated_data"
 
+ALL_CONTEXT_FILENAME = "all_contexts.qmd"
+PARAMS_FILENAME = "params.yml"
 
-def _get_context_string(context_info):
-    return "-".join([v.replace(" ", "") for _, v in context_info.items()])
+# init template folder and filenames
+# these are the templates used to generate the context files
+# and the overview file
+TEMPLATES_FOLDER = "./assets/templates"
+INTRODUCTION_FILENAME = "getting-started.qmd"
+OVERVIEW_FILENAME = "overview.qmd"
+ALL_CONTEXT_HEADER_TEMPLATE = "all_context_header.qmd"
+ALL_CONTEXT_CONTENT_TEMPLATE = "all_context_content.qmd"
+SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
-
-def _write_by_context_qmd(input_folder: str):
-    data_loader = DataLoader(input_folder)
-    contexts = data_loader.get_context_infos()
-    all_contexts_file_name = "all_contexts.qmd"
-    all_contexts_file_path = f"./by-context/{all_contexts_file_name}"
-    with open(all_contexts_file_path, "w") as f:
-        f.write(
-            """
----
-title: "By Context"
-skip_exec: true
----
-
-The top 10 predictor's contribtuions per context.
-
-"""
-        )
-
-        f.write(
-            f"""
-```{{python}}
-from pdstools.explanations import DataLoader, Plotter
-import json
-from IPython.display import display, Markdown
-data_loader = DataLoader("{input_folder}")
-
-```
-"""
-        )
-        for context in contexts:
-            context_string = _get_context_string(context)
-            context_label = ('plt-' + context_string).lower()
-            context_file_name = f"{context_label}.qmd"
-            context_location = f"./by-context/{context_file_name}"
-            with open(f"{context_location}", "w") as f_context:
-                f.write(
-                    f"""
-
-The top 10 predictors contributions for the context `{context_string}`.
-```{{python}}
-#| label: {context_label}
-
-plots = Plotter.plot_predictor_contributions(
-        data_loader,
-        {json.dumps(context)}
-    )
-
-
-for plot in plots:
-    title = plot.layout['title']['text']
-    display(Markdown(f'### {{title}}'), plot)
-
-```
-"""
-                )
-
-                # display(Markdown(f'### {{plot.layout["title"]['text']}}'), plot)
-
-                f_context.write(
-                    f"""
----
-title: "{context_string}"
-format: html
----
-
-{{{{< embed {all_contexts_file_name}#{context_label} >}}}}
-"""
-                )
-
-
-if __name__ == "__main__":#
-    if not os.getenv("QUARTO_PROJECT_RENDER_ALL"):
-        exit()
-
-    DATA_FOLDER = os.getenv("DATA_FOLDER")
-    MODEL_NAME = os.getenv("MODEL_NAME")
-    TO_DATE = datetime.datetime.strptime(os.getenv("TO_DATE"), "%Y-%m-%d").date()
-
-    cwd = os.getcwd()
-    print(f"Current working directory: {cwd}")
+class ReportGenerator:
     
-    TMP_FOLDER = cwd + "/.tmp/out"
-    if not os.path.exists(TMP_FOLDER):
-        os.makedirs(TMP_FOLDER)
+    def __init__(self):
+        
+        self.report_folder = os.getcwd()
+        
+        self.data_folder = ""
+        self.top_n = None
+        self.top_k = None
+        
+        self.context_folder = f'{self.report_folder}/{CONTEXT_FOLDER}'
+        if not os.path.exists(self.context_folder):
+            os.makedirs(self.context_folder, exist_ok=True)
+            
+        self.all_context_filepath = f'{self.context_folder}/{ALL_CONTEXT_FILENAME}'
+        
+        self._read_params()
+    
+    def _log_params(self):
+        print(f"""
+Report generation initialized with the following parameters:
+- Aggregations folder: {self.data_folder}
+- Report folder: {self.report_folder}
+- Context folder: {self.context_folder}
+- All contexts file path: {self.all_context_filepath}
+- Top N: {self.top_n}
+- Top K: {self.top_k}
+        """)
+        
+    def _read_params(self):
+        params_file = os.path.join(self.report_folder, "scripts", PARAMS_FILENAME)
+        
+        if not os.path.exists(params_file):
+            self.top_n = TOP_N
+            self.top_k = TOP_K
+            self.verbose = VERBOSE_DEFAULT
+            self.data_folder = DATA_FOLDER
+            print(f"Parameters file {params_file} does not exist. Using defaults.")
+        else:
+            with open(params_file, 'r') as file:
+                params = yaml.safe_load(file)
+                self.top_n = params.get('top_n', TOP_N)
+                self.top_k = params.get('top_k', TOP_K)
+                self.verbose = params.get('verbose', VERBOSE_DEFAULT)
+                self.data_folder = params.get('data_folder', DATA_FOLDER)
+        
+        self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
+                
+        if self.verbose:
+            self._log_params()
+                
+    @staticmethod
+    def _get_context_string(context_info) -> str:
+        return "-".join([v.replace(" ", "") for _, v in context_info.items()])
 
-    OUTPUT_FOLDER = cwd + "/by-context"
-    if not os.path.exists(OUTPUT_FOLDER):
-        os.makedirs(OUTPUT_FOLDER)
+    @staticmethod
+    def _read_template(template_filename: str) -> str:
+        """Read a template file and return its content."""
+        with open(f'{TEMPLATES_FOLDER}/{template_filename}', 'r') as fr:
+            return fr.read()
 
-    _process_data(DATA_FOLDER, MODEL_NAME, TO_DATE, TMP_FOLDER)
+    def _write_single_context_file(self,
+                                   filename: str, 
+                                   template: str, 
+                                   context_string: str, 
+                                   context_label: str):
+        
+        with open(filename, "w") as fw:
+            f_context_template = f"""{
+                template.format(
+                    ALL_CONTEXT_FILENAME=ALL_CONTEXT_FILENAME,
+                    CONTEXT_STR=context_string,
+                    CONTEXT_LABEL=context_label,
+                    TOP_N=self.top_n
+                )
+            }"""
+            fw.write(f_context_template)
+            
+    def _write_header_to_file(self):
+        
+        template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
+        
+        f_template = f"""{template.format(
+            DATA_FOLDER=self.data_folder,
+            TOP_N = self.top_n
+        )}"""
+            
+        with open(self.all_context_filepath, "w") as writer:
+            writer.write(f_template)
+    
+    def _append_content_to_file(self,
+                            template: str,
+                            context_string: str,
+                            context_label: str,
+                            context: ContextInfo):
+        
+        with open(self.all_context_filepath, "a") as writer:
+            f_content_template = f"""{template.format(
+                CONTEXT_STR=context_string,
+                CONTEXT_LABEL=context_label,
+                CONTEXT=json.dumps(context),
+                TOP_N=self.top_n,
+                TOP_K=self.top_k,
+            )}"""
+            
+            writer.write("\n")
+            writer.write(f_content_template)
 
-    _write_by_context_qmd(TMP_FOLDER)
+    def _generate_by_context_qmds(self):
+        
+        data_loader = DataLoader(self.data_folder)
+        contexts = data_loader.get_context_infos()
+        
+        # write header
+        self._write_header_to_file()
+        
+        # write content
+        context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
+        single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
+        
+        for context in contexts:
+            context_string = self._get_context_string(context)
+            context_label = ('plt-' + context_string).lower()
+            
+            self._append_content_to_file(
+                template=context_content_template,
+                context_string=context_string,
+                context_label=context_label,
+                context=context
+            )
+            
+            single_context_filename = f"{self.context_folder}/{context_label}.qmd"
+            
+            self._write_single_context_file(
+                filename=single_context_filename,
+                template=single_context_template,
+                context_string=context_string,
+                context_label=context_label
+            )
+
+    def _generate_overview_qmd(self):
+        
+        with open(f'{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}', 'r') as fr:
+            template = fr.read()
+                
+        f_template = f"""{template.format(
+            DATA_FOLDER=self.data_folder,
+            TOP_N=self.top_n,
+            TOP_K=self.top_k,)}
+        """
+        
+        with open(OVERVIEW_FILENAME, 'w') as f:
+            f.write(f_template)
+
+    def _generate_introduction_qmd(self):
+        
+        with open(f'{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}', 'r') as fr:
+            template = fr.read()
+        
+        f_template = f"""{template.format(
+            TOP_N=self.top_n,
+        )}"""
+        
+        with open(INTRODUCTION_FILENAME, 'w') as f:
+            f.write(f_template)
+            
+    def run(self):
+        
+        self._generate_introduction_qmd()
+        print("Generated introduction QMD file.")
+        
+        self._generate_overview_qmd()
+        print("Generated overview QMD file.")
+        
+        self._generate_by_context_qmds()
+        print("Generated by-context QMDs files.")
+        
+if __name__ == "__main__":
+    # if not os.getenv("QUARTO_PROJECT_RENDER_ALL"):
+    #     exit()
+    generator = ReportGenerator()
+    generator.run()
+

@@ -2,13 +2,16 @@
 requires      = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["python", 'reports']
 include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-"*" = ['*.qmd', '*.sql']
+"*" = ['*.qmd', '*.sql', 'GlobalExplanations/**/*']
 
 [project]
 name = "pdstools"

@@ -18,8 +18,8 @@ WITH
             , {LEFT_PREFIX}.decile
             , AVG(ABS({LEFT_PREFIX}.shap_coeff)) AS contribution_abs
             , AVG({LEFT_PREFIX}.shap_coeff) AS contribution
-            , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
-            , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
+            , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_min
+            , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_max
             , COUNT(*) AS frequency
             , MIN({LEFT_PREFIX}.numeric_value) AS minimum
             , MAX({LEFT_PREFIX}.numeric_value) AS maximum
@@ -34,8 +34,8 @@ WITH
             , MIN({LEFT_PREFIX}.decile) AS decile
             , AVG({LEFT_PREFIX}.contribution_abs) AS contribution_abs
             , AVG({LEFT_PREFIX}.contribution) AS contribution
-            , MIN({LEFT_PREFIX}.contribution_0) AS contribution_0
-            , MAX({LEFT_PREFIX}.contribution_100) AS contribution_100
+            , MIN({LEFT_PREFIX}.contribution_min) AS contribution_min
+            , MAX({LEFT_PREFIX}.contribution_max) AS contribution_max
             , SUM(frequency)::INT64 AS frequency
             , MIN({LEFT_PREFIX}.minimum) AS minimum
             , MAX({LEFT_PREFIX}.maximum) AS maximum
@@ -68,8 +68,8 @@ WITH
             , {LEFT_PREFIX}.decile AS bin_order
             , {LEFT_PREFIX}.contribution_abs
             , {LEFT_PREFIX}.contribution
-            , {LEFT_PREFIX}.contribution_0
-            , {LEFT_PREFIX}.contribution_100
+            , {LEFT_PREFIX}.contribution_min
+            , {LEFT_PREFIX}.contribution_max
             , {LEFT_PREFIX}.frequency
             
         FROM re_grouped_data AS {LEFT_PREFIX}
@@ -85,8 +85,8 @@ WITH
             , 0 AS bin_order
             , AVG(ABS({LEFT_PREFIX}.shap_coeff)) AS contribution_abs
             , AVG({LEFT_PREFIX}.shap_coeff) AS contribution
-            , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
-            , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
+            , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_min
+            , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_max
             , COUNT(*) AS frequency
         FROM {TABLE_NAME} AS {LEFT_PREFIX} WHERE {WHERE_CONDITION} AND {LEFT_PREFIX}.numeric_value IS NULL
         GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.partition
