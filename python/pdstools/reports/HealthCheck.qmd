@@ -122,7 +122,7 @@ predictor_analysis_threshold = 200  # min number of responses for predictor anal
 # channel_responses_threshold = 10000
 configuration_responses_threshold = 10000
 
-threshold_active_models = 7 # if no responses in this nr of days assume not active
+threshold_active_models = 30 # if no responses in this nr of days assume not active
 
 active_models_filter_expr = (
     (pl.col("SnapshotTime") - pl.col("LastUpdate")).dt.total_days() < threshold_active_models
@@ -215,7 +215,7 @@ The first plot below is a global view of all the ADM models, with the overall su
 ```{python}
 report_utils.quarto_print(
     f"""
-Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. In the analyses here we assume that if there have been no updates to the model counts in {threshold_active_models} days, they are not used/inactive.
+Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. In some of the analyses here we assume that if there have been no updates to the model counts in **{threshold_active_models} days**, they are not used/inactive and are filtered out.
 """
 )
 ```
