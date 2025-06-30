@@ -343,6 +343,8 @@ class ADMDatamart:
                     "ModelClass": "pyAppliesToClass",
                     "ModelID": "pyModelID",
                     "ModelName": "pyConfigurationName",
+                    # BUG-875332: TotalResponses = Negatives + TotalPositives
+                    # won't be fixed but is confusing
                     "Negatives": "pyNegatives",
                     "TotalPositives": "pyPositives",
                     "TotalResponses": "pyResponseCount",
