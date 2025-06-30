@@ -2,7 +2,6 @@ __all__ = ["ExplanationsDataPlotter"]
 
 import logging
 from typing import List, Optional
-import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
 
@@ -19,8 +18,8 @@ class ExplanationsDataPlotter:
     def plot_contributions_for_overall(
         cls,
         data_loader: DataLoader,
-        top_n: int = 20,
-        top_k: int = 20,
+        top_n: int = 10,
+        top_k: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -65,8 +64,8 @@ class ExplanationsDataPlotter:
     def plot_contributions_by_contexts_list(cls,
         data_loader: DataLoader,
         contexts: List[ContextInfo],
-        top_n: int = 20,
-        top_k: int = 20,
+        top_n: int = 10,
+        top_k: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -78,16 +77,14 @@ class ExplanationsDataPlotter:
         cls,
         data_loader: DataLoader,
         context: ContextInfo,
-        top_n: int = 20,
-        top_k: int = 20,
+        top_n: int = 10,
+        top_k: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
         contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ) -> tuple[go.Figure, go.Figure, List[go.Figure]]:     
-        
-        # {"partition":{"pyChannel":"PegaBatch","pyDirection":"E2E Test","pyGroup":"E2E Test","pyIssue":"Batch","pyName":"P38"}}
-        
+                
         df_context = data_loader.get_top_n_predictor_contribution_by_context(
             context,
             top_n,
@@ -144,11 +141,15 @@ class ExplanationsDataPlotter:
         else:
             title += "-".join([f'{v}' for k, v in context.items()])
 
-        fig = px.bar(df, 
-                     x=x_col, 
-                     y=y_col, 
-                     orientation="h", 
-                     title=title)
+        fig = go.Figure(
+            data=[go.Bar(
+                x=df[x_col].to_list(),
+                y=df[y_col].to_list(),
+                orientation="h",
+                )]
+            )
+        
+        fig.update_layout(title=title)
         
         colors_values = df.select(pl.col(x_col)).to_series().to_list()
         
@@ -182,13 +183,13 @@ class ExplanationsDataPlotter:
             
             predictor_df = df.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
-            fig = px.bar(
-                predictor_df,
-                x=x_col,
-                y=y_col,
+            fig = go.Figure(data=[go.Bar(
+                x=predictor_df[x_col].to_list(),
+                y=predictor_df[y_col].to_list(),
                 orientation="h",
-                title=predictor,
-            )
+                )
+            ])
+
             colors_values = predictor_df.select(pl.col(x_col)).to_series().to_list()
             fig.update_traces(
                 marker=dict(
@@ -199,21 +200,19 @@ class ExplanationsDataPlotter:
             )
             fig.update_layout(
                 yaxis_title=predictor,
+                title=predictor,
             )
             plots.append(fig)
         return plots
 
     @staticmethod
     def _plot_context_table(context_info: ContextInfo) -> go.Figure:
-        fig = go.Figure(
+        fig = go.Figure(data=[
             go.Table(
-                header=dict(values=["Context key", "Context value"], align="left"),
-                cells=dict(
-                    values=[list(context_info.keys()), list(context_info.values())],
-                    align="left",
-                ),
+                header=dict(values=['Context key', 'Context value'], align='left'),
+                cells=dict(values=[list(context_info.keys()), list(context_info.values())], align='left', height = 25)
             )
-        )
-        fig.update_layout(title="Context Information", height=200)
+        ])
+        fig.update_layout(title="Context Information", height=context_info.__len__() * 30 + 200)
         return fig
 

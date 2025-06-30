@@ -1,13 +1,20 @@
 __all__ = ["ExplanationsDataLoader"]
 
 import json
-import polars as pl
-from typing import Optional, List, cast
+from typing import List, Optional, cast
 
-from .ExplanationsUtils import _COL, _SPECIAL, _CONTRIBUTION_TYPE, _PREDICTOR_TYPE, ContextInfo
+import polars as pl
+
+from .ExplanationsUtils import (
+    _COL,
+    _CONTRIBUTION_TYPE,
+    _PREDICTOR_TYPE,
+    _SPECIAL,
+    ContextInfo,
+)
+
 
 class ExplanationsDataLoader:
-
     def __init__(self, data_location):
         self.data_location = data_location
         self._scan_data()
@@ -15,12 +22,13 @@ class ExplanationsDataLoader:
         self.unique_context_df = pl.from_dicts(
             [
                 {**json.loads(ck)[_COL.PARTITON.value], "filter_string": ck}
-                for ck in self.df_contextual.collect()[_COL.PARTITON.value].unique().to_list()
+                for ck in self.df_contextual.collect()[_COL.PARTITON.value]
+                .unique()
+                .to_list()
             ]
         )
 
     def _scan_data(self):
-        
         selected_columns = [
             _COL.PARTITON.value,
             _COL.CONTRIBUTION.value,
@@ -33,59 +41,62 @@ class ExplanationsDataLoader:
             _COL.CONTRIBUTION_MIN.value,
             _COL.CONTRIBUTION_MAX.value,
         ]
-        
-        self.df_contextual = (pl.scan_parquet(f'{self.data_location}/*_BATCH_*.parquet')
-                              .select(selected_columns)
-                              .sort(by=_COL.PREDICTOR_NAME.value))
 
-        self.df_overall = (pl.scan_parquet(f"{self.data_location}/*_OVERALL.parquet")
-                           .select(selected_columns)
-                           .sort(by=_COL.PREDICTOR_NAME.value))
-    
+        self.df_contextual = (
+            pl.scan_parquet(f"{self.data_location}/*_BATCH_*.parquet")
+            .select(selected_columns)
+            .sort(by=_COL.PREDICTOR_NAME.value)
+        )
+
+        self.df_overall = (
+            pl.scan_parquet(f"{self.data_location}/*_OVERALL.parquet")
+            .select(selected_columns)
+            .sort(by=_COL.PREDICTOR_NAME.value)
+        )
+
     # get top-n predictor contributions for overall model level contributions or for a list of contexts
     def get_top_n_predictor_contribution_overall(
         self,
-        top_n: int = 10,                                         
+        top_n: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ) -> pl.DataFrame:
-        
         return self._get_predictor_contributions(
-            limit = top_n,
-            descending = descending,
-            missing = missing,
-            remaining = remaining,
-            contribution_type = contribution_type.value
+            limit=top_n,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            contribution_type=contribution_type.value,
         )
-    
+
     def get_top_k_predictor_value_contribution_overall(
         self,
-        predictors: list[str],
-        top_k: int = 10,                                         
+        predictors: List[str],
+        top_k: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ) -> pl.DataFrame:
-        return self._get_predictor_contributions(
+        return self._get_predictor_value_contributions(
             predictors=predictors,
             limit=top_k,
             descending=descending,
             missing=missing,
             remaining=remaining,
-            contribution_type=contribution_type.value
-        )  
-    
+            contribution_type=contribution_type.value,
+        )
+
     def get_top_n_predictor_contribution_by_context(
         self,
         context: ContextInfo,
-        top_n: int = 10,                                         
+        top_n: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ) -> pl.DataFrame:
         return self._get_predictor_contributions(
             contexts=[context],
@@ -93,139 +104,250 @@ class ExplanationsDataLoader:
             descending=descending,
             missing=missing,
             remaining=remaining,
-            contribution_type=contribution_type.value
+            contribution_type=contribution_type.value,
         )
-    
+
     def get_top_k_predictor_value_contribution_by_context(
         self,
         context: ContextInfo,
         predictors: List[str],
-        top_k: int = 10,                                         
+        top_k: int = 10,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ):
-        return self._get_predictor_contributions(
+        return self._get_predictor_value_contributions(
             contexts=[context],
             predictors=predictors,
             limit=top_k,
             descending=descending,
             missing=missing,
             remaining=remaining,
-            contribution_type=contribution_type.value
+            contribution_type=contribution_type.value,
         )
-        
-    def _get_predictor_contributions(self, 
-            contexts: Optional[List[ContextInfo]] = None,
-            predictors: Optional[List[str]] = None,
-            limit: int = 10,
-            descending: bool = True,
-            missing: bool = True,
-            remaining: bool = True,
-            contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+
+    def _get_predictor_value_contributions(
+        self,
+        contexts: Optional[List[ContextInfo]] = None,
+        predictors: Optional[List[str]] = None,
+        limit: int = 10,
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.DataFrame:
-        
-        context_list = self._get_context_filters(contexts)
-        df = self._get_base_df(context_list)
-        
-        df = self._get_df_with_sort_info(df,
-                                         predictors=predictors,
-                                         sort_by_column=contribution_type)
-        
-        df_top_n = self._get_df_with_top_limit(df, 
-                                         contribution_type = contribution_type, 
-                                         limit=limit, 
-                                         descending=descending)
-        
+        # if no contexts are provided, then we return the overall data
+        # if contexts are provided, then we generate the context filters and load the data for those contexts
+        if contexts is None or len(contexts) == 0:
+            df = self._get_base_df()
+        else:
+            context_list = self._get_context_filters(contexts)
+            df = self._get_base_df(context_list)
+
+        # If predictors are specified we filter the dataframe for those predictors
+        if predictors is not None or len(predictors) > 0:
+            df = self._filter_for_predictors(df, predictors)
+
+        # Aggregate all the different types of contributions, note we need to aggregate frequency over partition to calculate weighted contributions
+        df = self._calculate_aggregates(
+            df,
+            aggregate_frequency_over=[
+                _COL.PARTITON.value,
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+            ],
+            aggregate_over=[
+                _COL.PARTITON.value,
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+                _COL.BIN_ORDER.value,
+                _COL.BIN_CONTENTS.value,
+            ],
+        )
+
+        # Append a sort column and value, note these are note used when finding the top predictors, but are used for logically sorting the final output
+        # e.g.:
+        # - numeric predictors are sorted by bin order
+        # - symbolic predictors are sorted by contribution type
+        df = self._get_df_with_sort_info(df, sort_by_column=contribution_type)
+
+        # Take the top predictors per partition, sorted by contribution type
+        df_top_predictor_values = self._get_df_with_top_limit(
+            df,
+            contribution_type=contribution_type,
+            over=[
+                _COL.PARTITON.value,
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+            ],
+            limit=limit,
+            descending=descending,
+        )
+
+        # If we want to force inclusion of the missing predictor values, concat with the top n
         if missing:
             df_missing = self._get_missing_predictor_values_df(df)
-            
+            df_top_predictor_values = pl.concat([df_top_predictor_values, df_missing])
+
+        # If we want to include the cumulative contribution of all predictor values outside of the top `limit`, we calculate the remaining contributions
         if remaining:
-            df_remaining = self._get_remaining_predictor_values_df(df,
-                                                          df_top_n,
-                                                          predictors=predictors,
-                                                          contribution_type=contribution_type)
-            
-        df_top_n = pl.concat([df_top_n, df_missing, df_remaining])
-        
-        df_top_n = df_top_n.sort(
+            df_remaining = self._calculate_remaining_aggregates(
+                df_all=df,
+                df_anti=df_top_predictor_values,
+                anti_on=[
+                    _COL.PARTITON.value,
+                    _COL.PREDICTOR_NAME.value,
+                    _COL.PREDICTOR_TYPE.value,
+                    _COL.BIN_ORDER.value,
+                    _COL.BIN_CONTENTS.value,
+                ],
+                aggregate_over=[
+                    _COL.PARTITON.value,
+                    _COL.PREDICTOR_NAME.value,
+                    _COL.PREDICTOR_TYPE.value,
+                ],
+            )
+
+            # Add sort information and concat with the top predictor values
+            df_remaining = self._get_df_with_sort_info(
+                df_remaining, sort_by_column=contribution_type
+            )
+            df_top_predictor_values = pl.concat(
+                df.select(sorted(df.collect_schema().names()))
+                for df in [df_remaining, df_top_predictor_values]
+            )
+
+        # Ensure all predictor values are unique and sorted according to predictor type
+        df_out = df_top_predictor_values.unique()
+        df_out = df_out.sort(
             by=[*self._get_sort_over_columns(predictors=None), "sort_value"]
         )
-        
-        return df_top_n.collect()
-    
+        return df_out.collect()
+
+    def _get_predictor_contributions(
+        self,
+        contexts: Optional[List[ContextInfo]] = None,
+        predictors: Optional[List[str]] = None,
+        limit: int = 10,
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+    ) -> pl.DataFrame:
+        contexts = contexts or []
+        predictors = predictors or []
+
+        # if no contexts are provided, then we return the overall data
+        # if contexts are provided, then we generate the context filters and load the data for those contexts
+        if len(contexts) == 0:
+            df = self._get_base_df()
+        else:
+            context_list = self._get_context_filters(contexts)
+            df = self._get_base_df(context_list)
+
+        # If predictors are specified we filter the dataframe for those predictors
+        if len(predictors) > 0:
+            df = self._filter_for_predictors(df, predictors)
+
+        # If we do not want to include the missing predictor values, we filter them out
+        if not missing:
+            df = df.filter(_COL.BIN_CONTENTS.value != _SPECIAL.MISSING.name)
+
+        # Aggregate all the different types of contributions, note we need to aggregate frequency over partition to calculate weighted contributions
+        df = self._calculate_aggregates(
+            df,
+            aggregate_frequency_over=[_COL.PARTITON.value],
+            aggregate_over=[
+                _COL.PARTITON.value,
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+            ],
+        )
+
+        # Take the top predictors per partition, sorted by contribution type
+        df_top_predictors = self._get_df_with_top_limit(
+            df,
+            contribution_type=contribution_type,
+            over=[_COL.PARTITON.value],
+            limit=limit,
+            descending=descending,
+        )
+
+        # If we want to include the cumulative contribution of all predictors outside of the top `limit`, we calculate the remaining contributions
+        if remaining:
+            # Calculate the remaining contributions by aggregating the contributions of all predictors not in the top `limit`
+            # We provide the top predictors as anti-join to calculate the remaining contributions
+            df_remaining = self._calculate_remaining_aggregates(
+                df,
+                df_anti=df_top_predictors,
+                anti_on=[
+                    _COL.PARTITON.value,
+                    _COL.PREDICTOR_NAME.value,
+                    _COL.PREDICTOR_TYPE.value,
+                ],
+                aggregate_over=[_COL.PARTITON.value],
+            )
+            df_top_predictors = pl.concat(
+                df.select(sorted(df.collect_schema().names()))
+                for df in [df_remaining, df_top_predictors]
+            )
+
+        # Ensure all predictors are unique and sorted by contribution type
+        df_out = df_top_predictors.unique()
+        df_out = df_out.sort(by=contribution_type)
+
+        return df_out.collect()
+
     # if passing a list of predictors, then sorted by the predictor type
     #  - numeric predictors are sorted by bin order
     #  - symbolic predictors are sorted by contribution type
-    # if no predictors are provided, then sorted by passed contribution type
-    def _get_df_with_sort_info(self, 
-                               df: pl.LazyFrame, 
-                               predictors: Optional[list[str]] = None,
-                               sort_by_column: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value, 
+    def _get_df_with_sort_info(
+        self,
+        df: pl.LazyFrame,
+        sort_by_column: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.LazyFrame:
-        
-        df = self._grouped_predictors_by_contribution_type(df, predictors)
-        
-        # If no predictors are provided, sort by passed contribution type
+        return df.with_columns(
+            pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
+            .then(pl.lit(_COL.BIN_ORDER.value))
+            .otherwise(pl.lit(sort_by_column))
+            .alias("sort_column"),
+            pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
+            .then(pl.col(_COL.BIN_ORDER.value))
+            .otherwise(pl.col(sort_by_column).abs())
+            .alias("sort_value"),
+        )
+
+    def _filter_for_predictors(
+        self, df: pl.LazyFrame, predictors: List[str]
+    ) -> pl.LazyFrame:
         if predictors is None or len(predictors) == 0:
-            return df.with_columns(
-                pl.lit(sort_by_column).alias("sort_column"),
-                pl.col(sort_by_column).abs().alias("sort_value")
-            )
-        else:
-            return df.with_columns(
-                pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
-                .then(pl.lit(_COL.BIN_ORDER.value))
-                .otherwise(pl.lit(sort_by_column))
-                .alias("sort_column"),
-                
-                pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
-                .then(pl.col(_COL.BIN_ORDER.value).abs())
-                .otherwise(pl.col(sort_by_column).abs())
-                .alias("sort_value")
-            )
-    
-    def _get_df_with_top_limit(self, 
-                               df: pl.LazyFrame, 
-                               predictors: Optional[List[str]] = None,
-                               contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value, 
-                               limit: int = 10, 
-                               descending: bool = True) -> pl.LazyFrame:
+            return df
+
+        # filter for predictors
+        return df.filter(pl.col(_COL.PREDICTOR_NAME.value).is_in(predictors))
+
+    def _get_df_with_top_limit(
+        self,
+        df: pl.LazyFrame,
+        over: List[str],
+        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        limit: int = 10,
+        descending: bool = True,
+    ) -> pl.LazyFrame:
         return df.select(
             pl.all()
             .top_k_by(contribution_type, k=limit, reverse=descending)
-            .over(self._get_sort_over_columns(predictors=predictors), mapping_strategy="explode")
+            .over(
+                over,
+                mapping_strategy="explode",
+            )
         )
-    
+
     def _get_missing_predictor_values_df(self, df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.filter(pl.col(_COL.PREDICTOR_NAME.value) == _SPECIAL.MISSING.name).select(pl.all())
-    
-    def _get_remaining_predictor_values_df(self, 
-                                            df: pl.LazyFrame,
-                                            df_subset: pl.LazyFrame,
-                                            predictors: Optional[List[str]] = None,
-                                            contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value
-                                            ):
-        df_remaining_base = df.join(
-            df_subset, 
-            on=self._get_group_by_columns(predictors), 
-            how="anti"
-        )
-
-        if predictors is None or len(predictors) == 0:
-            # add `remaining` predictor name and give it symbolic type
-            df_remaining_base = df_remaining_base.with_columns(
-                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
-                pl.lit(_PREDICTOR_TYPE.SYMBOLIC.value).alias(_COL.PREDICTOR_TYPE.value),
-            )
-        else:
-            df_remaining_base = df_remaining_base.with_columns(
-                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
-                pl.lit(0).cast(pl.Int64).alias(_COL.BIN_ORDER.value),
-            )
-
-        return self._get_df_with_sort_info(df_remaining_base, predictors, contribution_type)
+        return df.filter(
+            pl.col(_COL.PREDICTOR_NAME.value) == _SPECIAL.MISSING.name
+        ).select(pl.all())
 
     def get_context_keys(self) -> list:
         """Get the context keys for the current data filter.
@@ -238,36 +360,27 @@ class ExplanationsDataLoader:
         return self.unique_context_df.select(pl.exclude("filter_string")).columns
 
     def _get_filtered_context_df(
-        self, 
-        context_infos: Optional[List[ContextInfo]] = None
+        self, context_infos: List[ContextInfo]
     ) -> pl.DataFrame:
-        context_infos = context_infos or []
+        context_infos = context_infos
 
-        # If no context_infos are provided, return the full context_df
-        if len(context_infos) == 0:
-            df = self.unique_context_df
-        else:
-            df = pl.DataFrame()
-            for context_info in context_infos:
-                expr = [
-                    pl.col(column_name) == column_value
-                    for column_name, column_value in context_info.items()
-                ]
+        df = pl.DataFrame()
+        for context_info in context_infos:
+            expr = [
+                pl.col(column_name) == column_value
+                for column_name, column_value in context_info.items()
+            ]
 
-                df = pl.concat([df, self.unique_context_df.filter(expr)])
+            df = pl.concat([df, self.unique_context_df.filter(expr)])
         return df
 
-    def _get_context_filters(
-        self, 
-        context_infos: Optional[List[ContextInfo]] = None
-    ) -> list[str]:
+    def _get_context_filters(self, context_infos: List[ContextInfo]) -> list[str]:
         context_infos = context_infos or []
         df = self._get_filtered_context_df(context_infos)
         return df.select("filter_string").unique().to_series().to_list()
 
     def get_context_infos(
-        self, 
-        context_infos: Optional[List[ContextInfo]] = None
+        self, context_infos: Optional[List[ContextInfo]] = None
     ) -> List[ContextInfo]:
         """Get the possible context key filters for the provided context info.
 
@@ -281,15 +394,16 @@ class ExplanationsDataLoader:
         list[str]
             A list of context key partitions.
         """
-        
-        df = self._get_filtered_context_df(context_infos)
+        if context_infos is None:
+            df = self.unique_context_df
+        else:
+            df = self._get_filtered_context_df(context_infos)
         return cast(
-            list[ContextInfo], 
-            df.select(pl.exclude("filter_string")).unique().to_dicts()
+            list[ContextInfo],
+            df.select(pl.exclude("filter_string")).unique().to_dicts(),
         )
 
     def _get_base_df(self, contexts: Optional[List[str]] = None) -> pl.LazyFrame:
-        
         if contexts is None:
             # print("No contexts provided, returning overall data")
             return self.df_overall
@@ -299,46 +413,135 @@ class ExplanationsDataLoader:
                 pl.col(_COL.PARTITON.value).str.contains_any(contexts)
             )
 
-    def _get_group_by_columns(self, predictors: Optional[List[str]] = None) -> List[str]:
+    def _get_group_by_columns(
+        self, predictors: Optional[List[str]] = None
+    ) -> List[str]:
         if predictors is None or len(predictors) == 0:
-            return [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value, _COL.PARTITON.value]
+            return [
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+                _COL.PARTITON.value,
+            ]
         else:
-            return [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value, _COL.BIN_CONTENTS.value, _COL.BIN_ORDER.value, _COL.PARTITON.value]
-    
-    def _get_sort_over_columns(self, predictors: Optional[List[str]] = None) -> List[str]:
-        columns = [] if predictors is None else [_COL.PREDICTOR_NAME.value]
-        columns.append(_COL.PARTITON.value)
-        return columns
+            return [
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+                _COL.PARTITON.value,
+                _COL.BIN_CONTENTS.value,
+                _COL.BIN_ORDER.value,
+            ]
 
+    def _get_sort_over_columns(
+        self, predictors: Optional[List[str]] = None
+    ) -> List[str]:
+        if predictors is None or len(predictors) == 0:
+            return [_COL.PREDICTOR_NAME.value, _COL.PARTITON.value]
+        else:
+            return [_COL.PARTITON.value]
 
-    def _grouped_predictors_by_contribution_type(
-        self, 
-        df: pl.LazyFrame, 
-        predictors: Optional[List[str]] = None
+    def _calculate_remaining_aggregates(
+        self,
+        df_all: pl.LazyFrame,
+        df_anti: pl.LazyFrame,
+        aggregate_over: List[str],
+        anti_on: List[str],
     ) -> pl.LazyFrame:
-        # group by 
-        # Aggregate by
-        # [ contribution, contribution_abs, contribution_weighted, contribution_weighted_abs
-        # frequency, contribution_min, contribution_max ]
-        
+        # Needed for calculating the weighted contributions
+        df_frequencies = df_all.group_by(aggregate_over).agg(
+            pl.col(_COL.FREQUENCY.value).sum().alias(_SPECIAL.TOTAL_FREQUENCY.value)
+        )
+
+        # Get the remaining contributions by anti-joining the top predictors with the overall data
+        # Join on the total frequencies previously calculated
+        df_remaining = df_all.join(
+            df_anti,
+            on=anti_on,
+            how="anti",
+        ).join(
+            df_frequencies,
+            on=aggregate_over,
+        )
+
         aggregate_by_list = [
             pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
-            pl.col(_COL.CONTRIBUTION_ABS.value).mean().alias(_COL.CONTRIBUTION_ABS.value),
+            pl.col(_COL.CONTRIBUTION_ABS.value)
+            .mean()
+            .alias(_COL.CONTRIBUTION_ABS.value),
             (
-                (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean() 
-                / pl.col(_COL.FREQUENCY.value).sum()
+                (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
+                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
             (
-                (pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)).mean()
-                / pl.col(_COL.FREQUENCY.value).sum()
+                (
+                    pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)
+                ).mean()
+                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
             pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
-            pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
-            pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
+            pl.col(_COL.CONTRIBUTION_MIN.value)
+            .min()
+            .alias(_COL.CONTRIBUTION_MIN.value),
+            pl.col(_COL.CONTRIBUTION_MAX.value)
+            .max()
+            .alias(_COL.CONTRIBUTION_MAX.value),
         ]
-        
-        df_tmp = df.filter(pl.col(_COL.PREDICTOR_NAME.value).is_in(predictors)) if predictors else df
-        return df_tmp.group_by(self._get_group_by_columns(predictors)).agg(aggregate_by_list)
-        
-        
 
+        # Aggregate the remaining contributions
+        df_remaining = df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
+
+        # If we only aggregate over partition, there will be no bin contents or bin order
+        if len(aggregate_over) == 1 and aggregate_over[0] == _COL.PARTITON.value:
+            df_remaining = df_remaining.with_columns(
+                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
+                pl.lit(_PREDICTOR_TYPE.SYMBOLIC).alias(_COL.PREDICTOR_TYPE.value),
+            )
+        # if we aggregate over partition and predictor name, we need to add the bin contents and bin order
+        else:
+            df_remaining = df_remaining.with_columns(
+                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
+                pl.lit(0).cast(pl.Int64).alias(_COL.BIN_ORDER.value),
+            )
+
+        return df_remaining
+
+    def _calculate_aggregates(
+        self,
+        df: pl.LazyFrame,
+        aggregate_frequency_over: List[str],
+        aggregate_over: List[str],
+    ) -> pl.LazyFrame:
+        # Needed for calculating the weighted contributions
+        df_frequencies = df.group_by(aggregate_frequency_over).agg(
+            pl.col(_COL.FREQUENCY.value).sum().alias(_SPECIAL.TOTAL_FREQUENCY.value)
+        )
+
+        df_remaining = df.join(
+            df_frequencies,
+            on=aggregate_frequency_over,
+        )
+
+        aggregate_by_list = [
+            pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
+            pl.col(_COL.CONTRIBUTION_ABS.value)
+            .mean()
+            .alias(_COL.CONTRIBUTION_ABS.value),
+            (
+                (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
+                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
+            ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
+            (
+                (
+                    pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)
+                ).mean()
+                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
+            ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
+            pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
+            pl.col(_COL.CONTRIBUTION_MIN.value)
+            .min()
+            .alias(_COL.CONTRIBUTION_MIN.value),
+            pl.col(_COL.CONTRIBUTION_MAX.value)
+            .max()
+            .alias(_COL.CONTRIBUTION_MAX.value),
+        ]
+
+        return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)

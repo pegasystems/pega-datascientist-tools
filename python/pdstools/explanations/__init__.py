@@ -1,10 +1,14 @@
-from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations
 from .ExplanationsDataLoader import ExplanationsDataLoader
 from .ExplanationsDataPlotter import ExplanationsDataPlotter
+from .ExplanationsExplorer import ExplanationsExplorer
 from .ExplanationsUtils import ContextInfo
+from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations
+
 
 __all__ = [
-    "GradientBoostGlobalExplanations", 
     "ExplanationsDataLoader", 
     "ExplanationsDataPlotter", 
-    "ContextInfo"]
+    "ExplanationsExplorer",
+    "ContextInfo",
+    "GradientBoostGlobalExplanations", 
+]

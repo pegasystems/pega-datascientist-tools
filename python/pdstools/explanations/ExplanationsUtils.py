@@ -40,6 +40,7 @@ class _COL(Enum):
 
 class _SPECIAL(Enum):
     REMAINING = "remaining"
+    TOTAL_FREQUENCY = "total_frequency"
     MISSING = "missing"
 
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
