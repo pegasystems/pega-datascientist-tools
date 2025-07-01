@@ -36,6 +36,7 @@ def modeldata_from_scratch(**overrides):
             "ModelID": "ModelA",
             "Performance": 0.5,
             "Name": "A",
+            "Treatment": "A1",
             "Channel": "Web",
             "Direction": "Inbound",
         }
@@ -45,7 +46,7 @@ def modeldata_from_scratch(**overrides):
         df = df.with_columns(pl.lit(overrides.get(col)).alias(col))
     if len(overrides.keys()):
         df = df.explode(overrides.keys())
-    df = df.with_columns(ModelID=pl.format("ModelID_{}", "Name"))
+    df = df.with_columns(ModelID=pl.format("ModelID_{}_{}", "Name", "Treatment"))
 
     return df.lazy()
 
@@ -92,6 +93,7 @@ def dm_minimal():
 
     return ADMDatamart(model_df=data.lazy())
 
+
 def test_init(dm_aggregates):
     assert dm_aggregates
 
@@ -105,13 +107,16 @@ def test_predictor_counts(dm_aggregates):
     assert dm_aggregates.predictor_counts().collect().shape[0] == 78
     assert dm_aggregates.predictor_counts().collect().shape[1] == 5
 
+
 def test_predictors_overview(dm_aggregates):
     assert dm_aggregates.predictors_overview().collect().height == 1800
     assert dm_aggregates.predictors_overview().collect().width == 13
 
+
 def test_predictors_global_overview(dm_aggregates):
     assert dm_aggregates.predictors_global_overview().collect().height == 89
     assert dm_aggregates.predictors_global_overview().collect().width == 9
+
 
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
@@ -164,19 +169,25 @@ def test_summary_by_channel(dm_aggregates):
         0,
     ]
 
-def test_summary_by_channel_timeslices(dm_minimal):
-    s1 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31), debug=True).collect()
-    
-    assert s1["Actions"].to_list() == [1,2]
-    assert s1["New Actions"].to_list() == [1,2]
-    assert s1["Used Actions"].to_list() == [1,1]
-    assert s1["isValid"].to_list() == [False,True]
 
-    s2 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 2, 1), end_date=datetime(2033, 2, 28)).collect()
-    assert s2["Actions"].to_list() == [1,2]
-    assert s2["New Actions"].to_list() == [0,1]
-    assert s2["Used Actions"].to_list() == [1,1]
-    assert s2["isValid"].to_list() == [False,True]
+def test_summary_by_channel_timeslices(dm_minimal):
+    s1 = dm_minimal.aggregates.summary_by_channel(
+        start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31), debug=True
+    ).collect()
+
+    assert s1["Actions"].to_list() == [1, 2]
+    assert s1["New Actions"].to_list() == [1, 2]
+    assert s1["Used Actions"].to_list() == [1, 2]
+    assert s1["isValid"].to_list() == [False, True]
+
+    s2 = dm_minimal.aggregates.summary_by_channel(
+        start_date=datetime(2033, 2, 1), end_date=datetime(2033, 2, 28)
+    ).collect()
+    assert s2["Actions"].to_list() == [1, 2]
+    assert s2["New Actions"].to_list() == [0, 1]
+    assert s2["Used Actions"].to_list() == [1, 2]
+    assert s2["isValid"].to_list() == [False, True]
+
 
 def test_used_actions():
     events = [
@@ -184,8 +195,8 @@ def test_used_actions():
         ("20330101", "A", "A1", 100, 1000, "Mobile", "Inbound"),
         ("20330101", "A", "A2", 500, 1000, "Mobile", "Inbound"),
         ("20330115", "A", "A1", 150, 1500, "Mobile", "Inbound"),
-        ("20330115", "A", "A2", 600, 1200, "Mobile", "Inbound"),    
-        # But neither is used in february    
+        ("20330115", "A", "A2", 600, 1200, "Mobile", "Inbound"),
+        # But neither is used in february
         # See issue 370: if there are treatments, with different counts, that should not lead to flagging as used action
         ("20330201", "A", "A1", 150, 1500, "Mobile", "Inbound"),
         ("20330201", "A", "A2", 600, 1200, "Mobile", "Inbound"),
@@ -214,15 +225,16 @@ def test_used_actions():
                 ]
             )
         }
-    ).with_columns(ModelID=pl.format("ModelID_{}", "Name"))
+    ).with_columns(ModelID=pl.format("ModelID_{}_{}", "Name", "Treatment"))
 
     dm_used = ADMDatamart(model_df=data.lazy())
 
     summary = dm_used.aggregates.summary_by_channel().collect()
-    assert summary['Used Actions'].to_list() == [2]
+    assert summary["Used Actions"].to_list() == [2]
 
     summary = dm_used.aggregates.summary_by_channel(by_period="1mo").collect()
-    assert summary['Used Actions'].to_list() == [1,0,2]
+    assert summary["Used Actions"].to_list() == [1, 0, 2]
+
 
 def test_custom_channel_mapping(dm_aggregates):
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
@@ -273,6 +285,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 
     assert overall_summary["Number of Valid Channels"].item() == 1
 
+
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
     assert summary_by_channel.height == 6
@@ -293,6 +306,7 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
         0.763158,
         0.763158,
     ]
+
 
 def test_overall_summary_2():
     dm = ADMDatamart(modeldata_from_scratch())
@@ -391,29 +405,51 @@ def test_aggregate_overall_summary_by_time(dm_aggregates):
         0.662062,
     ]
 
+
 def test_overall_summary_timeslices(dm_minimal):
     s1 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 1, 1), window=timedelta(weeks=4)
     ).collect()
+
+    # print(
+    #     dm_minimal.model_data.select(
+    #         "SnapshotTime",
+    #         # "Channel",
+    #         "Name",
+    #         # "Treatment",
+    #         "IsUpdated",
+    #         "LastUpdate",
+    #         "ResponseCount",
+    #         "Positives",
+    #     )
+    #     .sort("SnapshotTime","Name")
+    #     .collect()
+    #     .to_pandas()
+    # )
+
     assert s1["Actions"].item() == 3  # A, B, C
     assert s1["New Actions"].item() == 3
-    assert s1["Used Actions"].item() == 2  # B not used
+    assert (
+        s1["Used Actions"].item() == 3
+    )  # B not updated but newly introduced counts as used
     s2 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 2, 1), window=timedelta(weeks=4), debug=True
     ).collect()
     assert s2["Actions"].item() == 3
     assert s2["New Actions"].item() == 1  # E is new
-    assert s2["Used Actions"].item() == 2  # B and C are used, E is not used
+    assert (
+        s2["Used Actions"].item() == 3
+    )  # B and C are used, E is not used but introduced new
     s3 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 2, 1)
     ).collect()
-    assert s3["Actions"].item() == 5
+    assert s3["Actions"].item() == 5  # B, C, E, F, G
     assert s3["New Actions"].item() == 3  # E, F, G are new
-    assert s3["Used Actions"].item() == 3  # C, B, G
+    assert s3["Used Actions"].item() == 5  # C, B, G updated, E,F new
     s4 = dm_minimal.aggregates.overall_summary(window=31).collect()
     assert s4["Actions"].item() == 3  # C, F, G
     assert s4["New Actions"].item() == 2  # F, G
-    assert s4["Used Actions"].item() == 2  # C, G
+    assert s4["Used Actions"].item() == 3  # C, F, G
     assert s4["DateRange Min"].item() == date(2033, 3, 1)
 
     # with pytest.raises(ValueError):
@@ -464,7 +500,7 @@ def test_new_actions():
     assert agg["New Actions"].item() == 4
 
     agg = dm.aggregates.overall_summary(by_period="1w").collect()
-    assert agg["New Actions"].to_list() == [2,1,1]
+    assert agg["New Actions"].to_list() == [2, 1, 1]
 
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2, 2]

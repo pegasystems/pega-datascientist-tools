@@ -536,22 +536,7 @@ class Aggregates:
 
         action_summary = (
             (
-                model_data.group_by(
-                    ([] if grouping is None else grouping)
-                    + ["Name"] 
-                    + (["Treatment"] if "Treatment" in self.datamart.context_keys else [])
-                    + (["Issue"] if "Issue" in self.datamart.context_keys else [])
-                    + (["Group"] if "Group" in self.datamart.context_keys else [])
-                )
-                .agg(
-                    # TODO: consider aligning with the LastUsed column
-                    # something like LastUsed in this time range
-                    (
-                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
-                    ).alias("is_used"),
-                    MinSnapshotTime=pl.col("SnapshotTime").min(),
-                )
-                .group_by(grouping)
+                model_data.group_by(grouping)
                 .agg(
                     (
                         pl.col("Issue").n_unique()
@@ -565,9 +550,9 @@ class Aggregates:
                         else pl.lit(0)
                     ).alias("Groups"),
                     pl.col("Name").n_unique().alias("Actions"),
-                    pl.col("Name").filter("is_used").n_unique().alias("Used Actions"),
+                    pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
                     pl.col("Name").unique().alias("AllActions"),
-                    pl.col("MinSnapshotTime").min(),
+                    MinSnapshotTime=pl.col("SnapshotTime").min(),
                 )
             )
             .collect()

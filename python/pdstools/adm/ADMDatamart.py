@@ -438,24 +438,24 @@ class ADMDatamart:
             SuccessRate=(pl.col("Positives") / pl.col("ResponseCount")).fill_nan(
                 pl.lit(0)
             ),
-            LastUpdate=self._last_update_expr(),
-        )
-
-        df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
-
-        return df
-
-    @staticmethod
-    def _last_update_expr() -> pl.Expr:
-        return (
-            pl.when(
+            IsUpdated=(
+                (pl.col("ResponseCount").diff(1) != 0)
+                | (pl.col("Positives").diff(1) != 0)
+            )
+            .fill_null(True)
+            .over("ModelID"),
+            LastUpdate=pl.when(
                 (pl.col("ResponseCount").diff(1) != 0)
                 | (pl.col("Positives").diff(1) != 0)
             )
             .then("SnapshotTime")
             .forward_fill()
-            .over("ModelID")
+            .over("ModelID"),
         )
+
+        df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
+
+        return df
 
     def _validate_predictor_data(
         self, df: Optional[pl.LazyFrame]
