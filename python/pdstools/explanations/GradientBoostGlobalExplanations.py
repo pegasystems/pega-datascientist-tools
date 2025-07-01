@@ -18,6 +18,7 @@ from .ExplanationsReportGenerator import ExplanationsReportGenerator
 
 logger = logging.getLogger(__name__)
 
+
 class GradientBoostGlobalExplanations:
     """
     Process and explore explanation data for Adaptive Gradient Boost models.
@@ -88,31 +89,32 @@ class GradientBoostGlobalExplanations:
 
         self.contexts = None
 
-    def generate_report(self, 
-                        data_folder: Optional[str] = None,
-                        report_dir: str = "reports", 
-                        report_output_dir: str = "_site",
-                        report_filename: str = "explanations_report.zip",
-                        top_n: int = 10,
-                        top_k: int = 10,
-                        zip_output: bool = True,
-                        verbose: bool = False):
-        
+    def generate_report(
+        self,
+        data_folder: Optional[str] = None,
+        report_dir: str = "reports",
+        report_output_dir: str = "_site",
+        report_filename: str = "explanations_report.zip",
+        top_n: int = 10,
+        top_k: int = 10,
+        zip_output: bool = True,
+        verbose: bool = False,
+    ):
         data_folder = data_folder or self.output_folder
-        
+
         report = ExplanationsReportGenerator(
-            root_dir = self.root_dir,
+            root_dir=self.root_dir,
             data_folder=data_folder,
-            report_dir = report_dir,
-            report_output_dir = report_output_dir,
-            report_filename = report_filename,
-            top_n = top_n,
-            top_k = top_k,
-            zip_output = zip_output,
-            verbose = verbose,
+            report_dir=report_dir,
+            report_output_dir=report_output_dir,
+            report_filename=report_filename,
+            top_n=top_n,
+            top_k=top_k,
+            zip_output=zip_output,
+            verbose=verbose,
         )
         report.process()
-        
+
     def generate_aggregations(self, overwrite: bool = True):
         """Process explanation parquet files and save calculated aggregates.
 
@@ -134,10 +136,10 @@ class GradientBoostGlobalExplanations:
 
         if not overwrite:
             return
-        
+
         self._overwrite_folder()
         self.conn = duckdb.connect(database=":memory:")
-        
+
         if len(self.selected_files) == 0:
             logger.warning("No files found to aggregate!")
             return
@@ -163,8 +165,10 @@ class GradientBoostGlobalExplanations:
         if output_path.exists() and output_path.is_dir():
             shutil.rmtree(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
-        
-    def _set_date_range(self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7):
+
+    def _set_date_range(
+        self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7
+    ):
         """Set the date range for processing explanation files.
 
         Parameters
@@ -177,38 +181,41 @@ class GradientBoostGlobalExplanations:
         if from_date is None and to_date is None:
             to_date = datetime.today()
             from_date = to_date - timedelta(days=days)
-        
+
         # if only `to_date` is provided, set `from_date` to 7 days before `to_date`
         if from_date is None and to_date is not None:
             from_date = to_date - timedelta(days=days)
-            
+
         # if only `from_date` is provided, set `to_date` to today
         # it can process from any date until today. eg: from_date = 2023-01-01, to_date = today
         if from_date is not None and to_date is None:
             to_date = datetime.today()
-        
+
         # validate date range if both from_date and to_date are provided
         if from_date is not None and to_date is not None:
             if from_date > to_date:
                 raise ValueError("from_date cannot be after to_date")
             # if (to_date - from_date).days > 30:
             #     raise ValueError("Date range cannot be more than 30 days")
-            
+
         self.from_date = from_date
         self.to_date = to_date
-        
+
     def _populate_selected_files(self):
-        
         if self.from_date is None or self.to_date is None:
-            raise ValueError("Either from_date or to_date must be passed before populating selected files.")
+            raise ValueError(
+                "Either from_date or to_date must be passed before populating selected files."
+            )
 
         # get list of dates in the range from `from_date` to `to_date`
         date_range_list = [
             (self.from_date + timedelta(days=x)).strftime("%Y%m%d")
             for x in range((self.to_date - self.from_date).days + 1)
         ]
-        
-        logger.debug(f'Searching for files for model {self.model_name} from {self.from_date} to {self.to_date}')
+
+        logger.debug(
+            f"Searching for files for model {self.model_name} from {self.from_date} to {self.to_date}"
+        )
         files_ = []
         for date in date_range_list:
             file_pattern = f"{self.data_folder}/{self.model_name}*{date}*.parquet"
@@ -216,10 +223,12 @@ class GradientBoostGlobalExplanations:
             if file_paths:
                 # Get the latest file based on modification time
                 # incase of multiple runs on the same day, we want the latest file on the day
-                latest_file = max(file_paths, key=lambda x: pathlib.Path(x).stat().st_mtime)
+                latest_file = max(
+                    file_paths, key=lambda x: pathlib.Path(x).stat().st_mtime
+                )
                 if pathlib.Path(latest_file).exists():
                     files_.append(latest_file)
-                    
+
         logger.info(f"Selected files:= \n {files_}")
         self.selected_files = files_
 
@@ -231,7 +240,10 @@ class GradientBoostGlobalExplanations:
         return q
 
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
-        df.write_parquet(f"{os.path.join(self.root_dir, self.output_folder)}/{file_name}", statistics=False)
+        df.write_parquet(
+            f"{os.path.join(self.root_dir, self.output_folder)}/{file_name}",
+            statistics=False,
+        )
 
     @staticmethod
     def _clean_query(query):
@@ -269,12 +281,14 @@ class GradientBoostGlobalExplanations:
     def _get_create_table_sql_formatted(
         self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
     ):
-        sql = files(queries_data).joinpath(f"{_TABLE_NAME.CREATE.value}.sql").read_text()
+        sql = (
+            files(queries_data).joinpath(f"{_TABLE_NAME.CREATE.value}.sql").read_text()
+        )
 
         f_sql = f"""{
             sql.format(
                 MEMORY_LIMIT=self.memory_limit,
-                ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
+                ENABLE_PROGRESS_BAR="true" if self.progress_bar else "false",
                 TABLE_NAME=tbl_name.value,
                 SELECTED_FILES=self._get_selected_files(),
                 PREDICTOR_TYPE=predictor_type.value,
@@ -290,7 +304,7 @@ class GradientBoostGlobalExplanations:
                 MEMORY_LIMIT=self.memory_limit,
                 LEFT_PREFIX=self.LEFT_PREFIX,
                 RIGHT_PREFIX=self.RIGHT_PREFIX,
-                ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
+                ENABLE_PROGRESS_BAR="true" if self.progress_bar else "false",
                 TABLE_NAME=tbl_name.value,
                 WHERE_CONDITION=where_condition,
             )
@@ -307,7 +321,7 @@ class GradientBoostGlobalExplanations:
                 MEMORY_LIMIT=self.memory_limit,
                 LEFT_PREFIX=self.LEFT_PREFIX,
                 RIGHT_PREFIX=self.RIGHT_PREFIX,
-                ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
+                ENABLE_PROGRESS_BAR="true" if self.progress_bar else "false",
                 TABLE_NAME=tbl_name.value,
                 WHERE_CONDITION=where_condition,
             )
@@ -425,9 +439,11 @@ class GradientBoostGlobalExplanations:
             logger.error(f"Failed for predictor type={predictor_type}, err={e}")
             return
 
-    def _build_where(self, 
-                     context_keys: Optional[dict] = None, 
-                     predictor_names: Optional[list] = None):
+    def _build_where(
+        self,
+        context_keys: Optional[dict] = None,
+        predictor_names: Optional[list] = None,
+    ):
         context_keys = context_keys or {}
         predictor_names = predictor_names or []
 
@@ -439,7 +455,7 @@ class GradientBoostGlobalExplanations:
                     {self.LEFT_PREFIX}.{context_key} IN (
                         {self.SEP.join([f"'{v}'" for v in context_keys.get(context_key)])}
                     )"""
-                    
+
         if len(predictor_names) > 0:
             if len(where_condition) > 0:
                 where_condition += " AND "
@@ -447,6 +463,3 @@ class GradientBoostGlobalExplanations:
                     {self.LEFT_PREFIX}.predictor_name IN ({self.SEP.join([f"'{predictor_name}'" for predictor_name in predictor_names])})"""
 
         return self._clean_query(where_condition)
-
-
-
