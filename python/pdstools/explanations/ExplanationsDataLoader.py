@@ -1,7 +1,6 @@
 __all__ = ["ExplanationsDataLoader"]
 
-import json
-from typing import List, Optional, cast
+from typing import List, Optional
 
 import polars as pl
 
@@ -11,6 +10,7 @@ from .ExplanationsUtils import (
     _PREDICTOR_TYPE,
     _SPECIAL,
     ContextInfo,
+    ContextOperations,
 )
 
 
@@ -19,14 +19,7 @@ class ExplanationsDataLoader:
         self.data_location = data_location
         self._scan_data()
 
-        self.unique_context_df = pl.from_dicts(
-            [
-                {**json.loads(ck)[_COL.PARTITON.value], "filter_string": ck}
-                for ck in self.df_contextual.collect()[_COL.PARTITON.value]
-                .unique()
-                .to_list()
-            ]
-        )
+        self.contextOperations = ContextOperations(self.df_contextual)
 
     def _scan_data(self):
         selected_columns = [
@@ -61,8 +54,13 @@ class ExplanationsDataLoader:
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.DataFrame:
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
+        # if no contexts are provided, then we return the overall data
         return self._get_predictor_contributions(
             limit=top_n,
             descending=descending,
@@ -78,8 +76,12 @@ class ExplanationsDataLoader:
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.DataFrame:
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
         return self._get_predictor_value_contributions(
             predictors=predictors,
             limit=top_k,
@@ -96,8 +98,12 @@ class ExplanationsDataLoader:
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.DataFrame:
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
         return self._get_predictor_contributions(
             contexts=[context],
             limit=top_n,
@@ -115,8 +121,12 @@ class ExplanationsDataLoader:
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
-        contribution_type: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ):
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
         return self._get_predictor_value_contributions(
             contexts=[context],
             predictors=predictors,
@@ -139,13 +149,10 @@ class ExplanationsDataLoader:
     ) -> pl.DataFrame:
         # if no contexts are provided, then we return the overall data
         # if contexts are provided, then we generate the context filters and load the data for those contexts
-        if contexts is None or len(contexts) == 0:
-            df = self._get_base_df()
-        else:
-            context_list = self._get_context_filters(contexts)
-            df = self._get_base_df(context_list)
+        df = self._get_df(contexts)
 
         # If predictors are specified we filter the dataframe for those predictors
+        predictors = predictors or []
         if predictors is not None or len(predictors) > 0:
             df = self._filter_for_predictors(df, predictors)
 
@@ -240,11 +247,7 @@ class ExplanationsDataLoader:
 
         # if no contexts are provided, then we return the overall data
         # if contexts are provided, then we generate the context filters and load the data for those contexts
-        if len(contexts) == 0:
-            df = self._get_base_df()
-        else:
-            context_list = self._get_context_filters(contexts)
-            df = self._get_base_df(context_list)
+        df = self._get_df(contexts)
 
         # If predictors are specified we filter the dataframe for those predictors
         if len(predictors) > 0:
@@ -349,68 +352,27 @@ class ExplanationsDataLoader:
             pl.col(_COL.PREDICTOR_NAME.value) == _SPECIAL.MISSING.name
         ).select(pl.all())
 
-    def get_context_keys(self) -> list:
-        """Get the context keys for the current data filter.
+    def _get_df(
+        self,
+        contexts: Optional[List[ContextInfo]] = None,
+    ):
+        contexts = contexts or []
 
-        Returns
-        -------
-        list
-            A list of context keys.
-        """
-        return self.unique_context_df.select(pl.exclude("filter_string")).columns
-
-    def _get_filtered_context_df(
-        self, context_infos: List[ContextInfo]
-    ) -> pl.DataFrame:
-        context_infos = context_infos
-
-        df = pl.DataFrame()
-        for context_info in context_infos:
-            expr = [
-                pl.col(column_name) == column_value
-                for column_name, column_value in context_info.items()
-            ]
-
-            df = pl.concat([df, self.unique_context_df.filter(expr)])
+        if len(contexts) == 0:
+            df = self._get_base_df()
+        else:
+            df_filtered_contexts = self.get_unique_contexts_df(contexts, True)
+            df = self._get_base_df(df_filtered_contexts)
         return df
 
-    def _get_context_filters(self, context_infos: List[ContextInfo]) -> list[str]:
-        context_infos = context_infos or []
-        df = self._get_filtered_context_df(context_infos)
-        return df.select("filter_string").unique().to_series().to_list()
-
-    def get_context_infos(
-        self, context_infos: Optional[List[ContextInfo]] = None
-    ) -> List[ContextInfo]:
-        """Get the possible context key filters for the provided context info.
-
-        Parameters
-        ----------
-        context_keys : ContextInfo, optional
-            A dictionary of context keys and their values.
-
-        Returns
-        -------
-        list[str]
-            A list of context key partitions.
-        """
-        if context_infos is None:
-            df = self.unique_context_df
-        else:
-            df = self._get_filtered_context_df(context_infos)
-        return cast(
-            list[ContextInfo],
-            df.select(pl.exclude("filter_string")).unique().to_dicts(),
-        )
-
-    def _get_base_df(self, contexts: Optional[List[str]] = None) -> pl.LazyFrame:
-        if contexts is None:
-            # print("No contexts provided, returning overall data")
+    def _get_base_df(
+        self, df_filtered_contexts: Optional[pl.DataFrame] = None
+    ) -> pl.LazyFrame:
+        if df_filtered_contexts is None:
             return self.df_overall
         else:
-            # print(f"returning for {contexts}")
-            return self.df_contextual.filter(
-                pl.col(_COL.PARTITON.value).str.contains_any(contexts)
+            return self.df_contextual.join(
+                df_filtered_contexts.lazy(), on=_COL.PARTITON.value, how="inner"
             )
 
     def _get_group_by_columns(
@@ -545,3 +507,17 @@ class ExplanationsDataLoader:
         ]
 
         return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
+
+    def get_unique_contexts_df(
+        self,
+        context_infos: Optional[List[ContextInfo]] = None,
+        with_partition_col: bool = False,
+    ) -> pl.DataFrame:
+        return self.contextOperations.get_df(context_infos, with_partition_col)
+
+    def get_unique_contexts_list(
+        self,
+        context_infos: Optional[List[ContextInfo]] = None,
+        with_partition_col: bool = False,
+    ) -> List[ContextInfo]:
+        return self.contextOperations.get_list(context_infos, with_partition_col)
