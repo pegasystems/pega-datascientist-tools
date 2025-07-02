@@ -910,7 +910,7 @@ class Aggregates:
                     (pl.max("Performance") * 100).alias("Max"),
                 ]
             )
-            .sort(["PredictorName"], descending=True)
+            .sort("PredictorName")
         )
         return global_overview
 
