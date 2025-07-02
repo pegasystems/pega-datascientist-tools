@@ -243,7 +243,10 @@ class Plots(LazyNamespace):
 
         title = "over all models"
         fig = px.scatter(
-            df.collect(),
+            df.collect().with_columns(
+                pl.col("LastUpdate").dt.strftime("%v"),
+                pl.col(self.datamart.context_keys).fill_null(""),
+            ),
             x="Performance",
             y="SuccessRate",
             color="Performance",
@@ -251,7 +254,7 @@ class Plots(LazyNamespace):
             facet_col=facet_name,
             facet_col_wrap=2,
             hover_name="Name",
-            hover_data=["ModelID"] + self.datamart.context_keys,
+            hover_data=["ModelID"] + self.datamart.context_keys + ["LastUpdate"],
             title=f"Bubble Chart {title}",
             template="pega",
             facet_row_spacing=0.01,

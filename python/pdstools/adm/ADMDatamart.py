@@ -444,10 +444,8 @@ class ADMDatamart:
             )
             .fill_null(True)
             .over("ModelID"),
-            LastUpdate=pl.when(
-                (pl.col("ResponseCount").diff(1) != 0)
-                | (pl.col("Positives").diff(1) != 0)
-            )
+        ).with_columns(
+            LastUpdate=pl.when("IsUpdated")
             .then("SnapshotTime")
             .forward_fill()
             .over("ModelID"),

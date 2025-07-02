@@ -517,27 +517,18 @@ class Aggregates:
     ) -> pl.LazyFrame:
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
-                model_data.group_by(
-                    ([] if grouping is None else grouping) + ["Name", "Treatment"]
-                )
-                .agg(
-                    (
-                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
-                    ).alias("is_used"),
-                )
-                .filter(pl.col("Treatment") != "")
+                model_data.filter(pl.col("Treatment") != "")
                 .filter(pl.col("Treatment").is_not_null())
                 .group_by(grouping)
                 .agg(
                     pl.len().alias("Treatments"),
-                    pl.sum("is_used").alias("Used Treatments"),
+                    pl.sum("IsUpdated").alias("Used Treatments"),
                 )
             )
 
         action_summary = (
             (
-                model_data.group_by(grouping)
-                .agg(
+                model_data.group_by(grouping).agg(
                     (
                         pl.col("Issue").n_unique()
                         if "Issue" in self.datamart.context_keys
@@ -1019,7 +1010,9 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except (
+            ValueError
+        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
