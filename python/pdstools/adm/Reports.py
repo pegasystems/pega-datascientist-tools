@@ -429,7 +429,7 @@ class Reports(LazyNamespace):
         This method exports the last snapshots of model_data, predictor summary,
         and optionally predictor_binning data to separate sheets in an Excel file.
 
-        If a specific table is not available or too large, it will be skipped without 
+        If a specific table is not available or too large, it will be skipped without
         causing the export to fail.
 
         Parameters
@@ -458,20 +458,29 @@ class Reports(LazyNamespace):
 
         name = Path(name)
         tabs = {
-            "adm_models": self.datamart.aggregates.last(
-                table="model_data"
-            ).with_columns(
-                pl.col("ResponseCount").cast(pl.Int64),
-                pl.col("Positives").cast(pl.Int64),
-                pl.col("Negatives").cast(pl.Int64),
+            "adm_models": self.datamart.aggregates.last(table="model_data")
+            .with_columns(
+                pl.col("ResponseCount", "Positives", "Negatives").cast(pl.Int64),
             )
+            .select(
+                ["ModelID"]
+                + self.datamart.context_keys
+                + [
+                    col
+                    for col in self.datamart.model_data.collect_schema().names()
+                    if col != "ModelID" and col not in self.datamart.context_keys
+                ]
+            )
+            .sort(self.datamart.context_keys)
         }
 
         if self.datamart.predictor_data is not None:
             tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
+            tabs["predictors_overview"] = (
+                self.datamart.aggregates.predictors_global_overview()
+            )
 
         if predictor_binning and self.datamart.predictor_data is not None:
             columns = [

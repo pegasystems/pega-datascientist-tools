@@ -517,40 +517,18 @@ class Aggregates:
     ) -> pl.LazyFrame:
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
-                model_data.group_by(
-                    ([] if grouping is None else grouping) + ["Name", "Treatment"]
-                )
-                .agg(
-                    (
-                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
-                    ).alias("is_used"),
-                )
-                .filter(pl.col("Treatment") != "")
+                model_data.filter(pl.col("Treatment") != "")
                 .filter(pl.col("Treatment").is_not_null())
                 .group_by(grouping)
                 .agg(
                     pl.len().alias("Treatments"),
-                    pl.sum("is_used").alias("Used Treatments"),
+                    pl.sum("IsUpdated").alias("Used Treatments"),
                 )
             )
 
         action_summary = (
             (
-                model_data.group_by(
-                    ([] if grouping is None else grouping)
-                    + ["Name"] 
-                    + (["Treatment"] if "Treatment" in self.datamart.context_keys else [])
-                    + (["Issue"] if "Issue" in self.datamart.context_keys else [])
-                    + (["Group"] if "Group" in self.datamart.context_keys else [])
-                )
-                .agg(
-                    (
-                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
-                    ).alias("is_used"),
-                    MinSnapshotTime=pl.col("SnapshotTime").min(),
-                )
-                .group_by(grouping)
-                .agg(
+                model_data.group_by(grouping).agg(
                     (
                         pl.col("Issue").n_unique()
                         if "Issue" in self.datamart.context_keys
@@ -563,9 +541,9 @@ class Aggregates:
                         else pl.lit(0)
                     ).alias("Groups"),
                     pl.col("Name").n_unique().alias("Actions"),
-                    pl.col("Name").filter("is_used").n_unique().alias("Used Actions"),
+                    pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
                     pl.col("Name").unique().alias("AllActions"),
-                    pl.col("MinSnapshotTime").min(),
+                    MinSnapshotTime=pl.col("SnapshotTime").min(),
                 )
             )
             .collect()
@@ -932,7 +910,7 @@ class Aggregates:
                     (pl.max("Performance") * 100).alias("Max"),
                 ]
             )
-            .sort(["PredictorName"], descending=True)
+            .sort("PredictorName")
         )
         return global_overview
 
@@ -1032,7 +1010,9 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except (
+            ValueError
+        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(

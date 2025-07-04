@@ -21,7 +21,7 @@ class Shape:
 
 def test_import_CDHSample():
     Sample = datasets.cdh_sample()
-    assert Sample.model_data.shape == (1047, 28)
+    assert Sample.model_data.shape == (1047, 30)
 
 
 def test_import_SampleTrees():

@@ -547,6 +547,7 @@ def _capitalize(
         "BinNegatives",
         "BinResponseCount",
         "BinSymbol",
+        "BinAdjustedPropensity",
         "ResponseCountPercentage",
         "ConfigurationName",
         "Configuration",
