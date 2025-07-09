@@ -185,9 +185,39 @@ def test_weighted_average_polars():
     assert output.equals(expected_output)
 
 
-def test_overlap_lists_polars_simple():
-    input = pl.DataFrame({"Actions": [["a", "b"], ["a", "c", "d"]]})
+def test_overlap_matrix():
+    input = pl.Series([[1, 2, 3], [2, 3, 4, 6], [3, 5, 7, 8]])
+    df = pl.DataFrame({"Channel": ["Mobile", "Web", "Email"], "Actions": input})
 
+    print(cdh_utils.overlap_matrix(df, "Actions", "Channel"))
+
+    assert cdh_utils.overlap_matrix(df, "Actions", "Channel").equals(
+        pl.DataFrame(
+            {
+                "Overlap_Actions_Mobile": [1.0, 2.0/3, 1.0/3],
+                "Overlap_Actions_Web": [0.5, 1.0, 0.25],
+                "Overlap_Actions_Email": [0.25, 0.25, 1.0],
+                "Channel": ["Mobile", "Web", "Email"],
+            }
+        )
+    )
+
+
+def test_overlap_lists_polars_simple():
+    input = pl.Series([[1, 2, 3], [2, 3, 4, 6], [3, 5, 7, 8]])
+    assert cdh_utils.overlap_lists_polars(input).to_list() == [0.5, 0.375, 0.25]
+
+    df = pl.DataFrame({"Channel": ["Mobile", "Web", "Email"], "Actions": input})
+
+    assert df.with_columns(
+        pl.col("Actions").map_batches(cdh_utils.overlap_lists_polars)
+    ).equals(
+        pl.DataFrame(
+            {"Channel": ["Mobile", "Web", "Email"], "Actions": [0.5, 0.375, 0.25]}
+        )
+    )
+
+    input = pl.DataFrame({"Actions": [["a", "b"], ["a", "c", "d"]]})
     assert cdh_utils.overlap_lists_polars(input["Actions"]).to_list() == [
         1 / 2,
         1 / 3,
@@ -783,13 +813,17 @@ def test_parse_pega_date_time_formats():
         }
     ).with_columns(
         cdh_utils.parse_pega_date_time_formats("Snappy").alias("SnapshotTime"),
-        cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_dtype=pl.Date).alias("SnapshotDate"),
-        cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_fmt="%d%m%Y:%H:%M:%S").alias("SnapshotTime2"),
+        cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_dtype=pl.Date).alias(
+            "SnapshotDate"
+        ),
+        cdh_utils.parse_pega_date_time_formats(
+            "Snappy", timestamp_fmt="%d%m%Y:%H:%M:%S"
+        ).alias("SnapshotTime2"),
     )
 
-    assert df.schema['SnapshotTime'] == pl.Datetime
-    assert df.schema['SnapshotDate'] == pl.Date
-    assert df['SnapshotTime'].to_list()[2] is None
-    assert df.select(pl.col('SnapshotTime').is_not_null().sum()).item() == 6
-    assert df['SnapshotTime2'].to_list()[2] is not None
-    assert df.select(pl.col('SnapshotTime2').is_not_null().sum()).item() == 7
+    assert df.schema["SnapshotTime"] == pl.Datetime
+    assert df.schema["SnapshotDate"] == pl.Date
+    assert df["SnapshotTime"].to_list()[2] is None
+    assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 6
+    assert df["SnapshotTime2"].to_list()[2] is not None
+    assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 7

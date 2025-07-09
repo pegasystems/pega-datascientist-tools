@@ -738,23 +738,133 @@ def weighted_performance_polars(
     return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
+def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
+    """Calculate the overlap of a list element with all other list elements returning a full, symmetric matrix.
+
+    For each list in the specified column, this function calculates the overlap ratio (intersection size
+    divided by the original list size) with every other list in the column, including itself. The result
+    is a matrix where each row represents the overlap ratios for one list with all others.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        The Polars DataFrame containing the list column and grouping column.
+    list_col : str
+        The name of the column containing lists. Each element in this column should be a list.
+    by : str
+        The name of the column to use for grouping and labeling the rows in the result matrix.
+
+    Returns
+    -------
+    pl.DataFrame
+        A DataFrame where:
+        - Each row represents the overlap ratios for one list with all others
+        - Each column (except the last) represents the overlap ratio with a specific list
+        - Column names are formatted as "Overlap_{list_col_name}_{by_value}"
+        - The last column contains the original values from the 'by' column
+
+    Examples
+    --------
+    >>> import polars as pl
+    >>> df = pl.DataFrame({
+    ...     "Channel": ["Mobile", "Web", "Email"],
+    ...     "Actions": [
+    ...         [1, 2, 3],
+    ...         [2, 3, 4, 6],
+    ...         [3, 5, 7, 8]
+    ...     ]
+    ... })
+    >>> overlap_matrix(df, "Actions", "Channel")
+    shape: (3, 4)
+    ┌───────────────────┬───────────────┬───────────────┬─────────┐
+    │ Overlap_Actions_M… │ Overlap_Actio… │ Overlap_Actio… │ Channel │
+    │ ---               │ ---           │ ---           │ ---     │
+    │ f64               │ f64           │ f64           │ str     │
+    ╞═══════════════════╪═══════════════╪═══════════════╪═════════╡
+    │ 1.0               │ 0.5           │ 0.25          │ Mobile  │
+    │ 0.6666667         │ 1.0           │ 0.25          │ Web     │
+    │ 0.3333333         │ 0.25          │ 1.0           │ Email   │
+    └───────────────────┴───────────────┴───────────────┴─────────┘
+    """
+    list_col = df[list_col]
+    nrows = list_col.len()
+    result = []
+    for i in range(nrows):
+        set_i = set(list_col[i].to_list())
+        overlap_w_other_rows = [
+            len(set_i & set(list_col[j].to_list())) / len(set_i) for j in range(nrows)
+        ]
+        result.append(
+            pl.Series(
+                name=f"Overlap_{list_col.name}_{df[by][i]}", values=overlap_w_other_rows
+            )
+        )
+    return pl.DataFrame(result).with_columns(pl.Series(df[by]))
+
+
 def overlap_lists_polars(col: pl.Series) -> pl.Series:
-    """Calculate the overlap of each of the elements (must be a list) with all the other elements"""
+    """Calculate the average overlap ratio of each list element with all other list elements into a single Series.
+
+    For each list in the input Series, this function calculates the average overlap (intersection)
+    with all other lists, normalized by the size of the original list. The overlap ratio represents
+    how much each list has in common with all other lists on average.
+
+    Parameters
+    ----------
+    col : pl.Series
+        A Polars Series where each element is a list. The function will calculate
+        the overlap between each list and all other lists in the Series.
+
+    Returns
+    -------
+    pl.Series
+        A Polars Series of float values representing the average overlap ratio for each list.
+        Each value is calculated as:
+        (sum of intersection sizes with all other lists) / (number of other lists) / (size of original list)
+
+    Examples
+    --------
+    >>> import polars as pl
+    >>> data = pl.Series([
+    ...     [1, 2, 3],
+    ...     [2, 3, 4, 6],
+    ...     [3, 5, 7, 8]
+    ... ])
+    >>> overlap_lists_polars(data)
+    shape: (3,)
+    Series: '' [f64]
+    [
+        0.5
+        0.375
+        0.25
+    ]
+    >>> df = pl.DataFrame({"Channel" : ["Mobile", "Web", "Email"], "Actions" : pl.Series([
+    ...     [1, 2, 3],
+    ...     [2, 3, 4, 6],
+    ...     [3, 5, 7, 8]
+    ... ])})
+    >>> df.with_columns(pl.col("Actions").map_batches(overlap_lists_polars))
+    shape: (3, 2)
+    ┌─────────┬─────────┐
+    │ Channel │ Actions │
+    │ ---     │ ---     │
+    │ str     │ f64     │
+    ╞═════════╪═════════╡
+    │ Mobile  │ 0.5     │
+    │ Web     │ 0.375   │
+    │ Email   │ 0.25    │
+    └─────────┴─────────┘
+    """
     nrows = col.len()
     average_overlap = []
     for i in range(nrows):
         set_i = set(col[i].to_list())
-        overlap_w_other_channels = []
-        for j in range(nrows):
-            if i != j:
-                set_j = set(col[j].to_list())
-                intersection = set_i & set_j
-                overlap_w_other_channels += [len(intersection)]
-        if len(overlap_w_other_channels) > 0 and len(set_i) > 0:
+        overlap_w_other_rows = [
+            len(set_i & set(col[j].to_list())) for j in range(nrows) if i != j
+        ]
+        if len(overlap_w_other_rows) > 0 and len(set_i) > 0:
             average_overlap += [
-                sum(overlap_w_other_channels)
-                / len(overlap_w_other_channels)
-                / len(set_i)
+                sum(overlap_w_other_rows) / len(overlap_w_other_rows) / len(set_i)
             ]
         else:
             average_overlap += [0.0]
