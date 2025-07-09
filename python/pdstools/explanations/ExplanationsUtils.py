@@ -40,6 +40,7 @@ class _CONTRIBUTION_TYPE(Enum):
 
     @classmethod
     def validate_and_get_type(cls, val):
+        # get the accepted contribution type which is privated from the user input
         for member in cls:
             if val == member.value:
                 return member
@@ -74,7 +75,6 @@ class _SPECIAL(Enum):
     REMAINING = "remaining"
     TOTAL_FREQUENCY = "total_frequency"
     MISSING = "missing"
-
 
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
 

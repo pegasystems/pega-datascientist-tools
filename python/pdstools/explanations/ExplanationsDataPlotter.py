@@ -15,7 +15,7 @@ Y_AXIS_TITLE_DEFAULT = "Predictor"
 
 
 class ExplanationsDataPlotter:
-    # plot overall contribution for single context
+    
     @classmethod
     def plot_contributions_for_overall(
         cls,
@@ -246,5 +246,3 @@ class ExplanationsDataPlotter:
             title="Context Information", height=context_info.__len__() * 30 + 200
         )
         return fig
-
-    # get the accepted contribution type which is privated from the user input

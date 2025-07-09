@@ -47,7 +47,7 @@ class ExplanationsDataLoader:
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
 
-    # get top-n predictor contributions for overall model level contributions or for a list of contexts
+    # get top-n predictor contributions for overall model level contributions
     def get_top_n_predictor_contribution_overall(
         self,
         top_n: int = 10,
