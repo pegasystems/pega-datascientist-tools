@@ -39,6 +39,7 @@ r/tests/testthat/d/tmp2
 **/.tmp/
 **/.quarto/
 python/pdstools/reports/GlobalExplanations/by-context/
-
+.dev
+.python-version
 
 
