@@ -1305,38 +1305,50 @@ class Plots(LazyNamespace):
 
     def action_overlap(
         self,
-        group_col="Channel",
+        group_col: Union[str, list[str], pl.Expr] = "Channel",
         overlap_col="Name",
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-
-        df = (
-            cdh_utils._apply_query(
-                (self.datamart.model_data),
-                query,
-            )
-            .group_by(group_col)
-            .agg(pl.col(overlap_col).unique())
-            .sort(group_col)
-            .collect()
+        df = cdh_utils._apply_query(
+            (self.datamart.model_data),
+            query,
         )
 
-        overlap_data = cdh_utils.overlap_matrix(df, overlap_col, by=group_col)
+        if isinstance(group_col, list):
+            group_col_name = "/".join(group_col)
+            df = df.with_columns(
+                pl.concat_str(*group_col, separator="/").alias(group_col_name)
+            )
+        elif isinstance(group_col, pl.Expr):
+            group_col_name = group_col.meta.output_name()
+            df = df.with_columns(group_col.alias(group_col_name))
+        else:
+            group_col_name = group_col
+
+        overlap_data = cdh_utils.overlap_matrix(
+            df.group_by(group_col_name)
+            .agg(pl.col(overlap_col).unique())
+            .sort(group_col_name)
+            .collect(),
+            overlap_col,
+            by=group_col_name,
+        )
         if return_df:
             return overlap_data
 
         plt = px.imshow(
-            overlap_data.drop(group_col),
+            overlap_data.drop(group_col_name),
             text_auto=".1%",
             aspect="equal",
             title=f"Overlap of {overlap_col}s",
-            x=overlap_data[group_col],
-            y=overlap_data[group_col],
+            x=overlap_data[group_col_name],
+            y=overlap_data[group_col_name],
             template="pega",
+            # hove
         )
-        plt.update_layout(showlegend=False)
+        plt.update_coloraxes(showscale=False)
         return plt
 
     def partitioned_plot(
