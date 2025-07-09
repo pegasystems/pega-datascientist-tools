@@ -1346,7 +1346,6 @@ class Plots(LazyNamespace):
             x=overlap_data[group_col_name],
             y=overlap_data[group_col_name],
             template="pega",
-            # hove
         )
         plt.update_coloraxes(showscale=False)
         return plt

@@ -739,7 +739,7 @@ def weighted_performance_polars(
 
 
 def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
-    """Calculate the overlap of a list element with all other list elements returning a full, symmetric matrix.
+    """Calculate the overlap of a list element with all other list elements returning a full matrix.
 
     For each list in the specified column, this function calculates the overlap ratio (intersection size
     divided by the original list size) with every other list in the column, including itself. The result
@@ -750,7 +750,7 @@ def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
     df : pl.DataFrame
         The Polars DataFrame containing the list column and grouping column.
     list_col : str
-        The name of the column containing lists. Each element in this column should be a list.
+        The name of the column containing the lists. Each element in this column should be a list.
     by : str
         The name of the column to use for grouping and labeling the rows in the result matrix.
 
@@ -760,7 +760,7 @@ def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
         A DataFrame where:
         - Each row represents the overlap ratios for one list with all others
         - Each column (except the last) represents the overlap ratio with a specific list
-        - Column names are formatted as "Overlap_{list_col_name}_{by_value}"
+        - Column names are formatted as "Overlap_{list_col_name}_{by}"
         - The last column contains the original values from the 'by' column
 
     Examples
