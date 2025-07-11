@@ -364,6 +364,13 @@ class DecisionAnalyzer:
 
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
+
+        if self.extract_type == "explainability_extract":
+            df = df.with_columns(
+                pl.lit("Arbitration").alias(self.level),
+                pl.lit(1).alias("StageOrder"),
+                pl.lit("FILTERED_OUT").alias("pxRecordType"),
+            )
         if "pxRank" not in df.collect_schema().names():
             df = df.with_columns(
                 pxRank=pl.struct(
@@ -377,13 +384,6 @@ class DecisionAnalyzer:
                 )
                 .rank(descending=True, method="ordinal", seed=1)
                 .over("pxInteractionID")
-            )
-
-        if self.extract_type == "explainability_extract":
-            df = df.with_columns(
-                pl.lit("Arbitration").alias(self.level),
-                pl.lit(1).alias("StageOrder"),
-                pl.lit("FILTERED_OUT").alias("pxRecordType"),
             )
 
         preproc_df = (

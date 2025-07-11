@@ -4,6 +4,7 @@ import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
     ensure_data,
+    ensure_funnel,
     get_current_index,
     get_data_filters,
     show_filtered_counts,
@@ -34,6 +35,7 @@ This helps answering questions like: Where do my “cards offers” get dropped?
 """
 
 ensure_data()
+ensure_funnel()
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
