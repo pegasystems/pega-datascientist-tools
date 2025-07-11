@@ -1,12 +1,17 @@
-import plotly.graph_objects as go
-import plotly.subplots as sp
 import polars as pl
 import streamlit as st
 
 from da_streamlit_utils import (
     ensure_data,
 )
-from pdstools.decision_analyzer.utils import find_lever_value
+from pdstools.decision_analyzer.utils import (
+    create_hierarchical_selectors,
+    get_scope_config,
+)
+from pdstools.decision_analyzer.plots import (
+    create_win_distribution_plot,
+    create_parameter_distribution_boxplots,
+)
 
 # TODO not so sure what to do with this tool - maybe generalize to work across a selection not just a single action and figure out a multiplier
 # TODO but do show the effect of levering right away (distributions side to side) just like we should do in the thresholding analysis (share code)
@@ -24,19 +29,10 @@ action win. There is both a slider to do this manually
 and an automatic way to find the minimum lever value.
 """
 ensure_data()
-# TODO lets not put everything in session_state
 # TODO figure out how to move the actual code into the data class, avoid using st.session_state.decision_data.decision_data directly
-if "list_of_all_actions" not in st.session_state:
-    st.session_state["list_of_all_actions"] = (
-        st.session_state.decision_data.sample.filter(
-            pl.col("StageGroup") == "Arbitration"
-        )
-        .select("pyName")
-        .unique()
-        .collect()
-        .get_column("pyName")
-        .to_list()
-    )
+
+arbitration_data = st.session_state.decision_data.arbitration_stage
+
 with st.sidebar:
     st.session_state.win_rank = st.number_input(
         "Min Rank for Win",
@@ -45,164 +41,277 @@ with st.sidebar:
         value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
     )
 
-    st.session_state.action = st.selectbox(
-        "Select Action",
-        options=st.session_state.list_of_all_actions,
-        index=0,
-        help="If you can't see an action in this list. They are either not in the data or they never reached to the Arbitration stage.",
+    # Create hierarchical selectors using utility function
+    selectors = create_hierarchical_selectors(
+        arbitration_data,
+        st.session_state.get("selected_issue"),
+        st.session_state.get("selected_group"),
+        st.session_state.get("selected_action"),
     )
+
+    st.selectbox("Select Issue", key="selected_issue", **selectors["issues"])
+    st.selectbox("Select Group", key="selected_group", **selectors["groups"])
+    st.selectbox("Select Action", key="selected_action", **selectors["actions"])
+
     st.session_state.max_search_range = st.selectbox(
         "Search Range Max", [10, 100, 1000], index=1
     )
 
-slider_max = st.selectbox("Slider Precision", options=[1.0, 10.0, 100, 1000], index=1)
-slider_min = 0 if isinstance(slider_max, int) else 0.0
-value = 1 if isinstance(slider_max, int) else 1.0
+    # Apply button to run analysis
+    if st.button("Apply Analysis", type="primary"):
+        st.session_state.analysis_applied = True
 
-lever = st.slider(
-    "Select Lever", min_value=slider_min, max_value=slider_max, value=value
-)
+    # Add reset button
+    if st.button("Reset Analysis"):
+        st.session_state.analysis_applied = False
 
-ranked_df = st.session_state.decision_data.reRank(
-    overrides=[
-        (
-            pl.when(pl.col("pyName") == st.session_state.action)
-            .then(pl.lit(lever))
-            .otherwise(pl.col("Levers"))
-        ).alias("Levers")
-    ]
+scope_config = get_scope_config(
+    st.session_state.selected_issue,
+    st.session_state.selected_group,
+    st.session_state.selected_action,
 )
-rank_1_df = (
-    (
-        ranked_df.filter(pl.col("rank_PVCL") == 1)
-        .filter(pl.col("StageGroup") == "Arbitration")
+lever_condition = scope_config["lever_condition"]
+
+# Only run analysis when Apply button is clicked
+if st.session_state.get("analysis_applied", False):
+    relevant_interactions = st.session_state.decision_data.arbitration_stage.filter(
+        lever_condition
+    )
+    interactions_survived_till_arbitration = (
+        relevant_interactions.select("pxInteractionID").collect().n_unique()
+    )
+    current_number_of_wins = (
+        relevant_interactions.filter(pl.col("pxRank") == 1)
+        .select("pxInteractionID")
         .collect()
+        .n_unique()
     )
-    .group_by("pyName")
-    .agg(pl.count("pxInteractionID").alias("Win Count"))
-    .sort("Win Count", descending=True)
-)
-# TODO lets put into utils, this list is in many places
-parameters = ["Propensity", "Value", "Context Weight", "Levers"]
-
-segmented_df = (
-    # TODO refactor this to work with the DecisionData class
-    st.session_state.decision_data.sample.filter(pl.col("StageGroup") == "Arbitration")
-    .with_columns(
-        Levers=pl.when(pl.col("pyName") == st.session_state.action)
-        .then(pl.lit(lever))
-        .otherwise(pl.col("Levers"))
+    # Calculate key metrics
+    funnel_loss = (
+        st.session_state.decision_data.num_sample_interactions
+        - interactions_survived_till_arbitration
     )
-    .with_columns(
-        segment=pl.when(pl.col("pyName") == st.session_state.action)
-        .then(pl.col("pyName"))
-        .otherwise(pl.lit("Others"))
+    funnel_loss_pct = (
+        funnel_loss / st.session_state.decision_data.num_sample_interactions
+    ) * 100
+    current_win_rate = (
+        current_number_of_wins / st.session_state.decision_data.num_sample_interactions
+    ) * 100
+    max_possible_win_rate = (
+        interactions_survived_till_arbitration
+        / st.session_state.decision_data.num_sample_interactions
+    ) * 100
+    current_win_rate_at_arbitration = (
+        current_number_of_wins / interactions_survived_till_arbitration
+    ) * 100
+    st.markdown("### 📊 Selected Actions Performance Analysis")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(
+            "Current Win Rate",
+            f"{current_win_rate:.1f}%",
+        )
+
+    with col2:
+        st.metric(
+            "Funnel Loss",
+            f"{funnel_loss_pct:.1f}%",
+            f"in {funnel_loss:,} interactions, filtered out before arbitration",
+            delta_color="inverse",
+        )
+
+    with col3:
+        st.metric(
+            "Max Possible Win Rate",
+            f"{max_possible_win_rate:.1f}%",
+            f"if won all {interactions_survived_till_arbitration:,} arbitrations",
+        )
+
+    st.markdown(f"""
+    **Your selected actions' journey:**
+    - Selected actions are filtered before arbitration in **{funnel_loss:,} out of {st.session_state.decision_data.num_sample_interactions:,} interactions ({funnel_loss_pct:.1f}%)**.
+    - **In {interactions_survived_till_arbitration:,} interactions, selected actions survive untill arbitration**, these are the decisions where you can make your actions win by boosting levers
+    - Currently winning **{current_number_of_wins:,} out of {interactions_survived_till_arbitration:,} arbitrations** ({current_win_rate_at_arbitration:.1f}% win rate at arbitration)
+    """)
+
+    # Get baseline distribution data
+    original_distribution = st.session_state.decision_data.get_win_distribution_data(
+        lever_condition
     )
-    .select(parameters + ["segment"])
-    .collect()
-)
 
-## Distribution Container
-if st.checkbox("Show the distribution of parameters", False):
-    with st.container(border=True):
-        segments = segmented_df["segment"].unique()
-        colors = ["blue", "red"]
-        fig = sp.make_subplots(rows=4, cols=1, subplot_titles=parameters)
+    # Show original distribution
+    st.markdown("### 📊 Current Win Distribution")
+    original_fig, original_plot_data = create_win_distribution_plot(
+        original_distribution,
+        "original_win_count",
+        scope_config,
+        "In Arbitration",
+        "Current Win Count",
+    )
+    st.plotly_chart(original_fig, use_container_width=True)
 
-        for i, metric in enumerate(parameters, start=1):
-            for j, segment in enumerate(segments):
-                fig.add_trace(
-                    go.Histogram(
-                        x=segmented_df.filter(segment=segment)[metric],
-                        name=segment,
-                        nbinsx=50,
-                        histnorm="probability density",
-                        marker_color=colors[j],  # use consistent color for each segment
-                        showlegend=i == 1,  # show legend only for the first plot
-                    ),
-                    row=i,
-                    col=1,
+    with st.expander("🎯 Boosting Strategies", expanded=False):
+        st.markdown(f"""
+        **1. Address funnel losses:** If {funnel_loss_pct:.1f}% filter-out rate is too high, investigate earlier decision stages to understand why your actions are eliminated.
+
+        **2. Increase levers:** Use the lever slider below to simulate different values. You have {interactions_survived_till_arbitration:,} arbitration decisions where you can redistribute wins through lever adjustments.
+
+        💡 *Note: This analysis focuses on your selected actions. Total arbitration activity across all actions is shown in the charts.*
+
+        ⚠️ **Important:** Boosting your selected actions will suppress other actions in the same arbitration decisions - this is a zero-sum redistribution, not an increase in total wins.
+        """)
+
+        # Lever controls
+        slider_max = st.selectbox(
+            "Slider Precision", options=[1.0, 10.0, 100, 1000], index=1
+        )
+        slider_min = 0 if isinstance(slider_max, int) else 0.0
+        value = 1 if isinstance(slider_max, int) else 1.0
+
+        lever = st.slider(
+            "Select Lever", min_value=slider_min, max_value=slider_max, value=value
+        )
+
+        # Calculate new distribution with lever changes
+        distribution = st.session_state.decision_data.get_win_distribution_data(
+            lever_condition, lever
+        )
+
+        # Show new distribution
+        st.markdown("### 🚀 New Win Distribution (After Lever Adjustment)")
+        new_fig, new_plot_data = create_win_distribution_plot(
+            distribution,
+            "new_win_count",
+            scope_config,
+            "After Lever Adjustment",
+            "New Win Count",
+        )
+        st.plotly_chart(new_fig, use_container_width=True)
+
+        # Show summary statistics
+        total_new_wins = new_plot_data["new_win_count"].sum()
+        selected_data = new_plot_data.filter(
+            pl.col(scope_config["x_col"]) == scope_config["selected_value"]
+        )
+        selected_wins = (
+            selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
+        )
+
+        # Calculate deltas
+        selected_wins_delta = selected_wins - current_number_of_wins
+        new_win_rate_at_arbitration = (selected_wins / total_new_wins) * 100
+        new_overall_win_rate = (
+            selected_wins / st.session_state.decision_data.num_sample_interactions
+        ) * 100
+        win_rate_delta_arbitration = (
+            new_win_rate_at_arbitration - current_win_rate_at_arbitration
+        )
+        win_rate_delta_overall = new_overall_win_rate - current_win_rate
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(
+                "Number Of Interactions With A Winner",
+                f"{total_new_wins:,}",
+                help="In some interactions, there may be no action left at all for arbitration",
+            )
+        with col2:
+            st.metric(
+                f"Selected {scope_config['level']} Wins",
+                f"{selected_wins:,}",
+                delta=f"{selected_wins_delta:+,}",
+            )
+        with col3:
+            st.metric(
+                f"Selected {scope_config['level']} Win Rate at Arbitration",
+                f"{new_win_rate_at_arbitration:.1f}%",
+                delta=f"{win_rate_delta_arbitration:+.1f}%",
+            )
+        with col4:
+            st.metric(
+                f"Selected {scope_config['level']} Overall Win Rate",
+                f"{new_overall_win_rate:.1f}%",
+                delta=f"{win_rate_delta_overall:+.1f}%",
+            )
+
+    # Parameter Distribution Analysis
+    show_distributions = st.checkbox(
+        "Show distribution of arbitration components",
+        help="Compare parameter distributions between your selected actions and competitors in interactions where your actions survived to arbitration",
+    )
+
+    if show_distributions:
+        if interactions_survived_till_arbitration == 0:
+            st.warning(
+                "⚠️ Your selected actions never survive until arbitration. No head-to-head comparisons available."
+            )
+        else:
+            with st.spinner("Calculating parameter distributions..."):
+                # Get the actual interaction IDs where selected actions survived
+                relevant_interactions = (
+                    st.session_state.decision_data.arbitration_stage.filter(
+                        lever_condition
+                    )
+                    .select("pxInteractionID")
+                    .unique()
                 )
 
-        fig.update_layout(height=800, width=600)
-        fig.update_yaxes(automargin=True)
+                # Filter sample to only those interactions (all actions in head-to-head battles)
+                segmented_df = (
+                    st.session_state.decision_data.sample.filter(
+                        pl.col("StageGroup").is_in(
+                            st.session_state.decision_data.stages_from_arbitration_down
+                        )
+                    )
+                    .join(relevant_interactions, on="pxInteractionID", how="inner")
+                    .with_columns(
+                        segment=pl.when(lever_condition)
+                        .then(pl.lit("Selected Actions"))
+                        .otherwise(pl.lit("Others"))
+                    )
+                    .select(
+                        ["Propensity", "Value", "Context Weight", "Levers", "segment"]
+                    )
+                    .collect()
+                )
 
-        st.plotly_chart(fig, use_container_width=True)
+                if segmented_df.height == 0:
+                    st.warning("No data available for parameter distribution analysis.")
+                else:
+                    st.markdown(
+                        "### 📊 Parameter Distributions in Head-to-Head Battles"
+                    )
+                    st.markdown(
+                        f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
+                    )
 
-##
+                    fig = create_parameter_distribution_boxplots(segmented_df)
+                    st.plotly_chart(fig, use_container_width=True)
 
-if rank_1_df.filter(pl.col("pyName") == st.session_state.action).shape[0] == 0:
-    st.warning(f"{st.session_state.action} never wins with the lever: **{lever}** ")
-else:
-    win_count = rank_1_df.filter(
-        pl.col("pyName") == st.session_state.action
-    ).get_column("Win Count")[0]
-    total_count = (
-        st.session_state.decision_data.sample.filter(
-            pl.col("pyName") == st.session_state.action
+    with st.container(border=True):
+        st.subheader(":green[Lever Finder]:male-detective:")
+
+        # Only show lever finder for specific action selection
+        st.session_state.target_win_percentage = st.slider(
+            "Target Win Ratio", min_value=0, max_value=100
         )
-        .select("pxInteractionID")
-        .unique()
-        .collect()
-        .shape[0]
-    )
-    st.write(f"Win Count: {win_count}")
-    st.write(f"Win Ratio: {round(((win_count/total_count)*100), 5)}%")
-    fig = go.Figure()
-    fig.add_trace(
-        go.Bar(
-            x=rank_1_df["pyName"],
-            y=rank_1_df["Win Count"],
-            text=rank_1_df["pyName"],
-            textposition="auto",
-            hovertemplate="<b>%{text}</b><br>Win Count: %{y}<extra></extra>",
-        )
-    )
-    fig.update_yaxes(title="Win Count")
-    fig.update_xaxes(showticklabels=False)  # hide x-axis labels
-    bin_index = list(fig.data[0]["x"]).index(st.session_state.action)
-    fig.data[0]["marker_color"] = (
-        ["grey"] * bin_index
-        + ["#FF0000"]
-        + ["grey"] * (rank_1_df.shape[0] - bin_index - 1)
-    )
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-    )
-
-    ranked_df = st.session_state.decision_data.reRank(
-        overrides=[
-            (
-                pl.when(pl.col("pyName") == st.session_state.action)
-                .then(pl.lit(lever))
-                .otherwise(pl.col("Levers"))
-            ).alias("Levers")
-        ]
-    )
-
-st.subheader(":green[Lever Finder]:male-detective:")
-
-st.session_state.target_win_percentage = st.slider(
-    "Target Win Ratio", min_value=0, max_value=100
-)
-
-calculate_lever = st.button("Calculate lever")
-if calculate_lever:
-    with st.spinner("Calculating..."):
-        # TODO refactor this into the DecisionData class
-        lever_for_desired_ratio = find_lever_value(
-            st.session_state.decision_data,
-            st.session_state.action,
-            target_win_percentage=st.session_state.target_win_percentage,
-            win_rank=st.session_state.win_rank,
-            high=st.session_state.max_search_range,
-            ranking_stages=st.session_state.decision_data.stages_from_arbitration_down,
-        )
-        if isinstance(lever_for_desired_ratio, float):
-            st.metric(
-                f"""Lever you need for **{st.session_state.action}** to win in
-                {st.session_state.target_win_percentage}% of the interactions""",
-                lever_for_desired_ratio,
-            )
+        calculate_lever = st.button("Calculate lever")
+        if calculate_lever:
+            with st.spinner("Calculating..."):
+                # TODO refactor this into the DecisionData class
+                lever_for_desired_ratio = (
+                    st.session_state.decision_data.find_lever_value(
+                        lever_condition=lever_condition,
+                        target_win_percentage=st.session_state.target_win_percentage,
+                        win_rank=st.session_state.win_rank,
+                        high=st.session_state.max_search_range,
+                    )
+                )
+                if isinstance(lever_for_desired_ratio, float):
+                    st.metric(
+                        f"""Lever you need to win in
+                        {st.session_state.target_win_percentage}% of the interactions""",
+                        lever_for_desired_ratio,
+                    )

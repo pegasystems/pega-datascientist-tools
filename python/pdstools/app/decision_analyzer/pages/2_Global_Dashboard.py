@@ -44,17 +44,18 @@ with col1:
         use_container_width=True,
     )
 
-    "## :violet[Personalization]"
+    if st.session_state.decision_data.extract_type == "decision_analyzer":
+        "## :violet[Personalization]"
 
-    f"""
-    The personalization index is **{round(st.session_state.decision_data.get_offer_variability_stats("Output")["gini"],3)}**.
-    """
-    st.plotly_chart(
-        st.session_state.decision_data.plot.action_variation("Output").update_layout(
-            width=300, height=300
-        ),
-        use_container_width=True,
-    )
+        f"""
+        The personalization index is **{round(st.session_state.decision_data.get_offer_variability_stats("Output")["gini"],3)}**.
+        """
+        st.plotly_chart(
+            st.session_state.decision_data.plot.action_variation(
+                "Output"
+            ).update_layout(width=300, height=300),
+            use_container_width=True,
+        )
 
 with col2:
     "## :orange[Influence of Prioritization Factors]"

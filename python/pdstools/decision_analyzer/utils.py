@@ -199,85 +199,6 @@ def get_git_version_and_date():
     return version, date.strftime("%d %b %Y")
 
 
-# TODO refactor this into the DecisionData class but figure out what we really want
-def find_lever_value(
-    decision_data,
-    action,
-    target_win_percentage,
-    win_rank,
-    low=0,
-    high=100,
-    precision=0.01,
-    ranking_stages=["Arbitration"],
-    level="StageGroup",
-):
-    """Binary search algorithm to find lever given a desired win percentage"""
-
-    def _calculate_action_win_percentage(decision_data, action, lever, win_rank):
-        ranked_df = decision_data.reRank(
-            overrides=[
-                (
-                    pl.when(pl.col("pyName") == action)
-                    .then(pl.lit(lever))
-                    .otherwise(pl.col("Levers"))
-                ).alias("Levers")
-            ]
-        )
-        action_win_percentage = (
-            ranked_df.filter(pl.col("rank_PVCL") <= win_rank)
-            .filter(pl.col(level).is_in(ranking_stages))
-            .group_by("rank_PVCL")
-            .agg(
-                action_rank1=pl.col("pxInteractionID")
-                .where(pl.col("pyName") == action)
-                .count(),
-                action_not_rank1=pl.col("pxInteractionID")
-                .where(pl.col("pyName") != action)
-                .count(),
-            )
-            .with_columns(
-                percentage=pl.col("action_rank1")
-                / (pl.col("action_rank1") + pl.col("action_not_rank1"))
-            )
-            .select("percentage")
-            .collect()
-            .row(0)[0]
-            * 100
-        )
-        return action_win_percentage
-
-    beginning_high = high
-    beginning_low = low
-
-    while high - low > precision:
-        mid = (low + high) / 2
-
-        current_win_percentage = _calculate_action_win_percentage(
-            decision_data=decision_data,
-            action=action,
-            lever=mid,
-            win_rank=win_rank,
-        )
-
-        if current_win_percentage < target_win_percentage:
-            low = mid
-        else:
-            high = mid
-
-    if mid >= beginning_high - precision:
-        return ValueError(
-            f"""You need a higher lever than {high} to reach your desired win rate of {target_win_percentage}%.
-            You can increase the search range from siderbar.
-            """
-        )
-    elif mid <= (beginning_low + precision):
-        return ValueError(
-            f"You need a lower lever than {low} to reach your desired win rate of {target_win_percentage}%"
-        )
-
-    return (low + high) / 2
-
-
 def determine_extract_type(raw_data):
     return (
         "decision_analyzer"
@@ -380,4 +301,161 @@ def get_schema(
     return type_map
 
 
-## Section from PDSTOOLS V4 ends
+def create_hierarchical_selectors(
+    data: pl.LazyFrame,
+    selected_issue: Optional[str] = None,
+    selected_group: Optional[str] = None,
+    selected_action: Optional[str] = None,
+) -> Dict[str, Dict[str, Union[List[str], int]]]:
+    """
+    Create hierarchical filter options and calculate indices for selectbox widgets.
+
+    Args:
+        data: LazyFrame with hierarchical data (should be pre-filtered to desired stage)
+        selected_issue: Currently selected issue (optional)
+        selected_group: Currently selected group (optional)
+        selected_action: Currently selected action (optional)
+
+    Returns:
+        Dict with structure:
+        {
+            "issues": {"options": [...], "index": 0},
+            "groups": {"options": ["All", ...], "index": 0},
+            "actions": {"options": ["All", ...], "index": 0}
+        }
+    """
+
+    # Step 1: Get all available issues
+    available_issues = (
+        data.select("pyIssue").unique().collect().get_column("pyIssue").to_list()
+    )
+    issue_index = 0
+    if selected_issue and selected_issue in available_issues:
+        issue_index = available_issues.index(selected_issue)
+
+    # Use the selected issue (or first one if none selected)
+    current_issue = (
+        selected_issue if selected_issue in available_issues else available_issues[0]
+    )
+
+    # Step 2: Get groups for current issue
+    filtered_by_issue = data.filter(pl.col("pyIssue") == current_issue)
+    available_groups = (
+        filtered_by_issue.select("pyGroup")
+        .unique()
+        .collect()
+        .get_column("pyGroup")
+        .to_list()
+    )
+    group_options = ["All"] + available_groups
+    group_index = 0  # Default to "All"
+    if selected_group and selected_group in group_options:
+        group_index = group_options.index(selected_group)
+
+    # Use the selected group (or "All" if none selected/invalid)
+    current_group = selected_group if selected_group in group_options else "All"
+
+    # Step 3: Get actions for current issue+group
+    if current_group == "All":
+        filtered_by_issue_group = filtered_by_issue
+    else:
+        filtered_by_issue_group = filtered_by_issue.filter(
+            pl.col("pyGroup") == current_group
+        )
+
+    available_actions = (
+        filtered_by_issue_group.select("pyName")
+        .unique()
+        .collect()
+        .get_column("pyName")
+        .to_list()
+    )
+    action_options = ["All"] + available_actions
+    action_index = 0  # Default to "All"
+    if selected_action and selected_action in action_options:
+        action_index = action_options.index(selected_action)
+
+    return {
+        "issues": {"options": available_issues, "index": issue_index},
+        "groups": {"options": group_options, "index": group_index},
+        "actions": {"options": action_options, "index": action_index},
+    }
+
+
+def get_scope_config(
+    selected_issue: str, selected_group: str, selected_action: str
+) -> Dict[str, Union[str, pl.Expr, List[str]]]:
+    """
+    Generate scope configuration for lever application and plotting based on user selections.
+
+    This utility function determines the appropriate scope level (Issue, Group, or Action)
+    based on hierarchical user selections and returns configuration needed for both
+    lever condition generation and plotting.
+
+    Parameters
+    ----------
+    selected_issue : str
+        Selected issue value from dropdown (can be "All")
+    selected_group : str
+        Selected group value from dropdown (can be "All")
+    selected_action : str
+        Selected action value from dropdown (can be "All")
+
+    Returns
+    -------
+    Dict[str, Union[str, pl.Expr, List[str]]]
+        Configuration dictionary containing:
+        - level: "Action", "Group", or "Issue" indicating scope level
+        - lever_condition: Polars expression for filtering selected actions
+        - group_cols: List of column names for grouping operations
+        - x_col: Column name to use for x-axis in plots
+        - selected_value: The actual selected value for highlighting
+        - plot_title_prefix: Prefix for plot titles
+
+    Notes
+    -----
+    The function follows hierarchical logic:
+    - If action != "All": Action-level scope
+    - Elif group != "All": Group-level scope
+    - Else: Issue-level scope
+
+    Examples
+    --------
+    Action-level selection:
+    >>> config = get_scope_config("Service", "Cards", "SpecificAction")
+    >>> config["level"]  # "Action"
+    >>> config["lever_condition"]  # pl.col("pyName") == "SpecificAction"
+
+    Group-level selection:
+    >>> config = get_scope_config("Service", "Cards", "All")
+    >>> config["level"]  # "Group"
+    >>> config["lever_condition"]  # (pl.col("pyIssue") == "Service") & (pl.col("pyGroup") == "Cards")
+    """
+    if selected_action != "All":
+        return {
+            "level": "Action",
+            "lever_condition": pl.col("pyName") == selected_action,
+            "group_cols": ["pyIssue", "pyGroup", "pyName"],
+            "x_col": "pyName",
+            "selected_value": selected_action,
+            "plot_title_prefix": "Win Count by Action",
+        }
+    elif selected_group != "All":
+        return {
+            "level": "Group",
+            "lever_condition": (pl.col("pyIssue") == selected_issue)
+            & (pl.col("pyGroup") == selected_group),
+            "group_cols": ["pyIssue", "pyGroup"],
+            "x_col": "pyGroup",
+            "selected_value": selected_group,
+            "plot_title_prefix": "Win Count by Group",
+        }
+    else:
+        return {
+            "level": "Issue",
+            "lever_condition": pl.col("pyIssue") == selected_issue,
+            "group_cols": ["pyIssue"],
+            "x_col": "pyIssue",
+            "selected_value": selected_issue,
+            "plot_title_prefix": "Win Count by Issue",
+        }

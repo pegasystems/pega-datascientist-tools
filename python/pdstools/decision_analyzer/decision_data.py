@@ -60,9 +60,10 @@ class DecisionAnalyzer:
         "ModelEvidence",
     ]
 
-    def __init__(self, raw_data: pl.LazyFrame, level="StageGroup"):
+    def __init__(self, raw_data: pl.LazyFrame, level="StageGroup", sample_size=50000):
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
+        self.sample_size = sample_size
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
         # all columns are present?
@@ -136,6 +137,17 @@ class DecisionAnalyzer:
             pl.col(self.level).is_in(self.stages_from_arbitration_down)
         )
 
+    @property
+    def num_sample_interactions(self):
+        """
+        Number of unique interactions in the sample.
+        Automatically triggers sampling if not yet calculated.
+        """
+        if not hasattr(self, "_num_sample_interactions"):
+            # Trigger sample calculation to set _num_sample_interactions
+            _ = self.sample
+        return self._num_sample_interactions
+
     def _invalidate_cached_properties(self):
         """Resets the properties of the class"""
         cls = type(self)
@@ -147,6 +159,9 @@ class DecisionAnalyzer:
         }
         for attr in cached:
             del self.__dict__[attr]
+        # Also reset num_sample_interactions so it gets recalculated with new filters
+        if hasattr(self, "_num_sample_interactions"):
+            delattr(self, "_num_sample_interactions")
 
     def applyGlobalDataFilters(
         self, filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
@@ -292,7 +307,9 @@ class DecisionAnalyzer:
             .item()
         )
         print(f"Calculated approximate interaction count: {approx_count}")
-        target_sample_size = 50000
+        # Set num_sample_interactions attribute - use sample_size if we have more interactions than sample_size
+        self._num_sample_interactions = min(approx_count, self.sample_size)
+        target_sample_size = self.sample_size
         sample_rate = min(1.0, target_sample_size / max(1, approx_count))
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
@@ -347,18 +364,26 @@ class DecisionAnalyzer:
 
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
-        if "pxRank" not in df.collect_schema().names():
-            df = df.with_columns(
-                pxRank=pl.col("Priority")
-                .rank("dense", descending=True)
-                .over("pxInteractionID")
-            )
 
         if self.extract_type == "explainability_extract":
             df = df.with_columns(
                 pl.lit("Arbitration").alias(self.level),
                 pl.lit(1).alias("StageOrder"),
                 pl.lit("FILTERED_OUT").alias("pxRecordType"),
+            )
+        if "pxRank" not in df.collect_schema().names():
+            df = df.with_columns(
+                pxRank=pl.struct(
+                    [
+                        "Priority",
+                        "StageOrder",
+                        pl.col("pyIssue").rank() * -1,
+                        pl.col("pyGroup").rank() * -1,
+                        pl.col("pyName").rank() * -1,
+                    ]
+                )
+                .rank(descending=True, method="ordinal", seed=1)
+                .over("pxInteractionID")
             )
 
         preproc_df = (
@@ -491,7 +516,7 @@ class DecisionAnalyzer:
                     pl.col("pyName").rank() * -1,
                 ]
             )
-            .rank(descending=True, method="dense", seed=1)
+            .rank(descending=True, method="ordinal", seed=1)
             .over(["pxInteractionID"])
             .cast(pl.Int16)
             .alias(f"rank_{x.split('_')[1]}")
@@ -1063,3 +1088,216 @@ class DecisionAnalyzer:
             .filter(pl.col("Decisions") > 0)
             .head(top_k)
         )
+
+    def get_win_distribution_data(
+        self, lever_condition: pl.Expr, lever_value: Optional[float] = None
+    ) -> pl.DataFrame:
+        """
+        Calculate win distribution data for business lever analysis.
+
+        This method generates distribution data showing how actions perform in
+        arbitration decisions, both in baseline conditions and optionally with
+        lever adjustments applied.
+
+        Parameters
+        ----------
+        lever_condition : pl.Expr
+            Polars expression defining which actions to apply the lever to.
+            Example: pl.col("pyName") == "SpecificAction" or
+                    (pl.col("pyIssue") == "Service") & (pl.col("pyGroup") == "Cards")
+        lever_value : float, optional
+            The lever multiplier value to apply to selected actions.
+            If None, returns baseline distribution only.
+            If provided, returns both original and lever-adjusted win counts.
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame containing win distribution with columns:
+            - pyIssue, pyGroup, pyName: Action identifiers
+            - original_win_count: Number of rank-1 wins in baseline scenario
+            - new_win_count: Number of rank-1 wins after lever adjustment (only if lever_value provided)
+            - n_decisions_survived_to_arbitration: Number of arbitration decisions the action participated in
+            - selected_action: "Selected" for actions matching lever_condition, "Rest" for others
+
+        Notes
+        -----
+        - Only includes actions that survive to arbitration stage
+        - Win counts represent rank-1 (first place) finishes in arbitration decisions
+        - This is a zero-sum analysis: boosting selected actions suppresses others
+        - Results are sorted by win count (new_win_count if available, else original_win_count)
+
+        Examples
+        --------
+        Get baseline distribution for a specific action:
+        >>> lever_cond = pl.col("pyName") == "MyAction"
+        >>> baseline = decision_analyzer.get_win_distribution_data(lever_cond)
+
+        Get distribution with 2x lever applied to service actions:
+        >>> lever_cond = pl.col("pyIssue") == "Service"
+        >>> with_lever = decision_analyzer.get_win_distribution_data(lever_cond, 2.0)
+        """
+        if lever_value is None:
+            # Return baseline distribution only
+            original_winners = self.reRank(
+                additional_filters=pl.col("StageGroup").is_in(
+                    self.stages_from_arbitration_down
+                ),
+            ).select(["pyIssue", "pyGroup", "pyName"] + ["pxInteractionID", "pxRank"])
+
+            return (
+                original_winners.group_by(["pyIssue", "pyGroup", "pyName"])
+                .agg(
+                    original_win_count=pl.col("pxRank")
+                    .filter(pl.col("pxRank") == 1)
+                    .len(),
+                    n_decisions_survived_to_arbitration=pl.col(
+                        "pxInteractionID"
+                    ).n_unique(),
+                )
+                .with_columns(
+                    selected_action=pl.when(lever_condition)
+                    .then(pl.lit("Selected"))
+                    .otherwise(pl.lit("Rest"))
+                )
+                .collect()
+                .sort("original_win_count", descending=True)
+            )
+        else:
+            # Return both baseline and lever-adjusted distribution
+            recalculated_winners = self.reRank(
+                overrides=[
+                    (
+                        pl.when(lever_condition)
+                        .then(pl.lit(lever_value))
+                        .otherwise(pl.col("Levers"))
+                    ).alias("Levers")
+                ],
+                additional_filters=pl.col("StageGroup").is_in(
+                    self.stages_from_arbitration_down
+                ),
+            ).select(
+                ["pyIssue", "pyGroup", "pyName"]
+                + ["pxInteractionID", "pxRank", "rank_PVCL"]
+            )
+
+            return (
+                recalculated_winners.group_by(["pyIssue", "pyGroup", "pyName"])
+                .agg(
+                    original_win_count=pl.col("pxRank")
+                    .filter(pl.col("pxRank") == 1)
+                    .len(),
+                    new_win_count=pl.col("rank_PVCL")
+                    .filter(pl.col("rank_PVCL") == 1)
+                    .len(),
+                    n_decisions_survived_to_arbitration=pl.col(
+                        "pxInteractionID"
+                    ).n_unique(),
+                )
+                .with_columns(
+                    selected_action=pl.when(lever_condition)
+                    .then(pl.lit("Selected"))
+                    .otherwise(pl.lit("Rest"))
+                )
+                .collect()
+                .sort("new_win_count", descending=True)
+            )
+
+    def find_lever_value(
+        self,
+        lever_condition: pl.Expr,
+        target_win_percentage: float,
+        win_rank: int = 1,
+        low: float = 0,
+        high: float = 100,
+        precision: float = 0.01,
+        ranking_stages: List[str] = None,
+    ) -> float:
+        """
+        Binary search algorithm to find lever value needed to achieve a desired win percentage.
+
+        Parameters
+        ----------
+        lever_condition : pl.Expr
+            Polars expression that defines which actions should receive the lever
+        target_win_percentage : float
+            The desired win percentage (0-100)
+        win_rank : int, default 1
+            Consider actions winning if they rank <= this value
+        low : float, default 0
+            Lower bound for lever search range
+        high : float, default 100
+            Upper bound for lever search range
+        precision : float, default 0.01
+            Search precision - smaller values give more accurate results
+        ranking_stages : List[str], optional
+            List of stages to include in analysis. Defaults to ["Arbitration"]
+
+        Returns
+        -------
+        float
+            The lever value needed to achieve the target win percentage
+
+        Raises
+        ------
+        ValueError
+            If the target win percentage cannot be achieved within the search range
+        """
+        if ranking_stages is None:
+            ranking_stages = ["Arbitration"]
+
+        def _calculate_action_win_percentage(lever: float) -> float:
+            """Calculate win percentage for a given lever value"""
+            ranked_df = self.reRank(
+                overrides=[
+                    (
+                        pl.when(lever_condition)
+                        .then(pl.lit(lever))
+                        .otherwise(pl.col("Levers"))
+                    ).alias("Levers")
+                ],
+                additional_filters=pl.col(self.level).is_in(
+                    self.stages_from_arbitration_down
+                ),
+            ).filter(pl.col("rank_PVCL") <= win_rank)
+
+            selected_wins = (
+                ranked_df.filter(lever_condition)
+                .select("pxInteractionID")
+                .collect()
+                .height
+            )
+            selected_total = ranked_df.select("pxInteractionID").collect().height
+            percentage = (selected_wins / selected_total) * 100
+            return percentage
+
+        beginning_high = high
+        beginning_low = low
+
+        # Check if target is achievable within bounds
+        low_percentage = _calculate_action_win_percentage(beginning_low)
+        high_percentage = _calculate_action_win_percentage(beginning_high)
+
+        if target_win_percentage < low_percentage:
+            raise ValueError(
+                f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, your actions win in {low_percentage:.1f}% of interactions at arbitration."
+                "You might have interactions where only your selected actions survive until arbitration. So they will win no matter what."
+            )
+        elif target_win_percentage > high_percentage:
+            raise ValueError(
+                f"Target {target_win_percentage}% is too high. Even at lever {beginning_high}, you only get {high_percentage:.1f}%. "
+                f"You can increase the search range."
+            )
+
+        while high - low > precision:
+            mid = (low + high) / 2
+
+            current_win_percentage = _calculate_action_win_percentage(mid)
+
+            if current_win_percentage < target_win_percentage:
+                low = mid
+            else:
+                high = mid
+
+        final_lever = (low + high) / 2
+        return final_lever

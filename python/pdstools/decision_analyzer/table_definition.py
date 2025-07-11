@@ -155,12 +155,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "required": True,
     },
     # "ActionWeight": {"label": "ActionWeight", "default": False, "type": pl.Float64},
-    "pyModelPropensity": {
-        "label": "pyModelPropensity",
-        "default": False,
-        "type": pl.Float64,
-        "required": True,
-    },
+    # "pyModelPropensity": {
+    #     "label": "pyModelPropensity",
+    #     "default": False,
+    #     "type": pl.Float64,
+    #     "required": True,
+    # },
     "FinalPropensity": {
         "label": "Propensity",
         "default": False,
@@ -270,12 +270,12 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "type": pl.Float64,
         "required": True,
     },
-    "pyModelPropensity": {
-        "label": "pyModelPropensity",
-        "default": True,
-        "type": pl.Float64,
-        "required": False,
-    },
+    # "pyModelPropensity": {
+    #     "label": "pyModelPropensity",
+    #     "default": True,
+    #     "type": pl.Float64,
+    #     "required": False,
+    # },
     "pyPropensity": {
         "label": "pyPropensity",
         "default": True,

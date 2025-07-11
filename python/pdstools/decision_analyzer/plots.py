@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Dict
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -769,3 +769,160 @@ def plot_priority_component_distribution(
     )
 
     return histogram, box_plot
+
+
+def create_win_distribution_plot(
+    data: pl.DataFrame,
+    win_count_col: str,
+    scope_config: Dict[str, Union[str, List[str]]],
+    title_suffix: str,
+    y_axis_title: str,
+) -> Tuple[go.Figure, pl.DataFrame]:
+    """
+    Create a win distribution bar chart with highlighted selected items.
+
+    This function creates a bar chart showing win counts across actions, groups, or issues
+    based on the scope configuration. It automatically aggregates data appropriately and
+    highlights the selected item in red while showing others in grey.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        DataFrame containing win distribution data with action identifiers and win counts
+    win_count_col : str
+        Column name containing win counts to plot (e.g., "original_win_count", "new_win_count")
+    scope_config : Dict[str, Union[str, List[str]]]
+        Configuration dictionary from get_scope_config() containing:
+        - level: "Action", "Group", or "Issue"
+        - group_cols: List of columns for grouping
+        - x_col: Column name for x-axis
+        - selected_value: Value to highlight in red
+        - plot_title_prefix: Prefix for plot title
+    title_suffix : str
+        Suffix to add to plot title (e.g., "Current Performance", "After Lever Adjustment")
+    y_axis_title : str
+        Title for y-axis (e.g., "Current Win Count", "New Win Count")
+
+    Returns
+    -------
+    Tuple[go.Figure, pl.DataFrame]
+        - Plotly figure with bar chart
+        - Processed plot data (aggregated if needed)
+
+    Notes
+    -----
+    - For Action level: Shows individual actions
+    - For Group/Issue level: Automatically aggregates data by summing win counts
+    - Selected item is highlighted in red (#FF0000), others in grey
+    - If selected item not found, uses light blue as fallback color
+    - X-axis labels are hidden to avoid clutter, scope level shown as x-axis title
+
+    Examples
+    --------
+    >>> scope_config = get_scope_config("Service", "Cards", "MyAction")
+    >>> fig, plot_data = create_win_distribution_plot(
+    ...     distribution_data,
+    ...     "new_win_count",
+    ...     scope_config,
+    ...     "After Lever Adjustment",
+    ...     "New Win Count"
+    ... )
+    """
+    if scope_config["level"] == "Action":
+        plot_data = data
+    else:
+        # Aggregate data based on scope level
+        plot_data = (
+            data.group_by(scope_config["group_cols"])
+            .agg(pl.sum(win_count_col))
+            .sort(win_count_col, descending=True)
+        )
+
+    # Create the plot
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=plot_data[scope_config["x_col"]],
+            y=plot_data[win_count_col],
+            text=plot_data[scope_config["x_col"]],
+            textposition="auto",
+            hovertemplate="<b>%{text}</b><br>Win Count: %{y}<extra></extra>",
+        )
+    )
+
+    # Highlight the selected item
+    try:
+        bin_index = list(fig.data[0]["x"]).index(scope_config["selected_value"])
+        fig.data[0]["marker_color"] = (
+            ["grey"] * bin_index
+            + ["#FF0000"]
+            + ["grey"] * (plot_data.shape[0] - bin_index - 1)
+        )
+    except ValueError:
+        # Selected value not found in the data, use default colors
+        fig.data[0]["marker_color"] = "lightblue"
+
+    fig.update_yaxes(title=y_axis_title)
+    fig.update_xaxes(showticklabels=False, title=scope_config["level"])
+    fig.update_layout(
+        title=f"{scope_config['plot_title_prefix']} - {title_suffix} (Selected: {scope_config['selected_value']})",
+        showlegend=False,
+    )
+
+    return fig, plot_data
+
+
+def create_parameter_distribution_boxplots(
+    segmented_df: pl.DataFrame,
+    parameters: List[str] = ["Propensity", "Value", "Context Weight", "Levers"],
+    title: str = "Parameter Distributions: Selected Actions vs Competitors",
+) -> go.Figure:
+    """
+    Create box plots comparing parameter distributions between selected actions and others.
+
+    Parameters
+    ----------
+    segmented_df : pl.DataFrame
+        DataFrame with columns for parameters and a 'segment' column
+        containing "Selected Actions" or "Others"
+    parameters : List[str], optional
+        List of parameter column names to plot
+    title : str, optional
+        Title for the plot
+
+    Returns
+    -------
+    go.Figure
+        Plotly figure with box plots
+    """
+    colors = [
+        "#1f77b4",  # Blue for Selected Actions
+        "#ff7f0e",  # Orange for Others
+    ]
+
+    fig = make_subplots(rows=len(parameters), cols=1, subplot_titles=parameters)
+
+    for i, metric in enumerate(parameters, start=1):
+        for j, segment in enumerate(["Selected Actions", "Others"]):
+            segment_data = segmented_df.filter(pl.col("segment") == segment)
+            if segment_data.height > 0:
+                fig.add_trace(
+                    go.Box(
+                        y=segment_data[metric].to_list(),
+                        name=segment,
+                        marker_color=colors[j],
+                        showlegend=i == 1,  # Show legend only for the first plot
+                    ),
+                    row=i,
+                    col=1,
+                )
+
+    fig.update_layout(
+        height=800,
+        width=800,
+        title=title,
+        showlegend=True,
+    )
+    fig.update_yaxes(title_text="Value")
+
+    return fig

@@ -31,6 +31,12 @@ def ensure_data():
         st.stop()
 
 
+def ensure_funnel():
+    if st.session_state.decision_data.extract_type == "explainability_extract":
+        st.warning("You can only view this page with EEV2 dataset")
+        st.stop()
+
+
 def ensure_getFilterComponentData():
     return (
         "pxComponentName"
