@@ -1280,7 +1280,8 @@ class DecisionAnalyzer:
 
         if target_win_percentage < low_percentage:
             raise ValueError(
-                f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, you get {low_percentage:.1f}%"
+                f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, your actions win in {low_percentage:.1f}% of interactions at arbitration."
+                "You might have interactions where only your selected actions survive until arbitration. So they will win no matter what."
             )
         elif target_win_percentage > high_percentage:
             raise ValueError(
