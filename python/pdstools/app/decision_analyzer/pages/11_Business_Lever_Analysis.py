@@ -1,5 +1,3 @@
-import plotly.graph_objects as go
-import plotly.subplots as sp
 import polars as pl
 import streamlit as st
 
@@ -7,11 +5,13 @@ from da_streamlit_utils import (
     ensure_data,
 )
 from pdstools.decision_analyzer.utils import (
-    find_lever_value,
     create_hierarchical_selectors,
     get_scope_config,
 )
-from pdstools.decision_analyzer.plots import create_win_distribution_plot
+from pdstools.decision_analyzer.plots import (
+    create_win_distribution_plot,
+    create_parameter_distribution_boxplots,
+)
 
 # TODO not so sure what to do with this tool - maybe generalize to work across a selection not just a single action and figure out a multiplier
 # TODO but do show the effect of levering right away (distributions side to side) just like we should do in the thresholding analysis (share code)
@@ -109,8 +109,6 @@ if st.session_state.get("analysis_applied", False):
         st.metric(
             "Current Win Rate",
             f"{current_win_rate:.1f}%",
-            f"{current_number_of_wins:,}/{st.session_state.decision_data.num_sample_interactions:,}",
-            delta_color="off",
         )
     with col2:
         st.metric(
@@ -122,7 +120,8 @@ if st.session_state.get("analysis_applied", False):
         st.metric(
             "Funnel Loss",
             f"{funnel_loss_pct:.1f}%",
-            f"{funnel_loss:,} filtered before arbitration",
+            f"in {funnel_loss:,} interactions, filtered out before arbitration",
+            delta_color="inverse",
         )
 
     st.markdown(f"""
@@ -198,9 +197,7 @@ if st.session_state.get("analysis_applied", False):
 
     # Calculate deltas
     selected_wins_delta = selected_wins - current_number_of_wins
-    new_win_rate = (
-        selected_wins / st.session_state.decision_data.num_sample_interactions
-    ) * 100
+    new_win_rate = (selected_wins / total_new_wins) * 100
     win_rate_delta = new_win_rate - current_win_rate
 
     col1, col2, col3 = st.columns(3)
@@ -274,72 +271,29 @@ if st.session_state.get("analysis_applied", False):
                         f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
                     )
 
-                    parameters = ["Propensity", "Value", "Context Weight", "Levers"]
-                    colors = [
-                        "#1f77b4",
-                        "#ff7f0e",
-                    ]  # Blue for Selected, Orange for Others
-
-                    fig = sp.make_subplots(rows=4, cols=1, subplot_titles=parameters)
-
-                    for i, metric in enumerate(parameters, start=1):
-                        for j, segment in enumerate(["Selected Actions", "Others"]):
-                            segment_data = segmented_df.filter(
-                                pl.col("segment") == segment
-                            )
-                            if segment_data.height > 0:
-                                fig.add_trace(
-                                    go.Histogram(
-                                        x=segment_data[metric].to_list(),
-                                        name=segment,
-                                        nbinsx=30,
-                                        histnorm="probability density",
-                                        marker_color=colors[j],
-                                        opacity=0.7,
-                                        showlegend=i
-                                        == 1,  # Show legend only for the first plot
-                                    ),
-                                    row=i,
-                                    col=1,
-                                )
-
-                    fig.update_layout(
-                        height=800,
-                        width=800,
-                        title="Parameter Distributions: Selected Actions vs Competitors",
-                        showlegend=True,
-                    )
-                    fig.update_yaxes(title_text="Density")
-
+                    fig = create_parameter_distribution_boxplots(segmented_df)
                     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader(":green[Lever Finder]:male-detective:")
 
     # Only show lever finder for specific action selection
-    if st.session_state.selected_action != "All":
-        st.session_state.target_win_percentage = st.slider(
-            "Target Win Ratio", min_value=0, max_value=100
-        )
+    st.session_state.target_win_percentage = st.slider(
+        "Target Win Ratio", min_value=0, max_value=100
+    )
 
-        calculate_lever = st.button("Calculate lever")
-        if calculate_lever:
-            with st.spinner("Calculating..."):
-                # TODO refactor this into the DecisionData class
-                lever_for_desired_ratio = find_lever_value(
-                    st.session_state.decision_data,
-                    st.session_state.selected_action,
-                    target_win_percentage=st.session_state.target_win_percentage,
-                    win_rank=st.session_state.win_rank,
-                    high=st.session_state.max_search_range,
-                    ranking_stages=st.session_state.decision_data.stages_from_arbitration_down,
+    calculate_lever = st.button("Calculate lever")
+    if calculate_lever:
+        with st.spinner("Calculating..."):
+            # TODO refactor this into the DecisionData class
+            lever_for_desired_ratio = st.session_state.decision_data.find_lever_value(
+                lever_condition=lever_condition,
+                target_win_percentage=st.session_state.target_win_percentage,
+                win_rank=st.session_state.win_rank,
+                high=st.session_state.max_search_range,
+            )
+            if isinstance(lever_for_desired_ratio, float):
+                st.metric(
+                    f"""Lever you need to win in
+                    {st.session_state.target_win_percentage}% of the interactions""",
+                    lever_for_desired_ratio,
                 )
-                if isinstance(lever_for_desired_ratio, float):
-                    st.metric(
-                        f"""Lever you need for **{st.session_state.selected_action}** to win in
-                        {st.session_state.target_win_percentage}% of the interactions""",
-                        lever_for_desired_ratio,
-                    )
-    else:
-        st.info(
-            "Lever Finder is only available for specific action selection. Please select a specific action instead of 'All'."
-        )

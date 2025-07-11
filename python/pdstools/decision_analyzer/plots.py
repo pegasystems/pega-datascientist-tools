@@ -870,3 +870,59 @@ def create_win_distribution_plot(
     )
 
     return fig, plot_data
+
+
+def create_parameter_distribution_boxplots(
+    segmented_df: pl.DataFrame,
+    parameters: List[str] = ["Propensity", "Value", "Context Weight", "Levers"],
+    title: str = "Parameter Distributions: Selected Actions vs Competitors",
+) -> go.Figure:
+    """
+    Create box plots comparing parameter distributions between selected actions and others.
+
+    Parameters
+    ----------
+    segmented_df : pl.DataFrame
+        DataFrame with columns for parameters and a 'segment' column
+        containing "Selected Actions" or "Others"
+    parameters : List[str], optional
+        List of parameter column names to plot
+    title : str, optional
+        Title for the plot
+
+    Returns
+    -------
+    go.Figure
+        Plotly figure with box plots
+    """
+    colors = [
+        "#1f77b4",  # Blue for Selected Actions
+        "#ff7f0e",  # Orange for Others
+    ]
+
+    fig = make_subplots(rows=len(parameters), cols=1, subplot_titles=parameters)
+
+    for i, metric in enumerate(parameters, start=1):
+        for j, segment in enumerate(["Selected Actions", "Others"]):
+            segment_data = segmented_df.filter(pl.col("segment") == segment)
+            if segment_data.height > 0:
+                fig.add_trace(
+                    go.Box(
+                        y=segment_data[metric].to_list(),
+                        name=segment,
+                        marker_color=colors[j],
+                        showlegend=i == 1,  # Show legend only for the first plot
+                    ),
+                    row=i,
+                    col=1,
+                )
+
+    fig.update_layout(
+        height=800,
+        width=800,
+        title=title,
+        showlegend=True,
+    )
+    fig.update_yaxes(title_text="Value")
+
+    return fig

@@ -1202,3 +1202,101 @@ class DecisionAnalyzer:
                 .collect()
                 .sort("new_win_count", descending=True)
             )
+
+    def find_lever_value(
+        self,
+        lever_condition: pl.Expr,
+        target_win_percentage: float,
+        win_rank: int = 1,
+        low: float = 0,
+        high: float = 100,
+        precision: float = 0.01,
+        ranking_stages: List[str] = None,
+    ) -> float:
+        """
+        Binary search algorithm to find lever value needed to achieve a desired win percentage.
+
+        Parameters
+        ----------
+        lever_condition : pl.Expr
+            Polars expression that defines which actions should receive the lever
+        target_win_percentage : float
+            The desired win percentage (0-100)
+        win_rank : int, default 1
+            Consider actions winning if they rank <= this value
+        low : float, default 0
+            Lower bound for lever search range
+        high : float, default 100
+            Upper bound for lever search range
+        precision : float, default 0.01
+            Search precision - smaller values give more accurate results
+        ranking_stages : List[str], optional
+            List of stages to include in analysis. Defaults to ["Arbitration"]
+
+        Returns
+        -------
+        float
+            The lever value needed to achieve the target win percentage
+
+        Raises
+        ------
+        ValueError
+            If the target win percentage cannot be achieved within the search range
+        """
+        if ranking_stages is None:
+            ranking_stages = ["Arbitration"]
+
+        def _calculate_action_win_percentage(lever: float) -> float:
+            """Calculate win percentage for a given lever value"""
+            ranked_df = self.reRank(
+                overrides=[
+                    (
+                        pl.when(lever_condition)
+                        .then(pl.lit(lever))
+                        .otherwise(pl.col("Levers"))
+                    ).alias("Levers")
+                ],
+                additional_filters=pl.col(self.level).is_in(
+                    self.stages_from_arbitration_down
+                ),
+            ).filter(pl.col("rank_PVCL") <= win_rank)
+
+            selected_wins = (
+                ranked_df.filter(lever_condition)
+                .select("pxInteractionID")
+                .collect()
+                .height
+            )
+            selected_total = ranked_df.select("pxInteractionID").collect().height
+            percentage = (selected_wins / selected_total) * 100
+            return percentage
+
+        beginning_high = high
+        beginning_low = low
+
+        # Check if target is achievable within bounds
+        low_percentage = _calculate_action_win_percentage(beginning_low)
+        high_percentage = _calculate_action_win_percentage(beginning_high)
+
+        if target_win_percentage < low_percentage:
+            raise ValueError(
+                f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, you get {low_percentage:.1f}%"
+            )
+        elif target_win_percentage > high_percentage:
+            raise ValueError(
+                f"Target {target_win_percentage}% is too high. Even at lever {beginning_high}, you only get {high_percentage:.1f}%. "
+                f"You can increase the search range."
+            )
+
+        while high - low > precision:
+            mid = (low + high) / 2
+
+            current_win_percentage = _calculate_action_win_percentage(mid)
+
+            if current_win_percentage < target_win_percentage:
+                low = mid
+            else:
+                high = mid
+
+        final_lever = (low + high) / 2
+        return final_lever
