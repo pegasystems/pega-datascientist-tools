@@ -429,7 +429,6 @@ class Aggregates:
                 self._summarize_model_usage(
                     grouping,
                     model_data,
-                    self.cdh_guidelines.standard_configurations,
                     debug=debug,
                 ),
                 on=("literal" if grouping is None else grouping),
@@ -619,17 +618,10 @@ class Aggregates:
         self,
         grouping: Optional[List[str]],
         model_data: pl.LazyFrame,
-        standard_configurations: List[str],
         debug: bool,
     ) -> pl.LazyFrame:
-        standard_configurations_set = set([x.upper() for x in standard_configurations])
-
         result = model_data.group_by(grouping).agg(
-            pl.col("Configuration")
-            .cast(pl.Utf8)
-            .str.to_uppercase()
-            .is_in(standard_configurations_set)
-            .any(ignore_nulls=False)
+            self.cdh_guidelines.is_standard_configuration().any(ignore_nulls=False)
             .alias("usesNBAD"),
             # For debugging:
             pl.col("ModelTechnique").unique().sort(),

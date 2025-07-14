@@ -43,3 +43,24 @@ def test_predictions_w_extensions_mapping(guidance):
     )
     assert df.shape[0] == 16
     assert "StrangeChannel" in df["Channel"].to_list()
+
+
+def test_is_standard_NBAD_configuration(guidance):
+    import polars as pl
+    df = pl.DataFrame(
+        {
+            "Configuration": [
+                "OmniAdaptiveModel",
+                "MyStuff",
+                "Mobile_Click_Through_Rate_Account",
+                "WEB_CLICK_THROUGH_RATE_AGB",
+                "Email_Click_Through_Rate_AGB_Customer",
+                "Email_Click_Through_Account_Rate"
+            ]
+        }
+    )
+    df = df.with_columns(
+        isNBAD=guidance.is_standard_configuration()
+    )
+
+    assert df["isNBAD"].to_list() == [True, False, True, True, True, False]
