@@ -53,17 +53,9 @@ with st.sidebar:
     st.selectbox("Select Group", key="selected_group", **selectors["groups"])
     st.selectbox("Select Action", key="selected_action", **selectors["actions"])
 
-    st.session_state.max_search_range = st.selectbox(
-        "Search Range Max", [10, 100, 1000], index=1
-    )
-
     # Apply button to run analysis
-    if st.button("Apply Analysis", type="primary"):
+    if st.button("Apply Selection", type="primary"):
         st.session_state.analysis_applied = True
-
-    # Add reset button
-    if st.button("Reset Analysis"):
-        st.session_state.analysis_applied = False
 
 scope_config = get_scope_config(
     st.session_state.selected_issue,
@@ -110,13 +102,13 @@ if st.session_state.get("analysis_applied", False):
     with col1:
         st.metric(
             "Current Win Rate",
-            f"{current_win_rate:.1f}%",
+            f"{current_win_rate:.2f}%",
         )
 
     with col2:
         st.metric(
             "Funnel Loss",
-            f"{funnel_loss_pct:.1f}%",
+            f"{funnel_loss_pct:.2f}%",
             f"in {funnel_loss:,} interactions, filtered out before arbitration",
             delta_color="inverse",
         )
@@ -124,7 +116,7 @@ if st.session_state.get("analysis_applied", False):
     with col3:
         st.metric(
             "Max Possible Win Rate",
-            f"{max_possible_win_rate:.1f}%",
+            f"{max_possible_win_rate:.2f}%",
             f"if won all {interactions_survived_till_arbitration:,} arbitrations",
         )
 
@@ -150,12 +142,64 @@ if st.session_state.get("analysis_applied", False):
         "Current Win Count",
     )
     st.plotly_chart(original_fig, use_container_width=True)
+    # Parameter Distribution Analysis
+    show_distributions = st.checkbox(
+        "Show distribution of arbitration components",
+        help="Compare parameter distributions between your selected actions and competitors in interactions where your actions survived to arbitration",
+    )
 
+    if show_distributions:
+        if interactions_survived_till_arbitration == 0:
+            st.warning(
+                "⚠️ Your selected actions never survive until arbitration. No head-to-head comparisons available."
+            )
+        else:
+            with st.spinner("Plotting arbitration components..."):
+                # Get the actual interaction IDs where selected actions survived
+                relevant_interactions = (
+                    st.session_state.decision_data.arbitration_stage.filter(
+                        lever_condition
+                    )
+                    .select("pxInteractionID")
+                    .unique()
+                )
+
+                # Filter sample to only those interactions (all actions in head-to-head battles)
+                segmented_df = (
+                    st.session_state.decision_data.sample.filter(
+                        pl.col("StageGroup").is_in(
+                            st.session_state.decision_data.stages_from_arbitration_down
+                        )
+                    )
+                    .join(relevant_interactions, on="pxInteractionID", how="inner")
+                    .with_columns(
+                        segment=pl.when(lever_condition)
+                        .then(pl.lit("Selected Actions"))
+                        .otherwise(pl.lit("Others"))
+                    )
+                    .select(
+                        ["Propensity", "Value", "Context Weight", "Levers", "segment"]
+                    )
+                    .collect()
+                )
+
+                if segmented_df.height == 0:
+                    st.warning("No data available for parameter distribution analysis.")
+                else:
+                    st.markdown(
+                        "### 📊 Parameter Distributions in Head-to-Head Battles"
+                    )
+                    st.markdown(
+                        f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
+                    )
+
+                    fig = create_parameter_distribution_boxplots(segmented_df)
+                    st.plotly_chart(fig, use_container_width=True)
     with st.expander("🎯 Boosting Strategies", expanded=False):
         st.markdown(f"""
         **1. Address funnel losses:** If {funnel_loss_pct:.1f}% filter-out rate is too high, investigate earlier decision stages to understand why your actions are eliminated.
 
-        **2. Increase levers:** Use the lever slider below to simulate different values. You have {interactions_survived_till_arbitration:,} arbitration decisions where you can redistribute wins through lever adjustments.
+        **2. Increase levers:** Use the lever slider below to simulate different values. You have **{interactions_survived_till_arbitration:,}** decisions where the selected actions survive till arbitration.
 
         💡 *Note: This analysis focuses on your selected actions. Total arbitration activity across all actions is shown in the charts.*
 
@@ -179,7 +223,7 @@ if st.session_state.get("analysis_applied", False):
         )
 
         # Show new distribution
-        st.markdown("### 🚀 New Win Distribution (After Lever Adjustment)")
+        st.markdown("### 🚀 Win Distribution With Selected Lever")
         new_fig, new_plot_data = create_win_distribution_plot(
             distribution,
             "new_win_count",
@@ -235,63 +279,7 @@ if st.session_state.get("analysis_applied", False):
                 delta=f"{win_rate_delta_overall:+.1f}%",
             )
 
-    # Parameter Distribution Analysis
-    show_distributions = st.checkbox(
-        "Show distribution of arbitration components",
-        help="Compare parameter distributions between your selected actions and competitors in interactions where your actions survived to arbitration",
-    )
-
-    if show_distributions:
-        if interactions_survived_till_arbitration == 0:
-            st.warning(
-                "⚠️ Your selected actions never survive until arbitration. No head-to-head comparisons available."
-            )
-        else:
-            with st.spinner("Calculating parameter distributions..."):
-                # Get the actual interaction IDs where selected actions survived
-                relevant_interactions = (
-                    st.session_state.decision_data.arbitration_stage.filter(
-                        lever_condition
-                    )
-                    .select("pxInteractionID")
-                    .unique()
-                )
-
-                # Filter sample to only those interactions (all actions in head-to-head battles)
-                segmented_df = (
-                    st.session_state.decision_data.sample.filter(
-                        pl.col("StageGroup").is_in(
-                            st.session_state.decision_data.stages_from_arbitration_down
-                        )
-                    )
-                    .join(relevant_interactions, on="pxInteractionID", how="inner")
-                    .with_columns(
-                        segment=pl.when(lever_condition)
-                        .then(pl.lit("Selected Actions"))
-                        .otherwise(pl.lit("Others"))
-                    )
-                    .select(
-                        ["Propensity", "Value", "Context Weight", "Levers", "segment"]
-                    )
-                    .collect()
-                )
-
-                if segmented_df.height == 0:
-                    st.warning("No data available for parameter distribution analysis.")
-                else:
-                    st.markdown(
-                        "### 📊 Parameter Distributions in Head-to-Head Battles"
-                    )
-                    st.markdown(
-                        f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
-                    )
-
-                    fig = create_parameter_distribution_boxplots(segmented_df)
-                    st.plotly_chart(fig, use_container_width=True)
-
-    with st.container(border=True):
-        st.subheader(":green[Lever Finder]:male-detective:")
-
+    with st.expander(":green[Lever Finder]:male-detective:", expanded=False):
         # Only show lever finder for specific action selection
         st.session_state.target_win_percentage = st.slider(
             "Target Win Ratio", min_value=0, max_value=100
@@ -306,7 +294,7 @@ if st.session_state.get("analysis_applied", False):
                         lever_condition=lever_condition,
                         target_win_percentage=st.session_state.target_win_percentage,
                         win_rank=st.session_state.win_rank,
-                        high=st.session_state.max_search_range,
+                        high=100,
                     )
                 )
                 if isinstance(lever_for_desired_ratio, float):

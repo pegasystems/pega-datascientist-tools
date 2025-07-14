@@ -923,6 +923,5 @@ def create_parameter_distribution_boxplots(
         title=title,
         showlegend=True,
     )
-    fig.update_yaxes(title_text="Value")
 
     return fig
