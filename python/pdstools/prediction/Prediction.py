@@ -63,7 +63,8 @@ class PredictionPlots(LazyNamespace):
             cdh_utils._apply_query(plot_df, query)
             .with_columns(
                 Period=pl.format(
-                    "{} days", ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32)
+                    "{} days",
+                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
                 )
             )
             .rename({"DateRange Min": "Date"})
@@ -139,7 +140,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -171,7 +172,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -210,7 +211,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -245,7 +246,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -685,10 +686,9 @@ class Prediction:
                     .then(pl.lit("Unknown"))
                     .otherwise(pl.col("Direction"))
                     .alias("Direction"),
-                    pl.when(pl.col("isStandardNBADPrediction").is_null())
-                    .then(pl.lit(False))
-                    .otherwise(pl.col("isStandardNBADPrediction"))
-                    .alias("isStandardNBADPrediction"),
+                    self.cdh_guidelines.is_standard_prediction().alias(
+                        "isStandardNBADPrediction" # why not just usesNBAD like we do for models
+                    ),
                     pl.when(pl.col("isMultiChannelPrediction").is_null())
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannelPrediction"))

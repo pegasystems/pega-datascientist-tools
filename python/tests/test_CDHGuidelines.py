@@ -28,7 +28,7 @@ def test_predictions_mapping(guidance):
         "Prediction",
         "Channel",
         "Direction",
-        "isStandardNBADPrediction",
+        # "isStandardNBADPrediction",
         "isMultiChannelPrediction",
     ]
     assert df.shape[0] == 14
@@ -51,16 +51,28 @@ def test_is_standard_NBAD_configuration(guidance):
         {
             "Configuration": [
                 "OmniAdaptiveModel",
-                "MyStuff",
+                "MyWeb",
                 "Mobile_Click_Through_Rate_Account",
                 "WEB_CLICK_THROUGH_RATE_AGB",
                 "Email_Click_Through_Rate_AGB_Customer",
                 "Email_Click_Through_Account_Rate"
+            ],
+            "Prediction":[
+                "PredictActionPropensity",
+                "PREDICTWEBPROPENSITY",
+                "PredictMobilePropensity",
+                "PredictWebPropensity",
+                "MyEmailPropensity",
+                "PredictOutboundEmailPropensity"
+
             ]
         }
     )
     df = df.with_columns(
-        isNBAD=guidance.is_standard_configuration()
+        isNBAD=guidance.is_standard_configuration(),
+        isStandardPrediction=guidance.is_standard_prediction(),
     )
 
     assert df["isNBAD"].to_list() == [True, False, True, True, True, False]
+    assert df["isStandardPrediction"].to_list() == [True, True, True, True, False, True]
+
