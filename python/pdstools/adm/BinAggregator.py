@@ -1,5 +1,6 @@
 __all__ = ["BinAggregator"]
 import logging
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import polars as pl
@@ -24,13 +25,13 @@ class BinAggregator(LazyNamespace):
     dependencies = ["plotly", "numpy"]
 
     def __init__(self, dm: "ADMDatamart") -> None:
+        self.dm = dm
         super().__init__()
 
-        try:
-            data = dm.aggregates.last(table="combined_data")
-            self.all_predictorbinning = self.normalize_all_binnings(data)
-        except Exception as e:
-            logger.info(e)
+    @cached_property
+    def all_predictorbinning(self):
+        data = self.dm.aggregates.last(table="combined_data")
+        return self.normalize_all_binnings(data)
 
     def roll_up(  # TODO: overload this
         self,
@@ -765,7 +766,7 @@ class BinAggregator(LazyNamespace):
                 fig.add_annotation(
                     x=(source[i, "BinLowerBound"] + source[i, "BinUpperBound"]) / 2,
                     y="source",
-                    text=f"Bin {source[i, 'BinIndex']}<br><br>Lift: {100.0*source[i, 'Lift']:0.2f}%",
+                    text=f"Bin {source[i, 'BinIndex']}<br><br>Lift: {100.0 * source[i, 'Lift']:0.2f}%",
                     showarrow=False,
                     yshift=0,
                     font=dict(color="blue"),
