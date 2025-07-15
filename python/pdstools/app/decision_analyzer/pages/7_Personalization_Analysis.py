@@ -70,15 +70,17 @@ with st.container(border=True):
         key="optionality_stage",
     )
 
-"## Optionality Funnel"
-"Distribution of Available action by Stage"
-if st.session_state.decision_data.extract_type == "decision_analyzer":
-    st.plotly_chart(
-        st.session_state.decision_data.plot.optionality_funnel(
-            df=st.session_state["local_optionality"]
-        ),
-        use_container_width=True,
-    )
+if st.session_state.decision_data.extract_type != "explainability_extract":
+    with st.container(border=True):
+        "## Optionality Funnel"
+        "Distribution of Available action by Stage"
+        if st.session_state.decision_data.extract_type == "decision_analyzer":
+            st.plotly_chart(
+                st.session_state.decision_data.plot.optionality_funnel(
+                    df=st.session_state["local_optionality"]
+                ),
+                use_container_width=True,
+            )
 
 
 "## Optionality Trend chart"

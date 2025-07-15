@@ -95,7 +95,7 @@ class DecisionAnalyzer:
         )
 
         self.max_win_rank = 5
-        self.AvailableNBADStages = ["Arbitration"]
+        self.AvailableNBADStages = ["Arbitration", "Output"]
 
         if self.extract_type == "explainability_extract":
             columns_to_remove = {"pxComponentName"}
@@ -365,25 +365,38 @@ class DecisionAnalyzer:
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
 
+        # Build ranking columns - include StageOrder only if it exists
+        ranking_cols = ["Priority"]
+        if "StageOrder" in df.collect_schema().names():
+            ranking_cols.append("StageOrder")
+        ranking_cols.extend(
+            [
+                pl.col("pyIssue").rank() * -1,
+                pl.col("pyGroup").rank() * -1,
+                pl.col("pyName").rank() * -1,
+            ]
+        )
+
+        df = df.with_columns(
+            pxRank=pl.struct(ranking_cols)
+            .rank(descending=True, method="ordinal", seed=1)
+            .over("pxInteractionID")
+        )
+
         if self.extract_type == "explainability_extract":
             df = df.with_columns(
-                pl.lit("Arbitration").alias(self.level),
-                pl.lit(1).alias("StageOrder"),
-                pl.lit("FILTERED_OUT").alias("pxRecordType"),
-            )
-        if "pxRank" not in df.collect_schema().names():
-            df = df.with_columns(
-                pxRank=pl.struct(
-                    [
-                        "Priority",
-                        "StageOrder",
-                        pl.col("pyIssue").rank() * -1,
-                        pl.col("pyGroup").rank() * -1,
-                        pl.col("pyName").rank() * -1,
-                    ]
-                )
-                .rank(descending=True, method="ordinal", seed=1)
-                .over("pxInteractionID")
+                pl.when(pl.col("pxRank") == 1)
+                .then(pl.lit("Output"))
+                .otherwise(pl.lit("Arbitration"))
+                .alias(self.level),
+                pl.when(pl.col("pxRank") == 1)
+                .then(pl.lit(3800))
+                .otherwise(pl.lit(10000))
+                .alias("StageOrder"),
+                pl.when(pl.col("pxRank") == 1)
+                .then(pl.lit("OUTPUT"))
+                .otherwise(pl.lit("FILTERED_OUT"))
+                .alias("pxRecordType"),
             )
 
         preproc_df = (
@@ -1090,7 +1103,10 @@ class DecisionAnalyzer:
         )
 
     def get_win_distribution_data(
-        self, lever_condition: pl.Expr, lever_value: Optional[float] = None
+        self,
+        lever_condition: pl.Expr,
+        lever_value: Optional[float] = None,
+        all_interactions: Optional[int] = None,
     ) -> pl.DataFrame:
         """
         Calculate win distribution data for business lever analysis.
@@ -1109,6 +1125,10 @@ class DecisionAnalyzer:
             The lever multiplier value to apply to selected actions.
             If None, returns baseline distribution only.
             If provided, returns both original and lever-adjusted win counts.
+        all_interactions : int, optional
+            Total number of interactions to calculate "no winner" count.
+            If provided, enables calculation of interactions without any winner.
+            If None, "no winner" data is not calculated.
 
         Returns
         -------
@@ -1119,6 +1139,7 @@ class DecisionAnalyzer:
             - new_win_count: Number of rank-1 wins after lever adjustment (only if lever_value provided)
             - n_decisions_survived_to_arbitration: Number of arbitration decisions the action participated in
             - selected_action: "Selected" for actions matching lever_condition, "Rest" for others
+            - no_winner_count: Number of interactions without any winner (only if all_interactions provided)
 
         Notes
         -----
@@ -1126,6 +1147,7 @@ class DecisionAnalyzer:
         - Win counts represent rank-1 (first place) finishes in arbitration decisions
         - This is a zero-sum analysis: boosting selected actions suppresses others
         - Results are sorted by win count (new_win_count if available, else original_win_count)
+        - When all_interactions is provided, "no winner" represents interactions without any rank-1 winner
 
         Examples
         --------
@@ -1136,6 +1158,10 @@ class DecisionAnalyzer:
         Get distribution with 2x lever applied to service actions:
         >>> lever_cond = pl.col("pyIssue") == "Service"
         >>> with_lever = decision_analyzer.get_win_distribution_data(lever_cond, 2.0)
+
+        Get distribution with no winner count:
+        >>> total_interactions = 10000
+        >>> with_no_winner = decision_analyzer.get_win_distribution_data(lever_cond, 2.0, total_interactions)
         """
         if lever_value is None:
             # Return baseline distribution only
@@ -1145,7 +1171,7 @@ class DecisionAnalyzer:
                 ),
             ).select(["pyIssue", "pyGroup", "pyName"] + ["pxInteractionID", "pxRank"])
 
-            return (
+            result = (
                 original_winners.group_by(["pyIssue", "pyGroup", "pyName"])
                 .agg(
                     original_win_count=pl.col("pxRank")
@@ -1163,6 +1189,32 @@ class DecisionAnalyzer:
                 .collect()
                 .sort("original_win_count", descending=True)
             )
+
+            # Add no winner count if all_interactions is provided
+            if all_interactions is not None:
+                interactions_with_winners = (
+                    original_winners.select("pxInteractionID").collect().n_unique()
+                )
+                no_winner_count = max(
+                    0, all_interactions - interactions_with_winners
+                )  # Ensure non-negative
+
+                # Create a row with the same data types as the result
+                no_winner_data = {
+                    "pyIssue": ["No Winner"],
+                    "pyGroup": ["No Winner"],
+                    "pyName": ["No Winner"],
+                    "original_win_count": [no_winner_count],
+                    "n_decisions_survived_to_arbitration": [0],
+                    "selected_action": ["No Winner"],
+                }
+
+                # Cast to match result schema
+                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+
+                result = pl.concat([result, no_winner_row])
+
+            return result
         else:
             # Return both baseline and lever-adjusted distribution
             recalculated_winners = self.reRank(
@@ -1181,7 +1233,7 @@ class DecisionAnalyzer:
                 + ["pxInteractionID", "pxRank", "rank_PVCL"]
             )
 
-            return (
+            result = (
                 recalculated_winners.group_by(["pyIssue", "pyGroup", "pyName"])
                 .agg(
                     original_win_count=pl.col("pxRank")
@@ -1202,6 +1254,37 @@ class DecisionAnalyzer:
                 .collect()
                 .sort("new_win_count", descending=True)
             )
+
+            # Add no winner count if all_interactions is provided
+            if all_interactions is not None:
+                # Calculate no winner count based on new ranking
+                interactions_with_new_winners = (
+                    recalculated_winners.filter(pl.col("rank_PVCL") == 1)
+                    .select("pxInteractionID")
+                    .collect()
+                    .n_unique()
+                )
+                no_winner_count = max(
+                    0, all_interactions - interactions_with_new_winners
+                )  # Ensure non-negative
+
+                # Create a row with the same data types as the result
+                no_winner_data = {
+                    "pyIssue": ["No Winner"],
+                    "pyGroup": ["No Winner"],
+                    "pyName": ["No Winner"],
+                    "original_win_count": [0],  # No winner has no original wins
+                    "new_win_count": [no_winner_count],
+                    "n_decisions_survived_to_arbitration": [0],
+                    "selected_action": ["No Winner"],
+                }
+
+                # Cast to match result schema
+                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+
+                result = pl.concat([result, no_winner_row])
+
+            return result
 
     def find_lever_value(
         self,
