@@ -7,6 +7,7 @@ from .utils import NBADScope_Mapping
 import polars as pl
 
 from .utils import apply_filter
+from ..utils.pega_template import colorway
 
 
 class Plot:
@@ -45,14 +46,34 @@ class Plot:
     def distribution_as_treemap(
         self, df: pl.LazyFrame, stage: str, scope_options: List[str]
     ):
+        # Create consistent color mapping for the primary scope level
+        color_discrete_map = None
+        if scope_options:
+            # Get all unique values for the primary scope across all stages to ensure consistency
+            primary_scope = scope_options[0]
+            all_stages_data = self._decision_data.getPreaggregatedRemainingView
+            unique_values = (
+                all_stages_data.select(primary_scope)
+                .unique()
+                .collect()
+                .get_column(primary_scope)
+                .sort()
+                .to_list()
+            )
+
+            # Create color mapping using imported Pega colorway
+            color_discrete_map = {
+                val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
+            }
+
         fig = px.treemap(
             df.collect(),
             path=[px.Constant(f"All Actions {stage}")] + scope_options,
             values="Decisions",
             template="pega",
-        ).update_traces(
-            root_color="lightgrey"
-        )  # TODO some day we may have colors associated with stages
+            color=scope_options[0] if scope_options else None,
+            color_discrete_map=color_discrete_map,
+        ).update_traces(root_color="lightgrey")
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
@@ -122,12 +143,31 @@ class Plot:
         df = self._decision_data.get_win_loss_distribution_data(level, win_rank)
         if return_df:
             return df
+
+        # Create consistent color mapping for the selected level
+        # Get all unique values for the level across all stages to ensure consistency
+        all_stages_data = self._decision_data.getPreaggregatedRemainingView
+        unique_values = (
+            all_stages_data.select(level)
+            .unique()
+            .collect()
+            .get_column(level)
+            .sort()
+            .to_list()
+        )
+
+        # Create color mapping using imported Pega colorway
+        color_discrete_map = {
+            val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
+        }
+
         fig = px.bar(
             df.collect(),
             x="Percentage",
             y="Status",
             orientation="h",
             color=level,
+            color_discrete_map=color_discrete_map,
             category_orders={"Status": ["Wins", "Losses"]},
         )
 
@@ -814,8 +854,10 @@ def create_win_distribution_plot(
     - For Action level: Shows individual actions
     - For Group/Issue level: Automatically aggregates data by summing win counts
     - Selected item is highlighted in red (#FF0000), others in grey
+    - "No Winner" bar (if present in data) is shown in orange (#FFA500) to highlight interactions without winners
     - If selected item not found, uses light blue as fallback color
     - X-axis labels are hidden to avoid clutter, scope level shown as x-axis title
+    - "No Winner" data is calculated and added by get_win_distribution_data() when all_interactions parameter is provided
 
     Examples
     --------
@@ -831,12 +873,32 @@ def create_win_distribution_plot(
     if scope_config["level"] == "Action":
         plot_data = data
     else:
-        # Aggregate data based on scope level
-        plot_data = (
-            data.group_by(scope_config["group_cols"])
-            .agg(pl.sum(win_count_col))
-            .sort(win_count_col, descending=True)
-        )
+        # Aggregate data based on scope level, but handle "No Winner" separately
+        no_winner_data = data.filter(pl.col("pyName") == "No Winner")
+        regular_data = data.filter(pl.col("pyName") != "No Winner")
+
+        if regular_data.height > 0:
+            aggregated_regular = (
+                regular_data.group_by(scope_config["group_cols"])
+                .agg(pl.sum(win_count_col))
+                .sort(win_count_col, descending=True)
+            )
+
+            # If we have "No Winner" data, we need to select only the columns that match aggregated_regular
+            if no_winner_data.height > 0:
+                # Select only the columns that exist in aggregated_regular
+                columns_to_keep = scope_config["group_cols"] + [win_count_col]
+                no_winner_data_selected = no_winner_data.select(columns_to_keep)
+                plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
+            else:
+                plot_data = aggregated_regular
+        else:
+            # If no regular data, just use no_winner_data (select appropriate columns)
+            if no_winner_data.height > 0:
+                columns_to_keep = scope_config["group_cols"] + [win_count_col]
+                plot_data = no_winner_data.select(columns_to_keep)
+            else:
+                plot_data = pl.DataFrame()
 
     # Create the plot
     fig = go.Figure()
@@ -850,17 +912,31 @@ def create_win_distribution_plot(
         )
     )
 
-    # Highlight the selected item
+    # Create color scheme with special handling for "No Winner"
+    colors = ["grey"] * plot_data.shape[0]
+    x_values = list(plot_data[scope_config["x_col"]])
+
+    # Highlight the selected item in red
     try:
-        bin_index = list(fig.data[0]["x"]).index(scope_config["selected_value"])
-        fig.data[0]["marker_color"] = (
-            ["grey"] * bin_index
-            + ["#FF0000"]
-            + ["grey"] * (plot_data.shape[0] - bin_index - 1)
-        )
+        selected_index = x_values.index(scope_config["selected_value"])
+        colors[selected_index] = "#FF0000"
     except ValueError:
-        # Selected value not found in the data, use default colors
+        # Selected value not found in the data
+        pass
+
+    # Highlight "No Winner" in orange if present
+    try:
+        no_winner_index = x_values.index("No Winner")
+        colors[no_winner_index] = "#FFA500"  # Orange color for "No Winner"
+    except ValueError:
+        # "No Winner" not found in the data
+        pass
+
+    # Apply colors, use lightblue as fallback if no special highlighting
+    if all(color == "grey" for color in colors):
         fig.data[0]["marker_color"] = "lightblue"
+    else:
+        fig.data[0]["marker_color"] = colors
 
     fig.update_yaxes(title=y_axis_title)
     fig.update_xaxes(showticklabels=False, title=scope_config["level"])
