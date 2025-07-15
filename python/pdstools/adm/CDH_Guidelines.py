@@ -139,8 +139,8 @@ class CDHGuidelines:
         return sorted(list(set([str(x[0]) for x in _NBAD_Prediction_data])))
 
     def is_standard_configuration(self, field: str = "Configuration") -> pl.Expr:
-        # simple approach, concatenating the matches. If the matches would be more
-        # complex we could consider joining together a lot of contains expressions
+        # simple approach, concatenating the case-insensitive regexp matches. If the 
+        # matches would be more complex we could consider joining together a lot of contains expressions
         # but that seems overkill at the moment.
         standard_names = "|".join([f"(?i){x}" for x in self.standard_configurations])
         return pl.col(field).cast(pl.String).str.contains(standard_names)

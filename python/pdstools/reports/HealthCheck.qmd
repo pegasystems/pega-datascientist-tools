@@ -253,7 +253,7 @@ try:
         .update_layout(
             autosize=True,
             height=400,
-            title=f"ADM Models across all Channels<br><sup>showing {filtered_size}models updated since {active_models_threshold_date_string}</sup>",
+            title=f"ADM Models across all Channels<br><sup>showing {filtered_size} models updated since {active_models_threshold_date_string}</sup>",
             xaxis_title="Model Performance",
             yaxis_title="Success Rate",
         )

@@ -29,7 +29,7 @@ class Reports(LazyNamespace):
 
     def model_reports(
         self,
-        model_ids: List[str],
+        model_ids: Union[str,List[str]],
         *,
         name: Optional[
             str
@@ -50,8 +50,8 @@ class Reports(LazyNamespace):
 
         Parameters
         ----------
-        model_ids : List[str]
-            The list of model IDs to generate reports for.
+        model_ids : Union[str,List[str]]
+            The model ID (or list of model IDs) to generate reports for.
         name : str, optional
             The (base) file name of the report.
         title : str, optional
@@ -92,13 +92,15 @@ class Reports(LazyNamespace):
             If there's an error in running external commands.
         """
 
+        if isinstance(model_ids, str):
+            model_ids = [model_ids]
         if (
             not model_ids
             or not isinstance(model_ids, list)
             or not all(isinstance(i, str) for i in model_ids)
         ):
             raise ValueError(
-                "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
+                "No valid model IDs"
             )
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
