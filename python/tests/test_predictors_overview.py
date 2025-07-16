@@ -53,7 +53,7 @@ def test_predictors_overview(dm_aggregates):
         pl.col("BinResponseCount").sum().alias("Total Responses")
     ]
     overview_with_aggs = dm_aggregates.predictors_overview(additional_aggregations=additional_aggs)
-    assert "Total Responses" in overview_with_aggs.columns
+    assert "Total Responses" in overview_with_aggs.collect_schema().names()
 
 
 def test_enhanced_summary_by_configuration(dm_aggregates):

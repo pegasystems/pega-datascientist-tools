@@ -37,6 +37,34 @@ class Plots(LazyNamespace):
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        """Creates gauge charts showing overall success rates for different conditions and channels.
+
+        This method generates a grid of gauge charts that display success rates for combinations of the
+        specified condition and grouping dimension. Each gauge shows the success rate as a percentage,
+        with optional reference values for comparison.
+
+        Parameters
+        ----------
+        condition : Union[str, pl.Expr]
+            The condition to group by (e.g., "Experiment", "Issue")
+        metric : Optional[str], optional
+            The metric to display success rates for, by default "Engagement"
+        by : Optional[str], optional
+            The dimension to group by (e.g., "Channel"), by default "Channel"
+        reference_values : Optional[Dict[str, float]], optional
+            Dictionary mapping dimension values to reference values for comparison, by default None
+        title : Optional[str], optional
+            Title for the plot, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly figure with gauge charts or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -124,7 +152,29 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a treemap visualization showing the distribution of response counts.
+
+        This method generates a hierarchical treemap visualization that displays the count of responses
+        across different dimensions. The treemap allows for exploration of how responses are distributed
+        across various categories and subcategories.
+
+        Parameters
+        ----------
+        by : Optional[List[str]], optional
+            List of dimensions to include in the hierarchy, by default uses common fields if available
+        title : Optional[str], optional
+            Title for the plot, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly treemap figure or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.express as px
 
@@ -171,7 +221,31 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a treemap visualization showing success rates across different dimensions.
+
+        This method generates a hierarchical treemap visualization that displays success rates
+        across different dimensions. The treemap is colored based on the success rate values,
+        allowing for easy identification of high and low performing areas.
+
+        Parameters
+        ----------
+        metric : Optional[str], optional
+            The metric to display success rates for, by default "Engagement"
+        by : Optional[List[str]], optional
+            List of dimensions to include in the hierarchy, by default uses common fields if available
+        title : Optional[str], optional
+            Title for the plot, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly treemap figure or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.express as px
 
@@ -229,7 +303,32 @@ class Plots(LazyNamespace):
         color: Optional[str] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a bar chart showing the distribution of actions.
+
+        This method generates a bar chart that displays the count of actions across different
+        categories. The chart can be colored by another dimension and faceted for more detailed analysis.
+
+        Parameters
+        ----------
+        by : Optional[str], optional
+            The dimension to show on the y-axis, by default "Name"
+        title : Optional[str], optional
+            Title for the plot, by default "Action Distribution"
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        color : Optional[str], optional
+            Dimension to use for coloring the bars, by default None
+        facet : Optional[str], optional
+            Dimension to use for faceting the chart, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly bar chart or the underlying data frame if return_df is True
+        """
         plot_data = self.ih.aggregates.summary_outcomes(
             by=[by, color, facet], query=query
         )
@@ -303,7 +402,32 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a line chart showing success rates over time.
+
+        This method generates a line chart that displays success rates for the specified metric
+        over time. The data can be faceted by another dimension for comparative analysis.
+
+        Parameters
+        ----------
+        metric : Optional[str], optional
+            The metric to display success rates for, by default "Engagement"
+        every : Union[str, timedelta], optional
+            Time interval for aggregation, by default "1d" (daily)
+        title : Optional[str], optional
+            Title for the plot, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        facet : Optional[str], optional
+            Dimension to use for faceting and coloring the chart, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly line chart or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.express as px
 
@@ -341,7 +465,31 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a bar chart showing response counts over time.
+
+        This method generates a bar chart that displays the count of responses over time,
+        colored by outcome type. The chart can be faceted by another dimension for more
+        detailed analysis.
+
+        Parameters
+        ----------
+        every : Union[str, timedelta], optional
+            Time interval for aggregation, by default "1d" (daily)
+        title : Optional[str], optional
+            Title for the plot, by default "Responses"
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        facet : Optional[str], optional
+            Dimension to use for faceting the chart, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly bar chart or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.express as px
 
@@ -376,12 +524,41 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ):
+    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+        """Creates a line chart showing model performance (AUC) over time.
+
+        This method generates a line chart that displays model performance measured by AUC
+        (Area Under the ROC Curve) over time. The performance is calculated based on propensity
+        scores and actual outcomes. The chart can be colored by one dimension and faceted by
+        another for comparative analysis.
+
+        Parameters
+        ----------
+        metric : Optional[str], optional
+            The metric to calculate performance for, by default "Engagement"
+        every : Union[str, timedelta], optional
+            Time interval for aggregation, by default "1d" (daily)
+        by : Optional[str], optional
+            Dimension to use for coloring the lines, by default None
+        title : Optional[str], optional
+            Title for the plot, by default "Model Performance over Time"
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        facet : Optional[str], optional
+            Dimension to use for faceting the chart, by default None
+        return_df : Optional[bool], optional
+            Whether to return the data frame instead of the plot, by default False
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, pl.LazyFrame]
+            A plotly line chart or the underlying data frame if return_df is True
+        """
         import plotly as plotly
         import plotly.express as px
 
         plot_data = (
-            self.ih.aggregates._summary_interactions(
+            self.ih.aggregates.summarize_by_interaction(
                 every=every, by=cdh_utils.safe_flatten_list([by, facet]), query=query
             )
             .filter(
@@ -394,7 +571,7 @@ class Plots(LazyNamespace):
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
                     function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
                     return_dtype=pl.Float64,
-                ).alias("Performance")
+                ).last().alias("Performance")
             )
             .sort(["OutcomeTime"])
         ).with_columns(pl.col("Performance") * 100)

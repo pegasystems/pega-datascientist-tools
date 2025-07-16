@@ -188,6 +188,7 @@ class Plots(LazyNamespace):
         rounding: int = 5,
         query: Optional[QUERY] = None,
         facet: Optional[Union[str, pl.Expr]] = None,
+        color: Optional[str] = "Performance",
         return_df: bool = False,
     ):
         """The Bubble Chart, as seen in Prediction Studio
@@ -205,16 +206,22 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
         """
-        columns_to_select = [
-            "ModelID",
-            "Performance",
-            "SuccessRate",
-            "ResponseCount",
-            "ModelTechnique",
-            "SnapshotTime",
-            "LastUpdate",
-            *self.datamart.context_keys,
-        ]
+        # why do we need this select? it's not ideal because columns used in the query are not always selected
+        columns_to_select = list(
+            set(
+                [
+                    "ModelID",
+                    color,
+                    "SuccessRate",
+                    "ResponseCount",
+                    "ModelTechnique",
+                    "SnapshotTime",
+                    "LastUpdate",
+                    "Configuration",
+                    *self.datamart.context_keys,
+                ]
+            )
+        ) + (["Performance"] if color != "Performance" else [])
         if facet is not None:
             if isinstance(facet, pl.Expr):
                 facet_columns = facet.meta.root_names()
@@ -249,7 +256,7 @@ class Plots(LazyNamespace):
             ),
             x="Performance",
             y="SuccessRate",
-            color="Performance",
+            color=color,
             size="ResponseCount",
             facet_col=facet_name,
             facet_col_wrap=2,
@@ -258,6 +265,7 @@ class Plots(LazyNamespace):
             title=f"Bubble Chart {title}",
             template="pega",
             facet_row_spacing=0.01,
+            labels={"LastUpdate": "Last Updated"},
         )
         fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
         fig.update_traces(marker=dict(line=dict(color="black")))
@@ -727,11 +735,18 @@ class Plots(LazyNamespace):
                 df, top_n, metric, facets=[facet] if facet else None
             )
 
+        df = df.with_columns(
+            pl.median(metric).over("PredictorName").alias("_median_"),
+            pl.mean(metric).over("PredictorName").alias("_mean_"),
+            pl.min(metric).over("PredictorName").alias("_min_"),
+            pl.max(metric).over("PredictorName").alias("_max_"),
+        )
+
         order = (
             df.group_by("PredictorName")
-            .agg(pl.median(metric).name.prefix("median_"))
+            .agg(pl.col("_median_").first().alias("Order"))
             .fill_nan(0)
-            .sort(f"median_{metric}", descending=False)
+            .sort("Order", descending=False)
             .select("PredictorName")
             .collect()["PredictorName"]
         )
@@ -753,11 +768,30 @@ class Plots(LazyNamespace):
             title=f"{title_prefix} {title_suffix}",
             facet_col=facet,
             facet_col_wrap=5,
+            hover_name="PredictorName",
+            # Unfortunately, Plotly supports customization of the hovers only
+            # for the 'point type' data in a box plot, not the actual boxes.
+            # https://github.com/plotly/plotly.py/issues/2498
+            # https://github.com/plotly/plotly.py/issues/3334
+            hover_data={
+                "PredictorName": False,
+                "_median_": ":.2f",
+                "_mean_": ":.2f",
+                "_min_": ":.2f",
+                "_max_": ":.2f",
+                "PredictorPerformance": ":.2f",
+            },
             labels={
                 "PredictorName": "Predictor Name",
                 "PredictorPerformance": "Performance",
+                "_median_": "Median Performance",
+                "_mean_": "Average Performance",
+                "_min_": "Minimum Performance",
+                "_max_": "Maximum Performance",
+                "Legend": "Predictor Category",
             },
         )
+
         fig.update_yaxes(
             categoryorder="array", categoryarray=order, automargin=True, dtick=1
         )
@@ -1268,6 +1302,57 @@ class Plots(LazyNamespace):
             lambda a: a.update(text=a.text.split("=")[-1])
         )  # split plotly facet label, show only right side
         return fig
+
+    def action_overlap(
+        self,
+        group_col: Union[str, list[str], pl.Expr] = "Channel",
+        overlap_col="Name",
+        *,
+        show_fraction=True,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        df = cdh_utils._apply_query(
+            (self.datamart.model_data),
+            query,
+        )
+
+        if isinstance(group_col, list):
+            group_col_name = "/".join(group_col)
+            df = df.with_columns(
+                pl.concat_str(*group_col, separator="/").alias(group_col_name)
+            )
+        elif isinstance(group_col, pl.Expr):
+            group_col_name = group_col.meta.output_name()
+            df = df.with_columns(group_col.alias(group_col_name))
+        else:
+            group_col_name = group_col
+
+        overlap_data = cdh_utils.overlap_matrix(
+            df.group_by(group_col_name)
+            .agg(pl.col(overlap_col).unique())
+            .sort(group_col_name)
+            .collect(),
+            overlap_col,
+            by=group_col_name,
+            show_fraction=show_fraction,
+        )
+
+        if return_df:
+            return overlap_data
+
+        plt = px.imshow(
+            overlap_data.drop(group_col_name),
+            text_auto=".1%" if show_fraction else ".d",
+            aspect="equal",
+            title=f"Overlap of {overlap_col}s",
+            x=overlap_data[group_col_name],
+            y=overlap_data[group_col_name],
+            template="pega",
+            labels=dict(x=group_col_name, y=group_col_name, color="Overlap"),
+        )
+        plt.update_coloraxes(showscale=False)
+        return plt
 
     def partitioned_plot(
         self,

@@ -52,57 +52,55 @@ _NBAD_ModelConfiguration_header = [
     "Configuration",  # "model_name",
     "Channel",  # channel
     "Direction",  # direction
-    "isStandardConfiguration",  # "standard",
-    "isMultiChannelConfiguration",  # "multi_channel",
+    "isMultiChannel",  # "multi_channel",
 ]
 _NBAD_ModelConfiguration_data = [
-    ["Web_Click_Through_Rate", "Web", "Inbound", True, False],
-    ["WebTreatmentClickModel", "Web", "Inbound", True, False],
-    ["Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False],
-    ["Email_Click_Through_Rate", "E-mail", "Outbound", True, False],
-    ["Push_Click_Through_Rate", "Push", "Outbound", True, False],
-    ["SMS_Click_Through_Rate", "SMS", "Outbound", True, False],
-    ["Retail_Click_Through_Rate", "Retail", "Inbound", True, False],
-    ["Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", True, False],
-    ["CallCenter_Click_Through_Rate", "Call Center", "Inbound", True, False],
-    ["CallCenterAcceptRateOutbound", "Call Center", "Outbound", True, False],
-    ["Assisted_Click_Through_Rate", "Assisted", "Inbound", True, False],
-    ["Assisted_Click_Through_Rate_Outbound", "Assisted", "Outbound", True, False],
-    ["Default_Inbound_Model", "Default", "Inbound", True, False],
-    ["Default_Outbound_Model", "Default", "Outbound", True, False],
-    ["Default_Click_Through_Rate", "Other", "Inbound", True, False],
-    ["Other_Inbound_Click_Through_Rate", "Other", "Inbound", True, False],
-    ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True],
+    ["Web_Click_Through_Rate", "Web", "Inbound", False],
+    ["WebTreatmentClickModel", "Web", "Inbound", False],
+    ["Mobile_Click_Through_Rate", "Mobile", "Inbound", False],
+    ["Email_Click_Through_Rate", "E-mail", "Outbound", False],
+    ["Push_Click_Through_Rate", "Push", "Outbound", False],
+    ["SMS_Click_Through_Rate", "SMS", "Outbound", False],
+    ["Retail_Click_Through_Rate", "Retail", "Inbound", False],
+    ["Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", False],
+    ["CallCenter_Click_Through_Rate", "Call Center", "Inbound", False],
+    ["CallCenterAcceptRateOutbound", "Call Center", "Outbound", False],
+    ["Assisted_Click_Through_Rate", "Assisted", "Inbound", False],
+    ["Assisted_Click_Through_Rate_Outbound", "Assisted", "Outbound", False],
+    ["Default_Inbound_Model", "Default", "Inbound", False],
+    ["Default_Outbound_Model", "Default", "Outbound", False],
+    ["Default_Click_Through_Rate", "Other", "Inbound", False],
+    ["Other_Inbound_Click_Through_Rate", "Other", "Inbound", False],
+    ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True],
 ]
 
-_standard_nbad_adm_configurations = pl.DataFrame(
-    data=_NBAD_ModelConfiguration_data, orient="row"
-)
-_standard_nbad_adm_configurations.columns = _NBAD_ModelConfiguration_header
+# _standard_nbad_adm_configurations = pl.DataFrame(
+#     data=_NBAD_ModelConfiguration_data, orient="row"
+# )
+# _standard_nbad_adm_configurations.columns = _NBAD_ModelConfiguration_header
 
 _NBAD_Prediction_header = [
     "Prediction",
     "Channel",
     "Direction",
-    "isStandardNBADPrediction",
-    "isMultiChannelPrediction",
+    "isMultiChannel",
 ]
 
 _NBAD_Prediction_data = [
-    ["PredictWebPropensity", "Web", "Inbound", True, False],
-    ["PredictMobilePropensity", "Mobile", "Inbound", True, False],
-    ["PredictOutboundEmailPropensity", "E-mail", "Outbound", True, False],
-    ["PredictOutboundPushPropensity", "Push", "Outbound", True, False],
-    ["PredictOutboundSMSPropensity", "SMS", "Outbound", True, False],
-    ["PredictInboundRetailPropensity", "Retail", "Inbound", True, False],
-    ["PredictOutboundRetailPropensity", "Retail", "Outbound", True, False],
-    ["PredictInboundCallCenterPropensity", "Call Center", "Inbound", True, False],
-    ["PredictOutboundCallCenterPropensity", "Call Center", "Outbound", True, False],
-    ["PredictInboundDefaultPropensity", "Default", "Inbound", True, False],
-    ["PredictOutboundDefaultPropensity", "Default", "Outbound", True, False],
-    ["PredictInboundOtherPropensity", "Other", "Inbound", True, False],
-    ["PredictActionPropensity", "Multi-channel", "Multi-channel", True, True],
-    ["PredictTreatmentPropensity", "Multi-channel", "Multi-channel", True, True],
+    ["PredictWebPropensity", "Web", "Inbound", False],
+    ["PredictMobilePropensity", "Mobile", "Inbound", False],
+    ["PredictOutboundEmailPropensity", "E-mail", "Outbound", False],
+    ["PredictOutboundPushPropensity", "Push", "Outbound", False],
+    ["PredictOutboundSMSPropensity", "SMS", "Outbound", False],
+    ["PredictInboundRetailPropensity", "Retail", "Inbound", False],
+    ["PredictOutboundRetailPropensity", "Retail", "Outbound", False],
+    ["PredictInboundCallCenterPropensity", "Call Center", "Inbound", False],
+    ["PredictOutboundCallCenterPropensity", "Call Center", "Outbound", False],
+    ["PredictInboundDefaultPropensity", "Default", "Inbound", False],
+    ["PredictOutboundDefaultPropensity", "Default", "Outbound", False],
+    ["PredictInboundOtherPropensity", "Other", "Inbound", False],
+    ["PredictActionPropensity", "Multi-channel", "Multi-channel", True],
+    ["PredictTreatmentPropensity", "Multi-channel", "Multi-channel", True],
 ]
 
 _colorscales = {
@@ -135,15 +133,33 @@ class CDHGuidelines:
         return sorted(list(set([str(x[0]) for x in _NBAD_ModelConfiguration_data])))
 
     @cached_property
+    def standard_predictions(self) -> List[str]:
+        return sorted(list(set([str(x[0]) for x in _NBAD_Prediction_data])))
+
+    def is_standard_configuration(self, field: str = "Configuration") -> pl.Expr:
+        # simple approach, concatenating the case-insensitive regexp matches. If the 
+        # matches would be more complex we could consider joining together a lot of contains expressions
+        # but that seems overkill at the moment.
+        standard_names = "|".join([f"(?i){x}" for x in self.standard_configurations])
+        return pl.col(field).cast(pl.String).str.contains(standard_names)
+
+    def is_standard_prediction(self, field: str = "Prediction") -> pl.Expr:
+        return (
+            pl.col(field)
+            .cast(pl.String)
+            .str.contains_any(self.standard_predictions, ascii_case_insensitive=True)
+        )
+
+    @cached_property
     def standard_channels(self) -> List[str]:
         return sorted(
-            list(set([str(x[1]) for x in _NBAD_ModelConfiguration_data if not x[4]]))
+            list(set([str(x[1]) for x in _NBAD_ModelConfiguration_data if not x[3]]))
         )
 
     @cached_property
     def standard_directions(self) -> List[str]:
         return sorted(
-            list(set([str(x[2]) for x in _NBAD_ModelConfiguration_data if not x[4]]))
+            list(set([str(x[2]) for x in _NBAD_ModelConfiguration_data if not x[3]]))
         )
 
     def _metric_value(self, series):

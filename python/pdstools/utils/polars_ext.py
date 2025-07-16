@@ -32,7 +32,7 @@ class Sample:
         return self._ldf.select(pl.first().len()).collect().item()
 
     def shape(self):
-        return (self.height(), len(self._ldf.columns))
+        return (self.height(), len(self._ldf.collect_schema().names()))
 
     def item(self):
         if self.shape() == (1, 1):

@@ -63,7 +63,8 @@ class PredictionPlots(LazyNamespace):
             cdh_utils._apply_query(plot_df, query)
             .with_columns(
                 Period=pl.format(
-                    "{} days", ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32)
+                    "{} days",
+                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
                 )
             )
             .rename({"DateRange Min": "Date"})
@@ -98,7 +99,7 @@ class PredictionPlots(LazyNamespace):
         #     hover_data=hover_data,
         # )
         plt = px.line(
-            plot_df.filter(pl.col("isMultiChannelPrediction").not_())
+            plot_df.filter(pl.col("isMultiChannel").not_())
             .filter(pl.col("Channel") != "Unknown")
             .sort("Date")
             .collect(),
@@ -139,7 +140,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -171,7 +172,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -210,7 +211,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -245,7 +246,7 @@ class PredictionPlots(LazyNamespace):
             hover_data={
                 "Period": True,
                 "Positives": True,
-                "Negatives": True,                
+                "Negatives": True,
                 "Positives_Test": True,
                 "Negatives_Test": True,
                 "CTR_Test": ":.3%",
@@ -617,8 +618,8 @@ class Prediction:
             - Direction: The direction (e.g., Inbound, Outbound)
             - ChannelDirectionGroup: Combined Channel/Direction identifier
             - isValid: Boolean indicating if the prediction data is valid
-            - isStandardNBADPrediction: Boolean indicating if this is a standard NBAD prediction
-            - isMultiChannelPrediction: Boolean indicating if this is a multichannel prediction
+            - usesNBAD: Boolean indicating if this is a standard NBAD prediction
+            - isMultiChannel: Boolean indicating if this is a multichannel prediction
             - ControlPercentage: Percentage of responses in control group
             - TestPercentage: Percentage of responses in test group
 
@@ -685,14 +686,13 @@ class Prediction:
                     .then(pl.lit("Unknown"))
                     .otherwise(pl.col("Direction"))
                     .alias("Direction"),
-                    pl.when(pl.col("isStandardNBADPrediction").is_null())
+                    self.cdh_guidelines.is_standard_prediction().alias(
+                        "usesNBAD"
+                    ),
+                    pl.when(pl.col("isMultiChannel").is_null())
                     .then(pl.lit(False))
-                    .otherwise(pl.col("isStandardNBADPrediction"))
-                    .alias("isStandardNBADPrediction"),
-                    pl.when(pl.col("isMultiChannelPrediction").is_null())
-                    .then(pl.lit(False))
-                    .otherwise(pl.col("isMultiChannelPrediction"))
-                    .alias("isMultiChannelPrediction"),
+                    .otherwise(pl.col("isMultiChannel"))
+                    .alias("isMultiChannel"),
                 ]
                 + period_expr
             )
@@ -701,8 +701,8 @@ class Prediction:
                     "Prediction",
                     "Channel",
                     "Direction",
-                    "isStandardNBADPrediction",
-                    "isMultiChannelPrediction",
+                    "usesNBAD",
+                    "isMultiChannel",
                 ]
                 + (["Period"] if by_period is not None else [])
             )
@@ -758,7 +758,7 @@ class Prediction:
                     & pl.col("Direction").is_not_null()
                     & pl.col("Channel").is_in(["Other", "Unknown", ""]).not_()
                     & pl.col("Direction").is_in(["Other", "Unknown", ""]).not_()
-                    & pl.col("isMultiChannelPrediction").not_()
+                    & pl.col("isMultiChannel").not_()
                 )
                 .then(pl.concat_str(["Channel", "Direction"], separator="/"))
                 .otherwise(pl.lit("Other")),
@@ -812,6 +812,7 @@ class Prediction:
             - Duration - The duration in seconds between the minimum and maximum snapshot times
             - ControlPercentage: Weighted average percentage of control group responses
             - TestPercentage: Weighted average percentage of test group responses
+            - usesNBAD: Boolean indicating if any of the predictions is a standard NBAD prediction
 
             Performance Metrics:
             - Performance: Weighted average performance across all valid channels
@@ -845,13 +846,13 @@ class Prediction:
 
         if (
             channel_summary.select(
-                (pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")).any()
+                (pl.col("isMultiChannel").not_() & pl.col("isValid")).any()
             )
             .collect()
             .item()
         ):
             # There are valid non-multi-channel predictions
-            validity_filter_expr = pl.col("isMultiChannelPrediction").not_() & pl.col(
+            validity_filter_expr = pl.col("isMultiChannel").not_() & pl.col(
                 "isValid"
             )
         else:
@@ -904,6 +905,7 @@ class Prediction:
                 cdh_utils.weighted_average_polars("TestPercentage", "Responses").alias(
                     "TestPercentage"
                 ),
+                pl.col("usesNBAD").any(ignore_nulls=False),
             )
             .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(

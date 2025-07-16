@@ -109,8 +109,8 @@ subtitle = "Sample data"
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
 model_file_path = None
-prediction_file_path = None
 predictor_file_path = None
+prediction_file_path = None
 query = None
 
 tables_max_rows = 200  # max number of rows for embedded tables
@@ -123,6 +123,7 @@ predictor_analysis_threshold = 200  # min number of responses for predictor anal
 configuration_responses_threshold = 10000
 
 threshold_updated_days = 30  # if no responses in this nr of days assume not active
+
 ```
 
 ```{python}
@@ -218,26 +219,32 @@ active_models_threshold_date_string = datamart.model_data.select(
 
 This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees. Off-line reports for Naive Bayes Adaptive models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
-We provide guidance and best practices as much as possible. However these guidelines are generic and may or may not be applicable to a specific use case or implementation. The recommendations are strongly geared towards the CDH and may not apply to, for example, Process AI.
+We provide guidance and best practices as much as possible. However these guidelines are generic and may or may not be applicable to a specific use case or implementation. The recommendations are strongly geared towards Customer Decision Hub (CDH) and may not apply to, for example, Process AI.
 
-The first plot below is a global view of all the ADM models, with the overall success rate on the vertical axis, and the model performance on the horizontal axis. This is across all channels, issues, groups. More specific ones are further down in this document. This just gives an overall view. See the [Model Performance](#model-performance) section below for guidance in how to interpret this plot.
+The first plot below is a global view of all the ADM models, with the overall success rate on the vertical axis, and the model performance on the horizontal axis. This is across all channels, issues, groups. More specific analyses are further down in this document. This just gives an overall view. See the [Model Performance](#model-performance) section below for guidance in how to interpret this plot.
 
+::: callout-note
 ```{python}
 report_utils.quarto_print(
     f"""
-Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. In some of the analyses here we assume that if there have been no updates to the model counts in **{threshold_updated_days} days**, they are not used/inactive and are filtered out.
+Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. As a work-around, in many of the analyses here we assume that if there have been no updates to the model counts in **{threshold_updated_days} days**, they are not used/inactive and are filtered out.
 """
 )
 ```
-
+:::
 
 ```{python}
 # Start with a global bubble chart. Maybe later replace by
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
-# TODO for the overall AUC chart would be nicer to color the
-# bubbles by channel/direction
 try:
-    fig = datamart.plot.bubble_chart(query=active_models_filter_expr)
+    # full_size = datamart.plot.bubble_chart(return_df=True).collect().height
+    filtered_size = (
+        datamart.plot.bubble_chart(query=active_models_filter_expr, return_df=True)
+        .collect()
+        .height
+    )
+
+    fig = datamart.plot.bubble_chart(query=active_models_filter_expr, color="Channel")
 
     fig.layout.coloraxis.colorscale = pega_template.success
 
@@ -246,7 +253,7 @@ try:
         .update_layout(
             autosize=True,
             height=400,
-            title=f"ADM Models across all Channels<br><sup>only showing models updated since {active_models_threshold_date_string}</sup>",
+            title=f"ADM Models across all Channels<br><sup>showing {filtered_size} models updated since {active_models_threshold_date_string}</sup>",
             xaxis_title="Model Performance",
             yaxis_title="Success Rate",
         )
@@ -260,29 +267,16 @@ except Exception as e:
 ```
 
 ::: {.callout-tip title="Guidance"}
-The charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
+The charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 # Overview of the Channels
 
-In a typical NBAD setup, treatments for a channels are modelled by a channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration. This cross-channel configuration is typically only used as a fall-back, and, additionally, for action-level insights.
-
-If a channel has two model configurations with a naming pattern like “Adm_12345678912”, this could indicate the usage of the (no longer recommended) “2-stage model” predictions for conversion modeling, generated by older versions of Prediction Studio.
-
-The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel.
-
-```{python}
-report_utils.quarto_print(
-    f"""
-In the view below, we look at the last **{threshold_updated_days} days** of data (or shorter if the data is for less than {threshold_updated_days} days).
-"""
-)
-```
+In a typical Next Best Action Designer setup, treatments for a channels are modelled by a channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration. This cross-channel configuration is typically only used as a fall-back, and, additionally, for action-level insights.
 
 ```{python}
 df_channel_overview = (
-    # TODO consider query argument, passing in query=active_models_filter_expr
-    datamart.aggregates.summary_by_channel(window=datetime.timedelta(days=threshold_updated_days))
+    datamart.aggregates.summary_by_channel(query=active_models_filter_expr)
     .with_columns(
         NBAD=pl.when(pl.col("usesNBAD").is_null())
         .then(pl.lit("?"))
@@ -310,11 +304,23 @@ df_channel_overview = (
     )
     .collect()
 )
+```
+
+If a channel has two model configurations with a naming pattern like “Adm_12345678912”, this could indicate the usage of the (no longer recommended) “2-stage model” predictions for conversion modeling, generated by older versions of Prediction Studio.
+
+The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel. A detailed channel-by-channel analysis is shown below.
+
+* The average performance is a weighted average of all the individual model performances, weighted by number of responses.
+* The AGB flag is derived from a field in the datamart, but only more recent product versions support that flag, so sometimes there is a question mark there, when we don't know
+* The NBAD flag really means that one of the configurations supporting this channel is an Out of the Box configuration name. When all of the configurations are changed to custom names, the flag will say "No" even if NBAD is used - we just don't have a way to tell from the ADM datamart data this is based on.
+
+
+```{python}
 
 formatted_channel_overview = (
     report_utils.table_standard_formatting(
         df_channel_overview,
-        title=f"Channel Overview for the last {threshold_updated_days} days",
+        title=f"Channel Overview (models updated since {active_models_threshold_date_string})",
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
             "Positive Responses": "Positives",
@@ -405,26 +411,6 @@ display(
 )
 ```
 
-```{python}
-framework_usage = (
-    "is being used"
-    if df_channel_overview.select(pl.col('usesNBAD').all()).item()
-    else (
-        "is being used with additional configurations"
-        if df_channel_overview.select(pl.col('usesNBAD').any()).item()
-        else "is not being used"
-    )
-)
-
-report_utils.quarto_print(
-    f"""
-The standard Pega Next Best Action Designer framework defines a number
-of standard Adaptive Models for channels. By looking at the names of the
-configurations it seems that the framework **{framework_usage}**.
-"""
-)
-```
-
 ::: {.callout-tip title="Guidance"}
 -   Look out for channels supported by more than two model configurations, although there may be valid reasons to do so (e.g. different sets of predictors for certain issues)
 -   Channels with no responses at all
@@ -435,9 +421,45 @@ configurations it seems that the framework **{framework_usage}**.
 In the ADM models, the total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be off. Ultimately, the real counts per channel can only be derived from **Interaction History data**.
 :::
 
-## Exclude unused Channels
+### Exclude unused Channels
 
-Channels with very few or no responses will be excluded from subsequent analyses. They have been highlighted in the channel overview with a strike-through.
+Channels with very few or no responses will be excluded from subsequent analyses. If there are any, these have been highlighted in the channel overview with a strike-through.
+
+## Omni Channel Actions
+
+The "OmniChannel" indication in the previous table gives the average overlap of actions between channels.
+
+Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the first (plotted on the x-axis) channel.
+
+ The items on the diagonal obviously show 100%, but the matrix is not symmetric: the percentage is the number of overlapping actions divided by the number of actions in the channel on the y-axis (and on the diagonal in the first plot).
+
+```{python}
+try:
+    fig = datamart.plot.action_overlap(
+        group_col=["Channel", "Direction"],
+        overlap_col="Name",
+        query=active_models_filter_expr,
+        show_fraction=False,
+    )
+    fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel</sub>")
+    
+    fig.show()
+
+    fig = datamart.plot.action_overlap(
+        group_col=["Channel", "Direction"],
+        overlap_col="Name",
+        query=active_models_filter_expr,
+    )
+    fig.update_layout(title="Relative Overlap of Actions<br><sub>by Channel</sub>")
+    
+    fig.show()
+except Exception as e:
+    report_utils.quarto_plot_exception("Action Overlap", e)
+```
+
+::: {.callout-tip title="Guidance"}
+-   Look out for channels that have very little overlap in actions with other channels
+:::
 
 # Overview of the Predictions
 
@@ -452,7 +474,9 @@ Predictions measure performance in a different way than ADM models do. The measu
 
 Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
 
-$Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$
+$$
+{Lift} = \frac{CTR_{test} - CTR_{control}} {CTR_{control}}
+$$
 
 with "test" the model group and "control" random test group. A lift of 0% means the model group is doing no better than the random group. A lift of 100% means the models are giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2% and is configured in Prediction Studio and Impact Analyzer (when using NBA Designer).
 
@@ -527,8 +551,8 @@ if prediction_file_path:
         .cols_hide(
             [
                 "ChannelDirectionGroup",
-                "isStandardNBADPrediction",
-                "isMultiChannelPrediction",
+                "usesNBAD",
+                "isMultiChannel",
                 "usesImpactAnalyzer",
                 "isValid",
                 "DateRange Max",
@@ -548,20 +572,20 @@ else:
 ```
 
 ```{python}
-try:
-    plt = predictions.plot.lift_trend("1w")
-    plt.update_layout(autosize=True, height=400, )
+if prediction_file_path:
+    try:
+        plt = predictions.plot.lift_trend("1w")
+        plt.update_layout(autosize=True, height=400, )
 
-    plt.show()
+        plt.show()
 
-    plt = predictions.plot.responsecount_trend("1w")
-    plt.update_layout(autosize=True, height=400, )
-    plt.update_yaxes(title="Weekly Responses")
+        plt = predictions.plot.responsecount_trend("1w")
+        plt.update_layout(autosize=True, height=400, )
+        plt.update_yaxes(title="Weekly Responses")
 
-    plt.show()
-except Exception as e:
-    report_utils.quarto_plot_exception("Prediction Trend Charts", e)
-
+        plt.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("Prediction Trend Charts", e)
 ```
 :::
 
@@ -574,6 +598,8 @@ Adaptive Models are created per treatment (at least in the default setup) and th
 The recommended [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html) are used here to highlight whether metrics are within limits. These limits may not apply for on-prem, non-CDH installs or for other reasons.
 
 ```{python}
+# TODO this currently does not include
+# any filtering on active models.
 df_action_overview = pl.DataFrame(
     {
         "Item": [
@@ -674,30 +700,28 @@ display(gt)
 
 ## Issue/Group Hierarchy
 
+We're showing the hierarchy of Issues and Groups with a sample of the actions in each.
+
 ```{python}
-# TODO work in progress - action overview
 if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     df_action_hierarchy = (
-        datamart.model_data
-        .group_by(
+        datamart.model_data.group_by(  # .filter(active_models_filter_expr)
             ["Issue", "Group"]
         )
         # TODO actions/treatments/used actions/used treatments
         # but only if available. Maybe a few examples too.
         .agg(
             pl.col("ModelID").n_unique().alias("Models"),
-            pl.col("Name").unique().head(5).alias("Example Values")
-        )
-        .sort(["Issue", "Group"])
-    ).with_columns(
-        pl.format("<b>{}</b", pl.col("Issue")).alias("Issue")
-    )
+            pl.col("Name").unique().head(5).alias("Example Values"),
+        ).sort(["Issue", "Group"])
+    ).with_columns(pl.format("<b>{}</b", pl.col("Issue")).alias("Issue"))
 
     gt = report_utils.table_standard_formatting(
         df_action_hierarchy.collect(),
         title="Action Hierarchy",
+        # subtitle=f"for models updated since {active_models_threshold_date_string}",
         rowname_col="Group",
-        groupname_col="Issue"
+        groupname_col="Issue",
     ).tab_stubhead(label="Issue/Group")
 
     # .tab_style(style=style.fill(color="red"), locations=loc.stub(rows=pl.col("Issue")=="Sales"))
@@ -705,12 +729,11 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     display(gt)
 ```
 
-## Actions Trends
+## Action Trends
 
-In a good implementation, you expect new actions to be introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions. The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
 
 ```{python}
-
 action_trend_data = datamart.aggregates.overall_summary(by_period="1w").collect()
 plot_data = action_trend_data.unpivot(
     on=["Actions", "New Actions", "Used Actions"],
@@ -719,15 +742,24 @@ plot_data = action_trend_data.unpivot(
     value_name="Weekly Count",
 )
 
+# Drop the first data point if there are multiple, 
+# because that always shows a peak in the new/used
+# actions stemming from the fill_null(True)
+if action_trend_data.select(pl.col("DateRange Min").n_unique()).item() > 1:
+    plot_data = plot_data.filter(pl.col("DateRange Min") > pl.col("DateRange Min").min())
+
 fig = px.line(
     plot_data,
     x="DateRange Min",
     y="Weekly Count",
     color="Actions",
+    markers=True,
     template="pega",
-    title="Number of Actions Used and New (weekly)"
+    title="Number of Actions Used and New (weekly)",
 )
-fig.update_xaxes(title="Week")
+fig.update_xaxes(title="")
+fig.update_layout(hovermode="x")
+fig.show()
 ```
 
 ## Success Rates
@@ -753,16 +785,10 @@ if unused_channels.height > 0:
 ```{python}
 report_utils.quarto_print(
     f"""
-Just showing the top {barchart_max_bars} here and limiting to the propositions that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
+Just showing the top {barchart_max_bars} actions here and limiting to the propositions that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
 """
 )
 ```
-
-::: {.callout-tip title="Guidance"}
--   Look out for actions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
-
--   Variation in the set of offers across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
-:::
 
 ```{python}
 facet = "Channel/Direction"
@@ -832,6 +858,12 @@ except Exception as e:
 
 ```
 
+::: {.callout-tip title="Guidance"}
+-   Look out for actions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
+
+-   Variation in the set of offers across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
+:::
+
 ## All Success Rates
 
 Showing the success rates of all actions in an interactive tree map. Green is higher, red are lower success rates.
@@ -854,10 +886,6 @@ except Exception as e:
 ## Success Rates over Time
 
 Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
-
-::: {.callout-tip title="Guidance"}
--   There shouldn’t be too sudden changes over time
-:::
 
 ```{python}
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
@@ -887,14 +915,18 @@ except Exception as e:
     report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
 
+::: {.callout-tip title="Guidance"}
+-   There shouldn’t be too sudden changes over time
+:::
+
 # Overview of the Adaptive Models
 
 ```{python}
-n_unique_models = len(last_data.select("ModelID").unique())  # TODO or uniqueN ?
-
 report_utils.quarto_print(
     f"""
-There are a total of **{n_unique_models}** Adaptive Models in the latest snapshot.
+There are a total of **{last_data.select(pl.col("ModelID").n_unique()).item()}** Adaptive Models in the latest snapshot. This may include models that have not been used for a while.
+
+There are **{last_data.filter(active_models_filter_expr).select(pl.col("ModelID").n_unique()).item()}** with recent updates (since {active_models_threshold_date_string})
 """
 )
 ```
@@ -914,6 +946,7 @@ display(
             "Treatments": "Unique Treatments",
             "Positive Responses": "Positives",
             "Responses": "ResponseCount",
+            "Model Performance": "Performance",
         },
         highlight_lists={
             "Channel": cdh_guidelines.standard_channels,
@@ -930,6 +963,7 @@ display(
         Actions="Unique Actions",
         ModelsPerAction="Average number of Models per Action",
         ResponseCount="Responses",
+        Performance="Average Performance",
     )
 )
 ```
@@ -993,22 +1027,6 @@ if (unused_configurations.shape[0] > 0) and (
 
 This “Bubble Chart” - similar to the standard ADM models overview in Pega Prediction Studio - shows the relation between model performance and proposition success rates. The size of the bubbles indicates the number of responses.
 
-::: {.callout-tip title="Guidance"}
--   Bubbles stacked up against the left-hand vertical axis represent actions/treatments for which the models are not predictive. These models may be still be ramping up, or they may not have enough features to work with: consider if new/better predictors can be added.
-
--   Charts should not be empty or contain only a few bubbles. Such charts may represent channels or configurations not (or no longer) used.
-
--   Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling enough.
-
--   In an ideal scenario you will see the larger bubbles more on the top-right, so more volume for propositions with higher success rates and better models.
-
--   There should - very roughly - be a positive correlation between success rate and performance and between response counts and performance.
-
--   There should be variation in response counts (not all dots of equal size)
-
--   For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less) exposure.
-:::
-
 ```{python}
 try:
     facet = pl.concat_str(
@@ -1035,13 +1053,25 @@ except Exception as e:
 
 On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success Rate of the models (#positives / #responses).
 
+::: {.callout-tip title="Guidance"}
+-   Bubbles stacked up against the left-hand vertical axis represent actions/treatments for which the models are not predictive. These models may be still be ramping up, or they may not have enough features to work with: consider if new/better predictors can be added.
+
+-   Charts should not be empty or contain only a few bubbles. Such charts may represent channels or configurations not (or no longer) used.
+
+-   Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling enough.
+
+-   In an ideal scenario you will see the larger bubbles more on the top-right, so more volume for propositions with higher success rates and better models.
+
+-   There should - very roughly - be a positive correlation between success rate and performance and between response counts and performance.
+
+-   There should be variation in response counts (not all dots of equal size)
+
+-   For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less) exposure.
+:::
+
 ### Model Performance over Time
 
 The trend chart shows how model performance evolves over time. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
-
-::: {.callout-tip title="Guidance"}
--   No abrupt changes but gradual upward trend is good
-:::
 
 ```{python}
 facet = "Configuration"
@@ -1068,6 +1098,10 @@ except Exception as e:
     report_utils.quarto_plot_exception("Model Performance over Time", e)
 
 ```
+
+::: {.callout-tip title="Guidance"}
+-   No abrupt changes but gradual upward trend is good
+:::
 
 ### Model performance of all the actions
 
@@ -1098,10 +1132,6 @@ Using an interactive treemap to visualize the response counts. Different channel
 
 Warning : Currently treemap calculates mean response count moving upwards in the hierarchy.
 
-::: {.callout-tip title="Guidance"}
-If there are actions that have a much higher response count than the rest see why that is. Possibly they are levered up for valid business reasons.
-:::
-
 ```{python}
 try:
     fig = datamart.plot.tree_map(
@@ -1118,6 +1148,10 @@ except Exception as e:
     report_utils.quarto_plot_exception("Overview of Response Counts", e)
 
 ```
+
+::: {.callout-tip title="Guidance"}
+If there are actions that have a much higher response count than the rest see why that is. Possibly they are levered up for valid business reasons.
+:::
 
 # Analysis of Predictors
 
@@ -1144,13 +1178,6 @@ The Predictor Categories identify the source of the predictors. By default we sp
 You can override this behavior when the data is read.
 
 The numbers here can differ from the totals above, these ones are leading.
-
-::: {.callout-tip title="Guidance"}
--   Total number of predictors per model 200 - 700 to stay within service limits
--   There should be some “IH” predictors but no more than ca 100 of them
--   No more than a few dozen Param predictors
--   Consistency in the numbers across configurations
-:::
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1183,16 +1210,16 @@ else:
 
 ```
 
+::: {.callout-tip title="Guidance"}
+-   Total number of predictors per model 200 - 700 to stay within service limits
+-   There should be some “IH” predictors but no more than ca 100 of them
+-   No more than a few dozen Param predictors
+-   Consistency in the numbers across configurations
+:::
+
 ## Predictor Importance across all models per configuration
 
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
-
-::: {.callout-tip title="Guidance"}
--   You expect most predictors to have a spread in the performance range, doing better for some actions than for others
--   Predictors only showing as a single bar (no range) are suspicious
--   A variation of predictors from different categories in the top 30
--   A min/max of the univariate AUC performance somewhere between 55 and 75
-:::
 
 ```{python}
 # TODO: Uses feature importance if available in the datamart
@@ -1237,6 +1264,13 @@ if datamart.predictor_data is not None:
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
+
+::: {.callout-tip title="Guidance"}
+-   You expect most predictors to have a spread in the performance range, doing better for some actions than for others
+-   Predictors only showing as a single bar (no range) are suspicious
+-   A variation of predictors from different categories in the top 30
+-   A min/max of the univariate AUC performance somewhere between 55 and 75
+:::
 
 ## Importance by Predictor Category
 
@@ -1317,12 +1351,6 @@ else:
 
 If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
 
-::: {.callout-tip title="Guidance"}
--   Predictors that consistently perform poorly could potentially be removed.
--   Be sure to check for data problems
--   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
-:::
-
 ```{python}
 if datamart.predictor_data is not None:
     bad_predictors = (
@@ -1367,13 +1395,15 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
+::: {.callout-tip title="Guidance"}
+-   Predictors that consistently perform poorly could potentially be removed.
+-   Be sure to check for data problems
+-   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+:::
+
 ## Number of Active and Inactive Predictors
 
 Showing the number of active and inactive predictors per model.
-
-::: {.callout-tip title="Guidance"}
--   We expect a few dozen active predictors for every model instance
-:::
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1389,6 +1419,10 @@ if datamart.predictor_data is not None:
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
+
+::: {.callout-tip title="Guidance"}
+-   We expect a few dozen active predictors for every model instance
+:::
 
 ## Predictor Performance across Actions
 
@@ -1612,12 +1646,6 @@ This could be because of lack of good predictors in the model.
 
 In the analysis below we count the number of models in each of the groups analysed before and show how that \ncount changes over time. The expectation is that the number of “non-empty” models increases steadily and the other lines are more or less stable.\n Empty is defined as having no responses at all. Immature is defined as having \< 200 positives, and no performance means model performance is still the initial 0.5 value while having matured already according to the definition.
 
-::: {.callout-tip title="Guidance"}
--   Empty models shouldnt be increasing too much
--   Good models (AUC 55-80) should increase or at least not decrease
--   Good models should be much higher than problem kids
-:::
-
 ```{python}
 by = ["SnapshotTime", "Channel", "Direction"]
 facet = "Channel/Direction"
@@ -1666,12 +1694,13 @@ except Exception as e:
     report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
-## Number of Responses over Time
-
 ::: {.callout-tip title="Guidance"}
--   Look out for consecutive days without any responses
--   Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+-   Empty models shouldnt be increasing too much
+-   Good models (AUC 55-80) should increase or at least not decrease
+-   Good models should be much higher than problem kids
 :::
+
+## Number of Responses over Time
 
 ```{python}
 facets = "Configuration"
@@ -1701,6 +1730,11 @@ except Exception as e:
 
 ```
 
+::: {.callout-tip title="Guidance"}
+-   Look out for consecutive days without any responses
+-   Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+:::
+
 # Which Models drive most of the Volume
 
 ## Analysis of skewness of the Responses
@@ -1713,14 +1747,11 @@ In the left-hand plot we look at all responses, which really means that we are l
 
 Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
 
-::: {.callout-tip title="Guidance"}
--   Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
-:::
-
 ::: {layout-ncol="2"}
 ```{python}
 # TODO move gains_table to PDS tools utils
 # TODO a corresponding GINI calculation would be nice
+
 
 def gains_table(df, value: str, index=None, by=None):
     sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
@@ -1794,7 +1825,11 @@ def plot_gains(df, value: str, index=None, by=None):
     )
     fig = (
         fig.update_yaxes(scaleanchor="x", scaleratio=1)
-        .update_layout(autosize=False, width=400, height=400, )
+        .update_layout(
+            autosize=False,
+            width=400,
+            height=400,
+        )
         .update_yaxes(constrain="domain", title="% of Responders")
         .update_xaxes(tickformat=",.0%")
         .update_yaxes(tickformat=",.0%")
@@ -1805,7 +1840,9 @@ def plot_gains(df, value: str, index=None, by=None):
 
 
 try:
-    fig = plot_gains(datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"])
+    fig = plot_gains(
+        datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"]
+    )
     fig = (
         fig.update_layout(title="Cumulative Responses")
         .update_yaxes(title="% of Responses")
@@ -1840,6 +1877,10 @@ try:
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
+:::
+
+::: {.callout-tip title="Guidance"}
+-   Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
 :::
 
 ## Analysis of Performance vs Volume

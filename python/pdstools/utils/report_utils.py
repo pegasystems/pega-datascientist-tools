@@ -126,7 +126,7 @@ def quarto_callout_no_predictor_data_warning(extra=""):
 
 
 def polars_col_exists(df, col):
-    return col in df.collect_schema().names() and df.schema[col] != pl.Null
+    return col in df.collect_schema().names() and df.collect_schema()[col] != pl.Null
 
 
 def polars_subset_to_existing_cols(all_columns, cols):

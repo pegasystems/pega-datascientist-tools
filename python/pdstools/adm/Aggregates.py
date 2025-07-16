@@ -113,12 +113,12 @@ class Aggregates:
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
-                pl.col("PredictorName") != "Classifier"
+                (pl.col("EntryType") == "Active")
+                if active_only
+                else (pl.col("EntryType") != "Classifier")
             ),
             query,
         )
-        if active_only:
-            df = df.filter(pl.col("EntryType") == "Active")
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()[
             "PredictorName"
         ]
@@ -429,7 +429,6 @@ class Aggregates:
                 self._summarize_model_usage(
                     grouping,
                     model_data,
-                    self.cdh_guidelines.standard_configurations,
                     debug=debug,
                 ),
                 on=("literal" if grouping is None else grouping),
@@ -488,7 +487,7 @@ class Aggregates:
                 pl.col("ResponseCount").max().alias("TotalResponseCount"),
                 pl.col("Positives").max() - pl.col("Positives").min(),
                 pl.col("ResponseCount").max() - pl.col("ResponseCount").min(),
-                pl.col("Performance").mean(),
+                pl.col("Performance").mean(),  # ahum, not weighted?
             )
             .group_by(grouping)
             .agg(
@@ -619,24 +618,17 @@ class Aggregates:
         self,
         grouping: Optional[List[str]],
         model_data: pl.LazyFrame,
-        standard_configurations: List[str],
         debug: bool,
     ) -> pl.LazyFrame:
-        standard_configurations_set = set([x.upper() for x in standard_configurations])
-
         result = model_data.group_by(grouping).agg(
-            pl.col("Configuration")
-            .cast(pl.Utf8)
-            .str.to_uppercase()
-            .is_in(standard_configurations_set)
-            .any(ignore_nulls=False)
+            self.cdh_guidelines.is_standard_configuration().any(ignore_nulls=False)
             .alias("usesNBAD"),
-            # For debugging:
-            pl.col("ModelTechnique").unique().sort(),
-            pl.col("Configuration").unique().sort().alias("Configurations"),
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
             .alias("usesAGB"),
+            # For debugging:
+            pl.col("ModelTechnique").unique().sort(),
+            pl.col("Configuration").unique().sort().alias("Configurations"),
         )
 
         if debug:
@@ -647,6 +639,7 @@ class Aggregates:
     def summary_by_channel(
         self,
         *,
+        query: Optional[QUERY] = None,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
@@ -658,6 +651,8 @@ class Aggregates:
 
         Parameters
         ----------
+        query : Optional[QUERY], optional
+            A query to apply to the data, by default None, so no filtering applied
         start_date : datetime.datetime, optional
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
@@ -718,9 +713,14 @@ class Aggregates:
             self.datamart.model_data, start_date, end_date, window
         )
 
+        if query is None:
+            query = pl.col("SnapshotTime").is_between(start_date, end_date)
+        else:
+            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query
+
         summary_by_channel = (
             self._adm_model_summary(
-                query=pl.col("SnapshotTime").is_between(start_date, end_date),
+                query=query,
                 by_period=by_period,
                 by_channel=True,
                 debug=debug,
@@ -813,6 +813,7 @@ class Aggregates:
             - ResponseCount - The total number of responses for this configuration
             - Positives - The total number of positive responses for this configuration
             - ModelsPerAction - The ratio of models to actions (models per action)
+            - Performance - The weighted average model performance
         """
 
         action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
@@ -848,7 +849,11 @@ class Aggregates:
                     pl.col("ModelID").n_unique(),
                 ]
                 + action_dim_agg
-                + [pl.sum(["ResponseCount", "Positives"])],
+                + [
+                    pl.sum(["ResponseCount", "Positives"]),
+                    cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+                    * 100.0,
+                ],
             )
             .with_columns(
                 [
