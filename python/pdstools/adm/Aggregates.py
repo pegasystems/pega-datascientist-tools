@@ -623,12 +623,12 @@ class Aggregates:
         result = model_data.group_by(grouping).agg(
             self.cdh_guidelines.is_standard_configuration().any(ignore_nulls=False)
             .alias("usesNBAD"),
-            # For debugging:
-            pl.col("ModelTechnique").unique().sort(),
-            pl.col("Configuration").unique().sort().alias("Configurations"),
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
             .alias("usesAGB"),
+            # For debugging:
+            pl.col("ModelTechnique").unique().sort(),
+            pl.col("Configuration").unique().sort().alias("Configurations"),
         )
 
         if debug:

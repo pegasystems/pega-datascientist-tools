@@ -52,8 +52,7 @@ _NBAD_ModelConfiguration_header = [
     "Configuration",  # "model_name",
     "Channel",  # channel
     "Direction",  # direction
-    # "isStandardConfiguration",  # "standa   rd",
-    "isMultiChannelConfiguration",  # "multi_channel",
+    "isMultiChannel",  # "multi_channel",
 ]
 _NBAD_ModelConfiguration_data = [
     ["Web_Click_Through_Rate", "Web", "Inbound", False],
@@ -84,8 +83,7 @@ _NBAD_Prediction_header = [
     "Prediction",
     "Channel",
     "Direction",
-    # "isStandardNBADPrediction",
-    "isMultiChannelPrediction",
+    "isMultiChannel",
 ]
 
 _NBAD_Prediction_data = [

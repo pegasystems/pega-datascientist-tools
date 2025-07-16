@@ -738,7 +738,7 @@ def weighted_performance_polars(
     return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
-def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
+def overlap_matrix(df: pl.DataFrame, list_col: str, by: str, show_fraction: bool) -> pl.DataFrame:
     """Calculate the overlap of a list element with all other list elements returning a full matrix.
 
     For each list in the specified column, this function calculates the overlap ratio (intersection size
@@ -791,9 +791,14 @@ def overlap_matrix(df: pl.DataFrame, list_col: str, by: str) -> pl.DataFrame:
     result = []
     for i in range(nrows):
         set_i = set(list_col[i].to_list())
-        overlap_w_other_rows = [
-            len(set_i & set(list_col[j].to_list())) / len(set_i) for j in range(nrows)
-        ]
+        if show_fraction:
+            overlap_w_other_rows = [
+                len(set_i & set(list_col[j].to_list())) / len(set_i) for j in range(nrows)
+            ]
+        else:
+            overlap_w_other_rows = [
+                len(set_i & set(list_col[j].to_list())) for j in range(nrows)
+            ]
         result.append(
             pl.Series(
                 name=f"Overlap_{list_col.name}_{df[by][i]}", values=overlap_w_other_rows
@@ -1323,9 +1328,11 @@ def create_working_and_temp_dir(
 
 
 # Safe flattening of nested lists, removing None elements, and not splitting strings
-def safe_flatten_list(alist: List) -> List:
+def safe_flatten_list(alist: List, extras: List = None) -> List:
+    if extras is None:
+        extras = []
     if alist is None:
-        return None
+        alist = []
     alist = list(filter(partial(is_not, None), alist))
     alist = [
         item
@@ -1334,7 +1341,7 @@ def safe_flatten_list(alist: List) -> List:
     ]
     alist = list(filter(partial(is_not, None), alist))
     seen = set()
-    unique_alist = []
+    unique_alist = extras
     for item in alist:
         if item not in seen:
             unique_alist.append(item)

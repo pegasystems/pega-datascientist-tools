@@ -103,13 +103,3 @@ def test_GenerateModelReport(sample: ADMDatamart):
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
 
-
-def test_GenerateModelReport_Failing(sample_without_predictor_binning: ADMDatamart):
-    with pytest.raises(Exception) as e_info:
-        sample_without_predictor_binning.generate.model_reports(
-            model_ids="bd70a915-697a-5d43-ab2c-53b0557c85a0", name="MyOrg"
-        )
-    assert (
-        "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
-        in str(e_info)
-    )

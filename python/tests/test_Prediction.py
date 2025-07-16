@@ -68,8 +68,8 @@ def test_summary_by_channel_cols(preds_singleday):
         "Prediction",
         "Channel",
         "Direction",
-        "isStandardNBADPrediction",
-        "isMultiChannelPrediction",
+        "usesNBAD",
+        "isMultiChannel",
         'DateRange Min',
         'DateRange Max',
         'Duration',
@@ -168,8 +168,8 @@ def test_summary_by_channel_range(preds_fewdays):
 def test_summary_by_channel_channeldirectiongroup(preds_singleday):
     summary = preds_singleday.summary_by_channel().collect()
 
-    assert summary["isMultiChannelPrediction"].to_list() == [False, True, False, False]
-    assert summary["isStandardNBADPrediction"].to_list() == [False, True, True, True]
+    assert summary["isMultiChannel"].to_list() == [False, True, False, False]
+    assert summary["usesNBAD"].to_list() == [False, True, True, True]
     assert summary["ChannelDirectionGroup"].to_list() == [
         "Other",
         "Other",
@@ -196,6 +196,7 @@ def test_overall_summary_cols(preds_singleday):
         "usesImpactAnalyzer",
         "ControlPercentage",
         "TestPercentage",
+        "usesNBAD",
     ]
     assert len(summary) == 1
 

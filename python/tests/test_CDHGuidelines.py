@@ -28,8 +28,7 @@ def test_predictions_mapping(guidance):
         "Prediction",
         "Channel",
         "Direction",
-        # "isStandardNBADPrediction",
-        "isMultiChannelPrediction",
+        "isMultiChannel",
     ]
     assert df.shape[0] == 14
 

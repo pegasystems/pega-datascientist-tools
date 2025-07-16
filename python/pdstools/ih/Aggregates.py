@@ -16,19 +16,52 @@ class Aggregates(LazyNamespace):
         super().__init__()
         self.ih = ih
 
-    def _summary_interactions(
+    def summarize_by_interaction(
         self,
-        by: Optional[Union[str, List[str]]] = None,
+        by: Optional[Union[str, List[str], pl.Expr]] = None,
         every: Optional[Union[str, timedelta]] = None,
         query: Optional[QUERY] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
+        """Groups the IH data by interaction ID and summarizes outcomes for each interaction.
+
+        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
+        given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
+        language as Polars.
+
+        For each interaction, it determines whether any outcomes match the positive or negative outcome labels
+        for each metric. An interaction is considered to have a positive outcome for a metric if any of its
+        outcomes are in the positive labels for that metric, and negative if any are in the negative labels.
+
+        Parameters
+        ----------
+        by : Optional[Union[str, List[str], pl.Expr]], optional
+            Grouping keys. Name of field(s) or a Polars expression, by default None
+        every : Optional[Union[str, timedelta]], optional
+            Every interval start and period length, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+        debug : bool, optional
+            Whether to include debug information in the output, by default False
+
+        Returns
+        -------
+        pl.LazyFrame
+            A polars frame with interaction-level outcome data, including columns for each metric's outcome
+            and the propensity value.
+        """
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
         else:
             source = self.ih.data
 
+        if not isinstance(by, list):
+            by = [by]
+        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            [by] + (["OutcomeTime"] if every is not None else [])
+            by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
+            by_pl_exprs
         )
 
         interactions = (
@@ -57,16 +90,19 @@ class Aggregates(LazyNamespace):
                     for metric in self.ih.positive_outcome_labels.keys()
                 ],
                 Propensity=pl.col.Propensity.last(),
-                Outcomes=pl.col.Outcome.unique().sort(),  # for debugging
+                # for debugging
+                Outcomes=pl.col.Outcome.unique().sort(),
             )
+            .drop([] if debug else ["Outcomes"])
         )
         return interactions
-    
+
     def summary_success_rates(
         self,
-        by: Optional[Union[str, List[str]]] = None,
+        by: Optional[Union[str, List[str], pl.Expr]] = None,
         every: Optional[Union[str, timedelta]] = None,
         query: Optional[QUERY] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
         """Groups the IH data summarizing into success rates (SuccessRate) and standard error (StdErr).
 
@@ -81,8 +117,8 @@ class Aggregates(LazyNamespace):
 
         Parameters
         ----------
-        by : Optional[Union[str, List[str]]], optional
-            Grouping keys, by default None
+        by : Optional[Union[str, List[str], pl.Expr]], optional
+            Grouping keys. Name of field(s) or a Polars expression, by default None
         every : Optional[str], optional
             Every interval start and period length, by default None
 
@@ -93,12 +129,18 @@ class Aggregates(LazyNamespace):
             number of Interactions, success rate (SuccessRate) and standard error (StdErr).
         """
 
+        if not isinstance(by, list):
+            by = [by]
+        by_pl_exprs = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            [by] + (["OutcomeTime"] if every is not None else [])
+            by_pl_exprs
+            + by_non_pl_exprs
+            + (["OutcomeTime"] if every is not None else [])
         )
 
         summary = (
-            self._summary_interactions(by, every, query)
+            self.summarize_by_interaction(by, every, query, debug=True)
             .group_by(group_by_clause)
             .agg(
                 [
@@ -116,10 +158,8 @@ class Aggregates(LazyNamespace):
                     for metric in self.ih.positive_outcome_labels.keys()
                 ],
                 Interactions=pl.len(),
-                Outcomes=pl.col.Outcomes.list.explode()
-                .unique()
-                .sort()
-                .drop_nulls(),  # for debugging
+                # for debugging
+                Outcomes=pl.col.Outcomes.list.explode().unique().sort().drop_nulls(),
             )
             .with_columns(
                 [
@@ -150,6 +190,7 @@ class Aggregates(LazyNamespace):
                     for metric in self.ih.positive_outcome_labels.keys()
                 ]
             )
+            .drop([] if debug else ["Outcomes"])
         )
 
         if group_by_clause is None:
@@ -161,24 +202,53 @@ class Aggregates(LazyNamespace):
 
     def summary_outcomes(
         self,
-        by: Optional[Union[str, List[str]]] = None,
+        by: Optional[Union[str, List[str], pl.Expr]] = None,
         every: Optional[Union[str, timedelta]] = None,
         query: Optional[QUERY] = None,
-    ):
+    ) -> pl.LazyFrame:
+        """Groups the IH data by outcome and summarizes counts for each outcome type.
+
+        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
+        given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
+        language as Polars.
+
+        This method provides a count of each outcome type, which can be useful for understanding the
+        distribution of outcomes across different dimensions or time periods.
+
+        Parameters
+        ----------
+        by : Optional[Union[str, List[str], pl.Expr]], optional
+            Grouping keys. Name of field(s) or a Polars expression, by default None
+        every : Optional[Union[str, timedelta]], optional
+            Every interval start and period length, by default None
+        query : Optional[QUERY], optional
+            Query to filter the data before aggregation, by default None
+
+        Returns
+        -------
+        pl.LazyFrame
+            A polars frame with the grouping keys, outcome types, and a count column showing the number
+            of occurrences for each outcome type within each group.
+        """
 
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
         else:
             source = self.ih.data
 
+        if not isinstance(by, list):
+            by = [by]
+        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            ["Outcome"] + [by] + (["OutcomeTime"] if every is not None else [])
+            ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
+            by_pl_exprs
         )
 
         summary = (
             cdh_utils._apply_query(source, query)
             .group_by(group_by_clause)
             .agg(Count=pl.len())
-        ).sort(cdh_utils.safe_flatten_list(["Count"]+group_by_clause))
+        ).sort("Count")
 
         return summary

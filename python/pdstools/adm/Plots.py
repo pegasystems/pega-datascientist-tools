@@ -1308,6 +1308,7 @@ class Plots(LazyNamespace):
         group_col: Union[str, list[str], pl.Expr] = "Channel",
         overlap_col="Name",
         *,
+        show_fraction=True,
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
@@ -1334,18 +1335,21 @@ class Plots(LazyNamespace):
             .collect(),
             overlap_col,
             by=group_col_name,
+            show_fraction=show_fraction,
         )
+
         if return_df:
             return overlap_data
 
         plt = px.imshow(
             overlap_data.drop(group_col_name),
-            text_auto=".1%",
+            text_auto=".1%" if show_fraction else ".d",
             aspect="equal",
             title=f"Overlap of {overlap_col}s",
             x=overlap_data[group_col_name],
             y=overlap_data[group_col_name],
             template="pega",
+            labels=dict(x=group_col_name, y=group_col_name, color="Overlap"),
         )
         plt.update_coloraxes(showscale=False)
         return plt
