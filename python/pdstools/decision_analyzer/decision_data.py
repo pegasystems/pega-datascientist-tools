@@ -60,7 +60,13 @@ class DecisionAnalyzer:
         "ModelEvidence",
     ]
 
-    def __init__(self, raw_data: pl.LazyFrame, level="StageGroup", sample_size=50000):
+    def __init__(
+        self,
+        raw_data: pl.LazyFrame,
+        level="StageGroup",
+        sample_size=50000,
+        mandatory_expr: Optional[pl.Expr] = None,
+    ):
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
@@ -72,7 +78,9 @@ class DecisionAnalyzer:
         raw_data = process(
             df=raw_data, table=self.extract_type, raise_on_unknown=False
         ).set_sorted(column="pxInteractionID")
-        self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
+        self.unfiltered_raw_decision_data = self.cleanup_raw_data(
+            raw_data, mandatory_expr
+        )
         self.resetGlobalDataFilters()
         # TODO subset against available fields in the data
         # TODO maybe we'll also need some aggregates per customer ID. Not certain, lets postpone, current dataset is not very representative.
@@ -353,7 +361,9 @@ class DecisionAnalyzer:
                     available_fields.append(field)
         return available_fields
 
-    def cleanup_raw_data(self, df: pl.LazyFrame):
+    def cleanup_raw_data(
+        self, df: pl.LazyFrame, mandatory_expr: Optional[pl.Expr] = None
+    ):
         """This method cleans up the raw data we read from parquet/S3/whatever.
 
         This likely needs to change as and when we get closer to product, to
@@ -364,6 +374,12 @@ class DecisionAnalyzer:
 
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
+
+        # Add is_mandatory column
+        if mandatory_expr is not None:
+            df = df.with_columns(is_mandatory=mandatory_expr)
+        else:
+            df = df.with_columns(is_mandatory=pl.lit(0))
 
         # Build ranking columns - include StageOrder only if it exists
         ranking_cols = ["Priority"]
