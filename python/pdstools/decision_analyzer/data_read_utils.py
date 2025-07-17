@@ -169,6 +169,8 @@ def validate_columns(df: pl.LazyFrame, extract_type: Dict[str, TableConfig]):
     missing_columns = [col for col in required_columns if col not in existing_columns]
 
     if missing_columns:
-        raise ValueError(
-            f"The following required columns are missing: {', '.join(missing_columns)}"
+        return (
+            False,
+            f"The following required columns are missing: {', '.join(missing_columns)}",
         )
+    return True, None

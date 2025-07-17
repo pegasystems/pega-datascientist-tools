@@ -300,6 +300,12 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "type": pl.Utf8,
         "required": True,
     },
+    # "EvalautionCriteria": {
+    #     "label": "EvalautionCriteria",
+    #     "default": True,
+    #     "type": pl.Utf8,
+    #     "required": False,
+    # },
 }
 
 
