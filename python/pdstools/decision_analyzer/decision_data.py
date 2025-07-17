@@ -1,6 +1,7 @@
 from bisect import bisect_left
 from functools import cached_property
 from typing import List, Optional, Union
+import warnings
 
 import polars as pl
 import polars.selectors as cs
@@ -67,7 +68,12 @@ class DecisionAnalyzer:
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
         # all columns are present?
-        validate_columns(raw_data, get_table_definition(self.extract_type))
+        validation_result, validation_error = validate_columns(
+            raw_data, get_table_definition(self.extract_type)
+        )
+        self.validation_error = validation_error if not validation_result else None
+        if not validation_result:
+            warnings.warn(validation_error, UserWarning)
         # cast datatypes
         raw_data = process(
             df=raw_data, table=self.extract_type, raise_on_unknown=False

@@ -78,5 +78,7 @@ if raw_data is not None:
         del raw_data
 
         if "decision_data" in st.session_state:
+            if st.session_state.decision_data.validation_error:
+                st.warning(st.session_state.decision_data.validation_error)
             extract_type = st.session_state.decision_data.extract_type
             st.success("Data reading is complete. You can proceed now.")
