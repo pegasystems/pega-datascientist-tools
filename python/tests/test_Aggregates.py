@@ -465,7 +465,8 @@ def test_overall_summary_timeslices(dm_minimal):
 
 def test_summary_by_configuration(dm_aggregates):
     configuration_summary = dm_aggregates.summary_by_configuration().collect()
-    assert "AGB" in configuration_summary.columns
+    assert "usesAGB" in configuration_summary.columns
+    assert "usesNBAD" in configuration_summary.columns
 
 
 def test_new_actions():
