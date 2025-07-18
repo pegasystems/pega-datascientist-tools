@@ -571,9 +571,11 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name").alias("NewActionsAtOrAfter")
+                    pl.col("Name")
+                    .alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode().unique(),
+                    .list.explode()
+                    .unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -783,7 +785,7 @@ class Aggregates:
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
 
-    def summary_by_configuration(self) -> pl.DataFrame:
+    def summary_by_configuration(self) -> pl.LazyFrame:
         """
         Generates a summary of the ADM model configurations.
 
@@ -792,8 +794,8 @@ class Aggregates:
 
         Returns
         -------
-        pl.DataFrame
-            A Polars DataFrame containing the configuration summary with the following fields:
+        pl.LazyFrame
+            A Polars LazyFrame containing the configuration summary with the following fields:
 
             Configuration Information:
             - Configuration - The name of the model configuration
@@ -832,6 +834,10 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [
             c for c in ["Channel", "Direction"] if c in self.datamart.context_keys
         ]
+        standard_configurations_set = set(
+            [x.upper() for x in self.cdh_guidelines.standard_configurations]
+        )
+
         configuration_summary = (
             self.last(table="model_data")
             .group_by(group_by_cols)
@@ -857,9 +863,12 @@ class Aggregates:
             )
             .with_columns(
                 [
-                    # pl.col("Configuration")
-                    # .is_in(standardNBADNames.keys())
-                    # .alias("Standard in NBAD Framework"),
+                    pl.col("Configuration")
+                    .cast(pl.Utf8)
+                    .str.to_uppercase()
+                    .is_in(standard_configurations_set)
+                    .any(ignore_nulls=False)
+                    .alias("Standard in NBAD configuration"),
                     (pl.col("ModelID") / pl.col("Actions"))
                     .round(2)
                     .alias("ModelsPerAction"),
@@ -1015,9 +1024,7 @@ class Aggregates:
             )
 
             return result
-        except (
-            ValueError
-        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
