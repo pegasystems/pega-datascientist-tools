@@ -283,7 +283,7 @@ def table_standard_formatting(
             )
         elif metric == "OmniChannel":
             gt = gt.fmt_percent(
-                decimals=0,
+                decimals=1,
                 columns=cols,
             )
         elif metric == "CTR":
