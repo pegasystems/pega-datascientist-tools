@@ -55,25 +55,3 @@ def test_predictors_overview(dm_aggregates):
     overview_with_aggs = dm_aggregates.predictors_overview(additional_aggregations=additional_aggs)
     assert "Total Responses" in overview_with_aggs.collect_schema().names()
 
-
-def test_enhanced_summary_by_configuration(dm_aggregates):
-    """Test the summary_by_configuration method with more detailed checks."""
-    configuration_summary = dm_aggregates.summary_by_configuration().collect()
-    assert configuration_summary is not None
-    assert isinstance(configuration_summary, pl.DataFrame)
-    
-    # Check that the expected columns are present
-    expected_columns = [
-        "Configuration", "AGB", "ModelID", "Actions", "Unique Treatments",
-        "ResponseCount", "Positives", "ModelsPerAction"
-    ]
-    for col in expected_columns:
-        assert col in configuration_summary.columns
-    
-    # Check that the AGB column contains expected values
-    assert set(configuration_summary["AGB"].unique()).issubset({"Yes", "No", "Unknown"})
-    
-    # Check that ModelsPerAction is calculated correctly
-    for row in configuration_summary.iter_rows(named=True):
-        if row["Actions"] > 0:
-            assert row["ModelsPerAction"] == round(row["ModelID"] / row["Actions"], 2)

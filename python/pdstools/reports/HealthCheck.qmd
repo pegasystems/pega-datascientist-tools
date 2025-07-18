@@ -428,9 +428,8 @@ Channels with very few or no responses will be excluded from subsequent analyses
 
 The "OmniChannel" indication in the previous table gives the average overlap of actions between channels.
 
-Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the first (plotted on the x-axis) channel.
+Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the channel on the y-axis.
 
-The items on the diagonal obviously show 100%, but the matrix is not symmetric: the percentage is the number of overlapping actions divided by the number of actions in the channel on the y-axis (and on the diagonal in the first plot).
 
 ```{python}
 try:
