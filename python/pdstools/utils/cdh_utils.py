@@ -738,7 +738,9 @@ def weighted_performance_polars(
     return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
-def overlap_matrix(df: pl.DataFrame, list_col: str, by: str, show_fraction: bool) -> pl.DataFrame:
+def overlap_matrix(
+    df: pl.DataFrame, list_col: str, by: str, show_fraction: bool = True
+) -> pl.DataFrame:
     """Calculate the overlap of a list element with all other list elements returning a full matrix.
 
     For each list in the specified column, this function calculates the overlap ratio (intersection size
@@ -781,9 +783,9 @@ def overlap_matrix(df: pl.DataFrame, list_col: str, by: str, show_fraction: bool
     │ ---               │ ---           │ ---           │ ---     │
     │ f64               │ f64           │ f64           │ str     │
     ╞═══════════════════╪═══════════════╪═══════════════╪═════════╡
-    │ 1.0               │ 0.5           │ 0.25          │ Mobile  │
-    │ 0.6666667         │ 1.0           │ 0.25          │ Web     │
-    │ 0.3333333         │ 0.25          │ 1.0           │ Email   │
+    │ 1.0               │ 0.6666667     │ 0.3333333     │ Mobile  │
+    │ 0.5               │ 1.0           │ 0.25          │ Web     │
+    │ 0.25              │ 0.25          │ 1.0           │ Email   │
     └───────────────────┴───────────────┴───────────────┴─────────┘
     """
     list_col = df[list_col]
@@ -793,7 +795,13 @@ def overlap_matrix(df: pl.DataFrame, list_col: str, by: str, show_fraction: bool
         set_i = set(list_col[i].to_list())
         if show_fraction:
             overlap_w_other_rows = [
-                len(set_i & set(list_col[j].to_list())) / len(set_i) for j in range(nrows)
+                (
+                    len(set_i & set(list_col[j].to_list()))
+                    / len(set(list_col[j].to_list()))
+                    if i != j
+                    else None
+                )
+                for j in range(nrows)
             ]
         else:
             overlap_w_other_rows = [

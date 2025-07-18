@@ -310,10 +310,9 @@ If a channel has two model configurations with a naming pattern like “Adm_1234
 
 The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel. A detailed channel-by-channel analysis is shown below.
 
-* The average performance is a weighted average of all the individual model performances, weighted by number of responses.
-* The AGB flag is derived from a field in the datamart, but only more recent product versions support that flag, so sometimes there is a question mark there, when we don't know
-* The NBAD flag really means that one of the configurations supporting this channel is an Out of the Box configuration name. When all of the configurations are changed to custom names, the flag will say "No" even if NBAD is used - we just don't have a way to tell from the ADM datamart data this is based on.
-
+-   The average performance is a weighted average of all the individual model performances, weighted by number of responses.
+-   The AGB flag is derived from a field in the datamart, but only more recent product versions support that flag, so sometimes there is a question mark there, when we don't know
+-   The NBAD flag really means that one of the configurations supporting this channel is an Out of the Box configuration name. When all of the configurations are changed to custom names, the flag will say "No" even if NBAD is used - we just don't have a way to tell from the ADM datamart data this is based on.
 
 ```{python}
 
@@ -429,9 +428,8 @@ Channels with very few or no responses will be excluded from subsequent analyses
 
 The "OmniChannel" indication in the previous table gives the average overlap of actions between channels.
 
-Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the first (plotted on the x-axis) channel.
+Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the channel on the y-axis.
 
- The items on the diagonal obviously show 100%, but the matrix is not symmetric: the percentage is the number of overlapping actions divided by the number of actions in the channel on the y-axis (and on the diagonal in the first plot).
 
 ```{python}
 try:
@@ -441,7 +439,9 @@ try:
         query=active_models_filter_expr,
         show_fraction=False,
     )
-    fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel</sub>")
+    fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel</sub>", width=500, height=500)
+    fig.update_xaxes(title="")
+    fig.update_yaxes(title="")
     
     fig.show()
 
@@ -450,7 +450,10 @@ try:
         overlap_col="Name",
         query=active_models_filter_expr,
     )
-    fig.update_layout(title="Relative Overlap of Actions<br><sub>by Channel</sub>")
+    fig.update_layout(title="Relative Overlap of Actions<br><sub>by Channel</sub>",
+    width=500, height=500)
+    fig.update_xaxes(title="")
+    fig.update_yaxes(title="")
     
     fig.show()
 except Exception as e:
@@ -938,7 +941,18 @@ model_overview = datamart.aggregates.summary_by_configuration()
 
 display(
     report_utils.table_standard_formatting(
-        model_overview.collect(),
+        model_overview.with_columns(
+            NBAD=pl.when(pl.col("usesNBAD").is_null())
+            .then(pl.lit("?"))
+            .when(pl.col("usesNBAD"))
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No")),
+            AGB=pl.when(pl.col("usesAGB").is_null())
+            .then(pl.lit("?"))
+            .when(pl.col("usesAGB"))
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No")),
+        ).drop("usesNBAD", "usesAGB").collect(),
         title="Model Overview",
         cdh_guidelines=cdh_guidelines,
         highlight_limits={

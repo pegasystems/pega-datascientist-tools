@@ -571,11 +571,9 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
+                    pl.col("Name").alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
+                    .list.explode().unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -623,7 +621,8 @@ class Aggregates:
         debug: bool,
     ) -> pl.LazyFrame:
         result = model_data.group_by(grouping).agg(
-            self.cdh_guidelines.is_standard_configuration().any(ignore_nulls=False)
+            self.cdh_guidelines.is_standard_configuration()
+            .any(ignore_nulls=False)
             .alias("usesNBAD"),
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
@@ -803,7 +802,6 @@ class Aggregates:
             - Direction - The direction (if available in context keys)
 
             Model Information:
-            - AGB - Indicates if Adaptive Gradient Boosting is used ("Yes", "No", or "Unknown")
             - ModelID - The number of unique model IDs for this configuration
 
             Action Statistics:
@@ -816,6 +814,11 @@ class Aggregates:
             - Positives - The total number of positive responses for this configuration
             - ModelsPerAction - The ratio of models to actions (models per action)
             - Performance - The weighted average model performance
+
+            Technology Usage Indicators:
+            - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
+            - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+
         """
 
         action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
@@ -834,45 +837,27 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [
             c for c in ["Channel", "Direction"] if c in self.datamart.context_keys
         ]
-        standard_configurations_set = set(
-            [x.upper() for x in self.cdh_guidelines.standard_configurations]
-        )
 
         configuration_summary = (
             self.last(table="model_data")
             .group_by(group_by_cols)
             .agg(
-                [
-                    # subtly different code from channel_summary
-                    pl.when((pl.col("ModelTechnique") == "GradientBoost").any())
-                    .then(pl.lit("Yes"))
-                    .when(pl.col("ModelTechnique").is_null().any())
-                    .then(pl.lit("Unknown"))
-                    .otherwise(pl.lit("No"))
-                    .alias("AGB")
-                ]
-                + [
-                    pl.col("ModelID").n_unique(),
-                ]
-                + action_dim_agg
-                + [
-                    pl.sum(["ResponseCount", "Positives"]),
-                    cdh_utils.weighted_average_polars("Performance", "ResponseCount")
-                    * 100.0,
-                ],
+                self.cdh_guidelines.is_standard_configuration()
+                .any(ignore_nulls=False)
+                .alias("usesNBAD"),
+                (pl.col("ModelTechnique") == "GradientBoost")
+                .any(ignore_nulls=False)
+                .alias("usesAGB"),
+                pl.col("ModelID").n_unique(),
+                *action_dim_agg,
+                pl.sum(["ResponseCount", "Positives"]),
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+                * 100.0,
             )
             .with_columns(
-                [
-                    pl.col("Configuration")
-                    .cast(pl.Utf8)
-                    .str.to_uppercase()
-                    .is_in(standard_configurations_set)
-                    .any(ignore_nulls=False)
-                    .alias("Standard in NBAD configuration"),
-                    (pl.col("ModelID") / pl.col("Actions"))
-                    .round(2)
-                    .alias("ModelsPerAction"),
-                ]
+                (pl.col("ModelID") / pl.col("Actions"))
+                .round(2)
+                .alias("ModelsPerAction"),
             )
             .sort(group_by_cols)
         )
@@ -1024,7 +1009,9 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except (
+            ValueError
+        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(

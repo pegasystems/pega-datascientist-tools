@@ -1349,7 +1349,7 @@ class Plots(LazyNamespace):
             x=overlap_data[group_col_name],
             y=overlap_data[group_col_name],
             template="pega",
-            labels=dict(x=group_col_name, y=group_col_name, color="Overlap"),
+            labels=dict(x=f"{group_col_name} on x", y=f"{group_col_name} on y", color="Overlap"),
         )
         plt.update_coloraxes(showscale=False)
         return plt

@@ -189,7 +189,9 @@ def test_overlap_matrix():
     input = pl.Series([[1, 2, 3], [2, 3, 4, 6], [3, 5, 7, 8]])
     df = pl.DataFrame({"Channel": ["Mobile", "Web", "Email"], "Actions": input})
 
-    assert cdh_utils.overlap_matrix(df, "Actions", "Channel", show_fraction=False).equals(
+    assert cdh_utils.overlap_matrix(
+        df, "Actions", "Channel", show_fraction=False
+    ).equals(
         pl.DataFrame(
             {
                 "Overlap_Actions_Mobile": [3, 2, 1],
@@ -200,12 +202,14 @@ def test_overlap_matrix():
         )
     )
 
-    assert cdh_utils.overlap_matrix(df, "Actions", "Channel", show_fraction=True).equals(
+    assert cdh_utils.overlap_matrix(
+        df, "Actions", "Channel", show_fraction=True
+    ).equals(
         pl.DataFrame(
             {
-                "Overlap_Actions_Mobile": [1.0, 2.0/3, 1.0/3],
-                "Overlap_Actions_Web": [0.5, 1.0, 0.25],
-                "Overlap_Actions_Email": [0.25, 0.25, 1.0],
+                "Overlap_Actions_Mobile": [None, 0.5, 0.25],
+                "Overlap_Actions_Web": [2.0 / 3, None, 0.25],
+                "Overlap_Actions_Email": [1.0 / 3, 0.25, None],
                 "Channel": ["Mobile", "Web", "Email"],
             }
         )
