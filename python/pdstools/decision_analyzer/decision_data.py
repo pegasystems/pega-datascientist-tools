@@ -1,6 +1,6 @@
 from bisect import bisect_left
 from functools import cached_property
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -66,23 +66,39 @@ class DecisionAnalyzer:
         level="StageGroup",
         sample_size=50000,
         mandatory_expr: Optional[pl.Expr] = None,
+        additional_columns: Optional[Dict[str, pl.DataType]] = None,
     ):
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
+
+        # Get table definition and add any additional columns to it
+        table_def = get_table_definition(self.extract_type)
+        if additional_columns:
+            for col_name, col_type in additional_columns.items():
+                table_def[col_name] = {
+                    "label": col_name,
+                    "default": True,
+                    "type": col_type,
+                    "required": False,
+                }
+
         # all columns are present?
-        validate_columns(raw_data, get_table_definition(self.extract_type))
+        validate_columns(raw_data, table_def)
         # cast datatypes
         raw_data = process(
-            df=raw_data, table=self.extract_type, raise_on_unknown=False
+            df=raw_data, table_definition=table_def, raise_on_unknown=False
         ).set_sorted(column="pxInteractionID")
-        self.unfiltered_raw_decision_data = self.cleanup_raw_data(
-            raw_data, mandatory_expr
-        )
+
+        if mandatory_expr is not None:
+            raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
+        else:
+            raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
+
+        self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
-        # TODO subset against available fields in the data
         # TODO maybe we'll also need some aggregates per customer ID. Not certain, lets postpone, current dataset is not very representative.
         available_columns = set(
             self.unfiltered_raw_decision_data.collect_schema().names()
@@ -361,9 +377,7 @@ class DecisionAnalyzer:
                     available_fields.append(field)
         return available_fields
 
-    def cleanup_raw_data(
-        self, df: pl.LazyFrame, mandatory_expr: Optional[pl.Expr] = None
-    ):
+    def cleanup_raw_data(self, df: pl.LazyFrame):
         """This method cleans up the raw data we read from parquet/S3/whatever.
 
         This likely needs to change as and when we get closer to product, to
@@ -374,12 +388,6 @@ class DecisionAnalyzer:
 
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
-
-        # Add is_mandatory column
-        if mandatory_expr is not None:
-            df = df.with_columns(is_mandatory=mandatory_expr)
-        else:
-            df = df.with_columns(is_mandatory=pl.lit(0))
 
         # Build ranking columns - include StageOrder only if it exists
         ranking_cols = ["Priority"]

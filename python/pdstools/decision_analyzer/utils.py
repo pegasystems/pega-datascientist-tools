@@ -210,14 +210,18 @@ def determine_extract_type(raw_data):
 ## From PDSTOOLS V4 (we can use pdstools.utils.process once v4 is published)
 def process(
     df: pl.LazyFrame,
-    table: Literal["decision_analyzer", "explainability_extract"],
+    table: Optional[Literal["decision_analyzer", "explainability_extract"]] = None,
     subset: bool = True,
     include_cols: Optional[Iterable[str]] = None,
     drop_cols: Optional[Iterable[str]] = None,
     raise_on_unknown: bool = True,
+    table_definition: Optional[Dict] = None,
 ) -> pl.LazyFrame:
     # df = cdh_utils._polars_capitalize(df)
-    table_definition = get_table_definition(table)
+    if table_definition is None:
+        if table is None:
+            raise ValueError("Either 'table' or 'table_definition' must be provided")
+        table_definition = get_table_definition(table)
 
     type_map = get_schema(
         df,
