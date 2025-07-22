@@ -5,11 +5,12 @@ author: "Pega Data Scientist tools"
 date: today
 subtitle: >
   Summary of all ADM Models
+execute:
+  echo: true
 format:
   html:
     page-layout: full
     code-fold: true
-    echo: true
     embed-resources: true
     standalone: true
     code-tools: true
@@ -18,6 +19,7 @@ format:
     theme:
         light: flatly
     fontsize: small
+    css: assets/pega-report-overrides.css
 jupyter: python3
 ---
 

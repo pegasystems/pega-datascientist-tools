@@ -19,6 +19,7 @@ format:
     theme:
         light: flatly
     fontsize: small
+    css: assets/pega-report-overrides.css
 jupyter: python3
 ---
 
