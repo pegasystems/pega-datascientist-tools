@@ -331,6 +331,7 @@ class Reports(LazyNamespace):
         from pdstools import __reports__
 
         shutil.copy(__reports__ / qmd_file, temp_dir)
+        shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
 
     @staticmethod
     def _write_params_files(

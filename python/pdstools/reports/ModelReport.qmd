@@ -19,6 +19,7 @@ format:
     theme:
         light: flatly
     fontsize: small
+    css: assets/pega-report-overrides.css
 jupyter: python3
 ---
 
@@ -707,5 +708,16 @@ for pred in (
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
 report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd")
-
 ```
+
+::: {.callout-note collapse="true"}
+## Expand for detailed version information
+
+```{python}
+# | code-fold: false
+from pdstools.utils import show_versions
+show_versions.show_versions()
+```
+:::
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

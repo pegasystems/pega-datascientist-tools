@@ -8,7 +8,7 @@ include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-"*" = ['*.qmd', 'py.typed']
+"*" = ['*.qmd', '*/pega-report-overrides.css', 'py.typed']
 
 [project]
 name = "pdstools"
