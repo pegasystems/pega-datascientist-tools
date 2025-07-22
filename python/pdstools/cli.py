@@ -22,13 +22,12 @@ def create_parser():
         "app",
         choices=["health_check", "decision_analyzer"],
         help='The app to run: "health_check" or "decision_analyzer"',
-        default="health_check",
-        nargs="?",  # This makes the 'app' argument optional, allowing the default to take effect
+        nargs="?",  # This makes the 'app' argument optional
     )
     run_parser.set_defaults(func=run)
 
     # Set 'run' as the default subcommand
-    parser.set_defaults(command="run", func=run, app="health_check")
+    parser.set_defaults(command="run", func=run)
 
     return parser
 
@@ -40,7 +39,6 @@ def main():
     # Manually handle the default command if none is provided
     if args.command is None:
         args.command = "run"
-        args.app = "health_check"
 
     args.func(args, unknown)
 
@@ -48,8 +46,33 @@ def main():
 def run(args, unknown):
     from streamlit.web import cli as stcli
 
-    print("Running app.")
+    # If no app is specified, prompt the user to choose
+    if not hasattr(args, 'app') or args.app is None:
+        available_apps = ["health_check", "decision_analyzer"]
+        print("Available pdstools apps:")
+        for i, app in enumerate(available_apps, 1):
+            print(f"  {i}. {app}")
+        
+        while True:
+            try:
+                choice = input("\nPlease select an app to run (1-2): ").strip()
+                if choice in ['1', '2']:
+                    args.app = available_apps[int(choice) - 1]
+                    break
+                elif choice.lower() in available_apps:
+                    args.app = choice.lower()
+                    break
+                else:
+                    print("Invalid choice. Please enter 1, 2, or the app name.")
+            except (KeyboardInterrupt, EOFError):
+                print("\nExiting...")
+                sys.exit(0)
+            except Exception:
+                print("Invalid input. Please try again.")
+
+    print(f"Running {args.app} app.")
     print(unknown)
+    
     if args.app == "decision_analyzer":
         with resources.path("pdstools.app.decision_analyzer", "Home.py") as filepath:
             filename = str(filepath)
