@@ -8,7 +8,7 @@ include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-"*" = ['*.qmd']
+"*" = ['*.qmd', 'py.typed']
 
 [project]
 name = "pdstools"
@@ -69,6 +69,3 @@ tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'mot
 
 [project.scripts]
 pdstools = 'pdstools.cli:main'
-
-[tool.mypy]
-mypy_path=['python/stubs']
