@@ -436,12 +436,6 @@ def show_credits(quarto_source: str):
     """
     )
 
-    # show_versions()
-
-    # quarto_print(
-    #     "For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools)."
-    # )
-
 
 def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
     if query is None:
