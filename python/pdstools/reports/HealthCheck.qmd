@@ -9,6 +9,7 @@ format:
   html:
     page-layout: full
     code-fold: true
+    echo: true
     embed-resources: true
     standalone: true
     code-tools: true
@@ -21,8 +22,8 @@ jupyter: python3
 ---
 
 ```{python}
-# | code-fold: true
 # | output: false
+# | echo: false
 import logging, sys
 
 logging.disable()
@@ -127,6 +128,8 @@ threshold_updated_days = 30  # if no responses in this nr of days assume not act
 ```
 
 ```{python}
+# | echo: false
+
 # Below needed because current Yaml lib reads None back in as the string None
 # TODO consider a different lib that supports roundtrip preservation like ruamel.yaml
 if model_file_path and model_file_path == "None":
@@ -145,7 +148,6 @@ responsecount_analysis_query = (
 )
 predictor_analysis_query = pl.col("ResponseCountBin") > predictor_analysis_threshold
 
-# | echo: false
 report_utils.quarto_print(
     f"""
 # {title}
@@ -159,7 +161,7 @@ report_utils.quarto_print(
 
 ```{python}
 # | tags: [initialization]
-# | code-fold: true
+# | echo: false
 
 def reset_datamart(dm):
     global datamart
@@ -225,6 +227,7 @@ The first plot below is a global view of all the ADM models, with the overall su
 
 ::: callout-note
 ```{python}
+# | echo: false
 report_utils.quarto_print(
     f"""
 Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. As a work-around, in many of the analyses here we assume that if there have been no updates to the model counts in **{threshold_updated_days} days**, they are not used/inactive and are filtered out.
@@ -430,7 +433,6 @@ The "OmniChannel" indication in the previous table gives the average overlap of 
 
 Here, we show how much overlap there is between any two channels. Ideally there is a lot of overlap between channels. The first plot shows the number of overlapping actions and is symmetric. The second one shows the overlap as a percentage: the number of actions in the overlap divided by the number of actions in the channel on the y-axis.
 
-
 ```{python}
 try:
     fig = datamart.plot.action_overlap(
@@ -450,7 +452,7 @@ try:
         overlap_col="Name",
         query=active_models_filter_expr,
     )
-    fig.update_layout(title="Relative Overlap of Actions<br><sub>by Channel</sub>",
+    fig.update_layout(title="Percentage of Overlapping Actions<br><sub>by Channel</sub>",
     width=500, height=500)
     fig.update_xaxes(title="")
     fig.update_yaxes(title="")
@@ -1178,7 +1180,6 @@ However, Predictor Data is **not available**. Predictor analysis is not availabl
 ::::::: {.content-hidden unless-meta="analysis.predictors"}
 ```{python}
 # | output: asis
-# | echo: false
 if datamart.predictor_data is None:
     report_utils.quarto_callout_no_predictor_data_warning(
         "All the below analyses based on predictor data will be empty."
@@ -1977,6 +1978,16 @@ except Exception as e:
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
 report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd")
-
-
 ```
+
+::: {.callout-note collapse="true"}
+## Expand for detailed version information
+
+```{python}
+# | code-fold: false
+from pdstools.utils import show_versions
+show_versions.show_versions()
+```
+:::
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

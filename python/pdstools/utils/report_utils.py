@@ -433,16 +433,14 @@ def show_credits(quarto_source: str):
     Quarto runtime: {quarto_version}
     Pandoc: {pandoc_version}
 
-    Additional details from 'pdstools.show_versions()':
-
     """
     )
 
-    show_versions()
+    # show_versions()
 
-    quarto_print(
-        "For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools)."
-    )
+    # quarto_print(
+    #     "For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools)."
+    # )
 
 
 def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
