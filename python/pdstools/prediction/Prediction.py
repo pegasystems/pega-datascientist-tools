@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import os
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -17,6 +18,8 @@ from ..utils.namespaces import LazyNamespace
 
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils import cdh_utils
+from ..pega_io.File import read_ds_export
+
 
 logger = logging.getLogger(__name__)
 try:
@@ -39,6 +42,12 @@ Figure = Union[Any, "go.Figure"]
 
 
 class PredictionPlots(LazyNamespace):
+    """
+    Plots for visualizing Prediction Studio data.
+
+    This class provides various plotting methods to visualize prediction performance,
+    lift, CTR, and response counts over time.
+    """
     dependencies = ["plotly"]
 
     def __init__(self, prediction):
@@ -51,10 +60,29 @@ class PredictionPlots(LazyNamespace):
         query: Optional[QUERY],
         metric: str,
         title: str,
-        hover_data=None,
-        facet_row: str = None,
-        facet_col: str = None,
+        **kwargs
     ):
+        """Internal method to create trend plots for various metrics.
+
+        Parameters
+        ----------
+        period : str
+            Time period for aggregation (e.g., "1d", "1w", "1mo")
+        query : Optional[QUERY]
+            Optional query to filter the data
+        metric : str
+            The metric to plot (e.g., "Performance", "Lift", "CTR")
+        title : str
+            Plot title
+        **kwargs
+            Additional keyword arguments passed directly to plotly.express.line
+            See plotly.express.line documentation for all available options
+
+        Returns
+        -------
+        tuple
+            (plotly figure, dataframe with plot data)
+        """
         plot_df = self.prediction.summary_by_channel(by_period=period).with_columns(
             Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
         )
@@ -105,22 +133,21 @@ class PredictionPlots(LazyNamespace):
             .collect(),
             x="Date",
             y=metric,
-            facet_row=facet_row,
-            facet_col=facet_col,
             color="Prediction",
             title=f"{title}<br><sub>{date_range}</sub>",
             template="pega",
             markers=True,
-            hover_data=hover_data,
+            **kwargs
         )
 
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
             legend_title_text="Channel"
         )
 
-        if facet_row is not None:
+        # Update axis titles if faceting is used
+        if kwargs.get("facet_row") is not None:
             plt.update_yaxes(title="")
-        if facet_col is not None:
+        if kwargs.get("facet_col") is not None:
             plt.update_xaxes(title="")
 
         return plt, plot_df
@@ -131,26 +158,54 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
+        **kwargs
     ):
+        """Create a performance trend plot showing AUC over time.
+
+        Parameters
+        ----------
+        period : str, optional
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            If True, returns the dataframe used for plotting instead of the plot, by default False
+        **kwargs
+            Additional keyword arguments passed directly to plotly.express.line
+            See plotly.express.line documentation for all available options
+
+        Returns
+        -------
+        Union[Figure, pl.DataFrame]
+            Either a plotly figure or the dataframe used for plotting if return_df is True
+        """
+        # Default hover data for performance plots
+        hover_data = {
+            "Period": True,
+            "Positives": True,
+            "Negatives": True,
+            "Positives_Test": True,
+            "Negatives_Test": True,
+            "CTR_Test": ":.3%",
+            "Positives_Control": True,
+            "Negatives_Control": True,
+            "CTR_Control": ":.3%",
+            "Positives_NBA": True,
+            "Negatives_NBA": True,
+            "CTR_NBA": ":.3%",
+        }
+        
+        # Merge default hover_data with any provided in kwargs
+        if "hover_data" in kwargs:
+            hover_data.update(kwargs.pop("hover_data"))
+            
         plt, plt_data = self._prediction_trend(
             query=query,
             period=period,
             metric="Performance",
             title="Prediction Performance",
-            hover_data={
-                "Period": True,
-                "Positives": True,
-                "Negatives": True,
-                "Positives_Test": True,
-                "Negatives_Test": True,
-                "CTR_Test": ":.3%",
-                "Positives_Control": True,
-                "Negatives_Control": True,
-                "CTR_Control": ":.3%",
-                "Positives_NBA": True,
-                "Negatives_NBA": True,
-                "CTR_NBA": ":.3%",
-            },
+            hover_data=hover_data,
+            **kwargs
         )
         if return_df:
             return plt_data
@@ -164,26 +219,54 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
+        **kwargs
     ):
+        """Create a lift trend plot showing engagement lift over time.
+
+        Parameters
+        ----------
+        period : str, optional
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            If True, returns the dataframe used for plotting instead of the plot, by default False
+        **kwargs
+            Additional keyword arguments passed directly to plotly.express.line
+            See plotly.express.line documentation for all available options
+
+        Returns
+        -------
+        Union[Figure, pl.DataFrame]
+            Either a plotly figure or the dataframe used for plotting if return_df is True
+        """
+        # Default hover data for lift plots
+        hover_data = {
+            "Period": True,
+            "Positives": True,
+            "Negatives": True,
+            "Positives_Test": True,
+            "Negatives_Test": True,
+            "CTR_Test": ":.3%",
+            "Positives_Control": True,
+            "Negatives_Control": True,
+            "CTR_Control": ":.3%",
+            "Positives_NBA": True,
+            "Negatives_NBA": True,
+            "CTR_NBA": ":.3%",
+        }
+        
+        # Merge default hover_data with any provided in kwargs
+        if "hover_data" in kwargs:
+            hover_data.update(kwargs.pop("hover_data"))
+            
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="Lift",
-            hover_data={
-                "Period": True,
-                "Positives": True,
-                "Negatives": True,
-                "Positives_Test": True,
-                "Negatives_Test": True,
-                "CTR_Test": ":.3%",
-                "Positives_Control": True,
-                "Negatives_Control": True,
-                "CTR_Control": ":.3%",
-                "Positives_NBA": True,
-                "Negatives_NBA": True,
-                "CTR_NBA": ":.3%",
-            },
             title="Prediction Lift",
+            hover_data=hover_data,
+            **kwargs
         )
         if return_df:
             return plt_data
@@ -203,27 +286,64 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
+        **kwargs
     ):
+        """Create a CTR (Click-Through Rate) trend plot over time.
+
+        Parameters
+        ----------
+        period : str, optional
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+        facetting : bool, optional
+            Whether to create facets by prediction, by default False
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            If True, returns the dataframe used for plotting instead of the plot, by default False
+        **kwargs
+            Additional keyword arguments passed directly to plotly.express.line
+            See plotly.express.line documentation for all available options
+
+        Returns
+        -------
+        Union[Figure, pl.DataFrame]
+            Either a plotly figure or the dataframe used for plotting if return_df is True
+        """
+        # Default hover data for CTR plots
+        hover_data = {
+            "Period": True,
+            "Positives": True,
+            "Negatives": True,
+            "Positives_Test": True,
+            "Negatives_Test": True,
+            "CTR_Test": ":.3%",
+            "Positives_Control": True,
+            "Negatives_Control": True,
+            "CTR_Control": ":.3%",
+            "Positives_NBA": True,
+            "Negatives_NBA": True,
+            "CTR_NBA": ":.3%",
+        }
+        
+        # Merge default hover_data with any provided in kwargs
+        if "hover_data" in kwargs:
+            hover_data.update(kwargs.pop("hover_data"))
+            
+        # Handle facetting
+        facet_kwargs = {}
+        if facetting:
+            facet_kwargs["facet_row"] = "Prediction"
+            
+        # Merge facet_kwargs with any provided in kwargs
+        kwargs.update(facet_kwargs)
+            
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="CTR",
-            hover_data={
-                "Period": True,
-                "Positives": True,
-                "Negatives": True,
-                "Positives_Test": True,
-                "Negatives_Test": True,
-                "CTR_Test": ":.3%",
-                "Positives_Control": True,
-                "Negatives_Control": True,
-                "CTR_Control": ":.3%",
-                "Positives_NBA": True,
-                "Negatives_NBA": True,
-                "CTR_NBA": ":.3%",
-            },
             title="Prediction CTR",
-            facet_row="Prediction" if facetting else None,
+            hover_data=hover_data,
+            **kwargs
         )
         if return_df:
             return plt_data
@@ -238,28 +358,64 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
+        **kwargs
     ):
+        """Create a response count trend plot showing total responses over time.
+
+        Parameters
+        ----------
+        period : str, optional
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+        facetting : bool, optional
+            Whether to create facets by prediction, by default False
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            If True, returns the dataframe used for plotting instead of the plot, by default False
+        **kwargs
+            Additional keyword arguments passed directly to plotly.express.line
+            See plotly.express.line documentation for all available options
+
+        Returns
+        -------
+        Union[Figure, pl.DataFrame]
+            Either a plotly figure or the dataframe used for plotting if return_df is True
+        """
+        # Default hover data for response count plots
+        hover_data = {
+            "Period": True,
+            "Positives": True,
+            "Negatives": True,
+            "Positives_Test": True,
+            "Negatives_Test": True,
+            "CTR_Test": ":.3%",
+            "Positives_Control": True,
+            "Negatives_Control": True,
+            "CTR_Control": ":.3%",
+            "Positives_NBA": True,
+            "Negatives_NBA": True,
+            "CTR_NBA": ":.3%",
+        }
+        
+        # Merge default hover_data with any provided in kwargs
+        if "hover_data" in kwargs:
+            hover_data.update(kwargs.pop("hover_data"))
+            
+        # Handle facetting
+        facet_kwargs = {}
+        if facetting:
+            facet_kwargs["facet_col"] = "Prediction"
+            
+        # Merge facet_kwargs with any provided in kwargs
+        kwargs.update(facet_kwargs)
+            
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="Responses",
-            hover_data={
-                "Period": True,
-                "Positives": True,
-                "Negatives": True,
-                "Positives_Test": True,
-                "Negatives_Test": True,
-                "CTR_Test": ":.3%",
-                "Positives_Control": True,
-                "Negatives_Control": True,
-                "CTR_Control": ":.3%",
-                "Positives_NBA": True,
-                "Negatives_NBA": True,
-                "CTR_NBA": ":.3%",
-            },
             title="Prediction Responses",
-            facet_col="Prediction" if facetting else None,
-            # bar_mode=True,
+            hover_data=hover_data,
+            **kwargs
         )
         if return_df:
             return plt_data
@@ -269,7 +425,44 @@ class PredictionPlots(LazyNamespace):
 
 
 class Prediction:
-    """Monitor Pega Prediction Studio Predictions"""
+    """
+    Monitor and analyze Pega Prediction Studio Predictions.
+
+    To initialize this class, either
+    1. Initialize directly with the df polars LazyFrame
+    2. Use one of the class methods
+
+    This class will read in the data from different sources, properly structure them
+    for further analysis, and apply correct typing and useful renaming.
+
+    There is also a "namespace" that you can call from this class:
+
+    - `.plot` contains ready-made plots to analyze the prediction data with
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The Polars LazyFrame representation of the prediction data.
+    query : QUERY, optional
+        An optional query to apply to the input data.
+        For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
+
+    Examples
+    --------
+    >>> pred = Prediction.from_ds_export('/my_export_folder/predictions.zip')
+    >>> pred = Prediction.from_mock_data(days=70)
+    >>> from pdstools import Prediction
+    >>> import polars as pl
+    >>> pred = Prediction(
+             df = pl.scan_parquet('predictions.parquet'),
+             query = {"Class":["DATA-DECISION-REQUEST-CUSTOMER-CDH"]}
+             )
+
+    See Also
+    --------
+    pdstools.prediction.PredictionPlots : The out of the box plots on the Prediction data
+    pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+    """
 
     predictions: pl.LazyFrame
     plot: PredictionPlots
@@ -403,7 +596,99 @@ class Prediction:
         self.predictions = cdh_utils._apply_query(self.predictions, query)
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame, return_df=False):
+    def from_ds_export(
+        cls,
+        predictions_filename: Union[os.PathLike, str],
+        base_path: Union[os.PathLike, str] = ".",
+        *,
+        query: Optional[QUERY] = None,
+    ):
+        """Import from a Pega Dataset Export of the PR_DATA_DM_SNAPSHOTS table.
+
+        Parameters
+        ----------
+        predictions_filename : Union[os.PathLike, str]
+            The full path or name (if base_path is given) to the prediction snapshot files
+        base_path : Union[os.PathLike, str], optional
+            A base path to provide if predictions_filename is not given as a full path, by default "."
+        query : Optional[QUERY], optional
+            An optional argument to filter out selected data, by default None
+
+        Returns
+        -------
+        Prediction
+            The properly initialized Prediction class
+
+        Examples
+        --------
+        >>> from pdstools import Prediction
+        >>> pred = Prediction.from_ds_export('predictions.zip', '/my_export_folder')
+
+        Note
+        ----
+        By default, the dataset export in Infinity returns a zip file per table.
+        You do not need to open up this zip file! You can simply point to the zip,
+        and this method will be able to read in the underlying data.
+
+        See Also
+        --------
+        pdstools.pega_io.File.read_ds_export : More information on file compatibility
+        pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+        """
+        predictions_raw_data = read_ds_export(predictions_filename, base_path)
+        return cls(predictions_raw_data, query=query)
+
+    @classmethod
+    def from_s3(cls):
+        """Not implemented yet. Please let us know if you would like this functionality!
+
+        Returns
+        -------
+        Prediction
+            The properly initialized Prediction class
+        """
+        ...
+
+    @classmethod
+    def from_dataflow_export(cls):
+        """Import from a data flow, such as the Prediction Studio export. Not implemented yet. Please let us know if you would like this functionality!
+
+        Returns
+        -------
+        Prediction
+            The properly initialized Prediction class
+        """
+        ...
+
+    @classmethod
+    def from_pdc(
+        cls,
+        df: pl.LazyFrame,
+        *,
+        return_df=False,
+        query: Optional[QUERY] = None,
+    ):
+        """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The Polars LazyFrame containing the PDC data
+        return_df : bool, optional
+            If True, returns the processed DataFrame instead of initializing the class, by default False
+        query : Optional[QUERY], optional
+            An optional query to apply to the input data, by default None
+
+        Returns
+        -------
+        Union[Prediction, pl.LazyFrame]
+            Either the initialized Prediction class or the processed DataFrame if return_df is True
+
+        See Also
+        --------
+        pdstools.utils.cdh_utils._read_pdc : More information on PDC data processing
+        pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+        """
         pdc_data = cdh_utils._read_pdc(df)
 
         snapshotType = "Daily"
@@ -463,10 +748,28 @@ class Prediction:
         if return_df:
             return prediction_data
 
-        return Prediction(prediction_data)
+        return cls(prediction_data, query=query)
 
-    @staticmethod
-    def from_mock_data(days=70):
+    @classmethod
+    def from_mock_data(cls, days=70):
+        """Create a Prediction instance with mock data for testing and demonstration purposes.
+
+        Parameters
+        ----------
+        days : int, optional
+            Number of days of mock data to generate, by default 70
+
+        Returns
+        -------
+        Prediction
+            The initialized Prediction class with mock data
+
+        Examples
+        --------
+        >>> from pdstools import Prediction
+        >>> pred = Prediction.from_mock_data(days=30)
+        >>> pred.plot.performance_trend()
+        """
         n_conditions = 4  # can't change this
         n_predictions = 3  # tied to the data below
         now = datetime.datetime.now()
@@ -561,14 +864,31 @@ class Prediction:
             .with_columns(pyCount=pl.col("pyPositives") + pl.col("pyNegatives"))
         )
 
-        return Prediction(mock_prediction_data)
+        return cls(mock_prediction_data)
 
     @property
     def is_available(self) -> bool:
+        """Check if prediction data is available.
+
+        Returns
+        -------
+        bool
+            True if prediction data is available, False otherwise
+        """
         return len(self.predictions.head(1).collect()) > 0
 
     @property
     def is_valid(self) -> bool:
+        """Check if prediction data is valid.
+
+        A valid prediction meets the criteria defined in prediction_validity_expr,
+        which requires positive and negative responses in both test and control groups.
+
+        Returns
+        -------
+        bool
+            True if prediction data is valid, False otherwise
+        """
         return (
             self.is_available
             # or even stronger: pos = pos_test + pos_control
@@ -686,9 +1006,7 @@ class Prediction:
                     .then(pl.lit("Unknown"))
                     .otherwise(pl.col("Direction"))
                     .alias("Direction"),
-                    self.cdh_guidelines.is_standard_prediction().alias(
-                        "usesNBAD"
-                    ),
+                    self.cdh_guidelines.is_standard_prediction().alias("usesNBAD"),
                     pl.when(pl.col("isMultiChannel").is_null())
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
@@ -852,9 +1170,7 @@ class Prediction:
             .item()
         ):
             # There are valid non-multi-channel predictions
-            validity_filter_expr = pl.col("isMultiChannel").not_() & pl.col(
-                "isValid"
-            )
+            validity_filter_expr = pl.col("isMultiChannel").not_() & pl.col("isValid")
         else:
             validity_filter_expr = pl.col("isValid")
 
