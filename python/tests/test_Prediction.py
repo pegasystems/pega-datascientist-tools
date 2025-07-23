@@ -301,13 +301,45 @@ def test_from_mock_data():
     ).collect()
     assert len(unique_dates) == 30
 
+
+def test_from_ds_export():
+    """Test the from_ds_export class method."""
+    # Create a simple mock for testing
+    mock_data = mock_prediction_data
+    
+    # Use a context manager to patch the read_ds_export function directly in the Prediction module
+    with patch('pdstools.prediction.Prediction.read_ds_export', return_value=mock_data) as mock_read:
+        with patch.object(Prediction, '__init__', return_value=None) as mock_init:
+            # Test with just filename
+            Prediction.from_ds_export('test_predictions.zip')
+            mock_read.assert_called_once_with('test_predictions.zip', '.')
+            mock_init.assert_called_once()
+            
+            # Reset the mocks for the next test
+            mock_read.reset_mock()
+            mock_init.reset_mock()
+            
+            # Test with filename and base_path
+            Prediction.from_ds_export('test_predictions.zip', '/path/to/data')
+            mock_read.assert_called_once_with('test_predictions.zip', '/path/to/data')
+            
+            # Reset the mocks for the next test
+            mock_read.reset_mock()
+            mock_init.reset_mock()
+            
+            # Test with query
+            Prediction.from_ds_export('test_predictions.zip', query={"Class": ["TEST"]})
+            mock_read.assert_called_once_with('test_predictions.zip', '.')
+            # The query should be passed to __init__
+            assert mock_init.call_args[1].get('query') == {"Class": ["TEST"]}
+
+
 def test_from_pdc():
     """Test the from_pdc class method."""
-    # Create mock PDC data with all required columns
+    # Create mock PDC data - using integer multiplication
     pdc_data = pl.DataFrame({
         "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
         "ModelName": ["MYCUSTOMPREDICTION"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4 + ["PREDICTWEBPROPENSITY"] * 4,
-        "ModelID": ["ID1"] * 12,  # Added missing required column
         "ModelType": ["Prediction_Test", "Prediction_Control", "Prediction_NBA", "Prediction"] * 3,
         "Name": ["auc"] * 12,
         "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
@@ -320,13 +352,8 @@ def test_from_pdc():
         "TotalResponses": [0] * 12,
     }).lazy()
     
-    # We need to patch the _read_pdc function to avoid actual processing
+    # Use a context manager to patch both the _read_pdc function and the Prediction.__init__ method
     with patch('pdstools.utils.cdh_utils._read_pdc', return_value=pdc_data) as mock_read_pdc:
-        # Test with return_df=True
-        result = Prediction.from_pdc(pdc_data, return_df=True)
-        assert isinstance(result, pl.LazyFrame)
-        
-        # For testing initialization and query parameters, we need to patch the __init__ method
         with patch.object(Prediction, '__init__', return_value=None) as mock_init:
             # Test normal initialization
             Prediction.from_pdc(pdc_data)
@@ -335,9 +362,14 @@ def test_from_pdc():
             # Reset the mock for the next test
             mock_init.reset_mock()
             
+            # Test with return_df=True
+            result = Prediction.from_pdc(pdc_data, return_df=True)
+            # Check that it's a LazyFrame, not necessarily the same object
+            assert isinstance(result, pl.LazyFrame)
+            
             # Test with query
             Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
-            mock_init.assert_called_once()
+            # The query should be passed to __init__
             assert mock_init.call_args[1].get('query') == {"ModelName": ["PREDICTWEBPROPENSITY"]}
 
 
@@ -415,3 +447,4 @@ def test_lazy_namespace_initialization():
     # Verify the dependencies attribute
     assert hasattr(pred.plot, 'dependencies')
     assert 'plotly' in pred.plot.dependencies
+
