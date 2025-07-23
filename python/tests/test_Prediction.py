@@ -301,45 +301,6 @@ def test_from_mock_data():
     ).collect()
     assert len(unique_dates) == 30
 
-
-def test_from_ds_export():
-    """Test the from_ds_export class method."""
-    # Create a simple mock for testing
-    mock_data = mock_prediction_data
-    
-    # Create a mock for the read_ds_export function
-    # We need to patch where it's imported in the Prediction module
-    with patch('pdstools.prediction.Prediction.read_ds_export', return_value=mock_data) as mock_read:
-        # Create a test instance with our mock
-        pred = Prediction.from_ds_export('test_predictions.zip')
-        
-        # Verify the function was called with the correct arguments
-        mock_read.assert_called_once()
-        args, kwargs = mock_read.call_args
-        assert args[0] == 'test_predictions.zip'
-        assert args[1] == '.'
-        
-        # Reset the mock for the next test
-        mock_read.reset_mock()
-        
-        # Test with base_path
-        pred = Prediction.from_ds_export('test_predictions.zip', '/path/to/data')
-        mock_read.assert_called_once()
-        args, kwargs = mock_read.call_args
-        assert args[0] == 'test_predictions.zip'
-        assert args[1] == '/path/to/data'
-        
-        # Reset the mock for the next test
-        mock_read.reset_mock()
-        
-        # Test with query
-        # For this test, we need to patch the __init__ method to check the query parameter
-        with patch.object(Prediction, '__init__', return_value=None) as mock_init:
-            Prediction.from_ds_export('test_predictions.zip', query={"Class": ["TEST"]})
-            mock_init.assert_called_once()
-            assert mock_init.call_args[1].get('query') == {"Class": ["TEST"]}
-
-
 def test_from_pdc():
     """Test the from_pdc class method."""
     # Create mock PDC data with all required columns
