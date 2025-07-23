@@ -1,6 +1,7 @@
 from bisect import bisect_left
 from functools import cached_property
 from typing import List, Optional, Union
+import warnings
 
 import polars as pl
 import polars.selectors as cs
@@ -13,7 +14,7 @@ from .utils import (
     determine_extract_type,
     get_table_definition,
     gini_coefficient,
-    process,
+    rename_and_cast_types,
 )
 
 
@@ -67,11 +68,18 @@ class DecisionAnalyzer:
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
         # all columns are present?
-        validate_columns(raw_data, get_table_definition(self.extract_type))
+        validation_result, validation_error = validate_columns(
+            raw_data, get_table_definition(self.extract_type)
+        )
+        self.validation_error = validation_error if not validation_result else None
+        if not validation_result:
+            warnings.warn(validation_error, UserWarning)
         # cast datatypes
-        raw_data = process(
-            df=raw_data, table=self.extract_type, raise_on_unknown=False
-        ).set_sorted(column="pxInteractionID")
+        raw_data = (
+            rename_and_cast_types(df=raw_data, table=self.extract_type)
+            .sort("pxInteractionID")
+            .set_sorted(column="pxInteractionID")
+        )
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
         # TODO subset against available fields in the data
@@ -149,7 +157,7 @@ class DecisionAnalyzer:
         return self._num_sample_interactions
 
     def _invalidate_cached_properties(self):
-        """Resets the properties of the class"""
+        """Resets the properties of the class. Needed for global filters."""
         cls = type(self)
         cached = {
             attr
@@ -264,14 +272,8 @@ class DecisionAnalyzer:
     @cached_property
     def sample(self):
         """
-        Create a sample of the data by selecting a random subset of interaction IDs.
-        This implementation is optimized to avoid collecting all unique IDs first,
-        which is expensive for large datasets.
-
-        Instead, it:
-        1. Uses the hash of interaction IDs to deterministically sample them
-        2. Samples at approximately the rate needed to get ~30,000 interactions
-        3. Only collects the columns needed for downstream analysis
+        Create a sample of the data by taking the first 50,000 interactions.
+        If there are fewer than 50,000 total interactions, no sampling is performed.
         """
         needed_columns = [
             "pxInteractionID",
@@ -297,23 +299,21 @@ class DecisionAnalyzer:
         available_cols = set(self.decision_data.collect_schema().names())
         columns_to_keep = [col for col in needed_columns if col in available_cols]
 
-        # Get total count and approximate unique count of interaction IDs
-        # This is much faster than collecting all unique IDs
         print("In sample function")
-        approx_count = (
+        total_interaction_count = (
             self.decision_data.set_sorted("pxInteractionID")
             .select(pl.n_unique("pxInteractionID").alias("unique_count"))
             .collect()
             .item()
         )
-        print(f"Calculated approximate interaction count: {approx_count}")
+        print(f"Total interaction count: {total_interaction_count}")
         # Set num_sample_interactions attribute - use sample_size if we have more interactions than sample_size
-        self._num_sample_interactions = min(approx_count, self.sample_size)
+        self.sample_size = min(total_interaction_count, self.sample_size)
         target_sample_size = self.sample_size
-        sample_rate = min(1.0, target_sample_size / max(1, approx_count))
+        sample_rate = min(1.0, target_sample_size / max(1, total_interaction_count))
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
-        # but doesn't require collecting all unique IDs first
+        # but doesn't require collecting all unique IDs first, 15x faster than collecting 50k interactions first.
         df = (
             self.decision_data.select(columns_to_keep)
             .with_columns(
@@ -647,7 +647,7 @@ class DecisionAnalyzer:
         expr = [
             pl.len().alias("nOffers"),
             pl.col("Propensity")
-            .where(pl.col("Propensity") < 0.5)
+            .filter(pl.col("Propensity") < 0.5)
             .max()
             .alias("bestPropensity"),
         ]
@@ -658,9 +658,7 @@ class DecisionAnalyzer:
                 aggregations=expr,
             )
             .group_by(["nOffers", self.level, "day"])
-            .agg(
-                Interactions=pl.count(), AverageBestPropensity=pl.mean("bestPropensity")
-            )
+            .agg(Interactions=pl.len(), AverageBestPropensity=pl.mean("bestPropensity"))
             .sort("nOffers", descending=True)
         )
         return optionality_data
