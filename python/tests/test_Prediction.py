@@ -3,6 +3,8 @@ Testing the functionality of the Prediction class
 """
 
 import datetime
+import os
+from unittest.mock import patch, MagicMock
 
 import polars as pl
 import pytest
@@ -277,3 +279,172 @@ def test_plots():
     assert isinstance(prediction.plot.lift_trend(return_df=True), pl.LazyFrame)
     assert isinstance(prediction.plot.responsecount_trend(return_df=True), pl.LazyFrame)
     assert isinstance(prediction.plot.ctr_trend(return_df=True), pl.LazyFrame)
+
+
+# New tests to improve coverage
+
+def test_from_mock_data():
+    """Test the from_mock_data class method with different day parameters."""
+    # Test with default days
+    pred_default = Prediction.from_mock_data()
+    assert pred_default.is_available
+    assert pred_default.is_valid
+    
+    # Test with custom days
+    pred_custom = Prediction.from_mock_data(days=30)
+    assert pred_custom.is_available
+    assert pred_custom.is_valid
+    
+    # Verify the number of days in the data
+    unique_dates = pred_custom.predictions.select(
+        pl.col("SnapshotTime").unique()
+    ).collect()
+    assert len(unique_dates) == 30
+
+
+def test_from_ds_export():
+    """Test the from_ds_export class method."""
+    # Create a simple mock for testing
+    mock_data = mock_prediction_data
+    
+    # Use a context manager to patch the read_ds_export function directly in the Prediction module
+    with patch('pdstools.prediction.Prediction.read_ds_export', return_value=mock_data) as mock_read:
+        with patch.object(Prediction, '__init__', return_value=None) as mock_init:
+            # Test with just filename
+            Prediction.from_ds_export('test_predictions.zip')
+            mock_read.assert_called_once_with('test_predictions.zip', '.')
+            mock_init.assert_called_once()
+            
+            # Reset the mocks for the next test
+            mock_read.reset_mock()
+            mock_init.reset_mock()
+            
+            # Test with filename and base_path
+            Prediction.from_ds_export('test_predictions.zip', '/path/to/data')
+            mock_read.assert_called_once_with('test_predictions.zip', '/path/to/data')
+            
+            # Reset the mocks for the next test
+            mock_read.reset_mock()
+            mock_init.reset_mock()
+            
+            # Test with query
+            Prediction.from_ds_export('test_predictions.zip', query={"Class": ["TEST"]})
+            mock_read.assert_called_once_with('test_predictions.zip', '.')
+            # The query should be passed to __init__
+            assert mock_init.call_args[1].get('query') == {"Class": ["TEST"]}
+
+
+def test_from_pdc():
+    """Test the from_pdc class method."""
+    # Create mock PDC data - using integer multiplication
+    pdc_data = pl.DataFrame({
+        "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
+        "ModelName": ["MYCUSTOMPREDICTION"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4 + ["PREDICTWEBPROPENSITY"] * 4,
+        "ModelType": ["Prediction_Test", "Prediction_Control", "Prediction_NBA", "Prediction"] * 3,
+        "Name": ["auc"] * 12,
+        "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
+        "Performance": [65.0] * 4 + [70.0] * 8,
+        "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1 + [400, 100, 500, 1000],
+        "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1 + [2000, 1000, 3000, 6000],
+        "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1 + [2400, 1100, 3500, 7000],
+        "ADMModelType": [""] * 12,
+        "TotalPositives": [0] * 12,
+        "TotalResponses": [0] * 12,
+    }).lazy()
+    
+    # Use a context manager to patch both the _read_pdc function and the Prediction.__init__ method
+    with patch('pdstools.utils.cdh_utils._read_pdc', return_value=pdc_data) as mock_read_pdc:
+        with patch.object(Prediction, '__init__', return_value=None) as mock_init:
+            # Test normal initialization
+            Prediction.from_pdc(pdc_data)
+            mock_init.assert_called_once()
+            
+            # Reset the mock for the next test
+            mock_init.reset_mock()
+            
+            # Test with return_df=True
+            result = Prediction.from_pdc(pdc_data, return_df=True)
+            # Check that it's a LazyFrame, not necessarily the same object
+            assert isinstance(result, pl.LazyFrame)
+            
+            # Test with query
+            Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
+            # The query should be passed to __init__
+            assert mock_init.call_args[1].get('query') == {"ModelName": ["PREDICTWEBPROPENSITY"]}
+
+
+def test_prediction_plots_internal_method(preds_singleday):
+    """Test the internal _prediction_trend method of PredictionPlots."""
+    # Call the internal method directly
+    plt, plot_df = preds_singleday.plot._prediction_trend(
+        period="1d",
+        query=None,
+        metric="Performance",
+        title="Test Plot"
+    )
+    
+    # Verify the plot was created
+    assert plt is not None
+    
+    # Verify the dataframe has expected columns
+    assert isinstance(plot_df, pl.LazyFrame)
+    collected_df = plot_df.collect()
+    assert "Performance" in collected_df.columns
+    assert "Date" in collected_df.columns
+    assert "Prediction" in collected_df.columns
+
+
+def test_prediction_validity_expr(preds_singleday):
+    """Test the prediction_validity_expr class attribute."""
+    # Get the expression
+    expr = Prediction.prediction_validity_expr
+    
+    # Test the expression on the predictions property which has the correct column names
+    result = preds_singleday.predictions.filter(expr).collect()
+    
+    # Verify it filters as expected
+    assert len(result) > 0
+    
+    # Create a prediction with invalid data (with zeros)
+    invalid_data = mock_prediction_data.with_columns(
+        pyPositives=pl.lit(0)
+    )
+    invalid_pred = Prediction(invalid_data)
+    
+    # Verify it correctly identifies invalid data
+    invalid_result = invalid_pred.predictions.filter(expr).collect()
+    assert len(invalid_result) == 0
+
+
+def test_init_with_temporal_snapshot_time():
+    """Test initialization with already parsed temporal snapshot time."""
+    # Create data with datetime column
+    data = mock_prediction_data.with_columns(
+        pySnapShotTime=pl.lit(datetime.datetime(2040, 4, 1)).cast(pl.Datetime)
+    )
+    
+    # Initialize prediction
+    pred = Prediction(data)
+    
+    # Verify it was processed correctly
+    assert pred.is_available
+    assert pred.is_valid
+    
+    # Check the SnapshotTime column is a date
+    schema = pred.predictions.collect_schema()
+    assert schema["SnapshotTime"].is_temporal()
+
+
+def test_lazy_namespace_initialization():
+    """Test the LazyNamespace initialization in PredictionPlots."""
+    pred = Prediction.from_mock_data()
+    
+    # Access the plot namespace to trigger initialization
+    assert pred.plot is not None
+    assert hasattr(pred.plot, 'prediction')
+    assert pred.plot.prediction is pred
+    
+    # Verify the dependencies attribute
+    assert hasattr(pred.plot, 'dependencies')
+    assert 'plotly' in pred.plot.dependencies
+
