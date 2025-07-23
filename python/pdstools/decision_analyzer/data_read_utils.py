@@ -3,7 +3,7 @@ import os
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 import polars as pl
 
 from .table_definition import TableConfig
@@ -161,16 +161,28 @@ def get_da_data_path():
     return onedrive_da_paths[0]
 
 
-def validate_columns(df: pl.LazyFrame, extract_type: Dict[str, TableConfig]):
+def validate_columns(
+    df: pl.LazyFrame, extract_type: Dict[str, TableConfig]
+) -> Tuple[bool, Optional[str]]:
+    """
+    Validate that default columns from table definition exist in the dataframe.
+
+    Args:
+        df: The dataframe to validate
+        extract_type: Table configuration mapping column names to their properties
+
+    Returns:
+        Tuple containing validation success (bool) and error message (str or None)
+    """
     existing_columns = df.collect_schema().names()
-    required_columns = [
-        col for col, properties in extract_type.items() if properties["required"]
+    default_columns = [
+        col for col, properties in extract_type.items() if properties["default"]
     ]
-    missing_columns = [col for col in required_columns if col not in existing_columns]
+    missing_columns = [col for col in default_columns if col not in existing_columns]
 
     if missing_columns:
         return (
             False,
-            f"The following required columns are missing: {', '.join(missing_columns)}",
+            f"The following default columns are missing: {', '.join(missing_columns)}",
         )
     return True, None

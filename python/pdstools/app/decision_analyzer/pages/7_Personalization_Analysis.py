@@ -119,11 +119,11 @@ is there a lot of variation in what we are offering?
 
 
 st.plotly_chart(
-    st.session_state.decision_data.plot.action_variation(stage="Arbitration"),
+    st.session_state.decision_data.plot.action_variation(stage="Output"),
     use_container_width=True,
 )
 action_variability_stats = st.session_state.decision_data.get_offer_variability_stats(
-    "Arbitration"
+    "Output"
 )
 f"""
 {action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"],3)}**.

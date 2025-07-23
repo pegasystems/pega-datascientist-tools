@@ -83,18 +83,16 @@ if st.session_state.get("analysis_applied", False):
     )
     # Calculate key metrics
     funnel_loss = (
-        st.session_state.decision_data.num_sample_interactions
+        st.session_state.decision_data.sample_size
         - interactions_survived_till_arbitration
     )
-    funnel_loss_pct = (
-        funnel_loss / st.session_state.decision_data.num_sample_interactions
-    ) * 100
+    funnel_loss_pct = (funnel_loss / st.session_state.decision_data.sample_size) * 100
     current_win_rate = (
-        current_number_of_wins / st.session_state.decision_data.num_sample_interactions
+        current_number_of_wins / st.session_state.decision_data.sample_size
     ) * 100
     max_possible_win_rate = (
         interactions_survived_till_arbitration
-        / st.session_state.decision_data.num_sample_interactions
+        / st.session_state.decision_data.sample_size
     ) * 100
     current_win_rate_at_arbitration = (
         current_number_of_wins / interactions_survived_till_arbitration
@@ -109,7 +107,7 @@ if st.session_state.get("analysis_applied", False):
 
     st.markdown(f"""
     **Your selected actions' journey:**
-    - Selected actions are filtered before arbitration in **{funnel_loss:,} out of {st.session_state.decision_data.num_sample_interactions:,} interactions ({funnel_loss_pct:.2f}%)**.
+    - Selected actions are filtered before arbitration in **{funnel_loss:,} out of {st.session_state.decision_data.sample_size:,} interactions ({funnel_loss_pct:.2f}%)**.
     - **In {interactions_survived_till_arbitration:,} interactions, selected actions survive untill arbitration**, these are the decisions where you can make your actions win by boosting levers
     - Currently winning **{current_number_of_wins:,} out of {interactions_survived_till_arbitration:,} arbitrations** ({current_win_rate_at_arbitration:.2f}% win rate at arbitration)
     """)
@@ -117,7 +115,7 @@ if st.session_state.get("analysis_applied", False):
     # Get baseline distribution data
     original_distribution = st.session_state.decision_data.get_win_distribution_data(
         lever_condition,
-        all_interactions=st.session_state.decision_data.num_sample_interactions,
+        all_interactions=st.session_state.decision_data.sample_size,
     )
 
     # Show original distribution
@@ -234,7 +232,7 @@ if st.session_state.get("analysis_applied", False):
         distribution = st.session_state.decision_data.get_win_distribution_data(
             lever_condition,
             lever,
-            all_interactions=st.session_state.decision_data.num_sample_interactions,
+            all_interactions=st.session_state.decision_data.sample_size,
         )
 
         # Show new distribution
@@ -261,7 +259,7 @@ if st.session_state.get("analysis_applied", False):
         selected_wins_delta = selected_wins - current_number_of_wins
         new_win_rate_at_arbitration = (selected_wins / total_new_wins) * 100
         new_overall_win_rate = (
-            selected_wins / st.session_state.decision_data.num_sample_interactions
+            selected_wins / st.session_state.decision_data.sample_size
         ) * 100
         win_rate_delta_arbitration = (
             new_win_rate_at_arbitration - current_win_rate_at_arbitration

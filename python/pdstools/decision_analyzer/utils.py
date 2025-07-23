@@ -1,6 +1,6 @@
 import datetime
 import subprocess
-from typing import Dict, Iterable, List, Literal, Optional, Set, Type, Union
+from typing import Dict, Iterable, List, Literal, Optional, Type, Union
 
 import polars as pl
 
@@ -8,7 +8,6 @@ from ..utils.cdh_utils import parse_pega_date_time_formats
 from .table_definition import (
     DecisionAnalyzer,
     ExplainabilityExtract,
-    TableConfig,
     # audit_tag_mapping,
 )
 
@@ -207,25 +206,17 @@ def determine_extract_type(raw_data):
     )
 
 
-## From PDSTOOLS V4 (we can use pdstools.utils.process once v4 is published)
-def process(
+def rename_and_cast_types(
     df: pl.LazyFrame,
     table: Literal["decision_analyzer", "explainability_extract"],
-    subset: bool = True,
     include_cols: Optional[Iterable[str]] = None,
-    drop_cols: Optional[Iterable[str]] = None,
-    raise_on_unknown: bool = True,
 ) -> pl.LazyFrame:
     # df = cdh_utils._polars_capitalize(df)
-    table_definition = get_table_definition(table)
 
     type_map = get_schema(
         df,
-        table_definition=table_definition,
+        table=table,
         include_cols=include_cols or {},
-        drop_cols=drop_cols or {},
-        subset=subset,
-        raise_on_unknown=raise_on_unknown,
     )
     # cast types
     for name, _type in type_map.items():
@@ -236,7 +227,7 @@ def process(
                 df = df.with_columns(pl.col(name).cast(_type))
     # rename
     name_dict = {}
-    for col, properties in table_definition.items():
+    for col, properties in get_table_definition(table).items():
         name_dict[col] = properties["label"]
     # if table == "decision_analyzer":
     # # Create pxEngagementStage
@@ -265,38 +256,25 @@ def get_table_definition(table: str):
 
 def get_schema(
     df: pl.LazyFrame,
-    table_definition: Dict[str, TableConfig],
+    table: str,
     include_cols: Iterable[str],
-    drop_cols: Iterable[str],
-    subset: bool,
-    raise_on_unknown: bool = True,
 ) -> Dict[str, Type[pl.DataType]]:
-    type_map: Dict[str, Type[pl.DataType]] = dict()
-    checked_columns: Set[str] = set()
+    """Build type mapping for dataframe columns based on table definition."""
+    type_map: Dict[str, Type[pl.DataType]] = {}
+    table_definition = get_table_definition(table)
+    available_columns = df.collect_schema().names()
 
-    columns_in_df = df.collect_schema().names()
-    for column, config in table_definition.items():
-        df_col = None
-        checked_columns = checked_columns.union({column, config["label"]})
-        if column in columns_in_df:
-            df_col = column
+    for defined_col, config in table_definition.items():
+        # Find matching column in dataframe (try original name, then label)
+        actual_col = None
+        if defined_col in available_columns:
+            actual_col = defined_col
+        elif config["label"] in available_columns:
+            actual_col = config["label"]
 
-        elif config["label"] in columns_in_df:
-            df_col = config["label"]
-
-        if df_col is not None and (  # If we've found a matching column
-            subset is False  # We don't want to take a subset...
-            or (
-                df_col not in drop_cols  # The user does not want to drop it
-                and (config["default"] or df_col in include_cols)
-            )  # And it's either default or part of include cols
-        ):
-            # Then we make it part of the type map, which we use to filter down
-            type_map[df_col] = config["type"]
-
-    unknown_columns = [col for col in columns_in_df if col not in checked_columns]
-    if unknown_columns and raise_on_unknown:
-        raise ValueError("Unknown columns found: ", unknown_columns)
+        # Include column if found and is default or explicitly requested
+        if actual_col and (config["default"] or actual_col in include_cols):
+            type_map[actual_col] = config["type"]
 
     return type_map
 
