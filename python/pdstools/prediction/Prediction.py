@@ -316,7 +316,7 @@ class Prediction:
             (
                 df.filter(pl.col.pyModelType == "PREDICTION")
                 .with_columns(
-                    Performance=pl.col("pyValue").cast(pl.Float32),
+                    Performance=pl.col("pyValue").cast(pl.Float32, strict=False),
                 )
                 .rename(
                     {
