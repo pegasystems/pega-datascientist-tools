@@ -152,7 +152,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a treemap visualization showing the distribution of response counts.
 
         This method generates a hierarchical treemap visualization that displays the count of responses
@@ -221,7 +221,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a treemap visualization showing success rates across different dimensions.
 
         This method generates a hierarchical treemap visualization that displays success rates
@@ -303,7 +303,7 @@ class Plots(LazyNamespace):
         color: Optional[str] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a bar chart showing the distribution of actions.
 
         This method generates a bar chart that displays the count of actions across different
@@ -402,7 +402,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a line chart showing success rates over time.
 
         This method generates a line chart that displays success rates for the specified metric
@@ -465,7 +465,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a bar chart showing response counts over time.
 
         This method generates a bar chart that displays the count of responses over time,
@@ -524,7 +524,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
-    ) -> Union[plotly.graph_objects.Figure, pl.LazyFrame]:
+    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
         """Creates a line chart showing model performance (AUC) over time.
 
         This method generates a line chart that displays model performance measured by AUC
@@ -571,7 +571,9 @@ class Plots(LazyNamespace):
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
                     function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
                     return_dtype=pl.Float64,
-                ).last().alias("Performance")
+                )
+                .last()
+                .alias("Performance")
             )
             .sort(["OutcomeTime"])
         ).with_columns(pl.col("Performance") * 100)
