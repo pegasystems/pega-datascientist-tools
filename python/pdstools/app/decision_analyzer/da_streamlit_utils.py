@@ -324,10 +324,9 @@ def handle_direct_file_path():
 # def st_prio_factor_boxplots(
 #     df: pl.LazyFrame,
 #     reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
-#     sample_size=10000,
 # ) -> Optional[go.Figure]:
 #     # Call the core function to generate the plot and check for warnings
-#     fig, warning_message = prio_factor_boxplots(df, reference, sample_size)
+#     fig, warning_message = prio_factor_boxplots(df, reference)
 
 #     if warning_message:
 #         st.warning(warning_message)

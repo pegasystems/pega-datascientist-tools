@@ -75,10 +75,8 @@ class DecisionAnalyzer:
         if not validation_result:
             warnings.warn(validation_error, UserWarning)
         # cast datatypes
-        raw_data = (
-            rename_and_cast_types(df=raw_data, table=self.extract_type)
-            .sort("pxInteractionID")
-            .set_sorted(column="pxInteractionID")
+        raw_data = rename_and_cast_types(df=raw_data, table=self.extract_type).sort(
+            "pxInteractionID"
         )
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
@@ -91,11 +89,11 @@ class DecisionAnalyzer:
             "pyIssue",
             "pyGroup",
             "pyName",
-            "pyTreatment",  # should be in there dependent on what's in the data
+            "pyTreatment",
             "pyChannel",
             "pyDirection",
             "pxComponentName",
-            "ModelControlGroup",
+            # "ModelControlGroup",
             "day",
         }
         self.preaggregation_columns = self.preaggregation_columns.intersection(
@@ -127,8 +125,6 @@ class DecisionAnalyzer:
                 stage_df = pl.concat([stage_df, arb])
             stage_df = stage_df.sort("StageOrder")
             self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
-
-        self.plot = Plot(self)
 
     @cached_property
     def stages_from_arbitration_down(self):

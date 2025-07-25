@@ -532,31 +532,24 @@ class Plot:
     def prio_factor_boxplots(
         self,
         reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
-        sample_size=10000,
         return_df=False,
     ) -> Tuple[go.Figure, Optional[str]]:
         df = self._decision_data.arbitration_stage
-        if return_df:
-            return df
         prio_factors = [
             "Propensity",
             "Value",
             "Context Weight",
             "Levers",
         ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
-        row_count = df.select("Propensity").collect().height
-        sample_size = sample_size if row_count > sample_size else row_count
         segmented_df = (
-            (
-                df.with_columns(
-                    segment=pl.when(reference)  # pl.col("pyName").is_in(models)
-                    .then(pl.lit("Selected Actions"))
-                    .otherwise(pl.lit("Others"))
-                ).select(prio_factors + ["segment"])
-            )
-            .collect()
-            .sample(n=sample_size)
-        )
+            df.with_columns(
+                segment=pl.when(reference)  # pl.col("pyName").is_in(models)
+                .then(pl.lit("Selected Actions"))
+                .otherwise(pl.lit("Others"))
+            ).select(prio_factors + ["segment"])
+        ).collect()
+        if return_df:
+            return segmented_df
 
         if segmented_df.select(pl.col("segment").n_unique()).row(0)[0] == 1:
             warning_message = "Action in selected group never survives to Arbitration"
@@ -571,12 +564,13 @@ class Plot:
 
         for i, metric in enumerate(prio_factors, start=1):
             for _, segment in enumerate(["Selected Actions", "Others"]):
+                prio_factor_values = (
+                    segmented_df.filter(segment=segment).get_column(metric).to_list()
+                )
                 fig.add_trace(
                     go.Box(
-                        x=segmented_df.filter(segment=segment)
-                        .get_column(metric)
-                        .to_list(),
-                        y=[segment] * sample_size,
+                        x=prio_factor_values,
+                        y=[segment] * len(prio_factor_values),
                         name=segment,
                         orientation="h",
                         showlegend=i == 1,  # Adjust legend
