@@ -1,6 +1,6 @@
 from bisect import bisect_left
 from functools import cached_property
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 import warnings
 
 import polars as pl
@@ -61,23 +61,96 @@ class DecisionAnalyzer:
         "ModelEvidence",
     ]
 
-    def __init__(self, raw_data: pl.LazyFrame, level="StageGroup", sample_size=50000):
+    def __init__(
+        self,
+        raw_data: pl.LazyFrame,
+        level="StageGroup",
+        sample_size=50000,
+        mandatory_expr: Optional[pl.Expr] = None,
+        additional_columns: Optional[Dict[str, pl.DataType]] = None,
+    ):
+        """Initialize DecisionAnalyzer with raw decision data.
+
+        This class processes raw decision data (Explainability Extract) to create a comprehensive analysis framework
+        for NBA. After light preprocessing it allows users to conduct various analysis on the data.
+
+        For more information about Explainability Extract, see:
+        https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/explainability-extract.html
+
+        Parameters
+        ----------
+        raw_data : pl.LazyFrame
+            Raw decision data containing interaction-level records from Explainability Extract.
+        level : str, default "StageGroup"
+            Granularity level for stage analysis. Options:
+            - "StageGroup": Groups stages into categories (recommended)
+            - "Stage": Individual stage-level analysis
+        sample_size : int, default 50000
+            Maximum number of unique interactions to sample for analysis. Larger values
+            provide more statistical accuracy but slower performance. Minimum 1000.
+        mandatory_expr : pl.Expr, optional
+            Polars expression to create the `is_mandatory` column used in ranking.
+            The expression should return True/False values that get converted to 1/0.
+            Actions with is_mandatory=1 get FIRST rank in the ranking function.
+
+            Example: `pl.col("pyIssue") == "Service"` results in:
+            - Service actions: is_mandatory = 1 (ranked first)
+            - Non-Service actions: is_mandatory = 0 (ranked by other criteria)
+
+            Other examples:
+            - `(pl.col("pyGroup") == "Credit") & (pl.col("Priority") > 0.8)`
+            - `pl.col("pyName").is_in(["CriticalAction1", "CriticalAction2"])`
+        additional_columns : Dict[str, pl.DataType], optional
+            Additional columns to include in processing beyond the standard table definition.
+            Dictionary mapping column names to their polars data types.
+
+            Example: additional_columns = {"non_standard_column" : pl.Utf8}
+
+        Notes
+        -----
+        The ranking function orders actions by: is_mandatory (desc) → Priority (desc) →
+        StageOrder (desc) → pyIssue → pyGroup → pyName.
+
+        If mandatory_expr is None, all actions get is_mandatory=0.
+        The expression gets applied as: `raw_data.with_columns(is_mandatory=mandatory_expr)`
+
+        Examples
+        --------
+        Basic usage:
+        >>> analyzer = DecisionAnalyzer(raw_data)
+
+        Make retention actions mandatory:
+        >>> mandatory = pl.col("pyIssue") == "Retention"
+        >>> decision_analyzer = DecisionAnalyzer(raw_data, mandatory_expr=mandatory)
+        """
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
+        # Get table definition and add any additional columns to it
+        table_def = get_table_definition(self.extract_type)
+        if additional_columns:
+            for col_name, col_type in additional_columns.items():
+                table_def[col_name] = {
+                    "label": col_name,
+                    "default": True,
+                    "type": col_type,
+                    "required": False,
+                }
         # all columns are present?
-        validation_result, validation_error = validate_columns(
-            raw_data, get_table_definition(self.extract_type)
-        )
+        validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
         if not validation_result:
             warnings.warn(validation_error, UserWarning)
         # cast datatypes
-        raw_data = rename_and_cast_types(df=raw_data, table=self.extract_type).sort(
+        raw_data = rename_and_cast_types(df=raw_data, table_definition=table_def).sort(
             "pxInteractionID"
         )
+        if mandatory_expr is not None:
+            raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
+        else:
+            raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
         # TODO subset against available fields in the data
@@ -289,6 +362,7 @@ class DecisionAnalyzer:
             "pxRecordType",
             "pyName",
             "day",
+            "is_mandatory",
         ]
 
         # Filter to only keep columns that exist in the data
@@ -362,7 +436,7 @@ class DecisionAnalyzer:
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
 
         # Build ranking columns - include StageOrder only if it exists
-        ranking_cols = ["Priority"]
+        ranking_cols = ["is_mandatory", "Priority"]
         if "StageOrder" in df.collect_schema().names():
             ranking_cols.append("StageOrder")
         ranking_cols.extend(
@@ -518,6 +592,7 @@ class DecisionAnalyzer:
         rank_exprs = [
             pl.struct(
                 [
+                    "is_mandatory",
                     x,
                     "StageOrder",
                     pl.col("pyIssue").rank() * -1,
