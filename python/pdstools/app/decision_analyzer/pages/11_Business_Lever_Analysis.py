@@ -126,7 +126,7 @@ if st.session_state.get("analysis_applied", False):
         st.metric(
             "Current Win Rate",
             f"{current_win_rate:.2f}%",
-            help="decisions where the winner is a selected action / all decisions",
+            help="Decisions where the winner is a selected action divided by all decisions",
         )
 
     with col2:
@@ -143,7 +143,7 @@ if st.session_state.get("analysis_applied", False):
             "Max Possible Win Rate",
             f"{max_possible_win_rate:.2f}%",
             f"if won all {interactions_survived_till_arbitration:,} arbitrations",
-            help="Win rate if we max out the lever and selected actions win arbitrations.",
+            help="Win rate if we max out the lever and selected actions win every time they survive until arbitration.",
         )
     original_fig, original_plot_data = create_win_distribution_plot(
         original_distribution,
@@ -257,7 +257,9 @@ if st.session_state.get("analysis_applied", False):
 
         # Calculate deltas
         selected_wins_delta = selected_wins - current_number_of_wins
-        new_win_rate_at_arbitration = (selected_wins / total_new_wins) * 100
+        new_win_rate_at_arbitration = (
+            selected_wins / interactions_survived_till_arbitration
+        ) * 100
         new_overall_win_rate = (
             selected_wins / st.session_state.decision_data.sample_size
         ) * 100

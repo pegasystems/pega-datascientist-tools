@@ -54,10 +54,18 @@ st.session_state.clear()
 st.cache_data.clear()
 st.session_state["filters"] = []
 
-# st.write(st.session_state.to_dict().keys())  # just for debugging
-level = st.selectbox(
-    "Select Stage Granularity",
-    ("StageGroup", "Stage"),
+# level = st.selectbox(
+#     "Select Stage Granularity",
+#     ("StageGroup", "Stage"),
+# )
+level = "StageGroup"  # TODO: Allow user to select the level once "Stage" level is implemented
+
+sample_size = st.number_input(
+    "Sample Size",
+    min_value=1000,
+    value=50000,
+    step=1000,
+    help="Number of interactions used in resource-intensive analysis. Reduce the sample size if the app runs too slowly. Note that statistical significance decreases as sample size decreases.",
 )
 
 file_upload_options = get_options()
@@ -74,7 +82,9 @@ elif source == "Direct File Path":
     raw_data = handle_direct_file_path()
 if raw_data is not None:
     with st.spinner("Reading Data"):
-        st.session_state.decision_data = DecisionAnalyzer(raw_data, level=level)
+        st.session_state.decision_data = DecisionAnalyzer(
+            raw_data, level=level, sample_size=sample_size
+        )
         del raw_data
 
         if "decision_data" in st.session_state:
