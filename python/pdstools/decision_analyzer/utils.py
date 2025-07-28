@@ -1,6 +1,6 @@
 import datetime
 import subprocess
-from typing import Dict, Iterable, List, Literal, Optional, Type, Union
+from typing import Dict, Iterable, List, Optional, Type, Union
 
 import polars as pl
 
@@ -208,14 +208,30 @@ def determine_extract_type(raw_data):
 
 def rename_and_cast_types(
     df: pl.LazyFrame,
-    table: Literal["decision_analyzer", "explainability_extract"],
+    table_definition: Dict,
     include_cols: Optional[Iterable[str]] = None,
 ) -> pl.LazyFrame:
+    """Rename columns and cast data types based on table definition.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The input dataframe to process
+    table_definition : Dict
+        Dictionary containing column definitions with 'label', 'default', and 'type' keys
+    include_cols : Optional[Iterable[str]], optional
+        Additional columns to include beyond default columns
+
+    Returns
+    -------
+    pl.LazyFrame
+        Processed dataframe with renamed columns and cast types
+    """
     # df = cdh_utils._polars_capitalize(df)
 
     type_map = get_schema(
         df,
-        table=table,
+        table_definition=table_definition,
         include_cols=include_cols or {},
     )
     # cast types
@@ -227,7 +243,7 @@ def rename_and_cast_types(
                 df = df.with_columns(pl.col(name).cast(_type))
     # rename
     name_dict = {}
-    for col, properties in get_table_definition(table).items():
+    for col, properties in table_definition.items():
         name_dict[col] = properties["label"]
     # if table == "decision_analyzer":
     # # Create pxEngagementStage
@@ -256,12 +272,26 @@ def get_table_definition(table: str):
 
 def get_schema(
     df: pl.LazyFrame,
-    table: str,
+    table_definition: Dict,
     include_cols: Iterable[str],
 ) -> Dict[str, Type[pl.DataType]]:
-    """Build type mapping for dataframe columns based on table definition."""
+    """Build type mapping for dataframe columns based on table definition.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The input dataframe to analyze
+    table_definition : Dict
+        Dictionary containing column definitions with 'label', 'default', and 'type' keys
+    include_cols : Iterable[str]
+        Additional columns to include beyond default columns
+
+    Returns
+    -------
+    Dict[str, Type[pl.DataType]]
+        Mapping of column names to their data types
+    """
     type_map: Dict[str, Type[pl.DataType]] = {}
-    table_definition = get_table_definition(table)
     available_columns = df.collect_schema().names()
 
     for defined_col, config in table_definition.items():
