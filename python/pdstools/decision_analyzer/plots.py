@@ -896,13 +896,35 @@ def create_win_distribution_plot(
 
     # Create the plot
     fig = go.Figure()
+
+    # Create hover template based on the level in hierarchy
+    if scope_config["x_col"] == "pyGroup" and "pyIssue" in plot_data.columns:
+        # Show pyIssue in hover when level is pyGroup
+        hover_template = (
+            "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
+        )
+        customdata = plot_data["pyIssue"]
+    elif (
+        scope_config["x_col"] == "pyName"
+        and "pyGroup" in plot_data.columns
+        and "pyIssue" in plot_data.columns
+    ):
+        # Show both pyGroup and pyIssue in hover when level is pyName (Action)
+        hover_template = "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
+        customdata = list(zip(plot_data["pyGroup"], plot_data["pyIssue"]))
+    else:
+        # Default hover template
+        hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"
+        customdata = None
+
     fig.add_trace(
         go.Bar(
             x=plot_data[scope_config["x_col"]],
             y=plot_data[win_count_col],
             text=plot_data[scope_config["x_col"]],
             textposition="auto",
-            hovertemplate="<b>%{text}</b><br>Win Count: %{y}<extra></extra>",
+            hovertemplate=hover_template,
+            customdata=customdata,
         )
     )
 
