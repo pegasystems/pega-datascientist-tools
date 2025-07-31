@@ -1,9 +1,10 @@
-__all__ = ["ExplanationsDataLoader"]
+__all__ = ["DataLoader"]
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import polars as pl
 
+from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
     _CONTRIBUTION_TYPE,
@@ -13,15 +14,24 @@ from .ExplanationsUtils import (
     ContextOperations,
 )
 
+if TYPE_CHECKING:
+    from .Explanations import Explanations
 
-class ExplanationsDataLoader:
-    def __init__(self, data_location):
-        self.data_location = data_location
-        self._scan_data()
 
-        self.contextOperations = ContextOperations(self.df_contextual)
+class DataLoader(LazyNamespace):
+    dependencies = ["polars"]
+    dependency_group = "explanations"
+    
+    df_contextual: Optional[pl.LazyFrame]
+    df_overall: Optional[pl.LazyFrame]
+    contextOperations: Optional[ContextOperations]
+    
+    def __init__(self, explanations: "Explanations"):
+        self.explanations = explanations
+        super().__init__()
 
-    def _scan_data(self):
+    def load_data(self):
+
         selected_columns = [
             _COL.PARTITON.value,
             _COL.CONTRIBUTION.value,
@@ -36,18 +46,24 @@ class ExplanationsDataLoader:
         ]
 
         self.df_contextual = (
-            pl.scan_parquet(f"{self.data_location}/*_BATCH_*.parquet")
+            pl.scan_parquet(f"{self.explanations.aggregates_folder}/*_BATCH_*.parquet")
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
 
         self.df_overall = (
-            pl.scan_parquet(f"{self.data_location}/*_OVERALL.parquet")
+            pl.scan_parquet(f"{self.explanations.aggregates_folder}/*_OVERALL.parquet")
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
-
-    # get top-n predictor contributions for overall model level contributions
+        
+        self.contextOperations = ContextOperations(self.df_contextual)
+        
+    def get_context_operations(self) -> ContextOperations | None:
+        if self.contextOperations is None:
+            self.load_data()
+        return self.contextOperations
+        
     def get_top_n_predictor_contribution_overall(
         self,
         top_n: int = 10,
@@ -137,6 +153,20 @@ class ExplanationsDataLoader:
             contribution_type=contribution_type.value,
         )
 
+    def get_unique_contexts_df(
+        self,
+        context_infos: Optional[List[ContextInfo]] = None,
+        with_partition_col: bool = False,
+    ) -> pl.DataFrame:
+        return self.contextOperations.get_df(context_infos, with_partition_col)
+
+    def get_unique_contexts_list(
+        self,
+        context_infos: Optional[List[ContextInfo]] = None,
+        with_partition_col: bool = False,
+    ) -> List[ContextInfo]:
+        return self.contextOperations.get_list(context_infos, with_partition_col)
+        
     def _get_predictor_value_contributions(
         self,
         contexts: Optional[List[ContextInfo]] = None,
@@ -368,6 +398,10 @@ class ExplanationsDataLoader:
     def _get_base_df(
         self, df_filtered_contexts: Optional[pl.DataFrame] = None
     ) -> pl.LazyFrame:
+        
+        if self.df_overall is None or self.df_contextual is None:
+            self.load_data()
+            
         if df_filtered_contexts is None:
             return self.df_overall
         else:
@@ -508,16 +542,3 @@ class ExplanationsDataLoader:
 
         return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
 
-    def get_unique_contexts_df(
-        self,
-        context_infos: Optional[List[ContextInfo]] = None,
-        with_partition_col: bool = False,
-    ) -> pl.DataFrame:
-        return self.contextOperations.get_df(context_infos, with_partition_col)
-
-    def get_unique_contexts_list(
-        self,
-        context_infos: Optional[List[ContextInfo]] = None,
-        with_partition_col: bool = False,
-    ) -> List[ContextInfo]:
-        return self.contextOperations.get_list(context_infos, with_partition_col)

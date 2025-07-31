@@ -1,23 +1,35 @@
-__all__ = ["ExplanationsExplorer"]
+__all__ = ["Explorer"]
 
-from .ExplanationsDataLoader import ExplanationsDataLoader
-from .ExplanationsUtils import ContextInfo, ContextOperations, _CONTRIBUTION_TYPE
-from .ExplanationsDataPlotter import ExplanationsDataPlotter
+import os
+
 from ipywidgets import widgets
 from IPython.display import display
-from typing import List, Optional, cast
+from typing import TYPE_CHECKING, List, Optional, cast
 
+from ..utils.namespaces import LazyNamespace
+from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE
 
-class ExplanationsExplorer:
+if TYPE_CHECKING:
+    from .Explanations import Explanations
+class Explorer(LazyNamespace):
+    dependencies = ["ipywidgets"]
+    dependency_group = "explanations"
+    
     _ANY_CONTEXT = "Any"
     _CHANGED_VALUE = "new"
     _CHANGED_WIDGET = "owner"
 
     _context_selector_widget: Optional[widgets.Select]
 
-    def __init__(self, data_location: str = ".tmp/aggregated_data"):
-        self.data_loader = ExplanationsDataLoader(data_location=data_location)
-        self._context_operations = ContextOperations(self.data_loader.df_contextual)
+    def __init__(self, explanations: "Explanations"):
+        self.explanations = explanations
+        super().__init__()
+    
+    def display(self):
+        
+        self._validate_aggregates_data_location()
+        
+        self._context_operations = self.explanations.data_loader.get_context_operations()
 
         self._raw_context_info_list: List[ContextInfo] = []
         self._filtered_context_info_list: List[ContextInfo] = []
@@ -27,20 +39,28 @@ class ExplanationsExplorer:
             for key in self._context_operations.get_context_keys()
         }
 
-        self._init_context_info()
-
-        # init widget objects
-        self._context_combobox_widgets: dict[str, widgets.Combobox] = {}
-        self._context_selector_widget = None
-
-    def _init_context_info(self):
         self._raw_context_info_list = self._context_operations.get_list()
         if not self._raw_context_info_list:
             raise ValueError(
                 "No context information available. Please load data first."
             )
 
-    def display_context_selector(self):
+        # init widget objects
+        self._context_combobox_widgets: dict[str, widgets.Combobox] = {}
+        self._context_selector_widget = None
+        
+        self._display_context_selector()
+        
+    def _validate_aggregates_data_location(self):
+        aggregates_folder = self.explanations.aggregates_folder
+        if os.path.exists(aggregates_folder):
+            if not os.path.isdir(aggregates_folder):
+                raise ValueError(f"Data location '{aggregates_folder}' is not a directory.")
+            
+            if not any(os.path.isfile(os.path.join(aggregates_folder, f)) for f in os.listdir(aggregates_folder)):
+                raise ValueError(f"No files found in data location '{aggregates_folder}'. Run aggregation first.")
+            
+    def _display_context_selector(self):
         self._filtered_context_info_list = self._filter_context_infos()
 
         # create widgets for each context key
@@ -100,8 +120,7 @@ class ExplanationsExplorer:
         if selected_context is None:
             print("No context selected, plotting overall contributions.")
             overall_plot, predictor_plots = (
-                ExplanationsDataPlotter.plot_contributions_for_overall(
-                    data_loader=self.data_loader,
+                self.explanations.plots.plot_contributions_for_overall(
                     top_n=top_n,
                     top_k=top_k,
                     descending=descending,
@@ -115,8 +134,7 @@ class ExplanationsExplorer:
                 display(plot)
         else:
             context_plot, overall_plot, predictor_plots = (
-                ExplanationsDataPlotter.plot_contributions_by_context(
-                    data_loader=self.data_loader,
+                self.explanations.plots.plot_contributions_by_context(
                     context=selected_context,
                     top_n=top_n,
                     top_k=top_k,

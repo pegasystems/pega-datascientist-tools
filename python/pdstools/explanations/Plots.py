@@ -1,25 +1,41 @@
-__all__ = ["ExplanationsDataPlotter"]
+__all__ = ["Plots"]
 
 import logging
-from typing import List, Optional
-import plotly.graph_objects as go
 import polars as pl
+from typing import TYPE_CHECKING, List, Optional
 
-from .ExplanationsDataLoader import ExplanationsDataLoader as DataLoader
+from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE, _COL, _SPECIAL
 
 logger = logging.getLogger(__name__)
 
+try:
+    import plotly.graph_objects as go
+except ImportError as e:
+    logger.debug(f"Failed to import optional dependencies: {e}")
+
+
 X_AXIS_TITLE_DEFAULT = "Contribution"
 Y_AXIS_TITLE_DEFAULT = "Predictor"
 
-
-class ExplanationsDataPlotter:
+if TYPE_CHECKING:
+    from .Explanations import Explanations
     
-    @classmethod
+class Plots(LazyNamespace):
+    dependencies = ["plotly"]
+    dependency_group = "explanations"
+    
+    def __init__(self, explanations: "Explanations"):
+        self.explanations = explanations
+        self.data_loader = None
+        super().__init__()
+        
+    def _load_data(self):
+        self.explanations.data_loader.load_data()
+        return self.explanations.data_loader
+    
     def plot_contributions_for_overall(
-        cls,
-        data_loader: DataLoader,
+        self,
         top_n: int = 10,
         top_k: int = 10,
         descending: bool = True,
@@ -30,8 +46,11 @@ class ExplanationsDataPlotter:
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
+        
+        if self.data_loader is None:
+            self.data_loader = self._load_data()
 
-        df = data_loader.get_top_n_predictor_contribution_overall(
+        df = self.data_loader.get_top_n_predictor_contribution_overall(
             top_n=top_n,
             descending=descending,
             missing=missing,
@@ -47,7 +66,7 @@ class ExplanationsDataPlotter:
             .to_list()
         )
 
-        df_predictors = data_loader.get_top_k_predictor_value_contribution_overall(
+        df_predictors = self.data_loader.get_top_k_predictor_value_contribution_overall(
             predictors=predictors,
             top_k=top_k,
             descending=descending,
@@ -56,13 +75,13 @@ class ExplanationsDataPlotter:
             contribution_calculation=contribution_calculation,
         )
 
-        overall_fig = cls._plot_overall_contributions(
+        overall_fig = self._plot_overall_contributions(
             df,
             x_col=contribution_type.value,
             y_col=_COL.PREDICTOR_NAME.value,
             x_title=contribution_type.alt,
         )
-        predictors_figs = cls._plot_predictor_contributions(
+        predictors_figs = self._plot_predictor_contributions(
             df_predictors,
             x_col=contribution_type.value,
             y_col=_COL.BIN_CONTENTS.value,
@@ -71,24 +90,8 @@ class ExplanationsDataPlotter:
 
         return overall_fig, predictors_figs
 
-    @classmethod
-    def plot_contributions_by_contexts_list(
-        cls,
-        data_loader: DataLoader,
-        contexts: List[ContextInfo],
-        top_n: int = 10,
-        top_k: int = 10,
-        descending: bool = True,
-        missing: bool = True,
-        remaining: bool = True,
-        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
-    ):
-        pass
-
-    @classmethod
     def plot_contributions_by_context(
-        cls,
-        data_loader: DataLoader,
+        self,
         context: ContextInfo,
         top_n: int = 10,
         top_k: int = 10,
@@ -100,8 +103,11 @@ class ExplanationsDataPlotter:
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
+        
+        if self.data_loader is None:
+            self.data_loader = self._load_data()
 
-        df_context = data_loader.get_top_n_predictor_contribution_by_context(
+        df_context = self.data_loader.get_top_n_predictor_contribution_by_context(
             context,
             top_n,
             descending,
@@ -120,7 +126,7 @@ class ExplanationsDataPlotter:
             .to_list()
         )
 
-        df = data_loader.get_top_k_predictor_value_contribution_by_context(
+        df = self.data_loader.get_top_k_predictor_value_contribution_by_context(
             context,
             predictors,
             top_k,
@@ -130,9 +136,9 @@ class ExplanationsDataPlotter:
             contribution_type.value,
         )
 
-        header_fig = cls._plot_context_table(context)
+        header_fig = self._plot_context_table(context)
 
-        overall_fig = cls._plot_overall_contributions(
+        overall_fig = self._plot_overall_contributions(
             df_context,
             x_col=contribution_type.value,
             y_col=_COL.PREDICTOR_NAME.value,
@@ -140,7 +146,7 @@ class ExplanationsDataPlotter:
             context=context,
         )
 
-        predictors_figs = cls._plot_predictor_contributions(
+        predictors_figs = self._plot_predictor_contributions(
             df,
             x_col=contribution_type.value,
             y_col=_COL.BIN_CONTENTS.value,
