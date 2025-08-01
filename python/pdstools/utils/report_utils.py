@@ -16,6 +16,119 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
+def get_output_filename(
+    name: Optional[str],  # going to be the full file name
+    report_type: str,
+    model_id: Optional[str] = None,
+    output_type: str = "html",
+) -> str:
+    """Generate the output filename based on the report parameters."""
+    name = name.replace(" ", "_") if name else None
+    if report_type == "ModelReport":
+        return (
+            f"{report_type}_{name}_{model_id}.{output_type}"
+            if name
+            else f"{report_type}_{model_id}.{output_type}"
+        )
+    return (
+        f"{report_type}_{name}.{output_type}"
+        if name
+        else f"{report_type}.{output_type}"
+    )
+
+def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
+    """Copy the report quarto file to the temporary directory."""
+    from pdstools import __reports__
+
+    shutil.copy(__reports__ / qmd_file, temp_dir)
+    shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
+
+def _write_params_files(
+    temp_dir: Path,
+    params: Dict = {},
+    project: Dict = {"type": "default"},
+    analysis: Dict = {},
+) -> None:
+    """Write parameters to a YAML file."""
+    import yaml
+
+    # Parameters to python code
+    with open(temp_dir / "params.yml", "w") as f:
+        yaml.dump(
+            params,
+            f,
+        )
+
+    # Project/rendering options to quarto
+    with open(temp_dir / "_quarto.yml", "w") as f:
+        yaml.dump(
+            {
+                "project": project,
+                "analysis": analysis,
+            },
+            f,
+        )
+
+def run_quarto(
+    qmd_file: str,
+    output_filename: str,
+    output_type: str = "html",
+    params: Dict = {},
+    project: Dict = {"type": "default"},
+    analysis: Dict = {},
+    temp_dir: Path = Path("."),
+    verbose: bool = False,
+) -> int:
+    """Run the Quarto command to generate the report."""
+
+    _write_params_files(
+        temp_dir,
+        params=params,
+        project=project,
+        analysis=analysis,
+    )
+
+    quarto_exec, _ = get_quarto_with_version(verbose)
+
+    command = [
+        str(quarto_exec),
+        "render",
+        qmd_file,
+        "--to",
+        output_type,
+        "--output",
+        output_filename,
+        "--execute-params",
+        "params.yml",
+    ]
+
+    if verbose:
+        print(f"Executing: {' '.join(command)}")
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # Redirect stderr to stdout
+        cwd=temp_dir,
+        text=True,
+        bufsize=1,  # Line buffered
+    )
+
+    if process.stdout is not None:
+        for line in iter(process.stdout.readline, ""):
+            line = line.strip()
+            if verbose:
+                print(line)
+            logger.info(line)
+    else:  # pragma: no cover
+        logger.warning("subprocess.stdout is None, unable to read output")
+
+    return_code = process.wait()
+    message = f"Quarto process exited with return code {return_code}"
+    logger.info(message)
+
+    return return_code
+
 
 def _get_cmd_output(args: List[str]) -> List[str]:
     """Get command output in an OS-agnostic way."""

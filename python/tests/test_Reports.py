@@ -11,12 +11,13 @@ import polars as pl
 import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Reports import Reports
+from pdstools.utils.report_utils import get_output_filename
 
 
 def test_get_output_filename():
-    """Test the _get_output_filename method"""
+    """Test the get_output_filename function"""
     # Test with name and model_id for ModelReport
-    filename = Reports._get_output_filename(
+    filename = get_output_filename(
         name="test_report",
         report_type="ModelReport",
         model_id="model1",
@@ -25,7 +26,7 @@ def test_get_output_filename():
     assert filename == "ModelReport_test_report_model1.html"
     
     # Test without name for ModelReport
-    filename = Reports._get_output_filename(
+    filename = get_output_filename(
         name=None,
         report_type="ModelReport",
         model_id="model1",
@@ -34,7 +35,7 @@ def test_get_output_filename():
     assert filename == "ModelReport_model1.html"
     
     # Test with name for HealthCheck
-    filename = Reports._get_output_filename(
+    filename = get_output_filename(
         name="test_report",
         report_type="HealthCheck",
         model_id=None,
@@ -43,7 +44,7 @@ def test_get_output_filename():
     assert filename == "HealthCheck_test_report.html"
     
     # Test without name for HealthCheck
-    filename = Reports._get_output_filename(
+    filename = get_output_filename(
         name=None,
         report_type="HealthCheck",
         model_id=None,
@@ -52,7 +53,7 @@ def test_get_output_filename():
     assert filename == "HealthCheck.html"
     
     # Test with spaces in name
-    filename = Reports._get_output_filename(
+    filename = get_output_filename(
         name="test report",
         report_type="HealthCheck",
         model_id=None,
