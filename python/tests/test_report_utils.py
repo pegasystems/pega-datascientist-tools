@@ -18,9 +18,8 @@ def test_get_version_only():
     assert report_utils._get_version_only("quarto 1.3.450") == "1.3.450"
     assert report_utils._get_version_only("pandoc 2.19.2") == "2.19.2"
     assert report_utils._get_version_only("v3.2.1-beta") == "3.2.1"
-    # The current implementation doesn't handle plus signs correctly
-    # It returns "1.0.0001" instead of "1.0.0"
-    assert report_utils._get_version_only("1.0.0-alpha+001") == "1.0.0001"
+    # Now the implementation correctly handles pre-release and build metadata
+    assert report_utils._get_version_only("1.0.0-alpha+001") == "1.0.0"
 
 
 def test_polars_col_exists():

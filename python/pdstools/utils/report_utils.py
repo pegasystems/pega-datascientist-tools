@@ -146,7 +146,9 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
-    return re.sub("[^.0-9]", "", versionstr)
+    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
+    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    return match.group(1) if match else ""
 
 
 def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
