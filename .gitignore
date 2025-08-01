@@ -35,3 +35,6 @@ python/*.ipynb_checkpoints/*
 r/tests/testthat/d/tmp2
 **/cache
 .venv
+**/.tmp/
+.dev
+.python-version
