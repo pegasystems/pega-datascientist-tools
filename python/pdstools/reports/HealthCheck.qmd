@@ -58,7 +58,6 @@ import datetime
 
 cdh_guidelines = CDHGuidelines()
 
-
 def fig_update_facet_height(fig, n_cols=2, base_height=250, step_height=270):
     n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
@@ -105,7 +104,8 @@ def _deserialize_query(serialized_query):
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
 title = "ADM Model Overview"
-subtitle = "Sample data"
+disclaimer = ""
+subtitle = "Sample Data"
 
 # Insert the paths to your data files here to run the notebook from your IDE.
 # Edit the _quarto.yml to enable/disable specific sections of the quarto output.
@@ -153,6 +153,8 @@ predictor_analysis_query = pl.col("ResponseCountBin") > predictor_analysis_thres
 report_utils.quarto_print(
     f"""
 # {title}
+
+<p style="color:red;font-size:150%;">{disclaimer}</p>
 
 ## {subtitle}
 
@@ -211,7 +213,7 @@ else:
 
 active_models_threshold_date_expr = (
     pl.col("LastUpdate").max() - datetime.timedelta(days=threshold_updated_days)
-).dt.truncate("1mo")
+) #.dt.truncate("1mo")
 active_models_filter_expr = (
     pl.col("LastUpdate") > active_models_threshold_date_expr
 ).fill_null(True)
