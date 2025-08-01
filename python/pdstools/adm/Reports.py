@@ -2,7 +2,6 @@ __all__ = ["Reports"]
 import logging
 import os
 import shutil
-import subprocess
 from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
@@ -12,7 +11,7 @@ import polars as pl
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
-from ..utils.report_utils import _serialize_query, get_quarto_with_version
+from ..utils.report_utils import _serialize_query, get_quarto_with_version, run_quarto, copy_quarto_file, get_output_filename
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -33,8 +32,9 @@ class Reports(LazyNamespace):
         *,
         name: Optional[
             str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Report",
+        disclaimer: str = "",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
         only_active_predictors: bool = True,
@@ -46,7 +46,7 @@ class Reports(LazyNamespace):
         predictor_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
-        Generates model reports.
+        Generates model reports for Naive Bayes ADM models.
 
         Parameters
         ----------
@@ -55,9 +55,11 @@ class Reports(LazyNamespace):
         name : str, optional
             The (base) file name of the report.
         title : str, optional
-            Title top put in the report, uses a default string if not given.
+            Title to put in the report, uses a default string if not given.
         subtitle : str, optional
-            Subtitle top put in the report, empty if not given.
+            Subtitle to put in the report, empty if not given.
+        disclaimer : str, optional
+            Disclaimer blub to put in the report, empty if not given.
         output_dir : Union[str, Path, None], optional
             The directory for the output. If None, uses current working directory.
         only_active_predictors : bool, default=True
@@ -106,7 +108,7 @@ class Reports(LazyNamespace):
 
         try:
             qmd_file = "ModelReport.qmd"
-            self._copy_quarto_file(qmd_file, temp_dir)
+            copy_quarto_file(qmd_file, temp_dir)
 
             # Copy data to a temp dir only if the files are not passed in already
             if (
@@ -121,10 +123,10 @@ class Reports(LazyNamespace):
 
             output_file_paths = []
             for i, model_id in enumerate(model_ids):
-                output_filename = self._get_output_filename(
+                output_filename = get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                self.run_quarto(
+                run_quarto(
                     qmd_file=qmd_file,
                     output_filename=output_filename,
                     output_type=output_type,
@@ -136,6 +138,7 @@ class Reports(LazyNamespace):
                         "only_active_predictors": only_active_predictors,
                         "title": title,
                         "subtitle": subtitle,
+                        "disclaimer": disclaimer,
                     },
                     project={"title": title, "type": "default"},
                     analysis={
@@ -185,9 +188,10 @@ class Reports(LazyNamespace):
         self,
         name: Optional[
             str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Overview",
         subtitle: str = "",
+        disclaimer: str = "",
         output_dir: Optional[os.PathLike] = None,
         *,
         query: Optional[QUERY] = None,
@@ -199,16 +203,18 @@ class Reports(LazyNamespace):
         prediction_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
-        Generates Health Check report based on the provided parameters.
+        Generates Health Check report for ADM models, optionally including predictor and prediction sections.
 
         Parameters
         ----------
         name : str, optional
             The (base) file name of the report.
         title : str, optional
-            Title top put in the report, uses a default string if not given.
+            Title to put in the report, uses a default string if not given.
         subtitle : str, optional
-            Subtitle top put in the report, empty if not given.
+            Subtitle to put in the report, empty if not given.
+        disclaimer : str, optional
+            Disclaimer blub to put in the report, empty if not given.
         query : QUERY, optional
             Optional extra filter on the datamart data
         output_dir : Union[str, Path, None], optional
@@ -243,11 +249,11 @@ class Reports(LazyNamespace):
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
             qmd_file = "HealthCheck.qmd"
-            output_filename = self._get_output_filename(
+            output_filename = get_output_filename(
                 name, "HealthCheck", None, output_type
             )
 
-            self._copy_quarto_file(qmd_file, temp_dir)
+            copy_quarto_file(qmd_file, temp_dir)
 
             # Copy data to a temp dir only if the files are not passed in already
             if (
@@ -258,7 +264,7 @@ class Reports(LazyNamespace):
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
             serialized_query = _serialize_query(query)
-            self.run_quarto(
+            run_quarto(
                 qmd_file=qmd_file,
                 output_filename=output_filename,
                 output_type=output_type,
@@ -270,6 +276,7 @@ class Reports(LazyNamespace):
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
+                    "disclaimer": disclaimer,
                 },
                 project={"title": title, "type": "default"},
                 analysis={
@@ -304,122 +311,6 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @staticmethod
-    def _get_output_filename(
-        name: Optional[str],  # going to be the full file name
-        report_type: str,
-        model_id: Optional[str] = None,
-        output_type: str = "html",
-    ) -> str:
-        """Generate the output filename based on the report parameters."""
-        name = name.replace(" ", "_") if name else None
-        if report_type == "ModelReport":
-            return (
-                f"{report_type}_{name}_{model_id}.{output_type}"
-                if name
-                else f"{report_type}_{model_id}.{output_type}"
-            )
-        return (
-            f"{report_type}_{name}.{output_type}"
-            if name
-            else f"{report_type}.{output_type}"
-        )
-
-    @staticmethod
-    def _copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
-        """Copy the report quarto file to the temporary directory."""
-        from pdstools import __reports__
-
-        shutil.copy(__reports__ / qmd_file, temp_dir)
-        shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
-
-    @staticmethod
-    def _write_params_files(
-        temp_dir: Path,
-        params: Dict = {},
-        project: Dict = {"type": "default"},
-        analysis: Dict = {},
-    ) -> None:
-        """Write parameters to a YAML file."""
-        import yaml
-
-        # Parameters to python code
-        with open(temp_dir / "params.yml", "w") as f:
-            yaml.dump(
-                params,
-                f,
-            )
-
-        # Project/rendering options to quarto
-        with open(temp_dir / "_quarto.yml", "w") as f:
-            yaml.dump(
-                {
-                    "project": project,
-                    "analysis": analysis,
-                },
-                f,
-            )
-
-    @staticmethod
-    def run_quarto(
-        qmd_file: str,
-        output_filename: str,
-        output_type: str = "html",
-        params: Dict = {},
-        project: Dict = {"type": "default"},
-        analysis: Dict = {},
-        temp_dir: Path = Path("."),
-        verbose: bool = False,
-    ) -> int:
-        """Run the Quarto command to generate the report."""
-
-        Reports._write_params_files(
-            temp_dir,
-            params=params,
-            project=project,
-            analysis=analysis,
-        )
-
-        quarto_exec, _ = get_quarto_with_version(verbose)
-
-        command = [
-            str(quarto_exec),
-            "render",
-            qmd_file,
-            "--to",
-            output_type,
-            "--output",
-            output_filename,
-            "--execute-params",
-            "params.yml",
-        ]
-
-        if verbose:
-            print(f"Executing: {' '.join(command)}")
-
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # Redirect stderr to stdout
-            cwd=temp_dir,
-            text=True,
-            bufsize=1,  # Line buffered
-        )
-
-        if process.stdout is not None:
-            for line in iter(process.stdout.readline, ""):
-                line = line.strip()
-                if verbose:
-                    print(line)
-                logger.info(line)
-        else:  # pragma: no cover
-            logger.warning("subprocess.stdout is None, unable to read output")
-
-        return_code = process.wait()
-        message = f"Quarto process exited with return code {return_code}"
-        logger.info(message)
-
-        return return_code
 
     def excel_report(
         self,

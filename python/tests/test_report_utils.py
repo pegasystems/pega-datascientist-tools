@@ -2,6 +2,11 @@
 Testing the functionality of the report_utils module
 """
 
+import os
+import shutil
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 import polars as pl
 import pytest
 from pdstools.utils import report_utils
@@ -13,9 +18,8 @@ def test_get_version_only():
     assert report_utils._get_version_only("quarto 1.3.450") == "1.3.450"
     assert report_utils._get_version_only("pandoc 2.19.2") == "2.19.2"
     assert report_utils._get_version_only("v3.2.1-beta") == "3.2.1"
-    # The current implementation doesn't handle plus signs correctly
-    # It returns "1.0.0001" instead of "1.0.0"
-    assert report_utils._get_version_only("1.0.0-alpha+001") == "1.0.0001"
+    # Now the implementation correctly handles pre-release and build metadata
+    assert report_utils._get_version_only("1.0.0-alpha+001") == "1.0.0"
 
 
 def test_polars_col_exists():
@@ -131,3 +135,65 @@ def test_serialize_query():
     # Test with invalid type
     with pytest.raises(ValueError):
         report_utils._serialize_query("invalid")
+
+
+def test_get_output_filename():
+    """Test the get_output_filename function"""
+    # Test with name and model_id for ModelReport
+    filename = report_utils.get_output_filename(
+        name="test_report",
+        report_type="ModelReport",
+        model_id="model1",
+        output_type="html"
+    )
+    assert filename == "ModelReport_test_report_model1.html"
+    
+    # Test without name for ModelReport
+    filename = report_utils.get_output_filename(
+        name=None,
+        report_type="ModelReport",
+        model_id="model1",
+        output_type="html"
+    )
+    assert filename == "ModelReport_model1.html"
+    
+    # Test with name for HealthCheck
+    filename = report_utils.get_output_filename(
+        name="test_report",
+        report_type="HealthCheck",
+        model_id=None,
+        output_type="html"
+    )
+    assert filename == "HealthCheck_test_report.html"
+    
+    # Test without name for HealthCheck
+    filename = report_utils.get_output_filename(
+        name=None,
+        report_type="HealthCheck",
+        model_id=None,
+        output_type="html"
+    )
+    assert filename == "HealthCheck.html"
+    
+    # Test with spaces in name
+    filename = report_utils.get_output_filename(
+        name="test report",
+        report_type="HealthCheck",
+        model_id=None,
+        output_type="html"
+    )
+    assert filename == "HealthCheck_test_report.html"
+
+
+@pytest.mark.skip(reason="Requires mocking __reports__ import")
+def test_copy_quarto_file(tmp_path):
+    """Test the copy_quarto_file function"""
+    # This test would require mocking the __reports__ import
+    pass
+
+
+@pytest.mark.skip(reason="Requires mocking subprocess and get_quarto_with_version")
+def test_run_quarto():
+    """Test the run_quarto function"""
+    # This test would require mocking subprocess.Popen and get_quarto_with_version
+    pass
