@@ -192,6 +192,9 @@ def _get_version_only(versionstr: str) -> str:
     # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
     match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
     return match.group(1) if match else ""
+    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
+    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    return match.group(1) if match else ""
 
 
 def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
