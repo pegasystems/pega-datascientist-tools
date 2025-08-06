@@ -47,6 +47,7 @@ class Aggregates(LazyNamespace):
         
         self.selected_files: list[str] = []
         self.contexts: Optional[list[str]] = None
+        self.unique_contexts_filename = f'{self.aggregates_folder}/unique_contexts.csv'
         
         super().__init__()
         
@@ -127,8 +128,37 @@ class Aggregates(LazyNamespace):
         query = self._get_create_table_sql_formatted(table_name, predictor_type)
 
         self._execute_query(query)
+
+    def _create_unique_contexts_file(self, predictor_type: _PREDICTOR_TYPE):
+        if self.contexts is None:
+            self._get_contexts(predictor_type= predictor_type)
+
+        if pathlib.Path(self.unique_contexts_filename).exists():
+            return
+        
+        df = pl.DataFrame(self.contexts, schema={_COL.PARTITON.value: pl.Utf8()})
+        df.write_csv(
+            self.unique_contexts_filename, 
+            include_header=False, 
+            quote_style="never")
+
+    def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
+        if self.contexts is None:
+            table_name = self._get_table_name(predictor_type)
+
+            q = f"""
+                SELECT {table_name.value}.{_COL.PARTITON.value}
+                FROM {table_name.value}
+                GROUP BY {table_name.value}.{_COL.PARTITON.value};
+            """
+            self.contexts = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
+
+        return self.contexts
+
         
     def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
+        self._create_unique_contexts_file(predictor_type)
+        
         for batch in self._parquet_in_batches(predictor_type):
             self._write_to_parquet(
                 batch["dataframe"],
@@ -284,19 +314,6 @@ class Aggregates(LazyNamespace):
 
         return self._clean_query(f_sql)
     
-    def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
-        table_name = self._get_table_name(predictor_type)
-
-        if self.contexts is None:
-            q = f"""
-                SELECT {table_name.value}.{_COL.PARTITON.value}
-                FROM {table_name.value}
-                GROUP BY {table_name.value}.{_COL.PARTITON.value};
-            """
-            self.contexts = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
-
-        return self.contexts
-    
     def _get_selected_files(self):
         if len(self.selected_files) == 0:
             self._populate_selected_files()
@@ -339,4 +356,14 @@ class Aggregates(LazyNamespace):
         """Execute a query on the in-memory DuckDB connection."""
         if self._conn is None:
             raise ValueError("DuckDB connection is not initialized.")
-        return self._conn.execute(query)
+        
+        try:
+            ret = self._conn.execute(query)
+        except duckdb.DatabaseException as e:
+            logger.error(f"DatabaseException: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            raise
+
+        return ret

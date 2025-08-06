@@ -22,13 +22,13 @@ class DataLoader(LazyNamespace):
     dependencies = ["polars"]
     dependency_group = "explanations"
     
-    df_contextual: Optional[pl.LazyFrame]
-    df_overall: Optional[pl.LazyFrame]
-    contextOperations: Optional[ContextOperations]
-    
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
+        self.df_contextual = None
+        self.df_overall = None
+        self.context_operations = ContextOperations(data_loader=self)
         super().__init__()
+        self.initialized = False
 
     def load_data(self):
 
@@ -46,23 +46,26 @@ class DataLoader(LazyNamespace):
         ]
 
         self.df_contextual = (
-            pl.scan_parquet(f"{self.explanations.aggregates_folder}/*_BATCH_*.parquet")
+            pl.scan_parquet(f"{self.explanations.aggregates.aggregates_folder}/*_BATCH_*.parquet")
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
 
         self.df_overall = (
-            pl.scan_parquet(f"{self.explanations.aggregates_folder}/*_OVERALL.parquet")
+            pl.scan_parquet(f"{self.explanations.aggregates.aggregates_folder}/*_OVERALL.parquet")
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
+
+        self.initialized = True
         
-        self.contextOperations = ContextOperations(self.df_contextual)
-        
-    def get_context_operations(self) -> ContextOperations | None:
-        if self.contextOperations is None:
+    def get_df_contextual(self) -> pl.LazyFrame:
+        if not self.initialized:
             self.load_data()
-        return self.contextOperations
+        return self.df_contextual
+    
+    def get_context_operations(self) -> ContextOperations | None:
+        return self.context_operations
         
     def get_top_n_predictor_contribution_overall(
         self,
@@ -75,6 +78,9 @@ class DataLoader(LazyNamespace):
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
+
+        if not self.initialized:
+            self.load_data()
 
         # if no contexts are provided, then we return the overall data
         return self._get_predictor_contributions(
@@ -98,6 +104,9 @@ class DataLoader(LazyNamespace):
             contribution_calculation
         )
 
+        if not self.initialized:
+            self.load_data()
+
         return self._get_predictor_value_contributions(
             predictors=predictors,
             limit=top_k,
@@ -119,6 +128,9 @@ class DataLoader(LazyNamespace):
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
+
+        if not self.initialized:
+            self.load_data()
 
         return self._get_predictor_contributions(
             contexts=[context],
@@ -143,6 +155,9 @@ class DataLoader(LazyNamespace):
             contribution_calculation
         )
 
+        if not self.initialized:
+            self.load_data()
+
         return self._get_predictor_value_contributions(
             contexts=[context],
             predictors=predictors,
@@ -158,14 +173,14 @@ class DataLoader(LazyNamespace):
         context_infos: Optional[List[ContextInfo]] = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
-        return self.contextOperations.get_df(context_infos, with_partition_col)
+        return self.context_operations.get_df(context_infos, with_partition_col)
 
     def get_unique_contexts_list(
         self,
         context_infos: Optional[List[ContextInfo]] = None,
         with_partition_col: bool = False,
     ) -> List[ContextInfo]:
-        return self.contextOperations.get_list(context_infos, with_partition_col)
+        return self.context_operations.get_list(context_infos, with_partition_col)
         
     def _get_predictor_value_contributions(
         self,

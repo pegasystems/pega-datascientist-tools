@@ -11,6 +11,7 @@ from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
+    
 class Explorer(LazyNamespace):
     dependencies = ["ipywidgets"]
     dependency_group = "explanations"
@@ -120,7 +121,7 @@ class Explorer(LazyNamespace):
         if selected_context is None:
             print("No context selected, plotting overall contributions.")
             overall_plot, predictor_plots = (
-                self.explanations.plots.plot_contributions_for_overall(
+                self.explanations.plot.plot_contributions_for_overall(
                     top_n=top_n,
                     top_k=top_k,
                     descending=descending,
@@ -134,7 +135,7 @@ class Explorer(LazyNamespace):
                 display(plot)
         else:
             context_plot, overall_plot, predictor_plots = (
-                self.explanations.plots.plot_contributions_by_context(
+                self.explanations.plot.plot_contributions_by_context(
                     context=selected_context,
                     top_n=top_n,
                     top_k=top_k,

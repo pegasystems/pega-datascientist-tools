@@ -7,9 +7,8 @@ The top-{TOP_N} predictor's contributions per context.
 
 ```{{python}}
 
-from pdstools.explanations import ExplanationsDataLoader as DataLoader, ExplanationsDataPlotter
+from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
 
-data_loader = DataLoader("{DATA_FOLDER}")
-
+explanations = Explanations()
 ```

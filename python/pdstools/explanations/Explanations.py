@@ -9,6 +9,7 @@ from .Aggregates import Aggregates
 from .DataLoader import DataLoader
 from .Plots import Plots
 from .Reports import Reports
+from .ExplanationsUtils import ContextOperations
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +76,8 @@ class Explanations:
 
         self.aggregates = Aggregates(explanations=self)
         self.data_loader = DataLoader(explanations=self)
-        self.plots = Plots(explanations=self)
-        self.reports = Reports(explanations=self)
-
+        self.plot = Plots(explanations=self)
+        self.report = Reports(explanations=self)
 
     def _set_date_range(
         self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7
