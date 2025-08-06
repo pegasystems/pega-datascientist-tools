@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 import logging
@@ -16,6 +17,161 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
+def get_output_filename(
+    name: Optional[str],  # going to be the full file name
+    report_type: str,
+    model_id: Optional[str] = None,
+    output_type: str = "html",
+) -> str:
+    """Generate the output filename based on the report parameters."""
+    name = name.replace(" ", "_") if name else None
+    if report_type == "ModelReport":
+        return (
+            f"{report_type}_{name}_{model_id}.{output_type}"
+            if name
+            else f"{report_type}_{model_id}.{output_type}"
+        )
+    return (
+        f"{report_type}_{name}.{output_type}"
+        if name
+        else f"{report_type}.{output_type}"
+    )
+
+def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
+    """Copy the report quarto file to the temporary directory."""
+    from pdstools import __reports__
+
+    shutil.copy(__reports__ / qmd_file, temp_dir)
+    shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
+
+def _write_params_files(
+    temp_dir: Path,
+    params: Dict = {},
+    project: Dict = {"type": "default"},
+    analysis: Dict = {},
+) -> None:
+    """Write parameters to a YAML file."""
+    import yaml
+
+    # Parameters to python code
+    with open(temp_dir / "params.yml", "w") as f:
+        yaml.dump(
+            params,
+            f,
+        )
+    
+    # Project/rendering options to quarto
+    with open(temp_dir / "_quarto.yml", "w") as f:
+        yaml.dump(
+            {
+                "project": project,
+                "analysis": analysis,
+            },
+            f,
+        )
+
+def run_quarto(
+    qmd_file: str = None,
+    output_filename: str = None,
+    output_type: str = "html",
+    params: Dict = {},
+    project: Dict = {"type": "default"},
+    analysis: Dict = {},
+    temp_dir: Path = Path("."),
+    verbose: bool = False,
+) -> int:
+    """Run the Quarto command to generate the report."""
+
+    if params != {}:
+        _write_params_files(
+            temp_dir,
+            params=params,
+            project=project,
+            analysis=analysis,
+        )
+
+    quarto_exec, _ = get_quarto_with_version(verbose)
+
+    # render file or render project with options
+    command = [str(quarto_exec), "render"] if qmd_file is None else [str(quarto_exec), "render", qmd_file]
+    options = _set_command_options(output_type, output_filename, execute_params=params!={})
+    command.extend(options)
+
+    if verbose:
+        print(f"Executing: {' '.join(command)}")
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # Redirect stderr to stdout
+        cwd=temp_dir,
+        text=True,
+        bufsize=1,  # Line buffered
+    )
+
+    if process.stdout is not None:
+        for line in iter(process.stdout.readline, ""):
+            line = line.strip()
+            if verbose:
+                print(line)
+            logger.info(line)
+    else:  # pragma: no cover
+        logger.warning("subprocess.stdout is None, unable to read output")
+
+    return_code = process.wait()
+    message = f"Quarto process exited with return code {return_code}"
+    logger.info(message)
+
+    return return_code
+
+def _set_command_options(
+    output_type: Optional[str] = None,
+    output_filename: Optional[str] = None,
+    execute_params: bool = False,
+) -> List[str]:
+    """Set the options for the Quarto command."""
+
+    options = []
+    if output_type is not None:
+        options.append("--to")
+        options.append(output_type)
+    if output_filename is not None:
+        options.append("--output")
+        options.append(output_filename)
+    if execute_params:
+        options.append("--execute-params")
+        options.append("params.yml")
+    return options
+
+def copy_report_resources(resource_dict: list[tuple[str, str]]):
+    from pdstools import __reports__
+    
+    for src, dest in resource_dict:
+        source_path = __reports__ / src
+        destination_path = dest
+        
+        if destination_path == "":
+                destination_path = "./"
+        
+        if os.path.isdir(source_path):
+            shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
+        else:
+            shutil.copy(source_path, destination_path)
+
+def generate_zipped_report(output_filename: str, folder_to_zip: str):
+    if not os.path.isdir(folder_to_zip):
+        logger.error(f"The output path {folder_to_zip} is not a directory.")
+        return
+
+    if not os.path.exists(folder_to_zip):
+        logger.warning(
+            f"The {folder_to_zip} directory does not exist. Skipping zip creation."
+        )
+        return
+
+    base_filename = os.path.splitext(output_filename)[0]
+    zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
+    logger.info(f"created zip file...{zippy}")
 
 def _get_cmd_output(args: List[str]) -> List[str]:
     """Get command output in an OS-agnostic way."""
@@ -33,7 +189,9 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
-    return re.sub("[^.0-9]", "", versionstr)
+    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
+    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    return match.group(1) if match else ""
 
 
 def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:

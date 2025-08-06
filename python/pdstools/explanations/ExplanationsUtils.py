@@ -8,7 +8,9 @@ __all__ = [
 ]
 
 from enum import Enum
-from typing import TypedDict, List, Optional, cast
+from typing import TYPE_CHECKING, TypedDict, List, Optional, cast
+
+from ..utils.namespaces import LazyNamespace
 
 import polars as pl
 import json
@@ -78,31 +80,43 @@ class _SPECIAL(Enum):
 
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
 
+if TYPE_CHECKING:
+    from .DataLoader import DataLoader
 
-class ContextOperations:
-    def __init__(self, df: pl.LazyFrame):
-        self._df = pl.from_dicts(
-            [
-                {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
-                for ck in df.select(_COL.PARTITON.value)
-                .unique()
-                .collect()
-                .to_series()
-                .to_list()
-            ]
-        )
+class ContextOperations(LazyNamespace):
+    dependencies = ["polars", "json"]
+    dependency_group = "explanations"
 
-        self._context_keys = list(self._df.select(pl.col("^py.*$")).columns)
+    def __init__(self, data_loader: "DataLoader"):
+        self.data_loader = data_loader
+
+        self._df: Optional[pl.DataFrame] = None
+        self._context_keys: Optional[List[str]] = None
+        self.initialized = False
+
+        super().__init__()
+
+    def load(self):
+        if self._df is None:
+            self._df = pl.from_dicts(
+                [
+                    {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
+                    for ck in self.data_loader.get_df_contextual().select(_COL.PARTITON.value)
+                    .unique()
+                    .collect()
+                    .to_series()
+                    .to_list()
+                ]
+            )
+        if self._context_keys is None:
+            self._context_keys = list(self._df.select(pl.col("^py.*$")).columns)
+
+        self.initialized = True
 
     def get_context_keys(self):
+        if not self.initialized:
+            self.load()
         return self._context_keys
-
-    def get_unique_values_in_each_key(self):
-        df = self.get_df()
-        ret = {}
-        for key in self._context_keys:
-            ret[key] = df.select(pl.col(key).unique()).to_dict()
-        return ret
 
     def get_df(
         self,
@@ -110,6 +124,9 @@ class ContextOperations:
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
+
+        if not self.initialized:
+            self.load()
 
         df = self._df if with_partition_col else self._get_clean_df(self._df)
 
@@ -124,6 +141,10 @@ class ContextOperations:
         with_partition_col: bool = False,
     ) -> List[ContextInfo]:
         """Get the list of context information filtered by the provided context information."""
+
+        if not self.initialized:
+            self.load()
+
         df = self.get_df(context_infos, with_partition_col)
         return cast(
             list[ContextInfo],

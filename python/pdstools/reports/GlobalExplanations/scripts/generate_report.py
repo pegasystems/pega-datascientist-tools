@@ -2,8 +2,6 @@ import json
 import os
 import yaml
 
-from pdstools.explanations import ExplanationsDataLoader as DataLoader, ContextInfo
-
 CONTEXT_FOLDER = "by-context"
 
 TOP_N = 10
@@ -33,11 +31,11 @@ class ReportGenerator:
         self.top_n = None
         self.top_k = None
 
-        self.context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
-        if not os.path.exists(self.context_folder):
-            os.makedirs(self.context_folder, exist_ok=True)
+        self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
+        if not os.path.exists(self.by_context_folder):
+            os.makedirs(self.by_context_folder, exist_ok=True)
 
-        self.all_context_filepath = f"{self.context_folder}/{ALL_CONTEXT_FILENAME}"
+        self.all_context_filepath = f"{self.by_context_folder}/{ALL_CONTEXT_FILENAME}"
 
         self._read_params()
 
@@ -46,7 +44,7 @@ class ReportGenerator:
 Report generation initialized with the following parameters:
 - Aggregations folder: {self.data_folder}
 - Report folder: {self.report_folder}
-- Context folder: {self.context_folder}
+- Context folder: {self.by_context_folder}
 - All contexts file path: {self.all_context_filepath}
 - Top N: {self.top_n}
 - Top K: {self.top_k}
@@ -104,7 +102,7 @@ Report generation initialized with the following parameters:
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
         f_template = (
-            f"""{template.format(DATA_FOLDER=self.data_folder, TOP_N=self.top_n)}"""
+            f"""{template.format(TOP_N=self.top_n)}"""
         )
 
         with open(self.all_context_filepath, "w") as writer:
@@ -115,7 +113,7 @@ Report generation initialized with the following parameters:
         template: str,
         context_string: str,
         context_label: str,
-        context: ContextInfo,
+        context: dict,
     ):
         with open(self.all_context_filepath, "a") as writer:
             f_content_template = f"""{
@@ -131,10 +129,32 @@ Report generation initialized with the following parameters:
             writer.write("\n")
             writer.write(f_content_template)
 
+    def _get_unique_contexts(self):
+        
+        unique_contexts_file = f"{self.data_folder}/unique_contexts.csv"
+        if not os.path.exists(unique_contexts_file):
+            raise FileNotFoundError(
+                f"Unique contexts file not found: {unique_contexts_file}. "
+                "Please ensure that aggregates have been generated."
+            )
+        with open(unique_contexts_file, "r") as f:
+            lines = [line.strip() for line in f.readlines()]
+        
+        contexts = []
+        for line in lines:
+            if not line:
+                continue
+            context_info = json.loads(line)
+            if not isinstance(context_info, dict):
+                raise ValueError(
+                    f"Invalid context format in {unique_contexts_file}: {line}"
+                )
+            contexts.append(context_info.get("partition", {}))
+        
+        return contexts
+    
     def _generate_by_context_qmds(self):
-        data_loader = DataLoader(self.data_folder)
-        contexts = data_loader.get_unique_contexts_list()
-
+        
         # write header
         self._write_header_to_file()
 
@@ -142,6 +162,7 @@ Report generation initialized with the following parameters:
         context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
         single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
 
+        contexts = self._get_unique_contexts()
         for context in contexts:
             context_string = self._get_context_string(context)
             context_label = ("plt-" + context_string).lower()
@@ -153,7 +174,7 @@ Report generation initialized with the following parameters:
                 context=context,
             )
 
-            single_context_filename = f"{self.context_folder}/{context_label}.qmd"
+            single_context_filename = f"{self.by_context_folder}/{context_label}.qmd"
 
             self._write_single_context_file(
                 filename=single_context_filename,
@@ -168,7 +189,6 @@ Report generation initialized with the following parameters:
 
         f_template = f"""{
             template.format(
-                DATA_FOLDER=self.data_folder,
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
             )
@@ -204,7 +224,5 @@ Report generation initialized with the following parameters:
 
 
 if __name__ == "__main__":
-    # if not os.getenv("QUARTO_PROJECT_RENDER_ALL"):
-    #     exit()
     generator = ReportGenerator()
     generator.run()

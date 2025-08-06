@@ -6,11 +6,10 @@ title: "Overview"
 The top-{TOP_N} predictors over the entire model, selected by their absolute average contribution to predictions
 
 ```{{python}}
-from pdstools.explanations import ExplanationsDataLoader as DataLoader, ExplanationsDataPlotter as DataPlotter
+from pdstools.explanations import Explanations
 
-data_loader = DataLoader("{DATA_FOLDER}")
-overall_plot, predictor_plots = DataPlotter.plot_contributions_for_overall(
-    data_loader, 
+explanations = Explanations()
+overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
     top_n={TOP_N}, 
     top_k={TOP_K}
 )

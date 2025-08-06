@@ -322,11 +322,12 @@ class ADMDatamart:
             pdc_data.filter(pl.col("ModelType") == "AdaptiveModel")
             .with_columns(
                 pl.col("Performance").cast(pl.Float32),
-                # pl.col("Positives").cast(pl.Float32),
-                pl.col("Negatives").cast(pl.Float32),
-                pl.col("TotalPositives").cast(pl.Float32),
-                pl.col("TotalResponses").cast(pl.Float32),
-                # pl.col("ResponseCount").cast(pl.Float32),
+                
+                # pl.col("Positives").cast(pl.Float64),
+                pl.col("Negatives").cast(pl.Float64),
+                pl.col("TotalPositives").cast(pl.Float64),
+                pl.col("TotalResponses").cast(pl.Float64),
+                # pl.col("ResponseCount").cast(pl.Float64),
                 pyTotalPredictors=pl.lit(None),
                 pyActivePredictors=pl.lit(None),
                 # CTR=(pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives"))),
