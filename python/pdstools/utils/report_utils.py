@@ -59,7 +59,7 @@ def _write_params_files(
             params,
             f,
         )
-    
+
     # Project/rendering options to quarto
     with open(temp_dir / "_quarto.yml", "w") as f:
         yaml.dump(
@@ -124,6 +124,7 @@ def run_quarto(
 
     return return_code
 
+  
 def _set_command_options(
     output_type: Optional[str] = None,
     output_filename: Optional[str] = None,
@@ -143,6 +144,7 @@ def _set_command_options(
         options.append("params.yml")
     return options
 
+  
 def copy_report_resources(resource_dict: list[tuple[str, str]]):
     from pdstools import __reports__
     
@@ -158,6 +160,7 @@ def copy_report_resources(resource_dict: list[tuple[str, str]]):
         else:
             shutil.copy(source_path, destination_path)
 
+            
 def generate_zipped_report(output_filename: str, folder_to_zip: str):
     if not os.path.isdir(folder_to_zip):
         logger.error(f"The output path {folder_to_zip} is not a directory.")
@@ -173,6 +176,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
     logger.info(f"created zip file...{zippy}")
 
+    
 def _get_cmd_output(args: List[str]) -> List[str]:
     """Get command output in an OS-agnostic way."""
     try:
@@ -189,9 +193,6 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
-    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
-    return match.group(1) if match else ""
     # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
     match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
     return match.group(1) if match else ""
