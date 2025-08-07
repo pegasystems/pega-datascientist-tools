@@ -161,7 +161,7 @@ class Explorer(LazyNamespace):
     def set_selected_context(self, context_info: Optional[ContextInfo]):
         self._selected_context_key_values = cast(dict[str, str], context_info)
 
-    def _get_selected_context(self, with_any_option: bool = True) -> ContextInfo | None:
+    def _get_selected_context(self, with_any_option: bool = True) -> Optional[ContextInfo]:
         # return None if with_any_option is False and any context key value is set to ANY_CONTEXT
         if not with_any_option and any(
             x == self._ANY_CONTEXT for x in self._selected_context_key_values.values()

@@ -77,7 +77,7 @@ class DataLoader(LazyNamespace):
             self.load_data()
         return self.df_contextual
 
-    def get_context_operations(self) -> ContextOperations | None:
+    def get_context_operations(self) -> Optional[ContextOperations]:
         return self.context_operations
 
     def get_top_n_predictor_contribution_overall(
