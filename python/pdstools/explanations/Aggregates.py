@@ -20,38 +20,41 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .Explanations import Explanations
 
+
 class Aggregates(LazyNamespace):
     dependencies = ["duckdb", "polars", "importlib_resources"]
     dependency_group = "explanations"
-    
+
     SEP = ", "
     LEFT_PREFIX = "l"
     RIGHT_PREFIX = "r"
-    
+
     def __init__(self, explanations: "Explanations"):
-        
         self.explanations = explanations
         self.explanations_folder = self.explanations.data_folder
-        self.aggregates_folder = pathlib.Path(os.path.join(self.explanations.root_dir, self.explanations.aggregates_folder))
-        
+        self.aggregates_folder = pathlib.Path(
+            os.path.join(
+                self.explanations.root_dir, self.explanations.aggregates_folder
+            )
+        )
+
         self.from_date = explanations.from_date
         self.to_date = explanations.to_date
         self.model_name = explanations.model_name
-        
+
         self.progress_bar = explanations.progress_bar
         self.batch_limit = explanations.batch_limit
         self.memory_limit = explanations.memory_limit
         self.thread_count = explanations.thread_count
-        
+
         self._conn = None
-        
+
         self.selected_files: list[str] = []
         self.contexts: Optional[list[str]] = None
-        self.unique_contexts_filename = f'{self.aggregates_folder}/unique_contexts.csv'
-        
+        self.unique_contexts_filename = f"{self.aggregates_folder}/unique_contexts.csv"
+
         super().__init__()
-        
-    
+
     def generate(self):
         """Process explanation parquet files and save calculated aggregates.
 
@@ -72,12 +75,12 @@ class Aggregates(LazyNamespace):
         """
 
         self._clean_aggregates_folder()
-        
+
         self._populate_selected_files()
         if len(self.selected_files) == 0:
-            logger.warning("No files found to aggregate!")
+            logger.error("No files found to aggregate!")
             return
-        
+
         self._conn = duckdb.connect(database=":memory:")
 
         try:
@@ -85,17 +88,17 @@ class Aggregates(LazyNamespace):
         except Exception as e:
             logger.error(f"Failed to aggregate numeric data, err={e}")
             self._conn.close()
-            exit(1)
+            return
 
         try:
             self._run_agg(_PREDICTOR_TYPE.SYMBOLIC)
         except Exception as e:
             logger.error(f"Failed to aggregate symbolic data, err={e}")
             self._conn.close()
-            exit(1)
+            return
 
         self._conn.close()
-        
+
     @staticmethod
     def _clean_query(query):
         q = query.replace("\n", " ")
@@ -104,12 +107,12 @@ class Aggregates(LazyNamespace):
             q = q.replace("  ", " ")
 
         return q
-        
+
     def _clean_aggregates_folder(self):
         if self.aggregates_folder.exists() and self.aggregates_folder.is_dir():
             shutil.rmtree(self.aggregates_folder)
         self.aggregates_folder.mkdir(parents=True, exist_ok=True)
-        
+
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:
             self._create_in_mem_table(predictor_type)
@@ -122,7 +125,7 @@ class Aggregates(LazyNamespace):
         except Exception as e:
             logger.error(f"Failed for predictor type={predictor_type}, err={e}")
             return
-        
+
     def _create_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
         query = self._get_create_table_sql_formatted(table_name, predictor_type)
@@ -131,16 +134,15 @@ class Aggregates(LazyNamespace):
 
     def _create_unique_contexts_file(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is None:
-            self._get_contexts(predictor_type= predictor_type)
+            self._get_contexts(predictor_type=predictor_type)
 
         if pathlib.Path(self.unique_contexts_filename).exists():
             return
-        
+
         df = pl.DataFrame(self.contexts, schema={_COL.PARTITON.value: pl.Utf8()})
         df.write_csv(
-            self.unique_contexts_filename, 
-            include_header=False, 
-            quote_style="never")
+            self.unique_contexts_filename, include_header=False, quote_style="never"
+        )
 
     def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is None:
@@ -155,16 +157,15 @@ class Aggregates(LazyNamespace):
 
         return self.contexts
 
-        
     def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         self._create_unique_contexts_file(predictor_type)
-        
+
         for batch in self._parquet_in_batches(predictor_type):
             self._write_to_parquet(
                 batch["dataframe"],
                 f"{predictor_type.value}_BATCH_{batch['batch_count']}.parquet",
             )
-            
+
     def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         df = self._parquet_overall(predictor_type, where_condition)
         if df is None:
@@ -180,14 +181,14 @@ class Aggregates(LazyNamespace):
         """
 
         self._execute_query(query)
-        
+
     def _get_table_name(self, predictor_type) -> _TABLE_NAME:
         return (
             _TABLE_NAME.NUMERIC
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
             else _TABLE_NAME.SYMBOLIC
         )
-        
+
     def _get_create_table_sql_formatted(
         self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
     ):
@@ -206,7 +207,7 @@ class Aggregates(LazyNamespace):
         }"""
 
         return self._clean_query(f_sql)
-    
+
     def _parquet_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         try:
             table_name = self._get_table_name(predictor_type)
@@ -261,10 +262,10 @@ class Aggregates(LazyNamespace):
         except Exception as e:
             logger.error(f"Failed for predictor type={predictor_type}, err={e}")
             return
-    
+
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
         df.write_parquet(f"{self.aggregates_folder}/{file_name}", statistics=False)
-    
+
     def _read_overall_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
             _TABLE_NAME.NUMERIC_OVERALL
@@ -313,14 +314,14 @@ class Aggregates(LazyNamespace):
         }"""
 
         return self._clean_query(f_sql)
-    
+
     def _get_selected_files(self):
         if len(self.selected_files) == 0:
             self._populate_selected_files()
 
         q = ", ".join([f"'{x}'" for x in self.selected_files])
         return q
-    
+
     def _populate_selected_files(self):
         if self.from_date is None or self.to_date is None:
             raise ValueError(
@@ -338,7 +339,9 @@ class Aggregates(LazyNamespace):
         )
         files_ = []
         for date in date_range_list:
-            file_pattern = f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
+            file_pattern = (
+                f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
+            )
             file_paths = glob(file_pattern)
             if file_paths:
                 # Get the latest file based on modification time
@@ -351,12 +354,12 @@ class Aggregates(LazyNamespace):
 
         logger.info(f"Selected files:= \n {files_}")
         self.selected_files = files_
-        
+
     def _execute_query(self, query: str):
         """Execute a query on the in-memory DuckDB connection."""
         if self._conn is None:
             raise ValueError("DuckDB connection is not initialized.")
-        
+
         try:
             ret = self._conn.execute(query)
         except duckdb.DatabaseException as e:

@@ -3,6 +3,8 @@ __all__ = ["DataLoader"]
 from typing import TYPE_CHECKING, List, Optional
 
 import polars as pl
+import logging
+import pathlib
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
@@ -14,6 +16,8 @@ from .ExplanationsUtils import (
     ContextOperations,
 )
 
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from .Explanations import Explanations
 
@@ -21,7 +25,7 @@ if TYPE_CHECKING:
 class DataLoader(LazyNamespace):
     dependencies = ["polars"]
     dependency_group = "explanations"
-    
+
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
         self.df_contextual = None
@@ -31,6 +35,12 @@ class DataLoader(LazyNamespace):
         self.initialized = False
 
     def load_data(self):
+
+        try:
+            self._validate_aggregates_folder()
+        except FileNotFoundError as e:
+            logger.error(f"Error validating aggregates folder: {e}")
+            raise
 
         selected_columns = [
             _COL.PARTITON.value,
@@ -46,27 +56,31 @@ class DataLoader(LazyNamespace):
         ]
 
         self.df_contextual = (
-            pl.scan_parquet(f"{self.explanations.aggregates.aggregates_folder}/*_BATCH_*.parquet")
+            pl.scan_parquet(
+                f"{self.explanations.aggregates.aggregates_folder}/*_BATCH_*.parquet"
+            )
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
 
         self.df_overall = (
-            pl.scan_parquet(f"{self.explanations.aggregates.aggregates_folder}/*_OVERALL.parquet")
+            pl.scan_parquet(
+                f"{self.explanations.aggregates.aggregates_folder}/*_OVERALL.parquet"
+            )
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
 
         self.initialized = True
-        
+
     def get_df_contextual(self) -> pl.LazyFrame:
         if not self.initialized:
             self.load_data()
         return self.df_contextual
-    
+
     def get_context_operations(self) -> ContextOperations | None:
         return self.context_operations
-        
+
     def get_top_n_predictor_contribution_overall(
         self,
         top_n: int = 10,
@@ -181,7 +195,23 @@ class DataLoader(LazyNamespace):
         with_partition_col: bool = False,
     ) -> List[ContextInfo]:
         return self.context_operations.get_list(context_infos, with_partition_col)
-        
+
+    def _validate_aggregates_folder(self):
+
+        folder = pathlib.Path(self.explanations.aggregates.aggregates_folder)
+
+        """Check if the aggregates folder exists."""
+        if not folder.exists():
+            raise FileNotFoundError(
+                f"Aggregates folder {folder.name} does not exist. Please ensure the aggregates are generated before loading data."
+            )
+    
+        # Check if the aggregates folder contains any files
+        if not any(folder.iterdir()):
+            raise FileNotFoundError(
+                f"Aggregates folder {folder.name} is empty. Please ensure the aggregates are generated before loading data."
+            )
+    
     def _get_predictor_value_contributions(
         self,
         contexts: Optional[List[ContextInfo]] = None,
@@ -413,10 +443,9 @@ class DataLoader(LazyNamespace):
     def _get_base_df(
         self, df_filtered_contexts: Optional[pl.DataFrame] = None
     ) -> pl.LazyFrame:
-        
         if self.df_overall is None or self.df_contextual is None:
             self.load_data()
-            
+
         if df_filtered_contexts is None:
             return self.df_overall
         else:
@@ -556,4 +585,3 @@ class DataLoader(LazyNamespace):
         ]
 
         return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
-

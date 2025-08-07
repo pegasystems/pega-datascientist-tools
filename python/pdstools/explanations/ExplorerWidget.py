@@ -11,11 +11,12 @@ from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
-    
+
+
 class Explorer(LazyNamespace):
     dependencies = ["ipywidgets"]
     dependency_group = "explanations"
-    
+
     _ANY_CONTEXT = "Any"
     _CHANGED_VALUE = "new"
     _CHANGED_WIDGET = "owner"
@@ -25,12 +26,13 @@ class Explorer(LazyNamespace):
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
         super().__init__()
-    
+
     def display(self):
-        
         self._validate_aggregates_data_location()
-        
-        self._context_operations = self.explanations.data_loader.get_context_operations()
+
+        self._context_operations = (
+            self.explanations.data_loader.get_context_operations()
+        )
 
         self._raw_context_info_list: List[ContextInfo] = []
         self._filtered_context_info_list: List[ContextInfo] = []
@@ -49,18 +51,25 @@ class Explorer(LazyNamespace):
         # init widget objects
         self._context_combobox_widgets: dict[str, widgets.Combobox] = {}
         self._context_selector_widget = None
-        
+
         self._display_context_selector()
-        
+
     def _validate_aggregates_data_location(self):
         aggregates_folder = self.explanations.aggregates_folder
         if os.path.exists(aggregates_folder):
             if not os.path.isdir(aggregates_folder):
-                raise ValueError(f"Data location '{aggregates_folder}' is not a directory.")
-            
-            if not any(os.path.isfile(os.path.join(aggregates_folder, f)) for f in os.listdir(aggregates_folder)):
-                raise ValueError(f"No files found in data location '{aggregates_folder}'. Run aggregation first.")
-            
+                raise ValueError(
+                    f"Data location '{aggregates_folder}' is not a directory."
+                )
+
+            if not any(
+                os.path.isfile(os.path.join(aggregates_folder, f))
+                for f in os.listdir(aggregates_folder)
+            ):
+                raise ValueError(
+                    f"No files found in data location '{aggregates_folder}'. Run aggregation first."
+                )
+
     def _display_context_selector(self):
         self._filtered_context_info_list = self._filter_context_infos()
 

@@ -9,7 +9,7 @@ from .Aggregates import Aggregates
 from .DataLoader import DataLoader
 from .Plots import Plots
 from .Reports import Reports
-from .ExplanationsUtils import ContextOperations
+from .ExplorerWidget import Explorer
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class Explanations:
         self.data_folder = data_folder
         self.aggregates_folder = aggregates_folder
         self.report_folder = report_folder
-        
+
         self.model_name = model_name
         self.from_date = None
         self.to_date = None
@@ -78,6 +78,7 @@ class Explanations:
         self.data_loader = DataLoader(explanations=self)
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
+        self.explorer = Explorer(explanations=self)
 
     def _set_date_range(
         self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7
@@ -113,6 +114,3 @@ class Explanations:
 
         self.from_date = from_date
         self.to_date = to_date
-
-    
-    
