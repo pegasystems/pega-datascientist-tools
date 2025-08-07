@@ -57,9 +57,9 @@ onnx = [
     "onnxruntime==1.18.1 ; python_full_version < '3.10'",
     "onnxruntime==1.20.1 ; python_full_version >= '3.10'",
 ]
-all = ['pdstools[app, pega_io, onnx]']
-dev = ['pre-commit']
-docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse', 'xgboost']
+all = ['pdstools[app, pega_io, onnx, explanations]']
+dev = ['pre-commit', 'jupyter']
+docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse']
 tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
 
 [project.urls]
