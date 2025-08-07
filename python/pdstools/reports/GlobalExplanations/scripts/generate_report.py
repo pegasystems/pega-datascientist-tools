@@ -70,6 +70,7 @@ Report generation initialized with the following parameters:
         self.data_folder = os.path.abspath(
             os.path.join(self.report_folder, "..", self.data_folder)
         )
+        print(f"Using data folder: {self.data_folder}")
 
         if self.verbose:
             self._log_params()
@@ -102,7 +103,7 @@ Report generation initialized with the following parameters:
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
         f_template = (
-            f"""{template.format(TOP_N=self.top_n)}"""
+            f"""{template.format(DATA_FOLDER=self.data_folder, TOP_N=self.top_n)}"""
         )
 
         with open(self.all_context_filepath, "w") as writer:
@@ -130,7 +131,6 @@ Report generation initialized with the following parameters:
             writer.write(f_content_template)
 
     def _get_unique_contexts(self):
-        
         unique_contexts_file = f"{self.data_folder}/unique_contexts.csv"
         if not os.path.exists(unique_contexts_file):
             raise FileNotFoundError(
@@ -139,7 +139,7 @@ Report generation initialized with the following parameters:
             )
         with open(unique_contexts_file, "r") as f:
             lines = [line.strip() for line in f.readlines()]
-        
+
         contexts = []
         for line in lines:
             if not line:
@@ -150,11 +150,10 @@ Report generation initialized with the following parameters:
                     f"Invalid context format in {unique_contexts_file}: {line}"
                 )
             contexts.append(context_info.get("partition", {}))
-        
+
         return contexts
-    
+
     def _generate_by_context_qmds(self):
-        
         # write header
         self._write_header_to_file()
 
@@ -189,6 +188,7 @@ Report generation initialized with the following parameters:
 
         f_template = f"""{
             template.format(
+                DATA_FOLDER=self.data_folder,
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
             )

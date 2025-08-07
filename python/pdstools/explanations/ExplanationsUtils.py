@@ -78,10 +78,12 @@ class _SPECIAL(Enum):
     TOTAL_FREQUENCY = "total_frequency"
     MISSING = "missing"
 
+
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
 
 if TYPE_CHECKING:
     from .DataLoader import DataLoader
+
 
 class ContextOperations(LazyNamespace):
     dependencies = ["polars", "json"]
@@ -101,7 +103,8 @@ class ContextOperations(LazyNamespace):
             self._df = pl.from_dicts(
                 [
                     {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
-                    for ck in self.data_loader.get_df_contextual().select(_COL.PARTITON.value)
+                    for ck in self.data_loader.get_df_contextual()
+                    .select(_COL.PARTITON.value)
                     .unique()
                     .collect()
                     .to_series()

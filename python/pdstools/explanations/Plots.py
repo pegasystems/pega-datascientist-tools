@@ -14,30 +14,32 @@ try:
 except ImportError as e:
     logger.debug(f"Failed to import optional dependencies: {e}")
 
-
-X_AXIS_TITLE_DEFAULT = "Contribution"
-Y_AXIS_TITLE_DEFAULT = "Predictor"
-
 if TYPE_CHECKING:
     from .Explanations import Explanations
-    
+
+
 class Plots(LazyNamespace):
     dependencies = ["plotly"]
     dependency_group = "explanations"
-    
+
+    X_AXIS_TITLE_DEFAULT = "Contribution"
+    Y_AXIS_TITLE_DEFAULT = "Predictor"
+    TOP_N_DEFAULT = 10
+    TOP_K_DEFAULT = 10
+
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
         self.data_loader = None
         super().__init__()
-        
+
     def _load_data(self):
         self.explanations.data_loader.load_data()
         return self.explanations.data_loader
-    
+
     def plot_contributions_for_overall(
         self,
-        top_n: int = 10,
-        top_k: int = 10,
+        top_n: int = TOP_N_DEFAULT,
+        top_k: int = TOP_K_DEFAULT,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -46,7 +48,7 @@ class Plots(LazyNamespace):
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
-        
+
         if self.data_loader is None:
             self.data_loader = self._load_data()
 
@@ -93,8 +95,8 @@ class Plots(LazyNamespace):
     def plot_contributions_by_context(
         self,
         context: ContextInfo,
-        top_n: int = 10,
-        top_k: int = 10,
+        top_n: int = TOP_N_DEFAULT,
+        top_k: int = TOP_K_DEFAULT,
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -103,7 +105,7 @@ class Plots(LazyNamespace):
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
-        
+
         if self.data_loader is None:
             self.data_loader = self._load_data()
 
@@ -208,12 +210,14 @@ class Plots(LazyNamespace):
         for predictor in predictors:
             predictor_df = df.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
+            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[0]
             fig = go.Figure(
                 data=[
                     go.Bar(
                         x=predictor_df[x_col].to_list(),
                         y=predictor_df[y_col].to_list(),
                         orientation="h",
+                        customdata=[predictor_type],
                     )
                 ]
             )
@@ -224,7 +228,8 @@ class Plots(LazyNamespace):
                     color=colors_values,
                     colorscale="RdBu_r",
                     cmid=0.0,
-                )
+                ),
+                hovertemplate="Value: %{y}<br>PredictorType: %{customdata[0]}<extra></extra>",
             )
             fig.update_layout(
                 xaxis_title=x_title,
