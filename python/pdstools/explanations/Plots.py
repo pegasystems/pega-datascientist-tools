@@ -210,7 +210,9 @@ class Plots(LazyNamespace):
         for predictor in predictors:
             predictor_df = df.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
-            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[0]
+            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[
+                0
+            ]
             fig = go.Figure(
                 data=[
                     go.Bar(

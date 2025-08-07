@@ -13,6 +13,7 @@ def reports():
     mock_explanations.aggregates_folder = "/test/aggregates"
     return Reports(mock_explanations)
 
+
 def test_copy_report_resources_calls_with_correct_args(reports):
     with patch("pdstools.explanations.Reports.copy_report_resources") as mock_copy:
         reports._copy_report_resources()
@@ -22,11 +23,11 @@ def test_copy_report_resources_calls_with_correct_args(reports):
         ]
         mock_copy.assert_called_once_with(resource_dict=expected_resource_dict)
 
+
 def test_copy_report_resources_raises_on_error(reports):
-    with patch("pdstools.explanations.Reports.copy_report_resources", side_effect=OSError("fail")):
+    with patch(
+        "pdstools.explanations.Reports.copy_report_resources",
+        side_effect=OSError("fail"),
+    ):
         with pytest.raises(OSError):
             reports._copy_report_resources()
-
-
-
-    

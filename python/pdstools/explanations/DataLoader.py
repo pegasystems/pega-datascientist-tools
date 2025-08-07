@@ -35,7 +35,6 @@ class DataLoader(LazyNamespace):
         self.initialized = False
 
     def load_data(self):
-
         try:
             self._validate_aggregates_folder()
         except FileNotFoundError as e:
@@ -197,7 +196,6 @@ class DataLoader(LazyNamespace):
         return self.context_operations.get_list(context_infos, with_partition_col)
 
     def _validate_aggregates_folder(self):
-
         folder = pathlib.Path(self.explanations.aggregates.aggregates_folder)
 
         """Check if the aggregates folder exists."""
@@ -205,13 +203,13 @@ class DataLoader(LazyNamespace):
             raise FileNotFoundError(
                 f"Aggregates folder {folder.name} does not exist. Please ensure the aggregates are generated before loading data."
             )
-    
+
         # Check if the aggregates folder contains any files
         if not any(folder.iterdir()):
             raise FileNotFoundError(
                 f"Aggregates folder {folder.name} is empty. Please ensure the aggregates are generated before loading data."
             )
-    
+
     def _get_predictor_value_contributions(
         self,
         contexts: Optional[List[ContextInfo]] = None,
