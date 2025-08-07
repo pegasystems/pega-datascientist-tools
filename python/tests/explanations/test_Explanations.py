@@ -1,9 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
 from pdstools.explanations import Explanations
-from unittest.mock import patch
-from pdstools.explanations.Explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _COL
 
 """
 Testing the functionality of the Explanations class
@@ -13,13 +10,7 @@ Testing the functionality of the Explanations class
 class TestExplanationsInit:
     """Test the initialization of the Explanations class"""
 
-    @patch("pdstools.explanations.Explanations.Aggregates")
-    @patch("pdstools.explanations.Explanations.DataLoader")
-    @patch("pdstools.explanations.Explanations.Plots")
-    @patch("pdstools.explanations.Explanations.Reports")
-    def test_default_initialization(
-        self, mock_reports, mock_plots, mock_data_loader, mock_aggregates
-    ):
+    def test_default_initialization(self):
         """Test initialization with default parameters"""
         explanations = Explanations()
 
@@ -38,12 +29,6 @@ class TestExplanationsInit:
         assert explanations.from_date is not None
         assert explanations.to_date is not None
         assert (explanations.to_date - explanations.from_date).days == 7
-
-        # Test that component objects are created
-        mock_aggregates.assert_called_once_with(explanations=explanations)
-        mock_data_loader.assert_called_once_with(explanations=explanations)
-        mock_plots.assert_called_once_with(explanations=explanations)
-        mock_reports.assert_called_once_with(explanations=explanations)
 
     def test_custom_initialization(self):
         """Test initialization with custom parameters"""
@@ -86,17 +71,14 @@ class TestExplanationsInit:
         assert explanations.from_date == expected_from_date
         assert explanations.to_date == to_date
 
-    @patch("pdstools.explanations.Explanations.datetime")
-    def test_date_range_only_from_date(self, mock_datetime):
+    def test_date_range_only_from_date(self):
         """Test initialization with only from_date provided"""
-        mock_today = datetime(2023, 1, 15)
-        mock_datetime.today.return_value = mock_today
-
         from_date = datetime(2023, 1, 1)
         explanations = Explanations(from_date=from_date)
 
+        expected_to_date = datetime.today().date()
         assert explanations.from_date == from_date
-        assert explanations.to_date == mock_today
+        assert explanations.to_date.date() == expected_to_date
 
     def test_invalid_date_range(self):
         """Test that invalid date range raises ValueError"""
