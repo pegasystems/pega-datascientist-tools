@@ -1,0 +1,91 @@
+__all__ = ["Reports"]
+
+import os
+import shutil
+import subprocess
+import yaml
+import logging
+
+from typing import TYPE_CHECKING
+
+from ..utils.namespaces import LazyNamespace
+from ..utils.report_utils import (
+    copy_report_resources,
+    run_quarto,
+    generate_zipped_report,
+)
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from .Explanations import Explanations
+
+
+class Reports(LazyNamespace):
+    dependencies = ["yaml"]
+    dependency_group = "explanations"
+
+    def __init__(self, explanations: "Explanations"):
+        self.explanations = explanations
+
+        self.report_dir = os.path.join(
+            self.explanations.root_dir, self.explanations.report_folder
+        )
+        self.report_output_dir = os.path.join(self.report_dir, "_site")
+
+        self.aggregates_folder = self.explanations.aggregates_folder
+        self.params_file = os.path.join(self.report_dir, "scripts", "params.yml")
+        super().__init__()
+
+    def generate(
+        self,
+        report_filename: str = "explanations_report.zip",
+        top_n: int = 10,
+        top_k: int = 10,
+        zip_output: bool = False,
+        verbose: bool = False,
+    ):
+        self._validate_report_dir()
+
+        try:
+            self._copy_report_resources()
+        except (OSError, shutil.Error) as e:
+            logger.error(f"IO error during resource copy: {e}")
+            raise
+
+        self._set_params(top_n=top_n, top_k=top_k, verbose=verbose)
+
+        try:
+            return_code = run_quarto(temp_dir=self.report_dir, verbose=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Quarto command failed: {e}")
+            raise
+
+        if return_code != 0:
+            logger.error(f"Quarto command failed with return code {return_code}")
+            raise RuntimeError(f"Quarto command failed with return code {return_code}")
+
+        if zip_output:
+            generate_zipped_report(report_filename, self.report_output_dir)
+
+    def _validate_report_dir(self):
+        if not os.path.exists(self.report_dir):
+            os.makedirs(self.report_dir, exist_ok=True)
+
+    def _copy_report_resources(self):
+        copy_report_resources(
+            resource_dict=[
+                ("GlobalExplanations", self.report_dir),
+                ("assets", os.path.join(self.report_dir, "assets")),
+            ],
+        )
+
+    def _set_params(self, top_n: int = 10, top_k: int = 10, verbose: bool = False):
+        params = {}
+        params["top_n"] = top_n
+        params["top_k"] = top_k
+        params["verbose"] = verbose
+        params["data_folder"] = self.aggregates_folder
+
+        with open(self.params_file, "w") as file:
+            yaml.safe_dump(params, file)
