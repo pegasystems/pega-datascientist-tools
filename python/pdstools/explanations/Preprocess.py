@@ -1,6 +1,5 @@
-__all__ = ["Aggregates"]
+__all__ = ["Preprocess"]
 
-import shutil
 import pathlib
 import os
 import duckdb
@@ -17,11 +16,12 @@ from .resources import queries as queries_data
 
 logger = logging.getLogger(__name__)
 
+
 if TYPE_CHECKING:
     from .Explanations import Explanations
 
 
-class Aggregates(LazyNamespace):
+class Preprocess(LazyNamespace):
     dependencies = ["duckdb", "polars", "importlib_resources"]
     dependency_group = "explanations"
 
@@ -31,29 +31,31 @@ class Aggregates(LazyNamespace):
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
+
         self.explanations_folder = self.explanations.data_folder
-        self.aggregates_folder = pathlib.Path(
-            os.path.join(
-                self.explanations.root_dir, self.explanations.aggregates_folder
-            )
+        self.data_foldername = "aggregated_data"
+        self.data_folderpath = pathlib.Path(
+            os.path.join(self.explanations.root_dir, self.data_foldername)
         )
 
         self.from_date = explanations.from_date
         self.to_date = explanations.to_date
         self.model_name = explanations.model_name
 
-        self.progress_bar = explanations.progress_bar
-        self.batch_limit = explanations.batch_limit
-        self.memory_limit = explanations.memory_limit
-        self.thread_count = explanations.thread_count
+        self.batch_limit = int(os.getenv("BATCH_LIMIT", "10"))
+        self.memory_limit = int(os.getenv("MEMORY_LIMIT", "2"))
+        self.thread_count = int(os.getenv("THREAD_COUNT", "4"))
+        self.progress_bar = os.getenv("PROGRESS_BAR", "0") == "1"
 
         self._conn = None
 
         self.selected_files: list[str] = []
         self.contexts: Optional[list[str]] = None
-        self.unique_contexts_filename = f"{self.aggregates_folder}/unique_contexts.csv"
+        self.unique_contexts_filename = f"{self.data_folderpath}/unique_contexts.csv"
 
         super().__init__()
+
+        self.generate()
 
     def generate(self):
         """Process explanation parquet files and save calculated aggregates.
@@ -74,7 +76,9 @@ class Aggregates(LazyNamespace):
         Each of the aggregates are written to parquet files to a temporary output dirtectory unless specified otherwise.
         """
 
-        self._clean_aggregates_folder()
+        if self._is_cached():
+            logger.debug("Using cached data for preprocessing.")
+            return
 
         self._populate_selected_files()
         if len(self.selected_files) == 0:
@@ -108,10 +112,12 @@ class Aggregates(LazyNamespace):
 
         return q
 
-    def _clean_aggregates_folder(self):
-        if self.aggregates_folder.exists() and self.aggregates_folder.is_dir():
-            shutil.rmtree(self.aggregates_folder)
-        self.aggregates_folder.mkdir(parents=True, exist_ok=True)
+    def _is_cached(self):
+        if self.data_folderpath.exists() and self.data_folderpath.is_dir():
+            if any(self.data_folderpath.iterdir()):
+                return True
+        self.data_folderpath.mkdir(parents=True, exist_ok=True)
+        return False
 
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:
@@ -264,7 +270,7 @@ class Aggregates(LazyNamespace):
             return
 
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
-        df.write_parquet(f"{self.aggregates_folder}/{file_name}", statistics=False)
+        df.write_parquet(f"{self.data_folderpath}/{file_name}", statistics=False)
 
     def _read_overall_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
@@ -361,7 +367,7 @@ class Aggregates(LazyNamespace):
             raise ValueError("DuckDB connection is not initialized.")
 
         try:
-            ret = self._conn.execute(query)
+            execution = self._conn.execute(query)
         except duckdb.DatabaseException as e:
             logger.error(f"DatabaseException: {e}")
             raise
@@ -369,4 +375,4 @@ class Aggregates(LazyNamespace):
             logger.error(f"Failed to execute query: {e}")
             raise
 
-        return ret
+        return execution

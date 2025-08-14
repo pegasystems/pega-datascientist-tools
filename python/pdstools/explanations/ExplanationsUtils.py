@@ -3,6 +3,8 @@ __all__ = [
     "_TABLE_NAME",
     "_CONTRIBUTION_TYPE",
     "_COL",
+    "_DEFAULT",
+    "_SPECIAL",
     "ContextInfo",
     "ContextOperations",
 ]
@@ -79,18 +81,26 @@ class _SPECIAL(Enum):
     MISSING = "missing"
 
 
+class _DEFAULT(Enum):
+    TOP_N = 10
+    TOP_K = 10
+    DESCENDING = True
+    MISSING = True
+    REMAINING = True
+
+
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
 
 if TYPE_CHECKING:
-    from .DataLoader import DataLoader
+    from .Aggregate import Aggregate
 
 
 class ContextOperations(LazyNamespace):
     dependencies = ["polars", "json"]
     dependency_group = "explanations"
 
-    def __init__(self, data_loader: "DataLoader"):
-        self.data_loader = data_loader
+    def __init__(self, aggregate: "Aggregate"):
+        self.aggregate = aggregate
 
         self._df: Optional[pl.DataFrame] = None
         self._context_keys: Optional[List[str]] = None
@@ -98,12 +108,15 @@ class ContextOperations(LazyNamespace):
 
         super().__init__()
 
-    def load(self):
+    def _load(self):
+        if self.initialized:
+            return
+
         if self._df is None:
             self._df = pl.from_dicts(
                 [
                     {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
-                    for ck in self.data_loader.get_df_contextual()
+                    for ck in self.aggregate.get_df_contextual()
                     .select(_COL.PARTITON.value)
                     .unique()
                     .collect()
@@ -117,8 +130,7 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self):
-        if not self.initialized:
-            self.load()
+        self._load()
         return self._context_keys
 
     def get_df(
@@ -128,9 +140,7 @@ class ContextOperations(LazyNamespace):
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
 
-        if not self.initialized:
-            self.load()
-
+        self._load()
         df = self._df if with_partition_col else self._get_clean_df(self._df)
 
         if context_infos is None or len(context_infos) == 0:
@@ -145,9 +155,7 @@ class ContextOperations(LazyNamespace):
     ) -> List[ContextInfo]:
         """Get the list of context information filtered by the provided context information."""
 
-        if not self.initialized:
-            self.load()
-
+        self._load()
         df = self.get_df(context_infos, with_partition_col)
         return cast(
             list[ContextInfo],

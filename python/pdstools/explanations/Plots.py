@@ -2,10 +2,11 @@ __all__ = ["Plots"]
 
 import logging
 import polars as pl
+from IPython.display import display
 from typing import TYPE_CHECKING, List, Optional
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE, _COL, _SPECIAL
+from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE, _COL, _SPECIAL, _DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -19,40 +20,77 @@ if TYPE_CHECKING:
 
 
 class Plots(LazyNamespace):
-    dependencies = ["plotly"]
+    dependencies = ["numpy", "plotly"]
     dependency_group = "explanations"
 
     X_AXIS_TITLE_DEFAULT = "Contribution"
     Y_AXIS_TITLE_DEFAULT = "Predictor"
-    TOP_N_DEFAULT = 10
-    TOP_K_DEFAULT = 10
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
-        self.data_loader = None
+        self.aggregate = self.explanations.aggregate
         super().__init__()
 
-    def _load_data(self):
-        self.explanations.data_loader.load_data()
-        return self.explanations.data_loader
+    def contributions(
+        self,
+        top_n: int = _DEFAULT.TOP_N.value,
+        top_k: int = _DEFAULT.TOP_K.value,
+        descending: bool = _DEFAULT.DESCENDING.value,
+        missing: bool = _DEFAULT.MISSING.value,
+        remaining: bool = _DEFAULT.REMAINING.value,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+    ):
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
+        if self.explanations.filter.is_context_selected():
+            context_plot, overall_plot, predictor_plots = (
+                self.plot_contributions_by_context(
+                    context=self.explanations.filter.get_selected_context(),
+                    top_n=top_n,
+                    top_k=top_k,
+                    descending=descending,
+                    missing=missing,
+                    remaining=remaining,
+                    contribution_calculation=contribution_type.value,
+                )
+            )
+
+            for plot in [context_plot, overall_plot] + predictor_plots:
+                display(plot)
+
+        else:
+            print(
+                "No context selected, plotting overall contributions. Use explanations.filter.interative() to select a context."
+            )
+
+            overall_plot, predictor_plots = self.plot_contributions_for_overall(
+                top_n=top_n,
+                top_k=top_k,
+                descending=descending,
+                missing=missing,
+                remaining=remaining,
+                contribution_calculation=contribution_type.value,
+            )
+
+            for plot in [overall_plot] + predictor_plots:
+                display(plot)
 
     def plot_contributions_for_overall(
         self,
-        top_n: int = TOP_N_DEFAULT,
-        top_k: int = TOP_K_DEFAULT,
-        descending: bool = True,
-        missing: bool = True,
-        remaining: bool = True,
+        top_n: int = _DEFAULT.TOP_N.value,
+        top_k: int = _DEFAULT.TOP_K.value,
+        descending: bool = _DEFAULT.DESCENDING.value,
+        missing: bool = _DEFAULT.MISSING.value,
+        remaining: bool = _DEFAULT.REMAINING.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> tuple[go.Figure, List[go.Figure]]:
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
 
-        if self.data_loader is None:
-            self.data_loader = self._load_data()
-
-        df = self.data_loader.get_top_n_predictor_contribution_overall(
+        df = self.aggregate.get_predictor_contributions(
             top_n=top_n,
             descending=descending,
             missing=missing,
@@ -68,7 +106,7 @@ class Plots(LazyNamespace):
             .to_list()
         )
 
-        df_predictors = self.data_loader.get_top_k_predictor_value_contribution_overall(
+        df_predictors = self.aggregate.get_predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
             descending=descending,
@@ -95,27 +133,30 @@ class Plots(LazyNamespace):
     def plot_contributions_by_context(
         self,
         context: ContextInfo,
-        top_n: int = TOP_N_DEFAULT,
-        top_k: int = TOP_K_DEFAULT,
-        descending: bool = True,
-        missing: bool = True,
-        remaining: bool = True,
+        top_n: int = _DEFAULT.TOP_N.value,
+        top_k: int = _DEFAULT.TOP_K.value,
+        descending: bool = _DEFAULT.DESCENDING.value,
+        missing: bool = _DEFAULT.MISSING.value,
+        remaining: bool = _DEFAULT.REMAINING.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> tuple[go.Figure, go.Figure, List[go.Figure]]:
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
 
-        if self.data_loader is None:
-            self.data_loader = self._load_data()
-
-        df_context = self.data_loader.get_top_n_predictor_contribution_by_context(
+        df_context = self.aggregate.get_predictor_contributions(
             context,
             top_n,
             descending,
             missing,
             remaining,
             contribution_type.value,
+        )
+
+        # filter out the context rows for plotting by context
+        contexts = list(context.keys())
+        df_context = df_context.filter(
+            ~pl.col(_COL.PREDICTOR_NAME.value).is_in(contexts)
         )
 
         predictors = (
@@ -128,14 +169,14 @@ class Plots(LazyNamespace):
             .to_list()
         )
 
-        df = self.data_loader.get_top_k_predictor_value_contribution_by_context(
-            context,
+        df = self.aggregate.get_predictor_value_contributions(
             predictors,
-            top_k,
-            descending,
-            missing,
-            remaining,
-            contribution_type.value,
+            context=context,
+            top_k=top_k,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            contribution_calculation=contribution_type.value,
         )
 
         header_fig = self._plot_context_table(context)
