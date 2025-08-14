@@ -12,10 +12,10 @@ __all__ = [
 from enum import Enum
 from typing import TYPE_CHECKING, TypedDict, List, Optional, cast
 
-from ..utils.namespaces import LazyNamespace
-
-import polars as pl
 import json
+import polars as pl
+
+from ..utils.namespaces import LazyNamespace
 
 
 class _PREDICTOR_TYPE(Enum):
@@ -44,7 +44,8 @@ class _CONTRIBUTION_TYPE(Enum):
 
     @classmethod
     def validate_and_get_type(cls, val):
-        # get the accepted contribution type which is privated from the user input
+        """get the accepted contribution type which is validated against user input"""
+
         for member in cls:
             if val == member.value:
                 return member
@@ -96,7 +97,50 @@ if TYPE_CHECKING:
 
 
 class ContextOperations(LazyNamespace):
-    dependencies = ["polars", "json"]
+    """Context related operations such as to filter unique contexts.
+    Parameters:
+        aggregate (Aggregate): The aggregate object to operate on.
+
+    Attributes:
+        aggregate (Aggregate): The aggregate object.
+        _df (Optional[pl.DataFrame]): DataFrame containing context information.
+        _context_keys (Optional[List[str]]): List of context keys.
+        initialized (bool): Flag indicating if the context operations have been initialized.
+
+    Methods:
+        get_context_keys():
+            Returns the list of context keys from loaded data.
+            Eg. ['pyChannel', 'pyDirection', ...]
+
+        get_df(context_infos=None, with_partition_col=False):
+            Returns a DataFrame containing unique contexts
+            If `with_partition_col` is True, includes the partition column.
+            If `context_infos` is None, returns the full unique contexts,
+            else filtered by the context
+            Eg. with partition column:
+            | pyChannel | pyDirection | ... | partition |
+            |-----------|-------------|-----|-----------|
+            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
+            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
+
+        get_list(context_infos=None, with_partition_col=False):
+            Returns a List[ContextInfo] containing unique contexts
+            If `with_partition_col` is True, includes the partition column.
+            If `context_infos` is None, returns the full unique contexts,
+            else filtered by the context
+            Eg. without partition column:
+            [
+                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
+                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
+            ]
+
+        get_context_info_str(context_info, sep="-"):
+            Returns a string representation of a single context information.
+            Eg. channel1-direction1-...
+
+    """
+
+    dependencies = ["polars"]
     dependency_group = "explanations"
 
     def __init__(self, aggregate: "Aggregate"):

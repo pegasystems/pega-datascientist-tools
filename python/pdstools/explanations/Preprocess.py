@@ -2,13 +2,13 @@ __all__ = ["Preprocess"]
 
 import pathlib
 import os
-import duckdb
-import logging
-import polars as pl
 from datetime import timedelta
-from typing import TYPE_CHECKING, Optional
-from importlib_resources import files
 from glob import glob
+from importlib.resources import files as resources_files
+from typing import TYPE_CHECKING, Optional
+import logging
+import duckdb
+import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import _PREDICTOR_TYPE, _TABLE_NAME, _COL
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class Preprocess(LazyNamespace):
-    dependencies = ["duckdb", "polars", "importlib_resources"]
+    dependencies = ["duckdb", "polars"]
     dependency_group = "explanations"
 
     SEP = ", "
@@ -65,15 +65,19 @@ class Preprocess(LazyNamespace):
 
         The different context aggregates are as follows:
         i) Overall Numeric Predictor Contributions
-            The average contribution towards predicted model propensity for each numeric predictor value decile.
+            The average contribution towards predicted model propensity
+            for each numeric predictor value decile.
         ii) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity for each symoblic predictor value.
+            The average contribution towards predicted model propensity
+            for each symoblic predictor value.
         iii) Context Specific Numeric Predictor Contributions
-            The average contribution towards predicted model propensity for each numeric predictor value decile, grouped by context key partition.
+            The average contribution towards predicted model propensity
+            for each numeric predictor value decile, grouped by context key partition.
         iv) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity for each symoblic predictor value, grouped by context key partition.
+            The average contribution towards predicted model propensity
+            for each symoblic predictor value, grouped by context key partition.
 
-        Each of the aggregates are written to parquet files to a temporary output dirtectory unless specified otherwise.
+        Each of the aggregates are written to parquet files to a temporary output dirtectory
         """
 
         if self._is_cached():
@@ -90,14 +94,14 @@ class Preprocess(LazyNamespace):
         try:
             self._run_agg(_PREDICTOR_TYPE.NUMERIC)
         except Exception as e:
-            logger.error(f"Failed to aggregate numeric data, err={e}")
+            logger.error("Failed to aggregate numeric data, err=%s", e)
             self._conn.close()
             return
 
         try:
             self._run_agg(_PREDICTOR_TYPE.SYMBOLIC)
         except Exception as e:
-            logger.error(f"Failed to aggregate symbolic data, err={e}")
+            logger.error("Failed to aggregate symbolic data, err=%s", e)
             self._conn.close()
             return
 
@@ -129,7 +133,7 @@ class Preprocess(LazyNamespace):
 
             self._delete_in_mem_table(predictor_type)
         except Exception as e:
-            logger.error(f"Failed for predictor type={predictor_type}, err={e}")
+            logger.error("Failed for predictor type=%s, err=%s", predictor_type, e)
             return
 
     def _create_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
@@ -175,7 +179,7 @@ class Preprocess(LazyNamespace):
     def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         df = self._parquet_overall(predictor_type, where_condition)
         if df is None:
-            logger.error(f"No data found for predictor type={predictor_type}")
+            logger.error("No data found for predictor type=%s", predictor_type)
             return
         self._write_to_parquet(df, f"{predictor_type.value}_OVERALL.parquet")
 
@@ -198,8 +202,9 @@ class Preprocess(LazyNamespace):
     def _get_create_table_sql_formatted(
         self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
     ):
-        sql = (
-            files(queries_data).joinpath(f"{_TABLE_NAME.CREATE.value}.sql").read_text()
+        sql = self._read_resource_file(
+            package_name=queries_data,
+            filename_w_ext=f"{_TABLE_NAME.CREATE.value}.sql",
         )
 
         f_sql = f"""{
@@ -249,12 +254,18 @@ class Preprocess(LazyNamespace):
                     }
                     df_list = []
                     logger.info(
-                        f"Processed {predictor_type} batch {batch_counter}, group: {curr_group}, len: {len(batch)}"
+                        "Processed %s batch %s, group: %s, len: %s",
+                        predictor_type,
+                        batch_counter,
+                        curr_group,
+                        len(batch),
                     )
 
         except Exception as e:
-            logger.error(f"Failed batch for predictor type={predictor_type}, err={e}")
-            return
+            logger.error(
+                "Failed batch for predictor type=%s, err=%s", predictor_type, e
+            )
+            raise
 
     def _parquet_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         try:
@@ -266,8 +277,8 @@ class Preprocess(LazyNamespace):
             return self._execute_query(query).pl()
 
         except Exception as e:
-            logger.error(f"Failed for predictor type={predictor_type}, err={e}")
-            return
+            logger.error("Failed for predictor type=%s, err=%s", predictor_type, e)
+            raise e
 
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
         df.write_parquet(f"{self.data_folderpath}/{file_name}", statistics=False)
@@ -278,7 +289,9 @@ class Preprocess(LazyNamespace):
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
             else _TABLE_NAME.SYMBOLIC_OVERALL
         )
-        return files(queries_data).joinpath(f"{sql_file.value}.sql").read_text()
+        return self._read_resource_file(
+            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+        )
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
@@ -287,7 +300,16 @@ class Preprocess(LazyNamespace):
             else _TABLE_NAME.SYMBOLIC
         )
 
-        return files(queries_data).joinpath(f"{sql_file.value}.sql").read_text()
+        return self._read_resource_file(
+            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+        )
+
+    def _read_resource_file(self, package_name, filename_w_ext):
+        return (
+            resources_files(package_name)
+            .joinpath(filename_w_ext)
+            .read_text(encoding="utf-8")
+        )
 
     def _get_overall_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition):
         f_sql = f"""{
@@ -341,7 +363,10 @@ class Preprocess(LazyNamespace):
         ]
 
         logger.debug(
-            f"Searching for files for model {self.model_name} from {self.from_date} to {self.to_date}"
+            "Searching for files for model %s from %s to %s",
+            self.model_name,
+            self.from_date,
+            self.to_date,
         )
         files_ = []
         for date in date_range_list:
@@ -358,7 +383,7 @@ class Preprocess(LazyNamespace):
                 if pathlib.Path(latest_file).exists():
                     files_.append(latest_file)
 
-        logger.info(f"Selected files:= \n {files_}")
+        logger.info("Selected files:= \n %s", files_)
         self.selected_files = files_
 
     def _execute_query(self, query: str):
@@ -368,11 +393,11 @@ class Preprocess(LazyNamespace):
 
         try:
             execution = self._conn.execute(query)
-        except duckdb.DatabaseException as e:
-            logger.error(f"DatabaseException: {e}")
+        except duckdb.CatalogException as e:
+            logger.error("DatabaseException: %s", e)
             raise
         except Exception as e:
-            logger.error(f"Failed to execute query: {e}")
+            logger.error("Failed to execute query: %s", e)
             raise
 
         return execution

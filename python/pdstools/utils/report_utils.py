@@ -46,12 +46,15 @@ def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
 
 def _write_params_files(
     temp_dir: Path,
-    params: Dict = {},
+    params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
-    analysis: Dict = {},
+    analysis: Optional[Dict] = None,
 ) -> None:
     """Write parameters to a YAML file."""
     import yaml
+
+    params = params or {}
+    analysis = analysis or {}
 
     # Parameters to python code
     with open(temp_dir / "params.yml", "w") as f:
@@ -71,18 +74,18 @@ def _write_params_files(
         )
 
 def run_quarto(
-    qmd_file: str = None,
-    output_filename: str = None,
+    qmd_file: Optional[str] = None,
+    output_filename: Optional[str] = None,
     output_type: str = "html",
-    params: Dict = {},
+    params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
-    analysis: Dict = {},
+    analysis: Optional[Dict] = None,
     temp_dir: Path = Path("."),
     verbose: bool = False,
 ) -> int:
     """Run the Quarto command to generate the report."""
 
-    if params != {}:
+    if params is not None:
         _write_params_files(
             temp_dir,
             params=params,
@@ -94,7 +97,7 @@ def run_quarto(
 
     # render file or render project with options
     command = [str(quarto_exec), "render"] if qmd_file is None else [str(quarto_exec), "render", qmd_file]
-    options = _set_command_options(output_type, output_filename, execute_params=params!={})
+    options = _set_command_options(output_type, output_filename, execute_params=params is not None)
     command.extend(options)
 
     if verbose:

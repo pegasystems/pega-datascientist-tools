@@ -1,9 +1,8 @@
 __all__ = ["Plots"]
 
 import logging
-import polars as pl
-from IPython.display import display
 from typing import TYPE_CHECKING, List, Optional
+import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE, _COL, _SPECIAL, _DEFAULT
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 try:
     import plotly.graph_objects as go
 except ImportError as e:
-    logger.debug(f"Failed to import optional dependencies: {e}")
+    logger.debug("Failed to import optional dependencies: %s", e)
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
@@ -40,6 +39,27 @@ class Plots(LazyNamespace):
         remaining: bool = _DEFAULT.REMAINING.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ):
+        """Plots contributions for the overall model or a selected context.
+        Args:
+            top_n (int):
+                Number of top predictors to display.
+            top_k (int):
+                Number of top unique values for each categorical predictor to display.
+            descending (bool):
+                Whether to sort the predictors by most or least contribution.
+            missing (bool):
+                Whether to include missing values in the plot.
+            remaining (bool):
+                predictors/predictor values not included in the top_n/top_k
+                will be grouped into a "remaining" category.
+            contribution_calculation (str):
+                Type of contribution calculation to use.
+        Returns:
+            tuple[go.Figure, List[go.Figure]]:
+                - left: context header if context is selected, otherwise None
+                - right: overall contributions plot and a list of predictor contribution plots.
+
+        """
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
@@ -57,8 +77,11 @@ class Plots(LazyNamespace):
                 )
             )
 
-            for plot in [context_plot, overall_plot] + predictor_plots:
-                display(plot)
+            plots = [overall_plot] + predictor_plots
+            for plot in [context_plot] + plots:
+                plot.show()
+
+            return context_plot, plots
 
         else:
             print(
@@ -74,8 +97,11 @@ class Plots(LazyNamespace):
                 contribution_calculation=contribution_type.value,
             )
 
-            for plot in [overall_plot] + predictor_plots:
-                display(plot)
+            plots = [overall_plot] + predictor_plots
+            for plot in plots:
+                plot.show()
+
+            return None, plots
 
     def plot_contributions_for_overall(
         self,
@@ -132,7 +158,7 @@ class Plots(LazyNamespace):
 
     def plot_contributions_by_context(
         self,
-        context: ContextInfo,
+        context: dict[str, str],
         top_n: int = _DEFAULT.TOP_N.value,
         top_k: int = _DEFAULT.TOP_K.value,
         descending: bool = _DEFAULT.DESCENDING.value,
@@ -297,6 +323,6 @@ class Plots(LazyNamespace):
             ]
         )
         fig.update_layout(
-            title="Context Information", height=context_info.__len__() * 30 + 200
+            title="Context Information", height=len(context_info) * 30 + 200
         )
         return fig
