@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import Mock, patch
 import polars as pl
 from pdstools.explanations import Explanations
-from pdstools.explanations.DataLoader import DataLoader
+from python.pdstools.explanations.Aggregate import Aggregate
 from pdstools.explanations.ExplanationsUtils import _CONTRIBUTION_TYPE
 
 basePath = Path(__file__).parent.parent / "resources" / "explanations"
@@ -12,7 +12,7 @@ basePath = Path(__file__).parent.parent / "resources" / "explanations"
 @pytest.fixture
 def data_loader():
     explanations = Explanations(aggregates_folder=basePath)
-    return DataLoader(explanations)
+    return Aggregate(explanations)
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def mock_explanations():
 @pytest.fixture
 def mock_data_loader(mock_explanations):
     """Create a DataLoader instance with mocked explanations."""
-    return DataLoader(mock_explanations)
+    return Aggregate(mock_explanations)
 
 
 @pytest.fixture
@@ -71,8 +71,8 @@ class TestDataLoaderLoadData:
 class TestGetTopNPredictorContributionOverall:
     """Test cases for DataLoader.get_top_n_predictor_contribution_overall method."""
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
-    @patch.object(DataLoader, "load_data")
+    @patch.object(Aggregate, "_get_predictor_contributions")
+    @patch.object(Aggregate, "load_data")
     def test_get_top_n_predictor_contribution_overall_default_params(
         self, mock_load_data, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -96,8 +96,8 @@ class TestGetTopNPredictorContributionOverall:
             contribution_type=_CONTRIBUTION_TYPE.CONTRIBUTION.value,
         )
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
-    @patch.object(DataLoader, "load_data")
+    @patch.object(Aggregate, "_get_predictor_contributions")
+    @patch.object(Aggregate, "load_data")
     def test_get_top_n_predictor_contribution_overall_custom_params(
         self, mock_load_data, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -127,8 +127,8 @@ class TestGetTopNPredictorContributionOverall:
             contribution_type=_CONTRIBUTION_TYPE.CONTRIBUTION_ABS.value,
         )
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
-    @patch.object(DataLoader, "load_data")
+    @patch.object(Aggregate, "_get_predictor_contributions")
+    @patch.object(Aggregate, "load_data")
     def test_get_top_n_predictor_contribution_overall_loads_data_when_not_initialized(
         self, mock_load_data, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -146,7 +146,7 @@ class TestGetTopNPredictorContributionOverall:
         mock_load_data.assert_called_once()
         mock_get_predictor_contributions.assert_called_once()
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
+    @patch.object(Aggregate, "_get_predictor_contributions")
     def test_get_top_n_predictor_contribution_overall_contribution_type_validation(
         self, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -176,7 +176,7 @@ class TestGetTopNPredictorContributionOverall:
             call_args = mock_get_predictor_contributions.call_args
             assert call_args[1]["contribution_type"] == contrib_type
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
+    @patch.object(Aggregate, "_get_predictor_contributions")
     def test_get_top_n_predictor_contribution_overall_invalid_contribution_type(
         self, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -192,7 +192,7 @@ class TestGetTopNPredictorContributionOverall:
                 contribution_calculation="invalid_contribution_type"
             )
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
+    @patch.object(Aggregate, "_get_predictor_contributions")
     def test_get_top_n_predictor_contribution_overall_returns_dataframe(
         self, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -209,7 +209,7 @@ class TestGetTopNPredictorContributionOverall:
         assert isinstance(result, type(mock_df))
         assert result is mock_df
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
+    @patch.object(Aggregate, "_get_predictor_contributions")
     def test_get_top_n_predictor_contribution_overall_edge_cases(
         self, mock_get_predictor_contributions, mock_data_loader
     ):
@@ -231,7 +231,7 @@ class TestGetTopNPredictorContributionOverall:
         call_args = mock_get_predictor_contributions.call_args
         assert call_args[1]["limit"] == 1000
 
-    @patch.object(DataLoader, "_get_predictor_contributions")
+    @patch.object(Aggregate, "_get_predictor_contributions")
     def test_get_top_n_predictor_contribution_overall_all_boolean_combinations(
         self, mock_get_predictor_contributions, mock_data_loader
     ):

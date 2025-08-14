@@ -10,5 +10,6 @@ The top-{TOP_N} predictor's contributions per context.
 from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
 
-explanations = Explanations(aggregates_folder="{DATA_FOLDER}")
+explanations = Explanations(root_dir="{ROOT_DIR}")
+explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
 ```

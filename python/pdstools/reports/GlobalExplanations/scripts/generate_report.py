@@ -27,6 +27,7 @@ class ReportGenerator:
     def __init__(self):
         self.report_folder = os.getcwd()
 
+        self.root_dir = ""
         self.data_folder = ""
         self.top_n = None
         self.top_k = None
@@ -67,6 +68,8 @@ Report generation initialized with the following parameters:
                 self.verbose = params.get("verbose", VERBOSE_DEFAULT)
                 self.data_folder = params.get("data_folder", DATA_FOLDER)
 
+        self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
+
         self.data_folder = os.path.abspath(
             os.path.join(self.report_folder, "..", self.data_folder)
         )
@@ -102,9 +105,11 @@ Report generation initialized with the following parameters:
     def _write_header_to_file(self):
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
-        f_template = (
-            f"""{template.format(DATA_FOLDER=self.data_folder, TOP_N=self.top_n)}"""
-        )
+        f_template = f"""{
+            template.format(
+                ROOT_DIR=self.root_dir, DATA_FOLDER=self.data_folder, TOP_N=self.top_n
+            )
+        }"""
 
         with open(self.all_context_filepath, "w") as writer:
             writer.write(f_template)
@@ -188,6 +193,7 @@ Report generation initialized with the following parameters:
 
         f_template = f"""{
             template.format(
+                ROOT_DIR=self.root_dir,
                 DATA_FOLDER=self.data_folder,
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,

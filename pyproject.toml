@@ -47,7 +47,7 @@ adm = [
 pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
-explanations = ['duckdb', "plotly", "pyarrow", "importlib_resources", "pyyaml", "ipywidgets"]
+explanations = ['duckdb', "plotly[express]", "pyarrow", "importlib_resources", "pyyaml", "ipywidgets"]
 app = ['pdstools[healthcheck]', 'streamlit>=1.45']
 onnx = [
     'scikit-learn==1.5.1',

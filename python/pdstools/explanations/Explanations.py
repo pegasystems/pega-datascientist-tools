@@ -5,11 +5,11 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-from .Aggregates import Aggregates
-from .DataLoader import DataLoader
+from .Preprocess import Preprocess
+from .Aggregate import Aggregate
 from .Plots import Plots
 from .Reports import Reports
-from .ExplorerWidget import Explorer
+from .FilterWidget import FilterWidget
 
 logger = logging.getLogger(__name__)
 
@@ -31,54 +31,29 @@ class Explanations:
         Defines the end date of the duration over which aggregates will be collected.
     start_date : datetime, optional, default = end_date - timedelta(7)
         Defines the start date of the duration over which aggregaates wille be collected.
-    batch_limit : int, optional, default = 10
-        The number of context key partitions to aggregate per batch.
-    memory_limit: int, optional, default 2
-        The maximum memory duckdb is allowed to allocate in GB.
-    thread_count: int, optional, default 4
-        The number of threads to be used by duckdb
-    output_folder: str, optional, default = .tmp/out
-        The folder location where the data aggregates will be written.
-    overwrite: bool, optional, default = FALSE
-        Flag if files in output folder should be overwritten. If FALSE then the output folder must be empty before aggregates can be processed.
-    progress_bar: str, optional, default = FALSE
-        Flag to toggle the progress bar for duck db queries
     """
 
     def __init__(
         self,
         root_dir: str = ".tmp",
         data_folder: str = "explanations_data",
-        aggregates_folder: str = "aggregated_data",
-        report_folder: str = "reports",
-        model_name: str = "",
+        model_name: Optional[str] = "",
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
-        progress_bar: bool = False,
-        batch_limit: int = 10,
-        memory_limit: int = 2,
-        thread_count: int = 4,
     ):
         self.root_dir = root_dir
         self.data_folder = data_folder
-        self.aggregates_folder = aggregates_folder
-        self.report_folder = report_folder
 
         self.model_name = model_name
-        self.from_date = None
-        self.to_date = None
+        self.from_date = from_date
+        self.to_date = to_date
         self._set_date_range(from_date, to_date)
 
-        self.batch_limit = batch_limit
-        self.memory_limit = memory_limit
-        self.thread_count = thread_count
-        self.progress_bar = progress_bar
-
-        self.aggregates = Aggregates(explanations=self)
-        self.data_loader = DataLoader(explanations=self)
+        self.preprocess = Preprocess(explanations=self)
+        self.aggregate = Aggregate(explanations=self)
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
-        self.explorer = Explorer(explanations=self)
+        self.filter = FilterWidget(explanations=self)
 
     def _set_date_range(
         self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7

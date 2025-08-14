@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
-from pdstools.explanations.Aggregates import Aggregates
+from python.pdstools.explanations.Preprocess import Preprocess
 
 
 @pytest.fixture
@@ -14,7 +14,7 @@ def mock_aggregates():
     mock_explanations.model_name = ""
     mock_explanations.from_date = datetime(2023, 1, 1)
     mock_explanations.to_date = datetime(2023, 1, 8)
-    return Aggregates(explanations=mock_explanations)
+    return Preprocess(explanations=mock_explanations)
 
 
 class TestAggregatesFileOps:
@@ -86,8 +86,8 @@ class TestAggregatesFileOps:
 class TestAggregatesGenerate:
     """Test the generate method and related functionality"""
 
-    @patch.object(Aggregates, "_clean_aggregates_folder")
-    @patch.object(Aggregates, "_populate_selected_files")
+    @patch.object(Preprocess, "_clean_aggregates_folder")
+    @patch.object(Preprocess, "_populate_selected_files")
     def test_generate_no_files(self, mock_populate, mock_clean, mock_aggregates):
         """Test generation when no files are found"""
         mock_aggregates.selected_files = []
@@ -97,8 +97,8 @@ class TestAggregatesGenerate:
             mock_populate.assert_called_once()
             mock_logger.error.assert_called_once_with("No files found to aggregate!")
 
-    @patch.object(Aggregates, "_run_agg")
-    @patch.object(Aggregates, "_populate_selected_files")
+    @patch.object(Preprocess, "_run_agg")
+    @patch.object(Preprocess, "_populate_selected_files")
     def test_generate_success(self, mock_populate, mock_run_agg, mock_aggregates):
         """Test successful generation of aggregates"""
         mock_aggregates.selected_files = ["file1.parquet", "file2.parquet"]
@@ -108,8 +108,8 @@ class TestAggregatesGenerate:
         assert mock_run_agg.call_count == 2  # Called for NUMERIC and SYMBOLIC
 
     @patch("pdstools.explanations.Aggregates.logger")
-    @patch.object(Aggregates, "_run_agg")
-    @patch.object(Aggregates, "_populate_selected_files")
+    @patch.object(Preprocess, "_run_agg")
+    @patch.object(Preprocess, "_populate_selected_files")
     def test_generate_numeric_failure(
         self, mock_populate, mock_run_agg, mock_logger, mock_aggregates
     ):
@@ -149,7 +149,7 @@ class TestAggregatesQueryOperations:
     def test_clean_query(self):
         """Test query cleaning functionality"""
         dirty_query = "SELECT  *\nFROM   table\n  WHERE  condition"
-        clean_query = Aggregates._clean_query(dirty_query)
+        clean_query = Preprocess._clean_query(dirty_query)
 
         expected = "SELECT * FROM table WHERE condition"
         assert clean_query == expected
@@ -194,8 +194,8 @@ class TestAggregatesContextOperations:
         result = mock_aggregates._get_contexts(Mock())
         assert result == ["context1", "context2"]
 
-    @patch.object(Aggregates, "_execute_query")
-    @patch.object(Aggregates, "_get_table_name")
+    @patch.object(Preprocess, "_execute_query")
+    @patch.object(Preprocess, "_get_table_name")
     def test_get_contexts_from_db(
         self, mock_get_table_name, mock_execute_query, mock_aggregates
     ):
@@ -246,7 +246,7 @@ class TestAggregatesParametrized:
         mock_explanations.model_name = "test"
         mock_explanations.progress_bar = False
 
-        aggregates = Aggregates(explanations=mock_explanations)
+        aggregates = Preprocess(explanations=mock_explanations)
 
         assert aggregates.memory_limit == memory_limit
         assert aggregates.thread_count == thread_count
