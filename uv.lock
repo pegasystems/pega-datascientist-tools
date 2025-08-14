@@ -2107,7 +2107,6 @@ all = [
     { name = "duckdb" },
     { name = "great-tables" },
     { name = "httpx" },
-    { name = "importlib-resources" },
     { name = "ipywidgets" },
     { name = "onnx" },
     { name = "onnxruntime", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -2155,7 +2154,6 @@ docs = [
 ]
 explanations = [
     { name = "duckdb" },
-    { name = "importlib-resources" },
     { name = "ipywidgets" },
     { name = "plotly", extra = ["express"] },
     { name = "pyarrow" },
@@ -2191,7 +2189,6 @@ tests = [
     { name = "duckdb" },
     { name = "great-tables" },
     { name = "httpx" },
-    { name = "importlib-resources" },
     { name = "ipywidgets" },
     { name = "moto" },
     { name = "onnx" },
@@ -2227,7 +2224,6 @@ requires-dist = [
     { name = "furo", marker = "extra == 'docs'" },
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13" },
     { name = "httpx", marker = "extra == 'api'" },
-    { name = "importlib-resources", marker = "extra == 'explanations'" },
     { name = "ipywidgets", marker = "extra == 'explanations'" },
     { name = "moto", marker = "extra == 'tests'" },
     { name = "myst-parser", marker = "extra == 'docs'" },

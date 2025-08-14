@@ -25,29 +25,68 @@ class FilterWidget(LazyNamespace):
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
 
+        # init context lists
+        self._raw_list: List[ContextInfo] = []
+        self._filtered_list: List[ContextInfo] = []
+
         # init widget objects
         self._combobox_widgets: dict[str, widgets.Combobox] = {}
         self._selector_widget = None
 
+        self._context_operations = None
         self._selected_context_key = None
 
         super().__init__()
 
     def interactive(self):
+        """Initializes the interactive filter widget and displays it.
+        This is used in combination with explanations.plot.contributions() to allow users to
+        filter by context if required.
+        Select the context from the list of contexts for plotting contributions for selected context else
+        the overall contributions will be plotted.
+        Alternatively, the context can be set using `set_selected_context()` method.
+        """
         try:
             self.explanations.aggregate.validate_folder()
         except Exception as e:
             raise e
 
-        self._context_operations = self.explanations.aggregate.get_context_operations()
+        self._context_operations = self.explanations.aggregate.context_operations
 
-        # init context lists
         self._raw_list = self._context_operations.get_list()
-        self._filtered_list: List[ContextInfo] = []
-
         self._init_selected_context()
 
         self._display_context_selector()
+
+    def set_selected_context(self, context_info: Optional[ContextInfo] = None):
+        """Set the selected context information.
+        Args:
+            context_info (Optional[ContextInfo]):
+                If None, initializes the selected context with 'Any' for all keys. i.e overall model contributions
+                If provided, sets the selected context to the given context information.
+                Context is passed as a dictionary
+                Eg. context_info =
+                    {
+                        "pyChannel": "channel1",
+                        "pyDirection": "direction1",
+                        ...
+                    }
+        """
+        if context_info is None:
+            self._init_selected_context()
+        else:
+            self._selected_context_key = cast(dict[str, str], context_info)
+
+    def is_context_selected(self) -> bool:
+        if self._selected_context_key is None:
+            return False
+        return all(
+            value != self._ANY_CONTEXT for value in self._selected_context_key.values()
+        )
+
+    def get_selected_context(self):
+        """Get the currently selected context information."""
+        return self._get_selected_context(with_any_option=False)
 
     def _init_selected_context(self):
         self._selected_context_key = {
@@ -102,23 +141,6 @@ class FilterWidget(LazyNamespace):
         )
 
         display(grid)
-
-    def is_context_selected(self) -> bool:
-        if self._selected_context_key is None:
-            return False
-        return all(
-            value != self._ANY_CONTEXT for value in self._selected_context_key.values()
-        )
-
-    def get_selected_context(self):
-        """Get the currently selected context information."""
-        return self._get_selected_context(with_any_option=False)
-
-    def set_selected_context(self, context_info: Optional[ContextInfo]):
-        if context_info is None:
-            self._init_selected_context()
-        else:
-            self._selected_context_key = cast(dict[str, str], context_info)
 
     def _get_selected_context(
         self, with_any_option: bool = True

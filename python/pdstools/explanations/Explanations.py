@@ -18,19 +18,35 @@ class Explanations:
     """
     Process and explore explanation data for Adaptive Gradient Boost models.
 
-    Class is initialied with data location, which should point to the location of the model's explanation parquet files downloaded from the explanations file repository.
-    These parquet files can then be processed to create aggregates to explain the contribution of different predictors on a global level.
+    Class is initialied with data location, which should point to the location of the
+    model's explanation parquet files downloaded from the explanations file repository.
+    These parquet files can then be processed to create aggregates to explain the contribution
+    of different predictors on a global level.
 
     Parameters
     ----------
     data_folder: str
         The path of the folder containing the model explanation parquet files for processing.
     model_name : str, optional
-        The name of the model rule. Will be used to identify files in the data folder and to validate that the correct files are being processed.
+        The name of the model rule. Will be used to identify files in the data folder
+        and to validate that the correct files are being processed.
     end_date : datetime, optional, default = datetime.today()
         Defines the end date of the duration over which aggregates will be collected.
     start_date : datetime, optional, default = end_date - timedelta(7)
         Defines the start date of the duration over which aggregaates wille be collected.
+
+    Environment variables
+    -------------------
+    BATCH_LIMIT: int
+        The maximum number of unique contexts to process in a single batch. Default is 10.
+    MEMORY_LIMIT: int
+        Set the memory limit for the duckdb buffer manager.
+        If not set will use 80% of RAM. Default is 2(in GB).
+    THREAD_COUNT: int
+        Set the amount of threads for duck db parallel query execution. Default is 4.
+    PROGRESS_BAR: int
+        Show progress bar when running duckdb queries.
+        0 = no progress bar, 1 = show progress bar. Default is 0.
     """
 
     def __init__(

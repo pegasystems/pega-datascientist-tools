@@ -3,10 +3,9 @@ __all__ = ["Reports"]
 import os
 import shutil
 import subprocess
-import yaml
 import logging
-
 from typing import TYPE_CHECKING
+import yaml
 
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (
@@ -47,10 +46,25 @@ class Reports(LazyNamespace):
         zip_output: bool = False,
         verbose: bool = False,
     ):
+        """Generate the explanations report.
+
+        Args:
+            report_filename (str):
+                Name of the output report file.
+            top_n (int):
+                Number of top explanations to include.
+            top_k (int):
+                Number of top features to include in explanations.
+            zip_output (bool):
+                Whether to zip the output report.
+                The filename will be used as the zip file name.
+            verbose (bool):
+                Whether to print verbose output during report generation.
+        """
         try:
             self.explanations.aggregate.validate_folder()
         except Exception as e:
-            logger.error(f"Validation failed: {e}")
+            logger.error("Validation failed: %s", e)
             raise
 
         self._validate_report_dir()
@@ -58,7 +72,7 @@ class Reports(LazyNamespace):
         try:
             self._copy_report_resources()
         except (OSError, shutil.Error) as e:
-            logger.error(f"IO error during resource copy: {e}")
+            logger.error("IO error during resource copy: %s", e)
             raise
 
         self._set_params(top_n=top_n, top_k=top_k, verbose=verbose)
@@ -66,11 +80,11 @@ class Reports(LazyNamespace):
         try:
             return_code = run_quarto(temp_dir=self.report_folderpath, verbose=True)
         except subprocess.CalledProcessError as e:
-            logger.error(f"Quarto command failed: {e}")
+            logger.error("Quarto command failed: %s", e)
             raise
 
         if return_code != 0:
-            logger.error(f"Quarto command failed with return code {return_code}")
+            logger.error("Quarto command failed with return code %s", return_code)
             raise RuntimeError(f"Quarto command failed with return code {return_code}")
 
         if zip_output:
@@ -100,5 +114,5 @@ class Reports(LazyNamespace):
         params["verbose"] = verbose
         params["data_folder"] = self.aggregate_folder.name
 
-        with open(self.params_file, "w") as file:
+        with open(self.params_file, "w", encoding="utf-8") as file:
             yaml.safe_dump(params, file)

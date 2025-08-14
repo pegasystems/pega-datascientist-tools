@@ -2,9 +2,10 @@ __all__ = ["Aggregate"]
 
 from typing import TYPE_CHECKING, List, Optional
 
-import polars as pl
 import logging
 import pathlib
+import polars as pl
+
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
@@ -37,22 +38,38 @@ class Aggregate(LazyNamespace):
         super().__init__()
 
     def get_df_contextual(self) -> pl.LazyFrame:
+        """Get the contextual dataframe, loading it if not already loaded."""
         self._load_data()
         return self.df_contextual
 
-    def get_context_operations(self) -> Optional[ContextOperations]:
-        return self.context_operations
-
     def get_predictor_contributions(
         self,
-        context: Optional[ContextInfo] = None,
+        context: Optional[dict[str, str]] = None,
         top_n: int = _DEFAULT.TOP_N.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ):
-        """Get the top-n predictor contributions for a given context or overall."""
+        """Get the top-n predictor contributions for a given context or overall.
+
+        Args:
+            context (Optional[dict[str, str]]):
+                The context to filter contributions by.
+                If None, contributions for all contexts will be returned.
+            top_n (int):
+                Number of top predictors
+            descending (bool):
+                Whether to sort contributions in descending order.
+            missing (bool):
+                Whether to include contributions for missing predictor values.
+            remaining (bool):
+                Whether to include contributions for remaining predictors outside the top-n.
+            contribution_calculation (str):
+                Method to calculate contributions. Some options are
+                `contribution`, `contribution_abs`, `contribution_weighted`.
+                Default is `contribution` which is the average contributions to predictions.
+        """
 
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
@@ -72,14 +89,34 @@ class Aggregate(LazyNamespace):
     def get_predictor_value_contributions(
         self,
         predictors: List[str],
-        context: Optional[ContextInfo] = None,
+        context: Optional[dict[str, str]] = None,
         top_k: int = _DEFAULT.TOP_K.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ):
-        """Get the top-n predictor value contributions for a given context or overall."""
+        """Get the top-k predictor value contributions for a given context or overall.
+
+        Args:
+            predictors (List[str]): Required.
+                List of predictors to get the contributions for.
+            context (Optional[dict[str, str]]):
+                The context to filter contributions by.
+                If None, contributions for all contexts will be returned.
+            top_k (int):
+                Number of unique categorical predictor values to return.
+            descending (bool):
+                Whether to sort contributions in descending order.
+            missing (bool):
+                Whether to include contributions for missing predictor values.
+            remaining (bool):
+                Whether to include contributions for remaining predictors outside the top-n.
+            contribution_calculation (str):
+                Method to calculate contributions. Some options are
+                `contribution`, `contribution_abs`, `contribution_weighted`.
+                Default is `contribution` which is the average contributions to predictions.
+        """
 
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
@@ -98,9 +135,12 @@ class Aggregate(LazyNamespace):
         )
 
     def validate_folder(self):
+        """Check if the aggregates folder exists.
+        Raises:
+            FileNotFoundError: If the aggregates folder does not exist or is empty.
+        """
         folder = pathlib.Path(self.data_folderpath)
 
-        """Check if the aggregates folder exists."""
         if not folder.exists():
             raise FileNotFoundError(
                 f"Aggregates folder {folder.name} does not exist. Please ensure the aggregates are generated before loading data."
@@ -118,7 +158,7 @@ class Aggregate(LazyNamespace):
         with_partition_col: bool = False,
     ) -> List[ContextInfo]:
         return self.context_operations.get_list(context_infos, with_partition_col)
-    
+
     def _load_data(self):
         if self.initialized:
             return
@@ -126,7 +166,7 @@ class Aggregate(LazyNamespace):
         try:
             self.validate_folder()
         except FileNotFoundError as e:
-            logger.error(f"Error validating aggregates folder: {e}")
+            logger.error("Error validating aggregates folder: %s", e)
             raise
 
         selected_columns = [
@@ -170,7 +210,8 @@ class Aggregate(LazyNamespace):
         predictors = predictors or []
 
         # if no contexts are provided, then we return the overall data
-        # if contexts are provided, then we generate the context filters and load the data for those contexts
+        # if contexts are provided, then we generate the context filters
+        # and load the data for those contexts
         df = self._get_df(contexts)
 
         # If predictors are specified we filter the dataframe for those predictors
@@ -181,7 +222,8 @@ class Aggregate(LazyNamespace):
         if not missing:
             df = df.filter(_COL.BIN_CONTENTS.value != _SPECIAL.MISSING.name)
 
-        # Aggregate all the different types of contributions, note we need to aggregate frequency over partition to calculate weighted contributions
+        # Aggregate all the different types of contributions
+        # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
             aggregate_frequency_over=[_COL.PARTITON.value],
@@ -201,9 +243,11 @@ class Aggregate(LazyNamespace):
             descending=descending,
         )
 
-        # If we want to include the cumulative contribution of all predictors outside of the top `limit`, we calculate the remaining contributions
+        # If we want to include the cumulative contribution of all predictors
+        # outside of the top `limit`, we calculate the remaining contributions
         if remaining:
-            # Calculate the remaining contributions by aggregating the contributions of all predictors not in the top `limit`
+            # Calculate the remaining contributions by aggregating the
+            # contributions of all predictors not in the top `limit`
             # We provide the top predictors as anti-join to calculate the remaining contributions
             df_remaining = self._calculate_remaining_aggregates(
                 df,
@@ -237,7 +281,8 @@ class Aggregate(LazyNamespace):
         contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
     ) -> pl.DataFrame:
         # if no contexts are provided, then we return the overall data
-        # if contexts are provided, then we generate the context filters and load the data for those contexts
+        # if contexts are provided, then we generate the context filters
+        # and load the data for those contexts
         df = self._get_df(contexts)
 
         # If predictors are specified we filter the dataframe for those predictors
@@ -245,7 +290,8 @@ class Aggregate(LazyNamespace):
         if predictors is not None or len(predictors) > 0:
             df = self._filter_for_predictors(df, predictors)
 
-        # Aggregate all the different types of contributions, note we need to aggregate frequency over partition to calculate weighted contributions
+        # Aggregate all the different types of contributions
+        # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
             aggregate_frequency_over=[
@@ -262,7 +308,8 @@ class Aggregate(LazyNamespace):
             ],
         )
 
-        # Append a sort column and value, note these are note used when finding the top predictors, but are used for logically sorting the final output
+        # Append a sort column and value, note these are not used when
+        # finding the top predictors, but are used for logically sorting the final output
         # e.g.:
         # - numeric predictors are sorted by bin order
         # - symbolic predictors are sorted by contribution type
@@ -286,7 +333,8 @@ class Aggregate(LazyNamespace):
             df_missing = self._get_missing_predictor_values_df(df)
             df_top_predictor_values = pl.concat([df_top_predictor_values, df_missing])
 
-        # If we want to include the cumulative contribution of all predictor values outside of the top `limit`, we calculate the remaining contributions
+        # If we want to include the cumulative contribution of
+        # all predictor values outside of the top `limit`, we calculate the remaining contributions
         if remaining:
             df_remaining = self._calculate_remaining_aggregates(
                 df_all=df,
@@ -481,7 +529,8 @@ class Aggregate(LazyNamespace):
                 pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
                 pl.lit(_PREDICTOR_TYPE.SYMBOLIC).alias(_COL.PREDICTOR_TYPE.value),
             )
-        # if we aggregate over partition and predictor name, we need to add the bin contents and bin order
+        # if we aggregate over partition and predictor name,
+        # we need to add the bin contents and bin order
         else:
             df_remaining = df_remaining.with_columns(
                 pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
