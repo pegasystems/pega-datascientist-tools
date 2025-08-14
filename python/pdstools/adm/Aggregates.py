@@ -571,9 +571,11 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name").alias("NewActionsAtOrAfter")
+                    pl.col("Name")
+                    .alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode().unique(),
+                    .list.explode()
+                    .unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -748,7 +750,7 @@ class Aggregates:
                 pl.col("Channel"),
                 pl.col("Direction"),
                 pl.col("AllActions")
-                .map_batches(cdh_utils.overlap_lists_polars)
+                .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
                 .alias("OmniChannel"),
             )
             # collect/lazy seems to resolve some polars issues
@@ -1009,9 +1011,7 @@ class Aggregates:
             )
 
             return result
-        except (
-            ValueError
-        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
@@ -1117,7 +1117,11 @@ class Aggregates:
                 .first()
                 .alias("Channel with Minimum Performance"),
                 pl.col("AllActions")
-                .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
+                .map_batches(
+                    cdh_utils.overlap_lists_polars,
+                    returns_scalar=False,
+                    return_dtype=pl.Float64,
+                )
                 .mean()
                 .alias("OmniChannel"),
             )
