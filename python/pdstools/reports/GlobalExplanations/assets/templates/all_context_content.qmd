@@ -1,0 +1,28 @@
+```{{python}}
+#| label: {CONTEXT_LABEL}-header
+
+header_tbl, overall_fig, predictor_figs = explanations.plot.plot_contributions_by_context(
+    {CONTEXT},
+    top_n = {TOP_N},
+    top_k = {TOP_K},
+)
+
+header_tbl.update_layout(title="")
+header_tbl.show()
+```
+
+```{{python}}
+#| label: {CONTEXT_LABEL}-overall
+
+overall_fig.update_layout(title="")
+overall_fig.show()
+```
+
+```{{python}}
+#| label: {CONTEXT_LABEL}-predictors
+
+for plot in predictor_figs:
+    title = plot.layout['title']['text']
+    display(Markdown(f'### {{title}}'), plot)
+
+```

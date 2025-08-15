@@ -1,0 +1,15 @@
+---
+title: "By Context"
+skip_exec: true
+---
+
+The top-{TOP_N} predictor's contributions per context.
+
+```{{python}}
+
+from pdstools.explanations import Explanations
+from IPython.display import display, Markdown
+
+explanations = Explanations(root_dir="{ROOT_DIR}")
+explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
+```
