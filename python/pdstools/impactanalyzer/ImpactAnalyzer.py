@@ -128,6 +128,7 @@ class ImpactAnalyzer:
         else:
             with open(pdc_source, encoding="utf-8") as pdc_json_data:
                 return cls._from_pdc_json(
+                    # TODO use read_ds_export/import_file from io lib for the first part 
                     json.load(pdc_json_data),
                     query=query,
                     return_input_df=return_input_df,

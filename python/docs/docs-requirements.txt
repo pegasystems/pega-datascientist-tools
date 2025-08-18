@@ -3,6 +3,7 @@ furo
 sphinx-autoapi
 nbsphinx
 sphinx-copybutton
+sphinx-argparse
 myst-parser
 scipy
 ipykernel

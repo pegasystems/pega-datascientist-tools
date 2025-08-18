@@ -19,12 +19,13 @@ Welcome to the PDS Tools Python documentation
 
    articles/Example_ADM_Analysis
    articles/Example_IH_Analysis
-   articles/ADMBinningInsights
-   articles/AGBModelVisualisation
    articles/vf_analysis
    articles/explainability_extract
    articles/decision_analyzer
-
+   articles/hds_analysis
+   articles/ADMBinningInsights
+   articles/AGBModelVisualisation
+   
 .. toctree::
    :maxdepth: 1
    :caption: Articles
