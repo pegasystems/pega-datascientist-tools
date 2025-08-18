@@ -6,5 +6,6 @@ sphinx-copybutton
 sphinx-argparse
 myst-parser
 scipy
+xgboost
 ipykernel
 ipywidgets
