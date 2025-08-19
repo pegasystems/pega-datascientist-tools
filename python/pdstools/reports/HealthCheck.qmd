@@ -1766,7 +1766,7 @@ In the left-hand plot we look at all responses, which really means that we are l
 
 Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
 
-::: {layout-ncol="2"}
+::::: {layout-ncol="2"}
 ```{python}
 # TODO move gains_table to PDS tools utils
 # TODO a corresponding GINI calculation would be nice
@@ -1896,7 +1896,6 @@ try:
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
-:::
 
 ::: {.callout-tip title="Guidance"}
 -   Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
@@ -1995,3 +1994,4 @@ show_versions.show_versions()
 :::
 
 For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
+:::::
