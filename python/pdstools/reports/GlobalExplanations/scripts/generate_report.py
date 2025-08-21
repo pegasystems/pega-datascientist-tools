@@ -1,6 +1,9 @@
 import json
 import os
+
 import yaml
+
+ENCODING = "utf-8"
 
 CONTEXT_FOLDER = "by-context"
 
@@ -61,7 +64,7 @@ Report generation initialized with the following parameters:
             self.data_folder = DATA_FOLDER
             print(f"Parameters file {params_file} does not exist. Using defaults.")
         else:
-            with open(params_file, "r") as file:
+            with open(params_file, "r", encoding=ENCODING) as file:
                 params = yaml.safe_load(file)
                 self.top_n = params.get("top_n", TOP_N)
                 self.top_k = params.get("top_k", TOP_K)
@@ -85,13 +88,13 @@ Report generation initialized with the following parameters:
     @staticmethod
     def _read_template(template_filename: str) -> str:
         """Read a template file and return its content."""
-        with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r") as fr:
+        with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING) as fr:
             return fr.read()
 
     def _write_single_context_file(
         self, filename: str, template: str, context_string: str, context_label: str
     ):
-        with open(filename, "w") as fw:
+        with open(filename, "w", encoding=ENCODING) as fw:
             f_context_template = f"""{
                 template.format(
                     ALL_CONTEXT_FILENAME=ALL_CONTEXT_FILENAME,
@@ -111,7 +114,7 @@ Report generation initialized with the following parameters:
             )
         }"""
 
-        with open(self.all_context_filepath, "w") as writer:
+        with open(self.all_context_filepath, "w", encoding=ENCODING) as writer:
             writer.write(f_template)
 
     def _append_content_to_file(
@@ -121,7 +124,7 @@ Report generation initialized with the following parameters:
         context_label: str,
         context: dict,
     ):
-        with open(self.all_context_filepath, "a") as writer:
+        with open(self.all_context_filepath, "a", encoding=ENCODING) as writer:
             f_content_template = f"""{
                 template.format(
                     CONTEXT_STR=context_string,
@@ -142,7 +145,7 @@ Report generation initialized with the following parameters:
                 f"Unique contexts file not found: {unique_contexts_file}. "
                 "Please ensure that aggregates have been generated."
             )
-        with open(unique_contexts_file, "r") as f:
+        with open(unique_contexts_file, "r", encoding=ENCODING) as f:
             lines = [line.strip() for line in f.readlines()]
 
         contexts = []
@@ -188,7 +191,7 @@ Report generation initialized with the following parameters:
             )
 
     def _generate_overview_qmd(self):
-        with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r") as fr:
+        with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -201,11 +204,11 @@ Report generation initialized with the following parameters:
         }
         """
 
-        with open(OVERVIEW_FILENAME, "w") as f:
+        with open(OVERVIEW_FILENAME, "w", encoding=ENCODING) as f:
             f.write(f_template)
 
     def _generate_introduction_qmd(self):
-        with open(f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r") as fr:
+        with open(f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -215,10 +218,11 @@ Report generation initialized with the following parameters:
             )
         }"""
 
-        with open(INTRODUCTION_FILENAME, "w") as f:
+        with open(INTRODUCTION_FILENAME, "w", encoding=ENCODING) as f:
             f.write(f_template)
 
     def run(self):
+        """Main method to generate the report files."""
         self._generate_introduction_qmd()
         print("Generated introduction QMD file.")
 

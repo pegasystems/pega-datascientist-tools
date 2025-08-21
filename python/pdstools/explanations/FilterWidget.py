@@ -1,9 +1,10 @@
 __all__ = ["FilterWidget"]
 
-from ipywidgets import widgets
-from IPython.display import display
-from typing import TYPE_CHECKING, List, Optional, cast
 from collections import OrderedDict
+from typing import TYPE_CHECKING, List, Optional, cast
+
+from IPython.display import display
+from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import ContextInfo
@@ -62,7 +63,8 @@ class FilterWidget(LazyNamespace):
         """Set the selected context information.
         Args:
             context_info (Optional[ContextInfo]):
-                If None, initializes the selected context with 'Any' for all keys. i.e overall model contributions
+                If None, initializes the selected context with 'Any' for all keys. 
+                i.e overall model contributions
                 If provided, sets the selected context to the given context information.
                 Context is passed as a dictionary
                 Eg. context_info =
@@ -78,6 +80,9 @@ class FilterWidget(LazyNamespace):
             self._selected_context_key = cast(dict[str, str], context_info)
 
     def is_context_selected(self) -> bool:
+        """Method returns True only if all context keys 
+        are selected with a value other than 'Any'.
+        """
         if self._selected_context_key is None:
             return False
         return all(
@@ -186,19 +191,19 @@ class FilterWidget(LazyNamespace):
             description="Context Info",
             style={"description_width": "initial"},
             layout=widgets.Layout(width="auto"),
-            rows=self._selected_context_key.keys().__len__() + 1,
+            rows=len(self._selected_context_key.keys()) + 1,
         )
         widget.observe(self._on_selector_change, names="value")
 
         return widget
 
-    def _on_button_clicked(self, action):
+    def _on_button_clicked(self, _):
         """Clear the filter widget and reset the context selection."""
         self._init_selected_context()
         self._filtered_list = self._filter_contexts_by_selected()
 
         # reset all combobox widgets
-        for name, widget in reversed(list(self._combobox_widgets.items())):
+        for _, widget in reversed(list(self._combobox_widgets.items())):
             widget.value = ""
 
         # reset the context selector widget
@@ -222,7 +227,8 @@ class FilterWidget(LazyNamespace):
                 f"Available options are: {changed_widget_options}"
             )
 
-        # update all widgets options according to the changed value, if changed value is ANY_CONTEXT, reset the options
+        # update all widgets options according to the changed value
+        # if changed value is ANY_CONTEXT, reset the options
         for widget_id, widget in self._combobox_widgets.items():
             widget.options = self._get_options_for_context_widget(widget_id)
 

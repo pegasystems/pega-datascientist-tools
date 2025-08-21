@@ -1,21 +1,21 @@
 __all__ = ["Aggregate"]
 
-from typing import TYPE_CHECKING, List, Optional
-
 import logging
 import pathlib
-import polars as pl
+from typing import TYPE_CHECKING, List, Optional
 
+import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
     _CONTRIBUTION_TYPE,
+    _DEFAULT,
     _PREDICTOR_TYPE,
     _SPECIAL,
-    _DEFAULT,
     ContextInfo,
     ContextOperations,
+    validate,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,6 +75,12 @@ class Aggregate(LazyNamespace):
             contribution_calculation
         )
 
+        try:
+            validate(top_n=top_n)
+        except ValueError as e:
+            logger.error("Invalid parameters: %s", e)
+            raise
+
         self._load_data()
 
         return self._get_predictor_contributions(
@@ -121,6 +127,12 @@ class Aggregate(LazyNamespace):
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
             contribution_calculation
         )
+
+        try:
+            validate(top_k=top_k)
+        except ValueError as e:
+            logger.error("Invalid parameters: %s", e)
+            raise
 
         self._load_data()
 

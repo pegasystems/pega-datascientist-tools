@@ -2,10 +2,11 @@ __all__ = ["Plots"]
 
 import logging
 from typing import TYPE_CHECKING, List, Optional
+
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo, _CONTRIBUTION_TYPE, _COL, _SPECIAL, _DEFAULT
+from .ExplanationsUtils import _COL, _CONTRIBUTION_TYPE, _DEFAULT, _SPECIAL, ContextInfo
 
 logger = logging.getLogger(__name__)
 

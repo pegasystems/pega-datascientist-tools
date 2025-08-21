@@ -1,17 +1,18 @@
 __all__ = ["Preprocess"]
 
-import pathlib
+import logging
 import os
+import pathlib
 from datetime import timedelta
 from glob import glob
 from importlib.resources import files as resources_files
 from typing import TYPE_CHECKING, Optional
-import logging
+
 import duckdb
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import _PREDICTOR_TYPE, _TABLE_NAME, _COL
+from .ExplanationsUtils import _COL, _PREDICTOR_TYPE, _TABLE_NAME
 from .resources import queries as queries_data
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class Preprocess(LazyNamespace):
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
 
-        self.explanations_folder = self.explanations.data_folder
+        self.explanations_folder = pathlib.Path(self.explanations.data_folder)
         self.data_foldername = "aggregated_data"
         self.data_folderpath = pathlib.Path(
             os.path.join(self.explanations.root_dir, self.data_foldername)
@@ -84,10 +85,14 @@ class Preprocess(LazyNamespace):
             logger.debug("Using cached data for preprocessing.")
             return
 
-        self._populate_selected_files()
-        if len(self.selected_files) == 0:
-            logger.error("No files found to aggregate!")
-            return
+        try:
+            self._populate_selected_files()
+            if len(self.selected_files) == 0:
+                logger.error("No files found to aggregate!")
+                raise ValueError("No files found to aggregate!")
+        except ValueError as e:
+            logger.error("Failed to populate selected files: %s", e)
+            raise
 
         self._conn = duckdb.connect(database=":memory:")
 
@@ -121,6 +126,12 @@ class Preprocess(LazyNamespace):
             if any(self.data_folderpath.iterdir()):
                 return True
         self.data_folderpath.mkdir(parents=True, exist_ok=True)
+        return False
+    
+    def _validate_explanations_folder(self):
+        if self.explanations_folder.exists() and self.explanations_folder.is_dir():
+            if any(self.explanations_folder.iterdir()):
+                return True
         return False
 
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
@@ -192,7 +203,8 @@ class Preprocess(LazyNamespace):
 
         self._execute_query(query)
 
-    def _get_table_name(self, predictor_type) -> _TABLE_NAME:
+    @staticmethod
+    def _get_table_name(predictor_type) -> _TABLE_NAME:
         return (
             _TABLE_NAME.NUMERIC
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
@@ -355,6 +367,9 @@ class Preprocess(LazyNamespace):
             raise ValueError(
                 "Either from_date or to_date must be passed before populating selected files."
             )
+   
+        if not self._validate_explanations_folder():
+            raise ValueError(f"Explanations folder {self.explanations_folder} does not exist or is empty.")
 
         # get list of dates in the range from `from_date` to `to_date`
         date_range_list = [

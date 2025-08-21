@@ -9,13 +9,27 @@ __all__ = [
     "ContextOperations",
 ]
 
-from enum import Enum
-from typing import TYPE_CHECKING, TypedDict, List, Optional, cast
-
 import json
+from enum import Enum
+from typing import TYPE_CHECKING, List, Optional, TypedDict, cast
+
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
+
+
+def validate(top_n: Optional[int] = None, top_k: Optional[int] = None):
+    """Validate the parameters for top_n and top_k."""
+    if top_n:
+        if not isinstance(top_n, int) or top_n <= 1:
+            raise ValueError(
+                f"Invalid top_n value: {top_n}. Must be a positive integer greater than zero."
+            )
+    if top_k:
+        if not isinstance(top_k, int) or top_k <= 1:
+            raise ValueError(
+                f"Invalid top_k value: {top_k}. Must be a positive integer greater than zero."
+            )
 
 
 class _PREDICTOR_TYPE(Enum):
@@ -226,7 +240,7 @@ class ContextOperations(LazyNamespace):
         return expressions
 
     @staticmethod
-    def _get_clean_df(df):
+    def _get_clean_df(df: pl.DataFrame) -> pl.DataFrame:
         return df.select(pl.exclude(_COL.PARTITON.value))
 
     @staticmethod

@@ -1,17 +1,18 @@
 __all__ = ["Reports"]
 
+import logging
 import os
 import shutil
 import subprocess
-import logging
 from typing import TYPE_CHECKING
+
 import yaml
 
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (
     copy_report_resources,
-    run_quarto,
     generate_zipped_report,
+    run_quarto,
 )
 from .ExplanationsUtils import _DEFAULT
 
@@ -78,7 +79,10 @@ class Reports(LazyNamespace):
         self._set_params(top_n=top_n, top_k=top_k, verbose=verbose)
 
         try:
-            return_code = run_quarto(temp_dir=self.report_folderpath, verbose=True)
+            return_code = run_quarto(
+                temp_dir=self.report_folderpath,
+                verbose=verbose,
+                output_type=None)
         except subprocess.CalledProcessError as e:
             logger.error("Quarto command failed: %s", e)
             raise

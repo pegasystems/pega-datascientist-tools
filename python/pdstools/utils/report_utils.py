@@ -76,7 +76,7 @@ def _write_params_files(
 def run_quarto(
     qmd_file: Optional[str] = None,
     output_filename: Optional[str] = None,
-    output_type: str = "html",
+    output_type: Optional[str] = "html",
     params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
     analysis: Optional[Dict] = None,
@@ -84,6 +84,21 @@ def run_quarto(
     verbose: bool = False,
 ) -> int:
     """Run the Quarto command to generate the report."""
+
+    def get_command() -> List[str]:
+        quarto_exec, _ = get_quarto_with_version(verbose)
+        _command = [str(quarto_exec), "render"]
+
+        if qmd_file is not None:
+            _command.append(qmd_file)
+
+        options = _set_command_options(
+            output_type=output_type,
+            output_filename=output_filename,
+            execute_params=params is not None)
+
+        _command.extend(options)
+        return _command
 
     if params is not None:
         _write_params_files(
@@ -93,15 +108,11 @@ def run_quarto(
             analysis=analysis,
         )
 
-    quarto_exec, _ = get_quarto_with_version(verbose)
-
     # render file or render project with options
-    command = [str(quarto_exec), "render"] if qmd_file is None else [str(quarto_exec), "render", qmd_file]
-    options = _set_command_options(output_type, output_filename, execute_params=params is not None)
-    command.extend(options)
+    command = get_command()
 
     if verbose:
-        print(f"Executing: {' '.join(command)}")
+        print(f"Executing: {' '.join(command)} in temp directory {temp_dir}")
 
     process = subprocess.Popen(
         command,
