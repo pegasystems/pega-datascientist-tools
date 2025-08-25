@@ -148,7 +148,8 @@ class ADMDatamart:
             return df
         # very_first_date = df.select(pl.col("SnapshotTime").min()).collect().item()
         return (
-            df.group_by("Name").agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
+            df.group_by("Name")
+            .agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
             # .with_columns(
             #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime")
             # )
@@ -322,7 +323,6 @@ class ADMDatamart:
             pdc_data.filter(pl.col("ModelType") == "AdaptiveModel")
             .with_columns(
                 pl.col("Performance").cast(pl.Float32),
-                
                 # pl.col("Positives").cast(pl.Float64),
                 pl.col("Negatives").cast(pl.Float64),
                 pl.col("TotalPositives").cast(pl.Float64),
@@ -886,6 +886,7 @@ class ADMDatamart:
                         data[0], data[1]
                     ),
                     return_dtype=pl.Float64,
+                    returns_scalar=True,
                 ).over("ModelID"),
                 idx_min=(
                     pl.map_groups(
@@ -898,6 +899,7 @@ class ADMDatamart:
                             data[1].item(),
                         ),
                         return_dtype=pl.Int32,
+                        returns_scalar=True,
                     )
                     - 1
                 ).over("ModelID"),
@@ -911,6 +913,7 @@ class ADMDatamart:
                         data[1].item(),
                     ),
                     return_dtype=pl.Int32,
+                    returns_scalar=True,
                 ).over("ModelID"),
             )
             .with_columns(
@@ -928,6 +931,7 @@ class ADMDatamart:
                         data[3].item(),
                     ),
                     return_dtype=pl.Float64,
+                    returns_scalar=True,
                 ).over("ModelID"),
             )
             .sort("ModelID")
