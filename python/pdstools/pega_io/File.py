@@ -368,8 +368,6 @@ def get_latest_file(
         except Exception:
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
-    # Sort paths for deterministic behavior when dates are equal
-    paths.sort()
     dates = pl.Series([f(i) for i in paths])
     return paths[dates.arg_max()]
 

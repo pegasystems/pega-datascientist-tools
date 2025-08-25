@@ -40,7 +40,7 @@ def test_find_default_model():
     file = pega_io.get_latest_file(path=f"{basePath}/data", target="model_data")
     assert os.path.join(file) == os.path.join(
         f"{basePath}/data",
-        "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        "pr_data_dm_admmart_mdl_fact.csv",
     )
 
 
