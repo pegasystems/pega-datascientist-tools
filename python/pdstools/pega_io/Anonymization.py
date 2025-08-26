@@ -4,7 +4,6 @@ from glob import glob
 from typing import Dict, List, Optional
 
 import polars as pl
-import polars.selectors as cs
 
 
 class Anonymization:
@@ -287,7 +286,7 @@ class Anonymization:
         nums = [
             key
             for key, value in schema.items()
-            if (value in cs.NUMERIC_DTYPES and key not in symb_nonanonymised)
+            if (value.is_numeric() and key not in symb_nonanonymised)
         ]
         symb = [
             key

@@ -280,7 +280,7 @@ def test_overlap_lists_polars_overall_summary():
             .then(
                 pl.col("Actions")
                 .filter(pl.col("isValid"))
-                .map_batches(cdh_utils.overlap_lists_polars)
+                .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
                 .mean()
             )
             .otherwise(pl.lit(0.0))
@@ -329,7 +329,7 @@ def test_overlap_lists_polars_overall_period_summaries():
             .then(
                 pl.col("Actions")
                 .filter(pl.col("isValid"))
-                .map_batches(cdh_utils.overlap_lists_polars)
+                .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
                 .mean()
             )
             .otherwise(pl.lit(0.0))
@@ -433,14 +433,13 @@ def test_log_odds():
 
     output_polars_native = input.with_columns(cdh_utils.log_odds_polars().round(5))
 
+    # Calculate log odds using the entire columns
+    positives_list = input["Positives"].to_list()
+    negatives_list = (input["ResponseCount"] - input["Positives"]).to_list()
+    log_odds_results = cdh_utils.bin_log_odds(positives_list, negatives_list)
+
     output_polars_python = input.with_columns(
-        LogOdds=pl.map_batches(
-            exprs=["Positives", pl.col("ResponseCount") - pl.col("Positives")],
-            function=lambda data: cdh_utils.bin_log_odds(data[0], data[1]),
-            return_dtype=pl.Float64,  # pl.List(pl.Float64),
-        )
-        .explode()
-        .round(5),
+        LogOdds=pl.Series(log_odds_results).round(5)
     )
 
     log_odds_expected_results = [
