@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 import logging
@@ -45,12 +46,15 @@ def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
 
 def _write_params_files(
     temp_dir: Path,
-    params: Dict = {},
+    params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
-    analysis: Dict = {},
+    analysis: Optional[Dict] = None,
 ) -> None:
     """Write parameters to a YAML file."""
     import yaml
+
+    params = params or {}
+    analysis = analysis or {}
 
     # Parameters to python code
     with open(temp_dir / "params.yml", "w") as f:
@@ -58,7 +62,7 @@ def _write_params_files(
             params,
             f,
         )
-
+    
     # Project/rendering options to quarto
     with open(temp_dir / "_quarto.yml", "w") as f:
         yaml.dump(
@@ -70,40 +74,45 @@ def _write_params_files(
         )
 
 def run_quarto(
-    qmd_file: str,
-    output_filename: str,
-    output_type: str = "html",
-    params: Dict = {},
+    qmd_file: Optional[str] = None,
+    output_filename: Optional[str] = None,
+    output_type: Optional[str] = "html",
+    params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
-    analysis: Dict = {},
+    analysis: Optional[Dict] = None,
     temp_dir: Path = Path("."),
     verbose: bool = False,
 ) -> int:
     """Run the Quarto command to generate the report."""
 
-    _write_params_files(
-        temp_dir,
-        params=params,
-        project=project,
-        analysis=analysis,
-    )
+    def get_command() -> List[str]:
+        quarto_exec, _ = get_quarto_with_version(verbose)
+        _command = [str(quarto_exec), "render"]
 
-    quarto_exec, _ = get_quarto_with_version(verbose)
+        if qmd_file is not None:
+            _command.append(qmd_file)
 
-    command = [
-        str(quarto_exec),
-        "render",
-        qmd_file,
-        "--to",
-        output_type,
-        "--output",
-        output_filename,
-        "--execute-params",
-        "params.yml",
-    ]
+        options = _set_command_options(
+            output_type=output_type,
+            output_filename=output_filename,
+            execute_params=params is not None)
+
+        _command.extend(options)
+        return _command
+
+    if params is not None:
+        _write_params_files(
+            temp_dir,
+            params=params,
+            project=project,
+            analysis=analysis,
+        )
+
+    # render file or render project with options
+    command = get_command()
 
     if verbose:
-        print(f"Executing: {' '.join(command)}")
+        print(f"Executing: {' '.join(command)} in temp directory {temp_dir}")
 
     process = subprocess.Popen(
         command,
@@ -129,6 +138,54 @@ def run_quarto(
 
     return return_code
 
+def _set_command_options(
+    output_type: Optional[str] = None,
+    output_filename: Optional[str] = None,
+    execute_params: bool = False,
+) -> List[str]:
+    """Set the options for the Quarto command."""
+
+    options = []
+    if output_type is not None:
+        options.append("--to")
+        options.append(output_type)
+    if output_filename is not None:
+        options.append("--output")
+        options.append(output_filename)
+    if execute_params:
+        options.append("--execute-params")
+        options.append("params.yml")
+    return options
+
+def copy_report_resources(resource_dict: list[tuple[str, str]]):
+    from pdstools import __reports__
+    
+    for src, dest in resource_dict:
+        source_path = __reports__ / src
+        destination_path = dest
+        
+        if destination_path == "":
+                destination_path = "./"
+        
+        if os.path.isdir(source_path):
+            shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
+        else:
+            shutil.copy(source_path, destination_path)
+
+def generate_zipped_report(output_filename: str, folder_to_zip: str):
+    if not os.path.isdir(folder_to_zip):
+        logger.error(f"The output path {folder_to_zip} is not a directory.")
+        return
+
+    if not os.path.exists(folder_to_zip):
+        logger.warning(
+            f"The {folder_to_zip} directory does not exist. Skipping zip creation."
+        )
+        return
+
+    base_filename = os.path.splitext(output_filename)[0]
+    zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
+    logger.info(f"created zip file...{zippy}")
 
 def _get_cmd_output(args: List[str]) -> List[str]:
     """Get command output in an OS-agnostic way."""
@@ -146,6 +203,9 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
+    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
+    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    return match.group(1) if match else ""
     # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
     match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
     return match.group(1) if match else ""

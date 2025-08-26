@@ -1,0 +1,35 @@
+project:
+  type: website
+  pre-render:
+    - scripts/generate_report.py
+  render:
+    - getting-started.qmd
+    - overview.qmd
+    - by-context/plt-*.qmd
+website:
+  title: Global Explanations Report
+  site-url: index.html
+  sidebar: 
+    style: "docked"
+    search: false
+    contents:
+    - text: "Getting started"
+      href: getting-started.qmd
+    - text: "Overview"
+      href: overview.qmd
+    - section: "By context"
+      contents:
+        auto: "by-context/*.qmd"
+execute:
+  echo: false
+  eval: true
+format:
+  html:
+    theme:
+    - cosmo
+    - brand
+    toc: true
+    toc-depth: 4
+    css: assets/pega-report-overrides.css
+notebook-links: false
+

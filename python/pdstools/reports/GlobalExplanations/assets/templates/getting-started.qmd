@@ -1,0 +1,16 @@
+---
+title: "Getting started"
+---
+
+## Introduction
+
+This report contains a break down of the average predictor contributions made to model predictions.
+
+### Overview
+
+The overview page shows top-{TOP_N} predictors that, on average, had the heighest contribution to the model predictions.
+In addition to the average contributions for those top-{TOP_N} predictors, the overview page also shows the average contributions for each predictor values. For symbolic predictors, the top-{TOP_K} predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles.
+
+### By context
+
+The `by context` section displays the same information as in the `overview` section, but for combinations of context keys. So instead of showing the average contribution of predictors, you can see the average contribution of predictors for a given a pyName, pyOutcome, pyIssue, etc.
