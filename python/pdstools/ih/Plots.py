@@ -571,9 +571,8 @@ class Plots(LazyNamespace):
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
                     function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
                     return_dtype=pl.Float64,
-                )
-                .last()
-                .alias("Performance")
+                    returns_scalar=True,
+                ).alias("Performance")
             )
             .sort(["OutcomeTime"])
         ).with_columns(pl.col("Performance") * 100)
