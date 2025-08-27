@@ -14,12 +14,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "default": False,
         "type": pl.Categorical,
     },
-    "Primary_pySubjectID": {  # Primary_pySubjectID
+    "Primary_pySubjectID": {
         "label": "pySubjectID",
         "default": False,
         "type": pl.Categorical,
     },  # should be optional
-    "Primary_pySubjectType": {  # Primary_pySubjectType
+    "Primary_pySubjectType": {
         "label": "pySubjectType",
         "default": False,
         "type": pl.Categorical,

@@ -245,18 +245,7 @@ def rename_and_cast_types(
     name_dict = {}
     for col, properties in table_definition.items():
         name_dict[col] = properties["label"]
-    # if table == "decision_analyzer":
-    # # Create pxEngagementStage
-    # remapping_dict = {
-    #     str(value): key
-    #     for key, values in audit_tag_mapping.items()
-    #     for value in values
-    # }
-    # df = df.with_columns(
-    #     pxEngagementStage=pl.col("Stage_pyName")
-    #     .cast(pl.Utf8)
-    #     .replace(remapping_dict)
-    # )
+
     return df.rename(name_dict).select(list(name_dict.values()))
 
 
