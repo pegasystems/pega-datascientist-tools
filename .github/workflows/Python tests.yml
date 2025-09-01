@@ -6,11 +6,13 @@ on:
       - master
     paths:
       - python/**
+      - pyproject.toml
       - .github/workflows/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - python/**
+      - pyproject.toml
       - reports/*.qmd
       - .github/workflows/**
 jobs:
