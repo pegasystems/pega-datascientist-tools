@@ -60,7 +60,7 @@ onnx = [
 all = ['pdstools[app, pega_io, onnx, explanations]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse', 'xgboost']
-tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
+tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'pytest-asyncio', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
@@ -70,3 +70,7 @@ tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'mot
 
 [project.scripts]
 pdstools = 'pdstools.cli:main'
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--strict-markers"
