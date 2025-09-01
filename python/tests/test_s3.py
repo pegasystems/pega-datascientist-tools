@@ -2,10 +2,12 @@ import os
 import shutil
 
 import aioboto3
+import pytest
 from moto import mock_aws
 from pdstools.pega_io.S3 import S3Data
 
 
+@pytest.mark.asyncio
 @mock_aws
 async def test_get_s3_files():
     # Define parameters
