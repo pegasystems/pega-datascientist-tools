@@ -67,7 +67,7 @@ tests = [
     'pytest-httpx',
     'pytest-mock',
     "pytest-asyncio",
-    'moto',
+    "moto[s3]",
     'openpyxl',
     'pdstools[all]',
     'coverage',
