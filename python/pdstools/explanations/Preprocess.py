@@ -226,7 +226,7 @@ class Preprocess(LazyNamespace):
             logger.error("No data found for predictor type=%s", predictor_type)
             return
         self._write_to_parquet(df, f"{predictor_type.value}_OVERALL.parquet")
-        logger.info("Processed %s overall for ", predictor_type)
+        logger.info("Processed overall for %s", predictor_type)
 
     def _delete_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
@@ -315,17 +315,12 @@ class Preprocess(LazyNamespace):
             raise
 
     def _parquet_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
-        try:
-            sql = self._read_overall_sql_file(predictor_type)
+        sql = self._read_overall_sql_file(predictor_type)
 
-            table_name = self._get_table_name(predictor_type)
-            query = self._get_overall_sql_formatted(sql, table_name, where_condition)
+        table_name = self._get_table_name(predictor_type)
+        query = self._get_overall_sql_formatted(sql, table_name, where_condition)
 
-            return self._execute_query(query).pl()
-
-        except Exception as e:
-            logger.error("Failed for predictor type=%s, err=%s", predictor_type, e)
-            raise e
+        return self._execute_query(query).pl()
 
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
         df.write_parquet(f"{self.data_folderpath}/{file_name}", statistics=False)
@@ -447,7 +442,6 @@ class Preprocess(LazyNamespace):
             logger.error("DatabaseException: %s", e)
             raise
         except Exception as e:
-            logger.error("Failed to execute query: %s", e)
-            raise
+            raise Exception("Failed to execute query: %s", e) from e
 
         return execution
