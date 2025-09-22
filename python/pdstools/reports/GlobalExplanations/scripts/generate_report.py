@@ -11,8 +11,9 @@ TOP_N = 10
 TOP_K = 10
 VERBOSE_DEFAULT = False
 DATA_FOLDER = "aggregated_data"
+UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
 
-ALL_CONTEXT_FILENAME = "all_contexts.qmd"
+PLOTS_FOR_BATCH = "plots_for_batch"
 PARAMS_FILENAME = "params.yml"
 
 # init template folder and filenames
@@ -39,7 +40,8 @@ class ReportGenerator:
         if not os.path.exists(self.by_context_folder):
             os.makedirs(self.by_context_folder, exist_ok=True)
 
-        self.all_context_filepath = f"{self.by_context_folder}/{ALL_CONTEXT_FILENAME}"
+        self.plots_for_batch_filepath = f"{self.by_context_folder}/{PLOTS_FOR_BATCH}"
+        self.contexts = None
 
         self._read_params()
 
@@ -49,7 +51,7 @@ Report generation initialized with the following parameters:
 - Aggregations folder: {self.data_folder}
 - Report folder: {self.report_folder}
 - Context folder: {self.by_context_folder}
-- All contexts file path: {self.all_context_filepath}
+- Plots for batch, filepath basename: {self.plots_for_batch_filepath}
 - Top N: {self.top_n}
 - Top K: {self.top_k}
         """)
@@ -82,8 +84,11 @@ Report generation initialized with the following parameters:
             self._log_params()
 
     @staticmethod
-    def _get_context_string(context_info) -> str:
-        return "-".join([v.replace(" ", "") for _, v in context_info.items()])
+    def _get_context_dict(context_info: str) -> dict:
+        return json.loads(context_info)["partition"]
+    
+    def _get_context_string(self, context_info: str) -> str:
+        return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
 
     @staticmethod
     def _read_template(template_filename: str) -> str:
@@ -92,44 +97,51 @@ Report generation initialized with the following parameters:
             return fr.read()
 
     def _write_single_context_file(
-        self, filename: str, template: str, context_string: str, context_label: str
+        self, 
+        embed_path_for_batch: str, 
+        filename: str, 
+        template: str, 
+        context_str: str, 
+        context_label: str
     ):
         with open(filename, "w", encoding=ENCODING) as fw:
             f_context_template = f"""{
                 template.format(
-                    ALL_CONTEXT_FILENAME=ALL_CONTEXT_FILENAME,
-                    CONTEXT_STR=context_string,
+                    EMBED_PATH_FOR_BATCH=embed_path_for_batch,
+                    CONTEXT_STR=context_str,
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                 )
             }"""
             fw.write(f_context_template)
 
-    def _write_header_to_file(self):
+    def _write_header_to_file(self, file_batch_nb: str, filename: str):
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
         f_template = f"""{
             template.format(
-                ROOT_DIR=self.root_dir, DATA_FOLDER=self.data_folder, TOP_N=self.top_n
+                ROOT_DIR=self.root_dir, 
+                DATA_FOLDER=self.data_folder, 
+                DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
+                TOP_N=self.top_n
             )
         }"""
-
-        with open(self.all_context_filepath, "w", encoding=ENCODING) as writer:
+        
+        with open(filename, "w", encoding=ENCODING) as writer:
             writer.write(f_template)
 
     def _append_content_to_file(
         self,
+        filename: str,
         template: str,
-        context_string: str,
+        context_dict: dict,
         context_label: str,
-        context: dict,
     ):
-        with open(self.all_context_filepath, "a", encoding=ENCODING) as writer:
+        with open(filename, "a", encoding=ENCODING) as writer:
             f_content_template = f"""{
                 template.format(
-                    CONTEXT_STR=context_string,
+                    CONTEXT_DICT=context_dict,
                     CONTEXT_LABEL=context_label,
-                    CONTEXT=json.dumps(context),
                     TOP_N=self.top_n,
                     TOP_K=self.top_k,
                 )
@@ -137,58 +149,95 @@ Report generation initialized with the following parameters:
 
             writer.write("\n")
             writer.write(f_content_template)
+            
+    def _get_batches(self):
+        import glob
+        batches = []
+        for batch in glob.glob(f"{self.data_folder}/NUMERIC_BATCH_*.parquet"):
+            batch_nb = os.path.basename(batch).split("_")[-1]
+            batches.append(batch_nb.replace(".parquet", ""))
+        return batches
 
     def _get_unique_contexts(self):
-        unique_contexts_file = f"{self.data_folder}/unique_contexts.csv"
+        if self.contexts is not None:
+            return self.contexts
+        
+        unique_contexts_file = f"{self.data_folder}/{UNIQUE_CONTEXTS_FILENAME}"
         if not os.path.exists(unique_contexts_file):
             raise FileNotFoundError(
                 f"Unique contexts file not found: {unique_contexts_file}. "
                 "Please ensure that aggregates have been generated."
             )
         with open(unique_contexts_file, "r", encoding=ENCODING) as f:
-            lines = [line.strip() for line in f.readlines()]
+            import json
+            self.contexts = json.load(f)
+        return self.contexts
 
-        contexts = []
-        for line in lines:
-            if not line:
-                continue
-            context_info = json.loads(line)
-            if not isinstance(context_info, dict):
-                raise ValueError(
-                    f"Invalid context format in {unique_contexts_file}: {line}"
-                )
-            contexts.append(context_info.get("partition", {}))
+    def _get_batch_filepath(self, file_batch_nb: str, with_sub_folders: bool = False) -> str:
+        if with_sub_folders:
+            plots_for_batch_folderpath = f"{self.plots_for_batch_filepath}_{file_batch_nb}"
+            if not os.path.exists(plots_for_batch_folderpath):
+                os.makedirs(plots_for_batch_folderpath, exist_ok=True)
+            
+            plots_for_batch_filename = f"{file_batch_nb}.qmd"
+            plots_for_batch_filepath = f"{plots_for_batch_folderpath}/{plots_for_batch_filename}"
+            return plots_for_batch_filepath
+        else:
+            return f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
+            
+    def _get_batch_embedpath(self, file_batch_nb: str, with_sub_folders: bool = False) -> str:
+        if with_sub_folders:
+            return f"{PLOTS_FOR_BATCH}_{file_batch_nb}/{file_batch_nb}.qmd"
+        else:
+            return f"{PLOTS_FOR_BATCH}_{file_batch_nb}.qmd"
+        
+    def _get_batch_filepath_for_single(self, context_label: str, file_batch_nb: str, with_sub_folders: bool = False) -> str:
+        if with_sub_folders:
+            plots_for_batch_folderpath = f"{self.plots_for_batch_filepath}_{file_batch_nb}"
+            if not os.path.exists(plots_for_batch_folderpath):
+                os.makedirs(plots_for_batch_folderpath, exist_ok=True)
 
-        return contexts
-
+            return f"{plots_for_batch_folderpath}/{context_label}.qmd"
+        else:
+            return f"{self.by_context_folder}/{context_label}.qmd"
+            
     def _generate_by_context_qmds(self):
-        # write header
-        self._write_header_to_file()
-
-        # write content
-        context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
-        single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
-
+        
+        with_sub_folders = False
+        
         contexts = self._get_unique_contexts()
-        for context in contexts:
-            context_string = self._get_context_string(context)
-            context_label = ("plt-" + context_string).lower()
+        
+        for file_batch_nb, context_batches in contexts.items():
+            print(f"Processing file batch: {file_batch_nb}")
+            
+            plots_for_batch_filepath = self._get_batch_filepath(file_batch_nb, with_sub_folders=with_sub_folders)
+            
+            # write header
+            self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
 
-            self._append_content_to_file(
-                template=context_content_template,
-                context_string=context_string,
-                context_label=context_label,
-                context=context,
-            )
+            # write content
+            context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
+            single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
 
-            single_context_filename = f"{self.by_context_folder}/{context_label}.qmd"
+            for query_batch_nb, contexts in context_batches.items():
+                for context in contexts:
+                    context_str = self._get_context_string(context)
+                    context_label = ("plt-" + context_str).lower()
 
-            self._write_single_context_file(
-                filename=single_context_filename,
-                template=single_context_template,
-                context_string=context_string,
-                context_label=context_label,
-            )
+                    self._append_content_to_file(
+                        filename=plots_for_batch_filepath,
+                        template=context_content_template,
+                        context_dict=self._get_context_dict(context),
+                        context_label=context_label,
+                    )
+
+                    self._write_single_context_file(
+                        embed_path_for_batch=self._get_batch_embedpath(file_batch_nb, with_sub_folders=with_sub_folders),
+                        filename=self._get_batch_filepath_for_single(context_label, file_batch_nb, with_sub_folders=with_sub_folders),
+                        template=single_context_template,
+                        context_str=context_str,
+                        context_label=context_label,
+                    )
 
     def _generate_overview_qmd(self):
         with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:

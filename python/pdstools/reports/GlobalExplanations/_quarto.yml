@@ -5,7 +5,7 @@ project:
   render:
     - getting-started.qmd
     - overview.qmd
-    - by-context/plt-*.qmd
+    - "by-context/plt-*.qmd"
 website:
   title: Global Explanations Report
   site-url: index.html
@@ -19,10 +19,11 @@ website:
       href: overview.qmd
     - section: "By context"
       contents:
-        auto: "by-context/*.qmd"
+        auto: "by-context/plt-*.qmd"
 execute:
   echo: false
   eval: true
+  freeze: true
 format:
   html:
     theme:

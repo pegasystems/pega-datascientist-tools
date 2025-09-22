@@ -43,16 +43,24 @@ class Preprocess(LazyNamespace):
         self.to_date = explanations.to_date
         self.model_name = explanations.model_name
 
-        self.batch_limit = int(os.getenv("BATCH_LIMIT", "10"))
+        self.query_batch_limit = int(os.getenv("QUERY_BATCH_LIMIT", "10"))
+        self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "10"))
         self.memory_limit = int(os.getenv("MEMORY_LIMIT", "2"))
         self.thread_count = int(os.getenv("THREAD_COUNT", "4"))
         self.progress_bar = os.getenv("PROGRESS_BAR", "0") == "1"
+        
+        logger.info("Using \nQUERY_BATCH_LIMIT=%s, \nFILE_BATCH_LIMIT=%s, \nMEMORY_LIMIT=%sGB, \nTHREAD_COUNT=%s, \nPROGRESS_BAR=%s",
+                    self.query_batch_limit,
+                    self.file_batch_limit,
+                    self.memory_limit,
+                    self.thread_count,
+                    self.progress_bar)
 
         self._conn = None
 
         self.selected_files: list[str] = []
-        self.contexts: Optional[list[str]] = None
-        self.unique_contexts_filename = f"{self.data_folderpath}/unique_contexts.csv"
+        self.contexts: Optional[dict[str, dict[str, list[str]]]] = None
+        self.unique_contexts_filename = f"{self.data_folderpath}/unique_contexts.json"
 
         super().__init__()
 
@@ -136,6 +144,8 @@ class Preprocess(LazyNamespace):
 
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:
+            logger.info("Running aggregation for predictor type=%s", predictor_type)
+            
             self._create_in_mem_table(predictor_type)
 
             self._agg_in_batches(predictor_type)
@@ -152,40 +162,63 @@ class Preprocess(LazyNamespace):
         query = self._get_create_table_sql_formatted(table_name, predictor_type)
 
         self._execute_query(query)
+        logger.info("Created in-memory table %s", table_name.value)
 
-    def _create_unique_contexts_file(self, predictor_type: _PREDICTOR_TYPE):
+    @staticmethod
+    def _create_unique_contexts_file(filename, data):
+        if pathlib.Path(filename).exists():
+            return
+
+        import json
+        with open(filename, 'w') as f:
+            json.dump(data, f)
+    
+    def _create_context_batches(self, all_contexts: list[str]):
+        contexts_dict = {}
+        file_batch_id = 1
+        curr_idx = 0
+
+        while True:
+            file_batches = {}
+            for _ in range(self.file_batch_limit):
+                selected_contexts = all_contexts[curr_idx: curr_idx + self.query_batch_limit]
+                file_batch_key = (curr_idx//self.query_batch_limit+1) * self.query_batch_limit
+                file_batches[file_batch_key] = selected_contexts
+                curr_idx += self.query_batch_limit
+                if curr_idx >= len(all_contexts):
+                    break
+            contexts_dict_key = file_batch_id * (self.file_batch_limit * self.query_batch_limit) 
+            contexts_dict[contexts_dict_key] = file_batches
+
+            if curr_idx >= len(all_contexts):
+                break
+            file_batch_id += 1
+        
+        return contexts_dict
+
+    def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
+        if self.contexts is not None:
+            return self.contexts
+        
+        table_name = self._get_table_name(predictor_type)
+
+        q = f"""
+            SELECT {table_name.value}.{_COL.PARTITON.value}
+            FROM {table_name.value}
+            GROUP BY {table_name.value}.{_COL.PARTITON.value};
+        """
+        
+        data = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
+        self.contexts = self._create_context_batches(data)
+        self._create_unique_contexts_file(self.unique_contexts_filename, self.contexts)
+        return self.contexts
+        
+    def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is None:
             self._get_contexts(predictor_type=predictor_type)
 
-        if pathlib.Path(self.unique_contexts_filename).exists():
-            return
-
-        df = pl.DataFrame(self.contexts, schema={_COL.PARTITON.value: pl.Utf8()})
-        df.write_csv(
-            self.unique_contexts_filename, include_header=False, quote_style="never"
-        )
-
-    def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
-        if self.contexts is None:
-            table_name = self._get_table_name(predictor_type)
-
-            q = f"""
-                SELECT {table_name.value}.{_COL.PARTITON.value}
-                FROM {table_name.value}
-                GROUP BY {table_name.value}.{_COL.PARTITON.value};
-            """
-            self.contexts = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
-
-        return self.contexts
-
-    def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
-        self._create_unique_contexts_file(predictor_type)
-
-        for batch in self._parquet_in_batches(predictor_type):
-            self._write_to_parquet(
-                batch["dataframe"],
-                f"{predictor_type.value}_BATCH_{batch['batch_count']}.parquet",
-            )
+        for file_batch_nb, query_batches in self.contexts.items():
+            self._parquet_in_batches(file_batch_nb, query_batches, predictor_type)
 
     def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         df = self._parquet_overall(predictor_type, where_condition)
@@ -193,6 +226,7 @@ class Preprocess(LazyNamespace):
             logger.error("No data found for predictor type=%s", predictor_type)
             return
         self._write_to_parquet(df, f"{predictor_type.value}_OVERALL.parquet")
+        logger.info("Processed %s overall for ", predictor_type)
 
     def _delete_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
@@ -231,47 +265,48 @@ class Preprocess(LazyNamespace):
 
         return self._clean_query(f_sql)
 
-    def _parquet_in_batches(self, predictor_type: _PREDICTOR_TYPE):
+    def _parquet_in_batches(
+        self, 
+        file_batch_nb: str, 
+        query_batches: dict[str, list[str]], 
+        predictor_type: _PREDICTOR_TYPE):
         try:
             table_name = self._get_table_name(predictor_type)
-
-            group_list = self._get_contexts(predictor_type)
-
-            total_groups = len(group_list)
-            curr_group = 0
-
             sql = self._read_batch_sql_file(predictor_type)
-
-            batch_counter = 0
             df_list = []
-            while curr_group < total_groups:
-                batch = group_list[
-                    curr_group : min(curr_group + self.batch_limit, total_groups)
-                ]
+            for query_batch_nb, selected_contexts in query_batches.items():
+                if len(selected_contexts) == 0:
+                    continue
+                
                 where_condition = self._clean_query(f"""
-                    {self.LEFT_PREFIX}.{_COL.PARTITON.value} IN ({self.SEP.join([f"'{row}'" for row in batch])})
+                    {self.LEFT_PREFIX}.{_COL.PARTITON.value} IN ({self.SEP.join([f"'{row}'" for row in selected_contexts])})
                 """)
-
                 query = self._get_batch_sql_formatted(sql, table_name, where_condition)
 
                 df = self._execute_query(query).pl()
                 df_list.append(df)
-
-                batch_counter += 1
-                curr_group += self.batch_limit
-                if batch_counter % 10 == 0 or curr_group >= total_groups:
-                    yield {
-                        "batch_count": batch_counter,
-                        "dataframe": pl.concat(df_list),
-                    }
-                    df_list = []
-                    logger.info(
-                        "Processed %s batch %s, group: %s, len: %s",
-                        predictor_type,
-                        batch_counter,
-                        curr_group,
-                        len(batch),
-                    )
+                
+                logger.debug(
+                    "Processed %s file batch %s, query batch %s, len (query batch): %s",
+                    predictor_type,
+                    file_batch_nb,
+                    query_batch_nb,
+                    len(selected_contexts),
+                )
+            
+            df_ = pl.concat(df_list)
+            
+            self._write_to_parquet(
+                df_,
+                f"{predictor_type.value}_BATCH_{file_batch_nb}.parquet",
+            )
+            
+            logger.info(
+                "Processed %s file batch %s, total len(query batches): %s",
+                predictor_type,
+                file_batch_nb,
+                len(query_batches),
+            )
 
         except Exception as e:
             logger.error(
