@@ -1,12 +1,11 @@
 ---
-title: "By Context"
+title: "By context"
 skip_exec: true
 ---
 
 The top-{TOP_N} predictor's contributions per context.
 
 ```{{python}}
-#| cache: true
 from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
 

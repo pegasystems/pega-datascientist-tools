@@ -17,13 +17,11 @@ website:
       href: getting-started.qmd
     - text: "Overview"
       href: overview.qmd
-    - section: "By context"
-      contents:
-        auto: "by-context/plt-*.qmd"
+    - auto: "by-context/plt-*.qmd"
+        
 execute:
   echo: false
   eval: true
-  freeze: true
 format:
   html:
     theme:
