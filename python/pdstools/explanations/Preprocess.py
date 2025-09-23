@@ -48,13 +48,15 @@ class Preprocess(LazyNamespace):
         self.memory_limit = int(os.getenv("MEMORY_LIMIT", "2"))
         self.thread_count = int(os.getenv("THREAD_COUNT", "4"))
         self.progress_bar = os.getenv("PROGRESS_BAR", "0") == "1"
-        
-        logger.info("Using \nQUERY_BATCH_LIMIT=%s, \nFILE_BATCH_LIMIT=%s, \nMEMORY_LIMIT=%sGB, \nTHREAD_COUNT=%s, \nPROGRESS_BAR=%s",
-                    self.query_batch_limit,
-                    self.file_batch_limit,
-                    self.memory_limit,
-                    self.thread_count,
-                    self.progress_bar)
+
+        logger.debug(
+            "Using \nQUERY_BATCH_LIMIT=%s, \nFILE_BATCH_LIMIT=%s, \nMEMORY_LIMIT=%sGB, \nTHREAD_COUNT=%s, \nPROGRESS_BAR=%s",
+            self.query_batch_limit,
+            self.file_batch_limit,
+            self.memory_limit,
+            self.thread_count,
+            self.progress_bar,
+        )
 
         self._conn = None
 
@@ -135,7 +137,7 @@ class Preprocess(LazyNamespace):
                 return True
         self.data_folderpath.mkdir(parents=True, exist_ok=True)
         return False
-    
+
     def _validate_explanations_folder(self):
         if self.explanations_folder.exists() and self.explanations_folder.is_dir():
             if any(self.explanations_folder.iterdir()):
@@ -145,7 +147,7 @@ class Preprocess(LazyNamespace):
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:
             logger.info("Running aggregation for predictor type=%s", predictor_type)
-            
+
             self._create_in_mem_table(predictor_type)
 
             self._agg_in_batches(predictor_type)
@@ -170,9 +172,10 @@ class Preprocess(LazyNamespace):
             return
 
         import json
-        with open(filename, 'w') as f:
+
+        with open(filename, "w") as f:
             json.dump(data, f)
-    
+
     def _create_context_batches(self, all_contexts: list[str]):
         contexts_dict = {}
         file_batch_id = 1
@@ -181,25 +184,31 @@ class Preprocess(LazyNamespace):
         while True:
             file_batches = {}
             for _ in range(self.file_batch_limit):
-                selected_contexts = all_contexts[curr_idx: curr_idx + self.query_batch_limit]
-                file_batch_key = (curr_idx//self.query_batch_limit+1) * self.query_batch_limit
+                selected_contexts = all_contexts[
+                    curr_idx : curr_idx + self.query_batch_limit
+                ]
+                file_batch_key = (
+                    curr_idx // self.query_batch_limit + 1
+                ) * self.query_batch_limit
                 file_batches[file_batch_key] = selected_contexts
                 curr_idx += self.query_batch_limit
                 if curr_idx >= len(all_contexts):
                     break
-            contexts_dict_key = file_batch_id * (self.file_batch_limit * self.query_batch_limit) 
+            contexts_dict_key = file_batch_id * (
+                self.file_batch_limit * self.query_batch_limit
+            )
             contexts_dict[contexts_dict_key] = file_batches
 
             if curr_idx >= len(all_contexts):
                 break
             file_batch_id += 1
-        
+
         return contexts_dict
 
     def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is not None:
             return self.contexts
-        
+
         table_name = self._get_table_name(predictor_type)
 
         q = f"""
@@ -207,18 +216,20 @@ class Preprocess(LazyNamespace):
             FROM {table_name.value}
             GROUP BY {table_name.value}.{_COL.PARTITON.value};
         """
-        
+
         data = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
         self.contexts = self._create_context_batches(data)
         self._create_unique_contexts_file(self.unique_contexts_filename, self.contexts)
         return self.contexts
-        
+
     def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is None:
             self._get_contexts(predictor_type=predictor_type)
 
         for file_batch_nb, query_batches in self.contexts.items():
             self._parquet_in_batches(file_batch_nb, query_batches, predictor_type)
+
+        logger.info("Processed all batches for %s", predictor_type)
 
     def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         df = self._parquet_overall(predictor_type, where_condition)
@@ -266,10 +277,11 @@ class Preprocess(LazyNamespace):
         return self._clean_query(f_sql)
 
     def _parquet_in_batches(
-        self, 
-        file_batch_nb: str, 
-        query_batches: dict[str, list[str]], 
-        predictor_type: _PREDICTOR_TYPE):
+        self,
+        file_batch_nb: str,
+        query_batches: dict[str, list[str]],
+        predictor_type: _PREDICTOR_TYPE,
+    ):
         try:
             table_name = self._get_table_name(predictor_type)
             sql = self._read_batch_sql_file(predictor_type)
@@ -277,7 +289,7 @@ class Preprocess(LazyNamespace):
             for query_batch_nb, selected_contexts in query_batches.items():
                 if len(selected_contexts) == 0:
                     continue
-                
+
                 where_condition = self._clean_query(f"""
                     {self.LEFT_PREFIX}.{_COL.PARTITON.value} IN ({self.SEP.join([f"'{row}'" for row in selected_contexts])})
                 """)
@@ -285,7 +297,7 @@ class Preprocess(LazyNamespace):
 
                 df = self._execute_query(query).pl()
                 df_list.append(df)
-                
+
                 logger.debug(
                     "Processed %s file batch %s, query batch %s, len (query batch): %s",
                     predictor_type,
@@ -293,20 +305,15 @@ class Preprocess(LazyNamespace):
                     query_batch_nb,
                     len(selected_contexts),
                 )
-            
+
             df_ = pl.concat(df_list)
-            
+
             self._write_to_parquet(
                 df_,
                 f"{predictor_type.value}_BATCH_{file_batch_nb}.parquet",
             )
-            
-            logger.info(
-                "Processed %s file batch %s, total len(query batches): %s",
-                predictor_type,
-                file_batch_nb,
-                len(query_batches),
-            )
+
+            logger.info("Processed %s file batch %s", predictor_type, file_batch_nb)
 
         except Exception as e:
             logger.error(
@@ -397,9 +404,11 @@ class Preprocess(LazyNamespace):
             raise ValueError(
                 "Either from_date or to_date must be passed before populating selected files."
             )
-   
+
         if not self._validate_explanations_folder():
-            raise ValueError(f"Explanations folder {self.explanations_folder} does not exist or is empty.")
+            raise ValueError(
+                f"Explanations folder {self.explanations_folder} does not exist or is empty."
+            )
 
         # get list of dates in the range from `from_date` to `to_date`
         date_range_list = [

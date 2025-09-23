@@ -194,9 +194,9 @@ class Aggregate(LazyNamespace):
             _COL.CONTRIBUTION_MIN.value,
             _COL.CONTRIBUTION_MAX.value,
         ]
-        
-        context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}" 
-        
+
+        context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
+
         self.df_contextual = (
             pl.scan_parquet(context_)
             .select(selected_columns)
