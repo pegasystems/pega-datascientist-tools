@@ -5,7 +5,7 @@ project:
   render:
     - getting-started.qmd
     - overview.qmd
-    - "by-context/plt-*.qmd"
+    - by-context/plt-*.qmd
 website:
   title: Global Explanations Report
   site-url: index.html

@@ -1,7 +1,9 @@
 import json
 import os
-
+import logging
 import yaml
+
+logger = logging.getLogger(__name__)
 
 ENCODING = "utf-8"
 
@@ -46,7 +48,7 @@ class ReportGenerator:
         self._read_params()
 
     def _log_params(self):
-        print(f"""
+        logger.info(f"""
 Report generation initialized with the following parameters:
 - Aggregations folder: {self.data_folder}
 - Report folder: {self.report_folder}
@@ -64,7 +66,9 @@ Report generation initialized with the following parameters:
             self.top_k = TOP_K
             self.verbose = VERBOSE_DEFAULT
             self.data_folder = DATA_FOLDER
-            print(f"Parameters file {params_file} does not exist. Using defaults.")
+            logger.info(
+                f"Parameters file {params_file} does not exist. Using defaults."
+            )
         else:
             with open(params_file, "r", encoding=ENCODING) as file:
                 params = yaml.safe_load(file)
@@ -78,7 +82,7 @@ Report generation initialized with the following parameters:
         self.data_folder = os.path.abspath(
             os.path.join(self.report_folder, "..", self.data_folder)
         )
-        print(f"Using data folder: {self.data_folder}")
+        logger.info(f"Using data folder: {self.data_folder}")
 
         if self.verbose:
             self._log_params()
@@ -86,23 +90,30 @@ Report generation initialized with the following parameters:
     @staticmethod
     def _get_context_dict(context_info: str) -> dict:
         return json.loads(context_info)["partition"]
-    
+
     def _get_context_string(self, context_info: str) -> str:
-        return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
+        return "-".join(
+            [
+                v.replace(" ", "")
+                for _, v in self._get_context_dict(context_info).items()
+            ]
+        )
 
     @staticmethod
     def _read_template(template_filename: str) -> str:
         """Read a template file and return its content."""
-        with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING) as fr:
+        with open(
+            f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING
+        ) as fr:
             return fr.read()
 
     def _write_single_context_file(
-        self, 
-        embed_path_for_batch: str, 
-        filename: str, 
-        template: str, 
-        context_str: str, 
-        context_label: str
+        self,
+        embed_path_for_batch: str,
+        filename: str,
+        template: str,
+        context_str: str,
+        context_label: str,
     ):
         with open(filename, "w", encoding=ENCODING) as fw:
             f_context_template = f"""{
@@ -120,13 +131,13 @@ Report generation initialized with the following parameters:
 
         f_template = f"""{
             template.format(
-                ROOT_DIR=self.root_dir, 
-                DATA_FOLDER=self.data_folder, 
+                ROOT_DIR=self.root_dir,
+                DATA_FOLDER=self.data_folder,
                 DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
-                TOP_N=self.top_n
+                TOP_N=self.top_n,
             )
         }"""
-        
+
         with open(filename, "w", encoding=ENCODING) as writer:
             writer.write(f_template)
 
@@ -149,19 +160,11 @@ Report generation initialized with the following parameters:
 
             writer.write("\n")
             writer.write(f_content_template)
-            
-    def _get_batches(self):
-        import glob
-        batches = []
-        for batch in glob.glob(f"{self.data_folder}/NUMERIC_BATCH_*.parquet"):
-            batch_nb = os.path.basename(batch).split("_")[-1]
-            batches.append(batch_nb.replace(".parquet", ""))
-        return batches
 
     def _get_unique_contexts(self):
         if self.contexts is not None:
             return self.contexts
-        
+
         unique_contexts_file = f"{self.data_folder}/{UNIQUE_CONTEXTS_FILENAME}"
         if not os.path.exists(unique_contexts_file):
             raise FileNotFoundError(
@@ -170,48 +173,18 @@ Report generation initialized with the following parameters:
             )
         with open(unique_contexts_file, "r", encoding=ENCODING) as f:
             import json
+
             self.contexts = json.load(f)
         return self.contexts
 
-    def _get_batch_filepath(self, file_batch_nb: str, with_sub_folders: bool = False) -> str:
-        if with_sub_folders:
-            plots_for_batch_folderpath = f"{self.plots_for_batch_filepath}_{file_batch_nb}"
-            if not os.path.exists(plots_for_batch_folderpath):
-                os.makedirs(plots_for_batch_folderpath, exist_ok=True)
-            
-            plots_for_batch_filename = f"{file_batch_nb}.qmd"
-            plots_for_batch_filepath = f"{plots_for_batch_folderpath}/{plots_for_batch_filename}"
-            return plots_for_batch_filepath
-        else:
-            return f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
-            
-    def _get_batch_embedpath(self, file_batch_nb: str, with_sub_folders: bool = False) -> str:
-        if with_sub_folders:
-            return f"{PLOTS_FOR_BATCH}_{file_batch_nb}/{file_batch_nb}.qmd"
-        else:
-            return f"{PLOTS_FOR_BATCH}_{file_batch_nb}.qmd"
-        
-    def _get_batch_filepath_for_single(self, context_label: str, file_batch_nb: str, with_sub_folders: bool = False) -> str:
-        if with_sub_folders:
-            plots_for_batch_folderpath = f"{self.plots_for_batch_filepath}_{file_batch_nb}"
-            if not os.path.exists(plots_for_batch_folderpath):
-                os.makedirs(plots_for_batch_folderpath, exist_ok=True)
-
-            return f"{plots_for_batch_folderpath}/{context_label}.qmd"
-        else:
-            return f"{self.by_context_folder}/{context_label}.qmd"
-            
     def _generate_by_context_qmds(self):
-        
-        with_sub_folders = False
-        
         contexts = self._get_unique_contexts()
-        
+
         for file_batch_nb, context_batches in contexts.items():
-            print(f"Processing file batch: {file_batch_nb}")
-            
-            plots_for_batch_filepath = self._get_batch_filepath(file_batch_nb, with_sub_folders=with_sub_folders)
-            
+            plots_for_batch_filepath = (
+                f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
+            )
+
             # write header
             self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
 
@@ -232,15 +205,17 @@ Report generation initialized with the following parameters:
                     )
 
                     self._write_single_context_file(
-                        embed_path_for_batch=self._get_batch_embedpath(file_batch_nb, with_sub_folders=with_sub_folders),
-                        filename=self._get_batch_filepath_for_single(context_label, file_batch_nb, with_sub_folders=with_sub_folders),
+                        embed_path_for_batch=f"{PLOTS_FOR_BATCH}_{file_batch_nb}.qmd",
+                        filename=f"{self.by_context_folder}/{context_label}.qmd",
                         template=single_context_template,
                         context_str=context_str,
                         context_label=context_label,
                     )
 
     def _generate_overview_qmd(self):
-        with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
+        with open(
+            f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING
+        ) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -257,7 +232,9 @@ Report generation initialized with the following parameters:
             f.write(f_template)
 
     def _generate_introduction_qmd(self):
-        with open(f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING) as fr:
+        with open(
+            f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING
+        ) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -273,13 +250,13 @@ Report generation initialized with the following parameters:
     def run(self):
         """Main method to generate the report files."""
         self._generate_introduction_qmd()
-        print("Generated introduction QMD file.")
+        logger.info("Generated introduction QMD file.")
 
         self._generate_overview_qmd()
-        print("Generated overview QMD file.")
+        logger.info("Generated overview QMD file.")
 
         self._generate_by_context_qmds()
-        print("Generated by-context QMDs files.")
+        logger.info("Generated by-context QMDs files.")
 
 
 if __name__ == "__main__":
