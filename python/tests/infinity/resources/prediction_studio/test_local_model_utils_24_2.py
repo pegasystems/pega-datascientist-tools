@@ -27,8 +27,8 @@ from pdstools.infinity.resources.prediction_studio.local_model_utils import (
 
 
 def get_regression_pipeline():
-    diabetes = load_diabetes()
-    X, y = diabetes.data, diabetes.target
+    california = fetch_california_housing(n_retries=5)
+    X, y = california.data, california.target
     pipeline = Pipeline([("regressor", LinearRegression())])
     pipeline.fit(X, y)
     return pipeline
