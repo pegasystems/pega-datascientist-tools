@@ -21,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 def get_regression_pipeline():
-    california = fetch_california_housing()
+    california = fetch_california_housing(n_retries=5)
     X, y = california.data, california.target
     pipeline = Pipeline([("regressor", LinearRegression())])
     pipeline.fit(X, y)
