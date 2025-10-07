@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import fetch_california_housing, load_iris
+from sklearn.datasets import load_diabetes, load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
@@ -22,8 +22,8 @@ from pdstools.infinity.resources.prediction_studio.local_model_utils import (
 
 
 def get_regression_pipeline():
-    california = fetch_california_housing(n_retries=5)
-    X, y = california.data, california.target
+    diabetes = load_diabetes()
+    X, y = diabetes.data, diabetes.target
     pipeline = Pipeline([("regressor", LinearRegression())])
     pipeline.fit(X, y)
     return pipeline
