@@ -47,14 +47,16 @@ class _TABLE_NAME(Enum):
 
 # can also be sort order
 class _CONTRIBUTION_TYPE(Enum):
-    def __new__(cls, default, alt):
+    def __new__(cls, default, alt, text):
         obj = object.__new__(cls)
         obj._value_ = default
         obj.alt = alt
+        obj.text = text
         return obj
 
-    def __init__(self, default, alt):
+    def __init__(self, default, alt, text):
         self.alt = alt
+        self.text = text
 
     @classmethod
     def validate_and_get_type(cls, val):
@@ -66,13 +68,25 @@ class _CONTRIBUTION_TYPE(Enum):
         err = f"Invalid contribution type: {val} \nAccepted types are: {[x.value for x in cls]}"
         raise ValueError(err)
 
-    CONTRIBUTION = ("contribution", "contribution")
-    CONTRIBUTION_ABS = ("contribution_abs", "|contribution|")
-    CONTRIBUTION_WEIGHTED = ("contribution_weighted", "contribution weighted")
-    CONTRIBUTION_WEIGHTED_ABS = ("contribution_weighted_abs", "|contribution weighted|")
-    FREQUENCY = ("frequency", "frequency")
-    CONTRIBUTION_MIN = ("contribution_min", "contribution min")
-    CONTRIBUTION_MAX = ("contribution_max", "contribution max")
+    CONTRIBUTION = ("contribution", "contribution", "average contribution")
+    CONTRIBUTION_ABS = (
+        "contribution_abs",
+        "|contribution|",
+        "absolute average contribution",
+    )
+    CONTRIBUTION_WEIGHTED = (
+        "contribution_weighted",
+        "contribution weighted",
+        "weighted average contribution",
+    )
+    CONTRIBUTION_WEIGHTED_ABS = (
+        "contribution_weighted_abs",
+        "|contribution weighted|",
+        "absolute weighted average contribution",
+    )
+    FREQUENCY = ("frequency", "frequency", "frequency")
+    CONTRIBUTION_MIN = ("contribution_min", "contribution min", "minimum contribution")
+    CONTRIBUTION_MAX = ("contribution_max", "contribution max", "maximum contribution")
 
 
 class _COL(Enum):
@@ -97,8 +111,8 @@ class _SPECIAL(Enum):
 
 
 class _DEFAULT(Enum):
-    TOP_N = 10
-    TOP_K = 10
+    TOP_N = 20
+    TOP_K = 20
     DESCENDING = True
     MISSING = True
     REMAINING = True
