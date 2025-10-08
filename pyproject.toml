@@ -51,8 +51,8 @@ explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
 app = ['pdstools[healthcheck]', 'streamlit>=1.45']
 onnx = [
     'scikit-learn>=1.6.1',
-    'skl2onnx==1.17.0',
-    'onnx==1.16.1',  # Pinned to version compatible with skl2onnx 1.17.0
+    'skl2onnx>=1.19.1',  # Updated to be compatible with onnx 1.19.0+
+    'onnx>=1.19.0',      # Updated to support Python 3.13
     'pdstools[api]',
     "onnxruntime==1.18.1 ; python_full_version < '3.10'",
     "onnxruntime>=1.22 ; python_full_version >= '3.10'",
