@@ -3,7 +3,7 @@ title: "{CONTEXT_STR}"
 format: html
 ---
 
-## Context Info
+## Model context info
 
 {{{{< embed {EMBED_PATH_FOR_BATCH}#{CONTEXT_LABEL}-header >}}}}
 

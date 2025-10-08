@@ -49,7 +49,7 @@ def test_plot_context_table():
 
     # Check that the figure contains a table with the expected data
     table = fig.data[0]
-    assert table.header.values == ("Context key", "Context value")
+    assert table.header.values == ("Model context key", "Model context value")
     assert list(table.cells.values[0]) == list(mock_context_info.keys())
     assert list(table.cells.values[1]) == list(mock_context_info.values())
 
