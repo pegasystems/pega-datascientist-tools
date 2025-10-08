@@ -5,17 +5,6 @@ import polars as pl
 import onnx
 if not hasattr(onnx, 'mapping') and hasattr(onnx, '_mapping'):
     onnx.mapping = onnx._mapping
-
-# Patch for ml_dtypes in Python 3.13+
-import ml_dtypes
-if not hasattr(ml_dtypes, 'float4_e2m1fn'):
-    if hasattr(ml_dtypes, 'float8_e4m3fn'):
-        ml_dtypes.float4_e2m1fn = ml_dtypes.float8_e4m3fn
-    else:
-        # Fallback if neither attribute exists
-        # This will at least allow the module to import without error
-        import numpy as np
-        ml_dtypes.float4_e2m1fn = np.float32
 import pytest
 from pydantic import ValidationError
 from skl2onnx.common.data_types import FloatTensorType
