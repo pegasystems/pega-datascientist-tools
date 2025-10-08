@@ -1,15 +1,11 @@
 import re
 
 import polars as pl
+# Compatibility patch for onnx and skl2onnx
+import onnx
+if not hasattr(onnx, 'mapping') and hasattr(onnx, '_mapping'):
+    onnx.mapping = onnx._mapping
 import pytest
-from pdstools.infinity.resources.prediction_studio.local_model_utils import (
-    Metadata,
-    ONNXModel,
-    ONNXModelCreationError,
-    ONNXModelValidationError,
-    OutcomeType,
-    Output,
-)
 from pydantic import ValidationError
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.compose import ColumnTransformer
@@ -18,6 +14,15 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+from pdstools.infinity.resources.prediction_studio.local_model_utils import (
+    Metadata,
+    ONNXModel,
+    ONNXModelCreationError,
+    ONNXModelValidationError,
+    OutcomeType,
+    Output,
+)
 
 
 def get_regression_pipeline():
