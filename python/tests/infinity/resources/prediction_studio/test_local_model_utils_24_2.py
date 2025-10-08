@@ -1,10 +1,15 @@
 import re
 
 import polars as pl
-# Compatibility patch for onnx and skl2onnx
+# Compatibility patches
 import onnx
 if not hasattr(onnx, 'mapping') and hasattr(onnx, '_mapping'):
     onnx.mapping = onnx._mapping
+
+# Patch for ml_dtypes in Python 3.13+
+import ml_dtypes
+if not hasattr(ml_dtypes, 'float4_e2m1fn') and hasattr(ml_dtypes, 'float8_e4m3fn'):
+    ml_dtypes.float4_e2m1fn = ml_dtypes.float8_e4m3fn
 import pytest
 from pydantic import ValidationError
 from skl2onnx.common.data_types import FloatTensorType
