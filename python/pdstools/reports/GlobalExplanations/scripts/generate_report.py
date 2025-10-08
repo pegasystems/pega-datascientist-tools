@@ -7,10 +7,14 @@ logger = logging.getLogger(__name__)
 
 ENCODING = "utf-8"
 
-CONTEXT_FOLDER = "by-context"
+CONTEXT_FOLDER = "by-model-context"
 
-TOP_N = 10
-TOP_K = 10
+TOP_N = 20
+TOP_K = 20
+FROM_DATE_DEFAULT = "N/A"
+TO_DATE_DEFAULT = "N/A"
+CONTRIBUTION_TYPE_DEFAULT = "contribution"
+CONTRIBUTION_TEXT_DEFAULT = "average contribution"
 VERBOSE_DEFAULT = False
 DATA_FOLDER = "aggregated_data"
 UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
@@ -37,6 +41,10 @@ class ReportGenerator:
         self.data_folder = ""
         self.top_n = None
         self.top_k = None
+        self.from_date = None
+        self.to_date = None
+        self.contribution_type = None
+        self.contribution_text = None
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
         if not os.path.exists(self.by_context_folder):
@@ -56,6 +64,9 @@ Report generation initialized with the following parameters:
 - Plots for batch, filepath basename: {self.plots_for_batch_filepath}
 - Top N: {self.top_n}
 - Top K: {self.top_k}
+- From_date: {self.from_date}
+- To_date: {self.to_date}
+- Contribution type: {self.contribution_type}
         """)
 
     def _read_params(self):
@@ -66,9 +77,15 @@ Report generation initialized with the following parameters:
             self.top_k = TOP_K
             self.verbose = VERBOSE_DEFAULT
             self.data_folder = DATA_FOLDER
+            self.from_date = FROM_DATE_DEFAULT
+            self.to_date = TO_DATE_DEFAULT
+            self.contribution_type = CONTRIBUTION_TYPE_DEFAULT
+            self.contribution_text = CONTRIBUTION_TEXT_DEFAULT
+
             logger.info(
-                f"Parameters file {params_file} does not exist. Using defaults."
+                "Parameters file %s does not exist. Using defaults.", params_file
             )
+
         else:
             with open(params_file, "r", encoding=ENCODING) as file:
                 params = yaml.safe_load(file)
@@ -76,13 +93,21 @@ Report generation initialized with the following parameters:
                 self.top_k = params.get("top_k", TOP_K)
                 self.verbose = params.get("verbose", VERBOSE_DEFAULT)
                 self.data_folder = params.get("data_folder", DATA_FOLDER)
+                self.from_date = params.get("from_date", FROM_DATE_DEFAULT)
+                self.to_date = params.get("to_date", TO_DATE_DEFAULT)
+                self.contribution_type = params.get(
+                    "contribution_type", CONTRIBUTION_TYPE_DEFAULT
+                )
+                self.contribution_text = params.get(
+                    "contribution_text", CONTRIBUTION_TEXT_DEFAULT
+                )
 
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
 
         self.data_folder = os.path.abspath(
             os.path.join(self.report_folder, "..", self.data_folder)
         )
-        logger.info(f"Using data folder: {self.data_folder}")
+        logger.info("Using data folder: %s", self.data_folder)
 
         if self.verbose:
             self._log_params()
@@ -122,6 +147,7 @@ Report generation initialized with the following parameters:
                     CONTEXT_STR=context_str,
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
+                    CONTRIBUTION_TEXT=self.contribution_text,
                 )
             }"""
             fw.write(f_context_template)
@@ -135,6 +161,7 @@ Report generation initialized with the following parameters:
                 DATA_FOLDER=self.data_folder,
                 DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
                 TOP_N=self.top_n,
+                CONTRIBUTION_TEXT=self.contribution_text,
             )
         }"""
 
@@ -155,6 +182,7 @@ Report generation initialized with the following parameters:
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     TOP_K=self.top_k,
+                    CONTRIBUTION_TYPE=self.contribution_type,
                 )
             }"""
 
@@ -172,8 +200,6 @@ Report generation initialized with the following parameters:
                 "Please ensure that aggregates have been generated."
             )
         with open(unique_contexts_file, "r", encoding=ENCODING) as f:
-            import json
-
             self.contexts = json.load(f)
         return self.contexts
 
@@ -224,6 +250,8 @@ Report generation initialized with the following parameters:
                 DATA_FOLDER=self.data_folder,
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
+                CONTRIBUTION_TYPE=self.contribution_type,
+                CONTRIBUTION_TEXT=self.contribution_text,
             )
         }
         """
@@ -237,10 +265,17 @@ Report generation initialized with the following parameters:
         ) as fr:
             template = fr.read()
 
+        if self.from_date == self.to_date:
+            date_info = f"on `{self.from_date}`"
+        else:
+            date_info = f"from `{self.from_date}` to `{self.to_date}`"
+
         f_template = f"""{
             template.format(
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
+                DATE_INFO=date_info,
+                CONTRIBUTION_TEXT=self.contribution_text,
             )
         }"""
 

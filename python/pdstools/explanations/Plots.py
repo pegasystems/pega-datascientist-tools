@@ -314,7 +314,10 @@ class Plots(LazyNamespace):
         fig = go.Figure(
             data=[
                 go.Table(
-                    header=dict(values=["Context key", "Context value"], align="left"),
+                    header=dict(
+                        values=["Model context key", "Model context value"],
+                        align="left",
+                    ),
                     cells=dict(
                         values=[list(context_info.keys()), list(context_info.values())],
                         align="left",
@@ -324,6 +327,6 @@ class Plots(LazyNamespace):
             ]
         )
         fig.update_layout(
-            title="Context Information", height=len(context_info) * 30 + 200
+            title="Model Context Information", height=len(context_info) * 30 + 200
         )
         return fig
