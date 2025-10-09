@@ -32,7 +32,7 @@ keywords = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "polars>=1.29",
+    "polars==1.34",
     'typing_extensions',
 ]
 
