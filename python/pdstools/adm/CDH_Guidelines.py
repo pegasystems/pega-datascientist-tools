@@ -67,8 +67,8 @@ _NBAD_ModelConfiguration_data = [
     ["CallCenterAcceptRateOutbound", "Call Center", "Outbound", False],
     ["Assisted_Click_Through_Rate", "Assisted", "Inbound", False],
     ["Assisted_Click_Through_Rate_Outbound", "Assisted", "Outbound", False],
-    ["Default_Inbound_Model", "Default", "Inbound", False],
-    ["Default_Outbound_Model", "Default", "Outbound", False],
+    ["Default_Inbound_Model", "Other", "Inbound", False],
+    ["Default_Outbound_Model", "Other", "Outbound", False],
     ["Default_Click_Through_Rate", "Other", "Inbound", False],
     ["Other_Inbound_Click_Through_Rate", "Other", "Inbound", False],
     ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True],
@@ -96,8 +96,8 @@ _NBAD_Prediction_data = [
     ["PredictOutboundRetailPropensity", "Retail", "Outbound", False],
     ["PredictInboundCallCenterPropensity", "Call Center", "Inbound", False],
     ["PredictOutboundCallCenterPropensity", "Call Center", "Outbound", False],
-    ["PredictInboundDefaultPropensity", "Default", "Inbound", False],
-    ["PredictOutboundDefaultPropensity", "Default", "Outbound", False],
+    ["PredictInboundDefaultPropensity", "Other", "Inbound", False],
+    ["PredictOutboundDefaultPropensity", "Other", "Outbound", False],
     ["PredictInboundOtherPropensity", "Other", "Inbound", False],
     ["PredictActionPropensity", "Multi-channel", "Multi-channel", True],
     ["PredictTreatmentPropensity", "Multi-channel", "Multi-channel", True],
@@ -131,6 +131,10 @@ class CDHGuidelines:
     @cached_property
     def standard_configurations(self) -> List[str]:
         return sorted(list(set([str(x[0]) for x in _NBAD_ModelConfiguration_data])))
+
+    @cached_property
+    def standard_non_default_configurations(self) -> List[str]:
+        return sorted(list(set([str(x[0]) for x in _NBAD_ModelConfiguration_data if x[1] != "Other"])))
 
     @cached_property
     def standard_predictions(self) -> List[str]:
