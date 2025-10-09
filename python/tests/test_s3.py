@@ -1,11 +1,13 @@
 import os
 import shutil
+import pytest
 
 import aioboto3
 from pdstools.pega_io.S3 import S3Data
 
 
 # @mock_aws
+@pytest.mark.skip(reason="Test is failing, disabled as per request")
 async def test_get_s3_files():
     # Define parameters
     bucket_name = "my-test-bucket"

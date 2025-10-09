@@ -50,12 +50,13 @@ healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xl
 explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
 app = ['pdstools[healthcheck]', 'streamlit>=1.45']
 onnx = [
-    'scikit-learn==1.5.1',
-    'skl2onnx==1.17.0',
-    'onnx==1.16.1',
+    'scikit-learn>=1.6.1',
+    'skl2onnx>=1.19.1',  # Updated to be compatible with onnx 1.19.0+
+    'onnx~=1.18.0',      # Using ONNX 1.18.x specifically
     'pdstools[api]',
     "onnxruntime==1.18.1 ; python_full_version < '3.10'",
-    "onnxruntime==1.20.1 ; python_full_version >= '3.10'",
+    "onnxruntime>=1.22 ; python_full_version >= '3.10'",
+    "scipy>=1.15.3 ; python_full_version >= '3.10'",
 ]
 all = ['pdstools[app, pega_io, onnx, explanations]']
 dev = ['pre-commit']
