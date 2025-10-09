@@ -1,14 +1,14 @@
 import datetime
-from functools import partial
 import io
 import logging
-from operator import is_not
+import math
 import re
 import tempfile
 import warnings
 import zipfile
-import math
+from functools import partial
 from io import StringIO
+from operator import is_not
 from os import PathLike
 from pathlib import Path
 from typing import (
@@ -25,6 +25,7 @@ from typing import (
 
 import polars as pl
 from polars._typing import PolarsTemporalType
+
 from .types import QUERY
 
 F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
@@ -188,12 +189,13 @@ def _extract_keys(
         )
         .select(
             pl.col("__original"),
-            pl.col("__original")
-            .cast(pl.Utf8)
-            .alias("__keys")
-            .str.json_decode(infer_schema_length=None),
+            pl.col("__original").cast(pl.Utf8).alias("__keys"),
+            # .str.json_decode(infer_schema_length=None),
             # safe_name("__original").str.json_decode(infer_schema_length=None),
         )
+        .lazy()
+        .collect()
+        .map_columns(["__keys"], lambda s: s.str.json_decode())
         .unnest("__keys")
         .lazy()
         .collect()
@@ -222,14 +224,15 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        ).drop([f"{c}_decoded" for c in overlap])
+        )
+        .drop([f"{c}_decoded" for c in overlap])
     )
 
 
 def parse_pega_date_time_formats(
     timestamp_col="SnapshotTime",
     timestamp_fmt: Optional[str] = None,
-    timestamp_dtype: Optional[PolarsTemporalType] = pl.Datetime,
+    timestamp_dtype: PolarsTemporalType = pl.Datetime,
 ):
     """Parses Pega DateTime formats.
 
@@ -974,9 +977,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos
-            * (total_pos + total_neg)
-            / ((bin_pos + bin_neg) * total_pos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())

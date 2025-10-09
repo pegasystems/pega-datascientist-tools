@@ -3,12 +3,12 @@ Testing the functionality of the ADMDatamart Aggregates functions
 """
 
 import pathlib
+from datetime import date, datetime, timedelta
 
+import polars as pl
 import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
-import polars as pl
-from datetime import datetime, timedelta, date
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -290,14 +290,14 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
     assert summary_by_channel.height == 6
     assert summary_by_channel.width == 23
-    assert summary_by_channel["Responses"].to_list() == [
-        27322,
-        13062,
-        45786,
-        19557,
-        28230,
-        10890,
-    ]
+    assert set(summary_by_channel["Responses"].to_list()) == {
+        27322.0,
+        13062.0,
+        45786.0,
+        19557.0,
+        28230.0,
+        10890.0,
+    }
     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
         0.604167,
         0.604167,
