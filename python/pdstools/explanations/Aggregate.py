@@ -31,6 +31,7 @@ class Aggregate(LazyNamespace):
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
         self.data_folderpath = explanations.preprocess.data_folderpath
+        self.data_pattern = None
         self.df_contextual = None
         self.df_overall = None
         self.context_operations = ContextOperations(aggregate=self)
@@ -194,8 +195,10 @@ class Aggregate(LazyNamespace):
             _COL.CONTRIBUTION_MAX.value,
         ]
 
+        context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
+
         self.df_contextual = (
-            pl.scan_parquet(f"{self.data_folderpath}/*_BATCH_*.parquet")
+            pl.scan_parquet(context_)
             .select(selected_columns)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )

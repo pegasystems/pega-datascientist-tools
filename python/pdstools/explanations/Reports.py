@@ -14,7 +14,7 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _DEFAULT
+from .ExplanationsUtils import _DEFAULT, _CONTRIBUTION_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class Reports(LazyNamespace):
 
         self.aggregate_folder = self.explanations.aggregate.data_folderpath
         self.params_file = os.path.join(self.report_folderpath, "scripts", "params.yml")
+
         super().__init__()
 
     def generate(
@@ -44,6 +45,7 @@ class Reports(LazyNamespace):
         report_filename: str = "explanations_report.zip",
         top_n: int = _DEFAULT.TOP_N.value,
         top_k: int = _DEFAULT.TOP_K.value,
+        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
         zip_output: bool = False,
         verbose: bool = False,
     ):
@@ -68,6 +70,10 @@ class Reports(LazyNamespace):
             logger.error("Validation failed: %s", e)
             raise
 
+        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
+            contribution_calculation
+        )
+
         self._validate_report_dir()
 
         try:
@@ -76,13 +82,21 @@ class Reports(LazyNamespace):
             logger.error("IO error during resource copy: %s", e)
             raise
 
-        self._set_params(top_n=top_n, top_k=top_k, verbose=verbose)
+        if self.explanations.from_date and self.explanations.to_date:
+            self._set_params(
+                top_n=top_n,
+                top_k=top_k,
+                from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
+                to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
+                contribution_type=contribution_type.value,
+                contribution_text=contribution_type.text,
+                verbose=verbose,
+            )
 
         try:
             return_code = run_quarto(
-                temp_dir=self.report_folderpath,
-                verbose=verbose,
-                output_type=None)
+                temp_dir=self.report_folderpath, verbose=verbose, output_type=None
+            )
         except subprocess.CalledProcessError as e:
             logger.error("Quarto command failed: %s", e)
             raise
@@ -110,11 +124,19 @@ class Reports(LazyNamespace):
         self,
         top_n: int = _DEFAULT.TOP_N.value,
         top_k: int = _DEFAULT.TOP_K.value,
+        from_date: str = "",
+        to_date: str = "",
+        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        contribution_text: str = _CONTRIBUTION_TYPE.CONTRIBUTION.text,
         verbose: bool = False,
     ):
         params = {}
         params["top_n"] = top_n
         params["top_k"] = top_k
+        params["from_date"] = from_date
+        params["to_date"] = to_date
+        params["contribution_type"] = contribution_type
+        params["contribution_text"] = contribution_text
         params["verbose"] = verbose
         params["data_folder"] = self.aggregate_folder.name
 

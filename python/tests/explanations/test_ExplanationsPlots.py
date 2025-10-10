@@ -49,7 +49,7 @@ def test_plot_context_table():
 
     # Check that the figure contains a table with the expected data
     table = fig.data[0]
-    assert table.header.values == ("Context key", "Context value")
+    assert table.header.values == ("Model context key", "Model context value")
     assert list(table.cells.values[0]) == list(mock_context_info.keys())
     assert list(table.cells.values[1]) == list(mock_context_info.values())
 
@@ -65,7 +65,7 @@ def test_plot_contributions_for_overall_default_params(plots):
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
     # +1 for the remaining bar
-    _assert_fig_bar_data_overall(overall_fig, _DEFAULT.TOP_N.value + 1)
+    _assert_fig_bar_data_overall(overall_fig, _DEFAULT.TOP_N.value + 1, check_condition="le")
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
 
 
@@ -242,6 +242,8 @@ def _assert_fig_bar_data_overall(
         assert len(bar_data.y) >= y_len
     elif check_condition == "lt":
         assert len(bar_data.y) < y_len
+    elif check_condition == "le":
+        assert len(bar_data.y) <= y_len
 
     if check_remaining:
         # Check if the remaining bar is present

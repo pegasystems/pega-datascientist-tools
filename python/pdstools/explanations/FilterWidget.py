@@ -63,7 +63,7 @@ class FilterWidget(LazyNamespace):
         """Set the selected context information.
         Args:
             context_info (Optional[ContextInfo]):
-                If None, initializes the selected context with 'Any' for all keys. 
+                If None, initializes the selected context with 'Any' for all keys.
                 i.e overall model contributions
                 If provided, sets the selected context to the given context information.
                 Context is passed as a dictionary
@@ -80,7 +80,7 @@ class FilterWidget(LazyNamespace):
             self._selected_context_key = cast(dict[str, str], context_info)
 
     def is_context_selected(self) -> bool:
-        """Method returns True only if all context keys 
+        """Method returns True only if all context keys
         are selected with a value other than 'Any'.
         """
         if self._selected_context_key is None:

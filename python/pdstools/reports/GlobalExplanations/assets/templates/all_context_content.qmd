@@ -2,9 +2,10 @@
 #| label: {CONTEXT_LABEL}-header
 
 header_tbl, overall_fig, predictor_figs = explanations.plot.plot_contributions_by_context(
-    {CONTEXT},
+    {CONTEXT_DICT},
     top_n = {TOP_N},
     top_k = {TOP_K},
+    contribution_calculation="{CONTRIBUTION_TYPE}"
 )
 
 header_tbl.update_layout(title="")

@@ -3,18 +3,18 @@ title: "{CONTEXT_STR}"
 format: html
 ---
 
-## Context Info
+## Model context info
 
-{{{{< embed {ALL_CONTEXT_FILENAME}#{CONTEXT_LABEL}-header >}}}}
+{{{{< embed {EMBED_PATH_FOR_BATCH}#{CONTEXT_LABEL}-header >}}}}
 
 ## Predictor contributions
 
-The top-{TOP_N} predictors for the context, selected by their absolute average contribution to predictions
+The top-{TOP_N} predictors for the context, selected by their {CONTRIBUTION_TEXT} to predictions
 
-{{{{< embed {ALL_CONTEXT_FILENAME}#{CONTEXT_LABEL}-overall >}}}}
+{{{{< embed {EMBED_PATH_FOR_BATCH}#{CONTEXT_LABEL}-overall >}}}}
 
 ## Predictor value contributions
 
-The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their absolute average contribution to predictions.
+The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their {CONTRIBUTION_TEXT} to predictions.
 
-{{{{< embed {ALL_CONTEXT_FILENAME}#{CONTEXT_LABEL}-predictors >}}}}
+{{{{< embed {EMBED_PATH_FOR_BATCH}#{CONTEXT_LABEL}-predictors >}}}}
