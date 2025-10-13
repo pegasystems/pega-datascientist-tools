@@ -206,6 +206,48 @@ def test_overall_summary_cols(preds_singleday):
 def test_overall_summary_n_valid_channels(preds_singleday):
     assert preds_singleday.overall_summary().collect()["Number of Valid Channels"].item() == 3
 
+    pred_data = pl.DataFrame(
+        {
+            "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime(2040, 4, 1))[
+                0:15
+            ],  # Polars doesn't like time zones like GMT+0200
+            "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4,
+            "pyModelType": "PREDICTION",
+            "pySnapshotType": (["Daily"] * 3 + [None]) * 4,
+            "pyDataUsage": ["Control", "Test", "NBA", ""] * 4,
+            "pyPositives": [0, 0, 0, 0, 100, 200, 300, 400] * 2,
+            "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
+            "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
+            "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
+        }
+    ).lazy()
+    p = Prediction(df=pred_data)
+    assert p.overall_summary().collect()["Number of Valid Channels"].item() == 1
+
+    pred_data = pl.DataFrame(
+        {
+            "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime(2040, 4, 1))[
+                0:15
+            ],  # Polars doesn't like time zones like GMT+0200
+            "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4
+            + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4,
+            "pyModelType": "PREDICTION",
+            "pySnapshotType": (["Daily"] * 3 + [None]) * 4,
+            "pyDataUsage": ["Control", "Test", "NBA", ""] * 4,
+            "pyPositives": [0, 0, 0, 0, 0, 0, 0, 0] * 2,
+            "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
+            "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
+            "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
+        }
+    ).lazy()
+    p = Prediction(df=pred_data)
+    # BUG-956453 previously this gave an empty dataframe
+    assert p.overall_summary().collect()["Number of Valid Channels"].item() == 0
 
 def test_overall_summary_overall_lift(preds_singleday):
     # print(test.overall_summary().collect())
@@ -260,7 +302,6 @@ def test_overall_summary_ia(preds_singleday):
         )
     )
     assert preds_singleday.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
-
 
 def test_plots():
     prediction = Prediction.from_mock_data()

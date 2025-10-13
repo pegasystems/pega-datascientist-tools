@@ -48,6 +48,7 @@ class PredictionPlots(LazyNamespace):
     This class provides various plotting methods to visualize prediction performance,
     lift, CTR, and response counts over time.
     """
+
     dependencies = ["plotly"]
 
     def __init__(self, prediction):
@@ -55,12 +56,7 @@ class PredictionPlots(LazyNamespace):
         super().__init__()
 
     def _prediction_trend(
-        self,
-        period: str,
-        query: Optional[QUERY],
-        metric: str,
-        title: str,
-        **kwargs
+        self, period: str, query: Optional[QUERY], metric: str, title: str, **kwargs
     ):
         """Internal method to create trend plots for various metrics.
 
@@ -137,7 +133,7 @@ class PredictionPlots(LazyNamespace):
             title=f"{title}<br><sub>{date_range}</sub>",
             template="pega",
             markers=True,
-            **kwargs
+            **kwargs,
         )
 
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
@@ -158,7 +154,7 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Create a performance trend plot showing AUC over time.
 
@@ -194,18 +190,18 @@ class PredictionPlots(LazyNamespace):
             "Negatives_NBA": True,
             "CTR_NBA": ":.3%",
         }
-        
+
         # Merge default hover_data with any provided in kwargs
         if "hover_data" in kwargs:
             hover_data.update(kwargs.pop("hover_data"))
-            
+
         plt, plt_data = self._prediction_trend(
             query=query,
             period=period,
             metric="Performance",
             title="Prediction Performance",
             hover_data=hover_data,
-            **kwargs
+            **kwargs,
         )
         if return_df:
             return plt_data
@@ -219,7 +215,7 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Create a lift trend plot showing engagement lift over time.
 
@@ -255,18 +251,18 @@ class PredictionPlots(LazyNamespace):
             "Negatives_NBA": True,
             "CTR_NBA": ":.3%",
         }
-        
+
         # Merge default hover_data with any provided in kwargs
         if "hover_data" in kwargs:
             hover_data.update(kwargs.pop("hover_data"))
-            
+
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="Lift",
             title="Prediction Lift",
             hover_data=hover_data,
-            **kwargs
+            **kwargs,
         )
         if return_df:
             return plt_data
@@ -286,7 +282,7 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Create a CTR (Click-Through Rate) trend plot over time.
 
@@ -324,26 +320,26 @@ class PredictionPlots(LazyNamespace):
             "Negatives_NBA": True,
             "CTR_NBA": ":.3%",
         }
-        
+
         # Merge default hover_data with any provided in kwargs
         if "hover_data" in kwargs:
             hover_data.update(kwargs.pop("hover_data"))
-            
+
         # Handle facetting
         facet_kwargs = {}
         if facetting:
             facet_kwargs["facet_row"] = "Prediction"
-            
+
         # Merge facet_kwargs with any provided in kwargs
         kwargs.update(facet_kwargs)
-            
+
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="CTR",
             title="Prediction CTR",
             hover_data=hover_data,
-            **kwargs
+            **kwargs,
         )
         if return_df:
             return plt_data
@@ -358,7 +354,7 @@ class PredictionPlots(LazyNamespace):
         *,
         query: Optional[QUERY] = None,
         return_df: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Create a response count trend plot showing total responses over time.
 
@@ -396,26 +392,26 @@ class PredictionPlots(LazyNamespace):
             "Negatives_NBA": True,
             "CTR_NBA": ":.3%",
         }
-        
+
         # Merge default hover_data with any provided in kwargs
         if "hover_data" in kwargs:
             hover_data.update(kwargs.pop("hover_data"))
-            
+
         # Handle facetting
         facet_kwargs = {}
         if facetting:
             facet_kwargs["facet_col"] = "Prediction"
-            
+
         # Merge facet_kwargs with any provided in kwargs
         kwargs.update(facet_kwargs)
-            
+
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="Responses",
             title="Prediction Responses",
             hover_data=hover_data,
-            **kwargs
+            **kwargs,
         )
         if return_df:
             return plt_data
@@ -1163,6 +1159,7 @@ class Prediction:
         )
 
         if (
+            # any non-multi-channel valid predictions?
             channel_summary.select(
                 (pl.col("isMultiChannel").not_() & pl.col("isValid")).any()
             )
@@ -1172,55 +1169,75 @@ class Prediction:
             # There are valid non-multi-channel predictions
             validity_filter_expr = pl.col("isMultiChannel").not_() & pl.col("isValid")
         else:
+            # TODO drop the invalid filter here BUG-956453
+            # but count the is Valid in the valid channels
             validity_filter_expr = pl.col("isValid")
 
         return (
-            channel_summary.filter(validity_filter_expr)
-            .group_by(["Period"] if by_period is not None else None)
+            channel_summary.group_by(["Period"] if by_period is not None else None)
             .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
                 pl.col("Duration").max(),
                 pl.concat_str(["Channel", "Direction"], separator="/")
+                .filter(validity_filter_expr)
                 .n_unique()
                 .alias("Number of Valid Channels"),
-                cdh_utils.weighted_average_polars("Lift", "Responses").alias(
-                    "Overall Lift"
-                ),
-                cdh_utils.weighted_performance_polars("Performance", "Responses").alias(
-                    "Performance"
-                ),
+                cdh_utils.weighted_average_polars(
+                    pl.col("Lift").filter(validity_filter_expr),
+                    pl.col("Responses").filter(validity_filter_expr),
+                ).alias("Overall Lift"),
+                cdh_utils.weighted_performance_polars(
+                    pl.col("Performance").filter(validity_filter_expr),
+                    pl.col("Responses").filter(validity_filter_expr),
+                ).alias("Performance"),
                 pl.col("Positives")
-                .filter(Direction="Inbound")
+                .filter(validity_filter_expr, Direction="Inbound")
                 .sum()
                 .alias("Positives Inbound"),
                 pl.col("Positives")
-                .filter(Direction="Outbound")
+                .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
                 .alias("Positives Outbound"),
                 pl.col("Responses")
-                .filter(Direction="Inbound")
+                .filter(validity_filter_expr, Direction="Inbound")
                 .sum()
                 .alias("Responses Inbound"),
                 pl.col("Responses")
-                .filter(Direction="Outbound")
+                .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
                 .alias("Responses Outbound"),
                 pl.col("Channel")
-                .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
+                .filter(validity_filter_expr)
+                .filter(
+                    (
+                        pl.col("Lift").filter(validity_filter_expr)
+                        == pl.col("Lift").filter(validity_filter_expr).min()
+                    )
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                )
                 .first()
                 .alias("Channel with Minimum Negative Lift"),
                 pl.col("Lift")
-                .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
+                .filter(validity_filter_expr)
+                .filter(
+                    (
+                        pl.col("Lift").filter(validity_filter_expr)
+                        == pl.col("Lift").filter(validity_filter_expr).min()
+                    )
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                )
                 .first()
                 .alias("Minimum Negative Lift"),
                 pl.col("usesImpactAnalyzer"),
                 cdh_utils.weighted_average_polars(
-                    "ControlPercentage", "Responses"
+                    pl.col("ControlPercentage").filter(validity_filter_expr),
+                    pl.col("Responses").filter(validity_filter_expr),
                 ).alias("ControlPercentage"),
-                cdh_utils.weighted_average_polars("TestPercentage", "Responses").alias(
-                    "TestPercentage"
-                ),
+                cdh_utils.weighted_average_polars(
+                    pl.col("TestPercentage").filter(validity_filter_expr),
+                    pl.col("Responses").filter(validity_filter_expr),
+                ).alias("TestPercentage"),
                 pl.col("usesNBAD").any(ignore_nulls=False),
             )
             .drop(["literal"] if by_period is None else [])  # created by null group
