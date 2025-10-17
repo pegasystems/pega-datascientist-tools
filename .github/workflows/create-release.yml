@@ -75,11 +75,19 @@ jobs:
       - name: Commit version bump (for patch releases)
         if: github.event.inputs.release_type == 'patch'
         run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          BRANCH_NAME="release/V$NEW_VERSION"
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git checkout -b release/V${{ steps.calc_version.outputs.new_version }}
+          
+          # Delete branch if it exists locally or remotely
+          git branch -D "$BRANCH_NAME" 2>/dev/null || true
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          
+          git checkout -b "$BRANCH_NAME"
           git add python/pdstools/__init__.py
-          git commit -m "Bump version to ${{ steps.calc_version.outputs.new_version }}"
+          git commit -m "Bump version to $NEW_VERSION"
 
       - name: Push branch and create PR (for patch releases)
         if: github.event.inputs.release_type == 'patch'
