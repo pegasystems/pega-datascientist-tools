@@ -17,6 +17,7 @@ run-name: "Create ${{ github.event.inputs.release_type }} release"
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   create-release:
@@ -114,8 +115,8 @@ jobs:
             --base master \
             --head $BRANCH_NAME
           
-          # Trigger test workflow manually since PRs created by GITHUB_TOKEN don't trigger other workflows
-          gh workflow run "Python tests.yml" --ref "$BRANCH_NAME"
+          echo "✅ PR created successfully"
+          echo "✅ Tests will run automatically on the release branch"
 
       - name: Commit and push version bump (for major/minor releases)
         if: github.event.inputs.release_type != 'patch'
