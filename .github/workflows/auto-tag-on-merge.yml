@@ -20,13 +20,23 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - name: Extract version from branch name
+      - name: Extract version and determine release type
         id: extract_version
         run: |
           BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
           VERSION=${BRANCH_NAME#release/V}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
+          
+          # Determine if this is a patch release (x.y.z where z > 0) or major/minor (x.y.0)
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          if [ "$patch" != "0" ]; then
+            RELEASE_TYPE="patch"
+          else
+            RELEASE_TYPE="major_minor"
+          fi
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "Release type: $RELEASE_TYPE"
 
       - name: Create and push tag
         run: |
@@ -40,11 +50,44 @@ jobs:
           
           echo "Tag V$VERSION has been created and pushed"
 
+      - name: Create draft release (for major/minor only)
+        if: steps.extract_version.outputs.release_type == 'major_minor'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          
+          RELEASE_NOTES="## What's Changed
+
+          Review and edit the auto-generated notes below.
+
+          ---
+
+          ## How to Release
+
+          1. Review and edit these release notes
+          2. When ready, publish this release to trigger the PyPI deployment"
+          
+          gh release create "V$VERSION" \
+            --draft \
+            --title "Release V$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --generate-notes
+          
+          echo "✅ Draft release created for V$VERSION"
+
       - name: Summary
         run: |
           echo "## Auto Tag Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag**: V${{ steps.extract_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Type**: ${{ steps.extract_version.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The tag has been pushed and will trigger the PyPI release workflow." >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.extract_version.outputs.release_type }}" == "patch" ]; then
+            echo "The tag has been pushed and will trigger the PyPI release workflow immediately." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "The tag has been created and a draft release is ready for review." >> $GITHUB_STEP_SUMMARY
+            echo "Publish the draft release to trigger PyPI deployment." >> $GITHUB_STEP_SUMMARY
+          fi
