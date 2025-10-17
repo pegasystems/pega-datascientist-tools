@@ -26,6 +26,9 @@ class Explanations:
     ----------
     data_folder: str
         The path of the folder containing the model explanation parquet files for processing.
+    data_file : str, optional
+        Direct path to a single explanation file (URL or local path). When provided, this takes
+        precedence over data_folder. Useful for loading files from remote locations.
     model_name : str, optional
         The name of the model rule. Will be used to identify files in the data folder
         and to validate that the correct files are being processed.
@@ -52,12 +55,14 @@ class Explanations:
         self,
         root_dir: str = ".tmp",
         data_folder: str = "explanations_data",
+        data_file: Optional[str] = None,
         model_name: Optional[str] = "",
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
     ):
         self.root_dir = root_dir
         self.data_folder = data_folder
+        self.data_file = data_file
 
         self.model_name = model_name
         self.from_date = from_date
