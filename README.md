@@ -35,12 +35,20 @@ Open source tooling that helps data scientists working with Pega AI to analyze P
 
 We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too. Pega does not make any representation or warranty with respect to this free software.
 
-The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. There is a pip-installable Python package, notebooks and other scripts. See the [Graph Gallery](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/graph_gallery.html) for a sample of the graphs you can build to help get insights from the platform or jump right into the [examples](https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html), and [browse the examples folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
+The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. There is a pip-installable Python package, notebooks and other scripts.
+
+Jump right into the documented [examples](https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html), or go through the python notebooks in the [examples folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
+
+
+The API reference can be found [here](https://pegasystems.github.io/pega-datascientist-tools/autoapi/index.html).
 
 # Getting Started
 
-For instructions and information, see the [Pega Data Scientist Tools Wiki page](https://github.com/pegasystems/pega-datascientist-tools/wiki). For further examples and the API reference, see the [Documentation](https://pegasystems.github.io/pega-datascientist-tools/).
+The installation and getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools/articles/GettingStarted.html).
+
+
 
 # Contributing
 
-We love feedback. If you have interesting analysis plots you would like to share, we are very interested in incoporating them. If you developed tools or library functions that may be of interest to others, consider sending us a pull request. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/wiki/Contributing) for guidelines.
+We love feedback. If you have interesting analysis plots you would like to share, we are very interested in incoporating them. If you developed tools or library functions that may be of interest to others, consider sending us a pull request. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/blob/master/CONTRIBUTING.md) for guidelines.
+
