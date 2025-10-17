@@ -12,6 +12,8 @@ on:
           - minor
           - major
 
+run-name: "Create ${{ github.event.inputs.release_type }} release"
+
 permissions:
   contents: write
   pull-requests: write
@@ -19,10 +21,15 @@ permissions:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.calc_version.outputs.new_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-        
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -49,12 +56,15 @@ jobs:
               NEW_VERSION="${major}.$((minor + 1)).0"
               ;;
             patch)
-              NEW_VERSION="${major}.${minor}.$((patch + 1))"
+              NEW_VERSION="${major}.${minor}.$((patch + 1)}"
               ;;
           esac
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
+          
+          # Update workflow name with version
+          echo "::notice title=Creating Release::V$NEW_VERSION (${{ github.event.inputs.release_type }})"
 
       - name: Update version in __init__.py
         run: |
