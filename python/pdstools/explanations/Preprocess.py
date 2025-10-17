@@ -34,6 +34,7 @@ class Preprocess(LazyNamespace):
         self.explanations = explanations
 
         self.explanations_folder = pathlib.Path(self.explanations.data_folder)
+        self.data_file = explanations.data_file
         self.data_foldername = "aggregated_data"
         self.data_folderpath = pathlib.Path(
             os.path.join(self.explanations.root_dir, self.data_foldername)
@@ -400,6 +401,17 @@ class Preprocess(LazyNamespace):
         return q
 
     def _populate_selected_files(self):
+        # If data_file is provided, use it directly (supports URLs and local files)
+        if self.data_file:
+            if self.data_file.startswith(("http://", "https://")):
+                self._populate_selected_files_from_url(self.data_file)
+            else:
+                self.selected_files = [self.data_file]
+                logger.info("Using provided data file: %s", self.data_file)
+        else:
+            self._populate_selected_files_from_local()
+
+    def _populate_selected_files_from_local(self):
         if self.from_date is None or self.to_date is None:
             raise ValueError(
                 "Either from_date or to_date must be passed before populating selected files."
@@ -439,6 +451,25 @@ class Preprocess(LazyNamespace):
 
         logger.info("Selected files:= \n %s", files_)
         self.selected_files = files_
+
+    def _populate_selected_files_from_url(self, file_url: str):
+        from ..pega_io.File import read_ds_export
+        import tempfile
+
+        logger.debug("Downloading file from %s", file_url)
+
+        base_path, filename = file_url.rsplit("/", 1)
+        temp_dir = pathlib.Path(tempfile.mkdtemp()) / "explanations"
+        temp_dir.mkdir(exist_ok=True)
+        local_path = temp_dir / filename
+
+        try:
+            df = read_ds_export(filename=filename, path=base_path)
+            df.collect().write_parquet(local_path)
+            self.selected_files = [str(local_path)]
+            logger.info("Downloaded file:= \n %s", self.selected_files)
+        except Exception as e:
+            raise ValueError(f"Failed to download file from {file_url}: {e}")
 
     def _execute_query(self, query: str):
         """Execute a query on the in-memory DuckDB connection."""
