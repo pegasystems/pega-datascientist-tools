@@ -113,6 +113,9 @@ jobs:
             --body "$PR_BODY" \
             --base master \
             --head $BRANCH_NAME
+          
+          # Trigger test workflow manually since PRs created by GITHUB_TOKEN don't trigger other workflows
+          gh workflow run "Python tests.yml" --ref "$BRANCH_NAME"
 
       - name: Commit and push version bump (for major/minor releases)
         if: github.event.inputs.release_type != 'patch'
