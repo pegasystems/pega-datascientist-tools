@@ -27,7 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: master
           fetch-depth: 0
 
       - name: Set up Python
@@ -62,7 +62,7 @@ jobs:
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
-          
+
           # Update workflow name with version
           echo "::notice title=Creating Release::V$NEW_VERSION (${{ github.event.inputs.release_type }})"
 
@@ -103,7 +103,7 @@ jobs:
           gh pr create \
             --title "Release V$NEW_VERSION" \
             --body "$PR_BODY" \
-            --base main \
+            --base master \
             --head $BRANCH_NAME
 
       - name: Commit and push version bump (for major/minor releases)
@@ -113,7 +113,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add python/pdstools/__init__.py
           git commit -m "Bump version to ${{ steps.calc_version.outputs.new_version }}"
-          git push origin main
+          git push origin master
 
       - name: Create tag (for major/minor releases)
         if: github.event.inputs.release_type != 'patch'
@@ -168,7 +168,7 @@ jobs:
             echo "4. 🔀 Merge the PR - this will automatically trigger tag creation and PyPI release" >> $GITHUB_STEP_SUMMARY
           else
             echo "### Next Steps (Major/Minor Release)" >> $GITHUB_STEP_SUMMARY
-            echo "1. ✅ Version has been bumped and committed to main" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ Version has been bumped and committed to master" >> $GITHUB_STEP_SUMMARY
             echo "2. ✅ Tag V${{ steps.calc_version.outputs.new_version }} has been created" >> $GITHUB_STEP_SUMMARY
             echo "3. 📝 A draft release has been created with the tag" >> $GITHUB_STEP_SUMMARY
             echo "4. 👀 Review and edit the release notes" >> $GITHUB_STEP_SUMMARY
