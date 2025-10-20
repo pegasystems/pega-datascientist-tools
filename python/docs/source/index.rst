@@ -25,7 +25,6 @@ Welcome to the PDS Tools Python documentation
    articles/hds_analysis
    articles/ADMBinningInsights
    articles/AGBModelVisualisation
-   articles/agb_global_explanations
 
 .. toctree::
    :maxdepth: 1
@@ -33,6 +32,7 @@ Welcome to the PDS Tools Python documentation
 
    articles/thompsonsampling
    articles/ADMExplained
+   articles/agb_global_explanations
 
 .. toctree::
    :maxdepth: 1

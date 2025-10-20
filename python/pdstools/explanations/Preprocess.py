@@ -454,14 +454,12 @@ class Preprocess(LazyNamespace):
 
     def _populate_selected_files_from_url(self, file_url: str):
         from ..pega_io.File import read_ds_export
-        import tempfile
 
         logger.debug("Downloading file from %s", file_url)
 
         base_path, filename = file_url.rsplit("/", 1)
-        temp_dir = pathlib.Path(tempfile.mkdtemp()) / "explanations"
-        temp_dir.mkdir(exist_ok=True)
-        local_path = temp_dir / filename
+        self.explanations_folder.mkdir(parents=True, exist_ok=True)
+        local_path = self.explanations_folder / filename
 
         try:
             df = read_ds_export(filename=filename, path=base_path)
