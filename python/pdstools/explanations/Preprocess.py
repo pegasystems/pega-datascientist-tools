@@ -458,8 +458,11 @@ class Preprocess(LazyNamespace):
         logger.debug("Downloading file from %s", file_url)
 
         base_path, filename = file_url.rsplit("/", 1)
-        self.explanations_folder.mkdir(parents=True, exist_ok=True)
-        local_path = self.explanations_folder / filename
+        full_explanations_path = (
+            pathlib.Path(self.explanations.root_dir) / self.explanations_folder
+        )
+        full_explanations_path.mkdir(parents=True, exist_ok=True)
+        local_path = full_explanations_path / filename
 
         try:
             df = read_ds_export(filename=filename, path=base_path)
