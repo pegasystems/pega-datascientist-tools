@@ -16,6 +16,7 @@ on:
       - pyproject.toml
       - reports/*.qmd
       - .github/workflows/**
+      - uv.lock
 
 permissions:
   contents: read
