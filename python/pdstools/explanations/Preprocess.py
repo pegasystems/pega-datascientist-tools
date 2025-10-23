@@ -44,6 +44,8 @@ class Preprocess(LazyNamespace):
         self.to_date = explanations.to_date
         self.model_name = explanations.model_name
 
+        # set duckdb query parameters
+        self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
         self.query_batch_limit = int(os.getenv("QUERY_BATCH_LIMIT", "10"))
         self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "10"))
         self.memory_limit = int(os.getenv("MEMORY_LIMIT", "2"))
@@ -51,12 +53,13 @@ class Preprocess(LazyNamespace):
         self.progress_bar = os.getenv("PROGRESS_BAR", "0") == "1"
 
         logger.debug(
-            "Using \nQUERY_BATCH_LIMIT=%s, \nFILE_BATCH_LIMIT=%s, \nMEMORY_LIMIT=%sGB, \nTHREAD_COUNT=%s, \nPROGRESS_BAR=%s",
+            "Using QUERY_BATCH_LIMIT=%s, FILE_BATCH_LIMIT=%s, MEMORY_LIMIT=%sGB, THREAD_COUNT=%s, PROGRESS_BAR=%s, MODEL_CONTEXT_LIMIT=%s",
             self.query_batch_limit,
             self.file_batch_limit,
             self.memory_limit,
             self.thread_count,
             self.progress_bar,
+            self.model_context_limit,
         )
 
         self._conn = None
@@ -272,6 +275,7 @@ class Preprocess(LazyNamespace):
                 TABLE_NAME=tbl_name.value,
                 SELECTED_FILES=self._get_selected_files(),
                 PREDICTOR_TYPE=predictor_type.value,
+                MODEL_CONTEXT_LIMIT=self.model_context_limit,
             )
         }"""
 
