@@ -48,7 +48,7 @@ class Preprocess(LazyNamespace):
         self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
         self.query_batch_limit = int(os.getenv("QUERY_BATCH_LIMIT", "10"))
         self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "10"))
-        self.memory_limit = int(os.getenv("MEMORY_LIMIT", "2"))
+        self.memory_limit = int(os.getenv("MEMORY_LIMIT", "8"))
         self.thread_count = int(os.getenv("THREAD_COUNT", "4"))
         self.progress_bar = os.getenv("PROGRESS_BAR", "0") == "1"
 
@@ -214,14 +214,11 @@ class Preprocess(LazyNamespace):
             return self.contexts
 
         table_name = self._get_table_name(predictor_type)
+        query = self._get_model_contexts_sql_formatted(table_name)
 
-        q = f"""
-            SELECT {table_name.value}.{_COL.PARTITON.value}
-            FROM {table_name.value}
-            GROUP BY {table_name.value}.{_COL.PARTITON.value};
-        """
+        data = self._execute_query(query).pl()[_COL.PARTITON.value].to_list()
+        logger.info("Received %s unique model contexts", len(data))
 
-        data = self._execute_query(q).pl()[_COL.PARTITON.value].to_list()
         self.contexts = self._create_context_batches(data)
         self._create_unique_contexts_file(self.unique_contexts_filename, self.contexts)
         return self.contexts
@@ -275,7 +272,6 @@ class Preprocess(LazyNamespace):
                 TABLE_NAME=tbl_name.value,
                 SELECTED_FILES=self._get_selected_files(),
                 PREDICTOR_TYPE=predictor_type.value,
-                MODEL_CONTEXT_LIMIT=self.model_context_limit,
             )
         }"""
 
@@ -364,6 +360,24 @@ class Preprocess(LazyNamespace):
             .joinpath(filename_w_ext)
             .read_text(encoding="utf-8")
         )
+
+    def _get_model_contexts_sql_formatted(self, tbl_name: _TABLE_NAME):
+        sql = self._read_resource_file(
+            package_name=queries_data,
+            filename_w_ext=f"{_TABLE_NAME.MODEL_CONTEXTS.value}.sql",
+        )
+
+        f_sql = f"""{
+            sql.format(
+                MEMORY_LIMIT=self.memory_limit,
+                THREAD_COUNT=self.thread_count,
+                ENABLE_PROGRESS_BAR="true" if self.progress_bar else "false",
+                TABLE_NAME=tbl_name.value,
+                MODEL_CONTEXT_LIMIT=self.model_context_limit,
+            )
+        }"""
+
+        return self._clean_query(f_sql)
 
     def _get_overall_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition):
         f_sql = f"""{
