@@ -43,6 +43,7 @@ class _TABLE_NAME(Enum):
     NUMERIC_OVERALL = "numeric_overall"
     SYMBOLIC_OVERALL = "symbolic_overall"
     CREATE = "create"
+    MODEL_CONTEXTS = "model_contexts"
 
 
 # can also be sort order
