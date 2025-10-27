@@ -6,4 +6,3 @@ CREATE TABLE {TABLE_NAME} as
 SELECT *
 FROM read_parquet([{SELECTED_FILES}])
 WHERE predictor_type = '{PREDICTOR_TYPE}';
-CREATE INDEX idx_1_2 ON {TABLE_NAME} (partition, predictor_name);
