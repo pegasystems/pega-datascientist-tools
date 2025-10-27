@@ -17,4 +17,4 @@ In addition to the {CONTRIBUTION_TEXT} for those `top-{TOP_N}` predictors, the o
 
 The **By Model Context** section displays the same information as in the model overview section, but for explanations aggregated within a specific model context. So instead of showing the {CONTRIBUTION_TEXT} of predictors, you can see the {CONTRIBUTION_TEXT} of predictors for a given a pyName, pyOutcome, pyIssue, etc. 
 
-*Note*: The model context plots are generated for the `top-{MODEL_CONTEXT_LIMIT}` model contexts ordered by frequency of samples.
+*Note*: The model context plots are generated for the `top-{MODEL_CONTEXT_LIMIT}` model contexts sorted by frequency of samples.

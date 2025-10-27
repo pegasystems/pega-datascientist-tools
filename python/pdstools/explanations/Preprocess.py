@@ -268,6 +268,7 @@ class Preprocess(LazyNamespace):
         f_sql = f"""{
             sql.format(
                 MEMORY_LIMIT=self.memory_limit,
+                THREAD_COUNT=self.thread_count,
                 ENABLE_PROGRESS_BAR="true" if self.progress_bar else "false",
                 TABLE_NAME=tbl_name.value,
                 SELECTED_FILES=self._get_selected_files(),

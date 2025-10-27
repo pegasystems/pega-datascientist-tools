@@ -277,7 +277,7 @@ Report generation initialized with the following parameters:
                 TOP_K=self.top_k,
                 DATE_INFO=date_info,
                 CONTRIBUTION_TEXT=self.contribution_text,
-                MODEL_CONTEXT_LIMIT=self.model_context_limit
+                MODEL_CONTEXT_LIMIT=self.model_context_limit,
             )
         }"""
 
