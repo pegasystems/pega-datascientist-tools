@@ -15,4 +15,3 @@ jobs:
         uses: astral-sh/ruff-action@v3.5.1
         with:
           src: "./python"
-          args: --output-formatting-github
