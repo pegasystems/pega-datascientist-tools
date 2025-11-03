@@ -19,23 +19,23 @@ We love feedback and contributions. Thank you for helping improve Pega Data Scie
 Pull requests trigger continuous integration via [GitHub Actions](https://docs.github.com/en/actions). These workflows automatically run tests and check on your changes. You can also enable Actions in your fork to test before submitting. To manually and locally run the tests with pytest, use either your IDE or the command line:
 
 ```bash
-pytest python/tests
+[uv run] pytest python/tests
 ```
 
 To test with code coverage analysis run the following (make sure to have installed the `codecov` and `pytest-codecov` packages). Code coverage analysis is part of the GitHub continuous integration too.
 
 ```bash
-pytest python/tests --cov=./python/pdstools --cov-report=xml
+[uv run] pytest python/tests --cov=./python/pdstools --cov-report=xml
 ```
 
 ## Documentation and articles
-- The Python documentation uses Sphinx to generate the docs, nbsphinx to convert the jupyter notebooks to markdown, and Furo as the Sphinx template. These dependencies can be installed (from python/docs) with pip install -r docs-requirements.txt. Pandoc is a requirement too and needs to be installed separately.
-- A Makefile is provided to create the documentation. The docs are automatically generated on any push commits in the master branch, but you can build them locally by following the :
+- The Python documentation uses `Sphinx` to generate the docs, `nbsphinx` to convert the jupyter notebooks to markdown, and `Furo` as the Sphinx template. These dependencies can be installed (from `python/docs`) with `[uv] pip install -r docs-requirements.txt`. `Pandoc` is a requirement too and needs to be installed separately.
+- A Makefile is provided to create the documentation. The docs are automatically generated on any push commits in the master branch, but you can build them locally by following the steps below
 
 ### Create documentation locally 
 To generate a new version of the docs, simply navigate to the top-level folder and run the following command:
 ```sh
-cd python/docs && make html
+cd python/docs && [uv run] make html
 ```
 
 ### Edit or Add new content
