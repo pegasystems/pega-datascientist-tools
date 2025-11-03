@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - 'release/**'
     paths:
       - python/**
       - pyproject.toml
@@ -15,6 +16,7 @@ on:
       - pyproject.toml
       - reports/*.qmd
       - .github/workflows/**
+      - uv.lock
 
 permissions:
   contents: read

@@ -1,0 +1,193 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+run-name: "Create ${{ github.event.inputs.release_type }} release"
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.calc_version.outputs.new_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Get current version
+        id: get_version
+        run: |
+          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' python/pdstools/__init__.py)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Calculate new version
+        id: calc_version
+        run: |
+          CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+          case "${{ github.event.inputs.release_type }}" in
+            major)
+              NEW_VERSION="$((major + 1)).0.0"
+              ;;
+            minor)
+              NEW_VERSION="${major}.$((minor + 1)).0"
+              ;;
+            patch)
+              NEW_VERSION="${major}.${minor}.$((patch + 1))"
+              ;;
+          esac
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          echo "::notice title=Creating Release::V${NEW_VERSION} (${RELEASE_TYPE})"
+
+      - name: Update version in __init__.py
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" python/pdstools/__init__.py
+          echo "Updated version to $NEW_VERSION"
+
+      - name: Commit version bump (for patch releases)
+        if: github.event.inputs.release_type == 'patch'
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          BRANCH_NAME="release/V$NEW_VERSION"
+          
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Delete branch if it exists locally or remotely
+          git branch -D "$BRANCH_NAME" 2>/dev/null || true
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          
+          git checkout -b "$BRANCH_NAME"
+          git add python/pdstools/__init__.py
+          git commit -m "Bump version to $NEW_VERSION"
+
+      - name: Push branch and create PR (for patch releases)
+        if: github.event.inputs.release_type == 'patch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          BRANCH_NAME="release/V$NEW_VERSION"
+
+          git push origin $BRANCH_NAME
+
+          PR_BODY="This PR bumps the version to $NEW_VERSION for a patch release.
+
+          When this PR is merged, the tag V$NEW_VERSION will be automatically created and pushed, which will trigger the PyPI release workflow.
+
+          **Review checklist:**
+          - [ ] Tests are passing
+          - [ ] Version number is correct
+          - [ ] Ready to release to PyPI"
+
+          gh pr create \
+            --title "Release V$NEW_VERSION" \
+            --body "$PR_BODY" \
+            --base master \
+            --head $BRANCH_NAME
+          
+          echo "✅ PR created successfully"
+          echo "✅ Tests will run automatically on the release branch"
+
+      - name: Commit version bump (for major/minor releases)
+        if: github.event.inputs.release_type != 'patch'
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          BRANCH_NAME="release/V$NEW_VERSION"
+          
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Delete branch if it exists locally or remotely
+          git branch -D "$BRANCH_NAME" 2>/dev/null || true
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          
+          git checkout -b "$BRANCH_NAME"
+          git add python/pdstools/__init__.py
+          git commit -m "Bump version to $NEW_VERSION"
+
+      - name: Push branch and create PR (for major/minor releases)
+        if: github.event.inputs.release_type != 'patch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          BRANCH_NAME="release/V$NEW_VERSION"
+
+          git push origin $BRANCH_NAME
+
+          PR_BODY="This PR bumps the version to $NEW_VERSION for a $RELEASE_TYPE release.
+
+          When this PR is merged:
+          - Tag V$NEW_VERSION will be automatically created
+          - A draft release will be created for you to review and edit
+          - Publishing the draft release will trigger the PyPI deployment
+
+          **Review checklist:**
+          - [ ] Tests are passing
+          - [ ] Version number is correct
+          - [ ] Ready to create draft release"
+
+          gh pr create \
+            --title "Release V$NEW_VERSION" \
+            --body "$PR_BODY" \
+            --base master \
+            --head $BRANCH_NAME
+          
+          echo "✅ PR created successfully"
+          echo "✅ Tests will run automatically on the release branch"
+
+      - name: Summary
+        run: |
+          echo "## Release Creation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Type**: ${{ github.event.inputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Old Version**: ${{ steps.get_version.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Version**: ${{ steps.calc_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.release_type }}" == "patch" ]; then
+            echo "### Next Steps (Patch Release)" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ A PR has been created with the version bump" >> $GITHUB_STEP_SUMMARY
+            echo "2. ⏳ Wait for tests to pass" >> $GITHUB_STEP_SUMMARY
+            echo "3. 👀 Review and approve the PR" >> $GITHUB_STEP_SUMMARY
+            echo "4. 🔀 Merge the PR - this will automatically create tag and trigger PyPI release" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Next Steps (Major/Minor Release)" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ A PR has been created with the version bump" >> $GITHUB_STEP_SUMMARY
+            echo "2. ⏳ Wait for tests to pass" >> $GITHUB_STEP_SUMMARY
+            echo "3. 👀 Review and approve the PR" >> $GITHUB_STEP_SUMMARY
+            echo "4. 🔀 Merge the PR - this will create tag and draft release" >> $GITHUB_STEP_SUMMARY
+            echo "5. 📝 Review and edit the draft release notes" >> $GITHUB_STEP_SUMMARY
+            echo "6. 🚀 Publish the release to trigger PyPI deployment" >> $GITHUB_STEP_SUMMARY
+          fi

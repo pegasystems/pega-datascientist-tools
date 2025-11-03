@@ -25,13 +25,14 @@ Welcome to the PDS Tools Python documentation
    articles/hds_analysis
    articles/ADMBinningInsights
    articles/AGBModelVisualisation
-   
+
 .. toctree::
    :maxdepth: 1
    :caption: Articles
 
    articles/thompsonsampling
    articles/ADMExplained
+   articles/agb_global_explanations
 
 .. toctree::
    :maxdepth: 1

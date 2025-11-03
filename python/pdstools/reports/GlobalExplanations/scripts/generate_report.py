@@ -45,6 +45,7 @@ class ReportGenerator:
         self.to_date = None
         self.contribution_type = None
         self.contribution_text = None
+        self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
         if not os.path.exists(self.by_context_folder):
@@ -276,6 +277,7 @@ Report generation initialized with the following parameters:
                 TOP_K=self.top_k,
                 DATE_INFO=date_info,
                 CONTRIBUTION_TEXT=self.contribution_text,
+                MODEL_CONTEXT_LIMIT=self.model_context_limit,
             )
         }"""
 

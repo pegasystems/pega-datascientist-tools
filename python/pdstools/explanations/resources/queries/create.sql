@@ -1,4 +1,5 @@
 SET memory_limit='{MEMORY_LIMIT}GB';
+SET threads to {THREAD_COUNT};
 SET enable_progress_bar = {ENABLE_PROGRESS_BAR};
 
 CREATE TABLE {TABLE_NAME} as
