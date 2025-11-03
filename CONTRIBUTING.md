@@ -7,7 +7,7 @@ We love feedback and contributions. Thank you for helping improve Pega Data Scie
 
 
 ## Contributing workflow
-1. Fork this repository
+1. Fork this repository (creating a fork is only necessary when you are not part of the Pega organization)
 2. Clone your fork.
 3. Create a new branch for your change (`git checkout -b amazing-feature`).
 4. Commit your work with clear messages (`git commit -m 'Added an amazing feature'`).
