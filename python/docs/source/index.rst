@@ -39,17 +39,16 @@ Welcome to the PDS Tools Python documentation
    :caption: Reference Information
 
    reference
-* :ref:`genindex`
-
-Documentation index
-===================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
 
    cli
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

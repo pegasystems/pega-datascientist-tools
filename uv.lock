@@ -2546,6 +2546,8 @@ dev = [
     { name = "pre-commit" },
 ]
 docs = [
+    { name = "anyio" },
+    { name = "duckdb" },
     { name = "furo" },
     { name = "httpx" },
     { name = "myst-parser" },
@@ -2556,6 +2558,7 @@ docs = [
     { name = "sphinx-autoapi" },
     { name = "sphinx-copybutton" },
     { name = "sphinx-tabs" },
+    { name = "streamlit" },
     { name = "xgboost" },
 ]
 explanations = [
@@ -2628,7 +2631,9 @@ tests = [
 requires-dist = [
     { name = "aioboto3", marker = "extra == 'pega-io'" },
     { name = "anyio", marker = "extra == 'api'" },
+    { name = "anyio", marker = "extra == 'docs'" },
     { name = "coverage", marker = "extra == 'tests'" },
+    { name = "duckdb", marker = "extra == 'docs'" },
     { name = "duckdb", marker = "extra == 'explanations'" },
     { name = "furo", marker = "extra == 'docs'" },
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13" },
@@ -2674,6 +2679,7 @@ requires-dist = [
     { name = "sphinx-copybutton", marker = "extra == 'docs'" },
     { name = "sphinx-tabs", marker = "extra == 'docs'" },
     { name = "streamlit", marker = "extra == 'app'", specifier = ">=1.45" },
+    { name = "streamlit", marker = "extra == 'docs'" },
     { name = "testbook", marker = "extra == 'tests'" },
     { name = "typing-extensions" },
     { name = "xgboost", marker = "extra == 'docs'" },
