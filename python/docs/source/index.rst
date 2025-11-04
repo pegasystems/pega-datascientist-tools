@@ -10,8 +10,9 @@ Welcome to the PDS Tools Python documentation
    :maxdepth: 1
    :caption: Getting Started
 
-   articles/GettingStarted
-   ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>
+   GettingStarted
+   GettingStartedWithTheStandAloneApplication
+   GettingStartedWithDecisionAnalyzer
 
 .. toctree::
    :maxdepth: 1
@@ -40,17 +41,16 @@ Welcome to the PDS Tools Python documentation
    :caption: Reference Information
 
    reference
-* :ref:`genindex`
-
-Documentation index
-===================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
 
    cli
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

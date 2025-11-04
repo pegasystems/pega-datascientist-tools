@@ -4,8 +4,14 @@ sphinx-autoapi
 nbsphinx
 sphinx-copybutton
 sphinx-argparse
+sphinx-tabs
 myst-parser
 scipy
 xgboost
 ipykernel
 ipywidgets
+pydantic
+httpx
+streamlit
+duckdb
+anyio
