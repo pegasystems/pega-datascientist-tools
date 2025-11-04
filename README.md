@@ -17,10 +17,6 @@
   </a>
   <!-- PyPi package-->
   <a href="https://badge.fury.io/py/pdstools"><img src="https://badge.fury.io/py/pdstools.svg" alt="PyPI version"></a>
-  <!-- Wiki -->
-  <a href="https://github.com/pegasystems/pega-datascientist-tools/wiki">
-    <img src="https://img.shields.io/badge/wiki-up-success" alt="wiki">
-  </a>
   <!-- Documentation -->
   <a href="https://pegasystems.github.io/pega-datascientist-tools/">
     <img src="https://img.shields.io/badge/Documentation-Up-brightgreen" alt="docs">
