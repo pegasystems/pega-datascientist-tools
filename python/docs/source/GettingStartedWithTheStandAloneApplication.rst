@@ -1,4 +1,4 @@
-Getting Started
+Getting Started with the Stand-Alone Application
 ===============
 
 What is the Stand-Alone Health Check Application?

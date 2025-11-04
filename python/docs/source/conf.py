@@ -57,6 +57,10 @@ autoapi_ignore = ["**/app/*", "**/app.py", "**/queries/*", "queries"]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
 
+# -- Sphinx-tabs settings ----------------------------------------------------
+sphinx_tabs_valid_builders = ["html", "singlehtml"]
+sphinx_tabs_disable_tab_closing = True
+
 # -- Napoleon settings -------------------------------------------------------
 napoleon_google_docstring = False
 

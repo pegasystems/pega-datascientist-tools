@@ -231,4 +231,4 @@ To run the Stand-Alone Application, please refer to the `Command Line Interface 
 
 For information on how to use the Infinity DX client, please refer to the `Infinity class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/infinity/client/index.html>`_ or the `Prediction Studio API Explainer article <https://github.com/pegasystems/pega-datascientist-tools/blob/master/examples/prediction_studio/PredictionStudio.ipynb>`_.
 
-PDSTools supports analysis of serveral other Pega Data. Please see the Examples in the documentation.
+PDSTools supports analysis of several other Pega Data. Please see the Examples in the documentation.
