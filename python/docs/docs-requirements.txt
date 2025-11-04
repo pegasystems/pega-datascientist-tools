@@ -10,3 +10,5 @@ scipy
 xgboost
 ipykernel
 ipywidgets
+pydantic
+httpx

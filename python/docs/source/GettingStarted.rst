@@ -1,16 +1,18 @@
-Getting Started
+Getting Started for Data Scientists
 ===============
 
 Installation
 ------------
 
-**TLDR**
+**Quick Start**
 
 .. code-block:: bash
 
-   pip install pdstools
+   uv pip install pdstools
 
 ----
+
+**Instructions**
 
 Pega Data Scientist Tools (pdstools) is a public Python library and it is `published on pypi <https://pypi.org/project/pdstools/>`_. As such, you can install it just like any other Python library; using your package manager of choice. 
 
@@ -144,9 +146,9 @@ Choose your preferred installation method:
 Optional dependencies
 ---------------------
 
-As of V4 of pdstools, we have made a big effort to reduce the number of big and heavy core dependencies. This means that while initial installation is very fast, you may at some points run into import errors and will be required to install additional dependency groups. 
+We intentionally limit the number of big and heavy core dependencies. This means that while initial installation is very fast, you may at some points run into import errors and will be required to install additional dependency groups. 
 
-To install extra dependencies, you can put them in square brackets after a package name:
+To install extra dependencies, you can put them in square brackets after a package name. For example, to install the optional dependencies required for using the API features of pdstools:
 
 .. tabs::
 
@@ -170,7 +172,7 @@ To install extra dependencies, you can put them in square brackets after a packa
 
          pip install 'pdstools[api]'
 
-For an overview of all optional dependencies and the dependency groups they will be installed for, see the table below:
+For an overview of all optional dependencies and the dependency groups they will be installed for, run the following code:
 
 .. code-block:: python
 
@@ -183,13 +185,12 @@ Python compatibility
 
 Even though *uv* takes care of installing your python version, sometimes you have no choice of available versions. For this reason, we try to be as supportive in Python versions as we can; so our latest supported python version depends on our core dependencies, particularly `Polars <https://github.com/pola-rs/polars>`_. As of 2024, Polars supports Python version 3.9 and higher, hence so do we.
 
-Getting Started
+Checking the Installation
 ---------------
 
-With ``pdstools[adm]`` installed, you can test that it's installed properly by recreating the bubble chart, as seen in Prediction Studio, on some sample data:
+With ``pdstools[adm]`` installed, you can test that it's installed.
 
-.. note:: 
-   If you want to run code from a python notebook, install the additional packages:
+If you want to run code from a python notebook, install the additional packages first:
 
 .. tabs::
 
@@ -213,18 +214,26 @@ With ``pdstools[adm]`` installed, you can test that it's installed properly by r
 
          pip install ipykernel nbformat
 
+To create a 'bubble chart' on sample ADM data that plots action Success Rates vs Model Performance, similar to the one in Prediction Studio:
+
 .. code-block:: python
 
    from pdstools import cdh_sample
 
    cdh_sample().plot.bubble_chart()
 
+Next Steps
+---------------
+
 To run these analyses over your own data, please refer to the `ADMDatamart class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/adm/ADMDatamart/index.html>`_ or for an example of how to use it, refer to the `Example ADM Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_.
 
-To run the Health Check and Model Reports, please refer to the `Command Line Interface documentation <https://pegasystems.github.io/pega-datascientist-tools/cli.html>`_ or the `ADM Health Check Article <https://pegasystems.github.io/pega-datascientist-tools/articles/healthcheck.html>`_
-
-To analyze the results of a Value Finder simulation run, refer to the `ValueFinder class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/valuefinder/ValueFinder/index.html>`_ or the `Example Value Finder Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/vf_analysis.html>`_.
-
-To gain insights from the Explainability Extract or Decision Analyzer datasets, please refer to the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_ or the `Example Explainability Extract Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/explainability_extract.html>`_
+To run the Stand-Alone Application, please refer to the `Command Line Interface documentation <https://pegasystems.github.io/pega-datascientist-tools/cli.html>`_ or the `ADM Health Check Article </pega-datascientist-tools/python/docs/build/html/GettingStartedWithTheStandAloneApplication.html>`_
 
 For information on how to use the Infinity DX client, please refer to the `Infinity class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/infinity/client/index.html>`_ or the `Prediction Studio API Explainer article <https://github.com/pegasystems/pega-datascientist-tools/blob/master/examples/prediction_studio/PredictionStudio.ipynb>`_.
+
+PDSTools supports analysis of serveral other Pega Data:
+
+* To analyze the results of a Value Finder simulation run, refer to the `ValueFinder class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/valuefinder/ValueFinder/index.html>`_ or the `Example Value Finder Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/vf_analysis.html>`_.
+
+* To gain insights from the Explainability Extract or Decision Analyzer datasets, please refer to the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_ or the `Example Explainability Extract Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/explainability_extract.html>`_
+
