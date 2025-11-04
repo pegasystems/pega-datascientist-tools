@@ -2,14 +2,11 @@
 Testing the functionality of the ImpactAnalyzer class
 """
 
-import os
-import json
 import pathlib
 
 import polars as pl
 import pytest
 from pdstools import ImpactAnalyzer
-from pathlib import Path
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -107,12 +104,22 @@ def test_from_pdc():
     # and the weighted average is perhaps not the same
     assert analyzer.summarize_experiments().select(
         pl.col("Value_Lift").round(1)
-    ).collect()["Value_Lift"].to_list() == [round(x,1) if x is not None else x for x in [1.032273,0.002653,None,0.018921,0.911865]]
-    
+    ).collect()["Value_Lift"].to_list() == [
+        round(x, 1) if x is not None else x
+        for x in [1.032273, 0.002653, None, 0.018921, 0.911865]
+    ]
+
     # However for a specific channel the Value Lift should be exactly the same, as this is just copied from the data
     assert analyzer.summarize_experiments("Channel").filter(Channel="SMS").select(
         pl.col("Value_Lift").round(6)
-    ).collect()["Value_Lift"].to_list() == [1.312399,0.012333,None,0.032556,0.961498]
+    ).collect()["Value_Lift"].to_list() == [
+        1.312399,
+        0.012333,
+        None,
+        0.032556,
+        0.961498,
+    ]
+
 
 def test_summarize_control_groups(simple_ia):
     agg = simple_ia.summarize_control_groups(by=[]).collect()
@@ -141,6 +148,7 @@ def test_summary_by_channel(simple_ia):
     assert summary.height == 4
 
     # TODO more tests if we get more non-PDC data or have some artificial data
+
 
 def test_plots(simple_ia):
     from plotly.graph_objs import Figure

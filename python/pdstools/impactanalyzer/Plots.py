@@ -1,10 +1,6 @@
 import logging
-from datetime import timedelta
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional
 
-import polars as pl
-
-from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 
@@ -33,10 +29,6 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
-        import plotly as plotly
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-
         if by is None:
             by = []
 
@@ -66,12 +58,10 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
-        import plotly as plotly
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-
         if by is None:
-            by = ["SnapshotTime"] # todo or perhaps + Channel, if so use for faceting maybe
+            by = [
+                "SnapshotTime"
+            ]  # todo or perhaps + Channel, if so use for faceting maybe
 
         plot_data = self.ia.summarize_experiments(by=by)
 

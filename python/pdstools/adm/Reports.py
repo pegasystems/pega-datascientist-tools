@@ -4,14 +4,19 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
-from ..utils.report_utils import _serialize_query, get_quarto_with_version, run_quarto, copy_quarto_file, get_output_filename
+from ..utils.report_utils import (
+    _serialize_query,
+    run_quarto,
+    copy_quarto_file,
+    get_output_filename,
+)
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -28,7 +33,7 @@ class Reports(LazyNamespace):
 
     def model_reports(
         self,
-        model_ids: Union[str,List[str]],
+        model_ids: Union[str, List[str]],
         *,
         name: Optional[
             str
@@ -101,9 +106,7 @@ class Reports(LazyNamespace):
             or not isinstance(model_ids, list)
             or not all(isinstance(i, str) for i in model_ids)
         ):
-            raise ValueError(
-                "No valid model IDs"
-            )
+            raise ValueError("No valid model IDs")
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
         try:
@@ -310,7 +313,6 @@ class Reports(LazyNamespace):
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
-
 
     def excel_report(
         self,

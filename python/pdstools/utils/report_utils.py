@@ -12,10 +12,10 @@ from typing import Dict, List, Optional, Tuple, Union
 import polars as pl
 
 from ..adm.CDH_Guidelines import CDHGuidelines
-from ..utils.show_versions import show_versions
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
+
 
 def get_output_filename(
     name: Optional[str],  # going to be the full file name
@@ -37,12 +37,14 @@ def get_output_filename(
         else f"{report_type}.{output_type}"
     )
 
+
 def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
     """Copy the report quarto file to the temporary directory."""
     from pdstools import __reports__
 
     shutil.copy(__reports__ / qmd_file, temp_dir)
     shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
+
 
 def _write_params_files(
     temp_dir: Path,
@@ -62,7 +64,7 @@ def _write_params_files(
             params,
             f,
         )
-    
+
     # Project/rendering options to quarto
     with open(temp_dir / "_quarto.yml", "w") as f:
         yaml.dump(
@@ -72,6 +74,7 @@ def _write_params_files(
             },
             f,
         )
+
 
 def run_quarto(
     qmd_file: Optional[str] = None,
@@ -95,7 +98,8 @@ def run_quarto(
         options = _set_command_options(
             output_type=output_type,
             output_filename=output_filename,
-            execute_params=params is not None)
+            execute_params=params is not None,
+        )
 
         _command.extend(options)
         return _command
@@ -138,6 +142,7 @@ def run_quarto(
 
     return return_code
 
+
 def _set_command_options(
     output_type: Optional[str] = None,
     output_filename: Optional[str] = None,
@@ -157,20 +162,22 @@ def _set_command_options(
         options.append("params.yml")
     return options
 
+
 def copy_report_resources(resource_dict: list[tuple[str, str]]):
     from pdstools import __reports__
-    
+
     for src, dest in resource_dict:
         source_path = __reports__ / src
         destination_path = dest
-        
+
         if destination_path == "":
-                destination_path = "./"
-        
+            destination_path = "./"
+
         if os.path.isdir(source_path):
             shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
         else:
             shutil.copy(source_path, destination_path)
+
 
 def generate_zipped_report(output_filename: str, folder_to_zip: str):
     if not os.path.isdir(folder_to_zip):
@@ -186,6 +193,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     base_filename = os.path.splitext(output_filename)[0]
     zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
     logger.info(f"created zip file...{zippy}")
+
 
 def _get_cmd_output(args: List[str]) -> List[str]:
     """Get command output in an OS-agnostic way."""
@@ -204,10 +212,10 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
     # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    match = re.search(r"(\d+(?:\.\d+)*)", versionstr)
     return match.group(1) if match else ""
     # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    match = re.search(r"(\d+(?:\.\d+)*)", versionstr)
     return match.group(1) if match else ""
 
 

@@ -3,8 +3,7 @@ Testing the functionality of the Prediction class
 """
 
 import datetime
-import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -43,13 +42,15 @@ def preds_fewdays():
         pl.concat(
             [
                 mock_prediction_data.with_columns(
-                    pySnapShotTime=pl.lit(cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 1))[0:15])
+                    pySnapShotTime=pl.lit(
+                        cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 1))[0:15]
+                    )
                 ),
                 mock_prediction_data.with_columns(
                     pySnapShotTime=pl.lit(
-                        cdh_utils.to_prpc_date_time(
-                            datetime.datetime(2040, 5, 16)
-                        )[0:15]
+                        cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 16))[
+                            0:15
+                        ]
                     )
                 ),
             ],
@@ -72,9 +73,9 @@ def test_summary_by_channel_cols(preds_singleday):
         "Direction",
         "usesNBAD",
         "isMultiChannel",
-        'DateRange Min',
-        'DateRange Max',
-        'Duration',
+        "DateRange Min",
+        "DateRange Max",
+        "Duration",
         "Performance",
         "Positives",
         "Negatives",
@@ -107,6 +108,7 @@ def test_summary_by_channel_validity(preds_singleday):
     summary = preds_singleday.summary_by_channel().collect()
     assert summary["isValid"].to_list() == [True, True, True, True]
 
+
 def test_summary_by_channel_trend(preds_singleday):
     summary = preds_singleday.summary_by_channel(by_period="1d").collect()
     assert summary.select(pl.len()).item() == 4
@@ -115,7 +117,6 @@ def test_summary_by_channel_trend(preds_singleday):
 def test_summary_by_channel_trend2(preds_fewdays):
     summary = preds_fewdays.summary_by_channel(by_period="1d").collect()
     assert summary.select(pl.len()).item() == 8
-
 
 
 def test_summary_by_channel_ia(preds_singleday):
@@ -132,7 +133,9 @@ def test_summary_by_channel_ia(preds_singleday):
         )
     )
     # only Web still has the NBA indicator
-    assert preds_singleday.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [
+    assert preds_singleday.summary_by_channel().collect()[
+        "usesImpactAnalyzer"
+    ].to_list() == [
         False,
         False,
         False,
@@ -159,12 +162,14 @@ def test_summary_by_channel_controlpct(preds_singleday):
 
 def test_summary_by_channel_range(preds_fewdays):
     summary = preds_fewdays.summary_by_channel().collect()
-    assert summary['DateRange Min'].to_list() == [datetime.date(2040,5,1)]*4
-    assert summary['Positives'].to_list() == [2000,4000,2000,4000]
+    assert summary["DateRange Min"].to_list() == [datetime.date(2040, 5, 1)] * 4
+    assert summary["Positives"].to_list() == [2000, 4000, 2000, 4000]
 
-    summary = preds_fewdays.summary_by_channel(start_date=datetime.date(2040, 5, 15)).collect()
-    assert summary['DateRange Min'].to_list() == [datetime.date(2040,5,16)]*4
-    assert summary['Positives'].to_list() == [1000,2000,1000,2000]
+    summary = preds_fewdays.summary_by_channel(
+        start_date=datetime.date(2040, 5, 15)
+    ).collect()
+    assert summary["DateRange Min"].to_list() == [datetime.date(2040, 5, 16)] * 4
+    assert summary["Positives"].to_list() == [1000, 2000, 1000, 2000]
 
 
 def test_summary_by_channel_channeldirectiongroup(preds_singleday):
@@ -183,9 +188,9 @@ def test_summary_by_channel_channeldirectiongroup(preds_singleday):
 def test_overall_summary_cols(preds_singleday):
     summary = preds_singleday.overall_summary().collect()
     assert summary.columns == [
-        'DateRange Min',
-        'DateRange Max',
-        'Duration',
+        "DateRange Min",
+        "DateRange Max",
+        "Duration",
         "Number of Valid Channels",
         "Overall Lift",
         "Performance",
@@ -204,13 +209,16 @@ def test_overall_summary_cols(preds_singleday):
 
 
 def test_overall_summary_n_valid_channels(preds_singleday):
-    assert preds_singleday.overall_summary().collect()["Number of Valid Channels"].item() == 3
+    assert (
+        preds_singleday.overall_summary().collect()["Number of Valid Channels"].item()
+        == 3
+    )
 
     pred_data = pl.DataFrame(
         {
-            "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime(2040, 4, 1))[
-                0:15
-            ],  # Polars doesn't like time zones like GMT+0200
+            "pySnapShotTime": cdh_utils.to_prpc_date_time(
+                datetime.datetime(2040, 4, 1)
+            )[0:15],  # Polars doesn't like time zones like GMT+0200
             "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4
@@ -229,9 +237,9 @@ def test_overall_summary_n_valid_channels(preds_singleday):
 
     pred_data = pl.DataFrame(
         {
-            "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime(2040, 4, 1))[
-                0:15
-            ],  # Polars doesn't like time zones like GMT+0200
+            "pySnapShotTime": cdh_utils.to_prpc_date_time(
+                datetime.datetime(2040, 4, 1)
+            )[0:15],  # Polars doesn't like time zones like GMT+0200
             "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4
@@ -249,48 +257,78 @@ def test_overall_summary_n_valid_channels(preds_singleday):
     # BUG-956453 previously this gave an empty dataframe
     assert p.overall_summary().collect()["Number of Valid Channels"].item() == 0
 
+
 def test_overall_summary_overall_lift(preds_singleday):
     # print(test.overall_summary().collect())
     # print(test.summary_by_channel().collect())
-    assert round(preds_singleday.overall_summary().collect()["Overall Lift"].item(), 5) == 0.86217
+    assert (
+        round(preds_singleday.overall_summary().collect()["Overall Lift"].item(), 5)
+        == 0.86217
+    )
 
 
 def test_overall_summary_positives(preds_singleday):
-    assert preds_singleday.overall_summary().collect()["Positives Inbound"].item() == 3000
-    assert preds_singleday.overall_summary().collect()["Positives Outbound"].item() == 0 # some channels unknown/multi-channel
+    assert (
+        preds_singleday.overall_summary().collect()["Positives Inbound"].item() == 3000
+    )
+    assert (
+        preds_singleday.overall_summary().collect()["Positives Outbound"].item() == 0
+    )  # some channels unknown/multi-channel
 
 
 def test_overall_summary_responsecount(preds_singleday):
-    print (preds_singleday.summary_by_channel().select(['Channel','Direction','Responses']).collect())
-    assert preds_singleday.overall_summary().collect()["Responses Inbound"].item() == 27000
-    assert preds_singleday.overall_summary().collect()["Responses Outbound"].item() == 0 
+    print(
+        preds_singleday.summary_by_channel()
+        .select(["Channel", "Direction", "Responses"])
+        .collect()
+    )
+    assert (
+        preds_singleday.overall_summary().collect()["Responses Inbound"].item() == 27000
+    )
+    assert preds_singleday.overall_summary().collect()["Responses Outbound"].item() == 0
+
 
 def test_overall_summary_channel_min_lift(preds_singleday):
     assert (
-        preds_singleday.overall_summary().collect()["Channel with Minimum Negative Lift"].item()
+        preds_singleday.overall_summary()
+        .collect()["Channel with Minimum Negative Lift"]
+        .item()
         is None
     )
+
 
 def test_overall_summary_by_period(preds_fewdays):
     summ = preds_fewdays.overall_summary(by_period="1d").collect()
     assert summ.height == 2
 
+
 def test_overall_summary_min_lift(preds_singleday):
-    assert preds_singleday.overall_summary().collect()["Minimum Negative Lift"].item() is None
+    assert (
+        preds_singleday.overall_summary().collect()["Minimum Negative Lift"].item()
+        is None
+    )
 
 
 def test_overall_summary_controlpct(preds_singleday):
     assert (
-        round(preds_singleday.overall_summary().collect()["ControlPercentage"].item(), 5)
+        round(
+            preds_singleday.overall_summary().collect()["ControlPercentage"].item(), 5
+        )
         == 15.88235
     )
     assert (
-        round(preds_singleday.overall_summary().collect()["TestPercentage"].item(), 5) == 34.11765
+        round(preds_singleday.overall_summary().collect()["TestPercentage"].item(), 5)
+        == 34.11765
     )
 
 
 def test_overall_summary_ia(preds_singleday):
-    assert preds_singleday.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
+    assert (
+        preds_singleday.overall_summary()
+        .collect()
+        .select(pl.col("usesImpactAnalyzer"))
+        .item()
+    )
 
     preds_singleday = Prediction(
         mock_prediction_data.filter(
@@ -301,7 +339,10 @@ def test_overall_summary_ia(preds_singleday):
             )
         )
     )
-    assert preds_singleday.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
+    assert preds_singleday.overall_summary().collect()[
+        "usesImpactAnalyzer"
+    ].to_list() == [True]
+
 
 def test_plots():
     prediction = Prediction.from_mock_data()
@@ -324,77 +365,91 @@ def test_plots():
 
 # New tests to improve coverage
 
+
 def test_from_mock_data():
     """Test the from_mock_data class method with different day parameters."""
     # Test with default days
     pred_default = Prediction.from_mock_data()
     assert pred_default.is_available
     assert pred_default.is_valid
-    
+
     # Test with custom days
     pred_custom = Prediction.from_mock_data(days=30)
     assert pred_custom.is_available
     assert pred_custom.is_valid
-    
+
     # Verify the number of days in the data
     unique_dates = pred_custom.predictions.select(
         pl.col("SnapshotTime").unique()
     ).collect()
     assert len(unique_dates) == 30
 
+
 def test_from_pdc():
     """Test the from_pdc class method."""
     # Create mock PDC data with all required columns
-    pdc_data = pl.DataFrame({
-        "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
-        "ModelName": ["MYCUSTOMPREDICTION"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4 + ["PREDICTWEBPROPENSITY"] * 4,
-        "ModelID": ["ID1"] * 12,  # Added missing required column
-        "ModelType": ["Prediction_Test", "Prediction_Control", "Prediction_NBA", "Prediction"] * 3,
-        "Name": ["auc"] * 12,
-        "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
-        "Performance": [65.0] * 4 + [70.0] * 8,
-        "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1 + [400, 100, 500, 1000],
-        "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1 + [2000, 1000, 3000, 6000],
-        "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1 + [2400, 1100, 3500, 7000],
-        "ADMModelType": [""] * 12,
-        "TotalPositives": [0] * 12,
-        "TotalResponses": [0] * 12,
-    }).lazy()
-    
+    pdc_data = pl.DataFrame(
+        {
+            "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
+            "ModelName": ["MYCUSTOMPREDICTION"] * 4
+            + ["PREDICTMOBILEPROPENSITY"] * 4
+            + ["PREDICTWEBPROPENSITY"] * 4,
+            "ModelID": ["ID1"] * 12,  # Added missing required column
+            "ModelType": [
+                "Prediction_Test",
+                "Prediction_Control",
+                "Prediction_NBA",
+                "Prediction",
+            ]
+            * 3,
+            "Name": ["auc"] * 12,
+            "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
+            "Performance": [65.0] * 4 + [70.0] * 8,
+            "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1
+            + [400, 100, 500, 1000],
+            "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1
+            + [2000, 1000, 3000, 6000],
+            "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1
+            + [2400, 1100, 3500, 7000],
+            "ADMModelType": [""] * 12,
+            "TotalPositives": [0] * 12,
+            "TotalResponses": [0] * 12,
+        }
+    ).lazy()
+
     # We need to patch the _read_pdc function to avoid actual processing
-    with patch('pdstools.utils.cdh_utils._read_pdc', return_value=pdc_data) as mock_read_pdc:
+    with patch("pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data):
         # Test with return_df=True
         result = Prediction.from_pdc(pdc_data, return_df=True)
         assert isinstance(result, pl.LazyFrame)
-        
+
         # For testing initialization and query parameters, we need to patch the __init__ method
-        with patch.object(Prediction, '__init__', return_value=None) as mock_init:
+        with patch.object(Prediction, "__init__", return_value=None) as mock_init:
             # Test normal initialization
             Prediction.from_pdc(pdc_data)
             mock_init.assert_called_once()
-            
+
             # Reset the mock for the next test
             mock_init.reset_mock()
-            
+
             # Test with query
             Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
             mock_init.assert_called_once()
-            assert mock_init.call_args[1].get('query') == {"ModelName": ["PREDICTWEBPROPENSITY"]}
+            assert mock_init.call_args[1].get("query") == {
+                "ModelName": ["PREDICTWEBPROPENSITY"]
+            }
 
 
 def test_prediction_plots_internal_method(preds_singleday):
     """Test the internal _prediction_trend method of PredictionPlots."""
     # Call the internal method directly
     plt, plot_df = preds_singleday.plot._prediction_trend(
-        period="1d",
-        query=None,
-        metric="Performance",
-        title="Test Plot"
+        period="1d", query=None, metric="Performance", title="Test Plot"
     )
-    
+
     # Verify the plot was created
     assert plt is not None
-    
+
     # Verify the dataframe has expected columns
     assert isinstance(plot_df, pl.LazyFrame)
     collected_df = plot_df.collect()
@@ -407,19 +462,17 @@ def test_prediction_validity_expr(preds_singleday):
     """Test the prediction_validity_expr class attribute."""
     # Get the expression
     expr = Prediction.prediction_validity_expr
-    
+
     # Test the expression on the predictions property which has the correct column names
     result = preds_singleday.predictions.filter(expr).collect()
-    
+
     # Verify it filters as expected
     assert len(result) > 0
-    
+
     # Create a prediction with invalid data (with zeros)
-    invalid_data = mock_prediction_data.with_columns(
-        pyPositives=pl.lit(0)
-    )
+    invalid_data = mock_prediction_data.with_columns(pyPositives=pl.lit(0))
     invalid_pred = Prediction(invalid_data)
-    
+
     # Verify it correctly identifies invalid data
     invalid_result = invalid_pred.predictions.filter(expr).collect()
     assert len(invalid_result) == 0
@@ -431,14 +484,14 @@ def test_init_with_temporal_snapshot_time():
     data = mock_prediction_data.with_columns(
         pySnapShotTime=pl.lit(datetime.datetime(2040, 4, 1)).cast(pl.Datetime)
     )
-    
+
     # Initialize prediction
     pred = Prediction(data)
-    
+
     # Verify it was processed correctly
     assert pred.is_available
     assert pred.is_valid
-    
+
     # Check the SnapshotTime column is a date
     schema = pred.predictions.collect_schema()
     assert schema["SnapshotTime"].is_temporal()
@@ -447,12 +500,12 @@ def test_init_with_temporal_snapshot_time():
 def test_lazy_namespace_initialization():
     """Test the LazyNamespace initialization in PredictionPlots."""
     pred = Prediction.from_mock_data()
-    
+
     # Access the plot namespace to trigger initialization
     assert pred.plot is not None
-    assert hasattr(pred.plot, 'prediction')
+    assert hasattr(pred.plot, "prediction")
     assert pred.plot.prediction is pred
-    
+
     # Verify the dependencies attribute
-    assert hasattr(pred.plot, 'dependencies')
-    assert 'plotly' in pred.plot.dependencies
+    assert hasattr(pred.plot, "dependencies")
+    assert "plotly" in pred.plot.dependencies

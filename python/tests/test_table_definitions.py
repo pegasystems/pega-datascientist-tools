@@ -3,14 +3,13 @@ Testing the functionality of the table_definitions module
 """
 
 import polars as pl
-import pytest
 from pdstools.utils.table_definitions import PegaDefaultTables
 
 
 def test_adm_model_snapshot_schema():
     """Test that the ADMModelSnapshot schema is defined with the expected data types"""
     schema = PegaDefaultTables.ADMModelSnapshot
-    
+
     # Check a few key fields
     assert schema.pyModelID == pl.Utf8
     assert schema.pyPerformance == pl.Float64
@@ -18,25 +17,40 @@ def test_adm_model_snapshot_schema():
     assert schema.pyResponseCount == pl.Float32
     assert schema.pyActivePredictors == pl.UInt16
     assert schema.pyTotalPredictors == pl.UInt16
-    
+
     # Check categorical fields
     categorical_fields = [
-        'pxApplication', 'pyAppliesToClass', 'pyConfigurationName',
-        'pyIssue', 'pyGroup', 'pyChannel', 'pyDirection', 'pxObjClass'
+        "pxApplication",
+        "pyAppliesToClass",
+        "pyConfigurationName",
+        "pyIssue",
+        "pyGroup",
+        "pyChannel",
+        "pyDirection",
+        "pxObjClass",
     ]
     for field in categorical_fields:
-        assert getattr(schema, field) == pl.Categorical, f"Field {field} should be Categorical"
-    
+        assert getattr(schema, field) == pl.Categorical, (
+            f"Field {field} should be Categorical"
+        )
+
     # Check datetime fields
-    datetime_fields = ['pySnapshotTime', 'pxSaveDateTime', 'pxCommitDateTime', 'pyFactoryUpdatetime']
+    datetime_fields = [
+        "pySnapshotTime",
+        "pxSaveDateTime",
+        "pxCommitDateTime",
+        "pyFactoryUpdatetime",
+    ]
     for field in datetime_fields:
-        assert getattr(schema, field) == pl.Datetime, f"Field {field} should be Datetime"
+        assert getattr(schema, field) == pl.Datetime, (
+            f"Field {field} should be Datetime"
+        )
 
 
 def test_adm_predictor_binning_snapshot_schema():
     """Test that the ADMPredictorBinningSnapshot schema is defined with the expected data types"""
     schema = PegaDefaultTables.ADMPredictorBinningSnapshot
-    
+
     # Check a few key fields
     assert schema.pyModelID == pl.Utf8
     assert schema.pyPredictorName == pl.Categorical
@@ -45,22 +59,32 @@ def test_adm_predictor_binning_snapshot_schema():
     assert schema.pyNegatives == pl.Float32
     assert schema.pyTotalBins == pl.UInt16
     assert schema.pyResponseCount == pl.Float32
-    
+
     # Check categorical fields
-    categorical_fields = ['pxObjClass', 'pyPredictorName', 'pyType', 'pyBinType', 'pyEntryType']
+    categorical_fields = [
+        "pxObjClass",
+        "pyPredictorName",
+        "pyType",
+        "pyBinType",
+        "pyEntryType",
+    ]
     for field in categorical_fields:
-        assert getattr(schema, field) == pl.Categorical, f"Field {field} should be Categorical"
-    
+        assert getattr(schema, field) == pl.Categorical, (
+            f"Field {field} should be Categorical"
+        )
+
     # Check datetime fields
-    datetime_fields = ['pxCommitDateTime', 'pxSaveDateTime', 'pySnapshotTime']
+    datetime_fields = ["pxCommitDateTime", "pxSaveDateTime", "pySnapshotTime"]
     for field in datetime_fields:
-        assert getattr(schema, field) == pl.Datetime, f"Field {field} should be Datetime"
+        assert getattr(schema, field) == pl.Datetime, (
+            f"Field {field} should be Datetime"
+        )
 
 
 def test_py_value_finder_schema():
     """Test that the pyValueFinder schema is defined with the expected data types"""
     schema = PegaDefaultTables.pyValueFinder
-    
+
     # Check a few key fields
     assert schema.pyDirection == pl.Categorical
     assert schema.pySubjectType == pl.Categorical
@@ -92,18 +116,17 @@ def test_create_dataframe_with_schema():
         "pyResponseCount": [1000, 1200],
         "pyActivePredictors": [10, 12],
         "pyTotalPredictors": [15, 18],
-        "pxApplication": ["app1", "app2"]
+        "pxApplication": ["app1", "app2"],
     }
-    
+
     # Extract schema for these columns
     schema = {
-        col: getattr(PegaDefaultTables.ADMModelSnapshot, col)
-        for col in data.keys()
+        col: getattr(PegaDefaultTables.ADMModelSnapshot, col) for col in data.keys()
     }
-    
+
     # Create DataFrame with schema
     df = pl.DataFrame(data, schema=schema)
-    
+
     # Check that the schema was applied correctly
     assert df.schema["pyModelID"] == pl.Utf8
     assert df.schema["pyPerformance"] == pl.Float64
