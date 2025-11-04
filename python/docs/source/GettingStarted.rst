@@ -20,7 +20,7 @@ Choose your preferred installation method:
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
@@ -58,7 +58,7 @@ Choose your preferred installation method:
 
       **Note:** If you don't have Python or no compatible version installed, uv will automatically install a compatible version for you.
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       This is the traditional Python approach using pip with virtual environments.
 
@@ -113,7 +113,7 @@ Choose your preferred installation method:
       - ``source .venv/bin/activate`` (macOS/Linux) 
       - ``.venv\Scripts\activate`` (Windows)
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       **⚠️ Warning:** Installing packages globally can lead to dependency conflicts. We strongly recommend using virtual environments (see other tabs).
 
@@ -152,13 +152,13 @@ To install extra dependencies, you can put them in square brackets after a packa
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       .. code-block:: bash
 
          uv pip install 'pdstools[api]'
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       First activate your virtual environment, then:
 
@@ -166,7 +166,7 @@ To install extra dependencies, you can put them in square brackets after a packa
 
          pip install 'pdstools[api]'
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       .. code-block:: bash
 
@@ -194,13 +194,13 @@ If you want to run code from a python notebook, install the additional packages 
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       .. code-block:: bash
 
          uv pip install ipykernel nbformat
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       First activate your virtual environment, then:
 
@@ -208,7 +208,7 @@ If you want to run code from a python notebook, install the additional packages 
 
          pip install ipykernel nbformat
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       .. code-block:: bash
 

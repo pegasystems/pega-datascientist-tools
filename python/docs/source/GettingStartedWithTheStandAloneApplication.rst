@@ -28,7 +28,7 @@ To use the stand-alone health check application, you need to install several Pyt
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
@@ -52,7 +52,7 @@ To use the stand-alone health check application, you need to install several Pyt
 
       **Note:** If you don't have Python or no compatible version installed, uv will automatically install a compatible version for you.
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       This is the traditional Python approach using pip with virtual environments.
 
@@ -95,7 +95,7 @@ To use the stand-alone health check application, you need to install several Pyt
       - ``source .venv/bin/activate`` (macOS/Linux) 
       - ``.venv\Scripts\activate`` (Windows)
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       **⚠️ Warning:** Installing packages globally can lead to dependency conflicts. We strongly recommend using virtual environments (see other tabs).
 
@@ -120,13 +120,13 @@ Once everything is installed, you can launch the Health Check application:
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       .. code-block:: bash
 
          uv run pdstools run
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       First activate your virtual environment, then:
 
@@ -134,7 +134,7 @@ Once everything is installed, you can launch the Health Check application:
 
          pdstools run
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       .. code-block:: bash
 
@@ -178,13 +178,13 @@ If you already had an older version of pdstools, make sure to upgrade to the lat
 
 .. tabs::
 
-   .. tab:: uv (Recommended)
+   .. group-tab:: uv (Recommended)
 
       .. code-block:: bash
 
          uv pip install --upgrade 'pdstools[app]'
 
-   .. tab:: pip + venv
+   .. group-tab:: pip + venv
 
       First activate your virtual environment, then:
 
@@ -192,7 +192,7 @@ If you already had an older version of pdstools, make sure to upgrade to the lat
 
          pip install --upgrade 'pdstools[app]'
 
-   .. tab:: pip (global)
+   .. group-tab:: pip (global)
 
       .. code-block:: bash
 

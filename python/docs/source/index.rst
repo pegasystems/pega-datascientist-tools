@@ -10,8 +10,9 @@ Welcome to the PDS Tools Python documentation
    :maxdepth: 1
    :caption: Getting Started
 
-   GettingStartedWithTheStandAloneApplication
    GettingStarted
+   GettingStartedWithTheStandAloneApplication
+   GettingStartedWithDecisionAnalyzer
 
 .. toctree::
    :maxdepth: 1
