@@ -4,6 +4,7 @@ sphinx-autoapi
 nbsphinx
 sphinx-copybutton
 sphinx-argparse
+sphinx-tabs
 myst-parser
 scipy
 xgboost

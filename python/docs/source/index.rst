@@ -10,7 +10,7 @@ Welcome to the PDS Tools Python documentation
    :maxdepth: 1
    :caption: Getting Started
 
-   articles/GettingStarted
+   GettingStarted
    ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>
 
 .. toctree::
