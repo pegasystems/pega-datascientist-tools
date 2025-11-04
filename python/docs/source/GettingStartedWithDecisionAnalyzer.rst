@@ -20,19 +20,6 @@ The Decision Analyzer provides:
 Installation
 ------------
 
-**Quick Start**
-
-.. code-block:: bash
-
-   pip install --upgrade 'pdstools[app]'
-
-Then install Quarto and Pandoc applications.
-
-----
-
-External Applications Required
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Before installing the Python components, you need to install these external applications:
 
 - **Quarto**: Download from `Quarto releases <https://github.com/quarto-dev/quarto-cli/releases/tag/v1.3.450>`_ (v1.3.450 or later)
@@ -40,10 +27,7 @@ Before installing the Python components, you need to install these external appl
 
 These are standalone applications, not Python libraries, and must be installed separately on your system.
 
-Python Installation
-~~~~~~~~~~~~~~~~~~~
-
-Choose your preferred Python package manager:
+To use the Decision Analyzer Tool, you need to install several Python components. Choose your preferred Python package manager:
 
 .. tabs::
 
@@ -143,7 +127,7 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
       .. code-block:: bash
 
-         pdstools run decision_analyzer
+         uv run pdstools run decision_analyzer
 
    .. tab:: pip + venv
 
