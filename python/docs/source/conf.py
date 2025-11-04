@@ -53,6 +53,7 @@ toc_object_entries_show_parents = "hide"
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = ["../../pdstools"]
+autoapi_ignore = ["**/app/*", "**/app.py", "**/queries/*", "queries"]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
 
