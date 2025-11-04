@@ -2,7 +2,6 @@ import logging
 import os
 import pathlib
 import re
-import urllib
 import warnings
 import zipfile
 from datetime import datetime, timezone
@@ -14,6 +13,8 @@ from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
 import polars as pl
 
 from ..utils.cdh_utils import from_prpc_date_time
+
+logger = logging.getLogger(__name__)
 
 
 def read_ds_export(
@@ -69,7 +70,7 @@ def read_ds_export(
     # in certain webapps, then we can simply return the object
     # as is, while extracting the extension as well.
     if isinstance(filename, BytesIO):
-        logging.debug("Filename is of type BytesIO, importing that directly")
+        logger.debug("Filename is of type BytesIO, importing that directly")
         _, extension = os.path.splitext(filename.name)
         return import_file(filename, extension, **reading_opts)
 
@@ -79,10 +80,10 @@ def read_ds_export(
     if os.path.isfile(filename):
         file = filename
     elif os.path.isfile(os.path.join(path, filename)):
-        logging.debug("File found in directory")
+        logger.debug("File found in directory")
         file = os.path.join(path, filename)
     else:
-        logging.debug("File not found in directory, scanning for latest file")
+        logger.debug("File not found in directory, scanning for latest file")
         file = get_latest_file(path, filename)
 
     # If we can't find the file locally, we can try
@@ -90,17 +91,17 @@ def read_ds_export(
     # the file in a BytesIO object, and read the file
     # fully to disk for pyarrow to read it.
     if file == "Target not found" or file is None:
-        logging.debug("Could not find file in directory, checking if URL")
+        logger.debug("Could not find file in directory, checking if URL")
 
         try:
             import requests
 
             response = requests.get(f"{path}/{filename}")
-            logging.info(f"Response: {response}")
+            logger.info(f"Response: {response}")
             if response.status_code == 200:
-                logging.debug("File found online, importing and parsing to BytesIO")
+                logger.debug("File found online, importing and parsing to BytesIO")
                 file = f"{path}/{filename}"
-                file = BytesIO(urllib.request.urlopen(file).read())
+                file = BytesIO(response.content)
                 _, extension = os.path.splitext(filename)
 
         except ImportError:
@@ -109,17 +110,17 @@ def read_ds_export(
                 ImportWarning,
             )
 
-        except (urllib.error.URLError, requests.exceptions.SSLError):
+        except requests.exceptions.SSLError:
             warnings.warn(
                 "There was an error making a HTTP request call. This is likely due to your certificates not being installed correctly. Please follow these instructions: https://stackoverflow.com/a/70495761",
                 RuntimeWarning,
             )
 
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
             if verbose:
                 print(f"File {filename} not found in dir {path}")
-            logging.info(f"File not found: {path}/{filename}")
+            logger.info(f"File not found: {path}/{filename}")
             return None
 
     if "extension" not in vars() and not isinstance(file, BytesIO):
@@ -148,7 +149,7 @@ def import_file(
         The (imported) lazy dataframe
     """
     if extension == ".zip":
-        logging.debug("Zip file found, extracting data.json to BytesIO.")
+        logger.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = read_zipped_file(file)
     elif extension == ".gz":
         import gzip
@@ -233,7 +234,7 @@ def read_zipped_file(
     """
 
     def get_valid_files(files: List[str]):
-        logging.debug(f"Files found: {files}")
+        logger.debug(f"Files found: {files}")
         if "data.json" in files:
             return "data.json"
         else:  # pragma: no cover
@@ -244,11 +245,11 @@ def read_zipped_file(
                 return file[0]
 
     with zipfile.ZipFile(file, mode="r") as z:
-        logging.debug("Opened zip file.")
+        logger.debug("Opened zip file.")
         zfile = get_valid_files(z.namelist())
-        logging.debug(f"Opening file {file}")
+        logger.debug(f"Opening file {file}")
         if file is not None:
-            logging.debug("data.json found.")
+            logger.debug("data.json found.")
             if verbose:
                 print(
                     (
