@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 from datetime import datetime
 import json
 
@@ -7,9 +7,8 @@ import polars as pl
 import polars.selectors as cs
 
 from .Plots import Plots
-from ..utils.cdh_utils import _polars_capitalize, _apply_query, weighted_average_polars
+from ..utils.cdh_utils import _apply_query, weighted_average_polars
 from ..utils.types import QUERY
-from ..pega_io.File import read_ds_export
 
 
 class ImpactAnalyzer:
@@ -128,7 +127,7 @@ class ImpactAnalyzer:
         else:
             with open(pdc_source, encoding="utf-8") as pdc_json_data:
                 return cls._from_pdc_json(
-                    # TODO use read_ds_export/import_file from io lib for the first part 
+                    # TODO use read_ds_export/import_file from io lib for the first part
                     json.load(pdc_json_data),
                     query=query,
                     return_input_df=return_input_df,
