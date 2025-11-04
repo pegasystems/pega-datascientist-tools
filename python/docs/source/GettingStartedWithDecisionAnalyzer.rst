@@ -95,7 +95,7 @@ To use the Decision Analyzer Tool, you need to install several Python components
 
       **Remember:** Always activate your virtual environment before working with the application:
 
-      - ``source .venv/bin/activate`` (macOS/Linux) 
+      - ``source .venv/bin/activate`` (macOS/Linux)
       - ``.venv\Scripts\activate`` (Windows)
 
    .. tab:: pip (global)
@@ -150,10 +150,14 @@ Using the Decision Analyzer
 
 **Step 1: Import Your Decision Data**
 
-Upload your Explainability Extract V2 dataset files through the data import interface. The Decision Analyzer is specifically designed to work with this dataset format which includes data from all stages in the decision funnel.
+Upload your Explainability Extract dataset files through the data import section at the Home page. The Decision Analyzer is specifically designed to work with this dataset format which includes data from all stages in the decision funnel.
 
-.. note:: 
-   The Decision Analyzer works with **Explainability Extract V2** datasets from Pega. This version includes data from all decision stages (not just arbitration like V1), enabling comprehensive analysis of the full decision funnel. For information about exporting this data from Pega, refer to your Pega documentation.
+.. note::
+   The Decision Analyzer works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1.
+
+   **V2 datasets** include data from all decision stages (eligibility, applicability, suitability, and arbitration), enabling comprehensive analysis of the full decision funnel. **V1 datasets** only include arbitration stage data, so some analyses specific to the full decision funnel will be hidden when working with V1 data.
+
+   For information about exporting this data from Pega, refer to your Pega documentation.
 
 **Step 2: Explore Decision Funnel Analysis**
 
@@ -180,7 +184,7 @@ Investigate the four key arbitration factors:
 - **Levers**: Manual adjustments to action priority
 - **Context Weights**: Situational importance factors
 
-**Step 5: Experiment with Levers** 
+**Step 5: Experiment with Levers**
 
 Test different lever configurations to:
 
