@@ -37,15 +37,11 @@ We release this under the Apache 2.0 license and welcome contributing back, pref
 
 The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. There is a pip-installable Python package, notebooks and other scripts.
 
-Jump right into the documented [examples](https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html), or go through the python notebooks in the [examples folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
-
-
-The API reference can be found [here](https://pegasystems.github.io/pega-datascientist-tools/autoapi/index.html).
+Jump right into the [examples](https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html), or take a deep dive into the [API Reference](https://pegasystems.github.io/pega-datascientist-tools/autoapi/index.html).
 
 # Getting Started
 
-The installation and getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools/articles/GettingStarted.html).
-
+The installation and getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools).
 
 
 # Contributing
