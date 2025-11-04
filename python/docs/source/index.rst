@@ -19,6 +19,7 @@ Welcome to the PDS Tools Python documentation
 
    articles/Example_ADM_Analysis
    articles/Example_IH_Analysis
+   articles/Predictions
    articles/vf_analysis
    articles/explainability_extract
    articles/decision_analyzer
