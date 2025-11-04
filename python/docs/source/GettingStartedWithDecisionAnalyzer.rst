@@ -143,7 +143,7 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
       .. code-block:: bash
 
-         pdstools run decision_analyzer
+         uv run pdstools run decision_analyzer
 
    .. tab:: pip + venv
 
