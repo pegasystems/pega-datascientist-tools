@@ -54,6 +54,7 @@ autoapi_type = "python"
 autoapi_dirs = ["../../pdstools"]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
+autoapi_ignore = ["**/pdstools/app/**"]
 
 # -- Napoleon settings -------------------------------------------------------
 napoleon_google_docstring = False
