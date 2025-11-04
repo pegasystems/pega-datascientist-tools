@@ -12,3 +12,6 @@ ipykernel
 ipywidgets
 pydantic
 httpx
+streamlit
+duckdb
+anyio
