@@ -10,7 +10,6 @@ import json
 import logging
 import multiprocessing
 import operator
-import urllib.request
 import zlib
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
@@ -285,7 +284,9 @@ class ADMTreesModel:
 
         def read_url(file):  # pragma: no cover
             logger.info("Trying to read from URL.")
-            file = urllib.request.urlopen(file).read()
+            import requests
+
+            file = requests.get(file).content
             logger.info("Import from URL successful.")
             return file
 
