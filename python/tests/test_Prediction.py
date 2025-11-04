@@ -418,9 +418,7 @@ def test_from_pdc():
     ).lazy()
 
     # We need to patch the _read_pdc function to avoid actual processing
-    with patch(
-        "pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data
-    ) as mock_read_pdc:
+    with patch("pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data):
         # Test with return_df=True
         result = Prediction.from_pdc(pdc_data, return_df=True)
         assert isinstance(result, pl.LazyFrame)
