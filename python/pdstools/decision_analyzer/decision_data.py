@@ -1052,7 +1052,9 @@ class DecisionAnalyzer:
         -------
         pl.LazyFrame
         """
+        is_global_sensitivity = False
         if filters is None:
+            is_global_sensitivity = True
             filters = pl.col("pxRank") <= win_rank
 
         sensitivity = (
@@ -1100,8 +1102,10 @@ class DecisionAnalyzer:
                     "PVC_win_count": "Levers",
                 }
             )
-            .melt(variable_name="Factor", value_name="Influence")
+            .unpivot(variable_name="Factor", value_name="Influence")
         )
+        if is_global_sensitivity:
+            sensitivity = sensitivity.with_columns(Influence=pl.col("Influence").abs())
         return sensitivity
 
     def get_offer_variability_stats(self, stage):
