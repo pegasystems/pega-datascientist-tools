@@ -81,10 +81,13 @@ class Plot:
         self,
         win_rank: int = 1,
         hide_priority=True,
-        limit_xaxis_range=True,
         return_df=False,
         reference_group=None,
     ):
+        """
+        If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group.
+
+        """
         df = self._decision_data.get_sensitivity(win_rank, reference_group)
         if return_df:
             return df
@@ -124,8 +127,6 @@ class Plot:
                 ticklabelposition="outside",
             ),
         }
-        if limit_xaxis_range:
-            layout_args["xaxis_range"] = [0, n]
 
         fig.update_yaxes(
             autorange="reversed",

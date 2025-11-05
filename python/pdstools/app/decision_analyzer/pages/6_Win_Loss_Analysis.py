@@ -196,7 +196,6 @@ if st.session_state.local_filters != []:
     else:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
-                limit_xaxis_range=False,
                 reference_group=st.session_state["local_filters"],
             ),
             use_container_width=True,
