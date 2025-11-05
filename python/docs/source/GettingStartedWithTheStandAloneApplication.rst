@@ -1,10 +1,10 @@
-Getting Started with the Stand-Alone Application
+Getting Started with the ADM Health Check Tool
 ===============
 
-What is the Stand-Alone Health Check Application?
+What is the ADM Health Check Tool?
 -------------------------------------------------
 
-The stand-alone health check application makes it easy to create the ADM Health Check and individual model reports without coding. You will need to have Python and install pdstools, but you do not need to run a (data science) development environment, and there is no need to create a script - it is all configured from a user-friendly interface.
+The ADM Health Check Tool makes it easy to run the ADM Health Check and create individual model reports without coding. You will need to have Python and install pdstools, but you do not need to run a (data science) development environment, and there is no need to create a script - it is all configured from a user-friendly interface.
 
 The application provides:
 

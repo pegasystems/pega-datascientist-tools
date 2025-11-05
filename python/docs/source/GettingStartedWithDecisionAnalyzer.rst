@@ -1,10 +1,12 @@
-Getting Started With Decision Analyzer
+Getting Started with the Decision Analyzer Tool
 ======================================
 
 What is the Decision Analyzer Tool?
 -----------------------------------
 
-The Decision Analyzer is a stand-alone tool designed to analyze Explainability Extract V2 datasets from Pega. Unlike V1 which only included arbitration stage data, V2 provides data from all stages in the decision funnel, enabling comprehensive analysis of the full decision-making process. Like the Health Check application, you will need to have Python and install pdstools, but you do not need to run a (data science) environment, and there is no need to create a script - it is all configured from a user-friendly interface.
+The Decision Analyzer Tool is a stand-alone tool designed to analyze Explainability Extract datasets from Pega. V1 only includes arbitration stage data, V2 provides data from all stages in the decision funnel, enabling comprehensive analysis of the full decision-making process.
+
+Like the ADM Health Check Tool, you will need to have Python and install pdstools, but you do not need to run a (data science) environment, and there is no need to create a script - it is all configured from a user-friendly interface.
 
 The Decision Analyzer provides:
 
@@ -150,50 +152,24 @@ Using the Decision Analyzer
 
 **Step 1: Import Your Decision Data**
 
-Upload your Explainability Extract dataset files through the data import section at the Home page. The Decision Analyzer is specifically designed to work with this dataset format which includes data from all stages in the decision funnel.
+Start by upload your data through the data import section in the Home page.
 
 .. note::
-   The Decision Analyzer works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1.
+   The Decision Analyzer works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1. V1 only contains data from the arbitration stage.
 
    **V2 datasets** include data from all decision stages (eligibility, applicability, suitability, and arbitration), enabling comprehensive analysis of the full decision funnel. **V1 datasets** only include arbitration stage data, so some analyses specific to the full decision funnel will be hidden when working with V1 data.
 
    For information about exporting this data from Pega, refer to your Pega documentation.
 
-**Step 2: Explore Decision Funnel Analysis**
+**Step 2: Apply Data Filters**
 
-Analyze your decision funnel to understand:
+Select only certain Issues, Channels or other dimensions to focus your analysis on. You can choose any data field to filter on in the **Global Filters** page.
 
-- **Where actions get filtered**: See which actions are dropped at different stages
-- **Which components filter actions**: Identify which business rules or components are most restrictive
-- **Stage-by-stage breakdown**: Get a complete view from initial eligibility through final arbitration
+**Step 3: Analyze the results**
 
-**Step 3: Examine Action Distribution**
+You can now analyze the results from various angles (optionality, funnel effects, win-loss etc.). There are separate analysis pages for each of the types of analysis.
 
-Use the interactive treemap visualizations to:
-
-- **Detect rare survivors**: Identify groups of actions that rarely make it to arbitration
-- **Compare issue/group performance**: See how different action categories perform
-- **Analyze arbitration patterns**: Understand which actions dominate the final selection
-
-**Step 4: Analyze Prioritization Factors**
-
-Investigate the four key arbitration factors:
-
-- **Propensity**: AI-driven likelihood of customer engagement
-- **Value**: Business value of the action
-- **Levers**: Manual adjustments to action priority
-- **Context Weights**: Situational importance factors
-
-**Step 5: Experiment with Levers**
-
-Test different lever configurations to:
-
-- **Boost underperforming actions**: Increase win rates for specific action groups
-- **Balance action distribution**: Ensure fair representation of different offers
-- **Understand trade-offs**: See how boosting one group affects others
-
-.. note::
-   Remember that increasing lever values for one action group will decrease win counts for other groups. Careful comparison of before and after distributions is essential.
+The analysis provided in this tool are similar but not necessarily identical to the ones that will be delivered in product.
 
 Upgrading pdstools
 ------------------
