@@ -195,7 +195,9 @@ def _extract_keys(
         )
         .lazy()
         .collect()
-        .map_columns(["__keys"], lambda s: s.str.json_decode())
+        .map_columns(
+            ["__keys"], lambda s: s.str.json_decode(infer_schema_length=1_000_000_000)
+        )
         .unnest("__keys")
         .lazy()
         .collect()
