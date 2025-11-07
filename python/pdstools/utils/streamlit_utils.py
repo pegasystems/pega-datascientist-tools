@@ -64,6 +64,18 @@ def import_datamart(extract_pyname_keys: bool):
         st.session_state["data_source"] = options[0]
     if st.session_state["data_source"] == "CDH Sample":
         st.session_state["dm"] = cached_sample()
+
+        prediction_file_path = st.text_input(
+            "Path to prediction table (optional)",
+            placeholder="/path/to/prediction_table.parquet",
+            help="Provide the path to a prediction table file to enhance the health check analysis",
+        )
+
+        if prediction_file_path:
+            st.session_state["prediction_file_path"] = prediction_file_path
+        elif "prediction_file_path" in st.session_state:
+            # Clear it if user removed the path
+            del st.session_state["prediction_file_path"]
     elif st.session_state["data_source"] == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif st.session_state["data_source"] == "Direct file upload":
@@ -83,6 +95,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
+    prediction_file_path = st.text_input("Path to prediction table")
     if codespaces and model_file is None and predictor_file is None:
         st.warning(
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
@@ -115,6 +128,12 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
                 )
             except Exception as e:
                 st.write("Oh oh.", e)
+
+    if prediction_file_path:
+        st.session_state["prediction_file_path"] = prediction_file_path
+    elif "prediction_file_path" in st.session_state:
+        # Clear it if user removed the path
+        del st.session_state["prediction_file_path"]
 
 
 def from_file_path(extract_pyname_keys, codespaces):
@@ -194,6 +213,24 @@ def from_file_path(extract_pyname_keys, codespaces):
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
             )
+
+        # Add prediction file path input for from_file_path
+        prediction_file_path = st.text_input(
+            "Path to prediction table (optional)",
+            placeholder="/path/to/prediction_table.parquet",
+            help="Provide the path to a prediction table file to enhance the health check analysis",
+        )
+
+        if prediction_file_path:
+            from pathlib import Path
+
+            if Path(prediction_file_path).exists():
+                st.session_state["prediction_file_path"] = prediction_file_path
+            else:
+                st.warning(f"File not found: {prediction_file_path}")
+        elif "prediction_file_path" in st.session_state:
+            # Clear it if user removed the path
+            del st.session_state["prediction_file_path"]
 
 
 def model_selection_df(df: pl.LazyFrame, context_keys: list):

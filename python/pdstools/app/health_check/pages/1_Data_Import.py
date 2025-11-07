@@ -23,7 +23,7 @@ with st.expander("Configure advanced options", expanded=True):
 streamlit_utils.import_datamart(extract_pyname_keys=extract_pyname_keys)
 
 # Keep only essential session state keys
-essential_keys = ["dm", "params", "logger", "log_buffer", "data_source"]
+essential_keys = ["dm", "params", "logger", "log_buffer", "data_source", "prediction_file_path"]
 for key in list(st.session_state.keys()):
     if key not in essential_keys and not key.startswith("_"):
         del st.session_state[key]
