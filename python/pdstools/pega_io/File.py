@@ -330,9 +330,9 @@ def get_latest_file(
     ----------
     path : str
         The filepath where the data is stored
-    target : str in ['model_data', 'model_data']
+    target : str in ['model_data', 'predictor_data']
         Whether to look for data about the predictive models ('model_data')
-        or the predictor bins ('model_data')
+        or the predictor bins ('predictor_data')
     verbose : bool, default = False
         Whether to print all found files before comparing name criteria for debugging purposes
 

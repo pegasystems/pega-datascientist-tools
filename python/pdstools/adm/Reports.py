@@ -201,6 +201,7 @@ class Reports(LazyNamespace):
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
+        prediction = None,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
@@ -228,12 +229,16 @@ class Reports(LazyNamespace):
             If True, the temporary directory with temp files will not be deleted after report generation.
         verbose: bool, optional
             If True, prints detailed logs during execution.
+        prediction : Prediction, optional
+            Optional Prediction object to include in the health check. If provided without 
+            prediction_file_path, the prediction data will be automatically cached to a temporary file.
         model_file_path : Union[str, Path, None], optional
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
         prediction_file_path : Union[str, Path, None], optional
-            Optional name of the actual predictions data file, so it does not get copied
+            Optional name of the actual predictions data file. If not provided but prediction object
+            is given, the data will be automatically cached from the prediction object.
 
         Returns
         -------
@@ -266,6 +271,11 @@ class Reports(LazyNamespace):
                 and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+            
+            # Handle prediction data - cache if prediction object provided but no file path
+            if (prediction_file_path is None) and (prediction is not None):
+                prediction_file_path = prediction.save_data(temp_dir)
+            
             serialized_query = _serialize_query(query)
             run_quarto(
                 qmd_file=qmd_file,
