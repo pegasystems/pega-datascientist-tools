@@ -53,6 +53,14 @@ def test_find_default_predictors():
     )
 
 
+def test_find_default_predictions():
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="prediction_data")
+    assert os.path.join(file) == os.path.join(
+        f"{basePath}/data",
+        "Data-DM-Snapshot_pyGetSnapshot_20220323T101155_GMT.zip",
+    )
+
+
 def test_file_not_found():
     with pytest.raises(FileNotFoundError):
         pega_io.get_latest_file(path="data1", target="predictor_data")

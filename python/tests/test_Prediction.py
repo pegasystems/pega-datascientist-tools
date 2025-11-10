@@ -3,12 +3,14 @@ Testing the functionality of the Prediction class
 """
 
 import datetime
+import shutil
 from unittest.mock import patch
 
 import polars as pl
 import pytest
 from pdstools import Prediction
 from pdstools.utils import cdh_utils
+from pdstools.pega_io.File import read_ds_export
 
 mock_prediction_data = pl.DataFrame(
     {
@@ -509,3 +511,23 @@ def test_lazy_namespace_initialization():
     # Verify the dependencies attribute
     assert hasattr(pred.plot, "dependencies")
     assert "plotly" in pred.plot.dependencies
+
+
+def test_from_processed_data():
+    """Test the from_processed_data class method."""
+    pred = Prediction.from_mock_data()
+
+    temp_path = "temp_processed_data"
+    predictions_cache = pred.save_data(temp_path)
+
+    cached_data = read_ds_export(predictions_cache)
+
+    loaded_pred = Prediction.from_processed_data(cached_data)
+    assert loaded_pred.is_available
+    assert loaded_pred.is_valid
+
+    original_df = pred.predictions.collect()
+    loaded_df = loaded_pred.predictions.collect()
+    assert original_df.equals(loaded_df)
+
+    shutil.rmtree(temp_path)
