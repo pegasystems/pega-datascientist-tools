@@ -330,7 +330,7 @@ def get_latest_file(
     ----------
     path : str
         The filepath where the data is stored
-    target : str in ['model_data', 'predictor_data']
+    target : str in ['model_data', 'predictor_data', 'prediction_data']
         Whether to look for data about the predictive models ('model_data')
         or the predictor bins ('predictor_data')
     verbose : bool, default = False
@@ -341,7 +341,12 @@ def get_latest_file(
     str
         The most recent file given the file name criteria.
     """
-    if target not in {"model_data", "predictor_data", "value_finder"}:
+    if target not in {
+        "model_data",
+        "predictor_data",
+        "value_finder",
+        "prediction_data",
+    }:
         return "Target not found"
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
@@ -392,6 +397,7 @@ def find_files(files_dir, target):
         "cached_predictorData",
     ]
     value_finder_names = ["Data-Insights_pyValueFinder", "cached_ValueFinder"]
+    default_prediction_names = ["Data-DM-Snapshot_pyGetSnapshot"]
 
     if target == "model_data":
         names = default_model_names
@@ -399,6 +405,8 @@ def find_files(files_dir, target):
         names = default_predictor_names
     elif target == "value_finder":
         names = value_finder_names
+    elif target == "prediction_data":
+        names = default_prediction_names
     else:
         raise ValueError(f"Target {target} not found.")
     for file in files_dir:

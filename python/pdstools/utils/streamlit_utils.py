@@ -235,23 +235,19 @@ def from_file_path(extract_pyname_keys, codespaces):
                 extract_pyname_keys=extract_pyname_keys,
             )
 
-        # Add prediction file path input for from_file_path
-        prediction_file_path = st.text_input(
-            "Path to prediction table (optional)",
-            placeholder="/path/to/prediction_table.parquet",
-            help="Provide the path to a prediction table file to enhance the health check analysis",
-        )
-
-        if prediction_file_path:
-            try:
-                st.session_state["prediction"] = cached_prediction_table(
-                    predictions_filename=prediction_file_path
-                )
-            except Exception as e:
-                st.write("Oh oh.", e)
-        elif "prediction" in st.session_state:
-            # Clear it if user removed the path
-            del st.session_state["prediction"]
+        prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
+        box, data = st.columns([1, 15])
+        if prediction_matches is not None:
+            box.write("## √")
+            data.write(f"Prediction table found: {prediction_matches}")
+            st.session_state["prediction"] = cached_prediction_table(
+                predictions_filename=prediction_matches
+            )
+        else:
+            box.write("## X")
+            data.write(
+                "Could not find the optional prediction table in the given folder. You can still continue."
+            )
 
 
 def model_selection_df(df: pl.LazyFrame, context_keys: list):
