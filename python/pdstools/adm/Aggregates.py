@@ -557,38 +557,50 @@ class Aggregates:
         # )
 
         new_action_summary = (
-            (
-                action_summary.select(
-                    ([] if grouping is None else grouping)
-                    + ["AllActions", "MinSnapshotTime"]
-                )
-                .explode("AllActions")
-                .join_where(
-                    self.datamart.first_action_dates,
-                    pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
-                    # may result in multiple rows...
-                )
-                .group_by(grouping)
-                .agg(
-                    pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
-                    # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
-                )
-                .with_columns(
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .alias("NewActionsList"),
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .list.len()
-                    .alias("New Actions"),
-                )
+            action_summary.select(
+                ([] if grouping is None else grouping)
+                + ["AllActions", "MinSnapshotTime"]
             )
-            .collect()
-            .lazy()
+            .explode("AllActions")
+            .join(
+                self.datamart.first_action_dates, left_on="AllActions", right_on="Name"
+            )
+            .with_columns(
+                isNew=(
+                    (pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"))
+                    # & (pl.col("MinSnapshotTime") > pl.col("MinSnapshotTime").min())
+                )
+                # | (pl.col("MinSnapshotTime").max() == pl.col("MinSnapshotTime").min())
+            )
+            .group_by(grouping)
+            .agg(
+                pl.col("AllActions").unique(),
+                pl.col("AllActions").filter(pl.col("isNew")).alias("NewActionsList"),
+                pl.sum("isNew").alias("New Actions"),
+            )
+            # .join_where(
+            #     self.datamart.first_action_dates,
+            #     pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
+            #     # may result in multiple rows...
+            # )
+            # .group_by(grouping)
+            # .agg(
+            #     pl.col("AllActions").unique(),
+            #     pl.col("Name").alias("NewActionsAtOrAfter")
+            #     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
+            #     .list.explode().unique(),
+            # )
+            # .with_columns(
+            #     pl.col("AllActions")
+            #     .list.set_intersection(pl.col("NewActionsAtOrAfter"))
+            #     .alias("NewActionsList"),
+            #     pl.col("AllActions")
+            #     .list.set_intersection(pl.col("NewActionsAtOrAfter"))
+            #     .list.len()
+            #     .alias("New Actions"),
+            # )
+            # .collect()
+            # .lazy()
         )
 
         action_summary = (
@@ -600,7 +612,7 @@ class Aggregates:
                 nulls_equal=True,
             )
             .with_columns(pl.col("New Actions").fill_null(0))
-            .drop([] if debug else ["NewActionsList", "NewActionsAtOrAfter"])
+            .drop([] if debug else ["NewActionsList"])
         )
 
         if "Treatment" in self.datamart.context_keys:
@@ -1011,7 +1023,9 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except (
+            ValueError
+        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
