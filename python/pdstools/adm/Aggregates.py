@@ -549,13 +549,6 @@ class Aggregates:
             .lazy()
         )
 
-        # Dropping the actions that are there from the very beginning would make interpretation rather difficult.
-        # very_first_date = (
-        #     self.datamart.first_action_dates.select(pl.col("FirstSnapshotTime").min())
-        #     .collect()
-        #     .item()
-        # )
-
         new_action_summary = (
             action_summary.select(
                 ([] if grouping is None else grouping)
@@ -578,29 +571,6 @@ class Aggregates:
                 pl.col("AllActions").filter(pl.col("isNew")).alias("NewActionsList"),
                 pl.sum("isNew").alias("New Actions"),
             )
-            # .join_where(
-            #     self.datamart.first_action_dates,
-            #     pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
-            #     # may result in multiple rows...
-            # )
-            # .group_by(grouping)
-            # .agg(
-            #     pl.col("AllActions").unique(),
-            #     pl.col("Name").alias("NewActionsAtOrAfter")
-            #     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-            #     .list.explode().unique(),
-            # )
-            # .with_columns(
-            #     pl.col("AllActions")
-            #     .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-            #     .alias("NewActionsList"),
-            #     pl.col("AllActions")
-            #     .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-            #     .list.len()
-            #     .alias("New Actions"),
-            # )
-            # .collect()
-            # .lazy()
         )
 
         action_summary = (
