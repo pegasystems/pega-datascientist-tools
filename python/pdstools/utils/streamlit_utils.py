@@ -246,7 +246,7 @@ def from_file_path(extract_pyname_keys, codespaces):
         else:
             box.write("## X")
             data.write(
-                "Could not find the optional prediction table in the given folder. You can still continue."
+                "Could not find the optional prediction table in the given folder. The file should be named something like `Data-DM-Snapshot_pyGetSnapshot_{date}T{time}.zip`. You can export it from dev studio by following the instructions in the documentation, or continue without it."
             )
 
 

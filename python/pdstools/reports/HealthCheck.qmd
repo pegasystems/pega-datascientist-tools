@@ -477,7 +477,8 @@ except Exception as e:
 When data from Prediction Studio is available, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
 
 ::: {.content-hidden when-meta="analysis.predictions"}
-However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used.
+However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used. 
+Exporting and adding the Prediction Data will provide an overview of the data by channel and plots of the recent prediction lift and responses (select CDH Sample for an example).
 :::
 
 ::: {.content-hidden unless-meta="analysis.predictions" .allow-math}
