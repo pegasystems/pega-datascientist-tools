@@ -516,7 +516,8 @@ class Prediction:
                 )
             )
             # collect/lazy hopefully helps to zoom in into issues
-            .collect().lazy()
+            .collect()
+            .lazy()
         )
         schema = predictions_raw_data_prepped.collect_schema()
         if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
@@ -746,9 +747,7 @@ class Prediction:
 
         return cls(prediction_data, query=query)
 
-    def save_data(
-        self, path: Union[os.PathLike, str] = "."
-    ) -> Optional[os.PathLike]:
+    def save_data(self, path: Union[os.PathLike, str] = ".") -> Optional[os.PathLike]:
         """Cache predictions to a file.
 
         Parameters
@@ -766,35 +765,34 @@ class Prediction:
 
         abs_path = Path(path).resolve()
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
-        
+
         if self.predictions is not None:
             predictions_cache = pega_io.cache_to_file(
                 self.predictions, abs_path, name=f"cached_prediction_data_{time}"
             )
             return predictions_cache
-        return None
 
     @classmethod
     def from_processed_data(cls, df: pl.LazyFrame):
         """Load a Prediction from already-processed data (e.g., from cache).
-        
+
         This bypasses the normal data transformation pipeline and directly
         assigns the data to self.predictions. Use this when loading data
         that has already been processed by the Prediction class constructor,
         such as data saved via save_data().
-        
+
         Parameters
         ----------
         df : pl.LazyFrame
             A LazyFrame containing already-processed prediction data with
             columns like 'Positives', 'CTR', 'Performance', etc. rather than
             the raw 'pyPositives', 'pyModelType', etc.
-        
+
         Returns
         -------
         Prediction
             A Prediction instance with the processed data loaded
-            
+
         Examples
         --------
         >>> # Load from a cached file
@@ -841,9 +839,7 @@ class Prediction:
                         [
                             cdh_utils.to_prpc_date_time(
                                 now - datetime.timedelta(days=i)
-                            )[
-                                0:15
-                            ]  # Polars doesn't like time zones like GMT+0200
+                            )[0:15]  # Polars doesn't like time zones like GMT+0200
                             for i in range(days)
                         ]
                         * n_conditions
@@ -913,7 +909,8 @@ class Prediction:
                         )
                     ),
                 }
-            ).sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
+            )
+            .sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
             # .with_columns(
             #     pl.col("pyPositives").cum_sum().over(["pyModelId", "pySnapshotType"]),
             #     pl.col("pyNegatives").cum_sum().over(["pyModelId", "pySnapshotType"]),
