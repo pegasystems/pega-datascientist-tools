@@ -505,3 +505,108 @@ def test_new_actions():
 
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2, 2]
+
+def test_new_actions_issue_455():
+    # In January we have Card1, Loan1
+    # In February we have Credit1 (new), Loan1 (but not updated)
+    # In March we have Card1, Card2 (new), Credit1, Loan2 (new)
+
+    model_data = pl.DataFrame(
+        {
+            "Issue": "Issue1",
+            "Group": "Group1",
+            "Configuration": "Configuration1",
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "Performance": 0.5,
+            "Name": [
+                "Card1",
+                "Card1",
+                "Loan1",
+                "Loan1",
+                "Credit1",
+                "Credit1",
+                "Loan1",
+                "Loan1",
+                "Card1",
+                "Card1",
+                "Card2",
+                "Card2",
+                "Credit1",
+                "Credit1",
+                "Loan2",
+                "Loan2",
+            ],
+            "Positives": [
+                100,
+                101,
+                100,
+                101,
+                100,
+                101,
+                101,
+                101,
+                102,
+                103,
+                100,
+                101,
+                102,
+                103,
+                100,
+                101,
+            ],
+            "ResponseCount": [
+                1000,
+                1010,
+                1000,
+                1010,
+                1000,
+                1010,
+                1010,
+                1010, 
+                1020,
+                1030,
+                1000,
+                1010,
+                1020,
+                1030,
+                1000,
+                1010,
+            ],
+            "ModelID": [1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 4, 4, 3, 3, 5, 5],
+            "SnapshotTime": [
+                "2023-01-01",
+                "2023-01-02",
+                "2023-01-03",
+                "2023-01-04",
+                "2023-02-01",
+                "2023-02-02",
+                "2023-02-03",
+                "2023-02-04",
+                "2023-03-01",
+                "2023-03-02",
+                "2023-03-03",
+                "2023-03-04",
+                "2023-03-05",
+                "2023-03-06",
+                "2023-03-07",
+                "2023-03-08",
+            ],
+        }
+    ).with_columns(
+        pl.col("SnapshotTime").str.strptime(pl.Date, "%Y-%m-%d"),
+    )
+
+    from pdstools import ADMDatamart
+
+    dm = ADMDatamart(model_data.lazy())
+
+    agg = dm.aggregates.overall_summary(by_period="1mo").collect()
+    assert agg["Actions"].to_list() == [2, 2, 4]    
+    assert agg["Used Actions"].to_list() == [2, 1, 4]    
+    assert agg["New Actions"].to_list() == [2, 1, 2] #[0, 1, 2]
+
+    agg = dm.aggregates.overall_summary().collect()
+    assert agg["Actions"].item() == 5 
+    assert agg["Used Actions"].item() == 5 
+    assert agg["New Actions"].item() == 5

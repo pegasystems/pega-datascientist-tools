@@ -526,81 +526,46 @@ class Aggregates:
             )
 
         action_summary = (
-            (
-                model_data.group_by(grouping).agg(
-                    (
-                        pl.col("Issue").n_unique()
-                        if "Issue" in self.datamart.context_keys
-                        else pl.lit(0)
-                    ).alias("Issues"),
-                    (
-                        pl.concat_str(["Issue", "Group"], separator="/").n_unique()
-                        if "Issue" in self.datamart.context_keys
-                        and "Group" in self.datamart.context_keys
-                        else pl.lit(0)
-                    ).alias("Groups"),
-                    pl.col("Name").n_unique().alias("Actions"),
-                    pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
-                    pl.col("Name").unique().alias("AllActions"),
-                    MinSnapshotTime=pl.col("SnapshotTime").min(),
-                )
+            model_data.join(self.datamart.first_action_dates, on="Name")
+            .with_columns(
+                GlobalMinSnapshotTime=pl.col("SnapshotTime").min(),
+                GlobalMaxSnapshotTime=pl.col("SnapshotTime").max(),
             )
-            .collect()
-            .lazy()
-        )
-
-        # Dropping the actions that are there from the very beginning would make interpretation rather difficult.
-        # very_first_date = (
-        #     self.datamart.first_action_dates.select(pl.col("FirstSnapshotTime").min())
-        #     .collect()
-        #     .item()
-        # )
-
-        new_action_summary = (
-            (
-                action_summary.select(
-                    ([] if grouping is None else grouping)
-                    + ["AllActions", "MinSnapshotTime"]
+            .group_by(grouping)
+            .agg(
+                (
+                    pl.col("Issue").n_unique()
+                    if "Issue" in self.datamart.context_keys
+                    else pl.lit(0)
+                ).alias("Issues"),
+                (
+                    pl.concat_str(["Issue", "Group"], separator="/").n_unique()
+                    if "Issue" in self.datamart.context_keys
+                    and "Group" in self.datamart.context_keys
+                    else pl.lit(0)
+                ).alias("Groups"),
+                pl.col("Name").n_unique().alias("Actions"),
+                pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
+                pl.col("Name")
+                .filter(
+                    (pl.col("ActionFirstSnapshotTime") >= pl.col("SnapshotTime").min())
+                    & (pl.col("ActionFirstSnapshotTime") <= pl.col("SnapshotTime").max())
+                    # additional condition to drop first batch but keep it if there's only one batch 
+                    # this is complicated, when partitioning by time makes sense, but when doing by
+                    # channel not so much
+                    # & (
+                    #     (pl.col("SnapshotTime").min() > pl.col("GlobalMinSnapshotTime"))
+                    #     | (
+                    #         pl.col("SnapshotTime").max()
+                    #         == pl.col("GlobalMaxSnapshotTime")
+                    #     )
+                    # )
                 )
-                .explode("AllActions")
-                .join_where(
-                    self.datamart.first_action_dates,
-                    pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
-                    # may result in multiple rows...
-                )
-                .group_by(grouping)
-                .agg(
-                    pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
-                    # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
-                )
-                .with_columns(
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .alias("NewActionsList"),
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .list.len()
-                    .alias("New Actions"),
-                )
+                .n_unique()
+                .alias("New Actions"),
+                # All Actions are used for omni-channel calculations
+                pl.col("Name").unique().alias("AllActions"),
             )
-            .collect()
-            .lazy()
-        )
-
-        action_summary = (
-            action_summary.drop("MinSnapshotTime")
-            .join(
-                new_action_summary.drop("AllActions"),
-                on=("literal" if grouping is None else grouping),
-                how="left",
-                nulls_equal=True,
-            )
-            .with_columns(pl.col("New Actions").fill_null(0))
-            .drop([] if debug else ["NewActionsList", "NewActionsAtOrAfter"])
         )
 
         if "Treatment" in self.datamart.context_keys:
@@ -1011,7 +976,9 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except (
+            ValueError
+        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
