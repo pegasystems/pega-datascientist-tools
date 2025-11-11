@@ -143,20 +143,13 @@ class ADMDatamart:
         )
         self.bin_aggregator = BinAggregator(dm=self)
 
-    def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> pl.LazyFrame:
+    def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> Optional[pl.LazyFrame]:
         if df is None:
             return df
-        # very_first_date = df.select(pl.col("SnapshotTime").min()).collect().item()
         return (
             df.group_by("Name")
-            .agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
-            # .with_columns(
-            #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime")
-            # )
+            .agg(ActionFirstSnapshotTime=pl.col("SnapshotTime").min())
             .sort("Name")
-            # .filter(
-            #     pl.col("FirstSnapshotTime") > very_first_date
-            # )
         )
 
     @classmethod

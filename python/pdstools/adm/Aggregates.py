@@ -548,8 +548,8 @@ class Aggregates:
                 pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
                 pl.col("Name")
                 .filter(
-                    (pl.col("FirstSnapshotTime") >= pl.col("SnapshotTime").min())
-                    & (pl.col("FirstSnapshotTime") <= pl.col("SnapshotTime").max())
+                    (pl.col("ActionFirstSnapshotTime") >= pl.col("SnapshotTime").min())
+                    & (pl.col("ActionFirstSnapshotTime") <= pl.col("SnapshotTime").max())
                     # additional condition to drop first batch but keep it if there's only one batch 
                     # this is complicated, when partitioning by time makes sense, but when doing by
                     # channel not so much
