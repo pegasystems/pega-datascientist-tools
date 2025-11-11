@@ -8,6 +8,7 @@ import streamlit as st
 
 from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
+from ..prediction.Prediction import Prediction
 from ..utils import datasets
 from ..utils.types import ANY_FRAME
 from . import cdh_utils
@@ -31,6 +32,28 @@ def cached_datamart(**kwargs):
                 return None
         except Exception as e:
             st.error(f"An error occurred while importing the datamart: {str(e)}")
+            return None
+
+
+@st.cache_resource
+def cached_sample_prediction():
+    return Prediction.from_mock_data(days=60)
+
+
+@st.cache_resource
+def cached_prediction_table(**kwargs):
+    with st.spinner("Loading prediction table..."):
+        try:
+            prediction = Prediction.from_ds_export(**kwargs)
+            if prediction is not None:
+                return prediction
+            else:
+                st.warning("Unable to load prediction table.")
+                return None
+        except Exception as e:
+            st.error(
+                f"An error occurred while importing the prediction table: {str(e)}"
+            )
             return None
 
 
@@ -64,6 +87,7 @@ def import_datamart(extract_pyname_keys: bool):
         st.session_state["data_source"] = options[0]
     if st.session_state["data_source"] == "CDH Sample":
         st.session_state["dm"] = cached_sample()
+        st.session_state["prediction"] = cached_sample_prediction()
     elif st.session_state["data_source"] == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif st.session_state["data_source"] == "Direct file upload":
@@ -81,6 +105,10 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
     )
     predictor_file = st.file_uploader(
         "Upload Predictor Binning snapshot",
+        type=["json", "zip", "parquet", "csv", "arrow"],
+    )
+    prediction_file_path = st.file_uploader(
+        "Upload Prediction Table (optional)",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
     if codespaces and model_file is None and predictor_file is None:
@@ -115,6 +143,18 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
                 )
             except Exception as e:
                 st.write("Oh oh.", e)
+
+    if prediction_file_path:
+        try:
+            st.session_state["prediction"] = cached_prediction_table(
+                predictions_filename=prediction_file_path,
+            )
+        except Exception as e:
+            st.write("Oh oh.", e)
+
+    elif "prediction" in st.session_state:
+        # Clear it if user removed the path
+        del st.session_state["prediction"]
 
 
 def from_file_path(extract_pyname_keys, codespaces):
@@ -193,6 +233,20 @@ def from_file_path(extract_pyname_keys, codespaces):
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
+            )
+
+        prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
+        box, data = st.columns([1, 15])
+        if prediction_matches is not None:
+            box.write("## √")
+            data.write(f"Prediction table found: {prediction_matches}")
+            st.session_state["prediction"] = cached_prediction_table(
+                predictions_filename=prediction_matches
+            )
+        else:
+            box.write("## X")
+            data.write(
+                "Could not find the optional prediction table in the given folder. The file should be named something like `Data-DM-Snapshot_pyGetSnapshot_{date}T{time}.zip`. You can export it from dev studio by following the instructions in the documentation, or continue without it."
             )
 
 

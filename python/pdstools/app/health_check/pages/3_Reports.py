@@ -51,6 +51,7 @@ with health_check:
                     output_type=output_type,
                     keep_temp_files=keep_temp_files,
                     verbose=False,
+                    prediction=st.session_state.get("prediction"),
                 )
                 if os.path.isfile(outfile):
                     file = open(outfile, "rb")

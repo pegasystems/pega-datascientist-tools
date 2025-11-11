@@ -9,6 +9,7 @@ execute:
   echo: true
 format:
   html:
+    html-math-method: mathml
     page-layout: full
     code-fold: true
     embed-resources: true
@@ -476,10 +477,11 @@ except Exception as e:
 When data from Prediction Studio is available, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
 
 ::: {.content-hidden when-meta="analysis.predictions"}
-However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used.
+However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used. 
+Exporting and adding the Prediction Data will provide an overview of the data by channel and plots of the recent prediction lift and responses (select CDH Sample for an example).
 :::
 
-::: {.content-hidden unless-meta="analysis.predictions"}
+::: {.content-hidden unless-meta="analysis.predictions" .allow-math}
 Predictions measure performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
 
 Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
@@ -492,10 +494,20 @@ with "test" the model group and "control" random test group. A lift of 0% means 
 
 ```{python}
 if prediction_file_path:
-    predictions = Prediction(read_ds_export(prediction_file_path))
+    prediction_data = read_ds_export(prediction_file_path)
+    
+    # Check if this is raw or already-processed data
+    schema = prediction_data.collect_schema()
+    
+    if "pyModelType" in schema.names():
+        # Raw data from original export - use normal constructor
+        prediction = Prediction(prediction_data)
+    else:
+        # Already-processed/cached data - load directly without re-processing
+        prediction = Prediction.from_processed_data(prediction_data)
 
     secs_per_day = 60 * 60 * 24
-    predictions_overview = predictions.summary_by_channel().collect()
+    predictions_overview = prediction.summary_by_channel().collect()
     
     predictions_overview = predictions_overview.with_columns(
         # [
@@ -590,12 +602,12 @@ else:
 ```{python}
 if prediction_file_path:
     try:
-        plt = predictions.plot.lift_trend("1w")
+        plt = prediction.plot.lift_trend("1w")
         plt.update_layout(autosize=True, height=400, )
 
         plt.show()
 
-        plt = predictions.plot.responsecount_trend("1w")
+        plt = prediction.plot.responsecount_trend("1w")
         plt.update_layout(autosize=True, height=400, )
         plt.update_yaxes(title="Weekly Responses")
 

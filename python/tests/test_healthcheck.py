@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 from openpyxl import load_workbook
-from pdstools import ADMDatamart, datasets, read_ds_export
+from pdstools import ADMDatamart, datasets, read_ds_export, Prediction
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -21,6 +21,11 @@ def sample_without_predictor_binning() -> ADMDatamart:
         path=f"{basePath}/data",
     )
     return ADMDatamart(model_df=model_df)
+
+
+@pytest.fixture
+def sample_prediction_data() -> Prediction:
+    return Prediction.from_mock_data(days=30)
 
 
 def test_GenerateHealthCheck(sample: ADMDatamart):
@@ -74,6 +79,19 @@ def test_GenerateHealthCheck_ModelDataOnly(
     assert not pathlib.Path(hc).exists()
 
 
+def test_GenerateHealthCheck_PredictionData(
+    sample: ADMDatamart,
+    sample_prediction_data: Prediction,
+):
+    hc = sample.generate.health_check(
+        prediction=sample_prediction_data, name="WithPredictions"
+    )
+    assert hc == pathlib.Path("./HealthCheck_WithPredictions.html").resolve()
+    assert pathlib.Path(hc).exists()
+    pathlib.Path(hc).unlink()
+    assert not pathlib.Path(hc).exists()
+
+
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart):
     excel, warning_messages = sample_without_predictor_binning.generate.excel_report(
         name="ModelTables.xlsx", predictor_binning=True
@@ -102,4 +120,3 @@ def test_GenerateModelReport(sample: ADMDatamart):
     assert pathlib.Path(report).exists()
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
-
