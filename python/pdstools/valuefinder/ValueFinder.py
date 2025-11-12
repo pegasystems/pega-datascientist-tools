@@ -114,6 +114,6 @@ class ValueFinder:
         """
         time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         cache_file = cache_to_file(
-            self.df, path, name=f"cached_value_finder_data_{time}"
+            self.df, path, name=f"cached_value_finder_data_{time}", cache_type="parquet"
         )
         return cache_file
