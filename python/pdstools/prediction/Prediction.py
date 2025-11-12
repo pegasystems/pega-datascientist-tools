@@ -79,21 +79,8 @@ class PredictionPlots(LazyNamespace):
         tuple
             (plotly figure, dataframe with plot data)
         """
-        plot_df = self.prediction.summary_by_channel(by_period=period).with_columns(
-            Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
-        )
-
-        plot_df = (
-            cdh_utils._apply_query(plot_df, query)
-            .with_columns(
-                Period=pl.format(
-                    "{} days",
-                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
-                )
-            )
-            .rename({"DateRange Min": "Date"})
-        )
-
+        # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
+        # where multiple lazy queries from the same LazyFrame can cause crashes
         date_range = (
             cdh_utils._apply_query(self.prediction.predictions, query)
             .select(
@@ -105,6 +92,24 @@ class PredictionPlots(LazyNamespace):
             )
             .collect()
             .item()
+        )
+
+        # Collect plot_df immediately to avoid having multiple lazy queries from same source
+        plot_df = (
+            self.prediction.summary_by_channel(by_period=period)
+            .with_columns(
+                Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
+            )
+            .pipe(lambda df: cdh_utils._apply_query(df, query))
+            .with_columns(
+                Period=pl.format(
+                    "{} days",
+                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
+                )
+            )
+            .rename({"DateRange Min": "Date"})
+            .collect()
+            .lazy()
         )
 
         # plt = px.bar(

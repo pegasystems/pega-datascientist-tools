@@ -440,7 +440,7 @@ def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
     path: Union[str, os.PathLike],
     name: str,
-    cache_type: Literal["ipc", "parquet"] = "ipc",
+    cache_type: Literal["ipc", "parquet"] = "parquet",
     compression: Union[
         pl._typing.ParquetCompression, pl._typing.IpcCompression
     ] = "uncompressed",

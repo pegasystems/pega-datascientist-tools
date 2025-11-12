@@ -88,7 +88,7 @@ def test_empty_data_df():
 def test_save_data(vf: ValueFinder):
     data = vf.save_data("cache")
     print(data)
-    ValueFinder(pl.scan_ipc(data))
+    ValueFinder(pl.scan_parquet(data))
 
 
 def test_customer_summary(vf: ValueFinder):
