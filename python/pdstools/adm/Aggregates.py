@@ -526,7 +526,9 @@ class Aggregates:
             )
 
         action_summary = (
-            model_data.join(self.datamart.first_action_dates, on="Name")
+            model_data.join(
+                self.datamart.first_action_dates, on="Name", nulls_equal=True
+            )
             .with_columns(
                 GlobalMinSnapshotTime=pl.col("SnapshotTime").min(),
                 GlobalMaxSnapshotTime=pl.col("SnapshotTime").max(),
@@ -549,8 +551,11 @@ class Aggregates:
                 pl.col("Name")
                 .filter(
                     (pl.col("ActionFirstSnapshotTime") >= pl.col("SnapshotTime").min())
-                    & (pl.col("ActionFirstSnapshotTime") <= pl.col("SnapshotTime").max())
-                    # additional condition to drop first batch but keep it if there's only one batch 
+                    & (
+                        pl.col("ActionFirstSnapshotTime")
+                        <= pl.col("SnapshotTime").max()
+                    )
+                    # additional condition to drop first batch but keep it if there's only one batch
                     # this is complicated, when partitioning by time makes sense, but when doing by
                     # channel not so much
                     # & (
@@ -976,9 +981,7 @@ class Aggregates:
             )
 
             return result
-        except (
-            ValueError
-        ):  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
             return None
 
     def overall_summary(
