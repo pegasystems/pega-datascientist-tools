@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
 
 import polars as pl
+import polars.selectors as cs
 
 from ..utils.cdh_utils import from_prpc_date_time
 
@@ -476,6 +477,8 @@ def cache_to_file(
         df = df.collect()
     if cache_type == "ipc":
         outpath = outpath.with_suffix(".arrow")
+        # Cast categorical to string since Arrow IPC doesn't support dictionary replacement across batches
+        df = df.with_columns(cs.categorical().cast(pl.Utf8))
         df.write_ipc(outpath, compression=compression)
     if cache_type == "parquet":
         outpath = outpath.with_suffix(".parquet")
