@@ -18,7 +18,7 @@ def show_versions(print_output: Literal[True] = True) -> None: ...
 def show_versions(print_output: Literal[False] = False) -> str: ...
 
 
-def show_versions(print_output: bool = True) -> Union[None, str]:
+def show_versions(print_output: bool = True, include_dependencies:bool = True) -> Union[None, str]:
     """
     Get a list of currently installed versions of pdstools and its dependencies.
 
@@ -27,6 +27,10 @@ def show_versions(print_output: bool = True) -> Union[None, str]:
     print_output : bool, optional
         If True, print the version information to stdout.
         If False, return the version information as a string.
+        Default is True.
+    include_dependencies : bool, optional
+        If True, include the versions of dependencies in the output.
+        If False, only include the pdstools version and system information.
         Default is True.
 
     Returns
@@ -64,19 +68,20 @@ def show_versions(print_output: bool = True) -> Union[None, str]:
     info.append(f"Platform: {platform.platform()}")
     info.append(f"Python: {sys.version}")
 
-    deps = grouped_dependencies()
+    if include_dependencies:
+        deps = grouped_dependencies()
 
-    info.append("\n--- Dependencies ---")
+        info.append("\n--- Dependencies ---")
 
-    required = deps.pop("required")
-    for d in required:
-        info.append(f"{d}: {_get_dependency_version(d)}")
-
-    for group, dependencies in deps.items():
-        info.append(f"\n--- Dependency group: {group} ---")
-
-        for d in dependencies:
+        required = deps.pop("required")
+        for d in required:
             info.append(f"{d}: {_get_dependency_version(d)}")
+
+        for group, dependencies in deps.items():
+            info.append(f"\n--- Dependency group: {group} ---")
+
+            for d in dependencies:
+                info.append(f"{d}: {_get_dependency_version(d)}")
 
     version_info = "\n".join(info)
     if print_output:
