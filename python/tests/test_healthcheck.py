@@ -120,3 +120,66 @@ def test_GenerateModelReport(sample: ADMDatamart):
     assert pathlib.Path(report).exists()
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
+
+
+def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):
+    """Test health_check with custom qmd_file argument"""
+    # Create a custom qmd file
+    custom_qmd = tmp_path / "custom_health.qmd"
+    custom_qmd.write_text("""
+---
+title: "Custom Health Check Report"
+format: html
+params:
+  title: "Custom Title"
+---
+
+# Custom Health Check
+
+This is a custom health check template.
+
+Test parameters: {{< meta params.title >}}
+""")
+    
+    hc = sample.generate.health_check(
+        name="CustomTemplate",
+        qmd_file=custom_qmd
+    )
+    assert hc == pathlib.Path("./HealthCheck_CustomTemplate.html").resolve()
+    assert pathlib.Path(hc).exists()
+    pathlib.Path(hc).unlink()
+    assert not pathlib.Path(hc).exists()
+
+
+def test_GenerateModelReport_CustomQmdFile(sample: ADMDatamart, tmp_path):
+    """Test model_reports with custom qmd_file argument"""
+    # Create a custom qmd file
+    custom_qmd = tmp_path / "custom_model.qmd"
+    custom_qmd.write_text("""
+---
+title: "Custom Model Report"
+format: html
+params:
+  title: "Custom Model Title"
+  model_id: "test"
+---
+
+# Custom Model Report
+
+This is a custom model report template.
+
+Model ID: {{< meta params.model_id >}}
+""")
+    
+    report = sample.generate.model_reports(
+        model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        name="CustomModel",
+        qmd_file=custom_qmd
+    )
+    expected_path = pathlib.Path(
+        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
+    ).resolve()
+    assert report == expected_path
+    assert pathlib.Path(report).exists()
+    pathlib.Path(report).unlink()
+    assert not pathlib.Path(report).exists()

@@ -650,6 +650,125 @@ class Plots(LazyNamespace):
             plots.append(fig)
         return plots
 
+    def _pre_aggregated_box(
+        self,
+        df: pl.LazyFrame,
+        metric: str,
+        # TODO what about NOT allowing facets
+        facet: Optional[str] = None,
+        return_df: bool = False,
+    ):
+        pre_aggs = (
+            df.group_by(
+                ["PredictorName", "PredictorCategory"] + ([facet] if facet else [])
+            )
+            .agg(
+                median = pl.median(metric),
+                mean = pl.mean(metric),
+                q1 = pl.quantile(metric, 0.25),
+                q3 = pl.quantile(metric, 0.75),
+                min = pl.min(metric),
+                max = pl.max(metric),
+            )
+            .with_columns(iqr=pl.col("q3") - pl.col("q1"))
+            .with_columns(
+                pl.max_horizontal(pl.col("q1") - 1.5 * pl.col("iqr"), "min").alias("whisker_low"),
+                pl.min_horizontal(pl.col("q3") + 1.5 * pl.col("iqr"), "max").alias("whisker_high"),
+            )
+            .sort(([facet] if facet else []) + ["median", "PredictorName"], descending=True)
+            .collect()
+        )
+
+        if return_df:
+            return pre_aggs
+
+        fig = go.Figure()
+
+        # Create color mapping for categories with fixed colors for specific categories
+        unique_categories = list(
+            set(row["PredictorCategory"] for row in pre_aggs.iter_rows(named=True))
+        )
+
+        # TODO see if we can use
+        #         colorscale = self.datamart.cdh_guidelines.colorscales.get(metric, None) or [
+        #     "#d91c29",
+        #     "#F76923",
+        #     "#20aa50",
+        # ]
+
+
+        # Fixed colors for specific predictor categories
+        fixed_colors = {
+            "IH": "#1f77b4",  # Blue
+            "Param": "#ff7f0e",  # Orange
+            "Primary": "#2ca02c",  # Green
+            "Other": "#d62728",  # Red
+        }
+
+        # Fallback colors from pega template for other categories
+        template_colors = [
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ]
+
+        color_map = {}
+        template_color_index = 0
+
+        for cat in unique_categories:
+            if cat in fixed_colors:
+                color_map[cat] = fixed_colors[cat]
+            else:
+                color_map[cat] = template_colors[
+                    template_color_index % len(template_colors)
+                ]
+                template_color_index += 1
+
+        # Track which categories have been added to legend
+        legend_added = set()
+
+        # Create a box plot for each predictor
+        for i, row in enumerate(pre_aggs.iter_rows(named=True)):
+            show_in_legend = row["PredictorCategory"] not in legend_added
+            if show_in_legend:
+                legend_added.add(row["PredictorCategory"])
+
+            fig.add_trace(
+                go.Box(
+                    q1=[row["q1"]],
+                    median=[row["median"]],
+                    q3=[row["q3"]],
+                    lowerfence=[row["whisker_low"]],
+                    upperfence=[row["whisker_high"]],
+                    mean=[row["mean"]],
+                    y=[row["PredictorName"]],
+                    boxpoints=False,
+                    marker=dict(color=color_map[row["PredictorCategory"]]),
+                    name=row["PredictorName"],
+                    legendgroup=row["PredictorCategory"],
+                    orientation="h",
+                    showlegend=show_in_legend,
+                    # TODO: figure out how to hover with only the x-axis value
+                )
+            )
+
+        predictor_order = pre_aggs['PredictorName'].to_list()
+        fig.update_layout(
+            title=f"Box Plot of {metric} by Predictor",
+            xaxis_title="Performance",
+            yaxis_title="",
+            template="pega",
+        )
+
+        # Set y-axis category order to show highest median values at the top
+        fig.update_yaxes(
+            categoryorder="array", categoryarray=predictor_order, automargin=True, autorange="reversed"
+        )
+        return fig
+
     @requires(
         combined_columns={
             "Channel",
@@ -701,19 +820,23 @@ class Plots(LazyNamespace):
 
         metric = "PredictorPerformance" if metric == "Performance" else metric
         try:
-            flds = [
-                "Channel",
-                "PredictorName",
-                "ModelID",
-                "Name",
-                "ResponseCountBin",
-                "EntryType",
-                "Type",
-                "PredictorCategory",
-                "Configuration",
-                facet,
-                metric,
-            ]
+            flds = list(
+                set(
+                    [
+                        "Channel",
+                        "PredictorName",
+                        "ModelID",
+                        "Name",
+                        "ResponseCountBin",
+                        "EntryType",
+                        "Type",
+                        "PredictorCategory",
+                        "Configuration",
+                        facet,
+                        metric,
+                    ]
+                )
+            )
             flds = flds + [f for f in self.datamart.context_keys if f not in flds]
             df = cdh_utils._apply_query(
                 self.datamart.aggregates.last(table="combined_data")
@@ -722,8 +845,9 @@ class Plots(LazyNamespace):
                 )
                 .select(flds)
                 .filter(pl.col("EntryType") != "Classifier")
-                .unique(subset=["ModelID", "PredictorName"], keep="first")
-                .rename({"PredictorCategory": "Legend"}),
+                .filter(pl.col("ResponseCountBin") > 0)
+                .unique(subset=["ModelID", "PredictorName"], keep="first"),
+                # .rename({"PredictorCategory": "Legend"}),
                 query=query,
             )
         except ValueError:
@@ -735,17 +859,31 @@ class Plots(LazyNamespace):
                 df, top_n, metric, facets=[facet] if facet else None
             )
 
+
+        # creates box plot based on pre-aggregated data
+        return self._pre_aggregated_box(
+            df, metric=metric, facet=facet, return_df=return_df
+        )
+
         df = df.with_columns(
-            pl.median(metric).over("PredictorName").alias("_median_"),
-            pl.mean(metric).over("PredictorName").alias("_mean_"),
-            pl.min(metric).over("PredictorName").alias("_min_"),
-            pl.max(metric).over("PredictorName").alias("_max_"),
+            pl.median(metric)
+            .over(["PredictorName"] + ([facet] if facet else []))
+            .alias("_median_"),
+            pl.mean(metric)
+            .over(["PredictorName"] + ([facet] if facet else []))
+            .alias("_mean_"),
+            pl.min(metric)
+            .over(["PredictorName"] + ([facet] if facet else []))
+            .alias("_min_"),
+            pl.max(metric)
+            .over(["PredictorName"] + ([facet] if facet else []))
+            .alias("_max_"),
         )
 
         order = (
             df.group_by("PredictorName")
             .agg(pl.col("_median_").first().alias("Order"))
-            .fill_nan(0)
+            .fill_nan(50)
             .sort("Order", descending=False)
             .select("PredictorName")
             .collect()["PredictorName"]
@@ -793,7 +931,11 @@ class Plots(LazyNamespace):
         )
 
         fig.update_yaxes(
-            categoryorder="array", categoryarray=order, automargin=True, dtick=1
+            categoryorder="array",
+            categoryarray=order,
+            automargin=True,
+            dtick=1,
+            title="",
         )
 
         fig.update_layout(
@@ -1349,7 +1491,9 @@ class Plots(LazyNamespace):
             x=overlap_data[group_col_name],
             y=overlap_data[group_col_name],
             template="pega",
-            labels=dict(x=f"{group_col_name} on x", y=f"{group_col_name} on y", color="Overlap"),
+            labels=dict(
+                x=f"{group_col_name} on x", y=f"{group_col_name} on y", color="Overlap"
+            ),
         )
         plt.update_coloraxes(showscale=False)
         return plt

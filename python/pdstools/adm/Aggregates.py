@@ -286,7 +286,7 @@ class Aggregates:
 
     @staticmethod
     def _top_n(
-        df: pl.DataFrame,
+        df: Union[pl.LazyFrame, pl.DataFrame],
         top_n: int,
         metric: str = "PredictorPerformance",
         facets: Optional[list] = None,

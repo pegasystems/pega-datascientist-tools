@@ -1437,9 +1437,9 @@ else:
 ```
 
 ::: {.callout-tip title="Guidance"}
--   Predictors that consistently perform poorly could potentially be removed.
--   Be sure to check for data problems
--   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+* Predictors that consistently perform poorly could potentially be removed.
+* Be sure to check for data problems
+* Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
 :::
 
 ## Number of Active and Inactive Predictors
@@ -1462,7 +1462,7 @@ else:
 ```
 
 ::: {.callout-tip title="Guidance"}
--   We expect a few dozen active predictors for every model instance
+We expect a few dozen active predictors for every model instance
 :::
 
 ## Predictor Performance across Actions
@@ -1772,8 +1772,8 @@ except Exception as e:
 ```
 
 ::: {.callout-tip title="Guidance"}
--   Look out for consecutive days without any responses
--   Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+* Look out for consecutive days without any responses
+* Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
 :::
 
 # Which Models drive most of the Volume
