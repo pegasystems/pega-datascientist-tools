@@ -278,7 +278,7 @@ except Exception as e:
 The charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
-# Overview of the Channels
+# Overview of the Channels {#overview-of-the-channels}
 
 In a typical Next Best Action Designer setup, treatments for a channels are modelled by a channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration. This cross-channel configuration is typically only used as a fall-back, and, additionally, for action-level insights.
 
@@ -477,11 +477,10 @@ except Exception as e:
 When data from Prediction Studio is available, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
 
 ::: {.content-hidden when-meta="analysis.predictions"}
-However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used. 
-Exporting and adding the Prediction Data will provide an overview of the data by channel and plots of the recent prediction lift and responses (select CDH Sample for an example).
+However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used. Exporting and adding the Prediction Data will provide an overview of the data by channel and plots of the recent prediction lift and responses (select CDH Sample for an example).
 :::
 
-::: {.content-hidden unless-meta="analysis.predictions" .allow-math}
+:::: {.content-hidden .allow-math unless-meta="analysis.predictions"}
 Predictions measure performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
 
 Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
@@ -594,7 +593,7 @@ else:
 ```
 
 ::: {.callout-tip title="Guidance"}
--   Lift should always be > 0. If negative, the models are not working as intended, misconfigured or not used as intended.
+-   Lift should always be \> 0. If negative, the models are not working as intended, misconfigured or not used as intended.
 -   Lift numbers should not be too volatile, but somewhat stable over time.
 -   Predictions should be channel specific, the use of default predictions (e.g. 'PredictInboundDefaultPropensity') is not generally recommended and may indicate a configuration issue.
 :::
@@ -615,7 +614,7 @@ if prediction_file_path:
     except Exception as e:
         report_utils.quarto_plot_exception("Prediction Trend Charts", e)
 ```
-:::
+::::
 
 # Overview of the Actions
 
@@ -947,7 +946,7 @@ except Exception as e:
 -   There shouldn’t be too sudden changes over time
 :::
 
-# Overview of the Adaptive Models
+# Overview of the Adaptive Models {#overview-of-the-adaptive-models}
 
 ```{python}
 report_utils.quarto_print(
@@ -2012,7 +2011,7 @@ report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/Heal
 ```{python}
 # | code-fold: false
 from pdstools.utils import show_versions
-show_versions.show_versions()
+show_versions.show_versions(include_dependencies=False)
 ```
 :::
 
