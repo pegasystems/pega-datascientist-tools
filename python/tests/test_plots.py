@@ -358,5 +358,5 @@ def test_propensity_distribution(sample: ADMDatamart):
     assert df["BinPropensity"].min() >= 0
     assert df["BinPropensity"].max() <= 1
 
-    plot = sample.plot.predictor_count()
+    plot = sample.plot.propensity_distribution()
     assert isinstance(plot, Figure)

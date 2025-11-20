@@ -653,20 +653,25 @@ class Plots(LazyNamespace):
     def _boxplot_pre_aggregated(
         self,
         df: pl.LazyFrame,
+        *,
         y_col: str,
         metric_col: str,
-        legend_col: Optional[str],
+        metric_weight_col: Optional[str] = None,
+        legend_col: Optional[str] = None,
         return_df: bool = False,
     ):
         if legend_col is None:
             legend_col = y_col
 
+        if metric_weight_col is None:
+            mean_expr = pl.mean(metric_col)
+        else:
+            mean_expr = cdh_utils.weighted_average_polars(metric_col, metric_weight_col),
         pre_aggs = (
             df.group_by(list({y_col, legend_col}))
             .agg(
                 median=pl.median(metric_col),
-                # Bin??
-                mean=cdh_utils.weighted_average_polars(metric_col, "ResponseCountBin"),
+                mean=mean_expr,
                 q1=pl.quantile(metric_col, 0.25),
                 q3=pl.quantile(metric_col, 0.75),
                 min=pl.min(metric_col),
@@ -858,6 +863,8 @@ class Plots(LazyNamespace):
             df,
             y_col="PredictorName",
             metric_col=metric,
+            # Bin? Sure? not just "ResponseCount"?
+            metric_weight_col="ResponseCountBin",
             legend_col="PredictorCategory",
             return_df=return_df,
         )

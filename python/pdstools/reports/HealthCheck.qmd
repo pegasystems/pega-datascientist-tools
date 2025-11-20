@@ -1203,7 +1203,7 @@ This analysis looks at the predictors that are driving the models.
 However, Predictor Data is **not available**. Predictor analysis is not available.
 :::
 
-::::::: {.content-hidden unless-meta="analysis.predictors"}
+:::: {.content-hidden unless-meta="analysis.predictors"}
 ```{python}
 # | output: asis
 if datamart.predictor_data is None:
@@ -1437,9 +1437,9 @@ else:
 ```
 
 ::: {.callout-tip title="Guidance"}
-* Predictors that consistently perform poorly could potentially be removed.
-* Be sure to check for data problems
-* Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+-   Predictors that consistently perform poorly could potentially be removed.
+-   Be sure to check for data problems
+-   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
 :::
 
 ## Number of Active and Inactive Predictors
@@ -1574,7 +1574,7 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
-:::::::
+::::
 
 # Responses
 
@@ -1735,10 +1735,11 @@ except Exception as e:
     report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
+Guidance
 ::: {.callout-tip title="Guidance"}
--   Empty models shouldnt be increasing too much
--   Good models (AUC 55-80) should increase or at least not decrease
--   Good models should be much higher than problem kids
+* Empty models shouldnt be increasing too much
+* Good models (AUC 55-80) should increase or at least not decrease
+* Good models should be much higher than problem kids
 :::
 
 ## Number of Responses over Time
@@ -1771,9 +1772,10 @@ except Exception as e:
 
 ```
 
+Guidance
 ::: {.callout-tip title="Guidance"}
-* Look out for consecutive days without any responses
-* Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+-   Look out for consecutive days without any responses
+-   Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
 :::
 
 # Which Models drive most of the Volume
@@ -1919,8 +1921,9 @@ except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
 
+Guidance
 ::: {.callout-tip title="Guidance"}
--   Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
+*Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
 :::
 
 ## Analysis of Performance vs Volume
@@ -2016,4 +2019,3 @@ show_versions.show_versions(include_dependencies=False)
 :::
 
 For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
-:::::
