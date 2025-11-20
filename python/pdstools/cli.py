@@ -9,15 +9,34 @@ import argparse
 import sys
 from importlib import resources
 
+# App configuration with display names and paths
+APPS = {
+    "health_check": {
+        "display_name": "Health Check",
+        "path": "pdstools.app.health_check",
+    },
+    "decision_analyzer": {
+        "display_name": "Decision Analyzer",
+        "path": "pdstools.app.decision_analyzer",
+    },
+}
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps."
     )
+
+    # Create help text with display names
+    app_choices = list(APPS.keys())
+    help_text = "The app to run: " + " | ".join(
+        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices]
+    )
+
     parser.add_argument(
         "app",
-        choices=["health_check", "decision_analyzer"],
-        help='The app to run: "health_check" or "decision_analyzer"',
+        choices=app_choices,
+        help=help_text,
         nargs="?",  # This makes the 'app' argument optional
         default=None,  # Explicitly set default to None
     )
@@ -43,35 +62,64 @@ def run(args, unknown):
 
     # If no app is specified, prompt the user to choose
     if args.app is None:
-        available_apps = ["health_check", "decision_analyzer"]
+        app_list = list(APPS.keys())
         print("Available pdstools apps:")
-        for i, app in enumerate(available_apps, 1):
-            print(f"  {i}. {app}")
+        for i, app_key in enumerate(app_list, 1):
+            display_name = APPS[app_key]["display_name"]
+            print(f"  {i}. {display_name}")
 
         while True:
             try:
-                choice = input("\nPlease select an app to run (1-2): ").strip()
-                if choice in ["1", "2"]:
-                    args.app = available_apps[int(choice) - 1]
+                choice = input(
+                    f"\nPlease select an app to run (1-{len(app_list)}): "
+                ).strip()
+
+                # Check if it's a number
+                if choice.isdigit() and 1 <= int(choice) <= len(app_list):
+                    args.app = app_list[int(choice) - 1]
                     break
-                elif choice.lower() in available_apps:
+
+                # Check if it's an internal app name
+                elif choice.lower() in APPS:
                     args.app = choice.lower()
                     break
+
+                # Check if it's a display name (case insensitive)
                 else:
-                    print("Invalid choice. Please enter 1, 2, or the app name.")
+                    found = False
+                    for app_key, app_info in APPS.items():
+                        if choice.lower() == app_info["display_name"].lower():
+                            args.app = app_key
+                            found = True
+                            break
+                    if found:
+                        break
+
+                    # If we get here, invalid input
+                    valid_options = []
+                    valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
+                    valid_options.extend(APPS.keys())
+                    valid_options.extend(
+                        [app_info["display_name"] for app_info in APPS.values()]
+                    )
+                    print(
+                        f"Invalid choice. Please enter: {', '.join(valid_options[:4])}..."
+                    )
+
             except (KeyboardInterrupt, EOFError):
                 print("\nExiting...")
                 sys.exit(0)
             except Exception:
                 print("Invalid input. Please try again.")
 
-    print(f"Running {args.app} app.")
-    if len(unknown) > 0:
-        print(unknown)
+    display_name = APPS[args.app]["display_name"]
+    print(f"Running {display_name} app...")
+
+    app_path = APPS[args.app]["path"]
+    with resources.path(app_path, "Home.py") as filepath:
+        filename = str(filepath)
 
     if args.app == "decision_analyzer":
-        with resources.path("pdstools.app.decision_analyzer", "Home.py") as filepath:
-            filename = str(filepath)
         sys.argv = [
             "streamlit",
             "run",
@@ -80,8 +128,6 @@ def run(args, unknown):
             "false",
         ]
     else:  # health_check
-        with resources.path("pdstools.app.health_check", "Home.py") as filepath:
-            filename = str(filepath)
         sys.argv = ["streamlit", "run", filename]
 
     if unknown:
