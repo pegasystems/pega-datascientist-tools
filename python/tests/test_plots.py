@@ -217,10 +217,10 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
-    assert "PredictorPerformance" in df.collect_schema().names()
+    assert "median" in df.collect_schema().names()
     assert (
-        round(df.select(pl.col("PredictorPerformance").top_k(1)).collect().item(), 2)
-        == 86.38
+        round(df.select(pl.col("median").top_k(1)).item(), 2)
+        == 65.17
     )
 
     plot = sample.plot.predictor_performance()
@@ -228,11 +228,11 @@ def test_predictor_performance(sample: ADMDatamart):
 
 
 def test_predictor_category_performance(sample: ADMDatamart):
-    df = sample.plot.predictor_category_performance(return_df=True).collect()
-    assert df.shape == (60, 3)
+    df = sample.plot.predictor_category_performance(return_df=True)
+    assert df.shape == (3, 10)
     assert "PredictorCategory" in df.columns
-    assert "PredictorPerformance" in df.columns
-    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 62.49
+    assert "mean" in df.columns
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 57.37
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -290,26 +290,6 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
-
-
-def test_models_by_positives(sample: ADMDatamart):
-    df = sample.plot.models_by_positives(return_df=True)
-    assert df.shape == (31, 5)
-    assert (
-        round(
-            df.filter(pl.col("PositivesBin") == "(0, 10]")
-            .filter(pl.col("Channel") == "Email")
-            .select("cumModels")
-            .item(),
-            2,
-        )
-        == 0.23
-    )
-    assert df.select(pl.col("cumModels").max()).item() <= 1.0
-
-    plot = sample.plot.models_by_positives()
-    assert isinstance(plot, Figure)
-
 
 def test_tree_map(sample: ADMDatamart):
     df = sample.plot.tree_map(return_df=True).collect()

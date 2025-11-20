@@ -1064,64 +1064,6 @@ class Plots(LazyNamespace):
 
     def response_gain(): ...  # TODO: more generic plot_gains function?
 
-    # TODO anyone using this still?
-    # consider removing
-    def models_by_positives(
-        self,
-        by: str = "Channel",
-        query: Optional[QUERY] = None,
-        return_df: bool = False,
-    ):  # TODO: more generic plot gains function?
-        df = (
-            cdh_utils._apply_query(self.datamart.aggregates.last(), query=query)
-            .select([by, "Positives", "ModelID"])
-            .collect()
-        )
-        models_by_positives = (
-            df.with_columns(
-                PositivesBin=df["Positives"].cut(
-                    breaks=list(range(0, 210, 10)),
-                )
-            )
-            .lazy()
-            .group_by([by, "PositivesBin"])
-            .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
-            .with_columns(
-                (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
-                    "cumModels"
-                )
-            )
-            .sort("Positives")
-        ).collect()
-        if return_df:
-            return models_by_positives
-
-        title = "Positives vs Number of Models"
-        fig = px.line(
-            models_by_positives.filter(pl.col("ModelCount") > 0).with_columns(
-                pl.col(by).fill_null("NA")
-            ),
-            x="PositivesBin",
-            y="cumModels",
-            color=by,
-            markers=True,
-            title=title,
-            labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
-            template="pega",
-            category_orders={
-                "PositivesBin": models_by_positives.select("Positives", "PositivesBin")
-                .unique()
-                .sort("Positives")["PositivesBin"]
-                .to_list()
-            },
-        )
-        fig.update_layout(
-            xaxis_title="Number of Positives",
-            yaxis_title="Percentage of Models",
-        )
-
-        return fig
-
     def tree_map(
         self,
         metric: Literal[
@@ -1206,6 +1148,10 @@ class Plots(LazyNamespace):
         df = self.datamart.aggregates.predictor_counts(by=by, facet=facet, query=query)
         if return_df:
             return df
+
+        # TODO this uses "ResponseCountBin" implicitly - not good!!
+        # TODO also check propensity_distribution plot, maybe thats a box too...
+        # TODO run the HTML analysis again over the sample export
 
         return self._boxplot_pre_aggregated(
             df,

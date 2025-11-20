@@ -32,6 +32,7 @@ def test_GenerateHealthCheck(sample: ADMDatamart):
     hc = sample.generate.health_check()
     assert hc == pathlib.Path("./HealthCheck.html").resolve()
     assert pathlib.Path(hc).exists()
+    # TODO add test for size upper limit
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
 
