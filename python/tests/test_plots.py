@@ -83,7 +83,7 @@ def test_over_time(sample2: ADMDatamart):
     assert fig_faceted is not None
 
     with pytest.raises(
-        ValueError, match="The given query resulted in no more remaining data."
+        ValueError, match="The given query resulted in an empty dataframe"
     ):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
