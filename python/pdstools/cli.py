@@ -14,21 +14,13 @@ def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps."
     )
-    subparsers = parser.add_subparsers(dest="command")
-
-    # Subparser for the 'run' command
-    run_parser = subparsers.add_parser("run", help="Run the specified pdstools app")
-    run_parser.add_argument(
+    parser.add_argument(
         "app",
         choices=["health_check", "decision_analyzer"],
         help='The app to run: "health_check" or "decision_analyzer"',
         nargs="?",  # This makes the 'app' argument optional
+        default=None,  # Explicitly set default to None
     )
-    run_parser.set_defaults(func=run)
-
-    # Set 'run' as the default subcommand
-    parser.set_defaults(command="run", func=run)
-
     return parser
 
 
@@ -36,27 +28,30 @@ def main():
     parser = create_parser()
     args, unknown = parser.parse_known_args()
 
-    # Manually handle the default command if none is provided
-    if args.command is None:
-        args.command = "run"
-
-    args.func(args, unknown)
+    run(args, unknown)
 
 
 def run(args, unknown):
-    from streamlit.web import cli as stcli
+    try:
+        from streamlit.web import cli as stcli
+    except ImportError:
+        print(
+            "Error: streamlit is not installed. Try installing the optionall dependency group 'app'.\n"
+            "If you are using uvx, try running uvx 'pdstools[app]' instead."
+        )
+        sys.exit(1)
 
     # If no app is specified, prompt the user to choose
-    if not hasattr(args, 'app') or args.app is None:
+    if args.app is None:
         available_apps = ["health_check", "decision_analyzer"]
         print("Available pdstools apps:")
         for i, app in enumerate(available_apps, 1):
             print(f"  {i}. {app}")
-        
+
         while True:
             try:
                 choice = input("\nPlease select an app to run (1-2): ").strip()
-                if choice in ['1', '2']:
+                if choice in ["1", "2"]:
                     args.app = available_apps[int(choice) - 1]
                     break
                 elif choice.lower() in available_apps:
@@ -71,8 +66,9 @@ def run(args, unknown):
                 print("Invalid input. Please try again.")
 
     print(f"Running {args.app} app.")
-    print(unknown)
-    
+    if len(unknown) > 0:
+        print(unknown)
+
     if args.app == "decision_analyzer":
         with resources.path("pdstools.app.decision_analyzer", "Home.py") as filepath:
             filename = str(filepath)
