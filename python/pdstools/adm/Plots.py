@@ -666,7 +666,7 @@ class Plots(LazyNamespace):
         if metric_weight_col is None:
             mean_expr = pl.mean(metric_col)
         else:
-            mean_expr = cdh_utils.weighted_average_polars(metric_col, metric_weight_col),
+            mean_expr = cdh_utils.weighted_average_polars(metric_col, metric_weight_col)
         pre_aggs = (
             df.group_by(list({y_col, legend_col}))
             .agg(
@@ -686,6 +686,9 @@ class Plots(LazyNamespace):
 
         if return_df:
             return pre_aggs
+        
+        if pre_aggs.select(pl.first().len()).item() == 0:
+            return None
 
         fig = go.Figure()
 
@@ -863,7 +866,8 @@ class Plots(LazyNamespace):
             df,
             y_col="PredictorName",
             metric_col=metric,
-            # Bin? Sure? not just "ResponseCount"?
+            # It is confusing, but ResponseCountBin is the correct total response
+            # count for a predictor. It is the sum of BinResponseCount. Thanks SK :)
             metric_weight_col="ResponseCountBin",
             legend_col="PredictorCategory",
             return_df=return_df,
@@ -911,8 +915,6 @@ class Plots(LazyNamespace):
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
         """
         metric = "PredictorPerformance" if metric == "Performance" else metric
-
-        groups = [pl.col("ModelID"), pl.col("PredictorCategory")]
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data")
@@ -1354,83 +1356,7 @@ class Plots(LazyNamespace):
             figs.append(fig)
             if show_plots and fig is not None:
                 fig.show()
+
+        # print(f"PARITIONED PLOT: {len(facets)} facets, {len([f for f in figs if f is not None])} non-empty figs")
         return figs
 
-    # TODO I took the propensity distrib plot out of the HC as
-    # it wasn't very clear, also didn't look great visually.
-
-    @requires(
-        predictor_columns={
-            "BinPropensity",
-        },
-        combined_columns={"Channel", "Direction"},
-    )
-    def propensity_distribution(
-        self,
-        query: Optional[QUERY] = None,
-        return_df: bool = False,
-    ):
-        to_plot = "BinPropensity"
-        df = cdh_utils._apply_query(
-            (
-                self.datamart.combined_data.filter(
-                    pl.col("PredictorName") != "Classifier"
-                )
-                .group_by([to_plot, "Channel", "Direction"])
-                .agg(pl.sum("BinResponseCount"))
-                .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
-                .collect()
-            ),
-            query,
-        )
-
-        custom_bins = [
-            0,
-            0.0005,
-            0.001,
-            0.002,
-            0.005,
-            0.01,
-            0.02,
-            0.05,
-            0.1,
-            0.2,
-            0.5,
-            0.8,
-            1.0,
-        ]
-        df_pl = df.with_columns(
-            pl.col(to_plot)
-            .fill_null(0)
-            .fill_nan(0)
-            .cut(breaks=custom_bins)
-            .alias(f"{to_plot}_range")
-        )
-
-        out = (
-            df_pl.group_by(["Channel", f"{to_plot}_range"])
-            .agg([pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")])
-            .sort(["Channel", "break_label"])
-            .with_columns(
-                [
-                    (
-                        pl.col("BinResponseCount")
-                        / pl.col("BinResponseCount").sum().over("Channel")
-                    ).alias("Responses")
-                ]
-            )
-        )
-        if return_df:
-            return df.lazy()
-        fig = px.bar(
-            out,
-            x=f"{to_plot}_range",
-            y="Responses",
-            color="Channel",
-            template="pega",
-            barmode="overlay",
-        )
-        fig.update_xaxes(type="category")
-        fig.update_yaxes(tickformat=",.0%")
-
-        return fig

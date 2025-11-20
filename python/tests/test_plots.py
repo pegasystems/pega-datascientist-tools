@@ -232,7 +232,7 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert df.shape == (3, 10)
     assert "PredictorCategory" in df.columns
     assert "mean" in df.columns
-    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 57.37
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.98
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -348,15 +348,3 @@ def test_partitioned_plot(sample: ADMDatamart):
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
     assert all(isinstance(plot, Figure) for plot in plots)
-
-
-def test_propensity_distribution(sample: ADMDatamart):
-    df = sample.plot.propensity_distribution(return_df=True).collect()
-    assert df.shape == (2612, 4)
-    expected_columns = ["BinPropensity", "Channel", "Direction", "BinResponseCount"]
-    assert df.columns == expected_columns
-    assert df["BinPropensity"].min() >= 0
-    assert df["BinPropensity"].max() <= 1
-
-    plot = sample.plot.propensity_distribution()
-    assert isinstance(plot, Figure)
