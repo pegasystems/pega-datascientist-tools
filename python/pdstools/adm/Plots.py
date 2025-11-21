@@ -686,7 +686,7 @@ class Plots(LazyNamespace):
 
         if return_df:
             return pre_aggs
-        
+
         if pre_aggs.select(pl.first().len()).item() == 0:
             return None
 
@@ -851,7 +851,7 @@ class Plots(LazyNamespace):
             .filter(pl.col("ResponseCountBin") > 0)
             .unique(subset=["ModelID", "PredictorName"], keep="first"),
             query=query,
-                allow_empty=True
+            allow_empty=True,
         )
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
@@ -862,7 +862,7 @@ class Plots(LazyNamespace):
                 metric,
             )
 
-        return self._boxplot_pre_aggregated(
+        fig = self._boxplot_pre_aggregated(
             df,
             y_col="PredictorName",
             metric_col=metric,
@@ -872,6 +872,11 @@ class Plots(LazyNamespace):
             legend_col="PredictorCategory",
             return_df=return_df,
         )
+
+        if fig is not None and not return_df:
+            fig.update_xaxes(title="Performance")
+
+        return fig
 
     @requires(
         combined_columns={
@@ -923,7 +928,6 @@ class Plots(LazyNamespace):
             )
             .filter(pl.col("EntryType") != "Classifier")
             .filter(pl.col("ResponseCountBin") > 0),
-            
             query=query,
         )
         if active_only:
@@ -935,13 +939,17 @@ class Plots(LazyNamespace):
         #     )
         # )
 
-        return self._boxplot_pre_aggregated(
+        fig = self._boxplot_pre_aggregated(
             df,
             y_col="PredictorCategory",
             metric_col="PredictorPerformance",
             legend_col="PredictorCategory",
             return_df=return_df,
         )
+        if fig is not None and not return_df:
+            fig.update_xaxes(title="Performance")
+
+        return fig
 
     @requires(
         combined_columns={
@@ -1149,38 +1157,58 @@ class Plots(LazyNamespace):
     def predictor_count(
         self,
         *,
-        by: str = "Type",
-        facet: str = "Configuration",
+        by: Union[str, List[str]] = ["EntryType", "Type"],
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        df = self.datamart.aggregates.predictor_counts(by=by, facet=facet, query=query)
+        if isinstance(by, str):
+            by = [by]
+
+        df = cdh_utils._apply_query(
+            self.datamart.aggregates.last(table="combined_data"), query
+        ).filter(pl.col("EntryType") != "Classifier")
+
+        df = (
+            df.group_by(["ModelID"] + by)
+            .agg(Count=pl.n_unique("PredictorName"))
+            .collect()
+        )
+
+        if len(by) > 1:
+            df = pl.concat(
+                [
+                    df,
+                    df.group_by(["ModelID"] + by[1:])
+                    .agg(pl.col("Count").sum())
+                    .with_columns(pl.lit("Overall").alias(by[0])),
+                ],
+                how="diagonal_relaxed",
+            )
+        df = df.sort(by)
+
         if return_df:
             return df
 
-        # TODO this uses "ResponseCountBin" implicitly - not good!!
-        # TODO also check propensity_distribution plot, maybe thats a box too...
-        # TODO run the HTML analysis again over the sample export
-
-        return self._boxplot_pre_aggregated(
-            df,
-            y_col="Type",
-            metric_col="PredictorCount",
-            legend_col="EntryType",
-            return_df=return_df,
-        )
-
-        # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
-        return px.box(
-            df.collect(),
-            x="PredictorCount",
-            y="Type",
-            facet_col=facet,
-            facet_col_wrap=2,
-            color="EntryType",
+        fig = px.box(
+            df.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
+            x="Count",
+            y="_Type",
+            color=by[0],
             template="pega",
-            title="Predictor Count across all models",
         )
+
+        # Update title and x-axis label if we have a figure (not None and not a DataFrame)
+        if fig is not None and not return_df:
+            fig.update_layout(title="Predictors by Type")
+            fig.update_xaxes(title="Number of Predictors")
+            # Ensure y-axis labels fit properly by increasing left margin
+            fig.update_yaxes(automargin=True)
+            fig.update_layout(margin=dict(l=150))
+            fig.update_yaxes(title="")
+            # Reverse the legend order
+            fig.update_layout(legend=dict(traceorder="reversed"))
+
+        return fig
 
     def binning_lift(
         self,
@@ -1359,4 +1387,3 @@ class Plots(LazyNamespace):
 
         # print(f"PARITIONED PLOT: {len(facets)} facets, {len([f for f in figs if f is not None])} non-empty figs")
         return figs
-

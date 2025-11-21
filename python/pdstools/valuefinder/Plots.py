@@ -124,6 +124,7 @@ class Plots(LazyNamespace):
                 showlegend=False,
                 line_color="rgba(0,0,0)",
             )
+            # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
             boxy = go.Box(
                 x=sample["ModelPropensity"], name=stage, y0=0, boxpoints="outliers"
             )

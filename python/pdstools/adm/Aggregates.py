@@ -227,62 +227,6 @@ class Aggregates:
             )
         )
 
-    # TODO: how is this used? Shouldn't it be just a group-by on predictorname + category ? May need to be refactored a bit
-
-    def predictor_counts(
-        self,
-        *,
-        facet: str = "Configuration",
-        by: str = "Type",
-        query: Optional[QUERY] = None,
-    ) -> pl.LazyFrame:
-        """Returns the count of each predictor grouped by a certain column
-
-        Parameters
-        ----------
-        facet : str, optional
-            The column to use as a secondary grouping dimension, by default "Configuration"
-        by : str, optional
-            The column to group the data by, by default "Type"
-        query : Optional[QUERY], optional
-            A query to apply to the data, by default None
-
-        Returns
-        -------
-        pl.LazyFrame
-            A LazyFrame with one row per predictor and 'by' combination, containing:
-            - Name - The action name
-            - EntryType - The entry type (Active, Inactive, etc.)
-            - by - The column specified in the 'by' parameter
-            - facet - The column specified in the 'facet' parameter
-            - PredictorCount - The number of unique predictors for this combination
-        """
-        df = (
-            cdh_utils._apply_query(
-                self.datamart.aggregates.last(table="combined_data"), query=query
-            )
-            .select("Name", "EntryType", "PredictorName", by, facet)
-            .filter(pl.col("PredictorName") != "Classifier")
-            .group_by(pl.all().exclude("PredictorName"))
-            .agg(PredictorCount=pl.n_unique("PredictorName"))
-        )
-
-        overall = (
-            df.group_by(pl.all().exclude(["PredictorName", by, "PredictorCount"]))
-            .agg(pl.sum("PredictorCount"))
-            .with_columns(pl.lit("Overall").alias(by))
-        )
-
-        # Collect schema once and use it for casting both DataFrames
-        schema = df.collect_schema()
-
-        return (
-            pl.concat([df, overall.select(schema.names()).cast(schema)])
-            .with_columns(
-                pl.col("PredictorCount").cast(pl.Int64), cs.categorical().cast(pl.Utf8)
-            )
-            .sort(["Name", "EntryType", by, facet, "PredictorCount"])
-        )
 
     @staticmethod
     def _top_n(
