@@ -111,13 +111,15 @@ def requires(
     return decorator
 
 
-def fig_update_facet(fig: Figure, n_cols: int = 2, base_height: int = 250, step_height: int = 270) -> Figure:
+def fig_update_facet(
+    fig: Figure, n_cols: int = 2, base_height: int = 250, step_height: int = 270
+) -> Figure:
     """Update faceted plot layout with proper height and simplified annotation text.
-    
-    This utility function adjusts the height of faceted plots based on the number of 
-    facets and columns, and simplifies facet annotation text by showing only the 
+
+    This utility function adjusts the height of faceted plots based on the number of
+    facets and columns, and simplifies facet annotation text by showing only the
     value part after "=" splits.
-    
+
     Parameters
     ----------
     fig : Figure
@@ -128,7 +130,7 @@ def fig_update_facet(fig: Figure, n_cols: int = 2, base_height: int = 250, step_
         Base height for the plot, by default 250
     step_height : int, optional
         Additional height per row of facets, by default 270
-        
+
     Returns
     -------
     Figure
