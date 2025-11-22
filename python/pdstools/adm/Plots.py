@@ -1,5 +1,6 @@
 __all__ = ["Plots"]
 import logging
+import math
 from datetime import timedelta
 from functools import wraps
 from typing import (
@@ -18,6 +19,7 @@ from typing import (
 )
 
 import polars as pl
+import polars.selectors as cs
 from typing_extensions import Concatenate, ParamSpec
 
 from ..utils import cdh_utils
@@ -107,6 +109,36 @@ def requires(
         return wrapper
 
     return decorator
+
+
+def fig_update_facet(fig: Figure, n_cols: int = 2, base_height: int = 250, step_height: int = 270) -> Figure:
+    """Update faceted plot layout with proper height and simplified annotation text.
+    
+    This utility function adjusts the height of faceted plots based on the number of 
+    facets and columns, and simplifies facet annotation text by showing only the 
+    value part after "=" splits.
+    
+    Parameters
+    ----------
+    fig : Figure
+        The plotly figure to update
+    n_cols : int, optional
+        Number of columns in the facet layout, by default 2
+    base_height : int, optional
+        Base height for the plot, by default 250
+    step_height : int, optional
+        Additional height per row of facets, by default 270
+        
+    Returns
+    -------
+    Figure
+        The updated plotly figure
+    """
+    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
+    height = base_height + (n_rows * step_height)
+    return fig.for_each_annotation(
+        lambda a: a.update(text=a.text.split("=")[1])
+    ).update_layout(autosize=True, height=height)
 
 
 def add_bottom_left_text_to_bubble_plot(
@@ -682,6 +714,9 @@ class Plots(LazyNamespace):
                 whisker_high=pl.quantile(metric_col, 0.9),
             )
             .with_columns(iqr=pl.col("q3") - pl.col("q1"))
+            # limiting the decimals should reduce the size of
+            # the plotly data in HTML significantly. TODO not sure thats true!!
+            .with_columns(cs.numeric().round(3))
             .sort(["median", y_col], descending=True)
             .collect()
         )

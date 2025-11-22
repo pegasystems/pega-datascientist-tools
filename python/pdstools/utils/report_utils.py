@@ -1,5 +1,6 @@
 import os
 import datetime
+import io
 import json
 import logging
 import re
@@ -620,7 +621,7 @@ def show_credits(quarto_source: str):
     )
 
 
-def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
+def serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
     if query is None:
         return None
 
@@ -639,3 +640,33 @@ def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
         return {"type": "dict", "data": query}
 
     raise ValueError(f"Unsupported query type: {type(query)}")
+
+
+def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
+    """Deserialize a query that was previously serialized with serialize_query.
+    
+    Parameters
+    ----------
+    serialized_query : Optional[Dict]
+        A serialized query dictionary created by serialize_query
+        
+    Returns
+    -------
+    Optional[QUERY]
+        The deserialized query
+    """
+    if serialized_query is None:
+        return None
+
+    if serialized_query["type"] == "expr_list":
+        expr_list = []
+        for _, val in serialized_query["expressions"].items():
+            json_str = json.dumps(val)
+            str_io = io.StringIO(json_str)
+            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
+        return expr_list
+
+    elif serialized_query["type"] == "dict":
+        return serialized_query["data"]
+
+    raise ValueError(f"Unknown query type: {serialized_query['type']}")

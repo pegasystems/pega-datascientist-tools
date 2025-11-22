@@ -12,7 +12,7 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 from ..utils.report_utils import (
-    _serialize_query,
+    serialize_query,
     run_quarto,
     copy_quarto_file,
     get_output_filename,
@@ -295,7 +295,7 @@ class Reports(LazyNamespace):
             if (prediction_file_path is None) and (prediction is not None):
                 prediction_file_path = prediction.save_data(temp_dir)
             
-            serialized_query = _serialize_query(query)
+            serialized_query = serialize_query(query)
             run_quarto(
                 qmd_file=qmd_filename,
                 output_filename=output_filename,

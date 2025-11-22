@@ -42,6 +42,7 @@ from pdstools import (
 )
 from pdstools.adm.CDH_Guidelines import CDHGuidelines
 from pdstools.utils import pega_template, report_utils, cdh_utils
+from pdstools.adm.Plots import fig_update_facet
 
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
@@ -52,37 +53,12 @@ import polars as pl
 import polars.selectors as cs
 
 import numpy as np
-import math
 import json
 import io
 import datetime
 
 cdh_guidelines = CDHGuidelines()
 
-# TODO to report_utils ?
-def fig_update_facet(fig, n_cols=2, base_height=250, step_height=270):
-    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
-    height = base_height + (n_rows * step_height)
-    return fig.for_each_annotation(
-        lambda a: a.update(text=a.text.split("=")[1])
-    ).update_layout(autosize=True, height=height)
-
-def _deserialize_query(serialized_query):
-    if serialized_query is None:
-        return None
-
-    if serialized_query["type"] == "expr_list":
-        expr_list = []
-        for _, val in serialized_query["expressions"].items():
-            json_str = json.dumps(val)
-            str_io = io.StringIO(json_str)
-            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
-        return expr_list
-
-    elif serialized_query["type"] == "dict":
-        return serialized_query["data"]
-
-    raise ValueError(f"Unknown query type: {serialized_query['type']}")
 ```
 
 ```{python}
@@ -104,10 +80,6 @@ predictor_file_path = None
 prediction_file_path = None
 query = None
 
-model_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_modeldata.parquet"
-predictor_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_predictorsnapshot.parquet"
-prediction_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_predictionsnapshot.parquet"
-
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
 responsecount_analysis_threshold = (
@@ -119,8 +91,9 @@ configuration_responses_threshold = 10000
 
 threshold_updated_days = 30  # if no responses in this nr of days assume not active
 
-# considering this as a parameter but remains somewhat arbitraty which to select
-# configurations_max = 10 # No more than this amount of configurations (set to None)
+# considering this as a parameter : if there are more than this
+# we report at aggregate level (not arbitrary selecting configurations)
+# configurations_max = 10
 ```
 
 ```{python}
@@ -138,7 +111,7 @@ if query and query == "None":
     query = None
 
 
-query = _deserialize_query(query)
+query = report_utils.deserialize_query(query)
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
 )
@@ -1428,7 +1401,6 @@ We expect a few dozen active predictors for every model instance
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing action/treatments are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 Note that this view is really only useful when there is a limited number of actions. Also, we do not split by configuration here, to avoid having too many plots. It is often useful to zoom in into specific channels or configurations.
-
 
 ```{python}
 index_cols = report_utils.polars_subset_to_existing_cols(
