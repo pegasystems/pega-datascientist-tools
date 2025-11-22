@@ -12,7 +12,7 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 from ..utils.report_utils import (
-    _serialize_query,
+    serialize_query,
     run_quarto,
     copy_quarto_file,
     get_output_filename,
@@ -49,6 +49,7 @@ class Reports(LazyNamespace):
         progress_callback: Optional[Callable[[int, int], None]] = None,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
+        qmd_file: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates model reports for Naive Bayes ADM models.
@@ -82,7 +83,9 @@ class Reports(LazyNamespace):
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
-
+        qmd_file : Union[str, Path, None], optional
+            Optional path to the Quarto file to use for the model report. 
+            If None, defaults to "ModelReport.qmd".
 
         Returns
         -------
@@ -110,8 +113,14 @@ class Reports(LazyNamespace):
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
         try:
-            qmd_file = "ModelReport.qmd"
-            copy_quarto_file(qmd_file, temp_dir)
+            # Use provided qmd_file or default to "ModelReport.qmd"
+            if qmd_file is None:
+                qmd_filename = "ModelReport.qmd"
+                copy_quarto_file(qmd_filename, temp_dir)
+            else:
+                qmd_filename = Path(qmd_file).name
+                # Copy the custom qmd file to temp directory
+                shutil.copy(qmd_file, temp_dir / qmd_filename)
 
             # Copy data to a temp dir only if the files are not passed in already
             if (
@@ -130,7 +139,7 @@ class Reports(LazyNamespace):
                     name, "ModelReport", model_id, output_type
                 )
                 run_quarto(
-                    qmd_file=qmd_file,
+                    qmd_file=qmd_filename,
                     output_filename=output_filename,
                     output_type=output_type,
                     params={
@@ -205,6 +214,7 @@ class Reports(LazyNamespace):
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
+        qmd_file: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates Health Check report for ADM models, optionally including predictor and prediction sections.
@@ -239,6 +249,9 @@ class Reports(LazyNamespace):
         prediction_file_path : Union[str, Path, None], optional
             Optional name of the actual predictions data file. If not provided but prediction object
             is given, the data will be automatically cached from the prediction object.
+        qmd_file : Union[str, Path, None], optional
+            Optional path to the Quarto file to use for the health check report. 
+            If None, defaults to "HealthCheck.qmd".
 
         Returns
         -------
@@ -256,12 +269,18 @@ class Reports(LazyNamespace):
         """
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
-            qmd_file = "HealthCheck.qmd"
+            # Use provided qmd_file or default to "HealthCheck.qmd"
+            if qmd_file is None:
+                qmd_filename = "HealthCheck.qmd"
+                copy_quarto_file(qmd_filename, temp_dir)
+            else:
+                qmd_filename = Path(qmd_file).name
+                # Copy the custom qmd file to temp directory
+                shutil.copy(qmd_file, temp_dir / qmd_filename)
+            
             output_filename = get_output_filename(
                 name, "HealthCheck", None, output_type
             )
-
-            copy_quarto_file(qmd_file, temp_dir)
 
             # Copy data to a temp dir only if the files are not passed in already
             if (
@@ -276,9 +295,9 @@ class Reports(LazyNamespace):
             if (prediction_file_path is None) and (prediction is not None):
                 prediction_file_path = prediction.save_data(temp_dir)
             
-            serialized_query = _serialize_query(query)
+            serialized_query = serialize_query(query)
             run_quarto(
-                qmd_file=qmd_file,
+                qmd_file=qmd_filename,
                 output_filename=output_filename,
                 output_type=output_type,
                 params={

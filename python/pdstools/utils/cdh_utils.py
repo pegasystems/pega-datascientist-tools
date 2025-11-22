@@ -75,7 +75,7 @@ def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False
     filtered_df = df.filter(query)
     if not allow_empty:
         if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
-            raise ValueError("The given query resulted in no more remaining data.")
+            raise ValueError("The given query resulted in an empty dataframe")
     return filtered_df
 
 

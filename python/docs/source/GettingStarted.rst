@@ -222,13 +222,31 @@ To create a 'bubble chart' on sample ADM data that plots action Success Rates vs
 
    cdh_sample().plot.bubble_chart()
 
+If you have exported your own Datamart data, you can load it and create a similar plot:
+
+.. code-block:: python
+
+   from pdstools.adm import ADMDatamart
+
+   dm = ADMDatamart.from_ds_export("path/to/your/datamart/export/folder")
+   dm.plot.bubble_chart()
+
+The data import method is flexible and has many arguments, see the `ADMDatamart class documentation <autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.from_ds_export>`_ for more information.
+
+Pega Data Scientist Tools uses Python namespaces for a modular organization. Frequently used namespaces in the ADM Datamart class are ``plot`` for plotting, ``aggregates`` for summarization functions and ``generate`` for reporing. For example, to generate the standard ADM Health Check report, use the `health_check <autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.Reports.health_check>`_ method in the ``generate`` namespace:
+
+.. code-block:: python
+
+   dm.generate.health_check()
+
+
 Next Steps
 ---------------
 
-To run these analyses over your own data, please refer to the `ADMDatamart class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/adm/ADMDatamart/index.html>`_ or for an example of how to use it, refer to the `Example ADM Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_.
+To run these analyses over your own data, please refer to the `ADMDatamart class documentation <autoapi/pdstools/adm/ADMDatamart/index.html>`_ or for an example of how to use it, refer to the `Example ADM Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_.
 
-To run the Stand-Alone Application, please refer to the `Command Line Interface documentation <https://pegasystems.github.io/pega-datascientist-tools/cli.html>`_ or the `ADM Health Check Article </pega-datascientist-tools/python/docs/build/html/GettingStartedWithTheStandAloneApplication.html>`_
+To run the Stand-Alone Application, please refer to the `Command Line Interface documentation <cli.html>`_ or the `ADM Health Check Article <GettingStartedWithTheStandAloneApplication.html>`_
 
-For information on how to use the Infinity DX client, please refer to the `Infinity class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/infinity/client/index.html>`_ or the `Prediction Studio API Explainer article <https://github.com/pegasystems/pega-datascientist-tools/blob/master/examples/prediction_studio/PredictionStudio.ipynb>`_.
+For information on how to use the Infinity DX client, please refer to the `Infinity class documentation <autoapi/pdstools/infinity/client/index.html>`_ or the `Prediction Studio API Explainer article <https://github.com/pegasystems/pega-datascientist-tools/blob/master/examples/prediction_studio/PredictionStudio.ipynb>`_.
 
 PDSTools supports analysis of several other Pega Data. Please see the Examples in the documentation.

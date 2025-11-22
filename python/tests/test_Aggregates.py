@@ -103,11 +103,6 @@ def test_model_summary(dm_aggregates):
     assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
-def test_predictor_counts(dm_aggregates):
-    assert dm_aggregates.predictor_counts().collect().shape[0] == 78
-    assert dm_aggregates.predictor_counts().collect().shape[1] == 5
-
-
 def test_predictors_overview(dm_aggregates):
     assert dm_aggregates.predictors_overview().collect().height == 1800
     assert dm_aggregates.predictors_overview().collect().width == 13

@@ -4,6 +4,7 @@ from typing import Optional
 
 import plotly.express as px
 import polars as pl
+import polars.selectors as cs
 import streamlit as st
 
 from .. import pega_io
@@ -316,7 +317,7 @@ def filter_dataframe(
                 if user_text_input:
                     queries.append(pl.col(column).str.contains(user_text_input))
 
-        elif col_dtype in pl.NUMERIC_DTYPES:
+        elif df.select(cs.numeric()).collect_schema().get(column) is not None:
             min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
@@ -343,7 +344,7 @@ def filter_dataframe(
                 user_num_input = [user_min, user_max]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
-        elif col_dtype in pl.TEMPORAL_DTYPES:
+        elif df.select(cs.temporal()).collect_schema().get(column) is not None:
             user_date_input = right.date_input(
                 f"Values for {column}",
                 value=(
