@@ -59,27 +59,14 @@ import datetime
 
 cdh_guidelines = CDHGuidelines()
 
-def fig_update_facet_height(fig, n_cols=2, base_height=250, step_height=270):
+# TODO to report_utils ?
+def fig_update_facet(fig, n_cols=2, base_height=250, step_height=270):
     n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
     return fig.for_each_annotation(
         lambda a: a.update(text=a.text.split("=")[1])
     ).update_layout(autosize=True, height=height)
 
-
-def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
-    fig = (
-        fig.for_each_xaxis(
-            lambda xaxis: xaxis.update(showticklabels=True, visible=True)
-        )
-        .for_each_xaxis(
-            lambda xaxis: xaxis.update(
-                dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
-            )
-        )
-        .update_xaxes(title=label, showticklabels=True, visible=True)
-    )
-    return fig
 def _deserialize_query(serialized_query):
     if serialized_query is None:
         return None
@@ -117,6 +104,10 @@ predictor_file_path = None
 prediction_file_path = None
 query = None
 
+model_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_modeldata.parquet"
+predictor_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_predictorsnapshot.parquet"
+prediction_file_path="/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/LMMS_Data_DJS/LMMS_predictionsnapshot.parquet"
+
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
 responsecount_analysis_threshold = (
@@ -128,6 +119,8 @@ configuration_responses_threshold = 10000
 
 threshold_updated_days = 30  # if no responses in this nr of days assume not active
 
+# considering this as a parameter but remains somewhat arbitraty which to select
+# configurations_max = 10 # No more than this amount of configurations (set to None)
 ```
 
 ```{python}
@@ -257,18 +250,23 @@ try:
     fig.layout.coloraxis.colorscale = pega_template.success
 
     fig = (
-        fig_set_xaxis_modelperformance(fig)
-        .update_layout(
+        fig.update_layout(
             autosize=True,
             height=400,
             title=f"ADM Models across all Channels<br><sup>showing {filtered_size} models updated since {active_models_threshold_date_string}</sup>",
             xaxis_title="Model Performance",
             yaxis_title="Success Rate",
         )
+        .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
+        .for_each_xaxis(
+            lambda xaxis: xaxis.update(
+                dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
+            )
+        )
+        .update_xaxes(title="Model Performance", showticklabels=True, visible=True)
         .update_yaxes(tickformat=",.2%")
         .update_coloraxes(showscale=False)
     )
-
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("All ADM Models", e)
@@ -792,11 +790,20 @@ fig.show()
 ## Success Rates
 
 ```{python}
-unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"]).with_columns(
+unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction","Configuration"]).with_columns(
     cs.string().cast(pl.Categorical)
 )
-
 if unused_channels.height > 0:
+    report_utils.quarto_print(
+        f"""
+In the detailed analyses after the model overview, the following channels that have been marked as "invalid" because there are no responses or no positives, will be excluded:
+    """
+    )
+
+    display(
+        GT(unused_channels.sort(["Channel","Direction"])).tab_options(table_font_size=8)
+    )
+
     reset_datamart(
         ADMDatamart(
             model_df=datamart.model_data.join(
@@ -868,7 +875,7 @@ try:
         hover_data=hover_data,
     )
 
-    fig = fig_update_facet_height(fig, facet_cols, 200, 250)  # 200/250
+    fig = fig_update_facet(fig, facet_cols, 200, 250)  # 200/250
 
     fig = (
         fig.update_xaxes(tickformat=",.2%", tickangle=45, title="", matches=None)
@@ -923,10 +930,10 @@ by = pl.concat_str(["Channel", "Direction"], separator="/")
 try:
     fig = datamart.plot.over_time(
         metric="SuccessRate",
-        facet="Configuration",
+        facet="ModelTechnique",
         by=by,
     )
-    fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
+    fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_yaxes(matches=None, title="", showticklabels=True, tickformat=".2%")
         .update_xaxes(showticklabels=True, title="")
@@ -1074,18 +1081,27 @@ try:
     facet = pl.concat_str(
         pl.col("Configuration"), pl.col("Channel"), pl.col("Direction"), separator="/"
     )
-    fig = datamart.plot.bubble_chart(facet=facet,query=active_models_filter_expr)
-    fig = fig_set_xaxis_modelperformance(fig, label="")
-    fig = fig_update_facet_height(fig)
+    fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
     fig = (
-        fig
-        .update_layout(title=f"ADM Models per Channel<br><sup>updated since {active_models_threshold_date_string}</sup>", font=dict(size=9))
+        fig_update_facet(fig)
+        .update_layout(
+            title=f"ADM Models per Channel<br><sup>updated since {active_models_threshold_date_string}</sup>",
+            font=dict(size=9),
+        )
         .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
+        .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
+        .for_each_xaxis(
+            lambda xaxis: xaxis.update(
+                dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
+            )
+        )
+        .update_xaxes(title="", showticklabels=True, visible=True)
         .update_yaxes(tickformat=",.2%", title="")
         .update_coloraxes(showscale=False)
     )
     fig.layout.coloraxis.colorscale = pega_template.success
     fig.show()
+
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly no valid data.")
 except Exception as e:
@@ -1116,20 +1132,19 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 The trend chart shows how model performance evolves over time. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
 
 ```{python}
-facet = "Configuration"
-facets = datamart.unique_configurations
 by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
     "Channel/Direction"
 )
 facet_col_wrap = max(2, int(len(facets) ** 0.5))
 try:
-    fig = datamart.plot.over_time(metric="Performance", facet=facet, by=by)
-    fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
+    fig = datamart.plot.over_time(metric="Performance", facet="ModelTechnique", by=by)
+    fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
         # no need for a for_all_y or something?
-        .update_yaxes(showticklabels=True, title="", range=[50,100])
-        .update_xaxes(title="")
+        .update_yaxes(showticklabels=True, title="", range=[50, 100]).update_xaxes(
+            title=""
+        )
     )
     fig.show()
 except ValueError as e:
@@ -1155,7 +1170,7 @@ It can be interesting to see which issues, groups or channels can be better pred
 try:
     fig = datamart.plot.tree_map(
         metric="Performance",
-        by=datamart.context_keys[-1],
+        by="Group" if ("Group" in datamart.context_keys) else datamart.context_keys[-1],
     )
 
     fig = fig.update_layout(
@@ -1178,7 +1193,7 @@ Warning : Currently treemap calculates mean response count moving upwards in the
 try:
     fig = datamart.plot.tree_map(
         metric="ResponseCount",
-        by=datamart.context_keys[-1],
+        by="Group" if ("Group" in datamart.context_keys) else datamart.context_keys[-1],
     )
 
     fig = fig.update_layout(
@@ -1263,11 +1278,13 @@ else:
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
 
 ```{python}
-# TODO: Uses feature importance if available in the datamart
+# TODO: Use feature importance if available in the datamart
 # drop our own calculations of feature importance. Would be nice to
 # be able to toggle in the graph (with a tab)
 # TODO see why the categorization does not work
 # TODO consistent coloring for predictor categories
+# TODO this one may be expensive if there's a lot of configurations
+# yet cluttering them together makes no sense
 
 # to_plot = (
 #     "FeatureImportance"
@@ -1323,6 +1340,7 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 if datamart.predictor_data is not None:
     try:
         fig = datamart.plot.predictor_category_performance()
+        fig.update_layout(title="Univariate Predictor Performance")
         fig.show()
     except Exception as e:
         report_utils.quarto_plot_exception("Importance by Predictor Category", e)
@@ -1409,7 +1427,8 @@ We expect a few dozen active predictors for every model instance
 
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing action/treatments are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
-Note that this view is really only useful when there is a limited number of actions.
+Note that this view is really only useful when there is a limited number of actions. Also, we do not split by configuration here, to avoid having too many plots. It is often useful to zoom in into specific channels or configurations.
+
 
 ```{python}
 index_cols = report_utils.polars_subset_to_existing_cols(
@@ -1417,39 +1436,37 @@ index_cols = report_utils.polars_subset_to_existing_cols(
 )
 
 if datamart.predictor_data is not None:
-    for conf in datamart.unique_configurations:
-        try:
-            fig = datamart.plot.predictor_performance_heatmap(
-                top_predictors=barchart_max_bars,
-                top_groups=barchart_max_bars,
-                by=pl.concat_str(
-                    pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
-                ).alias("Action"),
-                query=pl.col("Configuration") == conf,
-            )
-            fig.update_layout(
-                # TODO: make this a proper call to some abbreviation function
-                xaxis={
-                    "tickmode": "array",
-                    "tickvals": fig.data[0]["x"],
-                    "ticktext": [
-                        "..." + tick[-25:] if len(tick) > 25 else tick
-                        for tick in fig.data[0]["x"]
-                    ],
-                },
-                font=dict(size=8),
-                title=f"Top predictors over {conf}",
-            )
-            fig.update_yaxes(dtick=1, automargin=True)
-            fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
-            fig.update(layout_coloraxis_showscale=False)
+    try:
+        fig = datamart.plot.predictor_performance_heatmap(
+            top_predictors=barchart_max_bars,
+            top_groups=barchart_max_bars,
+            by=pl.concat_str(
+                pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
+            ).alias("Action"),
+        )
+        fig.update_layout(
+            # TODO: make this a proper call to some abbreviation function
+            xaxis={
+                "tickmode": "array",
+                "tickvals": fig.data[0]["x"],
+                "ticktext": [
+                    "..." + tick[-25:] if len(tick) > 25 else tick
+                    for tick in fig.data[0]["x"]
+                ],
+            },
+            font=dict(size=8),
+            title=f"Top predictors per Action<br>Globally, across all models and channels",
+        )
+        fig.update_yaxes(dtick=1, automargin=True)
+        fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
+        fig.update(layout_coloraxis_showscale=False)
 
-            fig.show()
+        fig.show()
 
-        except ValueError as e:
-            print(f'Plot was not drawn for {conf} because of an error:"{e}"')
-        except Exception as e:
-            report_utils.quarto_plot_exception("Predictor Performance across Actions", e)
+    except ValueError as e:
+        print(f'Plot error: "{e}"')
+    except Exception as e:
+        report_utils.quarto_plot_exception("Predictor Performance across Actions", e)
 
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
@@ -1457,7 +1474,7 @@ else:
 
 ## Missing values
 
-If a predictor is low performing: are there too many missing values? This could point to a technical problem. IH fields often have missing values so they are excluded. We only list predictors that have > 10% missing values.
+If a predictor is low performing: are there too many missing values? This could point to a technical problem. IH fields often have missing values so they are excluded. We only list predictors that have \> 10% missing values.
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1668,7 +1685,7 @@ try:
 
     fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
     fig.update_layout(legend_title_text="Model Maturity")
-    fig = fig_update_facet_height(fig, 3, 200, 250)
+    fig = fig_update_facet(fig, 3, 200, 250)
 
     fig.update_layout(legend=dict(yanchor="bottom", y=-400, xanchor="left", x=0))
 
@@ -1682,27 +1699,22 @@ Guidance ::: {.callout-tip title="Guidance"} \* Empty models shouldnt be increas
 ## Number of Responses over Time
 
 ```{python}
-facets = "Configuration"
-unique_count = len(datamart.unique_configurations)
-# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
-facet_col_wrap = max(2, int(unique_count**0.5))
-
 try:
     response_counts = datamart.plot.over_time(
         "ResponseCount",
+        # TODO support ["Channel", "Direction"] - mulitiple by's in over_time
         by="Channel",
         cumulative=False,
-        facet="Configuration",
+        # facet="Configuration",
     )
 
-    response_counts = fig_update_facet_height(response_counts, facet_cols, 200, 250)
+    response_counts = fig_update_facet(response_counts, facet_cols, 200, 250)
     response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
     response_counts.update_layout(yaxis_title="Responses")
     response_counts.for_each_yaxis(lambda yaxis: yaxis.update(title="Responses"))
+    response_counts.update_layout(title="Responses over time")
 
     response_counts.show()
-except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
 except Exception as e:
     traceback.print_exc()
     print(f"Error in Number of Responses over time plot: {e}")

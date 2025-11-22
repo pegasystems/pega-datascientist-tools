@@ -272,6 +272,8 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=".3%")
         return fig
 
+    # TODO support ["Channel", "Direction"] - mulitiple by's in over_time
+
     @requires({"SnapshotTime"})
     def over_time(
         self,
