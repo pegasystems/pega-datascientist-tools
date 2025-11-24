@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Literal,
@@ -914,6 +915,7 @@ class Plots(LazyNamespace):
 
         if fig is not None and not return_df:
             fig.update_xaxes(title="Performance")
+            fig.update_layout(title=f"{metric} by Predictor Category")
 
         return fig
 
@@ -1401,28 +1403,48 @@ class Plots(LazyNamespace):
         plt.update_coloraxes(showscale=False)
         return plt
 
+
+# existing_query = pl.lit(True)
+# for facet in facets:
+#     title = ", ".join([f"{k}={v}" for k,v in facet.items()])
+#     print(title)
+#     for k,v in facet.items():
+#         if v is None:
+#             new_query = pl.col(k).is_null()
+#         else:
+#             new_query = pl.col(k).eq(v)
+#         combined_query = cdh_utils._combine_queries(existing_query, new_query)
+#         print(new_query)
+#         print(combined_query)
+
     def partitioned_plot(
         self,
         func: Callable,
-        facets: Set,
-        partition_col: str = "Configuration",
+        facets: List[Dict[str, Optional[str]]],
         show_plots: bool = True,
         *args,
         **kwargs,
     ):
-        existing_query = kwargs.get("query")
         figs = []
+        existing_query = kwargs.get("query")
         for facet in facets:
-            new_query = pl.col(partition_col).eq(facet)
-            if existing_query is not None:
-                combined_query = cdh_utils._combine_queries(existing_query, new_query)
-            else:
-                combined_query = new_query
+            combined_query = existing_query
+            for k,v in facet.items():
+                if v is None:
+                    new_query = pl.col(k).is_null()
+                else:
+                    new_query = pl.col(k).eq(v)
+                if combined_query is not None:
+                    combined_query = cdh_utils._combine_queries(combined_query, new_query)
+                else:
+                    combined_query = new_query
+
             kwargs["query"] = combined_query
             fig = func(*args, **kwargs)
             figs.append(fig)
-            if show_plots and fig is not None:
-                fig.show()
+        if show_plots and fig is not None:
+            # fig.update_layout(title=title)
+            fig.show()
 
         # print(f"PARITIONED PLOT: {len(facets)} facets, {len([f for f in figs if f is not None])} non-empty figs")
         return figs

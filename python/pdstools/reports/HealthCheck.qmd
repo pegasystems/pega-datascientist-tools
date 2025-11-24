@@ -110,7 +110,6 @@ if predictor_file_path and predictor_file_path == "None":
 if query and query == "None":
     query = None
 
-
 query = report_utils.deserialize_query(query)
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
@@ -1246,9 +1245,10 @@ else:
 -   Consistency in the numbers across configurations
 :::
 
-## Predictor Importance across all models per configuration
+## Predictor Importance
 
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
+
 
 ```{python}
 # TODO: Use feature importance if available in the datamart
@@ -1266,9 +1266,29 @@ Box plots of the predictor importance. Predictor importance is using the univari
 # )
 
 if datamart.predictor_data is not None:
+    facets = (
+        datamart.aggregates.last(table="combined_data")
+        .select(pl.col("Configuration", "Channel", "Direction", "ModelTechnique"))
+        .unique()
+        .collect()
+        .to_dicts()
+    )
+    main_title = "Predictor Importance per Model Configuration"
+    # If there's too many configurations, drop this from 
+    # the partitioning.
+    if len(facets) > 10:
+        report_utils.quarto_callout_info(f"""
+The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
+""")
+        facets = (
+            datamart.aggregates.last(table="combined_data")
+            .select(pl.col("Direction", "ModelTechnique"))
+            .unique()
+            .collect()
+            .to_dicts()
+        )
+        main_title = "Predictor Importance for all Model Configurations"
     try:
-        facets = datamart.unique_configurations
-        partition_col = "Configuration"
         figs = datamart.plot.partitioned_plot(
             datamart.plot.predictor_performance,
             metric="Performance",
@@ -1276,22 +1296,27 @@ if datamart.predictor_data is not None:
             active_only=False,
             query=predictor_analysis_query,
             facets=facets,
-            partition_col=partition_col,
             show_plots=False,
         )
         if not isinstance(figs, list):
             figs = [figs]
 
-        for fig, facet_name in zip(figs, facets):
+        for fig, facet in zip(figs, facets):
+            facet_str = ", ".join([f"{k}={v}" for k, v in facet.items()])
             if fig is not None:
                 fig.update_traces(width=0.3)
-                fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
+                fig.update_layout(
+                    title=f"{main_title}<br>{facet_str}",
+                    font=dict(size=10),
+                    height=700,
+                    yaxis_title="",
+                )
                 fig.layout.xaxis.tickformat = ".d"
-                # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
-
                 fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Predictor Importance across all models per configuration", e)
+        report_utils.quarto_plot_exception(
+            "Predictor Importance=", e
+        )
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
