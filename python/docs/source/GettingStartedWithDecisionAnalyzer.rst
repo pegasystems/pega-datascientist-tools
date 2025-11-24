@@ -32,8 +32,26 @@ These are standalone applications, not Python libraries, and must be installed s
 To use the Decision Analyzer Tool, you need to install several Python components. Choose your preferred Python package manager:
 
 .. tabs::
+   .. tab:: uv tool (recommended)
+      
+      We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
-   .. tab:: uv (Recommended)
+      **Step 1:** Install uv
+
+      If you haven't yet, install uv from https://github.com/astral-sh/uv. We recommend using the standalone installer, as it has a ``uv self update`` function.
+
+      **Step 2:** Install the pdstools applications as uv tool
+
+      .. code-block:: bash
+
+         uv tool install 'pdstools[app]'
+
+      This will install the pdstools application globally on your system, making the ``pdstools`` command available from any terminal.
+
+      .. Note:: You do not need to create a virtual environment with this method - uv handles that for you. This assures global access and avoids dependency conflicts.
+      
+
+   .. tab:: uv + venv
 
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
@@ -124,12 +142,17 @@ Launching the Decision Analyzer
 Once everything is installed, you can launch the Decision Analyzer application:
 
 .. tabs::
+   .. tab:: uv tool (recommended)
+      
+      .. code-block:: bash
 
-   .. tab:: uv (Recommended)
+         pdstools decision_analyzer
+
+   .. tab:: uv + venv
 
       .. code-block:: bash
 
-         uv run pdstools run decision_analyzer
+         uv run pdstools decision_analyzer
 
    .. tab:: pip + venv
 
@@ -137,13 +160,13 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
       .. code-block:: bash
 
-         pdstools run decision_analyzer
+         pdstools decision_analyzer
 
    .. tab:: pip (global)
 
       .. code-block:: bash
 
-         pdstools run decision_analyzer
+         pdstools decision_analyzer
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
@@ -177,8 +200,13 @@ Upgrading pdstools
 If you already had an older version of pdstools, make sure to upgrade to the latest version:
 
 .. tabs::
+   .. tab:: uv + tool (recommended)
+      
+      .. code-block:: bash
 
-   .. tab:: uv (Recommended)
+         uv tool update pdstools
+
+   .. tab:: uv + venv
 
       .. code-block:: bash
 
