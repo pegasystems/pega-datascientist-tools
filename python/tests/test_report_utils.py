@@ -105,30 +105,30 @@ def test_serialize_query():
     import polars as pl
 
     # Test with None
-    assert report_utils._serialize_query(None) is None
+    assert report_utils.serialize_query(None) is None
 
     # Test with single expression
     expr = pl.col("A") > 5
-    result = report_utils._serialize_query(expr)
+    result = report_utils.serialize_query(expr)
     assert result["type"] == "expr_list"
     assert "0" in result["expressions"]
 
     # Test with list of expressions
     expr_list = [pl.col("A") > 5, pl.col("B").is_null()]
-    result = report_utils._serialize_query(expr_list)
+    result = report_utils.serialize_query(expr_list)
     assert result["type"] == "expr_list"
     assert "0" in result["expressions"]
     assert "1" in result["expressions"]
 
     # Test with dict
     query_dict = {"column": ["value1", "value2"]}
-    result = report_utils._serialize_query(query_dict)
+    result = report_utils.serialize_query(query_dict)
     assert result["type"] == "dict"
     assert result["data"] == query_dict
 
     # Test with invalid type
     with pytest.raises(ValueError):
-        report_utils._serialize_query("invalid")
+        report_utils.serialize_query("invalid")
 
 
 def test_get_output_filename():

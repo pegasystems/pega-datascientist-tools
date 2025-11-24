@@ -607,6 +607,7 @@ class Plot:
             .select("pxRank")
             .collect()
         )
+        # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
 
@@ -614,6 +615,7 @@ class Plot:
         df = self._decision_data.get_optionality_data(self.sample)
         if return_df:
             return df
+        # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(
             df.collect(),
             x=self._decision_data.level,
@@ -791,6 +793,7 @@ def plot_priority_component_distribution(
         yaxis_title="Number of Actions",
     )
 
+    # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
     box_plot = px.box(
         value_data.collect(),
         x=granularity,

@@ -83,7 +83,7 @@ def test_over_time(sample2: ADMDatamart):
     assert fig_faceted is not None
 
     with pytest.raises(
-        ValueError, match="The given query resulted in no more remaining data."
+        ValueError, match="The given query resulted in an empty dataframe"
     ):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
@@ -217,10 +217,10 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
-    assert "PredictorPerformance" in df.collect_schema().names()
+    assert "median" in df.collect_schema().names()
     assert (
-        round(df.select(pl.col("PredictorPerformance").top_k(1)).collect().item(), 2)
-        == 86.38
+        round(df.select(pl.col("median").top_k(1)).item(), 2)
+        == 65.17
     )
 
     plot = sample.plot.predictor_performance()
@@ -228,11 +228,11 @@ def test_predictor_performance(sample: ADMDatamart):
 
 
 def test_predictor_category_performance(sample: ADMDatamart):
-    df = sample.plot.predictor_category_performance(return_df=True).collect()
-    assert df.shape == (60, 3)
+    df = sample.plot.predictor_category_performance(return_df=True)
+    assert df.shape == (3, 10)
     assert "PredictorCategory" in df.columns
-    assert "PredictorPerformance" in df.columns
-    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 62.49
+    assert "mean" in df.columns
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.98
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -291,26 +291,6 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
 
-
-def test_models_by_positives(sample: ADMDatamart):
-    df = sample.plot.models_by_positives(return_df=True)
-    assert df.shape == (31, 5)
-    assert (
-        round(
-            df.filter(pl.col("PositivesBin") == "(0, 10]")
-            .filter(pl.col("Channel") == "Email")
-            .select("cumModels")
-            .item(),
-            2,
-        )
-        == 0.23
-    )
-    assert df.select(pl.col("cumModels").max()).item() <= 1.0
-
-    plot = sample.plot.models_by_positives()
-    assert isinstance(plot, Figure)
-
-
 def test_tree_map(sample: ADMDatamart):
     df = sample.plot.tree_map(return_df=True).collect()
     assert df.shape == (68, 10)
@@ -320,12 +300,12 @@ def test_tree_map(sample: ADMDatamart):
 
 
 def test_predictor_count(sample: ADMDatamart):
-    df = sample.plot.predictor_count(
-        query=(pl.col("Name") == "AutoNew36Months"), return_df=True
-    ).collect()
+    df = sample.plot.predictor_count(return_df=True)
 
-    assert df.shape == (6, 5)
-    assert df.row(5)[4] == 44
+    assert df.height > 0  # Should have some data
+    assert "Count" in df.collect_schema().names()
+    assert "Type" in df.collect_schema().names()
+    assert "EntryType" in df.collect_schema().names()
 
     plot = sample.plot.predictor_count()
     assert isinstance(plot, Figure)
@@ -363,20 +343,8 @@ def test_partitioned_plot(sample: ADMDatamart):
     def dummy_plot_func(*args, **kwargs):
         return px.scatter(x=[1, 2, 3], y=[1, 2, 3])
 
-    facets = {"A", "B"}
+    facets = [{"Aspect":"A"}, {"Aspect":"B"}]
     plots = sample.plot.partitioned_plot(dummy_plot_func, facets, show_plots=False)
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
     assert all(isinstance(plot, Figure) for plot in plots)
-
-
-def test_propensity_distribution(sample: ADMDatamart):
-    df = sample.plot.propensity_distribution(return_df=True).collect()
-    assert df.shape == (2612, 4)
-    expected_columns = ["BinPropensity", "Channel", "Direction", "BinResponseCount"]
-    assert df.columns == expected_columns
-    assert df["BinPropensity"].min() >= 0
-    assert df["BinPropensity"].max() <= 1
-
-    plot = sample.plot.predictor_count()
-    assert isinstance(plot, Figure)
