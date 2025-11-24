@@ -49,7 +49,9 @@ To use the Decision Analyzer Tool, you need to install several Python components
       This will install the pdstools application globally on your system, making the ``pdstools`` command available from any terminal.
 
       .. Note:: You do not need to create a virtual environment with this method - uv handles that for you. This assures global access and avoids dependency conflicts.
-      
+
+      .. Note:: If you are a developer and want to contribute to the codebase, consider using the "uv + venv" method instead to install the app into a local virtual environment.
+
 
    .. tab:: uv + venv
 
