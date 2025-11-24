@@ -343,7 +343,7 @@ def test_partitioned_plot(sample: ADMDatamart):
     def dummy_plot_func(*args, **kwargs):
         return px.scatter(x=[1, 2, 3], y=[1, 2, 3])
 
-    facets = {"A", "B"}
+    facets = [{"Aspect":"A"}, {"Aspect":"B"}]
     plots = sample.plot.partitioned_plot(dummy_plot_func, facets, show_plots=False)
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
