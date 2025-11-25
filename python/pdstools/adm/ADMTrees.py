@@ -365,7 +365,7 @@ class ADMTreesModel:
                 if int(key) == index - 129 and index == 129 and sign == "<":
                     splitvalues.append("Missing")
                     break
-                elif eval(f"{int(key)}{sign}{index - 129}"):
+                elif self._safe_numeric_compare(int(key), sign, index - 129):
                     splitvalues.append(value)
                 else:
                     pass
@@ -471,6 +471,79 @@ class ADMTreesModel:
         if isinstance(d, dict):
             return 1 + (max(map(self._depth, d.values())) if d else 0)
         return 0
+
+    def _safe_numeric_compare(self, left: Union[int, float], operator: str, right: Union[int, float]) -> bool:
+        """Safely compare two numeric values without using eval().
+        
+        This method replaces dangerous eval() calls with safe numeric comparisons.
+        
+        Parameters
+        ----------
+        left : Union[int, float]
+            Left operand for comparison
+        operator : str
+            Comparison operator as string ('<', '>', '==', '<=', '>=', '!=')
+        right : Union[int, float]
+            Right operand for comparison
+            
+        Returns
+        -------
+        bool
+            Result of the comparison
+            
+        Raises
+        ------
+        ValueError
+            If operator is not supported
+        """
+        if operator == "<":
+            return left < right
+        elif operator == ">":
+            return left > right
+        elif operator == "==":
+            return left == right
+        elif operator == "<=":
+            return left <= right
+        elif operator == ">=":
+            return left >= right
+        elif operator == "!=":
+            return left != right
+        else:
+            raise ValueError(f"Unsupported operator: {operator}")
+
+    def _safe_condition_evaluate(self, value: Any, operator: str, comparison_set: Union[set, float, str]) -> bool:
+        """Safely evaluate conditions without using eval().
+        
+        This method replaces dangerous eval() calls with safe condition evaluation.
+        
+        Parameters
+        ----------
+        value : Any
+            The value to test
+        operator : str
+            The operator ('in', '<', '>', '==')
+        comparison_set : Union[set, float, str]
+            The value or set to compare against
+            
+        Returns
+        -------
+        bool
+            Result of the condition evaluation
+        """
+        try:
+            if operator == "in":
+                return str(value).strip("'") in comparison_set
+            elif operator == "<":
+                return float(str(value).strip("'")) < float(comparison_set)
+            elif operator == ">":
+                return float(str(value).strip("'")) > float(comparison_set)
+            elif operator == "==":
+                return str(value).strip("'") == str(comparison_set)
+            else:
+                raise ValueError(f"Unsupported operator: {operator}")
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Safe evaluation failed for {value} {operator} {comparison_set}: {e}")
+            return False
 
     @cached_property
     def predictors(self):
@@ -1012,7 +1085,7 @@ class ADMTreesModel:
                     scores += [{current_node["split"]: current_node["gain"]}]
                 if type in {"<", ">"} and isinstance(split, set):
                     split = float(split.pop())
-                if eval(f"{splitvalue} {type} {split}"):
+                if self._safe_condition_evaluate(splitvalue, type, split):
                     current_node_id = current_node["left_child"]
                 else:
                     current_node_id = current_node["right_child"]
