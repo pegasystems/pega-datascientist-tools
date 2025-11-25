@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import polars as pl
 
@@ -40,7 +40,19 @@ def get_output_filename(
 
 
 def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
-    """Copy the report quarto file to the temporary directory."""
+    """Copy the report quarto file to the temporary directory.
+
+    Parameters
+    ----------
+    qmd_file : str
+        Name of the Quarto markdown file to copy
+    temp_dir : Path
+        Destination directory to copy files to
+
+    Returns
+    -------
+    None
+    """
     from pdstools import __reports__
 
     shutil.copy(__reports__ / qmd_file, temp_dir)
@@ -53,7 +65,23 @@ def _write_params_files(
     project: Dict = {"type": "default"},
     analysis: Optional[Dict] = None,
 ) -> None:
-    """Write parameters to a YAML file."""
+    """Write parameters to YAML files for Quarto processing.
+
+    Parameters
+    ----------
+    temp_dir : Path
+        Directory where YAML files will be written
+    params : dict, optional
+        Parameters to write to params.yml, by default None
+    project : dict, optional
+        Project configuration to write to _quarto.yml, by default {"type": "default"}
+    analysis : dict, optional
+        Analysis configuration to write to _quarto.yml, by default None
+
+    Returns
+    -------
+    None
+    """
     import yaml
 
     params = params or {}
@@ -86,8 +114,43 @@ def run_quarto(
     analysis: Optional[Dict] = None,
     temp_dir: Path = Path("."),
     verbose: bool = False,
+    deduplicate_html: bool = True,
 ) -> int:
-    """Run the Quarto command to generate the report."""
+    """Run the Quarto command to generate the report.
+
+    Parameters
+    ----------
+    qmd_file : str, optional
+        Path to the Quarto markdown file to render, by default None
+    output_filename : str, optional
+        Name of the output file, by default None
+    output_type : str, optional
+        Type of output format (html, pdf, etc.), by default "html"
+    params : dict, optional
+        Parameters to pass to Quarto execution, by default None
+    project : dict, optional
+        Project configuration settings, by default {"type": "default"}
+    analysis : dict, optional
+        Analysis configuration settings, by default None
+    temp_dir : Path, optional
+        Temporary directory for processing, by default Path(".")
+    verbose : bool, optional
+        Whether to print detailed execution logs, by default False
+    deduplicate_html : bool, optional
+        Whether to remove duplicate HTML resources, by default True
+
+    Returns
+    -------
+    int
+        Return code from the Quarto process (0 for success)
+
+    Raises
+    ------
+    subprocess.SubprocessError
+        If the Quarto command fails to execute
+    FileNotFoundError
+        If required files are not found
+    """
 
     def get_command() -> List[str]:
         quarto_exec, _ = get_quarto_with_version(verbose)
@@ -141,6 +204,11 @@ def run_quarto(
     message = f"Quarto process exited with return code {return_code}"
     logger.info(message)
 
+    # Post-process HTML files to deduplicate JavaScript libraries
+    if (return_code == 0 and output_type == "html" and deduplicate_html and 
+        output_filename is not None):
+        _post_process_html_deduplication(temp_dir / output_filename, verbose)
+
     return return_code
 
 
@@ -149,7 +217,22 @@ def _set_command_options(
     output_filename: Optional[str] = None,
     execute_params: bool = False,
 ) -> List[str]:
-    """Set the options for the Quarto command."""
+    """Set the options for the Quarto command.
+
+    Parameters
+    ----------
+    output_type : str, optional
+        Output format type (html, pdf, etc.), by default None
+    output_filename : str, optional
+        Name of the output file, by default None
+    execute_params : bool, optional
+        Whether to include parameter execution flag, by default False
+
+    Returns
+    -------
+    List[str]
+        List of command line options for Quarto
+    """
 
     options = []
     if output_type is not None:
@@ -165,6 +248,17 @@ def _set_command_options(
 
 
 def copy_report_resources(resource_dict: list[tuple[str, str]]):
+    """Copy report resources from the reports directory to specified destinations.
+
+    Parameters
+    ----------
+    resource_dict : list[tuple[str, str]]
+        List of tuples containing (source_path, destination_path) pairs
+
+    Returns
+    -------
+    None
+    """
     from pdstools import __reports__
 
     for src, dest in resource_dict:
@@ -181,6 +275,33 @@ def copy_report_resources(resource_dict: list[tuple[str, str]]):
 
 
 def generate_zipped_report(output_filename: str, folder_to_zip: str):
+    """Generate a zipped archive of a directory.
+
+    This is a general-purpose utility function that can compress any directory
+    into a zip archive. While named for report generation, it works with any
+    directory structure.
+
+    Parameters
+    ----------
+    output_filename : str
+        Name of the output file (extension will be replaced with .zip)
+    folder_to_zip : str
+        Path to the directory to be compressed
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    FileNotFoundError
+        If the folder to zip does not exist or is not a directory
+
+    Examples
+    --------
+    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
+    >>> generate_zipped_report("report_2023", "/tmp/report_output")
+    """
     if not os.path.isdir(folder_to_zip):
         logger.error(f"The output path {folder_to_zip} is not a directory.")
         return
@@ -375,9 +496,9 @@ def table_standard_formatting(
     highlight_limits: Dict[str, Union[str, List[str]]] = {},
     highlight_lists: Dict[str, List[str]] = {},
     highlight_configurations: List[str] = [],
-    rag_styler: callable = rag_background_styler,
+    rag_styler: Callable = rag_background_styler,
 ):
-    from great_tables import GT, loc
+    from great_tables import GT, loc, system_fonts
 
     def apply_style(gt, rag, rows):
         style = rag_styler(rag)
@@ -439,7 +560,12 @@ def table_standard_formatting(
 
     gt = (
         GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col)
-        .tab_options(table_font_size=8)
+        # .opt_stylize(style=1, color="gray")
+        # .opt_table_font(
+        #     font=system_fonts(name="system-ui"),  # System fonts (no loading)
+        #     weight="normal",
+        # )
+        .tab_options(table_font_size="8px")
         .sub_missing(missing_text="")
     )
 
@@ -644,12 +770,12 @@ def serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
 
 def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
     """Deserialize a query that was previously serialized with serialize_query.
-    
+
     Parameters
     ----------
     serialized_query : Optional[Dict]
         A serialized query dictionary created by serialize_query
-        
+
     Returns
     -------
     Optional[QUERY]
@@ -670,3 +796,20 @@ def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
         return serialized_query["data"]
 
     raise ValueError(f"Unknown query type: {serialized_query['type']}")
+
+
+def _post_process_html_deduplication(html_file_path: Path, verbose: bool = False) -> None:
+    """Post-process HTML files to remove duplicate script libraries."""
+    try:
+        if not html_file_path.exists():
+            return
+            
+        html_content = html_file_path.read_text(encoding='utf-8')
+        
+        from ..adm.Reports import Reports
+        deduplicated_content = Reports._deduplicate_html_resources(html_content, verbose)
+        
+        html_file_path.write_text(deduplicated_content, encoding='utf-8')
+            
+    except Exception as e:
+        logger.warning(f"HTML post-processing failed: {e}")

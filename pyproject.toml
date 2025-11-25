@@ -77,7 +77,6 @@ tests = [
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
 "Bug Tracker" = "https://github.com/pegasystems/pega-datascientist-tools/issues"
-"Wiki" = "https://github.com/pegasystems/pega-datascientist-tools/wiki"
 "Docs" = "https://pegasystems.github.io/pega-datascientist-tools/"
 
 [project.scripts]
@@ -86,3 +85,6 @@ pdstools = 'pdstools.cli:main'
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--strict-markers"
+markers = [
+    "slow: marks tests as slow (report generation, integration tests)"
+]

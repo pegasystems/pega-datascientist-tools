@@ -1249,7 +1249,6 @@ else:
 
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
 
-
 ```{python}
 # TODO: Use feature importance if available in the datamart
 # drop our own calculations of feature importance. Would be nice to

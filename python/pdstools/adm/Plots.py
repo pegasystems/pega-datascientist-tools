@@ -525,6 +525,27 @@ class Plots(LazyNamespace):
         active_range: bool = True,
         return_df: bool = False,
     ):
+        """Generate a score distribution plot for a specific model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate the score distribution for
+        active_range : bool, optional
+            Whether to filter to active score range only, by default True
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing score distribution or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -624,6 +645,27 @@ class Plots(LazyNamespace):
     def predictor_binning(
         self, model_id: str, predictor_name: str, return_df: bool = False
     ):
+        """Generate a predictor binning plot for a specific model and predictor.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model containing the predictor
+        predictor_name : str
+            Name of the predictor to analyze
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing predictor binning or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID and predictor name
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -670,6 +712,22 @@ class Plots(LazyNamespace):
     def multiple_predictor_binning(
         self, model_id: str, query: Optional[QUERY] = None, show_all=True
     ) -> List[Figure]:
+        """Generate predictor binning plots for all predictors in a model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate predictor binning plots for
+        query : Optional[QUERY], optional
+            A query to apply to the predictor data, by default None
+        show_all : bool, optional
+            Whether to display all plots or just return the list, by default True
+
+        Returns
+        -------
+        List[Figure]
+            A list of Plotly figures, one for each predictor in the model
+        """
         plots = []
         for predictor in (
             cdh_utils._apply_query(
