@@ -504,7 +504,7 @@ class Reports(LazyNamespace):
     def _deduplicate_html_resources(html_content: str, verbose: bool = False) -> str:
         """Remove duplicate script tags from HTML to reduce file size."""
         try:
-            script_pattern = r'<script[^>]*?>(.*?)</script>'
+            script_pattern = r'(?i)<script[^>]*?>(.*?)</script>'
             matches = list(re.finditer(script_pattern, html_content, re.DOTALL))
             
             seen_hashes = set()
