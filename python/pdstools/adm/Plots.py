@@ -32,14 +32,10 @@ try:
     import plotly.express as px
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-
-    from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
-
     from .ADMDatamart import ADMDatamart
 COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
 
@@ -525,6 +521,27 @@ class Plots(LazyNamespace):
         active_range: bool = True,
         return_df: bool = False,
     ):
+        """Generate a score distribution plot for a specific model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate the score distribution for
+        active_range : bool, optional
+            Whether to filter to active score range only, by default True
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing score distribution or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -624,6 +641,27 @@ class Plots(LazyNamespace):
     def predictor_binning(
         self, model_id: str, predictor_name: str, return_df: bool = False
     ):
+        """Generate a predictor binning plot for a specific model and predictor.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model containing the predictor
+        predictor_name : str
+            Name of the predictor to analyze
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing predictor binning or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID and predictor name
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -670,6 +708,22 @@ class Plots(LazyNamespace):
     def multiple_predictor_binning(
         self, model_id: str, query: Optional[QUERY] = None, show_all=True
     ) -> List[Figure]:
+        """Generate predictor binning plots for all predictors in a model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate predictor binning plots for
+        query : Optional[QUERY], optional
+            A query to apply to the predictor data, by default None
+        show_all : bool, optional
+            Whether to display all plots or just return the list, by default True
+
+        Returns
+        -------
+        List[Figure]
+            A list of Plotly figures, one for each predictor in the model
+        """
         plots = []
         for predictor in (
             cdh_utils._apply_query(
@@ -732,12 +786,6 @@ class Plots(LazyNamespace):
 
         fig = go.Figure()
 
-        # TODO see if we can use
-        #         colorscale = self.datamart.cdh_guidelines.colorscales.get(metric, None) or [
-        #     "#d91c29",
-        #     "#F76923",
-        #     "#20aa50",
-        # ]
 
         # Fixed colors for specific predictor categories
         # TODO move elsewhere
@@ -794,29 +842,6 @@ class Plots(LazyNamespace):
                     legendgroup=row[legend_col],
                     orientation="h",
                     showlegend=show_in_legend,
-                    # TODO: figure out how to hover with only the x-axis value
-                    # hover_name="PredictorName",
-                    # # Unfortunately, Plotly supports customization of the hovers only
-                    # # for the 'point type' data in a box plot, not the actual boxes.
-                    # # https://github.com/plotly/plotly.py/issues/2498
-                    # # https://github.com/plotly/plotly.py/issues/3334
-                    # hover_data={
-                    #     "PredictorName": False,
-                    #     "_median_": ":.2f",
-                    #     "_mean_": ":.2f",
-                    #     "_min_": ":.2f",
-                    #     "_max_": ":.2f",
-                    #     "PredictorPerformance": ":.2f",
-                    # },
-                    # labels={
-                    #     "PredictorName": "Predictor Name",
-                    #     "PredictorPerformance": "Performance",
-                    #     "_median_": "Median Performance",
-                    #     "_mean_": "Average Performance",
-                    #     "_min_": "Minimum Performance",
-                    #     "_max_": "Maximum Performance",
-                    #     "Legend": "Predictor Category",
-                    # },
                 )
             )
 
@@ -974,11 +999,6 @@ class Plots(LazyNamespace):
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
 
-        # df = df.group_by(groups).agg(
-        #     PredictorPerformance=cdh_utils.weighted_average_polars(
-        #         "PredictorPerformance", "ResponseCountBin"
-        #     )
-        # )
 
         fig = self._boxplot_pre_aggregated(
             df,
@@ -1080,6 +1100,28 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        """Generate a heatmap showing predictor performance across different groups.
+
+        Parameters
+        ----------
+        top_predictors : int, optional
+            Number of top-performing predictors to include, by default 20
+        top_groups : int, optional
+            Number of top groups to include, by default None (all groups)
+        by : str, optional
+            Column to group by for the heatmap, by default "Name"
+        active_only : bool, optional
+            Whether to only include active predictors, by default False
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly heatmap figure or DataFrame if return_df=True
+        """
         if isinstance(by, str):
             by_name = by
         else:
@@ -1136,6 +1178,24 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        """Generate a tree map visualization showing hierarchical model metrics.
+
+        Parameters
+        ----------
+        metric : Literal["ResponseCount", "Positives", "Performance", "SuccessRate", "percentage_without_responses"], optional
+            The metric to visualize in the tree map, by default "Performance"
+        by : str, optional
+            Column to group by for the tree map hierarchy, by default "Name"
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly treemap figure or DataFrame if return_df=True
+        """
         # TODO: clean up implementation a bit
 
         group_by = (
@@ -1202,6 +1262,22 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        """Generate a box plot showing the distribution of predictor counts by type.
+
+        Parameters
+        ----------
+        by : Union[str, List[str]], optional
+            Column(s) to group predictors by, by default ["EntryType", "Type"]
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly box plot figure or DataFrame if return_df=True
+        """
         if isinstance(by, str):
             by = [by]
 
@@ -1259,6 +1335,24 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        """Generate a binning lift plot for a specific predictor showing propensity lift per bin.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model containing the predictor
+        predictor_name : str
+            Name of the predictor to analyze for lift
+        query : Optional[QUERY], optional
+            Optional query to filter the predictor data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly bar chart showing binning lift or DataFrame if return_df=True
+        """
         df = cdh_utils._apply_query(
             (
                 self.datamart.aggregates.last(table="predictor_data")
@@ -1359,6 +1453,26 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        """Generate an overlap matrix heatmap showing shared actions across different groups.
+
+        Parameters
+        ----------
+        group_col : Union[str, list[str], pl.Expr], optional
+            Column(s) to group by for overlap analysis, by default "Channel"
+        overlap_col : str, optional
+            Column containing values to analyze for overlap, by default "Name"
+        show_fraction : bool, optional
+            Whether to show overlap as fraction or absolute count, by default True
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly heatmap showing action overlap or DataFrame if return_df=True
+        """
         df = cdh_utils._apply_query(
             (self.datamart.model_data),
             query,
@@ -1404,18 +1518,6 @@ class Plots(LazyNamespace):
         return plt
 
 
-# existing_query = pl.lit(True)
-# for facet in facets:
-#     title = ", ".join([f"{k}={v}" for k,v in facet.items()])
-#     print(title)
-#     for k,v in facet.items():
-#         if v is None:
-#             new_query = pl.col(k).is_null()
-#         else:
-#             new_query = pl.col(k).eq(v)
-#         combined_query = cdh_utils._combine_queries(existing_query, new_query)
-#         print(new_query)
-#         print(combined_query)
 
     def partitioned_plot(
         self,
@@ -1425,6 +1527,30 @@ class Plots(LazyNamespace):
         *args,
         **kwargs,
     ):
+        """Execute a plotting function across multiple faceted subsets of data.
+
+        This method applies a given plotting function to multiple filtered subsets of data,
+        where each subset is defined by the facet conditions. It's useful for generating
+        multiple plots with different filter conditions applied.
+
+        Parameters
+        ----------
+        func : Callable
+            The plotting function to execute for each facet
+        facets : List[Dict[str, Optional[str]]]
+            List of dictionaries defining filter conditions for each facet
+        show_plots : bool, optional
+            Whether to display the plots as they are generated, by default True
+        *args : tuple
+            Additional positional arguments to pass to the plotting function
+        **kwargs : dict
+            Additional keyword arguments to pass to the plotting function
+
+        Returns
+        -------
+        List[Figure]
+            List of Plotly figures, one for each facet condition
+        """
         figs = []
         existing_query = kwargs.get("query")
         for facet in facets:
@@ -1446,5 +1572,4 @@ class Plots(LazyNamespace):
             # fig.update_layout(title=title)
             fig.show()
 
-        # print(f"PARITIONED PLOT: {len(facets)} facets, {len([f for f in figs if f is not None])} non-empty figs")
         return figs

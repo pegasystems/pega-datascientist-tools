@@ -1249,7 +1249,6 @@ else:
 
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
 
-
 ```{python}
 # TODO: Use feature importance if available in the datamart
 # drop our own calculations of feature importance. Would be nice to
@@ -1276,13 +1275,13 @@ if datamart.predictor_data is not None:
     main_title = "Predictor Importance per Model Configuration"
     # If there's too many configurations, drop this from 
     # the partitioning.
-    if len(facets) > 10:
+    if len(facets) > 20:
         report_utils.quarto_callout_info(f"""
-The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
+The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
 """)
         facets = (
             datamart.aggregates.last(table="combined_data")
-            .select(pl.col("Direction", "ModelTechnique"))
+            .select(pl.col("Channel", "Direction", "ModelTechnique"))
             .unique()
             .collect()
             .to_dicts()

@@ -1,6 +1,7 @@
 __all__ = ["Reports"]
 import logging
 import os
+import re
 import shutil
 from os import PathLike
 from pathlib import Path
@@ -302,9 +303,9 @@ class Reports(LazyNamespace):
                 output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
-                    "model_file_path": str(model_file_path),
-                    "predictor_file_path": str(predictor_file_path),
-                    "prediction_file_path": str(prediction_file_path),
+                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
+                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
+                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
@@ -498,3 +499,40 @@ class Reports(LazyNamespace):
 
         print(f"Data exported to {name}")
         return name, warning_messages
+
+    @staticmethod
+    def _deduplicate_html_resources(html_content: str, verbose: bool = False) -> str:
+        """Remove duplicate script tags from HTML to reduce file size."""
+        try:
+            script_pattern = r'(?i)<script[^>]*?>(.*?)</script>'
+            matches = list(re.finditer(script_pattern, html_content, re.DOTALL))
+            
+            seen_hashes = set()
+            to_remove = []
+            
+            for match in matches:
+                content = match.group(1)
+                if len(content) < 1000:  # Skip inline scripts
+                    continue
+                    
+                content_hash = hash(content)
+                if content_hash in seen_hashes:
+                    to_remove.append(match)
+                else:
+                    seen_hashes.add(content_hash)
+            
+            # Remove duplicates (reverse order to preserve indices)
+            result = html_content
+            for match in reversed(to_remove):
+                start, end = match.span()
+                result = result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
+            
+            if verbose and to_remove:
+                size_reduction = 1 - len(result) / len(html_content)
+                logger.info(f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)")
+            
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Script deduplication failed: {e}")
+            return html_content
