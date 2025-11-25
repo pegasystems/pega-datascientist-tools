@@ -303,9 +303,9 @@ class Reports(LazyNamespace):
                 output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
-                    "model_file_path": str(model_file_path),
-                    "predictor_file_path": str(predictor_file_path),
-                    "prediction_file_path": str(prediction_file_path),
+                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
+                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
+                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,

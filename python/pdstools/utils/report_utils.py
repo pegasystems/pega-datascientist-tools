@@ -498,7 +498,7 @@ def table_standard_formatting(
     highlight_configurations: List[str] = [],
     rag_styler: Callable = rag_background_styler,
 ):
-    from great_tables import GT, loc, system_fonts
+    from great_tables import GT, loc
 
     def apply_style(gt, rag, rows):
         style = rag_styler(rag)
@@ -565,7 +565,7 @@ def table_standard_formatting(
         #     font=system_fonts(name="system-ui"),  # System fonts (no loading)
         #     weight="normal",
         # )
-        .tab_options(table_font_size="8px")
+        .tab_options()
         .sub_missing(missing_text="")
     )
 

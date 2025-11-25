@@ -32,14 +32,10 @@ try:
     import plotly.express as px
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-
-    from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
-
     from .ADMDatamart import ADMDatamart
 COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
 
