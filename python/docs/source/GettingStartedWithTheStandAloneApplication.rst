@@ -154,7 +154,7 @@ In the app, navigate to the Health Check tab (in the left pane). This shows inst
 Click the "Data Import" tab in the main screen to load your data. You have several options:
 
 .. note:: 
-   If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://github.com/pegasystems/pega-datascientist-tools/wiki/Exporting-the-ADM-Datamart>`_ for instructions.
+   If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://docs.pega.com/bundle/platform/page/platform/decision-management/enabling-monitoring-database-export.html>`_ for instructions.
 
 - **Direct file path**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``). The tool will automatically find the relevant files in that directory.
 - **Direct file upload**: Browse and upload your local files through the web interface.
@@ -214,7 +214,5 @@ Troubleshooting
 - Check the application logs in the terminal for specific error messages
 
 **For more help:**
-
-- Review the `ADM Health Check documentation <https://pegasystems.github.io/pega-datascientist-tools/articles/healthcheck.html>`_
-- Check the `ADM Datamart export instructions <https://github.com/pegasystems/pega-datascientist-tools/wiki/Exporting-the-ADM-Datamart>`_
-- Visit the main `pdstools documentation <https://pegasystems.github.io/pega-datascientist-tools/>`_
+- Check the `example ADM analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_
+- Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_.
