@@ -3,11 +3,13 @@ from __future__ import annotations
 import importlib
 import re
 import sys
+import logging
 from typing import Dict, Literal, Set, Union, overload
 
 from .. import __version__
 
 package_name = "pdstools"
+logger = logging.getLogger(__name__)
 
 
 @overload
@@ -145,6 +147,9 @@ def _get_dependency_version(dep_name: str) -> str:
     try:
         module = importlib.import_module(dep_name)
     except ImportError:
+        return "<not installed>"
+    except Exception as e:
+        logger.debug(f"Failed to import module {dep_name}: {e}")
         return "<not installed>"
 
     if hasattr(module, "__version__"):
