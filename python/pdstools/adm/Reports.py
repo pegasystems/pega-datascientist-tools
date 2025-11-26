@@ -1,7 +1,6 @@
 __all__ = ["Reports"]
 import logging
 import os
-import re
 import shutil
 from os import PathLike
 from pathlib import Path
