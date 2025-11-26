@@ -51,6 +51,7 @@ class Reports(LazyNamespace):
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
+        remove_duplicate_html_scripts: bool = True,
     ) -> Path:
         """
         Generates model reports for Naive Bayes ADM models.
@@ -87,6 +88,10 @@ class Reports(LazyNamespace):
         qmd_file : Union[str, Path, None], optional
             Optional path to the Quarto file to use for the model report. 
             If None, defaults to "ModelReport.qmd".
+        remove_duplicate_html_scripts : bool, default=True
+            Whether to remove duplicate script tags from the HTML output to reduce file size.
+            Specifically targets large JavaScript libraries (like Plotly.js) that get embedded
+            multiple times. Only affects HTML output types.
 
         Returns
         -------
@@ -161,6 +166,7 @@ class Reports(LazyNamespace):
                     },
                     temp_dir=temp_dir,
                     verbose=verbose,
+                    remove_duplicate_html_scripts=remove_duplicate_html_scripts,
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
@@ -216,6 +222,7 @@ class Reports(LazyNamespace):
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
+        remove_duplicate_html_scripts: bool = True,
     ) -> Path:
         """
         Generates Health Check report for ADM models, optionally including predictor and prediction sections.
@@ -253,6 +260,10 @@ class Reports(LazyNamespace):
         qmd_file : Union[str, Path, None], optional
             Optional path to the Quarto file to use for the health check report. 
             If None, defaults to "HealthCheck.qmd".
+        remove_duplicate_html_scripts : bool, default=True
+            Whether to remove duplicate script tags from the HTML output to reduce file size.
+            Specifically targets large JavaScript libraries (like Plotly.js) that get embedded
+            multiple times. Only affects HTML output types.
 
         Returns
         -------
@@ -319,6 +330,7 @@ class Reports(LazyNamespace):
                 },
                 temp_dir=temp_dir,
                 verbose=verbose,
+                remove_duplicate_html_scripts=remove_duplicate_html_scripts,
             )
 
             # TODO why not print paths earlier, before the quarto call?
@@ -499,40 +511,3 @@ class Reports(LazyNamespace):
 
         print(f"Data exported to {name}")
         return name, warning_messages
-
-    @staticmethod
-    def _deduplicate_html_resources(html_content: str, verbose: bool = False) -> str:
-        """Remove duplicate script tags from HTML to reduce file size."""
-        try:
-            script_pattern = r'(?i)<script[^>]*?>(.*?)</script>'
-            matches = list(re.finditer(script_pattern, html_content, re.DOTALL))
-            
-            seen_hashes = set()
-            to_remove = []
-            
-            for match in matches:
-                content = match.group(1)
-                if len(content) < 1000:  # Skip inline scripts
-                    continue
-                    
-                content_hash = hash(content)
-                if content_hash in seen_hashes:
-                    to_remove.append(match)
-                else:
-                    seen_hashes.add(content_hash)
-            
-            # Remove duplicates (reverse order to preserve indices)
-            result = html_content
-            for match in reversed(to_remove):
-                start, end = match.span()
-                result = result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
-            
-            if verbose and to_remove:
-                size_reduction = 1 - len(result) / len(html_content)
-                logger.info(f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)")
-            
-            return result
-            
-        except Exception as e:
-            logger.warning(f"Script deduplication failed: {e}")
-            return html_content
