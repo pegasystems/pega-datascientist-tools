@@ -206,16 +206,23 @@ def run_quarto(
     logger.info(message)
 
     # Post-process HTML files to deduplicate JavaScript libraries
-    if (return_code == 0 and output_type == "html" and remove_duplicate_html_scripts and 
-        output_filename is not None):
+    if (
+        return_code == 0
+        and output_type == "html"
+        and remove_duplicate_html_scripts
+        and output_filename is not None
+    ):
         try:
             html_file_path = temp_dir / output_filename
             if html_file_path.exists():
-                html_content = html_file_path.read_text(encoding='utf-8')
+                html_content = html_file_path.read_text(encoding="utf-8")
                 # Call the function by accessing it from the module to avoid name collision
                 from . import report_utils
-                deduplicated_content = report_utils.remove_duplicate_html_scripts(html_content, verbose)
-                html_file_path.write_text(deduplicated_content, encoding='utf-8')
+
+                deduplicated_content = report_utils.remove_duplicate_html_scripts(
+                    html_content, verbose
+                )
+                html_file_path.write_text(deduplicated_content, encoding="utf-8")
         except Exception as e:
             logger.warning(f"HTML post-processing failed: {e}")
 
@@ -810,43 +817,47 @@ def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
 
 def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> str:
     """Remove duplicate script tags from HTML to reduce file size.
-    
+
     Specifically targets large JavaScript libraries (like Plotly.js) that get
     embedded multiple times in HTML reports, while preserving all unique
     plot data and initialization scripts.
     """
     try:
-        script_pattern = r'(?i)<script[^>]*?>(.*?)</script>'
+        script_pattern = r"(?i)<script[^>]*?>(.*?)</script>"
         matches = list(re.finditer(script_pattern, html_content, re.DOTALL))
-        
+
         seen_hashes = set()
         to_remove = []
-        
+
         for match in matches:
             content = match.group(1)
-            
-            # Only target large scripts that are likely libraries 
+
+            # Only target large scripts that are likely libraries
             if len(content) < 1000000:  # 1MB - target the 4.61MB Plotly duplicates
                 continue
-                
+
             content_hash = hash(content)
             if content_hash in seen_hashes:
                 to_remove.append(match)
             else:
                 seen_hashes.add(content_hash)
-        
+
         # Remove duplicates (reverse order to preserve indices)
         result = html_content
         for match in reversed(to_remove):
             start, end = match.span()
-            result = result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
-        
+            result = (
+                result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
+            )
+
         if verbose and to_remove:
             size_reduction = 1 - len(result) / len(html_content)
-            logger.info(f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)")
-        
+            logger.info(
+                f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)"
+            )
+
         return result
-        
+
     except Exception as e:
         logger.warning(f"Script deduplication failed: {e}")
         return html_content

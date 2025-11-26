@@ -85,7 +85,7 @@ class Reports(LazyNamespace):
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
         qmd_file : Union[str, Path, None], optional
-            Optional path to the Quarto file to use for the model report. 
+            Optional path to the Quarto file to use for the model report.
             If None, defaults to "ModelReport.qmd".
         remove_duplicate_html_scripts : bool, default=True
             Whether to remove duplicate script tags from the HTML output to reduce file size.
@@ -216,7 +216,7 @@ class Reports(LazyNamespace):
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
-        prediction = None,
+        prediction=None,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
@@ -247,7 +247,7 @@ class Reports(LazyNamespace):
         verbose: bool, optional
             If True, prints detailed logs during execution.
         prediction : Prediction, optional
-            Optional Prediction object to include in the health check. If provided without 
+            Optional Prediction object to include in the health check. If provided without
             prediction_file_path, the prediction data will be automatically cached to a temporary file.
         model_file_path : Union[str, Path, None], optional
             Optional name of the actual model data file, so it does not get copied
@@ -257,7 +257,7 @@ class Reports(LazyNamespace):
             Optional name of the actual predictions data file. If not provided but prediction object
             is given, the data will be automatically cached from the prediction object.
         qmd_file : Union[str, Path, None], optional
-            Optional path to the Quarto file to use for the health check report. 
+            Optional path to the Quarto file to use for the health check report.
             If None, defaults to "HealthCheck.qmd".
         remove_duplicate_html_scripts : bool, default=True
             Whether to remove duplicate script tags from the HTML output to reduce file size.
@@ -288,7 +288,7 @@ class Reports(LazyNamespace):
                 qmd_filename = Path(qmd_file).name
                 # Copy the custom qmd file to temp directory
                 shutil.copy(qmd_file, temp_dir / qmd_filename)
-            
+
             output_filename = get_output_filename(
                 name, "HealthCheck", None, output_type
             )
@@ -301,11 +301,11 @@ class Reports(LazyNamespace):
                 and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
-            
+
             # Handle prediction data - cache if prediction object provided but no file path
             if (prediction_file_path is None) and (prediction is not None):
                 prediction_file_path = prediction.save_data(temp_dir)
-            
+
             serialized_query = serialize_query(query)
             run_quarto(
                 qmd_file=qmd_filename,
@@ -313,9 +313,15 @@ class Reports(LazyNamespace):
                 output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
-                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
-                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
-                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
+                    "model_file_path": str(model_file_path)
+                    if model_file_path is not None
+                    else "",
+                    "predictor_file_path": str(predictor_file_path)
+                    if predictor_file_path is not None
+                    else "",
+                    "prediction_file_path": str(prediction_file_path)
+                    if prediction_file_path is not None
+                    else "",
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
