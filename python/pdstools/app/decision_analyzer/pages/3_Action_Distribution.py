@@ -58,8 +58,7 @@ st.plotly_chart(
 """
 ## Trend Chart
 
-NB current sample data is only a few minutes of data from a batch run that
-we artificially stretched to a few weeks.
+Number of decisions per day
 """
 
 with st.container(border=True):

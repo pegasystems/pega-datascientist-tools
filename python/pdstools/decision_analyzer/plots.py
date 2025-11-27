@@ -313,11 +313,7 @@ class Plot:
     def trend_chart(
         self, stage: str, scope: str, return_df=False
     ) -> Tuple[go.Figure, Optional[str]]:
-        df = self._decision_data.getDistributionData(
-            stage,
-            scope,
-            trend=True,
-        ).collect()
+        df = self._decision_data.get_trend_data(stage, scope).collect()
 
         if return_df:
             return df.lazy()
@@ -363,7 +359,7 @@ class Plot:
         if return_df:
             return remaining_df, filter_df
 
-        unique_scope_values = filter_df.select("pyIssue").unique().to_series().to_list()
+        unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
         colors = px.colors.qualitative.Light24
         color_map = {
             val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)

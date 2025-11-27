@@ -93,7 +93,6 @@ st.plotly_chart(
 xxx = st.session_state.decision_data.getDistributionData(
     "Output",
     ["pyIssue", "pyGroup"],
-    trend=False,
     additional_filters=(
         pl.col(f"{thresholding_on}_min") > current_threshold
     ),  # Hmm, probalby not the right way
