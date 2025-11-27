@@ -97,7 +97,7 @@ def _clean_unselected_filters(to_filter_columns, filter_type):
 
 
 def get_data_filters(
-    df: pl.LazyFrame, columns=[], queries=[], filter_type="local"
+    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
 ) -> List[
     pl.Expr
 ]:  # this one is way too complex, should be split up into probably 5 functions
@@ -122,7 +122,10 @@ def get_data_filters(
             f"{filter_type}_multiselect"
         ]
 
-    columns = df.collect_schema().names() if columns == [] else columns
+    if columns is None:
+        columns = df.collect_schema().names()
+    if queries is None:
+        queries = []
 
     st.session_state[f"{filter_type}_multiselect"] = (
         st.session_state[f"{filter_type}multiselect"]
@@ -179,7 +182,9 @@ def get_data_filters(
                     )
 
             else:
-                del st.session_state[f"{filter_type}_selected_pyName"]
+                key_to_delete = f"{filter_type}_selected_{column}"
+                if key_to_delete in st.session_state:
+                    del st.session_state[key_to_delete]
                 default_selected = (
                     st.session_state[f"{filter_type}regexselected_{column}"]
                     if f"{filter_type}regexselected_{column}" in st.session_state
