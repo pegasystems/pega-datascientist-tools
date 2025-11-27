@@ -607,7 +607,14 @@ class DecisionAnalyzer:
         ]
 
         rank_df = (
-            apply_filter(self.sample, additional_filters)
+            apply_filter(
+                self.sample.with_columns(
+                    pl.col("Value").fill_null(1),
+                    pl.col("Levers").fill_null(1),
+                    pl.col("Context Weight").fill_null(1),
+                ),
+                additional_filters,
+            )
             .with_columns(overrides)
             .filter(pl.col("Priority").is_not_null())
             .with_columns(

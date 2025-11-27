@@ -163,6 +163,7 @@ if st.session_state.local_filters != []:
                 # models=models,
             ),
             use_container_width=True,
+            key="win_distribution_chart",
         )
 
     with col2:
@@ -181,6 +182,7 @@ if st.session_state.local_filters != []:
                 horizontal=True,
             ),
             use_container_width=True,
+            key="loss_distribution_chart",
         )
 
     "## What are the Prioritization Factors that make these actions win?"
@@ -199,6 +201,7 @@ if st.session_state.local_filters != []:
                 reference_group=st.session_state["local_filters"],
             ),
             use_container_width=True,
+            key="sensitivity_chart",
         )
     "## Why are the actions winning"
 
@@ -213,10 +216,12 @@ if st.session_state.local_filters != []:
     )
     if warning_message:
         st.warning(warning_message)
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-    )
+    if fig is not None:
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            key="prio_factor_boxplots_chart",
+        )
 
     "## Rank Distribution of Comparison Group"
 
@@ -230,6 +235,7 @@ if st.session_state.local_filters != []:
             reference=st.session_state["local_filters"],
         ),
         use_container_width=True,
+        key="rank_boxplot_chart",
     )
 else:
     st.warning("Please Define a Group to compare against the rest of the actions")
