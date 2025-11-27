@@ -189,7 +189,7 @@ active_models_threshold_date_string = datamart.model_data.select(
 ).collect().item().strip()
 ```
 
-This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees. Off-line reports for Naive Bayes Adaptive models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees.
 
 We provide guidance and best practices as much as possible. However these guidelines are generic and may or may not be applicable to a specific use case or implementation. The recommendations are strongly geared towards Customer Decision Hub (CDH) and may not apply to, for example, Process AI.
 
