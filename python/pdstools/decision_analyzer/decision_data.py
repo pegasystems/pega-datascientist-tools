@@ -501,7 +501,7 @@ class DecisionAnalyzer:
     def getDistributionData(
         self,
         stage: str,
-        grouping_levels: str | List[str],
+        grouping_levels: Union[str, List[str]],
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
     ) -> pl.LazyFrame:
         distribution_data = (
@@ -1367,7 +1367,7 @@ class DecisionAnalyzer:
     def get_trend_data(
         self,
         stage: str = "AvailableActions",
-        scope: Literal["pyGroup", "pyIssue", "pyName"] | None = "pyGroup",
+        scope: Union[Literal["pyGroup", "pyIssue", "pyName"], None] = "pyGroup",
     ) -> pl.DataFrame:
         stages = self.AvailableNBADStages[self.AvailableNBADStages.index(stage) :]
         group_by = ["day"] if scope is None else ["day", scope]
