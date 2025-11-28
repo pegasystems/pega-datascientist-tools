@@ -6,10 +6,10 @@ import polars as pl
 import streamlit as st
 
 from pdstools.decision_analyzer.data_read_utils import (
-    get_da_data_path,
     read_data,
     read_nested_zip_files,
 )
+from pdstools.pega_io.File import read_ds_export
 
 
 from pdstools.decision_analyzer.plots import (
@@ -97,7 +97,7 @@ def _clean_unselected_filters(to_filter_columns, filter_type):
 
 
 def get_data_filters(
-    df: pl.LazyFrame, columns=[], queries=[], filter_type="local"
+    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
 ) -> List[
     pl.Expr
 ]:  # this one is way too complex, should be split up into probably 5 functions
@@ -122,7 +122,10 @@ def get_data_filters(
             f"{filter_type}_multiselect"
         ]
 
-    columns = df.collect_schema().names() if columns == [] else columns
+    if columns is None:
+        columns = df.collect_schema().names()
+    if queries is None:
+        queries = []
 
     st.session_state[f"{filter_type}_multiselect"] = (
         st.session_state[f"{filter_type}multiselect"]
@@ -179,7 +182,9 @@ def get_data_filters(
                     )
 
             else:
-                del st.session_state[f"{filter_type}_selected_pyName"]
+                key_to_delete = f"{filter_type}_selected_{column}"
+                if key_to_delete in st.session_state:
+                    del st.session_state[key_to_delete]
                 default_selected = (
                     st.session_state[f"{filter_type}regexselected_{column}"]
                     if f"{filter_type}regexselected_{column}" in st.session_state
@@ -267,9 +272,12 @@ def get_options():
 def handle_sample_data(is_ec2):
     if is_ec2:
         path = Path("/s3-files/anonymized/anonymized")
+        return read_data(path)
     else:
-        path = Path(get_da_data_path(), "sample_data/rb_sample/data")
-    return read_data(path)
+        return read_ds_export(
+            filename="sample_eev2.parquet",
+            path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
+        )
 
 
 def handle_file_upload():

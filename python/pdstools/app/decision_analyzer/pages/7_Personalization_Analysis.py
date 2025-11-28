@@ -36,11 +36,16 @@ with st.session_state["sidebar"]:
     )
     if st.button("Apply Filters"):
         # Only filter and update the DataFrame when the button is clicked
-        st.session_state["local_optionality"] = (
-            st.session_state.decision_data.sample.filter(
-                st.session_state["local_filters"]
+        if st.session_state["local_filters"]:
+            st.session_state["local_optionality"] = (
+                st.session_state.decision_data.sample.filter(
+                    st.session_state["local_filters"]
+                )
             )
-        )
+        else:
+            st.session_state["local_optionality"] = (
+                st.session_state.decision_data.sample
+            )
 "### Optionality"
 
 with st.container(border=True):

@@ -1,6 +1,6 @@
 from bisect import bisect_left
 from functools import cached_property
-from typing import List, Optional, Union, Dict
+from typing import List, Literal, Optional, Union, Dict
 import warnings
 
 import polars as pl
@@ -276,7 +276,7 @@ class DecisionAnalyzer:
         stats_cols = ["pxDecisionTime", "Value", "Propensity", "Priority"]
         exprs = [
             pl.col("pxInteractionID")
-            .where(pl.col("pxRank") <= i)
+            .filter(pl.col("pxRank") <= i)
             .count()
             .alias(f"Win_at_rank{i}")
             for i in range(1, self.max_win_rank + 1)
@@ -501,14 +501,13 @@ class DecisionAnalyzer:
     def getDistributionData(
         self,
         stage: str,
-        grouping_levels: List[str],
-        trend=False,
+        grouping_levels: Union[str, List[str]],
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
     ) -> pl.LazyFrame:
         distribution_data = (
             apply_filter(self.getPreaggregatedRemainingView, additional_filters)
             .filter(pl.col(self.level) == stage)
-            .group_by(["day"] + [grouping_levels] if trend else grouping_levels)
+            .group_by(grouping_levels)
             .agg(pl.sum("Decisions"))
             .sort("Decisions", descending=True)
             .filter(pl.col("Decisions") > 0)
@@ -608,7 +607,14 @@ class DecisionAnalyzer:
         ]
 
         rank_df = (
-            apply_filter(self.sample, additional_filters)
+            apply_filter(
+                self.sample.with_columns(
+                    pl.col("Value").fill_null(1),
+                    pl.col("Levers").fill_null(1),
+                    pl.col("Context Weight").fill_null(1),
+                ),
+                additional_filters,
+            )
             .with_columns(overrides)
             .filter(pl.col("Priority").is_not_null())
             .with_columns(
@@ -780,7 +786,6 @@ class DecisionAnalyzer:
                     # use pl.struct like in first_level_stats function
                     stage=stage,
                     grouping_levels="pyName",
-                    trend=False,
                 )
                 .with_columns(cumDecisions=pl.col("Decisions").cum_sum().cast(pl.Int32))
                 .with_columns(
@@ -1358,6 +1363,23 @@ class DecisionAnalyzer:
                 result = pl.concat([result, no_winner_row])
 
             return result
+
+    def get_trend_data(
+        self,
+        stage: str = "AvailableActions",
+        scope: Union[Literal["pyGroup", "pyIssue", "pyName"], None] = "pyGroup",
+    ) -> pl.DataFrame:
+        stages = self.AvailableNBADStages[self.AvailableNBADStages.index(stage) :]
+        group_by = ["day"] if scope is None else ["day", scope]
+
+        trend_data = (
+            self.sample.filter(pl.col(self.level).is_in(stages))
+            .group_by(group_by)
+            .agg(pl.n_unique("pxInteractionID").alias("Decisions"))
+            .sort(group_by)
+        )
+
+        return trend_data
 
     def find_lever_value(
         self,

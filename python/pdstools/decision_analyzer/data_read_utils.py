@@ -145,22 +145,6 @@ def read_data(path):
     return df
 
 
-# OneDrive seems to be using different paths on different systems even on the same OS. This
-# way we just find the first valid one. Can be used to support other OS-es as well.
-def get_da_data_path():
-    onedrive_da_paths = [
-        Path(p).expanduser()
-        for p in [
-            "~/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/PRD - 1-1 Customer Engagement Alliance - AI Chapter/projects/Decision Analyzer (Insights)",
-            "~/Library/CloudStorage/OneDrive-PegasystemsInc/AI Chapter/projects/Decision Analyzer (Insights)",
-        ]
-        if Path(p).expanduser().exists()
-    ]
-    if len(onedrive_da_paths) == 0:
-        exit("No valid source path")
-    return onedrive_da_paths[0]
-
-
 def validate_columns(
     df: pl.LazyFrame, extract_type: Dict[str, TableConfig]
 ) -> Tuple[bool, Optional[str]]:

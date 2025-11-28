@@ -55,17 +55,17 @@ st.plotly_chart(
     use_container_width=True,
 )
 
-"""
+if "scope" not in st.session_state:
+    st.session_state.scope = scope_options[0]
+
+f"""
 ## Trend Chart
 
-NB current sample data is only a few minutes of data from a batch run that
-we artificially stretched to a few weeks.
+Number of decisions that included at least one action from each {NBADScope_Mapping[st.session_state.scope]} over time.
+
+Note: Since a decision can contain actions across multiple [issues/groups], the same decision may be counted in several categories, so the stacked total may exceed the actual sampled decision count.
 """
-
 with st.container(border=True):
-    if "scope" not in st.session_state:
-        st.session_state.scope = scope_options[0]
-
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
         st.session_state.stage, st.session_state.scope
     )
