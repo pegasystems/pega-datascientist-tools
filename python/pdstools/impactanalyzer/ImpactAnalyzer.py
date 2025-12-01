@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime
 import json
 
@@ -96,7 +96,7 @@ class ImpactAnalyzer:
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
-        return_input_df: Optional[bool] = False,
+        return_wide_df: Optional[bool] = False,
         return_df: Optional[bool] = False,
     ):
         """Create an ImpactAnalyzer instance from a PDC file
@@ -109,10 +109,10 @@ class ImpactAnalyzer:
             Function to read the source data into a dict. If None uses standard file reader.
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
-        return_input_df : Optional[QUERY], optional
-            Debugging option to return the wide data from the raw JSON file as a DataFrame, by default False
+        return_wide_df : Optional[QUERY], optional
+            Debugging option to return the wide data from the raw JSON file as a LazyFrame, for debugging, by default False
         return_df : Optional[QUERY], optional
-            Returns the processed input data as a DataFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
+            Returns the processed input data as a LazyFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
 
         Returns
         -------
@@ -131,40 +131,40 @@ class ImpactAnalyzer:
 
         if isinstance(pdc_source, list):
             all_json_data = [reader(src) for src in pdc_source]
-            processed_data = pl.concat(
+            if not all_json_data:
+                raise ValueError("Empty list of source data")
+            normalized_ia_data = pl.concat(
                 [
-                    cls._from_pdc_json(
+                    cls._normalize_pdc_ia_data(
                         json_data,
                         query=query,
-                        return_input_df=return_input_df,
-                        return_df=True,
+                        return_wide_df=return_wide_df,
                     )
-                    for json_data in all_json_data
+                    for json_data in all_json_data  # if json_data.height
                 ],
                 how="diagonal_relaxed",
             ).lazy()
-            if return_input_df or return_df:
-                return processed_data
-            return ImpactAnalyzer(processed_data)
         else:
             json_data = reader(pdc_source)
-            return cls._from_pdc_json(
+            normalized_ia_data = cls._normalize_pdc_ia_data(
                 json_data,
                 query=query,
-                return_input_df=return_input_df,
-                return_df=return_df,
+                return_wide_df=return_wide_df,
             )
+        if return_wide_df or return_df:
+            return normalized_ia_data
+
+        return ImpactAnalyzer(normalized_ia_data)
 
     @classmethod
-    def _from_pdc_json(
+    def _normalize_pdc_ia_data(
         cls,
         json_data: dict,
         *,
         query: Optional[QUERY] = None,
-        return_input_df: Optional[bool] = False,
-        return_df: Optional[bool] = False,
+        return_wide_df: Optional[bool] = False,
     ):
-        """Internal method to create an ImpactAnalyzer instance from PDC JSON data
+        """Internal method to turn PDC Impact Analyzer JSON data into a proper long format
 
         The PDC data is really structured as a list of expriments: control group A vs control group B. There
         is no explicit indicator whether the B's are really the same customers or not. The PDC data also contains
@@ -180,36 +180,38 @@ class ImpactAnalyzer:
         date = datetime.strptime(
             json_data["pxResults"][0]["SnapshotTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
-        actual_ia_data = json_data["pxResults"][0]["pxResults"]
+        actual_ia_data: Dict = json_data["pxResults"][0]["pxResults"]
         if len(actual_ia_data) < 1:
             # No data
-            return None
+            return pl.LazyFrame()
 
         wide_data = pl.DataFrame(actual_ia_data).lazy()
 
         if query is not None:
             wide_data = _apply_query(wide_data, query=query)
 
-        if return_input_df:
-            return wide_data.drop(
-                "Heading",
-                "RunType",
-                "ApplicationStack",
-                "KeyIdentifier",
-                # "ExperimentLabel",
-                "pzInsKey",
-                "Guidance",
-                "pxObjClass",
-                "Type",
-                "ExperimentColor",
-            )
+        wide_data = wide_data.drop(
+            "Heading",
+            "RunType",
+            "ApplicationStack",
+            "KeyIdentifier",
+            # "ExperimentLabel",
+            "pzInsKey",
+            "Guidance",
+            "pxObjClass",
+            "Type",
+            "ExperimentColor",
+            "SnapshotTime",
+        )
+
+        if return_wide_df:
+            return wide_data
 
         df = (
             wide_data.filter(pl.col("IsActive"))
             .filter(pl.col("ChannelName") != "All channels")
             .select(
                 [
-                    "SnapshotTime",
                     "ExperimentName",
                     "IsActive",
                     "LastDataReceived",
@@ -321,10 +323,7 @@ class ImpactAnalyzer:
             # .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_")) # TODO lookup
         )
 
-        if return_df:
-            return result
-
-        return ImpactAnalyzer(result)
+        return result
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self) -> pl.LazyFrame:
