@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 from datetime import datetime
 import json
 
@@ -92,8 +92,9 @@ class ImpactAnalyzer:
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: Union[os.PathLike, str, dict],
+        pdc_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
         *,
+        reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
         return_input_df: Optional[bool] = False,
         return_df: Optional[bool] = False,
@@ -102,8 +103,10 @@ class ImpactAnalyzer:
 
         Parameters
         ----------
-        pdc_filename : Union[os.PathLike, str]
-            The full path to the PDC file
+        pdc_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
+            The full path to the PDC file, or a list of such paths
+        reader: Optional[Callable]
+            Function to read the source data into a dict. If None uses standard file reader.
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
         return_input_df : Optional[QUERY], optional
@@ -117,22 +120,40 @@ class ImpactAnalyzer:
             The properly initialized ImpactAnalyzer object
 
         """
-        if isinstance(pdc_source, dict):
+
+        def default_reader(f):
+            with open(f, encoding="utf-8") as pdc_json_data:
+                # TODO use read_ds_export/import_file from io lib for the first part
+                return json.load(pdc_json_data)
+
+        if reader is None:
+            reader = default_reader
+
+        if isinstance(pdc_source, list):
+            all_json_data = [reader(src) for src in pdc_source]
+            processed_data = pl.concat(
+                [
+                    cls._from_pdc_json(
+                        json_data,
+                        query=query,
+                        return_input_df=return_input_df,
+                        return_df=True,
+                    )
+                    for json_data in all_json_data
+                ],
+                how="diagonal_relaxed",
+            ).lazy()
+            if return_input_df or return_df:
+                return processed_data
+            return ImpactAnalyzer(processed_data)
+        else:
+            json_data = reader(pdc_source)
             return cls._from_pdc_json(
-                pdc_source,
+                json_data,
                 query=query,
                 return_input_df=return_input_df,
                 return_df=return_df,
             )
-        else:
-            with open(pdc_source, encoding="utf-8") as pdc_json_data:
-                return cls._from_pdc_json(
-                    # TODO use read_ds_export/import_file from io lib for the first part
-                    json.load(pdc_json_data),
-                    query=query,
-                    return_input_df=return_input_df,
-                    return_df=return_df,
-                )
 
     @classmethod
     def _from_pdc_json(
