@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime
 import json
 
@@ -12,6 +12,28 @@ from ..utils.types import QUERY
 
 
 class ImpactAnalyzer:
+    """
+    Analyze and visualize Impact Analyzer experiment results from Pega Customer Decision Hub.
+
+    The ImpactAnalyzer class provides comprehensive analysis and visualization capabilities
+    for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment data
+    from Pega's Customer Decision Hub to compare the effectiveness of different NBA strategies
+    including adaptive models, propensity prioritization, lever usage, and engagement policies.
+
+    When reading from PDC, the ImpactAnalyzer class only keeps the counts of impressions, accepts
+    and the action value per impression and re-calculates all the derived values on demand. It
+    drops inactive experiments and adds rows for the "NBA" group. The "All channels" is dropped.
+    ValueLift and ValueLiftInterval are copied from the PDC data as this can currently not be
+    re-calculated from the available raw numbers (ValuePerImpression is empty).
+
+    Engagement Lift is calculated as (SuccessRate(test) - SuccessRate(control))/SuccessRate(control)
+
+    Value Lift is calculated as (ValueCapture(test) - ValueCapture(control))/ValueCapture(control)
+
+    For value, aggregting the Value property
+
+    """
+
     ia_data: pl.LazyFrame
 
     default_ia_experiments = {
@@ -92,24 +114,27 @@ class ImpactAnalyzer:
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: Union[os.PathLike, str, dict],
+        pdc_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
         *,
+        reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
-        return_input_df: Optional[bool] = False,
+        return_wide_df: Optional[bool] = False,
         return_df: Optional[bool] = False,
     ):
         """Create an ImpactAnalyzer instance from a PDC file
 
         Parameters
         ----------
-        pdc_filename : Union[os.PathLike, str]
-            The full path to the PDC file
+        pdc_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
+            The full path to the PDC file, or a list of such paths
+        reader: Optional[Callable]
+            Function to read the source data into a dict. If None uses standard file reader.
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
-        return_input_df : Optional[QUERY], optional
-            Debugging option to return the wide data from the raw JSON file as a DataFrame, by default False
+        return_wide_df : Optional[QUERY], optional
+            Debugging option to return the wide data from the raw JSON file as a LazyFrame, for debugging, by default False
         return_df : Optional[QUERY], optional
-            Returns the processed input data as a DataFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
+            Returns the processed input data as a LazyFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
 
         Returns
         -------
@@ -117,33 +142,110 @@ class ImpactAnalyzer:
             The properly initialized ImpactAnalyzer object
 
         """
-        if isinstance(pdc_source, dict):
-            return cls._from_pdc_json(
-                pdc_source,
-                query=query,
-                return_input_df=return_input_df,
-                return_df=return_df,
-            )
+
+        def default_reader(f):
+            with open(f, encoding="utf-8") as pdc_json_data:
+                # TODO use read_ds_export/import_file from io lib for the first part
+                return json.load(pdc_json_data)
+
+        if reader is None:
+            reader = default_reader
+
+        if isinstance(pdc_source, list):
+            all_json_data = [reader(src) for src in pdc_source]
+            if not all_json_data:
+                raise ValueError("Empty list of source data")
+            normalized_ia_data = pl.concat(
+                [
+                    cls._normalize_pdc_ia_data(
+                        json_data,
+                        query=query,
+                        return_wide_df=return_wide_df,
+                    )
+                    for json_data in all_json_data  # if json_data.height
+                ],
+                how="diagonal_relaxed",
+            ).lazy()
         else:
-            with open(pdc_source, encoding="utf-8") as pdc_json_data:
-                return cls._from_pdc_json(
-                    # TODO use read_ds_export/import_file from io lib for the first part
-                    json.load(pdc_json_data),
-                    query=query,
-                    return_input_df=return_input_df,
-                    return_df=return_df,
-                )
+            json_data = reader(pdc_source)
+            normalized_ia_data = cls._normalize_pdc_ia_data(
+                json_data,
+                query=query,
+                return_wide_df=return_wide_df,
+            )
+        if return_wide_df or return_df:
+            return normalized_ia_data
+
+        return ImpactAnalyzer(normalized_ia_data)
 
     @classmethod
-    def _from_pdc_json(
+    def from_vbd(
+        cls,
+        vbd_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
+        *,
+        return_df: Optional[bool] = False,
+    ):
+        """Create an ImpactAnalyzer instance from VBD (Value-Based Decisioning) data
+
+        This method will process VBD Actuals or VBD Scenario Planner Actuals data
+        to reconstruct Impact Analyzer experiment metrics. This allows for more
+        flexible time ranges and data selection compared to PDC exports.
+
+        IA uses **pyReason**, **MktType**, **MktValue** and **ModelControlGroup** to define
+        the various experiments. For the standard NBA decisions (no experiment), values are left empty (null).
+
+        Prior to Impact Analyzer, or when turned off, Predictions from Prediction Studio manage two
+        groups through the **ModelControlGroup** property. A value of **Test** is used for model driven arbitration, **Control** for the random control group (defaults to 2%).
+
+        When IA is on, the distinct values from just **MktValue** are sufficient to identify the
+        different experiments. In the future, more and custom experiments may be supported.
+
+        For the full NBA interactions the value of the marker fields is left empty.
+
+        TODO: NBAHealth_ModelControl_2 is conceptually the same as NBAHealth_PropensityPriority and will be phased out in Pega 24.1/24.2.
+
+        The usage of "Default" issues and groups indicates that there is no action. These need to be filtered out for proper reporting.
+
+        TODO: should we exclude these from analysis?
+
+        TODO: what about things with inactive status? And how can we know?
+
+        NOTE: Impact Analyzer goes back from today's date, also when the data is from an earlier date.
+
+        Parameters
+        ----------
+        vbd_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
+            Path to VBD export file(s) or URL(s)
+        return_df : Optional[bool], optional
+            Return processed data instead of ImpactAnalyzer instance, by default False
+
+        Returns
+        -------
+        ImpactAnalyzer
+            The properly initialized ImpactAnalyzer object with reconstructed experiment data
+
+
+        Examples
+        --------
+        >>> # Load from VBD export
+        >>> ia = ImpactAnalyzer.from_vbd('Data-pxStrategyResult_ActualsExport.zip')
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not yet implemented. Use from_pdc() for current functionality.
+        """
+        raise NotImplementedError("from_vbd() method is not yet implemented.")
+
+    @classmethod
+    def _normalize_pdc_ia_data(
         cls,
         json_data: dict,
         *,
         query: Optional[QUERY] = None,
-        return_input_df: Optional[bool] = False,
-        return_df: Optional[bool] = False,
+        return_wide_df: Optional[bool] = False,
     ):
-        """Internal method to create an ImpactAnalyzer instance from PDC JSON data
+        """Internal method to turn PDC Impact Analyzer JSON data into a proper long format
 
         The PDC data is really structured as a list of expriments: control group A vs control group B. There
         is no explicit indicator whether the B's are really the same customers or not. The PDC data also contains
@@ -159,36 +261,38 @@ class ImpactAnalyzer:
         date = datetime.strptime(
             json_data["pxResults"][0]["SnapshotTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
-        actual_ia_data = json_data["pxResults"][0]["pxResults"]
+        actual_ia_data: Dict = json_data["pxResults"][0]["pxResults"]
         if len(actual_ia_data) < 1:
             # No data
-            return None
+            return pl.LazyFrame()
 
         wide_data = pl.DataFrame(actual_ia_data).lazy()
 
         if query is not None:
             wide_data = _apply_query(wide_data, query=query)
 
-        if return_input_df:
-            return wide_data.drop(
-                "Heading",
-                "RunType",
-                "ApplicationStack",
-                "KeyIdentifier",
-                # "ExperimentLabel",
-                "pzInsKey",
-                "Guidance",
-                "pxObjClass",
-                "Type",
-                "ExperimentColor",
-            )
+        wide_data = wide_data.drop(
+            "Heading",
+            "RunType",
+            "ApplicationStack",
+            "KeyIdentifier",
+            # "ExperimentLabel",
+            "pzInsKey",
+            "Guidance",
+            "pxObjClass",
+            "Type",
+            "ExperimentColor",
+            "SnapshotTime",
+        )
+
+        if return_wide_df:
+            return wide_data
 
         df = (
             wide_data.filter(pl.col("IsActive"))
             .filter(pl.col("ChannelName") != "All channels")
             .select(
                 [
-                    "SnapshotTime",
                     "ExperimentName",
                     "IsActive",
                     "LastDataReceived",
@@ -300,10 +404,7 @@ class ImpactAnalyzer:
             # .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_")) # TODO lookup
         )
 
-        if return_df:
-            return result
-
-        return ImpactAnalyzer(result)
+        return result
 
     # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self) -> pl.LazyFrame:

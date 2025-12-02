@@ -66,7 +66,7 @@ def test_from_pdc():
 
     # Verify re-calculated Lift numbers
     lift_data = (
-        ImpactAnalyzer.from_pdc(sample_path, return_input_df=True)
+        ImpactAnalyzer.from_pdc(sample_path, return_wide_df=True)
         .filter(ChannelName="Email")
         .filter(ExperimentName="NBAHealth_NBAPrioritization")
         .collect()["EngagementLift"]
@@ -121,6 +121,40 @@ def test_from_pdc():
     ]
 
 
+def test_from_pdc_with_custom_reader():
+    """Test creating an ImpactAnalyzer instance from JSON data with explicit reader function"""
+    import json
+
+    sample_path = f"{basePath}/data/ia/CDH_Metrics_ImpactAnalyzer.json"
+
+    def custom_reader(file_path):
+        """Custom reader function for testing"""
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    # Test with custom reader
+    analyzer = ImpactAnalyzer.from_pdc(sample_path, reader=custom_reader)
+
+    # Verify the instance was created correctly
+    assert isinstance(analyzer, ImpactAnalyzer)
+    assert isinstance(analyzer.ia_data, pl.LazyFrame)
+
+    # Verify basic data integrity (should be same as default reader)
+    collected_data = analyzer.ia_data.collect()
+    assert collected_data.height > 0
+    assert "ControlGroup" in collected_data.columns
+
+    # Verify specific data point to ensure reader worked correctly
+    assert (
+        analyzer.ia_data.filter(Channel="DirectMail")
+        .filter(ControlGroup="NBAHealth_NBA")
+        .select(pl.col("Impressions"))
+        .collect()
+        .item()
+        == 9985661
+    )
+
+
 def test_summarize_control_groups(simple_ia):
     agg = simple_ia.summarize_control_groups(by=[]).collect()
     assert agg.columns == [
@@ -155,6 +189,221 @@ def test_plots(simple_ia):
 
     assert isinstance(simple_ia.plot.trend(return_df=True), pl.LazyFrame)
     assert isinstance(simple_ia.plot.overview(return_df=True), pl.LazyFrame)
+    assert isinstance(simple_ia.plot.control_groups_trend(return_df=True), pl.LazyFrame)
 
     assert isinstance(simple_ia.plot.trend(), Figure)
     assert isinstance(simple_ia.plot.overview(), Figure)
+    assert isinstance(simple_ia.plot.control_groups_trend(), Figure)
+
+
+def test_plot_layout_and_formatting(simple_ia):
+    """Test plot layout improvements and formatting"""
+    from plotly.graph_objs import Figure
+
+    # Test overview plot
+    overview_fig = simple_ia.plot.overview()
+    assert isinstance(overview_fig, Figure)
+
+    # Test trend plot
+    trend_fig = simple_ia.plot.trend()
+    assert isinstance(trend_fig, Figure)
+
+
+def test_plot_with_query(simple_ia):
+    """Test plot functionality with query parameter"""
+    # Test with experiment filter query (using valid column from summarized data)
+    query = pl.col("Experiment").str.contains("NBA vs Random")
+
+    # Test overview with query
+    overview_data = simple_ia.plot.overview(query=query, return_df=True).collect()
+    # Should only contain the filtered experiment
+    assert "NBA vs Random" in overview_data["Experiment"].to_list()
+
+    # Test trend with query - need to use by parameter to include Channel for filtering
+    trend_data = simple_ia.plot.trend(
+        by=["Channel", "SnapshotTime"],
+        query=pl.col("Channel") == "Email",
+        return_df=True,
+    ).collect()
+    assert "Experiment" in trend_data.columns
+    assert "CTR_Lift" in trend_data.columns
+    if "Channel" in trend_data.columns:
+        unique_channels = trend_data["Channel"].unique().to_list()
+        assert "Email" in unique_channels
+
+    # Test that plots still render with query
+    overview_fig = simple_ia.plot.overview(query=query)
+    trend_fig = simple_ia.plot.trend(
+        by=["Channel", "SnapshotTime"], query=pl.col("Channel") == "Email"
+    )
+
+    assert overview_fig is not None
+    assert trend_fig is not None
+
+
+def test_plot_experiment_color_map():
+    """Test the experiment color mapping function"""
+    from pdstools.impactanalyzer.Plots import Plots
+
+    expected_experiments = [
+        "Adaptive Models vs Random Propensity",
+        "NBA vs No Levers",
+        "NBA vs Only Eligibility Rules",
+        "NBA vs Propensity Only",
+        "NBA vs Random",
+    ]
+
+    color_map = Plots._get_experiment_color_map()
+    assert color_map == expected_experiments
+    assert len(color_map) == 5
+
+
+def test_plot_with_different_metrics(simple_ia):
+    """Test plot functions with different metric parameters"""
+    from plotly.graph_objs import Figure
+
+    # Test overview with CTR_Lift (default) - x-axis title removed for cleaner look
+    overview_ctr = simple_ia.plot.overview()
+    assert isinstance(overview_ctr, Figure)
+    assert overview_ctr.layout.xaxis.title.text == ""
+    assert overview_ctr.layout.xaxis.tickformat == ".1%"
+    assert "CTR Lift" in overview_ctr.layout.title.text
+
+    # Test overview with Value_Lift - x-axis title removed for cleaner look
+    overview_value = simple_ia.plot.overview(metric="Value_Lift")
+    assert isinstance(overview_value, Figure)
+    assert overview_value.layout.xaxis.title.text == ""
+    assert overview_value.layout.xaxis.tickformat == ".2f"
+    assert "Value Lift" in overview_value.layout.title.text
+
+    # Test trend with CTR_Lift (default) - y-axis title removed for cleaner look
+    trend_ctr = simple_ia.plot.trend()
+    assert isinstance(trend_ctr, Figure)
+    assert trend_ctr.layout.yaxis.title.text == ""
+    assert trend_ctr.layout.yaxis.tickformat == ".1%"
+    assert "CTR Lift" in trend_ctr.layout.title.text
+
+    # Test trend with Value_Lift - y-axis title removed for cleaner look
+    trend_value = simple_ia.plot.trend(metric="Value_Lift")
+    assert isinstance(trend_value, Figure)
+    assert trend_value.layout.yaxis.title.text == ""
+    assert trend_value.layout.yaxis.tickformat == ".2f"
+    assert "Value Lift" in trend_value.layout.title.text
+
+    # Test that data is returned correctly with different metrics
+    overview_data_ctr = simple_ia.plot.overview(
+        metric="CTR_Lift", return_df=True
+    ).collect()
+    overview_data_value = simple_ia.plot.overview(
+        metric="Value_Lift", return_df=True
+    ).collect()
+
+    assert "CTR_Lift" in overview_data_ctr.columns
+    assert "Value_Lift" in overview_data_value.columns
+
+
+def test_control_groups_trend_plot(simple_ia):
+    """Test control groups trend plot functionality"""
+    from plotly.graph_objs import Figure
+
+    # Test control groups trend plot with CTR (default)
+    control_groups_ctr = simple_ia.plot.control_groups_trend()
+    assert isinstance(control_groups_ctr, Figure)
+    assert control_groups_ctr.layout.yaxis.title.text == ""
+    assert control_groups_ctr.layout.yaxis.tickformat == ".1%"
+    assert "CTR" in control_groups_ctr.layout.title.text
+    assert control_groups_ctr.layout.hovermode == "x unified"
+
+    # Test control groups trend plot with ValuePerImpression
+    control_groups_value = simple_ia.plot.control_groups_trend(
+        metric="ValuePerImpression"
+    )
+    assert isinstance(control_groups_value, Figure)
+    assert control_groups_value.layout.yaxis.title.text == ""
+    assert control_groups_value.layout.yaxis.tickformat == ".2f"
+    assert "Value Per Impression" in control_groups_value.layout.title.text
+
+    # Test return_df functionality
+    control_groups_data = simple_ia.plot.control_groups_trend(return_df=True).collect()
+    assert "ControlGroup" in control_groups_data.columns
+    assert "CTR" in control_groups_data.columns
+    assert "SnapshotTime" in control_groups_data.columns
+
+    # Test with different by parameter
+    control_groups_by_channel = simple_ia.plot.control_groups_trend(
+        by=["Channel", "SnapshotTime"], return_df=True
+    )
+    assert isinstance(control_groups_by_channel, pl.LazyFrame)
+
+    # Test with custom title
+    custom_title = "Custom Control Groups Analysis"
+    control_groups_custom = simple_ia.plot.control_groups_trend(title=custom_title)
+    assert control_groups_custom.layout.title.text == custom_title
+
+
+def test_plot_with_facet_parameter(simple_ia):
+    """Test plot functions with facet parameter"""
+    from plotly.graph_objs import Figure
+
+    # Test overview with facet by Channel (facet automatically added to by)
+    overview_faceted = simple_ia.plot.overview(facet="Channel")
+    assert isinstance(overview_faceted, Figure)
+
+    # Test trend with facet by Channel (facet automatically added to by)
+    trend_faceted = simple_ia.plot.trend(facet="Channel")
+    assert isinstance(trend_faceted, Figure)
+
+    # Test control groups trend with facet by Channel (facet automatically added to by)
+    control_groups_faceted = simple_ia.plot.control_groups_trend(facet="Channel")
+    assert isinstance(control_groups_faceted, Figure)
+
+    # Test that plots still work without facet (default behavior)
+    overview_no_facet = simple_ia.plot.overview()
+    trend_no_facet = simple_ia.plot.trend()
+    control_groups_no_facet = simple_ia.plot.control_groups_trend()
+
+    assert isinstance(overview_no_facet, Figure)
+    assert isinstance(trend_no_facet, Figure)
+    assert isinstance(control_groups_no_facet, Figure)
+
+    # Test that manual by parameter still works with facet
+    trend_with_by_and_facet = simple_ia.plot.trend(by=["SnapshotTime"], facet="Channel")
+    assert isinstance(trend_with_by_and_facet, Figure)
+
+    # Test that facet doesn't get duplicated if already in by
+    overview_with_channel_in_by = simple_ia.plot.overview(
+        by=["Channel"], facet="Channel"
+    )
+    assert isinstance(overview_with_channel_in_by, Figure)
+
+
+def test_plot_facet_edge_cases(simple_ia):
+    """Test edge cases for facet parameter handling"""
+
+    # Test with by=None and facet provided (overview)
+    overview_data = simple_ia.plot.overview(facet="Channel", return_df=True).collect()
+    assert "Channel" in overview_data.columns
+
+    # Test with by=None and facet provided (trend)
+    trend_data = simple_ia.plot.trend(facet="Channel", return_df=True).collect()
+    assert "Channel" in trend_data.columns
+    assert "SnapshotTime" in trend_data.columns  # default should still be there
+
+    # Test with by=[] (empty list) and facet provided
+    control_groups_data = simple_ia.plot.control_groups_trend(
+        by=[], facet="Channel", return_df=True
+    ).collect()
+    assert "Channel" in control_groups_data.columns
+
+    # Test with facet=None (should work normally)
+    overview_no_facet_data = simple_ia.plot.overview(
+        by=["Channel"], facet=None, return_df=True
+    ).collect()
+    assert "Channel" in overview_no_facet_data.columns
+
+    # Test multiple by parameters with facet
+    trend_multi_by = simple_ia.plot.trend(
+        by=["SnapshotTime", "Channel"], facet="Channel", return_df=True
+    ).collect()
+    assert "Channel" in trend_multi_by.columns
+    assert "SnapshotTime" in trend_multi_by.columns
