@@ -12,6 +12,28 @@ from ..utils.types import QUERY
 
 
 class ImpactAnalyzer:
+    """
+    Analyze and visualize Impact Analyzer experiment results from Pega Customer Decision Hub.
+
+    The ImpactAnalyzer class provides comprehensive analysis and visualization capabilities
+    for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment data
+    from Pega's Customer Decision Hub to compare the effectiveness of different NBA strategies
+    including adaptive models, propensity prioritization, lever usage, and engagement policies.
+
+    When reading from PDC, the ImpactAnalyzer class only keeps the counts of impressions, accepts
+    and the action value per impression and re-calculates all the derived values on demand. It
+    drops inactive experiments and adds rows for the "NBA" group. The "All channels" is dropped.
+    ValueLift and ValueLiftInterval are copied from the PDC data as this can currently not be
+    re-calculated from the available raw numbers (ValuePerImpression is empty).
+
+    Engagement Lift is calculated as (SuccessRate(test) - SuccessRate(control))/SuccessRate(control)
+
+    Value Lift is calculated as (ValueCapture(test) - ValueCapture(control))/ValueCapture(control)
+
+    For value, aggregting the Value property
+
+    """
+
     ia_data: pl.LazyFrame
 
     default_ia_experiments = {
@@ -155,6 +177,65 @@ class ImpactAnalyzer:
             return normalized_ia_data
 
         return ImpactAnalyzer(normalized_ia_data)
+
+    @classmethod
+    def from_vbd(
+        cls,
+        vbd_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
+        *,
+        return_df: Optional[bool] = False,
+    ):
+        """Create an ImpactAnalyzer instance from VBD (Value-Based Decisioning) data
+
+        This method will process VBD Actuals or VBD Scenario Planner Actuals data
+        to reconstruct Impact Analyzer experiment metrics. This allows for more
+        flexible time ranges and data selection compared to PDC exports.
+
+        IA uses **pyReason**, **MktType**, **MktValue** and **ModelControlGroup** to define
+        the various experiments. For the standard NBA decisions (no experiment), values are left empty (null).
+
+        Prior to Impact Analyzer, or when turned off, Predictions from Prediction Studio manage two
+        groups through the **ModelControlGroup** property. A value of **Test** is used for model driven arbitration, **Control** for the random control group (defaults to 2%).
+
+        When IA is on, the distinct values from just **MktValue** are sufficient to identify the
+        different experiments. In the future, more and custom experiments may be supported.
+
+        For the full NBA interactions the value of the marker fields is left empty.
+
+        TODO: NBAHealth_ModelControl_2 is conceptually the same as NBAHealth_PropensityPriority and will be phased out in Pega 24.1/24.2.
+
+        The usage of "Default" issues and groups indicates that there is no action. These need to be filtered out for proper reporting.
+
+        TODO: should we exclude these from analysis?
+
+        TODO: what about things with inactive status? And how can we know?
+
+        NOTE: Impact Analyzer goes back from today's date, also when the data is from an earlier date.
+
+        Parameters
+        ----------
+        vbd_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
+            Path to VBD export file(s) or URL(s)
+        return_df : Optional[bool], optional
+            Return processed data instead of ImpactAnalyzer instance, by default False
+
+        Returns
+        -------
+        ImpactAnalyzer
+            The properly initialized ImpactAnalyzer object with reconstructed experiment data
+
+
+        Examples
+        --------
+        >>> # Load from VBD export
+        >>> ia = ImpactAnalyzer.from_vbd('Data-pxStrategyResult_ActualsExport.zip')
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not yet implemented. Use from_pdc() for current functionality.
+        """
+        raise NotImplementedError("from_vbd() method is not yet implemented.")
 
     @classmethod
     def _normalize_pdc_ia_data(
