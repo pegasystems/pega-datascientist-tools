@@ -320,3 +320,41 @@ def test_plot_facet_edge_cases(simple_ia):
     trend_with_facet = simple_ia.plot.trend(facet="Channel", return_df=True).collect()
     assert "Channel" in trend_with_facet.columns
     assert "SnapshotTime" in trend_with_facet.columns
+
+
+def test_plot_with_every_parameter(simple_ia):
+    """Test plot functions with every parameter for time aggregation"""
+    from plotly.graph_objs import Figure
+
+    # Test trend with every parameter only
+    trend_with_every = simple_ia.plot.trend(every="1mo")
+    assert isinstance(trend_with_every, Figure)
+
+    # Test control groups trend with every parameter only
+    control_groups_with_every = simple_ia.plot.control_groups_trend(every="1w")
+    assert isinstance(control_groups_with_every, Figure)
+
+    # CRITICAL TEST: Test the combination of facet and every parameters
+    # This was failing before the fix with TypeError
+    trend_facet_and_every = simple_ia.plot.trend(facet="Channel", every="1mo")
+    assert isinstance(trend_facet_and_every, Figure)
+
+    control_groups_facet_and_every = simple_ia.plot.control_groups_trend(
+        facet="Channel", every="1w"
+    )
+    assert isinstance(control_groups_facet_and_every, Figure)
+
+    # Test return_df functionality with facet + every combination
+    trend_data = simple_ia.plot.trend(
+        facet="Channel", every="1mo", return_df=True
+    ).collect()
+    assert "Channel" in trend_data.columns
+    assert "SnapshotTime" in trend_data.columns
+    assert "Experiment" in trend_data.columns
+
+    control_groups_data = simple_ia.plot.control_groups_trend(
+        facet="Channel", every="1w", return_df=True
+    ).collect()
+    assert "Channel" in control_groups_data.columns
+    assert "SnapshotTime" in control_groups_data.columns
+    assert "ControlGroup" in control_groups_data.columns
