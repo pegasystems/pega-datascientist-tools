@@ -487,15 +487,19 @@ class ImpactAnalyzer:
         )
 
     def summarize_control_groups(
-        self, by: Optional[Union[List[str], str]] = None, drop_internal_cols=True
+        self,
+        by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
+        drop_internal_cols=True,
     ) -> pl.LazyFrame:
         if not by:
-            by = []
-        if isinstance(by, str):
-            by = [by]
+            group_by = []
+        elif not isinstance(by, list):
+            group_by = [by]
+        else:
+            group_by = by
         return (
-            self.ia_data.sort(by + ["ControlGroup"])
-            .group_by(by + ["ControlGroup"], maintain_order=True)
+            self.ia_data.sort(group_by + ["ControlGroup"])
+            .group_by(group_by + ["ControlGroup"], maintain_order=True)
             .agg(
                 pl.sum("Impressions", "Accepts"),
                 CTR=pl.sum("Accepts") / pl.sum("Impressions"),
@@ -505,11 +509,12 @@ class ImpactAnalyzer:
                 # this is only a backup in case the associated value per impression is missing like in PDC data
                 Pega_ValueLift=weighted_average_polars("Pega_ValueLift", "Impressions"),
             )
-            .drop(["Pega_ValueLift"] if drop_internal_cols else [])
+            .drop(cs.starts_with("Pega_") if drop_internal_cols else [])
         )
 
     def summarize_experiments(
-        self, by: Optional[Union[List[str], str]] = None
+        self,
+        by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
     ) -> pl.LazyFrame:
         if not by:
             by = []
@@ -518,6 +523,19 @@ class ImpactAnalyzer:
 
         def _lift_pl(test, control):
             return (pl.col(test) - pl.col(control)) / pl.col(control)
+
+        # Extract column names from expressions for use with pl.exclude()
+        def _get_column_names(by_list):
+            column_names = []
+            for item in by_list:
+                if isinstance(item, pl.Expr):
+                    # Extract the root column name from the expression
+                    column_names.append(item.meta.output_name())
+                else:
+                    column_names.append(item)
+            return column_names
+
+        by_column_names = _get_column_names(by)
 
         control_groups_summary = self.summarize_control_groups(
             by, drop_internal_cols=False
@@ -536,18 +554,20 @@ class ImpactAnalyzer:
                 }
             )
             .join(
-                control_groups_summary.select(*by, pl.exclude(by).name.suffix("_Test")),
+                control_groups_summary.select(
+                    *by, pl.exclude(by_column_names).name.suffix("_Test")
+                ),
                 how="left",
                 left_on="Test",
                 right_on="ControlGroup_Test",
             )
             .join(
                 control_groups_summary.select(
-                    *by, pl.exclude(by).name.suffix("_Control")
+                    *by, pl.exclude(by_column_names).name.suffix("_Control")
                 ),
                 how="left",
-                left_on=["Control"] + by,
-                right_on=["ControlGroup_Control"] + by,
+                left_on=["Control"] + by_column_names,
+                right_on=["ControlGroup_Control"] + by_column_names,
             )
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
@@ -560,5 +580,5 @@ class ImpactAnalyzer:
                 # TODO figure out confidence intervals etc.
             )
             .drop(cs.starts_with("Pega_"))
-            .sort(["Experiment"] + by)
+            .sort(["Experiment"] + by_column_names)
         )

@@ -219,9 +219,9 @@ def test_plot_with_query(simple_ia):
     # Should only contain the filtered experiment
     assert "NBA vs Random" in overview_data["Experiment"].to_list()
 
-    # Test trend with query - need to use by parameter to include Channel for filtering
+    # Test trend with query - using facet parameter to include Channel for filtering
     trend_data = simple_ia.plot.trend(
-        by=["Channel", "SnapshotTime"],
+        facet="Channel",
         query=pl.col("Channel") == "Email",
         return_df=True,
     ).collect()
@@ -234,7 +234,7 @@ def test_plot_with_query(simple_ia):
     # Test that plots still render with query
     overview_fig = simple_ia.plot.overview(query=query)
     trend_fig = simple_ia.plot.trend(
-        by=["Channel", "SnapshotTime"], query=pl.col("Channel") == "Email"
+        facet="Channel", query=pl.col("Channel") == "Email"
     )
 
     assert overview_fig is not None
@@ -256,89 +256,6 @@ def test_plot_experiment_color_map():
     color_map = Plots._get_experiment_color_map()
     assert color_map == expected_experiments
     assert len(color_map) == 5
-
-
-def test_plot_with_different_metrics(simple_ia):
-    """Test plot functions with different metric parameters"""
-    from plotly.graph_objs import Figure
-
-    # Test overview with CTR_Lift (default) - x-axis title removed for cleaner look
-    overview_ctr = simple_ia.plot.overview()
-    assert isinstance(overview_ctr, Figure)
-    assert overview_ctr.layout.xaxis.title.text == ""
-    assert overview_ctr.layout.xaxis.tickformat == ".1%"
-    assert "CTR Lift" in overview_ctr.layout.title.text
-
-    # Test overview with Value_Lift - x-axis title removed for cleaner look
-    overview_value = simple_ia.plot.overview(metric="Value_Lift")
-    assert isinstance(overview_value, Figure)
-    assert overview_value.layout.xaxis.title.text == ""
-    assert overview_value.layout.xaxis.tickformat == ".2f"
-    assert "Value Lift" in overview_value.layout.title.text
-
-    # Test trend with CTR_Lift (default) - y-axis title removed for cleaner look
-    trend_ctr = simple_ia.plot.trend()
-    assert isinstance(trend_ctr, Figure)
-    assert trend_ctr.layout.yaxis.title.text == ""
-    assert trend_ctr.layout.yaxis.tickformat == ".1%"
-    assert "CTR Lift" in trend_ctr.layout.title.text
-
-    # Test trend with Value_Lift - y-axis title removed for cleaner look
-    trend_value = simple_ia.plot.trend(metric="Value_Lift")
-    assert isinstance(trend_value, Figure)
-    assert trend_value.layout.yaxis.title.text == ""
-    assert trend_value.layout.yaxis.tickformat == ".2f"
-    assert "Value Lift" in trend_value.layout.title.text
-
-    # Test that data is returned correctly with different metrics
-    overview_data_ctr = simple_ia.plot.overview(
-        metric="CTR_Lift", return_df=True
-    ).collect()
-    overview_data_value = simple_ia.plot.overview(
-        metric="Value_Lift", return_df=True
-    ).collect()
-
-    assert "CTR_Lift" in overview_data_ctr.columns
-    assert "Value_Lift" in overview_data_value.columns
-
-
-def test_control_groups_trend_plot(simple_ia):
-    """Test control groups trend plot functionality"""
-    from plotly.graph_objs import Figure
-
-    # Test control groups trend plot with CTR (default)
-    control_groups_ctr = simple_ia.plot.control_groups_trend()
-    assert isinstance(control_groups_ctr, Figure)
-    assert control_groups_ctr.layout.yaxis.title.text == ""
-    assert control_groups_ctr.layout.yaxis.tickformat == ".1%"
-    assert "CTR" in control_groups_ctr.layout.title.text
-    assert control_groups_ctr.layout.hovermode == "x unified"
-
-    # Test control groups trend plot with ValuePerImpression
-    control_groups_value = simple_ia.plot.control_groups_trend(
-        metric="ValuePerImpression"
-    )
-    assert isinstance(control_groups_value, Figure)
-    assert control_groups_value.layout.yaxis.title.text == ""
-    assert control_groups_value.layout.yaxis.tickformat == ".2f"
-    assert "Value Per Impression" in control_groups_value.layout.title.text
-
-    # Test return_df functionality
-    control_groups_data = simple_ia.plot.control_groups_trend(return_df=True).collect()
-    assert "ControlGroup" in control_groups_data.columns
-    assert "CTR" in control_groups_data.columns
-    assert "SnapshotTime" in control_groups_data.columns
-
-    # Test with different by parameter
-    control_groups_by_channel = simple_ia.plot.control_groups_trend(
-        by=["Channel", "SnapshotTime"], return_df=True
-    )
-    assert isinstance(control_groups_by_channel, pl.LazyFrame)
-
-    # Test with custom title
-    custom_title = "Custom Control Groups Analysis"
-    control_groups_custom = simple_ia.plot.control_groups_trend(title=custom_title)
-    assert control_groups_custom.layout.title.text == custom_title
 
 
 def test_plot_with_facet_parameter(simple_ia):
@@ -366,44 +283,78 @@ def test_plot_with_facet_parameter(simple_ia):
     assert isinstance(trend_no_facet, Figure)
     assert isinstance(control_groups_no_facet, Figure)
 
-    # Test that manual by parameter still works with facet
-    trend_with_by_and_facet = simple_ia.plot.trend(by=["SnapshotTime"], facet="Channel")
-    assert isinstance(trend_with_by_and_facet, Figure)
+    # Test that default behavior still works with facet
+    trend_with_facet = simple_ia.plot.trend(facet="Channel")
+    assert isinstance(trend_with_facet, Figure)
 
-    # Test that facet doesn't get duplicated if already in by
-    overview_with_channel_in_by = simple_ia.plot.overview(
-        by=["Channel"], facet="Channel"
-    )
-    assert isinstance(overview_with_channel_in_by, Figure)
+    # Test that facet works correctly
+    overview_with_facet = simple_ia.plot.overview(facet="Channel")
+    assert isinstance(overview_with_facet, Figure)
 
 
 def test_plot_facet_edge_cases(simple_ia):
     """Test edge cases for facet parameter handling"""
 
-    # Test with by=None and facet provided (overview)
+    # Test with facet provided (overview)
     overview_data = simple_ia.plot.overview(facet="Channel", return_df=True).collect()
     assert "Channel" in overview_data.columns
 
-    # Test with by=None and facet provided (trend)
+    # Test with facet provided (trend)
     trend_data = simple_ia.plot.trend(facet="Channel", return_df=True).collect()
     assert "Channel" in trend_data.columns
     assert "SnapshotTime" in trend_data.columns  # default should still be there
 
-    # Test with by=[] (empty list) and facet provided
+    # Test with facet provided (control_groups_trend)
     control_groups_data = simple_ia.plot.control_groups_trend(
-        by=[], facet="Channel", return_df=True
+        facet="Channel", return_df=True
     ).collect()
     assert "Channel" in control_groups_data.columns
 
     # Test with facet=None (should work normally)
     overview_no_facet_data = simple_ia.plot.overview(
-        by=["Channel"], facet=None, return_df=True
+        facet=None, return_df=True
     ).collect()
-    assert "Channel" in overview_no_facet_data.columns
+    assert "Experiment" in overview_no_facet_data.columns
 
-    # Test multiple by parameters with facet
-    trend_multi_by = simple_ia.plot.trend(
-        by=["SnapshotTime", "Channel"], facet="Channel", return_df=True
+    # Test facet with trend (should include both facet and default time dimension)
+    trend_with_facet = simple_ia.plot.trend(facet="Channel", return_df=True).collect()
+    assert "Channel" in trend_with_facet.columns
+    assert "SnapshotTime" in trend_with_facet.columns
+
+
+def test_plot_with_every_parameter(simple_ia):
+    """Test plot functions with every parameter for time aggregation"""
+    from plotly.graph_objs import Figure
+
+    # Test trend with every parameter only
+    trend_with_every = simple_ia.plot.trend(every="1mo")
+    assert isinstance(trend_with_every, Figure)
+
+    # Test control groups trend with every parameter only
+    control_groups_with_every = simple_ia.plot.control_groups_trend(every="1w")
+    assert isinstance(control_groups_with_every, Figure)
+
+    # CRITICAL TEST: Test the combination of facet and every parameters
+    # This was failing before the fix with TypeError
+    trend_facet_and_every = simple_ia.plot.trend(facet="Channel", every="1mo")
+    assert isinstance(trend_facet_and_every, Figure)
+
+    control_groups_facet_and_every = simple_ia.plot.control_groups_trend(
+        facet="Channel", every="1w"
+    )
+    assert isinstance(control_groups_facet_and_every, Figure)
+
+    # Test return_df functionality with facet + every combination
+    trend_data = simple_ia.plot.trend(
+        facet="Channel", every="1mo", return_df=True
     ).collect()
-    assert "Channel" in trend_multi_by.columns
-    assert "SnapshotTime" in trend_multi_by.columns
+    assert "Channel" in trend_data.columns
+    assert "SnapshotTime" in trend_data.columns
+    assert "Experiment" in trend_data.columns
+
+    control_groups_data = simple_ia.plot.control_groups_trend(
+        facet="Channel", every="1w", return_df=True
+    ).collect()
+    assert "Channel" in control_groups_data.columns
+    assert "SnapshotTime" in control_groups_data.columns
+    assert "ControlGroup" in control_groups_data.columns

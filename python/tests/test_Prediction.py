@@ -62,7 +62,6 @@ def preds_fewdays():
 
 
 def test_available(preds_singleday):
-    print(preds_singleday.predictions.collect())
     assert preds_singleday.is_available
     assert preds_singleday.is_valid
 
@@ -112,12 +111,12 @@ def test_summary_by_channel_validity(preds_singleday):
 
 
 def test_summary_by_channel_trend(preds_singleday):
-    summary = preds_singleday.summary_by_channel(by_period="1d").collect()
+    summary = preds_singleday.summary_by_channel(every="1d").collect()
     assert summary.select(pl.len()).item() == 4
 
 
 def test_summary_by_channel_trend2(preds_fewdays):
-    summary = preds_fewdays.summary_by_channel(by_period="1d").collect()
+    summary = preds_fewdays.summary_by_channel(every="1d").collect()
     assert summary.select(pl.len()).item() == 8
 
 
@@ -279,11 +278,6 @@ def test_overall_summary_positives(preds_singleday):
 
 
 def test_overall_summary_responsecount(preds_singleday):
-    print(
-        preds_singleday.summary_by_channel()
-        .select(["Channel", "Direction", "Responses"])
-        .collect()
-    )
     assert (
         preds_singleday.overall_summary().collect()["Responses Inbound"].item() == 27000
     )
@@ -300,7 +294,7 @@ def test_overall_summary_channel_min_lift(preds_singleday):
 
 
 def test_overall_summary_by_period(preds_fewdays):
-    summ = preds_fewdays.overall_summary(by_period="1d").collect()
+    summ = preds_fewdays.overall_summary(every="1d").collect()
     assert summ.height == 2
 
 
