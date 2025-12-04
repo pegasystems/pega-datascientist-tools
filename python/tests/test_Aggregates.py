@@ -227,7 +227,7 @@ def test_used_actions():
     summary = dm_used.aggregates.summary_by_channel().collect()
     assert summary["Used Actions"].to_list() == [2]
 
-    summary = dm_used.aggregates.summary_by_channel(by_period="1mo").collect()
+    summary = dm_used.aggregates.summary_by_channel(every="1mo").collect()
     assert summary["Used Actions"].to_list() == [1, 0, 2]
 
 
@@ -282,7 +282,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 
 
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
-    summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
+    summary_by_channel = dm_aggregates.summary_by_channel(every="4h").collect()
     assert summary_by_channel.height == 6
     assert summary_by_channel.width == 23
     assert set(summary_by_channel["Responses"].to_list()) == {
@@ -382,11 +382,11 @@ def test_omnichannel():
 
 
 def test_aggregate_overall_summary_by_time(dm_aggregates):
-    overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
+    overall_summary = dm_aggregates.overall_summary(every="1h").collect()
     assert overall_summary.height == 6
     assert overall_summary.width == 21
 
-    # print(dm_aggregates.summary_by_channel(by_period="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
+    # print(dm_aggregates.summary_by_channel(every="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
 
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 3, 3, 3, 3, 3]
     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
@@ -495,11 +495,12 @@ def test_new_actions():
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
 
-    agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    agg = dm.aggregates.overall_summary(every="1w").collect()
     assert agg["New Actions"].to_list() == [2, 1, 1]
 
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2, 2]
+
 
 def test_new_actions_issue_455():
     # In January we have Card1, Loan1
@@ -558,7 +559,7 @@ def test_new_actions_issue_455():
                 1000,
                 1010,
                 1010,
-                1010, 
+                1010,
                 1020,
                 1030,
                 1000,
@@ -596,12 +597,12 @@ def test_new_actions_issue_455():
 
     dm = ADMDatamart(model_data.lazy())
 
-    agg = dm.aggregates.overall_summary(by_period="1mo").collect()
-    assert agg["Actions"].to_list() == [2, 2, 4]    
-    assert agg["Used Actions"].to_list() == [2, 1, 4]    
-    assert agg["New Actions"].to_list() == [2, 1, 2] #[0, 1, 2]
+    agg = dm.aggregates.overall_summary(every="1mo").collect()
+    assert agg["Actions"].to_list() == [2, 2, 4]
+    assert agg["Used Actions"].to_list() == [2, 1, 4]
+    assert agg["New Actions"].to_list() == [2, 1, 2]  # [0, 1, 2]
 
     agg = dm.aggregates.overall_summary().collect()
-    assert agg["Actions"].item() == 5 
-    assert agg["Used Actions"].item() == 5 
+    assert agg["Actions"].item() == 5
+    assert agg["Used Actions"].item() == 5
     assert agg["New Actions"].item() == 5

@@ -487,15 +487,19 @@ class ImpactAnalyzer:
         )
 
     def summarize_control_groups(
-        self, by: Optional[Union[List[str], str]] = None, drop_internal_cols=True
+        self,
+        by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
+        drop_internal_cols=True,
     ) -> pl.LazyFrame:
         if not by:
-            by = []
-        if isinstance(by, str):
-            by = [by]
+            group_by = []
+        elif not isinstance(by, list):
+            group_by = [by]
+        else:
+            group_by = by
         return (
-            self.ia_data.sort(by + ["ControlGroup"])
-            .group_by(by + ["ControlGroup"], maintain_order=True)
+            self.ia_data.sort(group_by + ["ControlGroup"])
+            .group_by(group_by + ["ControlGroup"], maintain_order=True)
             .agg(
                 pl.sum("Impressions", "Accepts"),
                 CTR=pl.sum("Accepts") / pl.sum("Impressions"),

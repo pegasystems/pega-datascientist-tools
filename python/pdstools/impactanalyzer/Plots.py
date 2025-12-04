@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import polars as pl
 from ..utils.cdh_utils import _apply_query
@@ -73,20 +73,53 @@ class Plots(LazyNamespace):
     def overview(
         self,
         *,
-        by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
         metric: Optional[str] = "CTR_Lift",
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        if by is None:
-            by = []
+        """Create an overview bar chart showing experiment performance metrics.
 
-        if facet is not None and facet not in by:
-            by = by + [facet]
+        Displays a horizontal bar chart comparing different Impact Analyzer experiments
+        across the specified metric (CTR_Lift or Value_Lift).
 
-        plot_data = self.ia.summarize_experiments(by=by)
+        Parameters
+        ----------
+        title : Optional[str], optional
+            Custom title for the plot. If None, generates a default title based on the metric.
+        query : Optional[QUERY], optional
+            Query to filter the experiment data. See pdstools.utils.cdh_utils._apply_query for details.
+        metric : Optional[str], optional
+            The metric to display on the x-axis, by default "CTR_Lift".
+            Options: "CTR_Lift", "Value_Lift".
+        facet : Optional[str], optional
+            Column name to create separate subplots for each unique value, by default None.
+            Common options: "Channel".
+        return_df : Optional[bool], optional
+            If True, returns the underlying data instead of the plot, by default False.
+
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic overview plot
+        >>> ia.plot.overview()
+
+        >>> # Overview with Value_Lift metric
+        >>> ia.plot.overview(metric="Value_Lift")
+
+        >>> # Faceted by Channel
+        >>> ia.plot.overview(facet="Channel")
+
+        >>> # Get underlying data
+        >>> data = ia.plot.overview(return_df=True)
+        """
+        grouping_columns = [facet] if facet is not None else []
+        plot_data = self.ia.summarize_experiments(by=grouping_columns)
 
         # Filter out rows with invalid metric values (NaN, Infinity)
         plot_data = plot_data.filter(
@@ -99,11 +132,6 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
-        if title is None:
-            metric_name = "CTR Lift" if metric == "CTR_Lift" else "Value Lift"
-            title = f"Overview Impact Analyzer Experiments - {metric_name}"
-
-        tick_format = ".1%" if metric == "CTR_Lift" else ".2f"
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
@@ -123,14 +151,14 @@ class Plots(LazyNamespace):
 
         fig.update_layout(
             showlegend=False,
-            title=title,
+            title=title or f"Overview Impact Analyzer Experiments - {metric}",
             margin=dict(l=60, r=60, t=80, b=80),
         )
 
         fig.update_yaxes(automargin=True, title="")
         fig.update_xaxes(
             title="",
-            tickformat=tick_format,
+            tickformat=".1%",
             matches=None if facet is not None else "x",
             showticklabels=True,
         )
@@ -140,23 +168,67 @@ class Plots(LazyNamespace):
     def control_groups_trend(
         self,
         *,
-        by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
         metric: Optional[str] = "CTR",
         facet: Optional[str] = None,
+        every: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        if by is None:
-            by = ["SnapshotTime"]
+        """Create a trend line chart showing control group performance over time.
 
-        if facet is not None and facet not in by:
-            by = by + [facet]
+        Displays a line chart showing how different Impact Analyzer control groups
+        perform over time for the specified metric (CTR or ValuePerImpression).
 
-        plot_data = self.ia.summarize_control_groups(by=by)
+        Parameters
+        ----------
+        title : Optional[str], optional
+            Custom title for the plot. If None, generates a default title based on the metric.
+        query : Optional[QUERY], optional
+            Query to filter the control group data. See pdstools.utils.cdh_utils._apply_query for details.
+        metric : Optional[str], optional
+            The metric to display on the y-axis, by default "CTR".
+            Options: "CTR", "ValuePerImpression".
+        facet : Optional[str], optional
+            Column name to create separate subplots for each unique value, by default None.
+            Common options: "Channel".
+        every : Optional[str], optional
+            Time period for aggregating timestamps, by default None.
+            Uses Polars truncate syntax: "1d", "1w", "1mo", "1q", "1y".
+            When specified, timestamps are truncated to the given period before summarization.
+        return_df : Optional[bool], optional
+            If True, returns the underlying data instead of the plot, by default False.
 
-        # Filter out rows with invalid metric values (NaN, Infinity)
-        plot_data = plot_data.filter(
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic control groups trend plot
+        >>> ia.plot.control_groups_trend()
+
+        >>> # Control groups trend with ValuePerImpression metric
+        >>> ia.plot.control_groups_trend(metric="ValuePerImpression")
+
+        >>> # Weekly aggregated trend
+        >>> ia.plot.control_groups_trend(every="1w")
+
+        >>> # Faceted by Channel with monthly aggregation
+        >>> ia.plot.control_groups_trend(facet="Channel", every="1mo")
+
+        >>> # Get underlying data
+        >>> data = ia.plot.control_groups_trend(return_df=True)
+        """
+        if every is not None:
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
+                [facet] if facet is not None else []
+            )
+        else:
+            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+
+        plot_data = self.ia.summarize_control_groups(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite()
         )
 
@@ -166,11 +238,6 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
-        if title is None:
-            metric_name = "CTR" if metric == "CTR" else "Value Per Impression"
-            title = f"Trend of {metric_name} for Impact Analyzer Control Groups"
-
-        tick_format = ".1%" if metric == "CTR" else ".2f"
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
@@ -189,13 +256,13 @@ class Plots(LazyNamespace):
 
         fig.update_layout(
             hovermode="x unified",
-            title=title,
+            title=title or f"Trend of {metric} for Impact Analyzer Control Groups",
             margin=dict(l=60, r=60, t=80, b=80),
         )
 
         fig.update_yaxes(
             title="",
-            tickformat=tick_format,
+            tickformat=".1%",
             matches=None if facet is not None else "y",
             showticklabels=True,
         )
@@ -206,23 +273,67 @@ class Plots(LazyNamespace):
     def trend(
         self,
         *,
-        by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
         metric: Optional[str] = "CTR_Lift",
         facet: Optional[str] = None,
+        every: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        if by is None:
-            by = ["SnapshotTime"]
+        """Create a trend line chart showing experiment performance over time.
 
-        if facet is not None and facet not in by:
-            by = by + [facet]
+        Displays a line chart showing how different Impact Analyzer experiments
+        perform over time for the specified metric (CTR_Lift or Value_Lift).
 
-        plot_data = self.ia.summarize_experiments(by=by)
+        Parameters
+        ----------
+        title : Optional[str], optional
+            Custom title for the plot. If None, generates a default title based on the metric.
+        query : Optional[QUERY], optional
+            Query to filter the experiment data. See pdstools.utils.cdh_utils._apply_query for details.
+        metric : Optional[str], optional
+            The metric to display on the y-axis, by default "CTR_Lift".
+            Options: "CTR_Lift", "Value_Lift".
+        facet : Optional[str], optional
+            Column name to create separate subplots for each unique value, by default None.
+            Common options: "Channel".
+        every : Optional[str], optional
+            Time period for aggregating timestamps, by default None.
+            Uses Polars truncate syntax: "1d", "1w", "1mo", "1q", "1y".
+            When specified, timestamps are truncated to the given period before summarization.
+        return_df : Optional[bool], optional
+            If True, returns the underlying data instead of the plot, by default False.
 
-        # Filter out rows with invalid metric values (NaN, Infinity)
-        plot_data = plot_data.filter(
+        Returns
+        -------
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic experiment trend plot
+        >>> ia.plot.trend()
+
+        >>> # Experiment trend with Value_Lift metric
+        >>> ia.plot.trend(metric="Value_Lift")
+
+        >>> # Weekly aggregated trend
+        >>> ia.plot.trend(every="1w")
+
+        >>> # Faceted by Channel with monthly aggregation
+        >>> ia.plot.trend(facet="Channel", every="1mo")
+
+        >>> # Get underlying data
+        >>> data = ia.plot.trend(return_df=True)
+        """
+        if every is not None:
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
+                [facet] if facet is not None else []
+            )
+        else:
+            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+
+        plot_data = self.ia.summarize_experiments(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite()
         )
 
@@ -232,11 +343,6 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
-        if title is None:
-            metric_name = "CTR Lift" if metric == "CTR_Lift" else "Value Lift"
-            title = f"Trend of {metric_name} for Impact Analyzer Experiments"
-
-        tick_format = ".1%" if metric == "CTR_Lift" else ".2f"
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
@@ -256,13 +362,13 @@ class Plots(LazyNamespace):
 
         fig.update_layout(
             hovermode="x unified",
-            title=title,
+            title=title or f"Trend of {metric} for Impact Analyzer Experiments",
             margin=dict(l=60, r=60, t=80, b=80),
         )
 
         fig.update_yaxes(
             title="",
-            tickformat=tick_format,
+            tickformat=".1%",
             matches=None if facet is not None else "y",
             showticklabels=True,
         )
