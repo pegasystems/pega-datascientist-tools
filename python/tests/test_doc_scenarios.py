@@ -19,7 +19,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
         "examples/impactanalyzer/impact_analyzer.ipynb",
         "examples/prediction_studio/Predictions.ipynb",
         # "examples/prediction_studio/PredictionStudio.ipynb",  # Not passing
-        "examples/hds/hds_analysis.ipynb",
+        # "examples/hds/hds_analysis.ipynb", # depends on module 'xgboost'
         "examples/ih/Example_IH_Analysis.ipynb",
         # "examples/ih/Conversion_Reporting.ipynb",  # Failing due to column not found
         "examples/valuefinder/vf_analysis.ipynb",
