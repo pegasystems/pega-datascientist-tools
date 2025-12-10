@@ -227,7 +227,6 @@ class Aggregates:
             )
         )
 
-
     @staticmethod
     def _top_n(
         df: Union[pl.LazyFrame, pl.DataFrame],
@@ -411,33 +410,29 @@ class Aggregates:
         return (
             model_data.group_by(([] if grouping is None else grouping) + ["ModelID"])
             .agg(
-                (
-                    pl.col("Positives").filter(Direction="Inbound").max()
-                    - pl.col("Positives").filter(Direction="Inbound").min()
-                ).alias("Positives Inbound"),
-                (
-                    pl.col("Positives").filter(Direction="Outbound").max()
-                    - pl.col("Positives").filter(Direction="Outbound").min()
-                ).alias("Positives Outbound"),
-                (
-                    pl.col("ResponseCount").filter(Direction="Inbound").max()
-                    - pl.col("ResponseCount").filter(Direction="Inbound").min()
-                ).alias("Responses Inbound"),
-                (
-                    pl.col("ResponseCount").filter(Direction="Outbound").max()
-                    - pl.col("ResponseCount").filter(Direction="Outbound").min()
-                ).alias("Responses Outbound"),
+                pl.col("Positives")
+                .filter(Direction="Inbound")
+                .max()
+                .alias("Positives Inbound"),
+                pl.col("Positives")
+                .filter(Direction="Outbound")
+                .max()
+                .alias("Positives Outbound"),
+                pl.col("ResponseCount")
+                .filter(Direction="Inbound")
+                .max()
+                .alias("Responses Inbound"),
+                pl.col("ResponseCount")
+                .filter(Direction="Outbound")
+                .max()
+                .alias("Responses Outbound"),
                 pl.col("Positives").max().alias("TotalPositives"),
                 pl.col("ResponseCount").max().alias("TotalResponseCount"),
-                pl.col("Positives").max() - pl.col("Positives").min(),
-                pl.col("ResponseCount").max() - pl.col("ResponseCount").min(),
                 pl.col("Performance").mean(),  # ahum, not weighted?
             )
             .group_by(grouping)
             .agg(
                 pl.sum(
-                    "Positives",
-                    "ResponseCount",
                     "TotalPositives",
                     "TotalResponseCount",
                     "Positives Inbound",
@@ -445,14 +440,18 @@ class Aggregates:
                     "Responses Inbound",
                     "Responses Outbound",
                 ),
-                (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
+                (
+                    cdh_utils.weighted_average_polars(
+                        "Performance",
+                        "TotalResponseCount",
+                    ).fill_nan(0.5)
+                    * 100
+                ).alias("Performance"),
             )
             .with_columns(
-                # applies to totals not delta
                 isValid=(pl.col("TotalPositives") >= 200)
                 & (pl.col("TotalResponseCount") >= 1000),
             )
-            .drop([] if debug else ["ResponseCount", "Positives"])
         )
 
     def _summarize_action_analytics(
@@ -646,8 +645,9 @@ class Aggregates:
             .with_columns(
                 Positives=pl.col("Positives Inbound") + pl.col("Positives Outbound"),
                 Responses=pl.col("Responses Inbound") + pl.col("Responses Outbound"),
-                CTR=(pl.col("Positives Inbound") + pl.col("Positives Outbound"))
-                / (pl.col("Responses Inbound") + pl.col("Responses Outbound")),
+            )
+            .with_columns(
+                CTR=pl.col("Positives") / pl.col("Responses"),
             )
             .drop(
                 "Positives Inbound",
