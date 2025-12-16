@@ -116,7 +116,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
         st.warning(
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
-            Detailed instructions can be found [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)
+            Detailed instructions can be found [here](https://pegasystems.github.io/pega-datascientist-tools/GettingStartedWithTheStandAloneApplication.html)
             """
         )
     if model_file and predictor_file:
