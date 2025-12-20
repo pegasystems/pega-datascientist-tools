@@ -12,7 +12,6 @@ format:
     html-math-method: mathml
     page-layout: full
     code-fold: true
-    embed-resources: true
     standalone: true
     code-tools: true
     toc: true

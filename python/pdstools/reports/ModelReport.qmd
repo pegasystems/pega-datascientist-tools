@@ -11,7 +11,6 @@ format:
   html:
     page-layout: full
     code-fold: true
-    embed-resources: true
     standalone: true
     code-tools: true
     toc: true
@@ -214,7 +213,7 @@ try:
     active_range_info = datamart.active_ranges(model_id).collect().to_dicts()[0]
 
     auc_roc = round(active_range_info['AUC_ActiveRange'], 4)
-    
+
     report_utils.quarto_print(
         f"The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the 'active' bins of the Classifier. In Pega, AUC is always scaled to a number 50-100."
     )
@@ -289,7 +288,7 @@ try:
                 / pl.sum("BinResponseCount")
             )
             .round(2)
-            
+
             .alias("Cum. Total (%)"),
             (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
             z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))

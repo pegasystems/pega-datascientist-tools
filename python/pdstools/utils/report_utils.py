@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 
@@ -64,6 +64,7 @@ def _write_params_files(
     params: Optional[Dict] = None,
     project: Dict = {"type": "default"},
     analysis: Optional[Dict] = None,
+    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
 ) -> None:
     """Write parameters to YAML files for Quarto processing.
 
@@ -77,6 +78,9 @@ def _write_params_files(
         Project configuration to write to _quarto.yml, by default {"type": "default"}
     analysis : dict, optional
         Analysis configuration to write to _quarto.yml, by default None
+    size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
+        When "cdn", sets embed-resources to false so JS libraries load from CDN.
+        When None or "strip", sets embed-resources to true for self-contained HTML.
 
     Returns
     -------
@@ -94,15 +98,18 @@ def _write_params_files(
             f,
         )
 
-    # Project/rendering options to quarto
+    quarto_config: Dict = {
+        "project": project,
+        "analysis": analysis,
+        "format": {
+            "html": {
+                "embed-resources": size_reduction_method != "cdn",
+            }
+        },
+    }
+
     with open(temp_dir / "_quarto.yml", "w") as f:
-        yaml.dump(
-            {
-                "project": project,
-                "analysis": analysis,
-            },
-            f,
-        )
+        yaml.dump(quarto_config, f)
 
 
 def run_quarto(
@@ -115,7 +122,7 @@ def run_quarto(
     temp_dir: Path = Path("."),
     verbose: bool = False,
     *,
-    remove_duplicate_html_scripts: bool,
+    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
 ) -> int:
     """Run the Quarto command to generate the report.
 
@@ -137,8 +144,10 @@ def run_quarto(
         Temporary directory for processing, by default Path(".")
     verbose : bool, optional
         Whether to print detailed execution logs, by default False
-    remove_duplicate_html_scripts : bool
-        Whether to remove duplicate HTML script tags from the output
+    size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
+        When None will fully embed all resources into the HTML output.
+        When "cdn" will pass this on to Quarto and Plotly so Javascript libraries will be loaded from the internet.
+        When "strip" the HTML will be post-processed to remove duplicate Javascript that would otherwise get embedded multiple times.
 
     Returns
     -------
@@ -175,6 +184,7 @@ def run_quarto(
             params=params,
             project=project,
             analysis=analysis,
+            size_reduction_method=size_reduction_method,
         )
 
     # render file or render project with options
@@ -209,17 +219,14 @@ def run_quarto(
     if (
         return_code == 0
         and output_type == "html"
-        and remove_duplicate_html_scripts
+        and size_reduction_method == "strip"
         and output_filename is not None
     ):
         try:
             html_file_path = temp_dir / output_filename
             if html_file_path.exists():
                 html_content = html_file_path.read_text(encoding="utf-8")
-                # Call the function by accessing it from the module to avoid name collision
-                from . import report_utils
-
-                deduplicated_content = report_utils.remove_duplicate_html_scripts(
+                deduplicated_content = remove_duplicate_html_scripts(
                     html_content, verbose
                 )
                 html_file_path.write_text(deduplicated_content, encoding="utf-8")
@@ -350,10 +357,6 @@ def _get_cmd_output(args: List[str]) -> List[str]:
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
-    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r"(\d+(?:\.\d+)*)", versionstr)
-    return match.group(1) if match else ""
-    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
     match = re.search(r"(\d+(?:\.\d+)*)", versionstr)
     return match.group(1) if match else ""
 

@@ -254,8 +254,8 @@ def test_remove_duplicate_html_scripts_comprehensive():
     ), "Should not remove sub-1MB scripts"
 
 
-def test_remove_duplicate_html_scripts_flag_integration():
-    """Test that the remove_duplicate_html_scripts flag works correctly in report generation."""
+def test_size_reduction_method_integration():
+    """Test that the size_reduction_method options work correctly in report generation."""
     import tempfile
     from pathlib import Path
     from pdstools import datasets
@@ -271,72 +271,68 @@ def test_remove_duplicate_html_scripts_flag_integration():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        # Test with deduplication enabled (default) - with error handling
+        # Test with size_reduction_method="strip" (deduplication)
         try:
-            output_with_dedup = reports.health_check(
-                name="test_with_dedup",
+            output_with_strip = reports.health_check(
+                name="test_with_strip",
                 output_dir=temp_path,
                 verbose=False,
-                remove_duplicate_html_scripts=True,
+                size_reduction_method="strip",
             )
-            if output_with_dedup is None:
+            if output_with_strip is None:
                 pytest.skip("Health check returned None - likely environment issue")
         except Exception as e:
-            pytest.skip(f"Health check with deduplication failed: {e}")
+            pytest.skip(f"Health check with strip failed: {e}")
 
-        # Test with deduplication disabled - with error handling
+        # Test with size_reduction_method=None (full embedding, no deduplication)
         try:
-            output_without_dedup = reports.health_check(
-                name="test_without_dedup",
+            output_embedded = reports.health_check(
+                name="test_embedded",
                 output_dir=temp_path,
                 verbose=False,
-                remove_duplicate_html_scripts=False,
+                size_reduction_method=None,
             )
-            if output_without_dedup is None:
+            if output_embedded is None:
                 pytest.skip("Health check returned None - likely environment issue")
         except Exception as e:
-            pytest.skip(f"Health check without deduplication failed: {e}")
+            pytest.skip(f"Health check with full embedding failed: {e}")
 
         # Verify both files exist (with proper type checking)
-        if not isinstance(output_with_dedup, Path) or not isinstance(
-            output_without_dedup, Path
+        if not isinstance(output_with_strip, Path) or not isinstance(
+            output_embedded, Path
         ):
             pytest.skip("Health check returned non-Path objects - environment issue")
 
-        assert output_with_dedup.exists(), "Report with deduplication should exist"
-        assert (
-            output_without_dedup.exists()
-        ), "Report without deduplication should exist"
+        assert output_with_strip.exists(), "Report with strip should exist"
+        assert output_embedded.exists(), "Report with full embedding should exist"
 
         # Check file sizes
-        size_with_dedup = output_with_dedup.stat().st_size / (1024 * 1024)  # MB
-        size_without_dedup = output_without_dedup.stat().st_size / (1024 * 1024)  # MB
+        size_with_strip = output_with_strip.stat().st_size / (1024 * 1024)  # MB
+        size_embedded = output_embedded.stat().st_size / (1024 * 1024)  # MB
 
         # File with deduplication should be smaller (lenient requirement)
-        if size_with_dedup >= size_without_dedup:
-            pytest.skip(
-                "Deduplication didn't reduce size - may be environment specific"
-            )
+        if size_with_strip >= size_embedded:
+            pytest.skip("Strip method didn't reduce size - may be environment specific")
 
         assert (
-            size_with_dedup < 50
-        ), f"Deduplicated file should be reasonable size, got {size_with_dedup:.1f}MB"
+            size_with_strip < 50
+        ), f"Stripped file should be reasonable size, got {size_with_strip:.1f}MB"
 
         # Verify both files have plots (functionality preserved)
         try:
-            html_with_dedup = output_with_dedup.read_text(encoding="utf-8")
-            html_without_dedup = output_without_dedup.read_text(encoding="utf-8")
+            html_with_strip = output_with_strip.read_text(encoding="utf-8")
+            html_embedded = output_embedded.read_text(encoding="utf-8")
         except Exception as e:
             pytest.skip(f"Could not read generated HTML files: {e}")
 
-        plots_with_dedup = html_with_dedup.count("Plotly.newPlot")
+        plots_with_strip = html_with_strip.count("Plotly.newPlot")
 
-        assert plots_with_dedup > 0, "Deduplicated file should still have plots"
+        assert plots_with_strip > 0, "Stripped file should still have plots"
 
-        # Verify duplicate removal markers only in deduplicated version
+        # Verify duplicate removal markers only in stripped version
         assert (
-            "Duplicate script removed" in html_with_dedup
+            "Duplicate script removed" in html_with_strip
         ), "Should have removal markers"
         assert (
-            "Duplicate script removed" not in html_without_dedup
+            "Duplicate script removed" not in html_embedded
         ), "Should not have markers without dedup"

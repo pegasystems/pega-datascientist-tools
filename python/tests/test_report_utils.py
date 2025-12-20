@@ -167,6 +167,73 @@ def test_get_output_filename():
     assert filename == "HealthCheck_test_report.html"
 
 
+def test_set_command_options():
+    """Test the _set_command_options function"""
+    # Test basic options
+    options = report_utils._set_command_options(
+        output_type="html",
+        output_filename="test.html",
+        execute_params=True,
+    )
+    assert "--to" in options
+    assert "html" in options
+    assert "--output" in options
+    assert "test.html" in options
+    assert "--execute-params" in options
+    assert "params.yml" in options
+
+    # Test with no options
+    options = report_utils._set_command_options()
+    assert options == []
+
+    # Test with only output_type
+    options = report_utils._set_command_options(output_type="pdf")
+    assert options == ["--to", "pdf"]
+
+    # Test with only output_filename
+    options = report_utils._set_command_options(output_filename="report.html")
+    assert options == ["--output", "report.html"]
+
+    # Test with execute_params=False
+    options = report_utils._set_command_options(execute_params=False)
+    assert options == []
+
+
+def test_write_params_files_size_reduction_method(tmp_path):
+    """Test that _write_params_files sets embed-resources correctly based on size_reduction_method"""
+    import yaml
+
+    # Test with size_reduction_method=None (default) - should embed resources
+    report_utils._write_params_files(
+        temp_dir=tmp_path,
+        params={"test": "value"},
+        size_reduction_method=None,
+    )
+    with open(tmp_path / "_quarto.yml") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is True
+
+    # Test with size_reduction_method="strip" - should embed resources
+    report_utils._write_params_files(
+        temp_dir=tmp_path,
+        params={"test": "value"},
+        size_reduction_method="strip",
+    )
+    with open(tmp_path / "_quarto.yml") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is True
+
+    # Test with size_reduction_method="cdn" - should NOT embed resources
+    report_utils._write_params_files(
+        temp_dir=tmp_path,
+        params={"test": "value"},
+        size_reduction_method="cdn",
+    )
+    with open(tmp_path / "_quarto.yml") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is False
+
+
 @pytest.mark.skip(reason="Requires mocking __reports__ import")
 def test_copy_quarto_file(tmp_path):
     """Test the copy_quarto_file function"""
