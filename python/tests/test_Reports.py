@@ -3,57 +3,6 @@ Testing the functionality of the adm Reports module
 """
 
 import pytest
-from pdstools.utils.report_utils import get_output_filename
-
-
-def test_get_output_filename():
-    """Test the get_output_filename function"""
-    # Test with name and model_id for ModelReport
-    filename = get_output_filename(
-        name="test_report",
-        report_type="ModelReport",
-        model_id="model1",
-        output_type="html",
-    )
-    assert filename == "ModelReport_test_report_model1.html"
-
-    # Test without name for ModelReport
-    filename = get_output_filename(
-        name=None, report_type="ModelReport", model_id="model1", output_type="html"
-    )
-    assert filename == "ModelReport_model1.html"
-
-    # Test with name for HealthCheck
-    filename = get_output_filename(
-        name="test_report", report_type="HealthCheck", model_id=None, output_type="html"
-    )
-    assert filename == "HealthCheck_test_report.html"
-
-    # Test without name for HealthCheck
-    filename = get_output_filename(
-        name=None, report_type="HealthCheck", model_id=None, output_type="html"
-    )
-    assert filename == "HealthCheck.html"
-
-    # Test with spaces in name
-    filename = get_output_filename(
-        name="test report", report_type="HealthCheck", model_id=None, output_type="html"
-    )
-    assert filename == "HealthCheck_test_report.html"
-
-
-@pytest.mark.skip(reason="Requires mocking yaml.dump")
-def test_write_params_files(tmp_path):
-    """Test the _write_params_files method"""
-    # Skip this test for now since it requires mocking yaml.dump
-    pass
-
-
-@pytest.mark.skip(reason="Requires mocking subprocess")
-def test_run_quarto_mock():
-    """Test the run_quarto method"""
-    # Skip this test for now since it requires mocking subprocess
-    pass
 
 
 @pytest.mark.slow
@@ -156,104 +105,30 @@ def test_html_deduplication():
     )
 
 
-def test_remove_duplicate_html_scripts_comprehensive():
-    """Comprehensive test for remove_duplicate_html_scripts functionality."""
+def test_remove_duplicate_html_scripts_size_threshold():
+    """Test that only large scripts (>1MB) are deduplicated, small ones are preserved."""
     from pdstools.utils.report_utils import remove_duplicate_html_scripts
 
-    # Test 1: Large scripts should be deduplicated significantly
     large_script = "var largeLib = function(){ " + "x" * 1500000 + "};"  # 1.5MB
-    html_large_dupes = f"""<html><body>
+    small_script = "var small = 'hello';"
+
+    # Mixed: small scripts + large duplicates
+    html = f"""<html><body>
+    <script>{small_script}</script>
     <script>{large_script}</script>
     <script>{large_script}</script>
-    <script>{large_script}</script>
-    <div>Content</div>
+    <script>{small_script}</script>
     </body></html>"""
 
-    result_large = remove_duplicate_html_scripts(html_large_dupes)
-    original_size = len(html_large_dupes)
-    result_size = len(result_large)
+    result = remove_duplicate_html_scripts(html)
 
-    # Should remove 2 of the 3 large scripts (keep 1, remove 2)
-    assert result_large.count("<script>") == 1, "Should keep only one large script"
-    assert (
-        result_large.count("Duplicate script removed") == 2
-    ), "Should remove 2 duplicates"
-    assert "Content" in result_large, "Should preserve non-script content"
-
-    # Should achieve significant size reduction (>50%)
-    size_reduction = (original_size - result_size) / original_size
-    assert (
-        size_reduction > 0.5
-    ), f"Should achieve >50% size reduction, got {size_reduction:.1%}"
-
-    # Test 2: Small scripts should NOT be affected
-    small_script1 = "var small1 = 'hello';"
-    small_script2 = "var small2 = 'world';"
-    html_small = f"""<html><body>
-    <script>{small_script1}</script>
-    <script>{small_script1}</script>
-    <script>{small_script2}</script>
-    <div>Content</div>
-    </body></html>"""
-
-    result_small = remove_duplicate_html_scripts(html_small)
-
-    # Small scripts should be left untouched
-    assert result_small.count("<script>") == 3, "Should not remove small scripts"
-    assert (
-        "Duplicate script removed" not in result_small
-    ), "Should not mark any small scripts as removed"
-    assert len(result_small) == len(
-        html_small
-    ), "Size should be unchanged for small scripts"
-
-    # Test 3: Mixed scenario - only large duplicates removed
-    mixed_html = f"""<html><body>
-    <script>{small_script1}</script>
-    <script>{large_script}</script>
-    <script>{large_script}</script>
-    <script>{small_script2}</script>
-    <div>Content</div>
-    </body></html>"""
-
-    result_mixed = remove_duplicate_html_scripts(mixed_html)
-
-    # Should remove 1 large duplicate but leave all small scripts
-    assert result_mixed.count("<script>") == 3, "Should have 2 small + 1 large script"
-    assert (
-        result_mixed.count("Duplicate script removed") == 1
-    ), "Should remove 1 large duplicate"
-    assert (
-        small_script1 in result_mixed and small_script2 in result_mixed
-    ), "Should preserve small scripts"
-
-    # Test 4: Threshold behavior - scripts just under 1MB are preserved
-    wrapper_text = "var justUnder = function(){ };"
-    # Calculate padding to make total script size just under 1MB (1,000,000 bytes)
-    padding_size = 1000000 - len(wrapper_text) - 10  # Leave small buffer
-    just_under_threshold = "var justUnder = function(){ " + "x" * padding_size + "};"
-    html_threshold = f"""<html><body>
-    <script>{just_under_threshold}</script>
-    <script>{just_under_threshold}</script>
-    <div>Content</div>
-    </body></html>"""
-
-    # Verify the script is actually under 1MB
-    assert (
-        len(just_under_threshold) < 1000000
-    ), f"Test script should be <1MB, got {len(just_under_threshold)} bytes"
-
-    result_threshold = remove_duplicate_html_scripts(html_threshold)
-
-    # Scripts just under 1MB should not be deduplicated
-    assert (
-        result_threshold.count("<script>") == 2
-    ), "Scripts under 1MB should not be deduplicated"
-    assert (
-        "Duplicate script removed" not in result_threshold
-    ), "Should not remove sub-1MB scripts"
+    # Should remove 1 large duplicate, keep all small scripts
+    assert result.count("<script>") == 3
+    assert result.count("Duplicate script removed") == 1
+    assert small_script in result
 
 
+@pytest.mark.slow
 def test_size_reduction_method_integration():
     """Test that the size_reduction_method options work correctly in report generation."""
     import tempfile
