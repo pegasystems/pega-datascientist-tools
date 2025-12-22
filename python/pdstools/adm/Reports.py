@@ -221,7 +221,9 @@ class Reports(LazyNamespace):
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
-        size_reduction_method: Optional[Literal["strip", "cdn"]] = "cdn",
+        size_reduction_method: Optional[
+            Literal["strip", "cdn"]
+        ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """
         Generates Health Check report for ADM models, optionally including predictor and prediction sections.

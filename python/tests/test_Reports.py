@@ -133,10 +133,17 @@ def test_size_reduction_method_integration():
     """Test that the size_reduction_method options work correctly in report generation."""
     import tempfile
     from pathlib import Path
+    from typing import Literal
     from pdstools import datasets
     from pdstools.adm.Reports import Reports
 
-    # Skip if environment issues prevent report generation
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available: {e}")
+
     try:
         datamart = datasets.cdh_sample()
         reports = Reports(datamart)
@@ -145,69 +152,53 @@ def test_size_reduction_method_integration():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
+        results = {}
 
-        # Test with size_reduction_method="strip" (deduplication)
-        try:
-            output_with_strip = reports.health_check(
-                name="test_with_strip",
-                output_dir=temp_path,
-                verbose=False,
-                size_reduction_method="strip",
-            )
-            if output_with_strip is None:
-                pytest.skip("Health check returned None - likely environment issue")
-        except Exception as e:
-            pytest.skip(f"Health check with strip failed: {e}")
+        methods: list[Literal["strip", "cdn"] | None] = [None, "strip", "cdn"]
+        for method in methods:
+            method_name = method or "embedded"
+            try:
+                output = reports.health_check(
+                    name=f"test_{method_name}",
+                    output_dir=temp_path,
+                    verbose=False,
+                    size_reduction_method=method,
+                )
+                if output and isinstance(output, Path) and output.exists():
+                    results[method_name] = {
+                        "path": output,
+                        "size": output.stat().st_size / (1024 * 1024),
+                        "content": output.read_text(encoding="utf-8"),
+                    }
+            except Exception as e:
+                pytest.skip(f"Report generation failed for {method_name}: {e}")
 
-        # Test with size_reduction_method=None (full embedding, no deduplication)
-        try:
-            output_embedded = reports.health_check(
-                name="test_embedded",
-                output_dir=temp_path,
-                verbose=False,
-                size_reduction_method=None,
-            )
-            if output_embedded is None:
-                pytest.skip("Health check returned None - likely environment issue")
-        except Exception as e:
-            pytest.skip(f"Health check with full embedding failed: {e}")
+        if len(results) < 3:
+            pytest.skip("Not all reports generated successfully")
 
-        # Verify both files exist (with proper type checking)
-        if not isinstance(output_with_strip, Path) or not isinstance(
-            output_embedded, Path
-        ):
-            pytest.skip("Health check returned non-Path objects - environment issue")
+        # Verify all reports are valid HTML with plots
+        for method_name, data in results.items():
+            assert "<html" in data["content"], f"{method_name}: Not valid HTML"
+            assert (
+                data["content"].count("Plotly.newPlot") > 0
+            ), f"{method_name}: Missing plots"
 
-        assert output_with_strip.exists(), "Report with strip should exist"
-        assert output_embedded.exists(), "Report with full embedding should exist"
-
-        # Check file sizes
-        size_with_strip = output_with_strip.stat().st_size / (1024 * 1024)  # MB
-        size_embedded = output_embedded.stat().st_size / (1024 * 1024)  # MB
-
-        # File with deduplication should be smaller (lenient requirement)
-        if size_with_strip >= size_embedded:
-            pytest.skip("Strip method didn't reduce size - may be environment specific")
-
+        # CDN should be smallest (no embedded resources)
         assert (
-            size_with_strip < 50
-        ), f"Stripped file should be reasonable size, got {size_with_strip:.1f}MB"
+            results["cdn"]["size"] < results["embedded"]["size"]
+        ), "CDN should be smaller than embedded"
 
-        # Verify both files have plots (functionality preserved)
-        try:
-            html_with_strip = output_with_strip.read_text(encoding="utf-8")
-            html_embedded = output_embedded.read_text(encoding="utf-8")
-        except Exception as e:
-            pytest.skip(f"Could not read generated HTML files: {e}")
-
-        plots_with_strip = html_with_strip.count("Plotly.newPlot")
-
-        assert plots_with_strip > 0, "Stripped file should still have plots"
-
-        # Verify duplicate removal markers only in stripped version
+        # Strip should also be smaller than embedded
         assert (
-            "Duplicate script removed" in html_with_strip
-        ), "Should have removal markers"
+            results["strip"]["size"] < results["embedded"]["size"]
+        ), "Strip should be smaller than embedded"
+
+        # Strip should have deduplication markers
         assert (
-            "Duplicate script removed" not in html_embedded
-        ), "Should not have markers without dedup"
+            "Duplicate script removed" in results["strip"]["content"]
+        ), "Strip should have deduplication markers"
+
+        # Embedded should NOT have deduplication markers
+        assert (
+            "Duplicate script removed" not in results["embedded"]["content"]
+        ), "Embedded should not have markers"

@@ -32,9 +32,51 @@ def test_GenerateHealthCheck(sample: ADMDatamart):
     hc = sample.generate.health_check()
     assert hc == pathlib.Path("./HealthCheck.html").resolve()
     assert pathlib.Path(hc).exists()
-    # TODO add test for size upper limit
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
+
+
+@pytest.mark.slow
+def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
+    """Test health check file sizes for all size_reduction_method options."""
+    sizes = {}
+
+    default = sample.generate.health_check(output_dir=tmp_path, name="default")
+    sizes["default"] = default.stat().st_size
+
+    no_reduction = sample.generate.health_check(
+        output_dir=tmp_path, name="no_reduction", size_reduction_method=None
+    )
+    sizes["no_reduction"] = no_reduction.stat().st_size
+
+    stripped = sample.generate.health_check(
+        output_dir=tmp_path, name="stripped", size_reduction_method="strip"
+    )
+    sizes["stripped"] = stripped.stat().st_size
+
+    cdn = sample.generate.health_check(
+        output_dir=tmp_path, name="cdn", size_reduction_method="cdn"
+    )
+    sizes["cdn"] = cdn.stat().st_size
+
+    # TODO: temporary default for DJS use cases
+    size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
+    assert (
+        size_diff <= 0.01
+    ), f"Default should be within 1% of cdn, got {size_diff:.1%} difference"
+
+    no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
+    assert (
+        80 <= no_reduction_mb <= 150
+    ), f"Embedded size should be can 100 MB, got {no_reduction_mb:.1f} MB"
+
+    strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
+    assert (
+        strip_reduction >= 0.50
+    ), f"Strip should reduce by 50%+, got {strip_reduction:.0%}"
+
+    cdn_reduction = 1 - (sizes["cdn"] / sizes["no_reduction"])
+    assert cdn_reduction >= 0.80, f"CDN should reduce by 80%+, got {cdn_reduction:.0%}"
 
 
 def test_ExportTables(sample: ADMDatamart):
@@ -141,11 +183,8 @@ This is a custom health check template.
 
 Test parameters: {{< meta params.title >}}
 """)
-    
-    hc = sample.generate.health_check(
-        name="CustomTemplate",
-        qmd_file=custom_qmd
-    )
+
+    hc = sample.generate.health_check(name="CustomTemplate", qmd_file=custom_qmd)
     assert hc == pathlib.Path("./HealthCheck_CustomTemplate.html").resolve()
     assert pathlib.Path(hc).exists()
     pathlib.Path(hc).unlink()
@@ -171,11 +210,11 @@ This is a custom model report template.
 
 Model ID: {{< meta params.model_id >}}
 """)
-    
+
     report = sample.generate.model_reports(
         model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
         name="CustomModel",
-        qmd_file=custom_qmd
+        qmd_file=custom_qmd,
     )
     expected_path = pathlib.Path(
         "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
