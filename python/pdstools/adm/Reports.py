@@ -50,7 +50,9 @@ class Reports(LazyNamespace):
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
-        size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
+        size_reduction_method: Optional[
+            Literal["strip", "cdn"]
+        ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """
         Generates model reports for Naive Bayes ADM models.
@@ -87,7 +89,7 @@ class Reports(LazyNamespace):
         qmd_file : Union[str, Path, None], optional
             Optional path to the Quarto file to use for the model report.
             If None, defaults to "ModelReport.qmd".
-        size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
+        size_reduction_method : Optional[Literal["strip", "cdn"]], default="cdn"
             When None will fully embed all resources into the HTML output.
             When "cdn" will pass this on to Quarto and Plotly so Javascript libraries will be loaded from the internet.
             When "strip" the HTML will be post-processed to remove duplicate Javascript that would otherwise get embedded multiple times.

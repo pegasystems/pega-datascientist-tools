@@ -72,11 +72,16 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
     assert (
-        strip_reduction >= 0.50
-    ), f"Strip should reduce by 50%+, got {strip_reduction:.0%}"
+        strip_reduction >= 0.60
+    ), f"Strip should reduce by 60%+, got {strip_reduction:.0%}"
 
     cdn_reduction = 1 - (sizes["cdn"] / sizes["no_reduction"])
-    assert cdn_reduction >= 0.80, f"CDN should reduce by 80%+, got {cdn_reduction:.0%}"
+    assert cdn_reduction >= 0.90, f"CDN should reduce by 90%+, got {cdn_reduction:.0%}"
+
+    cdn_vs_stripped = 1 - (sizes["cdn"] / sizes["stripped"])
+    assert (
+        cdn_vs_stripped >= 0.50
+    ), f"CDN should be 50%+ smaller than stripped, got {cdn_vs_stripped:.0%}"
 
 
 def test_ExportTables(sample: ADMDatamart):
@@ -163,6 +168,73 @@ def test_GenerateModelReport(sample: ADMDatamart):
     assert pathlib.Path(report).exists()
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
+
+
+@pytest.mark.slow
+def test_ModelReport_size_reduction_methods(sample: ADMDatamart, tmp_path):
+    """Test model report file sizes for all size_reduction_method options."""
+    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    sizes = {}
+
+    default = sample.generate.model_reports(
+        model_ids=[model_id], output_dir=tmp_path, name="default"
+    )
+    sizes["default"] = default.stat().st_size
+
+    print("Generating no_reduction (None)...")
+    no_reduction = sample.generate.model_reports(
+        model_ids=[model_id],
+        output_dir=tmp_path,
+        name="no_reduction",
+        size_reduction_method=None,
+    )
+    sizes["no_reduction"] = no_reduction.stat().st_size
+
+    print("Generating stripped...")
+    stripped = sample.generate.model_reports(
+        model_ids=[model_id],
+        output_dir=tmp_path,
+        name="stripped",
+        size_reduction_method="strip",
+    )
+    sizes["stripped"] = stripped.stat().st_size
+
+    cdn = sample.generate.model_reports(
+        model_ids=[model_id],
+        output_dir=tmp_path,
+        name="cdn",
+        size_reduction_method="cdn",
+    )
+    sizes["cdn"] = cdn.stat().st_size
+
+    # print("\nSummary:")
+    # print(f"  no_reduction (baseline): {sizes['no_reduction'] / (1024*1024):.2f} MB")
+    # print(f"  stripped: {sizes['stripped'] / (1024*1024):.2f} MB ({1 - sizes['stripped']/sizes['no_reduction']:.0%} reduction)")
+    # print(f"  cdn: {sizes['cdn'] / (1024*1024):.2f} MB ({1 - sizes['cdn']/sizes['no_reduction']:.0%} reduction)")
+
+    # TODO: temporary default for DJS use cases
+    size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
+    assert (
+        size_diff <= 0.01
+    ), f"Default should be within 1% of cdn, got {size_diff:.1%} difference"
+
+    no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
+    assert (
+        90 <= no_reduction_mb <= 150
+    ), f"Embedded size should be ca 100 MB, got {no_reduction_mb:.1f} MB"
+
+    strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
+    assert (
+        strip_reduction >= 0.60
+    ), f"Strip should reduce by 60%+, got {strip_reduction:.0%}"
+
+    cdn_reduction = 1 - (sizes["cdn"] / sizes["no_reduction"])
+    assert cdn_reduction >= 0.90, f"CDN should reduce by 90%+, got {cdn_reduction:.0%}"
+
+    cdn_vs_stripped = 1 - (sizes["cdn"] / sizes["stripped"])
+    assert (
+        cdn_vs_stripped >= 0.50
+    ), f"CDN should be 50%+ smaller than stripped, got {cdn_vs_stripped:.0%}"
 
 
 def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):
