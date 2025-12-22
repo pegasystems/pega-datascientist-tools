@@ -200,10 +200,10 @@ def test_set_command_options():
 
 
 def test_write_params_files_size_reduction_method(tmp_path):
-    """Test that _write_params_files sets embed-resources correctly based on size_reduction_method"""
+    """Test that _write_params_files sets embed-resources and plotly-connected correctly based on size_reduction_method"""
     import yaml
 
-    # Test with size_reduction_method=None (default) - should embed resources
+    # Test with size_reduction_method=None (default) - should embed resources and plotly
     report_utils._write_params_files(
         temp_dir=tmp_path,
         params={"test": "value"},
@@ -212,8 +212,9 @@ def test_write_params_files_size_reduction_method(tmp_path):
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
     assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is True
 
-    # Test with size_reduction_method="strip" - should embed resources
+    # Test with size_reduction_method="strip" - should embed resources and plotly
     report_utils._write_params_files(
         temp_dir=tmp_path,
         params={"test": "value"},
@@ -222,8 +223,9 @@ def test_write_params_files_size_reduction_method(tmp_path):
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
     assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is True
 
-    # Test with size_reduction_method="cdn" - should NOT embed resources
+    # Test with size_reduction_method="cdn" - should embed resources but NOT plotly (load from CDN)
     report_utils._write_params_files(
         temp_dir=tmp_path,
         params={"test": "value"},
@@ -231,7 +233,8 @@ def test_write_params_files_size_reduction_method(tmp_path):
     )
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
-    assert config["format"]["html"]["embed-resources"] is False
+    assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is False
 
 
 @pytest.mark.skip(reason="Requires mocking __reports__ import")

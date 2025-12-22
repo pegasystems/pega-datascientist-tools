@@ -79,8 +79,9 @@ def _write_params_files(
     analysis : dict, optional
         Analysis configuration to write to _quarto.yml, by default None
     size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
-        When "cdn", sets embed-resources to false so JS libraries load from CDN.
-        When None or "strip", sets embed-resources to true for self-contained HTML.
+        When "cdn", sets plotly-connected to false so Plotly.js loads from CDN
+        (resulting in smaller files ~8MB vs ~110MB).
+        When None or "strip", sets plotly-connected to true for fully embedded Plotly.
 
     Returns
     -------
@@ -98,13 +99,19 @@ def _write_params_files(
             f,
         )
 
+    # Always embed resources for standalone HTML
+    # plotly-connected: false = load Plotly from CDN (smaller file ~8MB)
+    # plotly-connected: true = embed Plotly (larger file ~110MB)
+    html_format: Dict = {
+        "embed-resources": True,
+        "plotly-connected": size_reduction_method != "cdn",
+    }
+
     quarto_config: Dict = {
         "project": project,
         "analysis": analysis,
         "format": {
-            "html": {
-                "embed-resources": size_reduction_method != "cdn",
-            }
+            "html": html_format,
         },
     }
 

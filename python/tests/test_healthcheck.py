@@ -44,44 +44,60 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
     default = sample.generate.health_check(output_dir=tmp_path, name="default")
     sizes["default"] = default.stat().st_size
 
+    print("Generating no_reduction (None)...")
     no_reduction = sample.generate.health_check(
         output_dir=tmp_path, name="no_reduction", size_reduction_method=None
     )
     sizes["no_reduction"] = no_reduction.stat().st_size
 
+    print("Generating stripped...")
     stripped = sample.generate.health_check(
         output_dir=tmp_path, name="stripped", size_reduction_method="strip"
     )
     sizes["stripped"] = stripped.stat().st_size
 
+    print("Generating cdn...")
     cdn = sample.generate.health_check(
         output_dir=tmp_path, name="cdn", size_reduction_method="cdn"
     )
     sizes["cdn"] = cdn.stat().st_size
 
+    # print("\nHealthCheck Size Summary:")
+    # print(f"  no_reduction (baseline): {sizes['no_reduction']:,} bytes ({sizes['no_reduction'] / (1024*1024):.2f} MB)")
+    # print(f"  stripped: {sizes['stripped']:,} bytes ({sizes['stripped'] / (1024*1024):.2f} MB) - {1 - sizes['stripped']/sizes['no_reduction']:.0%} reduction")
+    # print(f"  cdn: {sizes['cdn']:,} bytes ({sizes['cdn'] / (1024*1024):.2f} MB) - {1 - sizes['cdn']/sizes['no_reduction']:.0%} reduction")
+
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert (
         size_diff <= 0.01
-    ), f"Default should be within 1% of cdn, got {size_diff:.1%} difference"
+    ), f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
     assert (
         80 <= no_reduction_mb <= 150
-    ), f"Embedded size should be can 100 MB, got {no_reduction_mb:.1f} MB"
+    ), f"Embedded size should large, got {no_reduction_mb:.1f} MB"
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
     assert (
-        strip_reduction >= 0.60
-    ), f"Strip should reduce by 60%+, got {strip_reduction:.0%}"
+        strip_reduction >= 0.80
+    ), f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
 
     cdn_reduction = 1 - (sizes["cdn"] / sizes["no_reduction"])
-    assert cdn_reduction >= 0.90, f"CDN should reduce by 90%+, got {cdn_reduction:.0%}"
-
-    cdn_vs_stripped = 1 - (sizes["cdn"] / sizes["stripped"])
     assert (
-        cdn_vs_stripped >= 0.50
-    ), f"CDN should be 50%+ smaller than stripped, got {cdn_vs_stripped:.0%}"
+        cdn_reduction >= 0.80
+    ), f"CDN should reduce by 80% or more, got {cdn_reduction:.0%}"
+
+    # Strip and CDN should give very similar sizes (within 10% of each other)
+    strip_cdn_diff = abs(sizes["stripped"] - sizes["cdn"]) / max(
+        sizes["stripped"], sizes["cdn"]
+    )
+    assert (
+        sizes["stripped"] != sizes["cdn"]
+    ), "Strip and CDN should not produce identical file sizes"
+    assert (
+        strip_cdn_diff <= 0.10
+    ), f"Strip and CDN should be within 10% of each other, got {strip_cdn_diff:.0%} difference"
 
 
 def test_ExportTables(sample: ADMDatamart):
@@ -207,34 +223,42 @@ def test_ModelReport_size_reduction_methods(sample: ADMDatamart, tmp_path):
     )
     sizes["cdn"] = cdn.stat().st_size
 
-    # print("\nSummary:")
-    # print(f"  no_reduction (baseline): {sizes['no_reduction'] / (1024*1024):.2f} MB")
-    # print(f"  stripped: {sizes['stripped'] / (1024*1024):.2f} MB ({1 - sizes['stripped']/sizes['no_reduction']:.0%} reduction)")
-    # print(f"  cdn: {sizes['cdn'] / (1024*1024):.2f} MB ({1 - sizes['cdn']/sizes['no_reduction']:.0%} reduction)")
+    # print("\nModelReport Size Summary:")
+    # print(f"  no_reduction (baseline): {sizes['no_reduction']:,} bytes ({sizes['no_reduction'] / (1024*1024):.2f} MB)")
+    # print(f"  stripped: {sizes['stripped']:,} bytes ({sizes['stripped'] / (1024*1024):.2f} MB) - {1 - sizes['stripped']/sizes['no_reduction']:.0%} reduction")
+    # print(f"  cdn: {sizes['cdn']:,} bytes ({sizes['cdn'] / (1024*1024):.2f} MB) - {1 - sizes['cdn']/sizes['no_reduction']:.0%} reduction")
 
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert (
         size_diff <= 0.01
-    ), f"Default should be within 1% of cdn, got {size_diff:.1%} difference"
+    ), f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
     assert (
         90 <= no_reduction_mb <= 150
-    ), f"Embedded size should be ca 100 MB, got {no_reduction_mb:.1f} MB"
+    ), f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
     assert (
-        strip_reduction >= 0.60
-    ), f"Strip should reduce by 60%+, got {strip_reduction:.0%}"
+        strip_reduction >= 0.80
+    ), f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
 
     cdn_reduction = 1 - (sizes["cdn"] / sizes["no_reduction"])
-    assert cdn_reduction >= 0.90, f"CDN should reduce by 90%+, got {cdn_reduction:.0%}"
-
-    cdn_vs_stripped = 1 - (sizes["cdn"] / sizes["stripped"])
     assert (
-        cdn_vs_stripped >= 0.50
-    ), f"CDN should be 50%+ smaller than stripped, got {cdn_vs_stripped:.0%}"
+        cdn_reduction >= 0.80
+    ), f"CDN should reduce by 80% or more, got {cdn_reduction:.0%}"
+
+    # Strip and CDN should give very similar sizes (within 10% of each other)
+    strip_cdn_diff = abs(sizes["stripped"] - sizes["cdn"]) / max(
+        sizes["stripped"], sizes["cdn"]
+    )
+    assert (
+        sizes["stripped"] != sizes["cdn"]
+    ), "Strip and CDN should not produce identical file sizes"
+    assert (
+        strip_cdn_diff <= 0.10
+    ), f"Strip and CDN should be within 10% of each other, got {strip_cdn_diff:.0%} difference"
 
 
 def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):
