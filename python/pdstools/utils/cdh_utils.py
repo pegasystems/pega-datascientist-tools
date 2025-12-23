@@ -1082,7 +1082,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
                 elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
                 else:
-                    types.append(pl.col(col).cast(new_type))
+                    types.append(pl.col(col).cast(new_type, strict=False))
         except Exception:
             if verbose:  # pragma: no cover
                 warnings.warn(
