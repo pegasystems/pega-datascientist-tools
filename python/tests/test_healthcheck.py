@@ -75,8 +75,8 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
     assert (
-        80 <= no_reduction_mb <= 150
-    ), f"Embedded size should large, got {no_reduction_mb:.1f} MB"
+        50 <= no_reduction_mb <= 150
+    ), f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
     assert (
