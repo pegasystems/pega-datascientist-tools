@@ -12,7 +12,6 @@ format:
     html-math-method: mathml
     page-layout: full
     code-fold: true
-    embed-resources: true
     standalone: true
     code-tools: true
     toc: true
@@ -189,7 +188,7 @@ active_models_threshold_date_string = datamart.model_data.select(
 ).collect().item().strip()
 ```
 
-This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees. Off-line reports for Naive Bayes Adaptive models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees.
 
 We provide guidance and best practices as much as possible. However these guidelines are generic and may or may not be applicable to a specific use case or implementation. The recommendations are strongly geared towards Customer Decision Hub (CDH) and may not apply to, for example, Process AI.
 
@@ -420,7 +419,7 @@ try:
     fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel</sub>", width=500, height=500)
     fig.update_xaxes(title="")
     fig.update_yaxes(title="")
-    
+
     fig.show()
 
     fig = datamart.plot.action_overlap(
@@ -432,7 +431,7 @@ try:
     width=500, height=500)
     fig.update_xaxes(title="")
     fig.update_yaxes(title="")
-    
+
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Action Overlap", e)
@@ -464,10 +463,10 @@ with "test" the model group and "control" random test group. A lift of 0% means 
 ```{python}
 if prediction_file_path:
     prediction_data = read_ds_export(prediction_file_path)
-    
+
     # Check if this is raw or already-processed data
     schema = prediction_data.collect_schema()
-    
+
     if "pyModelType" in schema.names():
         # Raw data from original export - use normal constructor
         prediction = Prediction(prediction_data)
@@ -477,7 +476,7 @@ if prediction_file_path:
 
     secs_per_day = 60 * 60 * 24
     predictions_overview = prediction.summary_by_channel().collect()
-    
+
     predictions_overview = predictions_overview.with_columns(
         # [
         #     # positives and response count per day
@@ -731,7 +730,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
 
 ```{python}
-action_trend_data = datamart.aggregates.overall_summary(by_period="1w").collect()
+action_trend_data = datamart.aggregates.overall_summary(every="1w").collect()
 plot_data = action_trend_data.unpivot(
     on=["Actions", "New Actions", "Used Actions"],
     index="DateRange Min",
@@ -739,7 +738,7 @@ plot_data = action_trend_data.unpivot(
     value_name="Weekly Count",
 )
 
-# Drop the first data point if there are multiple, 
+# Drop the first data point if there are multiple,
 # because that always shows a peak in the new/used
 # actions stemming from the fill_null(True)
 if action_trend_data.select(pl.col("DateRange Min").n_unique()).item() > 1:
@@ -1273,7 +1272,7 @@ if datamart.predictor_data is not None:
         .to_dicts()
     )
     main_title = "Predictor Importance per Model Configuration"
-    # If there's too many configurations, drop this from 
+    # If there's too many configurations, drop this from
     # the partitioning.
     if len(facets) > 20:
         report_utils.quarto_callout_info(f"""
@@ -1477,7 +1476,7 @@ if datamart.predictor_data is not None:
     gb_cols = report_utils.polars_subset_to_existing_cols(
         datamart_all_columns, ["PredictorCategory", "PredictorName"]
     )
-    
+
 
     missing = (
         datamart.aggregates.last(table="predictor_data")

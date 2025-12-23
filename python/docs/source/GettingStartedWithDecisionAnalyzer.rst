@@ -217,4 +217,4 @@ Troubleshooting
 
 - Review the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_
 - Check the `Decision Analyzer example <https://pegasystems.github.io/pega-datascientist-tools/articles/decision_analyzer.html>`_
-- Visit the main `pdstools documentation <https://pegasystems.github.io/pega-datascientist-tools/>`_
+- Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_

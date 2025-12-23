@@ -96,7 +96,7 @@ class PredictionPlots(LazyNamespace):
 
         # Collect plot_df immediately to avoid having multiple lazy queries from same source
         plot_df = (
-            self.prediction.summary_by_channel(by_period=period)
+            self.prediction.summary_by_channel(every=period)
             .with_columns(
                 Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
             )
@@ -163,22 +163,40 @@ class PredictionPlots(LazyNamespace):
     ):
         """Create a performance trend plot showing AUC over time.
 
+        Displays a line chart showing how prediction performance (AUC) changes over time,
+        with configurable time period aggregation and filtering capabilities.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic performance trend plot
+        >>> pred.plot.performance_trend()
+
+        >>> # Weekly aggregated performance trend
+        >>> pred.plot.performance_trend(period="1w")
+
+        >>> # Performance trend with faceting by prediction
+        >>> pred.plot.performance_trend(facet_row="Prediction")
+
+        >>> # Get underlying data for custom analysis
+        >>> data = pred.plot.performance_trend(return_df=True)
         """
         # Default hover data for performance plots
         hover_data = {
@@ -224,22 +242,40 @@ class PredictionPlots(LazyNamespace):
     ):
         """Create a lift trend plot showing engagement lift over time.
 
+        Displays a line chart showing how prediction engagement lift changes over time,
+        comparing test group performance against control group baseline.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic lift trend plot
+        >>> pred.plot.lift_trend()
+
+        >>> # Monthly aggregated lift trend
+        >>> pred.plot.lift_trend(period="1mo")
+
+        >>> # Lift trend with custom query
+        >>> pred.plot.lift_trend(query=pl.col("Channel") == "Email")
+
+        >>> # Get underlying data
+        >>> data = pred.plot.lift_trend(return_df=True)
         """
         # Default hover data for lift plots
         hover_data = {
@@ -291,24 +327,42 @@ class PredictionPlots(LazyNamespace):
     ):
         """Create a CTR (Click-Through Rate) trend plot over time.
 
+        Displays a line chart showing how prediction click-through rates change over time,
+        with optional faceting capabilities for comparing multiple predictions.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         facetting : bool, optional
-            Whether to create facets by prediction, by default False
+            Whether to create facets by prediction for side-by-side comparison, by default False.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic CTR trend plot
+        >>> pred.plot.ctr_trend()
+
+        >>> # Weekly CTR trend with faceting
+        >>> pred.plot.ctr_trend(period="1w", facetting=True)
+
+        >>> # CTR trend with custom query
+        >>> pred.plot.ctr_trend(query=pl.col("Prediction").str.contains("Email"))
+
+        >>> # Get underlying data
+        >>> data = pred.plot.ctr_trend(return_df=True)
         """
         # Default hover data for CTR plots
         hover_data = {
@@ -363,24 +417,42 @@ class PredictionPlots(LazyNamespace):
     ):
         """Create a response count trend plot showing total responses over time.
 
+        Displays a line chart showing how total response volumes change over time,
+        useful for monitoring prediction usage and data volume trends.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         facetting : bool, optional
-            Whether to create facets by prediction, by default False
+            Whether to create facets by prediction for side-by-side comparison, by default False.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic response count trend plot
+        >>> pred.plot.responsecount_trend()
+
+        >>> # Monthly response count trend with faceting
+        >>> pred.plot.responsecount_trend(period="1mo", facetting=True)
+
+        >>> # Response count trend for specific predictions
+        >>> pred.plot.responsecount_trend(query=pl.col("Channel") == "Web")
+
+        >>> # Get underlying data for analysis
+        >>> data = pred.plot.responsecount_trend(return_df=True)
         """
         # Default hover data for response count plots
         hover_data = {
@@ -963,7 +1035,7 @@ class Prediction:
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
+        every: Optional[str] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
@@ -978,7 +1050,7 @@ class Prediction:
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
@@ -1034,12 +1106,9 @@ class Prediction:
             self.predictions, query=query, allow_empty=True
         )
 
-        if by_period is not None:
+        if every is not None:
             period_expr = [
-                pl.col("SnapshotTime")
-                .dt.truncate(by_period)
-                .cast(pl.Date)
-                .alias("Period")
+                pl.col("SnapshotTime").dt.truncate(every).cast(pl.Date).alias("Period")
             ]
         else:
             period_expr = []
@@ -1081,7 +1150,7 @@ class Prediction:
                     "usesNBAD",
                     "isMultiChannel",
                 ]
-                + (["Period"] if by_period is not None else [])
+                + (["Period"] if every is not None else [])
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
@@ -1145,7 +1214,7 @@ class Prediction:
                 Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
                 / pl.col("CTR_Control"),
             )
-            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .drop([] if debug else ([] + ([] if every is None else ["Period"])))
             .sort("Prediction", "DateRange Min")
         )
 
@@ -1158,7 +1227,7 @@ class Prediction:
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
+        every: Optional[str] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
@@ -1173,7 +1242,7 @@ class Prediction:
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
@@ -1217,7 +1286,7 @@ class Prediction:
             start_date=start_date,
             end_date=end_date,
             window=window,
-            by_period=by_period,
+            every=every,
             debug=True,  # should give us Period
         )
 
@@ -1237,7 +1306,7 @@ class Prediction:
             validity_filter_expr = pl.col("isValid")
 
         return (
-            channel_summary.group_by(["Period"] if by_period is not None else None)
+            channel_summary.group_by(["Period"] if every is not None else None)
             .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
@@ -1303,11 +1372,11 @@ class Prediction:
                 ).alias("TestPercentage"),
                 pl.col("usesNBAD").any(ignore_nulls=False),
             )
-            .drop(["literal"] if by_period is None else [])  # created by null group
+            .drop(["literal"] if every is None else [])  # created by null group
             .with_columns(
                 # CTR=(pl.col("Positives")) / (pl.col("Responses")),
                 usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
             )
-            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .drop([] if debug else ([] + ([] if every is None else ["Period"])))
             .sort("DateRange Min")
         )

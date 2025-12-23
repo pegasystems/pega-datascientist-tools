@@ -4,7 +4,7 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Union
 
 import polars as pl
 
@@ -50,7 +50,9 @@ class Reports(LazyNamespace):
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
-        remove_duplicate_html_scripts: bool = True,
+        size_reduction_method: Optional[
+            Literal["strip", "cdn"]
+        ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """
         Generates model reports for Naive Bayes ADM models.
@@ -87,10 +89,10 @@ class Reports(LazyNamespace):
         qmd_file : Union[str, Path, None], optional
             Optional path to the Quarto file to use for the model report.
             If None, defaults to "ModelReport.qmd".
-        remove_duplicate_html_scripts : bool, default=True
-            Whether to remove duplicate script tags from the HTML output to reduce file size.
-            Specifically targets large JavaScript libraries (like Plotly.js) that get embedded
-            multiple times. Only affects HTML output types.
+        size_reduction_method : Optional[Literal["strip", "cdn"]], default="cdn"
+            When None will fully embed all resources into the HTML output.
+            When "cdn" will pass this on to Quarto and Plotly so Javascript libraries will be loaded from the internet.
+            When "strip" the HTML will be post-processed to remove duplicate Javascript that would otherwise get embedded multiple times.
 
         Returns
         -------
@@ -165,7 +167,7 @@ class Reports(LazyNamespace):
                     },
                     temp_dir=temp_dir,
                     verbose=verbose,
-                    remove_duplicate_html_scripts=remove_duplicate_html_scripts,
+                    size_reduction_method=size_reduction_method,
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
@@ -221,7 +223,9 @@ class Reports(LazyNamespace):
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
         qmd_file: Optional[PathLike] = None,
-        remove_duplicate_html_scripts: bool = True,
+        size_reduction_method: Optional[
+            Literal["strip", "cdn"]
+        ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """
         Generates Health Check report for ADM models, optionally including predictor and prediction sections.
@@ -259,10 +263,10 @@ class Reports(LazyNamespace):
         qmd_file : Union[str, Path, None], optional
             Optional path to the Quarto file to use for the health check report.
             If None, defaults to "HealthCheck.qmd".
-        remove_duplicate_html_scripts : bool, default=True
-            Whether to remove duplicate script tags from the HTML output to reduce file size.
-            Specifically targets large JavaScript libraries (like Plotly.js) that get embedded
-            multiple times. Only affects HTML output types.
+        size_reduction_method : Optional[Literal["strip", "cdn"]], default="cdn"
+            When None will fully embed all resources into the HTML output.
+            When "cdn" will pass this on to Quarto and Plotly so Javascript libraries will be loaded from the internet.
+            When "strip" the HTML will be post-processed to remove duplicate Javascript that would otherwise get embedded multiple times.
 
         Returns
         -------
@@ -335,7 +339,7 @@ class Reports(LazyNamespace):
                 },
                 temp_dir=temp_dir,
                 verbose=verbose,
-                remove_duplicate_html_scripts=remove_duplicate_html_scripts,
+                size_reduction_method=size_reduction_method,
             )
 
             # TODO why not print paths earlier, before the quarto call?
