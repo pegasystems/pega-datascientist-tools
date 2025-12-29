@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime
@@ -7,7 +8,13 @@ import polars as pl
 import polars.selectors as cs
 
 from .Plots import Plots
-from ..utils.cdh_utils import _apply_query, weighted_average_polars
+from ..utils.cdh_utils import (
+    _apply_query,
+    weighted_average_polars,
+    _polars_capitalize,
+    parse_pega_date_time_formats,
+)
+from ..pega_io.File import read_ds_export
 from ..utils.types import QUERY
 
 
@@ -181,7 +188,7 @@ class ImpactAnalyzer:
     @classmethod
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
+        vbd_source: Union[os.PathLike, str],
         *,
         return_df: Optional[bool] = False,
     ):
@@ -235,7 +242,74 @@ class ImpactAnalyzer:
         NotImplementedError
             This method is not yet implemented. Use from_pdc() for current functionality.
         """
-        raise NotImplementedError("from_vbd() method is not yet implemented.")
+
+        vbd_data = read_ds_export(str(Path(vbd_source).absolute()))
+        if vbd_data is None:
+            return None
+
+        # TODO share with IH class
+        pos_outcomes = ["Accept", "Accepted", "Click", "Clicked"]
+        imp_outcomes = ["Impression"]
+
+        ia_data = (
+            _polars_capitalize(vbd_data)
+            .with_columns(
+                SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
+                    "1h"
+                ),
+                Channel=pl.concat_str(
+                    "Channel", "Direction", separator="/", ignore_nulls=True
+                ),
+            )
+            .group_by(
+                "SnapshotTime",
+                "MktValue",
+                "Reason",
+                "MktType",
+                "Application",
+                "ApplicationVersion",
+                "Channel",
+                "Issue",
+                "Group",
+                "Name",
+                "Treatment",
+            )
+            .agg(
+                pl.col("AggregateCount")
+                .filter(pl.col("Outcome").is_in(imp_outcomes))
+                .sum()
+                .alias("Impressions"),
+                pl.col("AggregateCount")
+                .filter(pl.col("Outcome").is_in(pos_outcomes))
+                .sum()
+                .alias("Accepts"),
+                (
+                    pl.col("Value").filter(pl.col("Outcome").is_in(pos_outcomes)).sum()
+                    / (
+                        pl.col("AggregateCount")
+                        .filter(pl.col("Outcome").is_in(imp_outcomes))
+                        .sum()
+                    )
+                ).alias("ValuePerImpression"),
+                # rest just for analysis
+                pl.col("AggregateCount", "Value", "Outcome"),
+            )
+            .filter(pl.col("Accepts") <= pl.col("Impressions"))
+            .sort(
+                "SnapshotTime",
+                "Channel",
+                "Issue",
+                "Group",
+                "Name",
+                "Treatment",
+                "MktValue",
+                "Reason",
+                "MktType",
+            )
+            .rename({"MktValue": "ControlGroup"})
+        )
+
+        return ImpactAnalyzer(ia_data)
 
     @classmethod
     def _normalize_pdc_ia_data(
