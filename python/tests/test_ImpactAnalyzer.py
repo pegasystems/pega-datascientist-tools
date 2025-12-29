@@ -358,3 +358,37 @@ def test_plot_with_every_parameter(simple_ia):
     assert "Channel" in control_groups_data.columns
     assert "SnapshotTime" in control_groups_data.columns
     assert "ControlGroup" in control_groups_data.columns
+
+
+def test_from_vbd():
+    """Test that from_vbd constructor exists and can process minimal VBD data"""
+    import tempfile
+
+    # Create minimal VBD-like data
+    vbd_data = pl.DataFrame(
+        {
+            "pyOutcomeTime": ["2024-01-01 10:00:00", "2024-01-01 10:00:00"],
+            "pyChannel": ["Web", "Web"],
+            "pyDirection": ["Inbound", "Inbound"],
+            "pxMktValue": ["NBAHealth_NBA", "NBAHealth_NBAPrioritization"],
+            "pyReason": ["Test", "Test"],
+            "pxMktType": [None, "NBAPrioritization"],
+            "pyApplication": ["App1", "App1"],
+            "pxApplicationVersion": ["1.0", "1.0"],
+            "pyIssue": ["Sales", "Sales"],
+            "pyGroup": ["Cards", "Cards"],
+            "pyName": ["GoldCard", "GoldCard"],
+            "pyTreatment": ["Default", "Default"],
+            "pyOutcome": ["Impression", "Accepted"],
+            "pxAggregateCount": [100, 10],
+            "pyValue": [0.0, 50.0],
+        }
+    )
+
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
+        vbd_data.write_parquet(f.name)
+
+        ia = ImpactAnalyzer.from_vbd(f.name)
+
+        assert isinstance(ia, ImpactAnalyzer)
+        assert isinstance(ia.ia_data, pl.LazyFrame)

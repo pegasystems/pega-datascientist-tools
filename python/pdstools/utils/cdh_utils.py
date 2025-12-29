@@ -310,9 +310,7 @@ def safe_range_auc(auc: float) -> float:
         return 0.5 + np.abs(0.5 - auc)
 
 
-def auc_from_probs(
-    groundtruth: List[int], probs: List[float]
-) -> List[float]:  # pragma: no cover
+def auc_from_probs(groundtruth: List[int], probs: List[float]) -> float:
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
@@ -326,7 +324,7 @@ def auc_from_probs(
     probs : List[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
-    Returns : List[float]
+    Returns : float
         The AUC as a value between 0.5 and 1.
 
     Examples:
@@ -354,7 +352,9 @@ def auc_from_probs(
 
 
 def auc_from_bincounts(
-    pos: List[int], neg: List[int], probs: List[float] = None
+    pos: Union[List[int], pl.Series],
+    neg: Union[List[int], pl.Series],
+    probs: Optional[Union[List[float], pl.Series]] = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -397,9 +397,7 @@ def auc_from_bincounts(
     return safe_range_auc(np.sum(area))
 
 
-def aucpr_from_probs(
-    groundtruth: List[int], probs: List[float]
-) -> List[float]:  # pragma: no cover
+def aucpr_from_probs(groundtruth: List[int], probs: List[float]) -> float:
     """Calculates PR AUC (precision-recall) from an array of truth values and predictions.
     Calculates the area under the PR curve from an array of truth values and
     predictions. Returns 0.0 when there is just one groundtruth label.
@@ -412,7 +410,7 @@ def aucpr_from_probs(
     probs : List[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
-    Returns : List[float]
+    Returns : float
         The AUC as a value between 0.5 and 1.
 
     Examples:
@@ -440,7 +438,9 @@ def aucpr_from_probs(
 
 
 def aucpr_from_bincounts(
-    pos: List[int], neg: List[int], probs: List[float] = None
+    pos: Union[List[int], pl.Series],
+    neg: Union[List[int], pl.Series],
+    probs: Optional[Union[List[float], pl.Series]] = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -503,7 +503,7 @@ def auc_to_gini(auc: float) -> float:
 def _capitalize(
     fields: Union[str, Iterable[str]], extra_endwords: Optional[Iterable[str]] = None
 ) -> List[str]:
-    """Applies automatic capitalization, aligned with the R couterpart.
+    """Applies automatic capitalization, aligned with the R counterpart.
 
     Parameters
     ----------
@@ -514,27 +514,29 @@ def _capitalize(
     -------
     fields : list
         The input list, but each value properly capitalized
+
+    Notes
+    -----
+    The capitalize_endwords list contains atomic word parts that are commonly
+    found in Pega field names. Compound words (like "ResponseCount") don't need
+    to be listed separately because the algorithm processes words by length,
+    allowing shorter components ("Response", "Count") to handle them.
     """
     capitalize_endwords = [
         "Active",
-        "BinAdjustedPropensity",
-        "BinNegatives",
-        "BinPositives",
-        "BinResponseCount",
-        "BinSymbol",
-        "Bins",
+        "Adjusted",
+        "Bin",
+        "Bound",
         "Cap",
         "Category",
         "Class",
         "Code",
         "Component",
         "Configuration",
-        "ConfigurationName",
         "Context",
         "Control",
         "Count",
         "Date",
-        "DateTime",
         "Description",
         "Email",
         "Enabled",
@@ -542,7 +544,6 @@ def _capitalize(
         "Evidence",
         "Execution",
         "Group",
-        "GroupIndex",
         "Hash",
         "ID",
         "Identifier",
@@ -551,12 +552,11 @@ def _capitalize(
         "Issue",
         "Key",
         "Limit",
-        "LowerBound",
+        "Lower",
         "Message",
-        "ModelTechnique",
+        "Model",
         "Name",
-        "Negatives",
-        "NegativesPercentage",
+        "Negative",
         "Number",
         "Offline",
         "Omni",
@@ -564,34 +564,31 @@ def _capitalize(
         "Paid",
         "Percentage",
         "Performance",
-        "Positives",
-        "PositivesPercentage",
+        "Positive",
         "Prediction",
         "Predictor",
-        "Predictors",
         "Propensity",
         "Proposition",
         "Rate",
         "Ratio",
         "Reference",
         "Relevant",
-        "ResponseCount",
-        "ResponseCountPercentage",
+        "Response",
         "SMS",
         "Stage",
         "Strategy",
         "Subject",
         "Symbol",
+        "Technique",
         "Template",
         "Threshold",
         "Time",
-        "ToClass",
+        "ToClass",  # Keep as compound - "To" alone is too generic
         "Treatment",
         "Type",
-        "URL",
         "Update",
-        "UpdateTime",
-        "UpperBound",
+        "Upper",
+        "URL",
         "Value",
         "Variant",
         "Version",
