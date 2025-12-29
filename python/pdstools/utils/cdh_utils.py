@@ -605,9 +605,13 @@ def _capitalize(
     fields = list(
         map(lambda x: x.replace("configurationname", "configuration"), fields)
     )
-    for word in capitalize_endwords:
+    # Sort by length ascending so longer words are processed last and can
+    # "fix" any incorrect replacements made by shorter substring matches.
+    # E.g., "Ratio" might corrupt "configuration" to "configuRation", but
+    # processing "Configuration" after will correct it back.
+    for word in sorted(capitalize_endwords, key=len):
         fields = [re.sub(word, word, field, flags=re.I) for field in fields]
-        fields = [field[:1].upper() + field[1:] for field in fields]
+    fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
 
 
