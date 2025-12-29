@@ -9,7 +9,11 @@ import polars.selectors as cs
 
 from .Aggregates import Aggregates
 from .Plots import Plots
-from ..utils.cdh_utils import _polars_capitalize, _apply_query
+from ..utils.cdh_utils import (
+    _polars_capitalize,
+    _apply_query,
+    parse_pega_date_time_formats,
+)
 from ..utils.types import QUERY
 from ..pega_io.File import read_ds_export
 
@@ -61,8 +65,7 @@ class IH:
 
         """
         data = read_ds_export(ih_filename).with_columns(
-            # TODO this should come from some polars func in utils
-            pl.col("pxOutcomeTime").str.strptime(pl.Datetime, "%Y%m%dT%H%M%S%.3f %Z")
+            pxOutcomeTime=parse_pega_date_time_formats("pxOutcomeTime")
         )
         if query is not None:
             data = _apply_query(data, query=query)
@@ -335,7 +338,7 @@ class IH:
         )
 
         return IH(ih_data.lazy())
-    
+
     def get_sequences(
         self,
         positive_outcome_label: str,
@@ -379,7 +382,7 @@ class IH:
             Actions frequency counts.
             Index 0 = count of first element in all bigrams
             Index 1 = count of second element in all bigrams
-        count_sequences: list[defaultdict[tuple[str, …], int]] 
+        count_sequences: list[defaultdict[tuple[str, …], int]]
             Sequence frequency counts.
             Index 0 = bigrams (all)
             Index 1 = ≥3-grams that end with positive outcome
@@ -388,15 +391,15 @@ class IH:
         """
         cols = [customerid_column, level, outcome_column]
 
-        df = (
-            self.data
-            .select(cols)
-            .sort([customerid_column])
-            .collect()
-        )
+        df = self.data.select(cols).sort([customerid_column]).collect()
 
         count_actions = [defaultdict(int), defaultdict(int)]
-        count_sequences = [defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)]
+        count_sequences = [
+            defaultdict(int),
+            defaultdict(int),
+            defaultdict(int),
+            defaultdict(int),
+        ]
         customer_sequences = []
         customer_outcomes = []
 
@@ -405,14 +408,17 @@ class IH:
             user_actions = user_df[level].to_list()
             outcome_actions = user_df[outcome_column].to_list()
 
-            outcome_actions = [1 if action == positive_outcome_label else 0 for action in outcome_actions]
+            outcome_actions = [
+                1 if action == positive_outcome_label else 0
+                for action in outcome_actions
+            ]
 
             if len(user_actions) < 2:
                 continue
 
             if 1 not in outcome_actions:
                 continue
-                
+
             customer_sequences.append(tuple(user_actions))
             customer_outcomes.append(tuple(outcome_actions))
 
@@ -422,13 +428,12 @@ class IH:
             bigrams_all = []
 
             for seq, out in zip(sequences, outcomes):
-
                 ngrams_seen = set()
 
                 for n in range(2, len(seq) + 1):
                     for i in range(len(seq) - n + 1):
-                        ngram = seq[i:i + n]
-                        ngram_outcomes = out[i:i + n]
+                        ngram = seq[i : i + n]
+                        ngram_outcomes = out[i : i + n]
 
                         if ngram_outcomes[-1] == 1:  # Ends in positive_outcome_label
                             if len(ngram) == 2:
@@ -438,14 +443,16 @@ class IH:
                                 ngrams.append(ngram)
                                 for j in range(len(ngram) - 1):
                                     bigrams_all.append(ngram[j : j + 2])
-                        
+
                             if ngram not in ngrams_seen:
                                 count_sequences[3][ngram] += 1
                                 ngrams_seen.add(ngram)
 
             return ngrams, bigrams, bigrams_all
 
-        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(customer_sequences, customer_outcomes)
+        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(
+            customer_sequences, customer_outcomes
+        )
 
         # Frequency tables
         for seq in ngrams:
@@ -465,12 +472,9 @@ class IH:
     def calculate_pmi(
         count_actions: list[defaultdict[tuple[str], int]],
         count_sequences: list[defaultdict[tuple[str, ...], int]],
-    ) -> tuple[
-        dict[tuple[str, str], float],
-        dict[tuple[str, ...], float]
-    ]:
+    ) -> tuple[dict[tuple[str, str], float], dict[tuple[str, ...], float]]:
         """
-        Computes PMI scores for n-grams (n ≥ 2) in customer action sequences. 
+        Computes PMI scores for n-grams (n ≥ 2) in customer action sequences.
         Returns an unsorted dictionary mapping sequences to their PMI values, providing insights into significant action associations.
 
         Bigrams values are calculated by PMI.
@@ -479,11 +483,11 @@ class IH:
 
         Parameters
         -------
-        count_actions: list[defaultdict[tuple[str], int]] 
-            Actions frequency counts. 
+        count_actions: list[defaultdict[tuple[str], int]]
+            Actions frequency counts.
             Index 0 = count of first element in all bigrams
             Index 1 = count of second element in all bigrams
-        count_sequences: list[defaultdict[tuple[str, …], int]]  
+        count_sequences: list[defaultdict[tuple[str, …], int]]
             Sequence frequency counts.
             Index 0 = bigrams (all)
             Index 1 = ≥3-grams that end with positive outcome
@@ -500,9 +504,8 @@ class IH:
                 - 'links': A dictionary mapping each constituent bigram to its PMI value.
         """
         # corpus size (number of action tokens)
-        corpus = (
-            sum(len(k) * v for k, v in count_sequences[1].items())
-            + sum(len(k) * v for k, v in count_sequences[2].items())
+        corpus = sum(len(k) * v for k, v in count_sequences[1].items()) + sum(
+            len(k) * v for k, v in count_sequences[2].items()
         )
 
         bigrams_pmi = {}
@@ -512,17 +515,22 @@ class IH:
             first_count = count_actions[0][(bigram[0],)]
             second_count = count_actions[1][(bigram[1],)]
 
-            pmi = math.log2((bigram_count / corpus) / ((first_count / corpus) * (second_count / corpus)))
+            pmi = math.log2(
+                (bigram_count / corpus)
+                / ((first_count / corpus) * (second_count / corpus))
+            )
 
             bigrams_pmi[bigram] = pmi
 
         # n‑gram PMI
-        customer_bigrams = {key: bigrams_pmi[key] for key in count_sequences[2] if key in bigrams_pmi}
+        customer_bigrams = {
+            key: bigrams_pmi[key] for key in count_sequences[2] if key in bigrams_pmi
+        }
 
         ngrams_pmi = dict(customer_bigrams)
 
         for seq in count_sequences[1].keys():
-            links = [seq[i:i+2] for i in range(len(seq) - 1)]
+            links = [seq[i : i + 2] for i in range(len(seq) - 1)]
             values = []
             link_info = {}
 
@@ -534,13 +542,10 @@ class IH:
 
             average = sum(values) / len(values) if values else 0
 
-            ngrams_pmi[seq] = {
-                "average_pmi": average,
-                "links": link_info
-            }
+            ngrams_pmi[seq] = {"average_pmi": average, "links": link_info}
 
         return ngrams_pmi
-    
+
     @staticmethod
     def pmi_overview(
         ngrams_pmi: Dict[str, Dict[str, Union[Dict[str, float], float]]],
@@ -596,12 +601,12 @@ class IH:
 
             data.append(
                 {
-                    "Sequence":  seq,
-                    "Length":    len(seq),
-                    "Avg PMI":   pmi_val,
+                    "Sequence": seq,
+                    "Length": len(seq),
+                    "Avg PMI": pmi_val,
                     "Frequency": count,
                     "Unique freq": count_sequences[3][seq],
-                    "Score":     pmi_val * math.log(count),
+                    "Score": pmi_val * math.log(count),
                 }
             )
 
