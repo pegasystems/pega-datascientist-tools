@@ -34,7 +34,7 @@ def test_from_pdc():
 
     # EngagementPolicy test is inactive, all others should be there
     assert (
-        "NBAHealth_EngagementPolicy"
+        "EngagementPolicy"
         not in analyzer.ia_data.select(pl.col("ControlGroup").unique())
         .collect()["ControlGroup"]
         .to_list()
@@ -42,18 +42,18 @@ def test_from_pdc():
     assert analyzer.ia_data.select(pl.col("ControlGroup").unique().sort()).collect()[
         "ControlGroup"
     ].to_list() == [
-        "NBAHealth_LeverPriority",
-        "NBAHealth_ModelControl_1",
-        "NBAHealth_ModelControl_2",
-        "NBAHealth_NBA",
-        "NBAHealth_NBAPrioritization",
-        "NBAHealth_PropensityPriority",
+        "LeverPriority",
+        "ModelControl_1",
+        "ModelControl_2",
+        "NBA",
+        "NBAPrioritization",
+        "PropensityPriority",
     ]
 
     # Verify the number of impressions for a specific control group
     assert (
         analyzer.ia_data.filter(Channel="DirectMail")
-        .filter(ControlGroup="NBAHealth_NBA")
+        .filter(ControlGroup="NBA")
         .select(pl.col("Impressions"))
         .collect()
         .item()
@@ -62,7 +62,7 @@ def test_from_pdc():
 
     # Verify all channel totals, as these are re-calculated
     agg = analyzer.summarize_control_groups(by=[]).collect()
-    assert agg.filter(ControlGroup="NBAHealth_LeverPriority")["Accepts"].item() == 39189
+    assert agg.filter(ControlGroup="LeverPriority")["Accepts"].item() == 39189
 
     # Verify re-calculated Lift numbers
     lift_data = (
@@ -147,7 +147,7 @@ def test_from_pdc_with_custom_reader():
     # Verify specific data point to ensure reader worked correctly
     assert (
         analyzer.ia_data.filter(Channel="DirectMail")
-        .filter(ControlGroup="NBAHealth_NBA")
+        .filter(ControlGroup="NBA")
         .select(pl.col("Impressions"))
         .collect()
         .item()
@@ -361,27 +361,55 @@ def test_plot_with_every_parameter(simple_ia):
 
 
 def test_from_vbd():
-    """Test that from_vbd constructor exists and can process minimal VBD data"""
+    """Test from_vbd constructor and methods"""
     import tempfile
+    from plotly.graph_objs import Figure
 
-    # Create minimal VBD-like data
     vbd_data = pl.DataFrame(
         {
-            "pyOutcomeTime": ["2024-01-01 10:00:00", "2024-01-01 10:00:00"],
-            "pyChannel": ["Web", "Web"],
-            "pyDirection": ["Inbound", "Inbound"],
-            "pxMktValue": ["NBAHealth_NBA", "NBAHealth_NBAPrioritization"],
-            "pyReason": ["Test", "Test"],
-            "pxMktType": [None, "NBAPrioritization"],
-            "pyApplication": ["App1", "App1"],
-            "pxApplicationVersion": ["1.0", "1.0"],
-            "pyIssue": ["Sales", "Sales"],
-            "pyGroup": ["Cards", "Cards"],
-            "pyName": ["GoldCard", "GoldCard"],
-            "pyTreatment": ["Default", "Default"],
-            "pyOutcome": ["Impression", "Accepted"],
-            "pxAggregateCount": [100, 10],
-            "pyValue": [0.0, 50.0],
+            "pyOutcomeTime": ["2024-01-01 10:00:00"] * 4 + ["2024-01-02 10:00:00"] * 2,
+            "pyChannel": ["Web", "Web", "Web", "Email", "Web", "Email"],
+            "pyDirection": [
+                "Inbound",
+                "Inbound",
+                "Inbound",
+                "Outbound",
+                "Inbound",
+                "Outbound",
+            ],
+            "pxMktValue": [
+                None,
+                "NBAHealth_NBAPrioritization",
+                "NBAHealth_NBAPrioritization",
+                None,
+                None,
+                None,
+            ],
+            "pyReason": ["Test"] * 6,
+            "pxMktType": [
+                None,
+                "NBAPrioritization",
+                "NBAPrioritization",
+                None,
+                None,
+                None,
+            ],
+            "pyApplication": ["App1"] * 6,
+            "pxApplicationVersion": ["1.0"] * 6,
+            "pyIssue": ["Sales"] * 6,
+            "pyGroup": ["Cards"] * 6,
+            "pyName": ["GoldCard"] * 6,
+            "pyTreatment": ["Default"] * 6,
+            "pyOutcome": [
+                "Impression",
+                "Impression",
+                "Accepted",
+                "Impression",
+                "Impression",
+                "Impression",
+            ],
+            "pxAggregateCount": [100, 50, 5, 200, 150, 250],
+            "pyValue": [0.0, 0.0, 25.0, 0.0, 0.0, 0.0],
         }
     )
 
@@ -389,6 +417,30 @@ def test_from_vbd():
         vbd_data.write_parquet(f.name)
 
         ia = ImpactAnalyzer.from_vbd(f.name)
-
         assert isinstance(ia, ImpactAnalyzer)
-        assert isinstance(ia.ia_data, pl.LazyFrame)
+
+        collected = ia.ia_data.collect()
+        assert collected.height > 0
+        assert "NBA" in collected["ControlGroup"].to_list()
+
+        control_groups = ia.summarize_control_groups().collect()
+        assert "Pega_ValueLift" not in control_groups.columns
+
+        experiments = ia.summarize_experiments().collect()
+        assert "CTR_Lift" in experiments.columns
+        assert "Value_Lift" in experiments.columns
+
+        experiments_by_channel = ia.summarize_experiments("Channel").collect()
+        assert "Channel" in experiments_by_channel.columns
+
+        overall = ia.overall_summary().collect()
+        assert overall.height == 1
+
+        by_channel = ia.summary_by_channel().collect()
+        assert "Channel" in by_channel.columns
+
+        assert isinstance(ia.plot.overview(), Figure)
+        assert isinstance(ia.plot.trend(facet="Channel", every="1d"), Figure)
+
+        df = ImpactAnalyzer.from_vbd(f.name, return_df=True)
+        assert isinstance(df, pl.LazyFrame)
