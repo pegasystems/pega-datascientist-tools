@@ -1,9 +1,12 @@
+"""Aggregation methods for Interaction History analysis."""
+
 from datetime import timedelta
 from typing import TYPE_CHECKING, List, Optional, Union
+
 import polars as pl
 
-from ..utils.namespaces import LazyNamespace
 from ..utils import cdh_utils
+from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:
@@ -11,8 +14,42 @@ if TYPE_CHECKING:
 
 
 class Aggregates(LazyNamespace):
+    """Aggregation methods for Interaction History data.
+
+    This class provides aggregation capabilities for summarizing customer
+    interaction data. It is accessed through the `aggregates` attribute of an
+    :class:`~pdstools.ih.IH.IH` instance.
+
+    All aggregation methods support:
+    - Grouping by dimensions via `by` parameter
+    - Time bucketing via `every` parameter
+    - Data filtering via `query` parameter
+
+    Attributes
+    ----------
+    ih : IH
+        Reference to the parent IH instance.
+
+    See Also
+    --------
+    pdstools.ih.IH : Main analysis class.
+    pdstools.ih.Plots : Visualization methods.
+
+    Examples
+    --------
+    >>> ih = IH.from_ds_export("interaction_history.zip")
+    >>> ih.aggregates.summary_success_rates(by="Channel").collect()
+    >>> ih.aggregates.summary_outcomes(every="1w").collect()
+    """
 
     def __init__(self, ih: "IH_Class"):
+        """Initialize an Aggregates instance.
+
+        Parameters
+        ----------
+        ih : IH
+            The parent IH instance providing the data.
+        """
         super().__init__()
         self.ih = ih
 
@@ -23,32 +60,45 @@ class Aggregates(LazyNamespace):
         query: Optional[QUERY] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
-        """Groups the IH data by interaction ID and summarizes outcomes for each interaction.
+        """Summarize outcomes per interaction.
 
-        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
-        given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
-        language as Polars.
-
-        For each interaction, it determines whether any outcomes match the positive or negative outcome labels
-        for each metric. An interaction is considered to have a positive outcome for a metric if any of its
-        outcomes are in the positive labels for that metric, and negative if any are in the negative labels.
+        Groups data by interaction ID and determines the outcome for each
+        interaction based on configured positive/negative outcome labels.
 
         Parameters
         ----------
-        by : Optional[Union[str, List[str], pl.Expr]], optional
-            Grouping keys. Name of field(s) or a Polars expression, by default None
-        every : Optional[Union[str, timedelta]], optional
-            Every interval start and period length, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        debug : bool, optional
-            Whether to include debug information in the output, by default False
+        by : str, List[str], or pl.Expr, optional
+            Grouping dimension(s). Default is None.
+        every : str or timedelta, optional
+            Time aggregation period (e.g., "1d", "1w"). Default is None.
+        query : QUERY, optional
+            Polars expression to filter data before aggregation.
+        debug : bool, default False
+            If True, include debug columns (Outcomes list).
 
         Returns
         -------
         pl.LazyFrame
-            A polars frame with interaction-level outcome data, including columns for each metric's outcome
-            and the propensity value.
+            Interaction-level data with columns:
+
+            - **InteractionID**: Unique interaction identifier
+            - **Interaction_Outcome_<metric>**: Boolean outcome per metric
+            - **Propensity**: Propensity value from interaction
+            - Plus any grouping columns
+
+        Notes
+        -----
+        An interaction has a positive outcome for a metric if any outcome
+        matches the positive labels. Otherwise, if any matches negative
+        labels, the outcome is False. Otherwise it's null.
+
+        See Also
+        --------
+        summary_success_rates : Aggregated success rates.
+
+        Examples
+        --------
+        >>> ih.aggregates.summarize_by_interaction(by="Channel").collect()
         """
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
@@ -61,7 +111,7 @@ class Aggregates(LazyNamespace):
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
-            by_pl_exprs
+            by_pl_exprs,
         )
 
         interactions = (
@@ -104,29 +154,52 @@ class Aggregates(LazyNamespace):
         query: Optional[QUERY] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
-        """Groups the IH data summarizing into success rates (SuccessRate) and standard error (StdErr).
+        """Calculate success rates with standard errors.
 
-        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
-        given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
-        language as Polars.
-
-        Every interaction is considered to have only one outcome: positive, negative or none. When any
-        outcome in the interaction is in the positive labels, the outcome is considered positive. Next,
-        when any is in the negative labels, the outcome of the interaction is considered negative. Otherwise
-        there is no defined outcome and the interaction is ignored in calculations of success rate or error.
+        Aggregates interactions into success rates for each configured metric,
+        with standard errors for statistical significance assessment.
 
         Parameters
         ----------
-        by : Optional[Union[str, List[str], pl.Expr]], optional
-            Grouping keys. Name of field(s) or a Polars expression, by default None
-        every : Optional[str], optional
-            Every interval start and period length, by default None
+        by : str, List[str], or pl.Expr, optional
+            Grouping dimension(s). Default is None.
+        every : str or timedelta, optional
+            Time aggregation period (e.g., "1d", "1w"). Default is None.
+        query : QUERY, optional
+            Polars expression to filter data before aggregation.
+        debug : bool, default False
+            If True, include debug columns.
 
         Returns
         -------
         pl.LazyFrame
-            A polars frame with the grouping keys and columns for the total number of Positives, Negatives,
-            number of Interactions, success rate (SuccessRate) and standard error (StdErr).
+            Success rate summary with columns:
+
+            - **Positives_<metric>**: Count of positive outcomes
+            - **Negatives_<metric>**: Count of negative outcomes
+            - **Interactions**: Total interaction count
+            - **SuccessRate_<metric>**: Positive / (Positive + Negative)
+            - **StdErr_<metric>**: Standard error of the proportion
+            - Plus any grouping columns
+
+        Notes
+        -----
+        Standard error is calculated as:
+
+        .. math::
+
+            SE = \\sqrt{\\frac{p(1-p)}{n}}
+
+        where p is the success rate and n is the sample size.
+
+        See Also
+        --------
+        summarize_by_interaction : Interaction-level outcomes.
+        summary_outcomes : Outcome counts.
+
+        Examples
+        --------
+        >>> ih.aggregates.summary_success_rates(by="Channel", every="1w").collect()
         """
 
         if not isinstance(by, list):
@@ -206,29 +279,37 @@ class Aggregates(LazyNamespace):
         every: Optional[Union[str, timedelta]] = None,
         query: Optional[QUERY] = None,
     ) -> pl.LazyFrame:
-        """Groups the IH data by outcome and summarizes counts for each outcome type.
+        """Count outcomes by type.
 
-        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
-        given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
-        language as Polars.
-
-        This method provides a count of each outcome type, which can be useful for understanding the
-        distribution of outcomes across different dimensions or time periods.
+        Aggregates outcome counts, useful for understanding the distribution
+        of outcomes across dimensions or time periods.
 
         Parameters
         ----------
-        by : Optional[Union[str, List[str], pl.Expr]], optional
-            Grouping keys. Name of field(s) or a Polars expression, by default None
-        every : Optional[Union[str, timedelta]], optional
-            Every interval start and period length, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
+        by : str, List[str], or pl.Expr, optional
+            Grouping dimension(s). Default is None.
+        every : str or timedelta, optional
+            Time aggregation period (e.g., "1d", "1w"). Default is None.
+        query : QUERY, optional
+            Polars expression to filter data before aggregation.
 
         Returns
         -------
         pl.LazyFrame
-            A polars frame with the grouping keys, outcome types, and a count column showing the number
-            of occurrences for each outcome type within each group.
+            Outcome counts with columns:
+
+            - **Outcome**: Outcome type label
+            - **Count**: Number of occurrences
+            - Plus any grouping columns
+
+        See Also
+        --------
+        summary_success_rates : Success rates by metric.
+
+        Examples
+        --------
+        >>> ih.aggregates.summary_outcomes(by="Channel").collect()
+        >>> ih.aggregates.summary_outcomes(every="1mo").collect()
         """
 
         if every is not None:
@@ -241,8 +322,10 @@ class Aggregates(LazyNamespace):
         by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
-            by_pl_exprs
+            ["Outcome"]
+            + by_non_pl_exprs
+            + (["OutcomeTime"] if every is not None else []),
+            by_pl_exprs,
         )
 
         summary = (

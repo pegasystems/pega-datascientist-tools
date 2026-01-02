@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime
@@ -7,64 +8,95 @@ import polars as pl
 import polars.selectors as cs
 
 from .Plots import Plots
-from ..utils.cdh_utils import _apply_query, weighted_average_polars
+from ..utils.cdh_utils import (
+    _apply_query,
+    weighted_average_polars,
+    _polars_capitalize,
+    parse_pega_date_time_formats,
+)
+from ..pega_io.File import read_ds_export
 from ..utils.types import QUERY
 
 
 class ImpactAnalyzer:
     """
-    Analyze and visualize Impact Analyzer experiment results from Pega Customer Decision Hub.
+    Analyze and visualize Impact Analyzer experiment results from Pega CDH.
 
-    The ImpactAnalyzer class provides comprehensive analysis and visualization capabilities
-    for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment data
-    from Pega's Customer Decision Hub to compare the effectiveness of different NBA strategies
-    including adaptive models, propensity prioritization, lever usage, and engagement policies.
+    The ImpactAnalyzer class provides analysis and visualization capabilities
+    for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment
+    data from Pega's Customer Decision Hub to compare the effectiveness of different
+    NBA strategies including adaptive models, propensity prioritization, lever usage,
+    and engagement policies.
 
-    When reading from PDC, the ImpactAnalyzer class only keeps the counts of impressions, accepts
-    and the action value per impression and re-calculates all the derived values on demand. It
-    drops inactive experiments and adds rows for the "NBA" group. The "All channels" is dropped.
-    ValueLift and ValueLiftInterval are copied from the PDC data as this can currently not be
-    re-calculated from the available raw numbers (ValuePerImpression is empty).
+    Data can be loaded from three sources:
 
-    Engagement Lift is calculated as (SuccessRate(test) - SuccessRate(control))/SuccessRate(control)
+    - **PDC exports** via :meth:`from_pdc`: Uses pre-aggregated experiment data from
+      PDC JSON exports. Value Lift is copied from PDC data as it cannot be
+      re-calculated from the available numbers.
+    - **VBD exports** via :meth:`from_vbd`: Reconstructs experiment metrics from raw
+      VBD Actuals or Scenario Planner Actuals data. Allows flexible time ranges and
+      data selection. Value Lift is calculated from ValuePerImpression.
+    - **Interaction History** via :meth:`from_ih`: Loads experiment metrics from
+      Interaction History data. Not yet implemented.
 
-    Value Lift is calculated as (ValueCapture(test) - ValueCapture(control))/ValueCapture(control)
+    .. math::
 
-    For value, aggregting the Value property
+        \\text{Engagement Lift} = \\frac{\\text{SuccessRate}_{test} - \\text{SuccessRate}_{control}}{\\text{SuccessRate}_{control}}
 
+    .. math::
+
+        \\text{Value Lift} = \\frac{\\text{ValueCapture}_{test} - \\text{ValueCapture}_{control}}{\\text{ValueCapture}_{control}}
+
+    Attributes
+    ----------
+    ia_data : pl.LazyFrame
+        The underlying experiment data containing control group metrics.
+    plot : Plots
+        Plot accessor for visualization methods.
+
+    See Also
+    --------
+    pdstools.adm.ADMDatamart : For ADM model analysis.
+    pdstools.ih.IH : For Interaction History analysis.
+
+    Examples
+    --------
+    >>> from pdstools import ImpactAnalyzer
+    >>> ia = ImpactAnalyzer.from_pdc("impact_analyzer_export.json")
+    >>> ia.overall_summary().collect()
+    >>> ia.plot.overview()
     """
 
     ia_data: pl.LazyFrame
 
     default_ia_experiments = {
-        # lists test and control groups for the default experiments
-        "NBA vs Random": ("NBAHealth_NBAPrioritization", "NBAHealth_NBA"),
-        "NBA vs Propensity Only": ("NBAHealth_PropensityPriority", "NBAHealth_NBA"),
-        "NBA vs No Levers": ("NBAHealth_LeverPriority", "NBAHealth_NBA"),
+        "NBA vs Random": ("NBAPrioritization", "NBA"),
+        "NBA vs Propensity Only": ("PropensityPriority", "NBA"),
+        "NBA vs No Levers": ("LeverPriority", "NBA"),
         "NBA vs Only Eligibility Rules": (
-            "NBAHealth_EngagementPolicy",
-            "NBAHealth_NBA",
+            "EngagementPolicy",
+            "NBA",
         ),
-        "Adaptive Models vs Random Propensity": (
-            # "NBAHealth_ModelControl",
-            # "NBAHealth_PropensityPriority",
-            "NBAHealth_ModelControl_1",
-            "NBAHealth_ModelControl_2",
-        ),
+        "Adaptive Models vs Random Propensity": ("ModelControl_1", "ModelControl_2"),
     }
+    """Default experiments mapping experiment names to (control, test) group tuples."""
+
+    outcome_labels = {
+        "Impressions": ["Impression"],
+        "Accepts": ["Accept", "Accepted", "Click", "Clicked"],
+    }
+    """Mapping of metric names to outcome labels used for aggregation."""
 
     default_ia_controlgroups = {
-        # ID of the control groups
         "MktValue": [
             "NBAHealth_NBAPrioritization",
             "NBAHealth_PropensityPriority",
             "NBAHealth_LeverPriority",
             "NBAHealth_EngagementPolicy",
             "NBAHealth_ModelControl_1",
-            "NBAHealth_ModelControl_2",  # NBAHealth_ModelControl_2 is conceptually the same as NBAHealth_PropensityPriority and will be phased out in Pega 24.1/24.2.
-            "NBAHealth_NBA",  # None in the VBD data
+            "NBAHealth_ModelControl_2",
+            "NBAHealth_NBA",
         ],
-        # ID of the associated experiment
         "MktType": [
             "NBAPrioritization",
             "PropensityPriority",
@@ -86,9 +118,26 @@ class ImpactAnalyzer:
     }
 
     def __init__(self, raw_data: pl.LazyFrame):
-        self.plot = Plots(ia=self)
+        """Initialize an ImpactAnalyzer instance.
 
-        # Column names may still be PDC specific, we should be changing once w got more sources going
+        Parameters
+        ----------
+        raw_data : pl.LazyFrame
+            Pre-processed experiment data containing control group metrics.
+            Must include columns: SnapshotTime, ControlGroup, Impressions,
+            Accepts, ValuePerImpression, Channel.
+
+        Raises
+        ------
+        ValueError
+            If required columns are missing from the input data.
+
+        Notes
+        -----
+        Use the class methods :meth:`from_pdc`, :meth:`from_vbd`, or :meth:`from_ih`
+        to create instances from raw data exports.
+        """
+        self.plot = Plots(ia=self)
 
         required_cols = [
             "SnapshotTime",
@@ -97,19 +146,12 @@ class ImpactAnalyzer:
             "Accepts",
             "ValuePerImpression",
             "Channel",
-            # and optionally more dimensions
         ]
         missing_cols = set(required_cols).difference(raw_data.collect_schema().names())
         if len(missing_cols) > 0:
-            raise ValueError(f"Missing required inputs: {missing_cols}")
+            raise ValueError(f"Missing required columns: {missing_cols}")
 
         self.ia_data = raw_data
-
-        # .select(
-        #     raw_data.collect_schema().names()[
-        #         0 : raw_data.collect_schema().names().index("***") # hacky wacky way to exclude redundant columns
-        #     ]
-        # )
 
     @classmethod
     def from_pdc(
@@ -118,34 +160,49 @@ class ImpactAnalyzer:
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
-        return_wide_df: Optional[bool] = False,
-        return_df: Optional[bool] = False,
-    ):
-        """Create an ImpactAnalyzer instance from a PDC file
+        return_wide_df: bool = False,
+        return_df: bool = False,
+    ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
+        """Create an ImpactAnalyzer instance from PDC JSON export(s).
+
+        Loads pre-aggregated experiment data from Pega Decision Central JSON exports.
+        Value Lift metrics are copied directly from the PDC data.
 
         Parameters
         ----------
         pdc_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
-            The full path to the PDC file, or a list of such paths
-        reader: Optional[Callable]
-            Function to read the source data into a dict. If None uses standard file reader.
+            Path to PDC JSON file, or a list of paths to concatenate.
+        reader : Optional[Callable], optional
+            Custom function to read source data into a dict. If None, uses
+            standard JSON file reader. Default is None.
         query : Optional[QUERY], optional
-            An optional argument to filter out selected data, by default None
-        return_wide_df : Optional[QUERY], optional
-            Debugging option to return the wide data from the raw JSON file as a LazyFrame, for debugging, by default False
-        return_df : Optional[QUERY], optional
-            Returns the processed input data as a LazyFrame. Multiple of these can be stacked up and used to initialize the ImpactAnalyzer class, by default False
+            Polars expression to filter the data. Default is None.
+        return_wide_df : bool, optional
+            If True, return the raw wide-format data as a LazyFrame for
+            debugging. Default is False.
+        return_df : bool, optional
+            If True, return the processed data as a LazyFrame instead of
+            an ImpactAnalyzer instance. Default is False.
 
         Returns
         -------
-        ImpactAnalyzer
-            The properly initialized ImpactAnalyzer object
+        ImpactAnalyzer or pl.LazyFrame
+            ImpactAnalyzer instance, or LazyFrame if return_df or return_wide_df
+            is True.
 
+        Raises
+        ------
+        ValueError
+            If an empty list of source files is provided.
+
+        Examples
+        --------
+        >>> ia = ImpactAnalyzer.from_pdc("CDH_Metrics_ImpactAnalyzer.json")
+        >>> ia.overall_summary().collect()
         """
 
         def default_reader(f):
             with open(f, encoding="utf-8") as pdc_json_data:
-                # TODO use read_ds_export/import_file from io lib for the first part
                 return json.load(pdc_json_data)
 
         if reader is None:
@@ -181,61 +238,144 @@ class ImpactAnalyzer:
     @classmethod
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
+        vbd_source: Union[os.PathLike, str],
         *,
-        return_df: Optional[bool] = False,
-    ):
-        """Create an ImpactAnalyzer instance from VBD (Value-Based Decisioning) data
+        return_df: bool = False,
+    ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
+        """Create an ImpactAnalyzer instance from VBD data.
 
-        This method will process VBD Actuals or VBD Scenario Planner Actuals data
-        to reconstruct Impact Analyzer experiment metrics. This allows for more
-        flexible time ranges and data selection compared to PDC exports.
+        Processes VBD Actuals or Scenario Planner Actuals data to reconstruct
+        Impact Analyzer experiment metrics. Provides more flexible time ranges
+        and data selection compared to PDC exports.
 
-        IA uses **pyReason**, **MktType**, **MktValue** and **ModelControlGroup** to define
-        the various experiments. For the standard NBA decisions (no experiment), values are left empty (null).
-
-        Prior to Impact Analyzer, or when turned off, Predictions from Prediction Studio manage two
-        groups through the **ModelControlGroup** property. A value of **Test** is used for model driven arbitration, **Control** for the random control group (defaults to 2%).
-
-        When IA is on, the distinct values from just **MktValue** are sufficient to identify the
-        different experiments. In the future, more and custom experiments may be supported.
-
-        For the full NBA interactions the value of the marker fields is left empty.
-
-        TODO: NBAHealth_ModelControl_2 is conceptually the same as NBAHealth_PropensityPriority and will be phased out in Pega 24.1/24.2.
-
-        The usage of "Default" issues and groups indicates that there is no action. These need to be filtered out for proper reporting.
-
-        TODO: should we exclude these from analysis?
-
-        TODO: what about things with inactive status? And how can we know?
-
-        NOTE: Impact Analyzer goes back from today's date, also when the data is from an earlier date.
+        Value Lift is calculated from ValuePerImpression since raw value data
+        is available in VBD exports.
 
         Parameters
         ----------
-        vbd_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
-            Path to VBD export file(s) or URL(s)
-        return_df : Optional[bool], optional
-            Return processed data instead of ImpactAnalyzer instance, by default False
+        vbd_source : Union[os.PathLike, str]
+            Path to VBD export file (parquet, csv, ndjson, or zip).
+        return_df : bool, optional
+            If True, return processed data as LazyFrame instead of
+            ImpactAnalyzer instance. Default is False.
 
         Returns
         -------
-        ImpactAnalyzer
-            The properly initialized ImpactAnalyzer object with reconstructed experiment data
-
+        ImpactAnalyzer or pl.LazyFrame or None
+            ImpactAnalyzer instance, LazyFrame if return_df is True,
+            or None if the source contains no data.
 
         Examples
         --------
-        >>> # Load from VBD export
-        >>> ia = ImpactAnalyzer.from_vbd('Data-pxStrategyResult_ActualsExport.zip')
+        >>> ia = ImpactAnalyzer.from_vbd("ScenarioPlannerActuals.zip")
+        >>> ia.summary_by_channel().collect()
+        """
+
+        vbd_data = read_ds_export(str(Path(vbd_source).absolute()))
+        if vbd_data is None:
+            return None
+
+        ia_data = (
+            _polars_capitalize(vbd_data)
+            .with_columns(
+                SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
+                    "1d"
+                ),
+                Channel=pl.concat_str(
+                    "Channel", "Direction", separator="/", ignore_nulls=True
+                ),
+            )
+            .group_by(
+                "SnapshotTime",
+                "MktValue",
+                "Application",
+                "ApplicationVersion",
+                "Channel",
+                "Issue",
+                "Group",
+                "Name",
+                "Treatment",
+            )
+            .agg(
+                pl.col("AggregateCount")
+                .filter(pl.col("Outcome").is_in(cls.outcome_labels["Impressions"]))
+                .sum()
+                .alias("Impressions"),
+                pl.col("AggregateCount")
+                .filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"]))
+                .sum()
+                .alias("Accepts"),
+                (
+                    pl.col("Value")
+                    .filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"]))
+                    .sum()
+                    / (
+                        pl.col("AggregateCount")
+                        .filter(
+                            pl.col("Outcome").is_in(cls.outcome_labels["Impressions"])
+                        )
+                        .sum()
+                    )
+                ).alias("ValuePerImpression"),
+                # rest just for debugging
+                pl.col("AggregateCount", "Value", "Outcome"),
+            )
+            .filter(pl.col("Accepts") <= pl.col("Impressions"))
+            .rename({"MktValue": "ControlGroup"})
+            .with_columns(
+                pl.col("ControlGroup").str.strip_prefix("NBAHealth_").fill_null("NBA")
+            )
+            .sort(
+                "SnapshotTime",
+                "Channel",
+                "Issue",
+                "Group",
+                "Name",
+                "Treatment",
+                "ControlGroup",
+            )
+        )
+
+        if return_df:
+            return ia_data
+
+        return ImpactAnalyzer(ia_data)
+
+    @classmethod
+    def from_ih(
+        cls,
+        ih_source: Union[os.PathLike, str],
+        *,
+        return_df: bool = False,
+    ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
+        """Create an ImpactAnalyzer instance from Interaction History data.
+
+        .. note::
+            This method is not yet implemented.
+
+        Reconstructs experiment metrics from Interaction History data, allowing
+        analysis of experiments using detailed interaction-level records.
+
+        Parameters
+        ----------
+        ih_source : Union[os.PathLike, str]
+            Path to Interaction History export file.
+        return_df : bool, optional
+            If True, return processed data as LazyFrame instead of
+            ImpactAnalyzer instance. Default is False.
+
+        Returns
+        -------
+        ImpactAnalyzer or pl.LazyFrame or None
+            ImpactAnalyzer instance, LazyFrame if return_df is True,
+            or None if the source contains no data.
 
         Raises
         ------
         NotImplementedError
-            This method is not yet implemented. Use from_pdc() for current functionality.
+            This method is not yet implemented.
         """
-        raise NotImplementedError("from_vbd() method is not yet implemented.")
+        raise NotImplementedError("from_ih is not yet implemented")
 
     @classmethod
     def _normalize_pdc_ia_data(
@@ -243,21 +383,32 @@ class ImpactAnalyzer:
         json_data: dict,
         *,
         query: Optional[QUERY] = None,
-        return_wide_df: Optional[bool] = False,
-    ):
-        """Internal method to turn PDC Impact Analyzer JSON data into a proper long format
+        return_wide_df: bool = False,
+    ) -> pl.LazyFrame:
+        """Transform PDC Impact Analyzer JSON into normalized long format.
 
-        The PDC data is really structured as a list of expriments: control group A vs control group B. There
-        is no explicit indicator whether the B's are really the same customers or not. The PDC data also contains
-        a lot of UI related information that is not necessary.
+        Converts the hierarchical PDC JSON structure (organized by experiments)
+        into a flat structure organized by control groups with impression and
+        accept counts.
 
-        We turn this data into a series of control groups with just counts of impressions and accepts. This
-        does need to assume a few implicit assumptions.
+        Parameters
+        ----------
+        json_data : dict
+            Parsed JSON data from PDC export.
+        query : Optional[QUERY], optional
+            Polars expression to filter the data. Default is None.
+        return_wide_df : bool, optional
+            If True, return intermediate wide-format data. Default is False.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Normalized data with columns: SnapshotTime, Channel, ControlGroup,
+            Impressions, Accepts, ValuePerImpression, Pega_ValueLift.
         """
         if len(json_data["pxResults"]) != 1:
-            raise Exception("Expected just one result under 1st level pxResults.")
-        # lets hope the time format is consistent!
-        # can we use cdh_utils here?
+            raise ValueError("Expected exactly one result under pxResults.")
+
         date = datetime.strptime(
             json_data["pxResults"][0]["SnapshotTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
@@ -400,38 +551,36 @@ class ImpactAnalyzer:
             pl.concat(
                 [nba_data, model_control_2_data, other_data],
                 how="diagonal_relaxed",
-            ).sort("SnapshotTime", "Channel", "ControlGroup")
-            # .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_")) # TODO lookup
+            )
+            .with_columns(pl.col("ControlGroup").str.strip_prefix("NBAHealth_"))
+            .sort("SnapshotTime", "Channel", "ControlGroup")
         )
 
         return result
 
-    # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
     def summary_by_channel(self) -> pl.LazyFrame:
-        """Summarization of the experiments in Impact Analyzer split by Channel.
+        """Get experiment summary pivoted by channel.
 
-        Parameters
-        ----------
+        Returns experiment lift metrics (CTR_Lift and Value_Lift) for each
+        experiment, with one row per channel.
 
         Returns
         -------
         pl.LazyFrame
-            Summary across all running Impact Analyzer experiments as a dataframe with the following fields:
+            Wide-format summary with columns:
 
-            Channel Identification:
-            - Channel: The channel name
+            - **Channel**: Channel name
+            - **CTR_Lift <Experiment>**: Engagement lift for each experiment
+            - **Value_Lift <Experiment>**: Value lift for each experiment
 
-            Performance Metrics:
-            - CTR_Lift Adaptive Models vs Random Propensity: Lift in Engagement when testing prioritization with just Adaptive Models vs just Random Propensity
-            - CTR_Lift NBA vs No Levers: Lift in Engagement for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
-            - CTR_Lift NBA vs Only Eligibility Rules: Lift in Engagement for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
-            - CTR_Lift NBA vs Propensity Only: Lift in Engagement for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
-            - CTR_Lift NBA vs Random: Lift in Engagement for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
-            - Value_Lift Adaptive Models vs Random Propensity: Lift in Expected Value when testing prioritization with just Adaptive Models vs just Random Propensity
-            - Value_Lift NBA vs No Levers: Lift in Expected Value for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
-            - Value_Lift NBA vs Only Eligibility Rules: Lift in Expected Value for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
-            - Value_Lift NBA vs Propensity Only: Lift in Expected Value for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
-            - Value_Lift NBA vs Random: Lift in Expected Value for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+        See Also
+        --------
+        overall_summary : Summary without channel breakdown.
+        summarize_experiments : Long-format experiment summary.
+
+        Examples
+        --------
+        >>> ia.summary_by_channel().collect()
         """
 
         return (
@@ -447,30 +596,28 @@ class ImpactAnalyzer:
             .lazy()
         )
 
-    # TODO consider dates, output descriptions etc. just like ADMDatamart, Predictions etc.
-
     def overall_summary(self) -> pl.LazyFrame:
-        """Summarization of the experiments in Impact Analyzer.
+        """Get overall experiment summary aggregated across all channels.
 
-        Parameters
-        ----------
+        Returns experiment lift metrics (CTR_Lift and Value_Lift) for each
+        experiment, aggregated across all data.
 
         Returns
         -------
         pl.LazyFrame
-            Summary across all running Impact Analyzer experiments as a dataframe with the following fields:
+            Single-row wide-format summary with columns:
 
-            Performance Metrics:
-            - CTR_Lift Adaptive Models vs Random Propensity: Lift in Engagement when testing prioritization with just Adaptive Models vs just Random Propensity
-            - CTR_Lift NBA vs No Levers: Lift in Engagement for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
-            - CTR_Lift NBA vs Only Eligibility Rules: Lift in Engagement for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
-            - CTR_Lift NBA vs Propensity Only: Lift in Engagement for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
-            - CTR_Lift NBA vs Random: Lift in Engagement for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
-            - Value_Lift Adaptive Models vs Random Propensity: Lift in Expected Value when testing prioritization with just Adaptive Models vs just Random Propensity
-            - Value_Lift NBA vs No Levers: Lift in Expected Value for the full NBA Framework as configured vs prioritization without levers (only p, V and C)
-            - Value_Lift NBA vs Only Eligibility Rules: Lift in Expected Value for the full NBA Framework as configured vs Only Eligibility policies applied (no Applicability or Suitability, and prioritized with pVCL)
-            - Value_Lift NBA vs Propensity Only: Lift in Expected Value for the full NBA Framework as configured vs prioritization with model propensity only (no V, C or L)
-            - Value_Lift NBA vs Random: Lift in Expected Value for the full NBA Framework as configured vs a Random eligible action (all engagement policies but randomly prioritized)
+            - **CTR_Lift <Experiment>**: Engagement lift for each experiment
+            - **Value_Lift <Experiment>**: Value lift for each experiment
+
+        See Also
+        --------
+        summary_by_channel : Summary with channel breakdown.
+        summarize_experiments : Long-format experiment summary.
+
+        Examples
+        --------
+        >>> ia.overall_summary().collect()
         """
         return (
             self.summarize_experiments()
@@ -489,26 +636,60 @@ class ImpactAnalyzer:
     def summarize_control_groups(
         self,
         by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
-        drop_internal_cols=True,
+        drop_internal_cols: bool = True,
     ) -> pl.LazyFrame:
+        """Aggregate metrics by control group.
+
+        Summarizes impressions, accepts, CTR, and value metrics for each
+        control group, optionally grouped by additional dimensions.
+
+        Parameters
+        ----------
+        by : Optional[Union[List[str], List[pl.Expr], str, pl.Expr]], optional
+            Column name(s) or expression(s) to group by in addition to
+            ControlGroup. Default is None (aggregate all data).
+        drop_internal_cols : bool, optional
+            If True, drop internal columns prefixed with 'Pega_'.
+            Default is True.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Aggregated metrics with columns: ControlGroup, Impressions,
+            Accepts, CTR, ValuePerImpression, plus any grouping columns.
+
+        Examples
+        --------
+        >>> ia.summarize_control_groups().collect()
+        >>> ia.summarize_control_groups(by="Channel").collect()
+        """
         if not by:
             group_by = []
         elif not isinstance(by, list):
             group_by = [by]
         else:
             group_by = by
+
+        agg_exprs = [
+            pl.sum("Impressions", "Accepts"),
+            (pl.sum("Accepts") / pl.sum("Impressions")).alias("CTR"),
+            weighted_average_polars("ValuePerImpression", "Impressions").alias(
+                "ValuePerImpression"
+            ),
+        ]
+
+        # Pega_ValueLift is only present in PDC data, not in VBD data
+        if "Pega_ValueLift" in self.ia_data.collect_schema().names():
+            agg_exprs.append(
+                weighted_average_polars("Pega_ValueLift", "Impressions").alias(
+                    "Pega_ValueLift"
+                )
+            )
+
         return (
             self.ia_data.sort(group_by + ["ControlGroup"])
             .group_by(group_by + ["ControlGroup"], maintain_order=True)
-            .agg(
-                pl.sum("Impressions", "Accepts"),
-                CTR=pl.sum("Accepts") / pl.sum("Impressions"),
-                ValuePerImpression=weighted_average_polars(
-                    "ValuePerImpression", "Impressions"
-                ),
-                # this is only a backup in case the associated value per impression is missing like in PDC data
-                Pega_ValueLift=weighted_average_polars("Pega_ValueLift", "Impressions"),
-            )
+            .agg(agg_exprs)
             .drop(cs.starts_with("Pega_") if drop_internal_cols else [])
         )
 
@@ -516,6 +697,47 @@ class ImpactAnalyzer:
         self,
         by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
     ) -> pl.LazyFrame:
+        """Summarize experiment metrics comparing test vs control groups.
+
+        Computes lift metrics for each defined experiment by comparing
+        test and control group performance.
+
+        .. note::
+            Returns all default experiments regardless of whether they are
+            active in the data. Experiments without data will have null values
+            for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).
+
+        Parameters
+        ----------
+        by : Optional[Union[List[str], List[pl.Expr], str, pl.Expr]], optional
+            Column name(s) or expression(s) to group by. Default is None
+            (aggregate all data).
+
+        Returns
+        -------
+        pl.LazyFrame
+            Experiment summary with columns:
+
+            - **Experiment**: Experiment name
+            - **Test**, **Control**: Control group names for the experiment
+            - **Impressions_Test**, **Impressions_Control**: Impression counts (null if not active)
+            - **Accepts_Test**, **Accepts_Control**: Accept counts (null if not active)
+            - **CTR_Test**, **CTR_Control**: Click-through rates (null if not active)
+            - **Control_Fraction**: Fraction of impressions in control group
+            - **CTR_Lift**: Engagement lift (null if experiment not active)
+            - **Value_Lift**: Value lift (null if experiment not active)
+
+        See Also
+        --------
+        summarize_control_groups : Lower-level control group aggregation.
+        overall_summary : Pivoted overall summary.
+        summary_by_channel : Pivoted summary by channel.
+
+        Examples
+        --------
+        >>> ia.summarize_experiments().collect()
+        >>> ia.summarize_experiments(by="Channel").collect()
+        """
         if not by:
             by = []
         if isinstance(by, str):
@@ -541,7 +763,9 @@ class ImpactAnalyzer:
             by, drop_internal_cols=False
         )
 
-        return (
+        has_pega_value_lift = "Pega_ValueLift" in self.ia_data.collect_schema().names()
+
+        result = (
             pl.LazyFrame(
                 {
                     "Experiment": ImpactAnalyzer.default_ia_experiments.keys(),
@@ -572,13 +796,21 @@ class ImpactAnalyzer:
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
                 / (pl.col("Impressions_Control") + pl.col("Impressions_Test")),
-                CTR_Lift=_lift_pl(
-                    "CTR_Test", "CTR_Control"
-                ),  # TODO I got myself confused now
-                # this is temp and should only be tried when the value per impression is missing like in PDC data
-                Value_Lift=pl.col("Pega_ValueLift_Control"),
-                # TODO figure out confidence intervals etc.
+                CTR_Lift=_lift_pl("CTR_Test", "CTR_Control"),
             )
-            .drop(cs.starts_with("Pega_"))
-            .sort(["Experiment"] + by_column_names)
+        )
+
+        # Value_Lift from Pega_ValueLift is only available in PDC data
+        if has_pega_value_lift:
+            result = result.with_columns(Value_Lift=pl.col("Pega_ValueLift_Control"))
+        else:
+            # For VBD data, calculate Value_Lift from ValuePerImpression
+            result = result.with_columns(
+                Value_Lift=_lift_pl(
+                    "ValuePerImpression_Test", "ValuePerImpression_Control"
+                )
+            )
+
+        return result.drop(cs.starts_with("Pega_")).sort(
+            ["Experiment"] + by_column_names
         )

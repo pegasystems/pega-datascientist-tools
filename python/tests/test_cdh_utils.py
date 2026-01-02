@@ -481,10 +481,22 @@ def test_capitalize_behavior():
     assert cdh_utils._capitalize(["test"]) == ["Test"]
     assert cdh_utils._capitalize(["RESPONSEcOUNT"]) == ["ResponseCount"]
     assert cdh_utils._capitalize(["responsecounter"]) == ["ResponseCounter"]
-    assert cdh_utils._capitalize(["responsenumber"]) == ["Responsenumber"]
+    assert cdh_utils._capitalize(["responsenumber"]) == ["ResponseNumber"]
     assert cdh_utils._capitalize(["Response Count"]) == ["Response Count"]
     assert cdh_utils._capitalize(["Response_count1"]) == ["Response_Count1"]
     assert cdh_utils._capitalize("Response_count1") == ["Response_Count1"]
+
+
+def test_capitalize_configuration():
+    """Test that 'Configuration' is capitalized correctly.
+
+    Previously, "Ratio" in capitalize_endwords matched the substring 'ratio'
+    within 'configuration', causing incorrect capitalization to 'ConfiguRation'.
+    Fixed by sorting endwords by length so longer words are processed last.
+    """
+    assert cdh_utils._capitalize(["configuration"]) == ["Configuration"]
+    assert cdh_utils._capitalize(["pyConfiguration"]) == ["Configuration"]
+    assert cdh_utils._capitalize(["configurationname"]) == ["Configuration"]
 
 
 def test_PredictorCategorization():

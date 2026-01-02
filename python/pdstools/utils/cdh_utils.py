@@ -235,7 +235,7 @@ def parse_pega_date_time_formats(
     timestamp_col="SnapshotTime",
     timestamp_fmt: Optional[str] = None,
     timestamp_dtype: PolarsTemporalType = pl.Datetime,
-):
+) -> pl.Expr:
     """Parses Pega DateTime formats.
 
     Supports commonly used formats:
@@ -310,9 +310,7 @@ def safe_range_auc(auc: float) -> float:
         return 0.5 + np.abs(0.5 - auc)
 
 
-def auc_from_probs(
-    groundtruth: List[int], probs: List[float]
-) -> List[float]:  # pragma: no cover
+def auc_from_probs(groundtruth: List[int], probs: List[float]) -> float:
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
@@ -326,7 +324,7 @@ def auc_from_probs(
     probs : List[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
-    Returns : List[float]
+    Returns : float
         The AUC as a value between 0.5 and 1.
 
     Examples:
@@ -354,7 +352,9 @@ def auc_from_probs(
 
 
 def auc_from_bincounts(
-    pos: List[int], neg: List[int], probs: List[float] = None
+    pos: Union[List[int], pl.Series],
+    neg: Union[List[int], pl.Series],
+    probs: Optional[Union[List[float], pl.Series]] = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -397,9 +397,7 @@ def auc_from_bincounts(
     return safe_range_auc(np.sum(area))
 
 
-def aucpr_from_probs(
-    groundtruth: List[int], probs: List[float]
-) -> List[float]:  # pragma: no cover
+def aucpr_from_probs(groundtruth: List[int], probs: List[float]) -> float:
     """Calculates PR AUC (precision-recall) from an array of truth values and predictions.
     Calculates the area under the PR curve from an array of truth values and
     predictions. Returns 0.0 when there is just one groundtruth label.
@@ -412,7 +410,7 @@ def aucpr_from_probs(
     probs : List[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
-    Returns : List[float]
+    Returns : float
         The AUC as a value between 0.5 and 1.
 
     Examples:
@@ -440,7 +438,9 @@ def aucpr_from_probs(
 
 
 def aucpr_from_bincounts(
-    pos: List[int], neg: List[int], probs: List[float] = None
+    pos: Union[List[int], pl.Series],
+    neg: Union[List[int], pl.Series],
+    probs: Optional[Union[List[float], pl.Series]] = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -503,7 +503,7 @@ def auc_to_gini(auc: float) -> float:
 def _capitalize(
     fields: Union[str, Iterable[str]], extra_endwords: Optional[Iterable[str]] = None
 ) -> List[str]:
-    """Applies automatic capitalization, aligned with the R couterpart.
+    """Applies automatic capitalization, aligned with the R counterpart.
 
     Parameters
     ----------
@@ -514,84 +514,86 @@ def _capitalize(
     -------
     fields : list
         The input list, but each value properly capitalized
+
+    Notes
+    -----
+    The capitalize_endwords list contains atomic word parts that are commonly
+    found in Pega field names. Compound words (like "ResponseCount") don't need
+    to be listed separately because the algorithm processes words by length,
+    allowing shorter components ("Response", "Count") to handle them.
     """
     capitalize_endwords = [
-        "ID",
-        "Key",
-        "Name",
-        "Treatment",
-        "Count",
+        "Active",
+        "Adjusted",
+        "Bin",
+        "Bound",
+        "Cap",
         "Category",
         "Class",
-        "Time",
-        "DateTime",
-        "UpdateTime",
-        "ToClass",
-        "Version",
+        "Code",
+        "Component",
+        "Configuration",
+        "Context",
+        "Control",
+        "Count",
+        "Date",
+        "Description",
+        "Email",
+        "Enabled",
+        "Error",
+        "Evidence",
+        "Execution",
+        "Group",
+        "Hash",
+        "ID",
+        "Identifier",
+        "Importance",
+        "Index",
+        "Issue",
+        "Key",
+        "Limit",
+        "Lower",
+        "Message",
+        "Model",
+        "Name",
+        "Negative",
+        "Number",
+        "Offline",
+        "Omni",
+        "Outcome",
+        "Paid",
+        "Percentage",
+        "Performance",
+        "Positive",
+        "Prediction",
         "Predictor",
-        "Predictors",
+        "Propensity",
+        "Proposition",
         "Rate",
         "Ratio",
-        "Negatives",
-        "Positives",
-        "Threshold",
-        "Error",
-        "Importance",
-        "Type",
-        "Percentage",
-        "Index",
-        "Symbol",
-        "LowerBound",
-        "UpperBound",
-        "Bins",
-        "GroupIndex",
-        "ResponseCount",
-        "NegativesPercentage",
-        "PositivesPercentage",
-        "BinPositives",
-        "BinNegatives",
-        "BinResponseCount",
-        "BinSymbol",
-        "BinAdjustedPropensity",
-        "ResponseCountPercentage",
-        "ConfigurationName",
-        "Configuration",
-        "SMS",
-        "Relevant",
-        "Proposition",
-        "Active",
-        "Description",
         "Reference",
-        "Date",
-        "Performance",
-        "Identifier",
-        "Component",
-        "Prediction",
-        "Outcome",
-        "Hash",
-        "URL",
-        "Cap",
-        "Template",
-        "Issue",
-        "Group",
-        "Control",
-        "Evidence",
-        "Propensity",
-        "Paid",
-        "Subject",
-        "Email",
-        "Web",
-        "Context",
-        "Limit",
+        "Relevant",
+        "Response",
+        "SMS",
         "Stage",
-        "Omni",
-        "Execution",
-        "Enabled",
-        "Message",
-        "Offline",
-        "Update",
         "Strategy",
-        "ModelTechnique",
+        "Subject",
+        "Symbol",
+        "Technique",
+        "Template",
+        "Threshold",
+        "Time",
+        "ToClass",  # Keep as compound - "To" alone is too generic
+        "Treatment",
+        "Type",
+        "Update",
+        "Upper",
+        "URL",
+        "Value",
+        "Variant",
+        "Version",
+        "Web",
+        "Weight",
     ]
 
     if not isinstance(fields, list):
@@ -600,9 +602,13 @@ def _capitalize(
     fields = list(
         map(lambda x: x.replace("configurationname", "configuration"), fields)
     )
-    for word in capitalize_endwords:
+    # Sort by length ascending so longer words are processed last and can
+    # "fix" any incorrect replacements made by shorter substring matches.
+    # E.g., "Ratio" might corrupt "configuration" to "configuRation", but
+    # processing "Configuration" after will correct it back.
+    for word in sorted(capitalize_endwords, key=len):
         fields = [re.sub(word, word, field, flags=re.I) for field in fields]
-        fields = [field[:1].upper() + field[1:] for field in fields]
+    fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
 
 

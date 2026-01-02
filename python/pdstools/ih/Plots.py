@@ -1,3 +1,5 @@
+"""Plotting utilities for Interaction History visualization."""
+
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -9,19 +11,56 @@ from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
+    from plotly.graph_objs import Figure
+
     from .IH import IH as IH_Class
+
 try:
-    import plotly as plotly
     import plotly.express as px
-
-
+    import plotly.graph_objects as go
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 
 class Plots(LazyNamespace):
+    """Visualization methods for Interaction History data.
+
+    This class provides plotting capabilities for analyzing customer
+    interaction data. It is accessed through the `plot` attribute of an
+    :class:`~pdstools.ih.IH.IH` instance.
+
+    All plot methods support:
+    - Custom titles via `title` parameter
+    - Data filtering via `query` parameter
+    - Returning underlying data via `return_df=True`
+
+    Attributes
+    ----------
+    ih : IH
+        Reference to the parent IH instance.
+
+    See Also
+    --------
+    pdstools.ih.IH : Main analysis class.
+    pdstools.ih.Aggregates : Aggregation methods.
+
+    Examples
+    --------
+    >>> ih = IH.from_ds_export("interaction_history.zip")
+    >>> ih.plot.success_rate(metric="Engagement")
+    >>> ih.plot.response_count_tree_map()
+    """
+
     def __init__(self, ih: "IH_Class"):
+        """Initialize a Plots instance.
+
+        Parameters
+        ----------
+        ih : IH
+            The parent IH instance providing the data.
+        """
         super().__init__()
         self.ih = ih
 
@@ -29,44 +68,45 @@ class Plots(LazyNamespace):
         self,
         condition: Union[str, pl.Expr],
         *,
-        metric: Optional[str] = "Engagement",
-        by: Optional[str] = "Channel",
+        metric: str = "Engagement",
+        by: str = "Channel",
         reference_values: Optional[Dict[str, float]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        # facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        """Creates gauge charts showing overall success rates for different conditions and channels.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create gauge charts showing success rates by condition and dimension.
 
-        This method generates a grid of gauge charts that display success rates for combinations of the
-        specified condition and grouping dimension. Each gauge shows the success rate as a percentage,
-        with optional reference values for comparison.
+        Generates a grid of gauge charts displaying success rates for combinations
+        of the specified condition and grouping dimension, with optional reference
+        values for comparison.
 
         Parameters
         ----------
         condition : Union[str, pl.Expr]
-            The condition to group by (e.g., "Experiment", "Issue")
-        metric : Optional[str], optional
-            The metric to display success rates for, by default "Engagement"
-        by : Optional[str], optional
-            The dimension to group by (e.g., "Channel"), by default "Channel"
-        reference_values : Optional[Dict[str, float]], optional
-            Dictionary mapping dimension values to reference values for comparison, by default None
-        title : Optional[str], optional
-            Title for the plot, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+            Column to condition on (e.g., "Experiment", "Issue").
+        metric : str, default "Engagement"
+            Metric to display: "Engagement", "Conversion", or "OpenRate".
+        by : str, default "Channel"
+            Dimension for grouping (column name).
+        reference_values : Dict[str, float], optional
+            Reference values per dimension for comparison thresholds.
+        title : str, optional
+            Custom title. If None, auto-generated from metric.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly figure with gauge charts or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly figure, or LazyFrame if `return_df=True`.
+
+        Examples
+        --------
+        >>> ih.plot.overall_gauges("Issue", metric="Engagement", by="Channel")
         """
-        import plotly as plotly
-        import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
         plot_data = self.ih.aggregates.summary_success_rates(
@@ -150,33 +190,38 @@ class Plots(LazyNamespace):
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        # facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a treemap visualization showing the distribution of response counts.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a treemap of response count distribution.
 
-        This method generates a hierarchical treemap visualization that displays the count of responses
-        across different dimensions. The treemap allows for exploration of how responses are distributed
-        across various categories and subcategories.
+        Displays hierarchical response counts across dimensions, allowing
+        exploration of how responses are distributed across categories.
 
         Parameters
         ----------
-        by : Optional[List[str]], optional
-            List of dimensions to include in the hierarchy, by default uses common fields if available
-        title : Optional[str], optional
-            Title for the plot, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        by : List[str], optional
+            Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
+        title : str, optional
+            Custom title.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly treemap figure or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly treemap, or LazyFrame if `return_df=True`.
+
+        See Also
+        --------
+        success_rate_tree_map : Treemap colored by success rates.
+
+        Examples
+        --------
+        >>> ih.plot.response_count_tree_map()
+        >>> ih.plot.response_count_tree_map(by=["Channel", "Issue", "Name"])
         """
-        import plotly as plotly
-        import plotly.express as px
 
         if by is None:
             by = [
@@ -215,39 +260,44 @@ class Plots(LazyNamespace):
     def success_rate_tree_map(
         self,
         *,
-        metric: Optional[str] = "Engagement",
+        metric: str = "Engagement",
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        # facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a treemap visualization showing success rates across different dimensions.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a treemap colored by success rates.
 
-        This method generates a hierarchical treemap visualization that displays success rates
-        across different dimensions. The treemap is colored based on the success rate values,
-        allowing for easy identification of high and low performing areas.
+        Displays hierarchical success rates across dimensions, with color
+        indicating performance levels for easy identification of high and
+        low performing areas.
 
         Parameters
         ----------
-        metric : Optional[str], optional
-            The metric to display success rates for, by default "Engagement"
-        by : Optional[List[str]], optional
-            List of dimensions to include in the hierarchy, by default uses common fields if available
-        title : Optional[str], optional
-            Title for the plot, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        metric : str, default "Engagement"
+            Metric to display: "Engagement", "Conversion", or "OpenRate".
+        by : List[str], optional
+            Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
+        title : str, optional
+            Custom title. If None, auto-generated from metric.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly treemap figure or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly treemap, or LazyFrame if `return_df=True`.
+
+        See Also
+        --------
+        response_count_tree_map : Treemap by response counts.
+
+        Examples
+        --------
+        >>> ih.plot.success_rate_tree_map(metric="Conversion")
         """
-        import plotly as plotly
-        import plotly.express as px
 
         if by is None:
             by = [
@@ -297,37 +347,41 @@ class Plots(LazyNamespace):
     def action_distribution(
         self,
         *,
-        by: Optional[str] = "Name",
-        title: Optional[str] = "Action Distribution",
+        by: str = "Name",
+        title: str = "Action Distribution",
         query: Optional[QUERY] = None,
         color: Optional[str] = None,
         facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a bar chart showing the distribution of actions.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a bar chart of action distribution.
 
-        This method generates a bar chart that displays the count of actions across different
-        categories. The chart can be colored by another dimension and faceted for more detailed analysis.
+        Displays action counts across categories, optionally colored and
+        faceted by additional dimensions.
 
         Parameters
         ----------
-        by : Optional[str], optional
-            The dimension to show on the y-axis, by default "Name"
-        title : Optional[str], optional
-            Title for the plot, by default "Action Distribution"
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        color : Optional[str], optional
-            Dimension to use for coloring the bars, by default None
-        facet : Optional[str], optional
-            Dimension to use for faceting the chart, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        by : str, default "Name"
+            Dimension for y-axis categories.
+        title : str, default "Action Distribution"
+            Chart title.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        color : str, optional
+            Dimension for bar coloring.
+        facet : str, optional
+            Dimension for faceting.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly bar chart or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly bar chart, or LazyFrame if `return_df=True`.
+
+        Examples
+        --------
+        >>> ih.plot.action_distribution(by="Name", color="Channel")
         """
         plot_data = self.ih.aggregates.summary_outcomes(
             by=[by, color, facet], query=query
@@ -396,40 +450,47 @@ class Plots(LazyNamespace):
     def success_rate(
         self,
         *,
-        metric: Optional[str] = "Engagement",
+        metric: str = "Engagement",
         every: Union[str, timedelta] = "1d",
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a line chart showing success rates over time.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a line chart of success rates over time.
 
-        This method generates a line chart that displays success rates for the specified metric
-        over time. The data can be faceted by another dimension for comparative analysis.
+        Displays success rate trends for the specified metric, optionally
+        faceted by dimension for comparative analysis.
 
         Parameters
         ----------
-        metric : Optional[str], optional
-            The metric to display success rates for, by default "Engagement"
-        every : Union[str, timedelta], optional
-            Time interval for aggregation, by default "1d" (daily)
-        title : Optional[str], optional
-            Title for the plot, by default None
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        facet : Optional[str], optional
-            Dimension to use for faceting and coloring the chart, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        metric : str, default "Engagement"
+            Metric to display: "Engagement", "Conversion", or "OpenRate".
+        every : str or timedelta, default "1d"
+            Time aggregation period (e.g., "1d", "1w", "1mo").
+        title : str, optional
+            Custom title. If None, auto-generated from metric.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        facet : str, optional
+            Dimension for faceting and coloring.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly line chart or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly line chart, or LazyFrame if `return_df=True`.
+
+        See Also
+        --------
+        response_count : Response counts over time.
+        model_performance_trend : Model AUC over time.
+
+        Examples
+        --------
+        >>> ih.plot.success_rate(metric="Conversion", every="1w")
         """
-        import plotly as plotly
-        import plotly.express as px
 
         plot_data = self.ih.aggregates.summary_success_rates(
             every=every, by=facet, query=query
@@ -461,37 +522,42 @@ class Plots(LazyNamespace):
         self,
         *,
         every: Union[str, timedelta] = "1d",
-        title: Optional[str] = "Responses",
+        title: str = "Responses",
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a bar chart showing response counts over time.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a bar chart of response counts over time.
 
-        This method generates a bar chart that displays the count of responses over time,
-        colored by outcome type. The chart can be faceted by another dimension for more
-        detailed analysis.
+        Displays response counts colored by outcome type, optionally
+        faceted by dimension.
 
         Parameters
         ----------
-        every : Union[str, timedelta], optional
-            Time interval for aggregation, by default "1d" (daily)
-        title : Optional[str], optional
-            Title for the plot, by default "Responses"
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        facet : Optional[str], optional
-            Dimension to use for faceting the chart, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        every : str or timedelta, default "1d"
+            Time aggregation period (e.g., "1d", "1w", "1mo").
+        title : str, default "Responses"
+            Chart title.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        facet : str, optional
+            Dimension for faceting.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly bar chart or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly bar chart, or LazyFrame if `return_df=True`.
+
+        See Also
+        --------
+        success_rate : Success rates over time.
+
+        Examples
+        --------
+        >>> ih.plot.response_count(every="1w", facet="Channel")
         """
-        import plotly as plotly
-        import plotly.express as px
 
         plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
             every=every, by=facet, query=query
@@ -517,45 +583,50 @@ class Plots(LazyNamespace):
     def model_performance_trend(
         self,
         *,
-        metric: Optional[str] = "Engagement",
+        metric: str = "Engagement",
         every: Union[str, timedelta] = "1d",
         by: Optional[str] = None,
-        title: Optional[str] = "Model Performance over Time",
+        title: str = "Model Performance over Time",
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ) -> Union["plotly.graph_objects.Figure", pl.LazyFrame]:
-        """Creates a line chart showing model performance (AUC) over time.
+        return_df: bool = False,
+    ) -> Union["Figure", pl.LazyFrame]:
+        """Create a line chart of model AUC over time.
 
-        This method generates a line chart that displays model performance measured by AUC
-        (Area Under the ROC Curve) over time. The performance is calculated based on propensity
-        scores and actual outcomes. The chart can be colored by one dimension and faceted by
-        another for comparative analysis.
+        Displays model performance (Area Under the ROC Curve) calculated from
+        propensity scores and actual outcomes. Higher AUC indicates better
+        predictive accuracy.
 
         Parameters
         ----------
-        metric : Optional[str], optional
-            The metric to calculate performance for, by default "Engagement"
-        every : Union[str, timedelta], optional
-            Time interval for aggregation, by default "1d" (daily)
-        by : Optional[str], optional
-            Dimension to use for coloring the lines, by default None
-        title : Optional[str], optional
-            Title for the plot, by default "Model Performance over Time"
-        query : Optional[QUERY], optional
-            Query to filter the data before aggregation, by default None
-        facet : Optional[str], optional
-            Dimension to use for faceting the chart, by default None
-        return_df : Optional[bool], optional
-            Whether to return the data frame instead of the plot, by default False
+        metric : str, default "Engagement"
+            Metric for AUC calculation: "Engagement", "Conversion", or "OpenRate".
+        every : str or timedelta, default "1d"
+            Time aggregation period (e.g., "1d", "1w", "1mo").
+        by : str, optional
+            Dimension for line coloring.
+        title : str, default "Model Performance over Time"
+            Chart title.
+        query : QUERY, optional
+            Polars expression to filter the data.
+        facet : str, optional
+            Dimension for faceting.
+        return_df : bool, default False
+            If True, return data as LazyFrame instead of figure.
 
         Returns
         -------
-        Union[plotly.graph_objects.Figure, pl.LazyFrame]
-            A plotly line chart or the underlying data frame if return_df is True
+        Figure or pl.LazyFrame
+            Plotly line chart (y-axis in AUC percentage), or LazyFrame if `return_df=True`.
+
+        See Also
+        --------
+        success_rate : Success rate trends.
+
+        Examples
+        --------
+        >>> ih.plot.model_performance_trend(by="Channel", every="1w")
         """
-        import plotly as plotly
-        import plotly.express as px
 
         plot_data = (
             self.ih.aggregates.summarize_by_interaction(
