@@ -1,5 +1,12 @@
-"""Module for handling metric limits configuration."""
+"""Metric limits and NBAD configuration utilities.
 
+This module provides:
+- MetricLimits: Access to metric thresholds from MetricLimits.csv
+- NBAD configuration/prediction/channel validation functions
+- RAG (Red/Amber/Green) status evaluation functions
+"""
+
+import re
 from functools import lru_cache
 from typing import Callable, Optional, Union
 
@@ -9,30 +16,15 @@ from ..resources import get_metric_limits_path
 
 
 def _convert_excel_csv_value(value: str) -> Union[float, bool, None]:
-    """Convert percentage string, boolean string, or parse string number.
-
-    Parameters
-    ----------
-    value : str
-        The string value from the CSV to convert.
-
-    Returns
-    -------
-    Union[float, bool, None]
-        - None if the value is empty or cannot be parsed
-        - True/False for boolean strings
-        - float for numeric values (percentages converted to decimals)
-    """
+    """Convert Excel/CSV value to Python type (float, bool, or None)."""
     if value is None or value == "":
         return None
     if isinstance(value, str):
         value_upper = value.upper().strip()
-        # Handle boolean strings
         if value_upper == "TRUE":
             return True
         if value_upper == "FALSE":
             return False
-        # Handle percentages
         if "%" in value:
             try:
                 return float(value.replace("%", "").strip()) / 100.0
@@ -44,20 +36,15 @@ def _convert_excel_csv_value(value: str) -> Union[float, bool, None]:
         return None
 
 
+def _normalize_name(name: str) -> str:
+    """Normalize a name by removing whitespace, dashes, underscores and lowercasing."""
+    return re.sub(r"[\s\-_]", "", name).lower()
+
+
 class MetricLimits:
-    """Singleton class for accessing metric limits configuration.
-
-    This class provides lazy-loaded, cached access to the metric limits
-    defined in MetricLimits.csv. The data is loaded only once on first access.
-
-    Examples
-    --------
-    >>> limits_df = MetricLimits.get_limits()
-    >>> limits_df.filter(pl.col("Category") == "ML Models")
-    """
+    """Singleton for accessing metric limits from MetricLimits.csv."""
 
     _instance: Optional["MetricLimits"] = None
-    _limits_df: Optional[pl.DataFrame] = None
 
     def __new__(cls) -> "MetricLimits":
         if cls._instance is None:
@@ -67,33 +54,10 @@ class MetricLimits:
     @classmethod
     @lru_cache(maxsize=1)
     def get_limits(cls) -> pl.DataFrame:
-        """Get the metric limits as a Polars DataFrame.
-
-        The threshold columns (Minimum, Best Practice Min, Best Practice Max,
-        Maximum) are converted from Excel/CSV format to proper numeric or
-        boolean values. Percentages are converted to decimals (e.g., "50%" -> 0.5).
-
-        Returns
-        -------
-        pl.DataFrame
-            DataFrame containing metric limits with columns:
-            - Category: str
-            - MetricID: str
-            - Minimum: float | bool | None
-            - Best Practice Min: float | bool | None
-            - Best Practice Max: float | bool | None
-            - Maximum: float | bool | None
-            - Notes (won't be used): str
-
-        Examples
-        --------
-        >>> df = MetricLimits.get_limits()
-        >>> df.head()
-        """
+        """Get all metric limits as a DataFrame."""
         csv_path = get_metric_limits_path()
         raw_csv = pl.read_csv(source=csv_path)
 
-        # Filter out empty rows (where MetricID is null or empty)
         raw_csv = raw_csv.filter(
             pl.col("MetricID").is_not_null() & (pl.col("MetricID") != "")
         )
@@ -115,51 +79,17 @@ class MetricLimits:
             ]
         )
 
-        # Add is_boolean column based on whether best practice values are boolean
-        limits_df = limits_df.with_columns(
+        return limits_df.with_columns(
             pl.col("Best Practice Min")
             .map_elements(lambda x: isinstance(x, bool), return_dtype=pl.Boolean)
             .alias("is_boolean")
         )
 
-        return limits_df
-
     @classmethod
-    def get_limit_for_metric(
-        cls,
-        metric_id: str,
-    ) -> dict:
-        """Get the limits for a specific metric.
-
-        Parameters
-        ----------
-        metric_id : str
-            The MetricID to look up.
-        category : str, optional
-            The category to filter by. If not provided, returns the first
-            matching metric.
-
-        Returns
-        -------
-        dict
-            Dictionary containing the limit values for the metric, with keys:
-            - minimum
-            - best_practice_min
-            - best_practice_max
-            - maximum
-            Returns empty dict if metric not found.
-
-        Examples
-        --------
-        >>> limits = MetricLimits.get_limit_for_metric("ModelPerformance", "ML Models")
-        >>> limits["best_practice_min"]
-        55.0
-        """
+    def get_limit_for_metric(cls, metric_id: str) -> dict:
+        """Get limits for a specific metric. Returns empty dict if not found."""
         df = cls.get_limits()
-
-        filter_expr = pl.col("MetricID") == metric_id
-
-        result = df.filter(filter_expr)
+        result = df.filter(pl.col("MetricID") == metric_id)
 
         if result.is_empty():
             return {}
@@ -174,12 +104,106 @@ class MetricLimits:
         }
 
     @classmethod
-    def get_metric_RAG_code(
-        cls,
-        column: str,
-        metric_id: str,
-    ) -> pl.Expr:
-        """Generate a Polars expression that evaluates metric status as RED/AMBER/GREEN/null."""
+    def _get_limit_or_raise(cls, metric_id: str) -> dict:
+        """Get limits for a metric, raising KeyError if not found."""
+        limits = cls.get_limit_for_metric(metric_id)
+        if not limits:
+            raise KeyError(f"Unknown metric ID '{metric_id}'")
+        return limits
+
+    @classmethod
+    def minimum(cls, metric_id: str) -> Optional[float]:
+        """Get the minimum (hard limit) for a metric.
+
+        Raises KeyError if metric_id is not found in MetricLimits.csv.
+        """
+        return cls._get_limit_or_raise(metric_id).get("minimum")
+
+    @classmethod
+    def maximum(cls, metric_id: str) -> Optional[float]:
+        """Get the maximum (hard limit) for a metric.
+
+        Raises KeyError if metric_id is not found in MetricLimits.csv.
+        """
+        return cls._get_limit_or_raise(metric_id).get("maximum")
+
+    @classmethod
+    def best_practice_min(cls, metric_id: str) -> Optional[Union[float, bool]]:
+        """Get the best practice minimum for a metric.
+
+        Raises KeyError if metric_id is not found in MetricLimits.csv.
+        """
+        return cls._get_limit_or_raise(metric_id).get("best_practice_min")
+
+    @classmethod
+    def best_practice_max(cls, metric_id: str) -> Optional[Union[float, bool]]:
+        """Get the best practice maximum for a metric.
+
+        Raises KeyError if metric_id is not found in MetricLimits.csv.
+        """
+        return cls._get_limit_or_raise(metric_id).get("best_practice_max")
+
+    @classmethod
+    def evaluate_metric_rag(cls, metric_id: str, value) -> Optional[str]:
+        """Evaluate RAG status for a metric value.
+
+        Parameters
+        ----------
+        metric_id : str
+            The metric identifier from MetricLimits.csv.
+        value : Any
+            The value to evaluate (numeric or boolean).
+
+        Returns
+        -------
+        Optional[str]
+            "RED", "AMBER", "GREEN", or None if metric not found or value is None.
+        """
+        if value is None:
+            return None
+
+        limits = cls.get_limit_for_metric(metric_id)
+        if not limits:
+            return None
+
+        min_val = limits.get("minimum")
+        bp_min = limits.get("best_practice_min")
+        bp_max = limits.get("best_practice_max")
+        max_val = limits.get("maximum")
+        is_bool = limits.get("is_boolean", False)
+
+        if is_bool:
+            expected = bp_min if bp_min is not None else bp_max
+            return "GREEN" if value == expected else "RED"
+
+        # Check RED conditions (outside hard limits)
+        if min_val is not None and value < min_val:
+            return "RED"
+        if max_val is not None and value > max_val:
+            return "RED"
+
+        # Check GREEN conditions (within best practice range)
+        if bp_min is not None and bp_max is not None:
+            if bp_min <= value <= bp_max:
+                return "GREEN"
+        elif bp_min is not None and bp_max is None:
+            if value >= bp_min:
+                return "GREEN"
+        elif bp_min is None and bp_max is not None:
+            if value <= bp_max:
+                return "GREEN"
+
+        # Check AMBER conditions (between hard limit and best practice)
+        if bp_min is not None and value < bp_min:
+            return "AMBER"
+        if bp_max is not None and value > bp_max:
+            return "AMBER"
+
+        return None
+
+    @classmethod
+    def get_metric_RAG_code(cls, column: str, metric_id: str) -> pl.Expr:
+        """Generate a Polars expression that evaluates metric status as RED/AMBER/GREEN."""
         limits = cls.get_limit_for_metric(metric_id)
         if not limits:
             return pl.lit(None).alias(f"{column}_RAG")
@@ -198,7 +222,6 @@ class MetricLimits:
                 pl.when(col == expected).then(pl.lit("GREEN")).otherwise(pl.lit("RED"))
             ).alias(f"{column}_RAG")
 
-        # Convert limits to Polars literals for clean expression
         min_lit = pl.lit(min_val)
         max_lit = pl.lit(max_val)
         bp_min_lit = pl.lit(bp_min)
@@ -236,45 +259,52 @@ class MetricLimits:
         ).alias(f"{column}_RAG")
 
 
+# =============================================================================
+# NBAD Configuration Names
+# =============================================================================
+
+SINGLE_CHANNEL_NBAD_CONFIGURATIONS = [
+    "Web_Click_Through_Rate",
+    "WebTreatmentClickModel",
+    "Mobile_Click_Through_Rate",
+    "Email_Click_Through_Rate",
+    "Push_Click_Through_Rate",
+    "SMS_Click_Through_Rate",
+    "Retail_Click_Through_Rate",
+    "Retail_Click_Through_Rate_Outbound",
+    "CallCenter_Click_Through_Rate",
+    "CallCenterAcceptRateOutbound",
+    "Assisted_Click_Through_Rate",
+    "Assisted_Click_Through_Rate_Outbound",
+]
+
+POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS = [
+    "Default_Inbound_Model",
+    "Default_Outbound_Model",
+    "Default_Click_Through_Rate",
+    "Other_Inbound_Click_Through_Rate",
+    "OmniAdaptiveModel",
+]
+
+ALL_NBAD_CONFIGURATIONS = (
+    SINGLE_CHANNEL_NBAD_CONFIGURATIONS + POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+)
+
+
+def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
+    """Polars expression to check if a configuration is a known NBAD config."""
+    standard_names = "|".join([f"(?i){x}" for x in ALL_NBAD_CONFIGURATIONS])
+    return pl.col(field).cast(pl.String).str.contains(standard_names)
+
+
 def standard_NBAD_configurations_rag(value: str) -> Optional[str]:
-    """RAG for NBAD model configuration names.
+    """RAG status for NBAD configuration names.
 
-    - None: empty
-    - GREEN: all single-channel configs
-    - YELLOW: includes potentially multi-channel configs (default/other/omni)
-    - AMBER: unrecognized config
-
-    Matching is case-insensitive and allows for:
-    - Optional prefix ending with underscore (e.g., "MyApp_Web_Click_Through_Rate")
-    - Optional "_GB" suffix (e.g., "Web_Click_Through_Rate_GB")
+    Returns GREEN for single-channel, YELLOW for multi-channel/default, AMBER for unknown.
     """
-    import re
 
-    SINGLE_CHANNEL_NBAD_CONFIGURATIONS = {
-        "Web_Click_Through_Rate",
-        "WebTreatmentClickModel",
-        "Mobile_Click_Through_Rate",
-        "Email_Click_Through_Rate",
-        "Push_Click_Through_Rate",
-        "SMS_Click_Through_Rate",
-        "Retail_Click_Through_Rate",
-        "Retail_Click_Through_Rate_Outbound",
-        "CallCenter_Click_Through_Rate",
-        "CallCenterAcceptRateOutbound",
-        "Assisted_Click_Through_Rate",
-        "Assisted_Click_Through_Rate_Outbound",
-    }
-
-    POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS = {
-        "Default_Inbound_Model",
-        "Default_Outbound_Model",
-        "Default_Click_Through_Rate",
-        "Other_Inbound_Click_Through_Rate",
-        "OmniAdaptiveModel",
-    }
-
-    def matches_config(item: str, config_set: set) -> bool:
-        for config in config_set:
+    def matches_config(item: str, config_list: list) -> bool:
+        for config in config_list:
             pattern = rf"^(?:\w+_)?{re.escape(config)}(?:_GB)?$"
             if re.match(pattern, item, re.IGNORECASE):
                 return True
@@ -297,35 +327,33 @@ def standard_NBAD_configurations_rag(value: str) -> Optional[str]:
     return "YELLOW" if has_multi_channel else "GREEN"
 
 
-def _normalize_name(name: str) -> str:
-    """Normalize a name by removing whitespace, dashes, underscores and lowercasing."""
-    import re
+# =============================================================================
+# NBAD Channel Names
+# =============================================================================
 
-    return re.sub(r"[\s\-_]", "", name).lower()
+STANDARD_NBAD_CHANNELS = [
+    "Web",
+    "Mobile",
+    "E-mail",
+    "Push",
+    "SMS",
+    "Retail",
+    "Call Center",
+    "Assisted",
+]
+
+
+def get_standard_NBAD_channels() -> list[str]:
+    """Get the list of standard NBAD channel names."""
+    return STANDARD_NBAD_CHANNELS.copy()
 
 
 def standard_NBAD_channels_rag(value: str) -> Optional[str]:
-    """RAG for NBAD channel names.
+    """RAG status for NBAD channel names.
 
-    - None: empty
-    - GREEN: standard single-channel (Web, Mobile, E-mail, Push, SMS, Retail, Call Center, Assisted)
-    - YELLOW: Other
-    - AMBER: Multi-channel or unrecognized
-
-    Matching is case-insensitive and ignores whitespace, dashes, underscores.
+    Returns GREEN for standard channels, YELLOW for Other, AMBER for multi-channel/unknown.
     """
-    STANDARD_CHANNELS = {
-        "web",
-        "mobile",
-        "email",
-        "push",
-        "sms",
-        "retail",
-        "callcenter",
-        "assisted",
-    }
-    OTHER_CHANNELS = {"other"}
-    MULTI_CHANNELS = {"multichannel"}
+    _STANDARD_CHANNELS_NORMALIZED = {_normalize_name(c) for c in STANDARD_NBAD_CHANNELS}
 
     if not value:
         return None
@@ -334,73 +362,89 @@ def standard_NBAD_channels_rag(value: str) -> Optional[str]:
     if not normalized:
         return None
 
-    if normalized in STANDARD_CHANNELS:
+    if normalized in _STANDARD_CHANNELS_NORMALIZED:
         return "GREEN"
-    if normalized in OTHER_CHANNELS:
+    if normalized == "other":
         return "YELLOW"
-    if normalized in MULTI_CHANNELS:
-        return "AMBER"
     return "AMBER"
 
 
 def standard_NBAD_directions_rag(value: str) -> Optional[str]:
-    """RAG for NBAD direction names.
-
-    - None: empty
-    - GREEN: Inbound or Outbound
-    - AMBER: Multi-channel or unrecognized
-
-    Matching is case-insensitive and ignores whitespace, dashes, underscores.
-    """
-    STANDARD_DIRECTIONS = {"inbound", "outbound"}
-
+    """RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise."""
     if not value:
         return None
 
     normalized = _normalize_name(value)
-    if not normalized:
-        return None
-
-    if normalized in STANDARD_DIRECTIONS:
+    if normalized in {"inbound", "outbound"}:
         return "GREEN"
     return "AMBER"
 
 
+# =============================================================================
+# NBAD Prediction Names and Channel Mapping
+# =============================================================================
+
+_NBAD_PREDICTION_DATA = [
+    ["PredictWebPropensity", "Web", "Inbound", False],
+    ["PredictMobilePropensity", "Mobile", "Inbound", False],
+    ["PredictOutboundEmailPropensity", "E-mail", "Outbound", False],
+    ["PredictOutboundPushPropensity", "Push", "Outbound", False],
+    ["PredictOutboundSMSPropensity", "SMS", "Outbound", False],
+    ["PredictInboundRetailPropensity", "Retail", "Inbound", False],
+    ["PredictOutboundRetailPropensity", "Retail", "Outbound", False],
+    ["PredictInboundCallCenterPropensity", "Call Center", "Inbound", False],
+    ["PredictOutboundCallCenterPropensity", "Call Center", "Outbound", False],
+    ["PredictInboundDefaultPropensity", "Other", "Inbound", False],
+    ["PredictOutboundDefaultPropensity", "Other", "Outbound", False],
+    ["PredictInboundOtherPropensity", "Other", "Inbound", False],
+    ["PredictActionPropensity", "Multi-channel", "Multi-channel", True],
+    ["PredictTreatmentPropensity", "Multi-channel", "Multi-channel", True],
+]
+
+SINGLE_CHANNEL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA if not p[3]]
+POTENTIALLY_MULTI_CHANNEL_NBAD_PREDICTIONS = [
+    p[0] for p in _NBAD_PREDICTION_DATA if p[3]
+]
+ALL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA]
+
+
+def get_predictions_channel_mapping(
+    custom_predictions: Optional[list] = None,
+) -> pl.DataFrame:
+    """Get prediction to channel/direction mapping as a DataFrame."""
+    custom_predictions = custom_predictions or []
+    all_predictions = _NBAD_PREDICTION_DATA + [
+        p
+        for p in custom_predictions
+        if p[0].upper() not in {x[0].upper() for x in _NBAD_PREDICTION_DATA}
+    ]
+
+    df = (
+        pl.DataFrame(data=all_predictions, orient="row")
+        .with_columns(pl.col("column_0").str.to_uppercase())
+        .unique()
+    )
+    df.columns = ["Prediction", "Channel", "Direction", "isMultiChannel"]
+    return df
+
+
+def is_standard_NBAD_prediction(field: str = "Prediction") -> pl.Expr:
+    """Polars expression to check if a prediction is a known NBAD prediction."""
+    return (
+        pl.col(field)
+        .cast(pl.String)
+        .str.contains_any(ALL_NBAD_PREDICTIONS, ascii_case_insensitive=True)
+    )
+
+
 def standard_NBAD_predictions_rag(value: str) -> Optional[str]:
-    """RAG for NBAD prediction names.
+    """RAG status for NBAD prediction names.
 
-    - None: empty
-    - GREEN: all single-channel predictions
-    - YELLOW: includes potentially multi-channel predictions (default/other/omni)
-    - AMBER: unrecognized prediction
-
-    Matching is case-insensitive and allows for:
-    - Optional prefix ending with underscore (e.g., "MyApp_PredictWebPropensity")
+    Returns GREEN for single-channel, YELLOW for multi-channel, AMBER for unknown.
     """
-    import re
 
-    SINGLE_CHANNEL_NBAD_PREDICTIONS = {
-        "PredictWebPropensity",
-        "PredictMobilePropensity",
-        "PredictOutboundEmailPropensity",
-        "PredictOutboundPushPropensity",
-        "PredictOutboundSMSPropensity",
-        "PredictInboundRetailPropensity",
-        "PredictOutboundRetailPropensity",
-        "PredictInboundCallCenterPropensity",
-        "PredictOutboundCallCenterPropensity",
-    }
-
-    POTENTIALLY_MULTI_CHANNEL_NBAD_PREDICTIONS = {
-        "PredictInboundDefaultPropensity",
-        "PredictOutboundDefaultPropensity",
-        "PredictInboundOtherPropensity",
-        "PredictActionPropensity",
-        "PredictTreatmentPropensity",
-    }
-
-    def matches_prediction(item: str, prediction_set: set) -> bool:
-        for pred in prediction_set:
+    def matches_prediction(item: str, prediction_list: list) -> bool:
+        for pred in prediction_list:
             pattern = rf"^(?:\w+_)?{re.escape(pred)}$"
             if re.match(pattern, item, re.IGNORECASE):
                 return True
@@ -423,15 +467,32 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[str]:
     return "YELLOW" if has_multi_channel else "GREEN"
 
 
+# =============================================================================
+# Utility RAG Functions
+# =============================================================================
+
+
+def percentage_within_0_1_range_rag(value: float) -> Optional[str]:
+    """RAG for percentage values. GREEN if 0 < value < 1, RED otherwise."""
+    if value is None:
+        return None
+    return "GREEN" if 0 < value < 1 else "RED"
+
+
+# =============================================================================
+# Table Formatting
+# =============================================================================
+
+
 def create_RAG_table(
-    gt: "GT",
+    gt,
     df: pl.DataFrame,
     column_to_metric: Optional[dict[str, Union[str, Callable]]] = None,
     color_background: bool = True,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = True,
 ):
-    """Apply RAG coloring to a great_tables display for metric columns.
+    """Apply RAG coloring to a great_tables display.
 
     Parameters
     ----------
@@ -440,35 +501,20 @@ def create_RAG_table(
     df : pl.DataFrame
         DataFrame containing data columns to be colored.
     column_to_metric : dict, optional
-        Mapping from column names to either:
-        - str: metric ID to look up in MetricLimits.csv
-        - callable: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
-        If a column is not in this dict, its name is used as the metric ID.
+        Mapping from column names to metric ID (str) or RAG function (callable).
     color_background : bool, default True
-        If True, colors the cell background. If False, colors the text.
+        If True, colors cell background; if False, colors text.
     strict_metric_validation : bool, default True
-        If True, raises an exception if a metric ID in column_to_metric
-        is not found in MetricLimits.csv. Set to False to skip validation.
+        Raise error if metric ID not found in MetricLimits.csv.
     highlight_issues_only : bool, default True
-        If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
-        Set to False to also highlight GREEN values.
-
-    Returns
-    -------
-    great_tables.GT
-        A great_tables instance with RAG coloring applied.
+        If True, only highlight RED/AMBER/YELLOW (not GREEN).
     """
-    from great_tables import style, loc
+    from great_tables import loc, style
 
-    RAG_COLORS = {
-        "RED": "orangered",
-        "AMBER": "orange",
-        "YELLOW": "yellow",
-    }
+    RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
     if not highlight_issues_only:
         RAG_COLORS["GREEN"] = "green"
 
-    # Expand tuple keys in column_to_metric to individual columns
     expanded_mapping = {}
     for key, value in (column_to_metric or {}).items():
         if isinstance(key, tuple):
@@ -477,7 +523,6 @@ def create_RAG_table(
         else:
             expanded_mapping[key] = value
 
-    # Validate metric IDs if strict validation is enabled
     if strict_metric_validation:
         limits_df = MetricLimits.get_limits()
         known_metrics = set(limits_df["MetricID"].to_list())
@@ -485,13 +530,11 @@ def create_RAG_table(
             if isinstance(mapping, str) and mapping not in known_metrics:
                 raise ValueError(
                     f"Unknown metric ID '{mapping}' for column '{col}'. "
-                    f"Add it to MetricLimits.csv or use a callable for custom RAG logic."
+                    f"Add it to MetricLimits.csv or use a callable."
                 )
 
-    data_columns = list(df.columns)
-
     rag_expressions = []
-    for col in data_columns:
+    for col in df.columns:
         mapping = expanded_mapping.get(col, col)
         if callable(mapping):
             rag_expressions.append(
@@ -504,10 +547,7 @@ def create_RAG_table(
 
     df_with_rag = df.with_columns(rag_expressions)
 
-    # Only hide RAG columns if they exist in the GT's data
-    # (They may not if GT was created from original df without RAG columns)
-
-    for col in data_columns:
+    for col in df.columns:
         rag_col = f"{col}_RAG"
         if rag_col not in df_with_rag.columns or df_with_rag[rag_col].dtype == pl.Null:
             continue
@@ -531,126 +571,3 @@ def create_RAG_table(
                     )
 
     return gt
-
-
-if __name__ == "__main__":
-    print("=== MetricLimits Demo ===\n")
-
-    limits_df = MetricLimits.get_limits()
-    print(f"Loaded {len(limits_df)} metric limits from CSV\n")
-
-    def configurations_rag(value: str) -> Optional[str]:
-        """Custom RAG: RED if empty, GREEN if 1-2 items, AMBER if >2."""
-        if value is None or value == "":
-            return "RED"
-        count = len([v.strip() for v in value.split(",") if v.strip()])
-        if count == 0:
-            return "RED"
-        elif count <= 2:
-            return "GREEN"
-        else:
-            return "AMBER"
-
-    def config_names_rag(value: str) -> Optional[str]:
-        """Custom RAG based on allowed values A, B, C.
-
-        - Empty → None (no coloring)
-        - All values are A, B, or C → GREEN
-        - Mix of allowed and other → AMBER
-        - All values are NOT A, B, or C → RED
-        """
-        if value is None or value == "":
-            return None
-        allowed = {"A", "B", "C"}
-        items = [v.strip() for v in value.split(",") if v.strip()]
-        if not items:
-            return None
-        allowed_count = sum(1 for v in items if v in allowed)
-        if allowed_count == len(items):
-            return "GREEN"
-        elif allowed_count == 0:
-            return "RED"
-        else:
-            return "AMBER"
-
-    def priority_rag(value: float) -> Optional[str]:
-        """Custom RAG with YELLOW for priority values.
-
-        - < 0 → None (no coloring)
-        - 0 → RED (no priority)
-        - 1-2 → YELLOW (low priority)
-        - 3-4 → AMBER (medium priority)
-        - 5+ → GREEN (high priority)
-        """
-        if value is None or value < 0:
-            return None
-        if value == 0:
-            return "RED"
-        elif value <= 2:
-            return "YELLOW"
-        elif value <= 4:
-            return "AMBER"
-        else:
-            return "GREEN"
-
-    sample_data = pl.DataFrame(
-        {
-            "NBADConfigs": [
-                "",  # None - empty
-                "Web_Click_Through_Rate",  # GREEN - standard
-                "MyApp_Web_Click_Through_Rate_GB",  # GREEN - with prefix and suffix
-                "OmniAdaptiveModel",  # YELLOW - omni config
-                "Default_Inbound_Model",  # YELLOW - default config
-                "Web_Click_Through_Rate,InvalidConfig",  # AMBER - one invalid
-            ],
-            "NBADPredictions": [
-                "",  # None - empty
-                "PredictWebPropensity",  # GREEN - standard
-                "MyApp_PredictMobilePropensity",  # GREEN - with prefix
-                "PredictActionPropensity",  # YELLOW - multi-channel
-                "PredictInboundDefaultPropensity",  # YELLOW - default
-                "PredictWebPropensity,InvalidPrediction",  # AMBER - one invalid
-            ],
-        }
-    )
-
-    print("Sample data:")
-    print(sample_data)
-    print()
-
-    print("NBADConfigs expected:")
-    print('  "" → None (no color)')
-    print('  "Web_Click_Through_Rate" → GREEN')
-    print('  "MyApp_Web_Click_Through_Rate_GB" → GREEN (with prefix/suffix)')
-    print('  "OmniAdaptiveModel" → YELLOW')
-    print('  "Default_Inbound_Model" → YELLOW')
-    print('  "Web_Click_Through_Rate,InvalidConfig" → AMBER')
-    print()
-
-    print("NBADPredictions expected:")
-    print('  "" → None (no color)')
-    print('  "PredictWebPropensity" → GREEN')
-    print('  "MyApp_PredictMobilePropensity" → GREEN (with prefix)')
-    print('  "PredictActionPropensity" → YELLOW')
-    print('  "PredictInboundDefaultPropensity" → YELLOW')
-    print('  "PredictWebPropensity,InvalidPrediction" → AMBER')
-    print()
-
-    print("Creating great_tables display with RAG coloring...")
-    from great_tables import GT
-
-    gt = GT(sample_data)
-    gt = create_RAG_table(
-        gt,
-        sample_data,
-        column_to_metric={
-            "NBADConfigs": standard_NBAD_configurations_rag,
-            "NBADPredictions": standard_NBAD_predictions_rag,
-        },
-        color_background=True,
-    )
-
-    html_path = "/tmp/rag_table_demo.html"
-    with open(html_path, "w") as f:
-        f.write(gt.as_raw_html())
-    print(f"Saved to {html_path}")

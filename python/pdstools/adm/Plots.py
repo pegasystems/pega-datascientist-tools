@@ -25,6 +25,7 @@ from typing_extensions import Concatenate, ParamSpec
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import get_colorscale
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
@@ -786,7 +787,6 @@ class Plots(LazyNamespace):
 
         fig = go.Figure()
 
-
         # Fixed colors for specific predictor categories
         # TODO move elsewhere
         fixed_colors = {
@@ -999,7 +999,6 @@ class Plots(LazyNamespace):
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
 
-
         fig = self._boxplot_pre_aggregated(
             df,
             y_col="PredictorCategory",
@@ -1148,9 +1147,7 @@ class Plots(LazyNamespace):
             df.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
-            color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
-                "Performance"
-            ),
+            color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
             y=df[by_name],
@@ -1219,11 +1216,7 @@ class Plots(LazyNamespace):
 
         context_keys = [px.Constant("All contexts")] + group_by
 
-        colorscale = self.datamart.cdh_guidelines.colorscales.get(metric, None) or [
-            "#d91c29",
-            "#F76923",
-            "#20aa50",
-        ]
+        colorscale = get_colorscale(metric)
 
         label_map = {
             "ResponseCount": "Total number of responses",
@@ -1517,8 +1510,6 @@ class Plots(LazyNamespace):
         plt.update_coloraxes(showscale=False)
         return plt
 
-
-
     def partitioned_plot(
         self,
         func: Callable,
@@ -1555,13 +1546,15 @@ class Plots(LazyNamespace):
         existing_query = kwargs.get("query")
         for facet in facets:
             combined_query = existing_query
-            for k,v in facet.items():
+            for k, v in facet.items():
                 if v is None:
                     new_query = pl.col(k).is_null()
                 else:
                     new_query = pl.col(k).eq(v)
                 if combined_query is not None:
-                    combined_query = cdh_utils._combine_queries(combined_query, new_query)
+                    combined_query = cdh_utils._combine_queries(
+                        combined_query, new_query
+                    )
                 else:
                     combined_query = new_query
 

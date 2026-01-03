@@ -16,8 +16,11 @@ import logging
 from ..utils.types import QUERY
 from ..utils.namespaces import LazyNamespace
 
-from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils import cdh_utils
+from ..utils.metric_limits import (
+    is_standard_NBAD_prediction,
+    get_predictions_channel_mapping,
+)
 from ..pega_io.File import read_ds_export
 
 
@@ -575,7 +578,6 @@ class Prediction:
             An optional query to apply to the input data.
             For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
         """
-        self.cdh_guidelines = CDHGuidelines()
         self.plot = PredictionPlots(prediction=self)
 
         predictions_raw_data_prepped = (
@@ -877,7 +879,6 @@ class Prediction:
         >>> pred = Prediction.from_processed_data(cached_data)
         """
         instance = cls.__new__(cls)
-        instance.cdh_guidelines = CDHGuidelines()
         instance.plot = PredictionPlots(prediction=instance)
         instance.predictions = df
         return instance
@@ -1042,8 +1043,10 @@ class Prediction:
 
         Parameters
         ----------
-        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
-            Optional list with custom prediction name to channel mappings. Defaults to None.
+        custom_predictions : Optional[List[List]], optional
+            Optional list with custom prediction name to channel mappings.
+            Each item should be [PredictionName, Channel, Direction, isMultiChannel].
+            Defaults to None.
         start_date : datetime.datetime, optional
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
@@ -1116,9 +1119,7 @@ class Prediction:
         return (
             prediction_data.with_columns(pl.col("ModelName").str.to_uppercase())
             .join(
-                self.cdh_guidelines.get_predictions_channel_mapping(
-                    custom_predictions
-                ).lazy(),
+                get_predictions_channel_mapping(custom_predictions).lazy(),
                 left_on="ModelName",
                 right_on="Prediction",
                 how="left",
@@ -1134,7 +1135,7 @@ class Prediction:
                     .then(pl.lit("Unknown"))
                     .otherwise(pl.col("Direction"))
                     .alias("Direction"),
-                    self.cdh_guidelines.is_standard_prediction().alias("usesNBAD"),
+                    is_standard_NBAD_prediction().alias("usesNBAD"),
                     pl.when(pl.col("isMultiChannel").is_null())
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
@@ -1234,8 +1235,10 @@ class Prediction:
 
         Parameters
         ----------
-        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
-            Optional list with custom prediction name to channel mappings. Defaults to None.
+        custom_predictions : Optional[List[List]], optional
+            Optional list with custom prediction name to channel mappings.
+            Each item should be [PredictionName, Channel, Direction, isMultiChannel].
+            Defaults to None.
         start_date : datetime.datetime, optional
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional

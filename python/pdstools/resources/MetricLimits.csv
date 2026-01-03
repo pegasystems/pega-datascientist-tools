@@ -8,6 +8,8 @@ Environment,IsPegaCloud,,TRUE,,,,For logical values:
 ML Models,ActivePredictorsPerModelAverage,2,5,100,,Per configuration?,Use either Best Practice Min or Max (or both) to give the GOOD value (which becomes green)
 ML Models,DailyPositiveCount,1,200,,,,
 ML Models,DailyResponseCount,1,200,,,,Good values (Green) will not result in an issue code
+ML Models,TotalPositiveCount,1,200,,,Only used internally in PDS tools for ADM Health Checks,
+ML Models,TotalResponseCount,1,200,,,,
 ML Models,EngagementLift,0,1,,,,
 ML Models,ImmatureModelCount,,,,,,
 ML Models,MatureModelPercentage,5%,20%,100%,,Ratios are 0-1 percentages are 0-100%,

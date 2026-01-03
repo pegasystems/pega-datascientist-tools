@@ -6,8 +6,11 @@ import polars as pl
 import polars.selectors as cs
 
 from ..utils import cdh_utils
+from ..utils.metric_limits import (
+    get_standard_NBAD_channels,
+    is_standard_NBAD_configuration,
+)
 from ..utils.types import QUERY
-from .CDH_Guidelines import CDHGuidelines
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
@@ -16,7 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover
 class Aggregates:
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
-        self.cdh_guidelines = CDHGuidelines()
 
     def last(
         self,
@@ -312,13 +314,14 @@ class Aggregates:
             grouping += ["Period"]
 
         if by_channel:
+            standard_channels = get_standard_NBAD_channels()
             channelGroupMapping = (
                 pl.concat(
                     [
                         pl.DataFrame(
                             {
-                                "Channel": self.cdh_guidelines.standard_channels,
-                                "ChannelGroup": self.cdh_guidelines.standard_channels,
+                                "Channel": standard_channels,
+                                "ChannelGroup": standard_channels,
                             }
                         ),
                         pl.DataFrame(
@@ -536,9 +539,7 @@ class Aggregates:
         debug: bool,
     ) -> pl.LazyFrame:
         result = model_data.group_by(grouping).agg(
-            self.cdh_guidelines.is_standard_configuration()
-            .any(ignore_nulls=False)
-            .alias("usesNBAD"),
+            is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
             (pl.col("ModelTechnique") == "GradientBoost")
             .any(ignore_nulls=False)
             .alias("usesAGB"),
@@ -757,7 +758,7 @@ class Aggregates:
             self.last(table="model_data")
             .group_by(group_by_cols)
             .agg(
-                self.cdh_guidelines.is_standard_configuration()
+                is_standard_NBAD_configuration()
                 .any(ignore_nulls=False)
                 .alias("usesNBAD"),
                 (pl.col("ModelTechnique") == "GradientBoost")
