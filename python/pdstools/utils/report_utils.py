@@ -513,6 +513,117 @@ def rag_textcolor_styler(rag: Optional[str] = None):
     raise ValueError(f"Not a supported RAG value: {rag}")
 
 
+def create_metric_table(
+    source_table: pl.DataFrame,
+    title: Optional[str] = None,
+    subtitle: Optional[str] = None,
+    rowname_col: Optional[str] = None,
+    groupname_col: Optional[str] = None,
+    column_to_metric: Optional[Dict[str, Union[str, Callable]]] = None,
+    color_background: bool = True,
+    strict_metric_validation: bool = True,
+    highlight_issues_only: bool = True,
+):
+    """Create a great_tables display with RAG coloring for metric columns.
+
+    Parameters
+    ----------
+    source_table : pl.DataFrame
+        DataFrame containing data columns to be colored.
+    title : str, optional
+        Table title.
+    subtitle : str, optional
+        Table subtitle.
+    rowname_col : str, optional
+        Column to use as row names.
+    groupname_col : str, optional
+        Column to use for grouping rows.
+    column_to_metric : dict, optional
+        Mapping from column names (or tuples of column names) to either:
+        - str: metric ID to look up in MetricLimits.csv
+        - callable: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        If a column is not in this dict, its name is used as the metric ID.
+    color_background : bool, default True
+        If True, colors the cell background. If False, colors the text.
+    strict_metric_validation : bool, default True
+        If True, raises an exception if a metric ID in column_to_metric
+        is not found in MetricLimits.csv. Set to False to skip validation.
+    highlight_issues_only : bool, default True
+        If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
+        Set to False to also highlight GREEN values.
+
+    Returns
+    -------
+    great_tables.GT
+        A great_tables instance with RAG coloring applied.
+    """
+    from great_tables import GT
+    from .metric_limits import create_RAG_table
+
+    # Metric formatting: maps metric ID to a lambda that formats GT columns
+    metric_formatters = {
+        "ModelPerformance": lambda gt, cols: gt.fmt_number(decimals=2, columns=cols),
+        "EngagementLift": lambda gt, cols: gt.fmt_percent(decimals=0, columns=cols),
+        "OmniChannel": lambda gt, cols: gt.fmt_percent(decimals=1, columns=cols),
+        "CTR": lambda gt, cols: gt.fmt_percent(decimals=3, columns=cols),
+    }
+
+    def default_number_formatter(gt, cols):
+        return gt.fmt_number(decimals=0, compact=True, columns=cols)
+
+    gt = GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col)
+    gt = gt.sub_missing(missing_text="")
+
+    if title is not None:
+        gt = gt.tab_header(title=title, subtitle=subtitle)
+
+    # Expand tuple keys to individual columns
+    expanded_mapping = {}
+    for key, value in (column_to_metric or {}).items():
+        if isinstance(key, tuple):
+            for col in key:
+                expanded_mapping[col] = value
+        else:
+            expanded_mapping[key] = value
+
+    # Apply formatting based on metric type
+    # Match by: 1) explicit mapping in column_to_metric, or 2) column name equals metric ID
+    formatted_cols = set()
+    for metric_id, formatter in metric_formatters.items():
+        cols = [
+            col
+            for col in source_table.columns
+            if expanded_mapping.get(col, col) == metric_id
+        ]
+        if cols:
+            gt = formatter(gt, cols)
+            formatted_cols.update(cols)
+
+    # Apply default number formatting to numeric columns not yet formatted
+    numeric_cols = [
+        col
+        for col in source_table.columns
+        if col not in formatted_cols
+        and col != rowname_col
+        and col != groupname_col
+        and source_table[col].dtype.is_numeric()
+    ]
+    if numeric_cols:
+        gt = default_number_formatter(gt, numeric_cols)
+
+    # Apply RAG coloring
+    gt = create_RAG_table(
+        gt,
+        source_table,
+        column_to_metric=column_to_metric,
+        color_background=color_background,
+        strict_metric_validation=strict_metric_validation,
+        highlight_issues_only=highlight_issues_only,
+    )
+
+    return gt
+
+
 def table_standard_formatting(
     source_table,
     title=None,
