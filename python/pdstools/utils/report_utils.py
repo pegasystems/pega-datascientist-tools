@@ -14,7 +14,52 @@ import polars as pl
 
 from ..utils.types import QUERY
 
+# Re-export RAG functions for convenience
+
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Metric Formatting Configuration
+# =============================================================================
+
+# Centralized metric format definitions used by both table functions
+# Format: metric_id -> (decimals, is_percent)
+METRIC_FORMAT_DEFINITIONS = {
+    "ModelPerformance": (2, False),  # 2 decimals, not percent
+    "EngagementLift": (0, True),  # 0 decimals, percent
+    "OmniChannelPercentage": (1, True),  # 1 decimal, percent
+    "CTR": (3, True),  # 3 decimals, percent
+}
+DEFAULT_NUMBER_DECIMALS = 0
+
+
+def _compact_number_format(value) -> str:
+    """Format numbers in compact notation (e.g., 1230 -> '1K', 1230000 -> '1M').
+
+    Similar to great_tables' compact=True option. Uses rounding, no decimals.
+    """
+    if value is None or (isinstance(value, float) and (value != value)):  # NaN check
+        return ""
+    try:
+        num = float(value)
+    except (ValueError, TypeError):
+        return str(value)
+
+    if num == 0:
+        return "0"
+
+    abs_num = abs(num)
+    if abs_num >= 1_000_000_000_000:
+        return f"{round(num / 1_000_000_000_000):.0f}T"
+    elif abs_num >= 1_000_000_000:
+        return f"{round(num / 1_000_000_000):.0f}B"
+    elif abs_num >= 1_000_000:
+        return f"{round(num / 1_000_000):.0f}M"
+    elif abs_num >= 1_000:
+        return f"{round(num / 1_000):.0f}K"
+    else:
+        return f"{round(num):.0f}"
 
 
 def get_output_filename(
@@ -567,7 +612,31 @@ def create_metric_itable(
                 styles.append("")
         return styles
 
-    styled_df = pdf.style.apply(style_row, axis=1)
+    # Build format dict from centralized config
+    expanded_mapping = {}
+    for key, value in (column_to_metric or {}).items():
+        if isinstance(key, tuple):
+            for col in key:
+                expanded_mapping[col] = value
+        else:
+            expanded_mapping[key] = value
+
+    format_dict = {}
+    for col in source_table.columns:
+        metric_id = expanded_mapping.get(col, col)
+        if isinstance(metric_id, tuple):
+            metric_id = metric_id[0]
+        if isinstance(metric_id, str) and metric_id in METRIC_FORMAT_DEFINITIONS:
+            decimals, is_percent = METRIC_FORMAT_DEFINITIONS[metric_id]
+            if is_percent:
+                format_dict[col] = f"{{:.{decimals}%}}"
+            else:
+                format_dict[col] = f"{{:,.{decimals}f}}"
+        elif source_table[col].dtype.is_numeric():
+            # Use compact formatting for default numeric columns
+            format_dict[col] = _compact_number_format
+
+    styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
     # Set default itable options
     default_kwargs = {
@@ -660,20 +729,26 @@ def create_metric_gttable(
     if not highlight_issues_only:
         RAG_COLORS["GREEN"] = "green"
 
-    # Metric formatting: maps metric ID to a lambda that formats GT columns
-    metric_formatters = {
-        "ModelPerformance": lambda gt, cols: gt.fmt_number(decimals=2, columns=cols),
-        "EngagementLift": lambda gt, cols: gt.fmt_percent(decimals=0, columns=cols),
-        "OmniChannelPercentage": lambda gt, cols: gt.fmt_percent(
-            decimals=1, columns=cols
-        ),
-        "CTR": lambda gt, cols: gt.fmt_percent(decimals=3, columns=cols),
-    }
+    # Build metric formatters from centralized config
+    metric_formatters = {}
+    for metric_id, (decimals, is_percent) in METRIC_FORMAT_DEFINITIONS.items():
+        if is_percent:
+            metric_formatters[metric_id] = lambda gt, cols, d=decimals: gt.fmt_percent(
+                decimals=d, columns=cols
+            )
+        else:
+            metric_formatters[metric_id] = lambda gt, cols, d=decimals: gt.fmt_number(
+                decimals=d, columns=cols
+            )
 
     def default_number_formatter(gt, cols):
         return gt.fmt_number(decimals=0, compact=True, columns=cols)
 
     gt = GT(source_table, **gt_kwargs)
+    gt = gt.tab_options(
+        table_font_size="12px",
+        column_labels_font_size="12px",
+    )
     gt = gt.sub_missing(missing_text="")
 
     if title is not None:

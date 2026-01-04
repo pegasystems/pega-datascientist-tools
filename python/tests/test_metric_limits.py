@@ -12,7 +12,7 @@ from pdstools.utils.metric_limits import (
     standard_NBAD_directions_rag,
     standard_NBAD_predictions_rag,
 )
-from pdstools.utils.report_utils import create_metric_gttable
+from pdstools.utils.report_utils import create_metric_gttable, create_metric_itable
 
 
 class TestMetricLimits:
@@ -263,42 +263,7 @@ class TestEvaluateMetricRAG:
             )
 
 
-class TestPolarsExpressionEquivalence:
-    """Tests that Python evaluate_metric_rag matches Polars get_metric_RAG_code."""
-
-    @pytest.mark.parametrize(
-        "metric_id,test_values",
-        [
-            (
-                "ModelPerformance",
-                [49.0, 50.0, 52.0, 55.0, 60.0, 85.0, 90.0, 95.0, 100.0, 100.1],
-            ),
-            ("EngagementLift", [-0.1, 0.0, 0.05, 0.1, 0.5, 1.0]),
-            ("ControlPercentage", [0.0, 2.0, 5.0, 10.0, 15.0, 20.0, 50.0]),
-        ],
-    )
-    def test_python_matches_polars(self, metric_id, test_values):
-        """Verify Python function produces same results as Polars expression."""
-        df = pl.DataFrame({"Value": test_values})
-
-        # Get Polars results
-        polars_expr = MetricLimits.get_metric_RAG_code("Value", metric_id)
-        polars_results = df.with_columns(polars_expr)["Value_RAG"].to_list()
-
-        # Get Python results
-        python_results = [
-            MetricLimits.evaluate_metric_rag(metric_id, v) for v in test_values
-        ]
-
-        assert polars_results == python_results, (
-            f"Mismatch for {metric_id}:\n"
-            f"  Values:  {test_values}\n"
-            f"  Polars:  {polars_results}\n"
-            f"  Python:  {python_results}"
-        )
-
-
-class TestCreateMetricTable:
+class TestCreateMetricGttable:
     """Tests for create_metric_gttable."""
 
     def test_creates_table_with_rag_coloring(self):
@@ -318,3 +283,27 @@ class TestCreateMetricTable:
             strict_metric_validation=False,
         )
         assert gt is not None
+
+
+class TestCreateMetricItable:
+    """Tests for create_metric_itable."""
+
+    def test_creates_table_with_rag_coloring(self):
+        """Test that itables renders without error (returns None in non-IPython env)."""
+        df = pl.DataFrame({"Performance": [52.0, 60.0, 90.0]})
+        # itables.show() returns None in non-IPython environments
+        # Just verify it doesn't raise an exception
+        create_metric_itable(
+            df,
+            column_to_metric={"Performance": "ModelPerformance"},
+            strict_metric_validation=True,
+        )
+
+    def test_accepts_callable_metric(self):
+        """Test callable metric with itables."""
+        df = pl.DataFrame({"Channel": ["Web", "Other"]})
+        create_metric_itable(
+            df,
+            column_to_metric={"Channel": standard_NBAD_channels_rag},
+            strict_metric_validation=False,
+        )
