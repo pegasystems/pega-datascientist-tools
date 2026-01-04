@@ -5,14 +5,14 @@ import pytest
 
 from pdstools.utils.metric_limits import (
     MetricLimits,
-    create_RAG_table,
+    add_rag_columns,
     percentage_within_0_1_range_rag,
     standard_NBAD_channels_rag,
     standard_NBAD_configurations_rag,
     standard_NBAD_directions_rag,
     standard_NBAD_predictions_rag,
 )
-from pdstools.utils.report_utils import create_metric_table
+from pdstools.utils.report_utils import create_metric_gttable
 
 
 class TestMetricLimits:
@@ -168,44 +168,70 @@ class TestPercentageRAG:
         assert percentage_within_0_1_range_rag(value) == expected
 
 
-class TestCreateRAGTable:
-    """Tests for create_RAG_table."""
+class TestAddRagColumns:
+    """Tests for add_rag_columns."""
 
     def test_applies_rag_coloring(self):
-        from great_tables import GT
-
         df = pl.DataFrame({"Channel": ["Web", "Other", "Unknown"]})
-        gt = create_RAG_table(
-            GT(df),
+        result = add_rag_columns(
             df,
             column_to_metric={"Channel": standard_NBAD_channels_rag},
             strict_metric_validation=False,
         )
-        assert gt is not None
+        assert "Channel_RAG" in result.columns
+        assert result["Channel_RAG"].to_list() == ["GREEN", "YELLOW", "AMBER"]
 
     def test_tuple_keys_expanded(self):
-        from great_tables import GT
-
         df = pl.DataFrame({"Col1": ["Web"], "Col2": ["Mobile"]})
-        gt = create_RAG_table(
-            GT(df),
+        result = add_rag_columns(
             df,
             column_to_metric={("Col1", "Col2"): standard_NBAD_channels_rag},
             strict_metric_validation=False,
         )
-        assert gt is not None
+        assert "Col1_RAG" in result.columns
+        assert "Col2_RAG" in result.columns
 
     def test_strict_validation_raises_on_unknown_metric(self):
-        from great_tables import GT
-
         df = pl.DataFrame({"Col": [1.0]})
         with pytest.raises(ValueError, match="Unknown metric ID"):
-            create_RAG_table(
-                GT(df),
+            add_rag_columns(
                 df,
                 column_to_metric={"Col": "UnknownMetricXYZ123"},
                 strict_metric_validation=True,
             )
+
+    def test_strict_validation_suggests_close_match(self):
+        """Test that error suggests similar metric names."""
+        df = pl.DataFrame({"Col": [True]})
+        with pytest.raises(ValueError, match="Did you mean 'UsingAGB'"):
+            add_rag_columns(
+                df,
+                column_to_metric={"Col": "UsesAGB"},  # Close to UsingAGB
+                strict_metric_validation=True,
+            )
+
+    def test_value_mapping_with_tuple(self):
+        """Test that value mapping converts column values before RAG evaluation."""
+        df = pl.DataFrame({"AGB": ["Yes", "No", "?"]})
+        # UsingAGB has best_practice_min=True (boolean metric)
+        result = add_rag_columns(
+            df,
+            column_to_metric={"AGB": ("UsingAGB", {"Yes": True, "No": False})},
+            strict_metric_validation=True,
+        )
+        assert "AGB_RAG" in result.columns
+
+    def test_value_mapping_with_tuple_keys(self):
+        """Test that tuple keys in value mapping work for multiple values."""
+        df = pl.DataFrame({"AGB": ["Yes", "yes", "YES", "No"]})
+        result = add_rag_columns(
+            df,
+            column_to_metric={
+                "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False})
+            },
+            strict_metric_validation=True,
+        )
+        assert "AGB_RAG" in result.columns
 
 
 class TestEvaluateMetricRAG:
@@ -273,11 +299,11 @@ class TestPolarsExpressionEquivalence:
 
 
 class TestCreateMetricTable:
-    """Tests for create_metric_table."""
+    """Tests for create_metric_gttable."""
 
     def test_creates_table_with_rag_coloring(self):
         df = pl.DataFrame({"Performance": [52.0, 60.0, 90.0]})
-        gt = create_metric_table(
+        gt = create_metric_gttable(
             df,
             column_to_metric={"Performance": "ModelPerformance"},
             strict_metric_validation=True,
@@ -286,7 +312,7 @@ class TestCreateMetricTable:
 
     def test_accepts_callable_metric(self):
         df = pl.DataFrame({"Channel": ["Web", "Other"]})
-        gt = create_metric_table(
+        gt = create_metric_gttable(
             df,
             column_to_metric={"Channel": standard_NBAD_channels_rag},
             strict_metric_validation=False,

@@ -6,13 +6,38 @@ This module provides:
 - RAG (Red/Amber/Green) status evaluation functions
 """
 
+import difflib
 import re
 from functools import lru_cache
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
+from ..resources import get_metric_limits_path
 
 import polars as pl
 
-from ..resources import get_metric_limits_path
+# Type alias for RAG status values
+RAGValue = Literal["RED", "AMBER", "YELLOW", "GREEN"]
+
+# Type alias for value mappings: maps column values to metric values
+# e.g., {"Yes": True, "No": False} or {("Yes", "yes"): True, "No": False}
+ValueMapping = dict[Union[str, tuple], Any]
+
+# Type for metric specification with optional value mapping
+# Can be: "MetricID" or ("MetricID", ValueMapping) or callable
+MetricSpec = Union[str, tuple[str, ValueMapping], Callable]
+
+
+def _apply_value_mapping(value: Any, mapping: ValueMapping) -> Any:
+    """Map a column value to a metric value using the provided mapping.
+
+    Supports both single keys and tuple keys for multiple values mapping to the same result.
+    """
+    for key, mapped_value in mapping.items():
+        if isinstance(key, tuple):
+            if value in key:
+                return mapped_value
+        elif value == key:
+            return mapped_value
+    return value  # Return unmapped value as-is
 
 
 def _convert_excel_csv_value(value: str) -> Union[float, bool, None]:
@@ -108,7 +133,12 @@ class MetricLimits:
         """Get limits for a metric, raising KeyError if not found."""
         limits = cls.get_limit_for_metric(metric_id)
         if not limits:
-            raise KeyError(f"Unknown metric ID '{metric_id}'")
+            known_metrics = cls.get_limits()["MetricID"].to_list()
+            close_matches = difflib.get_close_matches(
+                metric_id, known_metrics, n=1, cutoff=0.6
+            )
+            suggestion = f" Did you mean '{close_matches[0]}'?" if close_matches else ""
+            raise KeyError(f"Unknown metric ID '{metric_id}'.{suggestion}")
         return limits
 
     @classmethod
@@ -144,7 +174,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_max")
 
     @classmethod
-    def evaluate_metric_rag(cls, metric_id: str, value) -> Optional[str]:
+    def evaluate_metric_rag(cls, metric_id: str, value) -> Optional[RAGValue]:
         """Evaluate RAG status for a metric value.
 
         Parameters
@@ -156,7 +186,7 @@ class MetricLimits:
 
         Returns
         -------
-        Optional[str]
+        Optional[RAGValue]
             "RED", "AMBER", "GREEN", or None if metric not found or value is None.
         """
         if value is None:
@@ -203,60 +233,19 @@ class MetricLimits:
 
     @classmethod
     def get_metric_RAG_code(cls, column: str, metric_id: str) -> pl.Expr:
-        """Generate a Polars expression that evaluates metric status as RED/AMBER/GREEN."""
-        limits = cls.get_limit_for_metric(metric_id)
-        if not limits:
-            return pl.lit(None).alias(f"{column}_RAG")
+        """Generate a Polars expression that evaluates metric status as RED/AMBER/GREEN.
 
-        min_val = limits.get("minimum")
-        bp_min = limits.get("best_practice_min")
-        bp_max = limits.get("best_practice_max")
-        max_val = limits.get("maximum")
-        is_bool = limits.get("is_boolean", False)
-
-        col = pl.col(column)
-
-        if is_bool:
-            expected = bp_min if bp_min is not None else bp_max
-            return (
-                pl.when(col == expected).then(pl.lit("GREEN")).otherwise(pl.lit("RED"))
-            ).alias(f"{column}_RAG")
-
-        min_lit = pl.lit(min_val)
-        max_lit = pl.lit(max_val)
-        bp_min_lit = pl.lit(bp_min)
-        bp_max_lit = pl.lit(bp_max)
-
+        Uses evaluate_metric_rag internally via map_elements to ensure consistent
+        RAG logic between Python and Polars approaches.
+        """
         return (
-            pl.when((min_lit.is_not_null()) & (col < min_lit))
-            .then(pl.lit("RED"))
-            .when((max_lit.is_not_null()) & (col > max_lit))
-            .then(pl.lit("RED"))
-            .when(
-                (bp_min_lit.is_not_null())
-                & (bp_max_lit.is_not_null())
-                & (col >= bp_min_lit)
-                & (col <= bp_max_lit)
+            pl.col(column)
+            .map_elements(
+                lambda v: cls.evaluate_metric_rag(metric_id, v),
+                return_dtype=pl.Utf8,
             )
-            .then(pl.lit("GREEN"))
-            .when(
-                (bp_min_lit.is_not_null())
-                & (bp_max_lit.is_null())
-                & (col >= bp_min_lit)
-            )
-            .then(pl.lit("GREEN"))
-            .when(
-                (bp_min_lit.is_null())
-                & (bp_max_lit.is_not_null())
-                & (col <= bp_max_lit)
-            )
-            .then(pl.lit("GREEN"))
-            .when((bp_min_lit.is_not_null()) & (col < bp_min_lit))
-            .then(pl.lit("AMBER"))
-            .when((bp_max_lit.is_not_null()) & (col > bp_max_lit))
-            .then(pl.lit("AMBER"))
-            .otherwise(pl.lit(None))
-        ).alias(f"{column}_RAG")
+            .alias(f"{column}_RAG")
+        )
 
 
 # =============================================================================
@@ -297,7 +286,7 @@ def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
     return pl.col(field).cast(pl.String).str.contains(standard_names)
 
 
-def standard_NBAD_configurations_rag(value: str) -> Optional[str]:
+def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
     """RAG status for NBAD configuration names.
 
     Returns GREEN for single-channel, YELLOW for multi-channel/default, AMBER for unknown.
@@ -348,7 +337,7 @@ def get_standard_NBAD_channels() -> list[str]:
     return STANDARD_NBAD_CHANNELS.copy()
 
 
-def standard_NBAD_channels_rag(value: str) -> Optional[str]:
+def standard_NBAD_channels_rag(value: str) -> Optional[RAGValue]:
     """RAG status for NBAD channel names.
 
     Returns GREEN for standard channels, YELLOW for Other, AMBER for multi-channel/unknown.
@@ -369,7 +358,7 @@ def standard_NBAD_channels_rag(value: str) -> Optional[str]:
     return "AMBER"
 
 
-def standard_NBAD_directions_rag(value: str) -> Optional[str]:
+def standard_NBAD_directions_rag(value: str) -> Optional[RAGValue]:
     """RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise."""
     if not value:
         return None
@@ -402,9 +391,7 @@ _NBAD_PREDICTION_DATA = [
 ]
 
 SINGLE_CHANNEL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA if not p[3]]
-POTENTIALLY_MULTI_CHANNEL_NBAD_PREDICTIONS = [
-    p[0] for p in _NBAD_PREDICTION_DATA if p[3]
-]
+MULTI_CHANNEL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA if p[3]]
 ALL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA]
 
 
@@ -437,7 +424,7 @@ def is_standard_NBAD_prediction(field: str = "Prediction") -> pl.Expr:
     )
 
 
-def standard_NBAD_predictions_rag(value: str) -> Optional[str]:
+def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
     """RAG status for NBAD prediction names.
 
     Returns GREEN for single-channel, YELLOW for multi-channel, AMBER for unknown.
@@ -459,7 +446,7 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[str]:
 
     has_multi_channel = False
     for item in items:
-        if matches_prediction(item, POTENTIALLY_MULTI_CHANNEL_NBAD_PREDICTIONS):
+        if matches_prediction(item, MULTI_CHANNEL_NBAD_PREDICTIONS):
             has_multi_channel = True
         elif not matches_prediction(item, SINGLE_CHANNEL_NBAD_PREDICTIONS):
             return "AMBER"
@@ -472,7 +459,7 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[str]:
 # =============================================================================
 
 
-def percentage_within_0_1_range_rag(value: float) -> Optional[str]:
+def percentage_within_0_1_range_rag(value: float) -> Optional[RAGValue]:
     """RAG for percentage values. GREEN if 0 < value < 1, RED otherwise."""
     if value is None:
         return None
@@ -480,94 +467,108 @@ def percentage_within_0_1_range_rag(value: float) -> Optional[str]:
 
 
 # =============================================================================
-# Table Formatting
+# DataFrame RAG Functions
 # =============================================================================
 
 
-def create_RAG_table(
-    gt,
+def add_rag_columns(
     df: pl.DataFrame,
-    column_to_metric: Optional[dict[str, Union[str, Callable]]] = None,
-    color_background: bool = True,
+    column_to_metric: Optional[dict[str, MetricSpec]] = None,
     strict_metric_validation: bool = True,
-    highlight_issues_only: bool = True,
-):
-    """Apply RAG coloring to a great_tables display.
+) -> pl.DataFrame:
+    """Add RAG status columns to a DataFrame.
+
+    For each column, adds a new column with suffix '_RAG' containing the
+    RAG status (RED/AMBER/YELLOW/GREEN or None).
 
     Parameters
     ----------
-    gt : great_tables.GT
-        The GT instance to apply coloring to.
     df : pl.DataFrame
-        DataFrame containing data columns to be colored.
+        The source DataFrame.
     column_to_metric : dict, optional
-        Mapping from column names to metric ID (str) or RAG function (callable).
-    color_background : bool, default True
-        If True, colors cell background; if False, colors text.
+        Mapping from column names (or tuples of column names) to one of:
+
+        - **str**: metric ID to look up in MetricLimits.csv
+        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+          that maps column values to metric values before evaluation.
+          Supports tuple keys: {("Yes", "yes"): True, "No": False}
+
+        If a column is not in this dict, its name is used as the metric ID.
     strict_metric_validation : bool, default True
-        Raise error if metric ID not found in MetricLimits.csv.
-    highlight_issues_only : bool, default True
-        If True, only highlight RED/AMBER/YELLOW (not GREEN).
+        If True, raises ValueError if a metric ID is not found in MetricLimits.csv.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with additional _RAG columns.
+
+    Examples
+    --------
+    >>> from pdstools.utils.metric_limits import add_rag_columns
+    >>> df_with_rag = add_rag_columns(
+    ...     df,
+    ...     column_to_metric={
+    ...         "Performance": "ModelPerformance",
+    ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+    ...     }
+    ... )
     """
-    from great_tables import loc, style
-
-    RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
-    if not highlight_issues_only:
-        RAG_COLORS["GREEN"] = "green"
-
-    expanded_mapping = {}
+    # Expand tuple column keys to individual columns
+    expanded_mapping: dict[str, MetricSpec] = {}
     for key, value in (column_to_metric or {}).items():
-        if isinstance(key, tuple):
+        if isinstance(key, tuple) and all(isinstance(k, str) for k in key):
+            # Tuple of column names -> same metric for all
             for col in key:
                 expanded_mapping[col] = value
         else:
             expanded_mapping[key] = value
 
+    # Validate metric IDs
     if strict_metric_validation:
         limits_df = MetricLimits.get_limits()
         known_metrics = set(limits_df["MetricID"].to_list())
         for col, mapping in expanded_mapping.items():
-            if isinstance(mapping, str) and mapping not in known_metrics:
+            metric_id = mapping[0] if isinstance(mapping, tuple) else mapping
+            if isinstance(metric_id, str) and metric_id not in known_metrics:
+                # Suggest close matches like git does
+                close_matches = difflib.get_close_matches(
+                    metric_id, known_metrics, n=1, cutoff=0.6
+                )
+                suggestion = (
+                    f" Did you mean '{close_matches[0]}'?" if close_matches else ""
+                )
                 raise ValueError(
-                    f"Unknown metric ID '{mapping}' for column '{col}'. "
-                    f"Add it to MetricLimits.csv or use a callable."
+                    f"Unknown metric ID '{metric_id}' for column '{col}'.{suggestion} "
+                    f"If it is spelled correctly, add it to MetricLimits.csv or use a callable."
                 )
 
-    rag_expressions = []
-    for col in df.columns:
-        mapping = expanded_mapping.get(col, col)
-        if callable(mapping):
-            rag_expressions.append(
+    def build_rag_expr(col: str, spec: MetricSpec) -> pl.Expr:
+        """Build a Polars expression for RAG evaluation."""
+        if callable(spec):
+            return (
+                pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
+            )
+        elif isinstance(spec, tuple) and len(spec) == 2:
+            # (metric_id, value_mapping)
+            metric_id, value_mapping = spec
+
+            def mapped_rag(v):
+                mapped_v = _apply_value_mapping(v, value_mapping)
+                return MetricLimits.evaluate_metric_rag(metric_id, mapped_v)
+
+            return (
                 pl.col(col)
-                .map_elements(mapping, return_dtype=pl.Utf8)
+                .map_elements(mapped_rag, return_dtype=pl.Utf8)
                 .alias(f"{col}_RAG")
             )
         else:
-            rag_expressions.append(MetricLimits.get_metric_RAG_code(col, mapping))
+            # Simple metric ID string
+            return MetricLimits.get_metric_RAG_code(col, spec)
 
-    df_with_rag = df.with_columns(rag_expressions)
-
+    rag_expressions = []
     for col in df.columns:
-        rag_col = f"{col}_RAG"
-        if rag_col not in df_with_rag.columns or df_with_rag[rag_col].dtype == pl.Null:
-            continue
+        spec = expanded_mapping.get(col, col)
+        rag_expressions.append(build_rag_expr(col, spec))
 
-        for rag_value, color in RAG_COLORS.items():
-            row_indices = (
-                df_with_rag.with_row_index()
-                .filter(pl.col(rag_col) == rag_value)["index"]
-                .to_list()
-            )
-            if row_indices:
-                if color_background:
-                    gt = gt.tab_style(
-                        style=style.fill(color=color),
-                        locations=loc.body(columns=col, rows=row_indices),
-                    )
-                else:
-                    gt = gt.tab_style(
-                        style=style.text(color=color, weight="bold"),
-                        locations=loc.body(columns=col, rows=row_indices),
-                    )
-
-    return gt
+    return df.with_columns(rag_expressions)

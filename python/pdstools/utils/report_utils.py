@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple
 
 import polars as pl
 
@@ -464,140 +464,32 @@ def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
 
 
-# def rag_background_styler(rag: Optional[str] = None):
-#     from great_tables import style
-
-#     if rag is not None and len(rag) > 0:
-#         rag_upper = rag[0].upper()
-#         if rag_upper == "R":
-#             return style.fill(color="orangered")
-#         elif rag_upper == "A":
-#             return style.fill(color="orange")
-#         elif rag_upper == "Y":
-#             return style.fill(color="yellow")
-#         elif rag_upper == "G":
-#             return None  # no green background to keep it light
-#     raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-# def rag_background_styler_dense(rag: Optional[str] = None):
-#     from great_tables import style
-
-#     if rag is not None and len(rag) > 0:
-#         rag_upper = rag[0].upper()
-#         if rag_upper == "R":
-#             return style.fill(color="orangered")
-#         elif rag_upper == "A":
-#             return style.fill(color="orange")
-#         elif rag_upper == "Y":
-#             return style.fill(color="yellow")
-#         elif rag_upper == "G":
-#             return style.fill(color="green")
-#     raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-# def rag_textcolor_styler(rag: Optional[str] = None):
-#     from great_tables import style
-
-#     if rag is not None and len(rag) > 0:
-#         rag_upper = rag[0].upper()
-#         if rag_upper == "R":
-#             return style.text(color="orangered")
-#         elif rag_upper == "A":
-#             return style.text(color="orange")
-#         elif rag_upper == "Y":
-#             return style.text(color="yellow")
-#         elif rag_upper == "G":
-#             return style.text(color="green")
-#     raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-def _apply_rag_to_dataframe(
-    df: pl.DataFrame,
-    column_to_metric: Optional[Dict[str, Union[str, Callable]]] = None,
-    strict_metric_validation: bool = True,
-) -> pl.DataFrame:
-    """Add RAG columns to a DataFrame for each specified column.
-
-    This internal function calculates RAG status for each column and adds
-    new columns with suffix '_RAG' containing the RAG values.
-
-    Parameters
-    ----------
-    df : pl.DataFrame
-        The source DataFrame.
-    column_to_metric : dict, optional
-        Mapping from column names (or tuples of column names) to either:
-        - str: metric ID to look up in MetricLimits.csv
-        - callable: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
-    strict_metric_validation : bool, default True
-        If True, raises an exception if a metric ID is not found in MetricLimits.csv.
-
-    Returns
-    -------
-    pl.DataFrame
-        DataFrame with additional _RAG columns.
-    """
-    from .metric_limits import MetricLimits
-
-    # Expand tuple keys in column_to_metric to individual columns
-    expanded_mapping = {}
-    for key, value in (column_to_metric or {}).items():
-        if isinstance(key, tuple):
-            for col in key:
-                expanded_mapping[col] = value
-        else:
-            expanded_mapping[key] = value
-
-    # Validate metric IDs if strict validation is enabled
-    if strict_metric_validation:
-        limits_df = MetricLimits.get_limits()
-        known_metrics = set(limits_df["MetricID"].to_list())
-        for col, mapping in expanded_mapping.items():
-            if isinstance(mapping, str) and mapping not in known_metrics:
-                raise ValueError(
-                    f"Unknown metric ID '{mapping}' for column '{col}'. "
-                    f"Add it to MetricLimits.csv or use a callable for custom RAG logic."
-                )
-
-    data_columns = list(df.columns)
-
-    rag_expressions = []
-    for col in data_columns:
-        mapping = expanded_mapping.get(col, col)
-        if callable(mapping):
-            rag_expressions.append(
-                pl.col(col)
-                .map_elements(mapping, return_dtype=pl.Utf8)
-                .alias(f"{col}_RAG")
-            )
-        else:
-            rag_expressions.append(MetricLimits.get_metric_RAG_code(col, mapping))
-
-    return df.with_columns(rag_expressions)
-
-
 def create_metric_itable(
     source_table: pl.DataFrame,
-    column_to_metric: Optional[Dict[str, Union[str, Callable]]] = None,
+    column_to_metric: Optional[Dict] = None,
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
     **itable_kwargs,
 ):
-    """Create an itables display with RAG coloring for metric columns.
+    """Create an interactive table with RAG coloring for metric columns.
 
-    This function creates a styled pandas DataFrame that can be displayed
-    using itables, with cells colored based on RAG status.
+    Displays the table using itables with cells colored based on RAG
+    (Red/Amber/Green) status derived from metric thresholds.
 
     Parameters
     ----------
     source_table : pl.DataFrame
         DataFrame containing data columns to be colored.
     column_to_metric : dict, optional
-        Mapping from column names (or tuples of column names) to either:
-        - str: metric ID to look up in MetricLimits.csv
-        - callable: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        Mapping from column names (or tuples of column names) to one of:
+
+        - **str**: metric ID to look up in MetricLimits.csv
+        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+          that maps column values to metric values before evaluation.
+          Supports tuple keys for multiple values: {("Yes", "yes"): True}
+
         If a column is not in this dict, its name is used as the metric ID.
     color_background : bool, default False
         If True, colors the cell background. If False, colors the text (foreground).
@@ -621,7 +513,16 @@ def create_metric_itable(
     >>> from pdstools.utils.report_utils import create_metric_itable
     >>> create_metric_itable(
     ...     df,
-    ...     column_to_metric={"Performance": "ModelPerformance"},
+    ...     column_to_metric={
+    ...         # Simple metric ID
+    ...         "Performance": "ModelPerformance",
+    ...         # Custom RAG function
+    ...         "Channel": standard_NBAD_channels_rag,
+    ...         # Value mapping: column values -> metric values
+    ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+    ...         # Multiple column values to same metric value
+    ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
+    ...     },
     ...     paging=False
     ... )
     """
@@ -635,8 +536,10 @@ def create_metric_itable(
     if not highlight_issues_only:
         RAG_COLORS["GREEN"] = "green"
 
-    # Get RAG values
-    df_with_rag = _apply_rag_to_dataframe(
+    # Get RAG values using the shared function from metric_limits
+    from .metric_limits import add_rag_columns
+
+    df_with_rag = add_rag_columns(
         source_table,
         column_to_metric=column_to_metric,
         strict_metric_validation=strict_metric_validation,
@@ -669,25 +572,32 @@ def create_metric_itable(
     # Set default itable options
     default_kwargs = {
         "paging": False,
-        "searching": False,
+        "allow_html": True,  # Required for styled DataFrames
+        "classes": "compact",
+        # "maxBytes":0,
+        # "maxRows":0,
+        "connected": True,
+        "show_dtypes": False,
     }
     default_kwargs.update(itable_kwargs)
 
     return show(styled_df, **default_kwargs)
 
 
-def create_metric_table(
+def create_metric_gttable(
     source_table: pl.DataFrame,
     title: Optional[str] = None,
     subtitle: Optional[str] = None,
-    rowname_col: Optional[str] = None,
-    groupname_col: Optional[str] = None,
-    column_to_metric: Optional[Dict[str, Union[str, Callable]]] = None,
+    column_to_metric: Optional[Dict] = None,
     color_background: bool = True,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = True,
+    **gt_kwargs,
 ):
-    """Create a great_tables display with RAG coloring for metric columns.
+    """Create a great_tables table with RAG coloring for metric columns.
+
+    Displays the table using great_tables with cells colored based on RAG
+    (Red/Amber/Green) status derived from metric thresholds.
 
     Parameters
     ----------
@@ -697,14 +607,15 @@ def create_metric_table(
         Table title.
     subtitle : str, optional
         Table subtitle.
-    rowname_col : str, optional
-        Column to use as row names.
-    groupname_col : str, optional
-        Column to use for grouping rows.
     column_to_metric : dict, optional
-        Mapping from column names (or tuples of column names) to either:
-        - str: metric ID to look up in MetricLimits.csv
-        - callable: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        Mapping from column names (or tuples of column names) to one of:
+
+        - **str**: metric ID to look up in MetricLimits.csv
+        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+          that maps column values to metric values before evaluation.
+          Supports tuple keys for multiple values: {("Yes", "yes"): True}
+
         If a column is not in this dict, its name is used as the metric ID.
     color_background : bool, default True
         If True, colors the cell background. If False, colors the text.
@@ -714,27 +625,55 @@ def create_metric_table(
     highlight_issues_only : bool, default True
         If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
         Set to False to also highlight GREEN values.
+    **gt_kwargs
+        Additional keyword arguments passed to great_tables.GT constructor.
+        Common options include: rowname_col, groupname_col.
 
     Returns
     -------
     great_tables.GT
         A great_tables instance with RAG coloring applied.
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import create_metric_gttable
+    >>> create_metric_gttable(
+    ...     df,
+    ...     title="Model Overview",
+    ...     column_to_metric={
+    ...         # Simple metric ID
+    ...         "Performance": "ModelPerformance",
+    ...         # Custom RAG function
+    ...         "Channel": standard_NBAD_channels_rag,
+    ...         # Value mapping: column values -> metric values
+    ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+    ...         # Multiple column values to same metric value
+    ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
+    ...     },
+    ...     rowname_col="Name",
+    ... )
     """
-    from great_tables import GT
-    from .metric_limits import create_RAG_table
+    from great_tables import GT, loc, style
+    from .metric_limits import add_rag_columns
+
+    RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
+    if not highlight_issues_only:
+        RAG_COLORS["GREEN"] = "green"
 
     # Metric formatting: maps metric ID to a lambda that formats GT columns
     metric_formatters = {
         "ModelPerformance": lambda gt, cols: gt.fmt_number(decimals=2, columns=cols),
         "EngagementLift": lambda gt, cols: gt.fmt_percent(decimals=0, columns=cols),
-        "OmniChannel": lambda gt, cols: gt.fmt_percent(decimals=1, columns=cols),
+        "OmniChannelPercentage": lambda gt, cols: gt.fmt_percent(
+            decimals=1, columns=cols
+        ),
         "CTR": lambda gt, cols: gt.fmt_percent(decimals=3, columns=cols),
     }
 
     def default_number_formatter(gt, cols):
         return gt.fmt_number(decimals=0, compact=True, columns=cols)
 
-    gt = GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col)
+    gt = GT(source_table, **gt_kwargs)
     gt = gt.sub_missing(missing_text="")
 
     if title is not None:
@@ -763,6 +702,9 @@ def create_metric_table(
             formatted_cols.update(cols)
 
     # Apply default number formatting to numeric columns not yet formatted
+    # Exclude columns used as row/group names from numeric formatting
+    rowname_col = gt_kwargs.get("rowname_col")
+    groupname_col = gt_kwargs.get("groupname_col")
     numeric_cols = [
         col
         for col in source_table.columns
@@ -775,189 +717,36 @@ def create_metric_table(
         gt = default_number_formatter(gt, numeric_cols)
 
     # Apply RAG coloring
-    gt = create_RAG_table(
-        gt,
+    df_with_rag = add_rag_columns(
         source_table,
         column_to_metric=column_to_metric,
-        color_background=color_background,
         strict_metric_validation=strict_metric_validation,
-        highlight_issues_only=highlight_issues_only,
     )
 
+    for col in source_table.columns:
+        rag_col = f"{col}_RAG"
+        if rag_col not in df_with_rag.columns or df_with_rag[rag_col].dtype == pl.Null:
+            continue
+
+        for rag_value, color in RAG_COLORS.items():
+            row_indices = (
+                df_with_rag.with_row_index()
+                .filter(pl.col(rag_col) == rag_value)["index"]
+                .to_list()
+            )
+            if row_indices:
+                if color_background:
+                    gt = gt.tab_style(
+                        style=style.fill(color=color),
+                        locations=loc.body(columns=col, rows=row_indices),
+                    )
+                else:
+                    gt = gt.tab_style(
+                        style=style.text(color=color, weight="bold"),
+                        locations=loc.body(columns=col, rows=row_indices),
+                    )
+
     return gt
-
-
-# def table_standard_formatting(
-#     source_table,
-#     title=None,
-#     subtitle=None,
-#     rowname_col=None,
-#     groupname_col=None,
-#     cdh_guidelines=CDHGuidelines(),
-#     highlight_limits: Dict[str, Union[str, List[str]]] = {},
-#     highlight_lists: Dict[str, List[str]] = {},
-#     highlight_configurations: List[str] = [],
-#     rag_styler: Callable = rag_background_styler,
-# ):
-#     from great_tables import GT, loc
-
-#     def apply_style(gt, rag, rows):
-#         style = rag_styler(rag)
-#         if style is not None:
-#             gt = gt.tab_style(
-#                 style=style,
-#                 locations=loc.body(columns=col_name, rows=rows),
-#             )
-#         return gt
-
-#     def apply_rag_styling(gt, col_name, metric):
-#         if col_name in source_table.collect_schema().names():
-#             min_val = cdh_guidelines.min(metric)
-#             max_val = cdh_guidelines.max(metric)
-#             best_practice_min = cdh_guidelines.best_practice_min(metric)
-#             best_practice_max = cdh_guidelines.best_practice_max(metric)
-
-#             values = source_table[col_name].to_list()
-#             bad_rows = [
-#                 i
-#                 for i, v in enumerate(values)
-#                 if v is not None
-#                 and (
-#                     (min_val is not None and v < min_val)
-#                     or (max_val is not None and v > max_val)
-#                 )
-#             ]
-#             warning_rows = [
-#                 i
-#                 for i, v in enumerate(values)
-#                 if v is not None
-#                 and (
-#                     (
-#                         min_val is not None
-#                         and best_practice_min is not None
-#                         and v >= min_val
-#                         and v < best_practice_min
-#                     )
-#                     or (
-#                         max_val is not None
-#                         and best_practice_max is not None
-#                         and v > best_practice_max
-#                         and v <= max_val
-#                     )
-#                 )
-#             ]
-#             good_rows = [
-#                 i
-#                 for i, v in enumerate(values)
-#                 if v is not None
-#                 and (best_practice_min is None or v >= best_practice_min)
-#                 and (best_practice_max is None or v <= best_practice_max)
-#             ]
-
-#             gt = apply_style(gt, "green", good_rows)
-#             gt = apply_style(gt, "amber", warning_rows)
-#             gt = apply_style(gt, "red", bad_rows)
-#         return gt
-
-#     gt = (
-#         GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col)
-#         # .opt_stylize(style=1, color="gray")
-#         # .opt_table_font(
-#         #     font=system_fonts(name="system-ui"),  # System fonts (no loading)
-#         #     weight="normal",
-#         # )
-#         .tab_options()
-#         .sub_missing(missing_text="")
-#     )
-
-#     if title is not None:
-#         gt = gt.tab_header(title=title, subtitle=subtitle)
-
-#     for metric in highlight_limits.keys():
-#         cols = highlight_limits[metric]
-#         if isinstance(cols, str):
-#             cols = [cols]
-#         # Highlight colors
-#         for col_name in cols:
-#             gt = apply_rag_styling(gt, col_name=col_name, metric=metric)
-
-#         # Value formatting
-#         if metric == "Model Performance":
-#             gt = gt.fmt_number(
-#                 decimals=2,
-#                 columns=cols,
-#             )
-#         elif metric == "Engagement Lift":
-#             gt = gt.fmt_percent(
-#                 decimals=0,
-#                 columns=cols,
-#             )
-#         elif metric == "OmniChannel":
-#             gt = gt.fmt_percent(
-#                 decimals=1,
-#                 columns=cols,
-#             )
-#         elif metric == "CTR":
-#             gt = gt.fmt_percent(
-#                 decimals=3,
-#                 columns=cols,
-#             )
-#         else:
-#             gt = gt.fmt_number(
-#                 decimals=0,
-#                 compact=True,
-#                 columns=cols,
-#             )
-
-#     # Highlight columns with non-standard values
-#     def simplify_name(x: str) -> str:
-#         if x is None:
-#             return x
-#         return re.sub("\\W", "", x, flags=re.IGNORECASE).upper()
-
-#     for col_name in highlight_lists.keys():
-#         if col_name in source_table.collect_schema().names():
-#             simplified_names = [simplify_name(x) for x in highlight_lists[col_name]]
-#             values = source_table[col_name].to_list()
-#             non_standard_rows = [
-#                 i
-#                 for i, v in enumerate(values)
-#                 if simplify_name(v) not in simplified_names
-#             ]
-#             gt = apply_style(gt, "yellow", non_standard_rows)
-
-#     # Highlight column with more than one element (assuming its a comma-separated string)
-#     for col_name in highlight_configurations:
-#         if col_name in source_table.collect_schema().names():
-#             values = source_table[col_name].to_list()
-#             multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
-#             gt = apply_style(gt, "yellow", multiple_config_rows)
-
-#     return gt
-
-
-# def table_style_predictor_count(
-#     gt, flds, cdh_guidelines=CDHGuidelines(), rag_styler=rag_textcolor_styler
-# ):
-#     from great_tables import GT, loc
-
-#     if not isinstance(gt, GT):
-#         raise ValueError("gt argument should be a Great Table")
-#     for col in flds:
-#         gt = gt.tab_style(
-#             style=rag_styler("amber"),
-#             locations=loc.body(
-#                 columns=col,
-#                 rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
-#             ),
-#         ).tab_style(
-#             style=rag_styler("red"),
-#             locations=loc.body(
-#                 columns=col,
-#                 rows=(pl.col(col) == 0),
-#             ),
-#         )
-#     return gt
 
 
 def n_unique_values(dm, all_dm_cols, fld):

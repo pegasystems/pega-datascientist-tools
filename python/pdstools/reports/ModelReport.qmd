@@ -227,7 +227,7 @@ See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/P
 
 ```{python}
 gt = (
-    report_utils.create_metric_table(
+    report_utils.create_metric_gttable(
         classifier.collect().select(
             pl.last("ResponseCount"),
             pl.last("Positives"),
@@ -302,7 +302,7 @@ try:
 
     # TODO some of the formatting could be done in GT instead of in polars
 
-    gt = report_utils.create_metric_table(
+    gt = report_utils.create_metric_gttable(
         human_friendly_scoredistribution, title="Score Distribution"
     ).tab_style(
         # this won't happen now - we could consider adding
@@ -538,7 +538,7 @@ predictors_summary_info = (
 # TODO we can easily color the predictors by Category
 
 gt = (
-    report_utils.create_metric_table(
+    report_utils.create_metric_gttable(
         predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(),
         rowname_col="PredictorLink",
         title="Predictor Overview"
@@ -613,7 +613,7 @@ def show_single_predictor(pred):
     # Predictor summary
 
     display(
-        report_utils.create_metric_table(predictor_properties.collect())
+        report_utils.create_metric_gttable(predictor_properties.collect())
         .fmt_number(
             decimals=2,
             scale_by=100.0,
@@ -680,7 +680,7 @@ def show_single_predictor(pred):
     ).collect()
 
     display(
-        report_utils.create_metric_table(human_friendly_binning_table)
+        report_utils.create_metric_gttable(human_friendly_binning_table)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
 

@@ -291,7 +291,7 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 ```{python}
 
 formatted_channel_overview = (
-    report_utils.create_metric_table(
+    report_utils.create_metric_gttable(
         df_channel_overview,
         title=f"Channel Overview (models updated since {active_models_threshold_date_string})",
         column_to_metric={
@@ -484,7 +484,7 @@ if prediction_file_path:
     )
 
     gt = (
-        report_utils.create_metric_table(
+        report_utils.create_metric_gttable(
             predictions_overview,
             title="Prediction Overview",
             subtitle="by Channel",
@@ -664,7 +664,7 @@ df_action_overview = pl.DataFrame(
 )
 
 gt = (
-    report_utils.create_metric_table(df_action_overview, title="Action Overview")
+    report_utils.create_metric_gttable(df_action_overview, title="Action Overview")
     .fmt_number(decimals=1, columns=["Number"])
     .fmt_number(decimals=0, columns=["Best Practice", "Cloud Service Limit"])
 )
@@ -714,7 +714,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
         ).sort(["Issue", "Group"])
     ).with_columns(pl.format("<b>{}</b", pl.col("Issue")).alias("Issue"))
 
-    gt = report_utils.create_metric_table(
+    gt = report_utils.create_metric_gttable(
         df_action_hierarchy.collect(),
         title="Action Hierarchy",
         # subtitle=f"for models updated since {active_models_threshold_date_string}",
@@ -944,7 +944,7 @@ In the standard configuration there is one Adaptive model per treatment/action f
 model_overview = datamart.aggregates.summary_by_configuration()
 
 display(
-    report_utils.create_metric_table(
+    report_utils.create_metric_gttable(
         model_overview.with_columns(
             NBAD=pl.when(pl.col("usesNBAD").is_null())
             .then(pl.lit("?"))
@@ -1224,7 +1224,7 @@ if datamart.predictor_data is not None:
         .fill_null(0)
     )
 
-    gt = report_utils.create_metric_table(
+    gt = report_utils.create_metric_gttable(
         predictors_per_category,
         "Number of Predictors per Predictor Category",
         column_to_metric={
@@ -1362,7 +1362,7 @@ if datamart.predictor_data is not None:
     # responses_column_index = bad_predictors.columns.index("Response Count")
 
     display(
-        report_utils.create_metric_table(
+        report_utils.create_metric_gttable(
             bad_predictors,
             title="Overview of Poor Predictors",
             # .with_columns(MeanPlotData=pl.col("Mean")),
@@ -1600,7 +1600,7 @@ maturity_overview = pl.concat(
 )
 
 display(
-    report_utils.create_metric_table(
+    report_utils.create_metric_gttable(
         maturity_overview,
         title="Model Maturity Overview",
     ).fmt_number(
