@@ -18,6 +18,10 @@ from ..utils.types import QUERY
 # noqa: F401 prevents ruff from removing these "unused" imports during pre-commit.
 from .metric_limits import (  # noqa: F401
     percentage_within_0_1_range_rag,
+    positive_values,
+    strict_positive_values,
+    pega_version_rag,
+    deployment_rag,
     standard_NBAD_channels_rag,
     standard_NBAD_configurations_rag,
     standard_NBAD_directions_rag,
@@ -34,10 +38,20 @@ logger = logging.getLogger(__name__)
 # Centralized metric format definitions used by both table functions
 # Format: metric_id -> (decimals, is_percent)
 METRIC_FORMAT_DEFINITIONS = {
-    "ModelPerformance": (2, False),  # 2 decimals, not percent
-    "EngagementLift": (0, True),  # 0 decimals, percent
-    "OmniChannelPercentage": (1, True),  # 1 decimal, percent
-    "CTR": (3, True),  # 3 decimals, percent
+    "ModelPerformance": (2, False),
+    "EngagementLift": (0, True),
+    "OmniChannelPercentage": (1, True),
+    "InboundNoActionRatio": (0, True),
+    "OutboundNoActionRatio": (0, True),
+    "TestPercentage": (
+        0,
+        True,
+    ),  # TODO need to confirm how values are coming in, 0-1 or 0-100
+    "ControlPercentage": (
+        0,
+        True,
+    ),  # Also not sure it belongs here, perhaps this is client formatting
+    "CTR": (3, True),
 }
 DEFAULT_NUMBER_DECIMALS = 0
 

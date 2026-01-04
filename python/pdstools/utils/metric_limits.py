@@ -1,9 +1,13 @@
 """Metric limits and NBAD configuration utilities.
 
-This module provides:
-- MetricLimits: Access to metric thresholds from MetricLimits.csv
-- NBAD configuration/prediction/channel validation functions
-- RAG (Red/Amber/Green) status evaluation functions
+The MetricLimits.csv in resources defines min/max and best practice values
+for CDH/DSM metrics. It currently is sourced from an Excel file that gets
+exported to CSV (no special options, just straight export) and copied into
+this library.
+
+This module provides access methods to this data and validation functions
+that turn metric values into "RAG" indicators that can be used to highlight
+values in tables.
 """
 
 import difflib
@@ -24,20 +28,6 @@ ValueMapping = dict[Union[str, tuple], Any]
 # Type for metric specification with optional value mapping
 # Can be: "MetricID" or ("MetricID", ValueMapping) or callable
 MetricSpec = Union[str, tuple[str, ValueMapping], Callable]
-
-
-def _apply_value_mapping(value: Any, mapping: ValueMapping) -> Any:
-    """Map a column value to a metric value using the provided mapping.
-
-    Supports both single keys and tuple keys for multiple values mapping to the same result.
-    """
-    for key, mapped_value in mapping.items():
-        if isinstance(key, tuple):
-            if value in key:
-                return mapped_value
-        elif value == key:
-            return mapped_value
-    return value  # Return unmapped value as-is
 
 
 def _convert_excel_csv_value(value: str) -> Union[float, bool, None]:
@@ -80,27 +70,21 @@ class MetricLimits:
     @lru_cache(maxsize=1)
     def get_limits(cls) -> pl.DataFrame:
         """Get all metric limits as a DataFrame."""
-        csv_path = get_metric_limits_path()
-        raw_csv = pl.read_csv(source=csv_path)
-
-        raw_csv = raw_csv.filter(
+        raw_csv = pl.read_csv(source=get_metric_limits_path()).filter(
             pl.col("MetricID").is_not_null() & (pl.col("MetricID") != "")
         )
-
-        threshold_columns = [
-            "Minimum",
-            "Best Practice Min",
-            "Best Practice Max",
-            "Maximum",
-        ]
-        existing_columns = [col for col in threshold_columns if col in raw_csv.columns]
 
         limits_df = raw_csv.with_columns(
             [
                 pl.col(col)
                 .map_elements(_convert_excel_csv_value, return_dtype=pl.Object)
                 .alias(col)
-                for col in existing_columns
+                for col in [
+                    "Minimum",
+                    "Best Practice Min",
+                    "Best Practice Max",
+                    "Maximum",
+                ]
             ]
         )
 
@@ -212,24 +196,13 @@ class MetricLimits:
         if max_val is not None and value > max_val:
             return "RED"
 
-        # Check GREEN conditions (within best practice range)
-        if bp_min is not None and bp_max is not None:
-            if bp_min <= value <= bp_max:
-                return "GREEN"
-        elif bp_min is not None and bp_max is None:
-            if value >= bp_min:
-                return "GREEN"
-        elif bp_min is None and bp_max is not None:
-            if value <= bp_max:
-                return "GREEN"
-
         # Check AMBER conditions (between hard limit and best practice)
         if bp_min is not None and value < bp_min:
             return "AMBER"
         if bp_max is not None and value > bp_max:
             return "AMBER"
 
-        return None
+        return "GREEN"
 
     @classmethod
     def get_metric_RAG_code(cls, column: str, metric_id: str) -> pl.Expr:
@@ -280,25 +253,43 @@ ALL_NBAD_CONFIGURATIONS = (
 )
 
 
+def _matches_NBAD_configuration(item: str, config_list: list) -> bool:
+    """Check if item matches any config in the list.
+
+    Matches with optional prefix (e.g., MyApp_) and postfix (e.g., _GB).
+    Pattern: ^(?:\w+_)?{config}(?:_GB)?$
+    """
+    for config in config_list:
+        pattern = rf"^(?:\w+_)?{re.escape(config)}(?:_GB)?$"
+        if re.match(pattern, item, re.IGNORECASE):
+            return True
+    return False
+
+
 def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
     """Polars expression to check if a configuration is a known NBAD config."""
-    standard_names = "|".join([f"(?i){x}" for x in ALL_NBAD_CONFIGURATIONS])
-    return pl.col(field).cast(pl.String).str.contains(standard_names)
+
+    def check_config(value: str) -> bool:
+        if not value:
+            return False
+        items = [v.strip() for v in value.split(",") if v.strip()]
+        return all(
+            _matches_NBAD_configuration(item, ALL_NBAD_CONFIGURATIONS) for item in items
+        )
+
+    return (
+        pl.col(field)
+        .cast(pl.String)
+        .map_elements(check_config, return_dtype=pl.Boolean)
+    )
 
 
 def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
     """RAG status for NBAD configuration names.
 
-    Returns GREEN for single-channel, YELLOW for multi-channel/default, AMBER for unknown.
+    Returns AMBER if any is a default/other/multi-channel or a non-standard configuration,
+    GREEN if all are standard single-channel configurations.
     """
-
-    def matches_config(item: str, config_list: list) -> bool:
-        for config in config_list:
-            pattern = rf"^(?:\w+_)?{re.escape(config)}(?:_GB)?$"
-            if re.match(pattern, item, re.IGNORECASE):
-                return True
-        return False
-
     if not value:
         return None
 
@@ -306,14 +297,15 @@ def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
     if not items:
         return None
 
-    has_multi_channel = False
     for item in items:
-        if matches_config(item, POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS):
-            has_multi_channel = True
-        elif not matches_config(item, SINGLE_CHANNEL_NBAD_CONFIGURATIONS):
-            return "AMBER"
+        if _matches_NBAD_configuration(
+            item, POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+        ):
+            return "AMBER"  # Multi-channel/default config
+        if not _matches_NBAD_configuration(item, SINGLE_CHANNEL_NBAD_CONFIGURATIONS):
+            return "AMBER"  # Unknown/non-standard config
 
-    return "YELLOW" if has_multi_channel else "GREEN"
+    return "GREEN"  # All are standard single-channel configs
 
 
 # =============================================================================
@@ -466,6 +458,184 @@ def percentage_within_0_1_range_rag(value: float) -> Optional[RAGValue]:
     return "GREEN" if 0 < value < 1 else "RED"
 
 
+def positive_values(value: float) -> Optional[RAGValue]:
+    if value is None:
+        return None
+    return "GREEN" if value >= 0 else "RED"
+
+
+def strict_positive_values(value: float) -> Optional[RAGValue]:
+    if value is None:
+        return None
+    return "GREEN" if value > 0 else "RED"
+
+
+def deployment_rag(value: str) -> Optional[RAGValue]:
+    """RAG status for Pega deployment type.
+
+    GREEN for "CloudK", AMBER for "Cuttyhunk", RED otherwise.
+    """
+    if not value:
+        return None
+    if "CloudK" in value:
+        return "GREEN"
+    if "Cuttyhunk" in value:
+        return "AMBER"
+    return "RED"
+
+
+def pega_version_rag(value: str) -> Optional[RAGValue]:
+    """RAG status for Pega version strings.
+
+    Accepts both internal (8.24.53) and external (24.2.3) version formats.
+    GREEN if version is at or above the latest release for its major.minor track.
+    AMBER if version is on a current track but patch is behind latest.
+    RED if version is on an outdated track or unrecognized.
+    """
+    LATEST_RELEASES = ["25.1.1", "24.2.3"]
+
+    if not value:
+        return None
+
+    # Convert to external format if needed (returns unchanged if already external or unrecognized)
+    external = internal_to_external_version(value)
+
+    # Skip versions with suffixes (dev builds, etc.)
+    if "-" in external:
+        return None
+
+    parts = external.split(".")
+    if len(parts) != 3:
+        return None
+
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+        patch = int(parts[2])
+    except ValueError:
+        return None
+
+    # Find matching track from latest releases
+    for latest in LATEST_RELEASES:
+        latest_parts = latest.split(".")
+        latest_major = int(latest_parts[0])
+        latest_minor = int(latest_parts[1])
+        latest_patch = int(latest_parts[2])
+
+        # Check if on same major.minor track
+        if major == latest_major and minor == latest_minor:
+            if patch >= latest_patch:
+                return "GREEN"
+            else:
+                return "AMBER"
+
+        # Check if newer than any latest release (future version)
+        if major > latest_major or (major == latest_major and minor > latest_minor):
+            return "GREEN"
+
+    return "RED"
+
+
+# =============================================================================
+# Pega Version Conversion
+# =============================================================================
+
+
+def internal_to_external_version(internal_version: str) -> str:
+    """Convert Pega internal version to external (marketing) version.
+
+    Conversion rules:
+
+    - Old versions (8.x where x < 23, 7.x): unchanged
+    - 8.23.x → 23.1.x
+    - 8.24.x (x < 50) → 24.1.x
+    - 8.24.5x (x ≥ 50) → 24.2.(x-50)
+    - With suffixes (-dev-, -962, etc.): unchanged
+    - 25.x, 26.x: already external, unchanged
+    """
+    if not internal_version:
+        return internal_version
+
+    # Check for suffix (like -dev-, -962, etc.) - return unchanged
+    if "-" in internal_version:
+        return internal_version
+
+    parts = internal_version.split(".")
+    if len(parts) != 3:
+        return internal_version
+
+    # Not starting with "8." - already external or different format
+    if parts[0] != "8":
+        return internal_version
+
+    try:
+        second = int(parts[1])
+        third = int(parts[2])
+    except ValueError:
+        return internal_version
+
+    # Old versions (8.1-8.22) - return unchanged
+    if second < 23:
+        return internal_version
+
+    # Convert 8.23+ versions
+    if third >= 50:
+        minor = 2
+        patch = third - 50
+    else:
+        minor = 1
+        patch = third
+
+    return f"{second}.{minor}.{patch}"
+
+
+def external_to_internal_version(external_version: str) -> str:
+    """Convert Pega external (marketing) version to internal version.
+
+    Conversion rules (inverse of internal_to_external_version):
+
+    - 23.1.x → 8.23.x
+    - 24.1.x → 8.24.x
+    - 24.2.x → 8.24.(x+50)
+    - Old versions (8.x, 7.x), new format (25.x, 26.x), with suffixes: unchanged
+    """
+    if not external_version:
+        return external_version
+
+    # Check for suffix - return unchanged
+    if "-" in external_version:
+        return external_version
+
+    parts = external_version.split(".")
+    if len(parts) != 3:
+        return external_version
+
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+        patch = int(parts[2])
+    except ValueError:
+        return external_version
+
+    # Old or non-convertible versions
+    if major < 23:
+        return external_version
+
+    # Already internal format (starts with 8) or new format (25+)
+    if major == 8 or major >= 25:
+        return external_version
+
+    # Convert 23.x.x or 24.x.x back to internal
+    if minor == 1:
+        third = patch
+    elif minor == 2:
+        third = 50 + patch
+    else:
+        return external_version
+
+    return f"8.{major}.{third}"
+
+
 # =============================================================================
 # DataFrame RAG Functions
 # =============================================================================
@@ -554,7 +724,16 @@ def add_rag_columns(
             metric_id, value_mapping = spec
 
             def mapped_rag(v):
-                mapped_v = _apply_value_mapping(v, value_mapping)
+                # Map column value to metric value using the provided mapping
+                mapped_v = v
+                for key, mapped_value in value_mapping.items():
+                    if isinstance(key, tuple):
+                        if v in key:
+                            mapped_v = mapped_value
+                            break
+                    elif v == key:
+                        mapped_v = mapped_value
+                        break
                 return MetricLimits.evaluate_metric_rag(metric_id, mapped_v)
 
             return (

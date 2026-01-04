@@ -76,11 +76,12 @@ class TestNBADConfigurationsRAG:
             ("MyApp_Web_Click_Through_Rate", "GREEN"),
             ("Web_Click_Through_Rate_GB", "GREEN"),
             ("web_click_through_rate", "GREEN"),
-            ("OmniAdaptiveModel", "YELLOW"),
-            ("Default_Inbound_Model", "YELLOW"),
-            ("InvalidConfig", "AMBER"),
+            ("OmniAdaptiveModel", "AMBER"),  # Multi-channel config
+            ("Default_Inbound_Model", "AMBER"),  # Default config
+            ("InvalidConfig", "AMBER"),  # Unknown config
             ("Web_Click_Through_Rate,InvalidConfig", "AMBER"),
             ("Web_Click_Through_Rate,Mobile_Click_Through_Rate", "GREEN"),
+            ("Web_Click_Through_Rate,OmniAdaptiveModel", "AMBER"),  # Mixed
         ],
     )
     def test_configuration_rag_status(self, value, expected):
