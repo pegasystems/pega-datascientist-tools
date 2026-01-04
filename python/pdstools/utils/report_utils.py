@@ -14,7 +14,15 @@ import polars as pl
 
 from ..utils.types import QUERY
 
-# Re-export RAG functions for convenience
+# Re-export RAG functions from metric_limits for convenience in Quarto reports.
+# noqa: F401 prevents ruff from removing these "unused" imports during pre-commit.
+from .metric_limits import (  # noqa: F401
+    percentage_within_0_1_range_rag,
+    standard_NBAD_channels_rag,
+    standard_NBAD_configurations_rag,
+    standard_NBAD_directions_rag,
+    standard_NBAD_predictions_rag,
+)
 
 logger = logging.getLogger(__name__)
 
