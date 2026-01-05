@@ -17,11 +17,9 @@ from ..utils.types import QUERY
 # Re-export RAG functions from metric_limits for convenience in Quarto reports.
 # noqa: F401 prevents ruff from removing these "unused" imports during pre-commit.
 from .metric_limits import (  # noqa: F401
-    percentage_within_0_1_range_rag,
+    exclusive_0_1_range_rag,
     positive_values,
     strict_positive_values,
-    pega_version_rag,
-    deployment_rag,
     standard_NBAD_channels_rag,
     standard_NBAD_configurations_rag,
     standard_NBAD_directions_rag,
@@ -35,22 +33,24 @@ logger = logging.getLogger(__name__)
 # Metric Formatting Configuration
 # =============================================================================
 
-# Centralized metric format definitions used by both table functions
+# Centralized metric format definitions used by both table functions for
+# some very common metrics
+
 # Format: metric_id -> (decimals, is_percent)
+# TODO consider using a standard format instead of this custom definition. Also
+# consider to allow a metric definition argument to extend this when using the
+# table formatting functions.
+# For inspiration on formats, see:
+# see Great Tables https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html#great_tables.vals.fmt_number
+# or pandas Styler https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.format.html
+# or Python f strings https://docs.python.org/3/library/string.html#formatspec
+# or C/C++ printf format https://cplusplus.com/reference/cstdio/printf/
 METRIC_FORMAT_DEFINITIONS = {
     "ModelPerformance": (2, False),
     "EngagementLift": (0, True),
     "OmniChannelPercentage": (1, True),
     "InboundNoActionRatio": (0, True),
     "OutboundNoActionRatio": (0, True),
-    "TestPercentage": (
-        0,
-        True,
-    ),  # TODO need to confirm how values are coming in, 0-1 or 0-100
-    "ControlPercentage": (
-        0,
-        True,
-    ),  # Also not sure it belongs here, perhaps this is client formatting
     "CTR": (3, True),
 }
 DEFAULT_NUMBER_DECIMALS = 0
@@ -229,6 +229,8 @@ def run_quarto(
 
     Raises
     ------
+    RuntimeError
+        If the Quarto process fails (non-zero return code), includes captured output
     subprocess.SubprocessError
         If the Quarto command fails to execute
     FileNotFoundError
@@ -275,9 +277,12 @@ def run_quarto(
         bufsize=1,  # Line buffered
     )
 
+    # Capture all output for potential error reporting
+    output_lines: List[str] = []
     if process.stdout is not None:
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
+            output_lines.append(line)
             if verbose:
                 print(line)
             logger.info(line)
@@ -287,6 +292,14 @@ def run_quarto(
     return_code = process.wait()
     message = f"Quarto process exited with return code {return_code}"
     logger.info(message)
+
+    # Raise an exception with captured output if Quarto failed
+    if return_code != 0:
+        captured_output = "\n".join(output_lines)
+        raise RuntimeError(
+            f"Quarto rendering failed with return code {return_code}.\n"
+            f"Output:\n{captured_output}"
+        )
 
     # Post-process HTML files to deduplicate JavaScript libraries
     if (

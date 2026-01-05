@@ -254,7 +254,7 @@ ALL_NBAD_CONFIGURATIONS = (
 
 
 def _matches_NBAD_configuration(item: str, config_list: list) -> bool:
-    """Check if item matches any config in the list.
+    r"""Check if item matches any config in the list.
 
     Matches with optional prefix (e.g., MyApp_) and postfix (e.g., _GB).
     Pattern: ^(?:\w+_)?{config}(?:_GB)?$
@@ -451,7 +451,7 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
 # =============================================================================
 
 
-def percentage_within_0_1_range_rag(value: float) -> Optional[RAGValue]:
+def exclusive_0_1_range_rag(value: float) -> Optional[RAGValue]:
     """RAG for percentage values. GREEN if 0 < value < 1, RED otherwise."""
     if value is None:
         return None
@@ -468,172 +468,6 @@ def strict_positive_values(value: float) -> Optional[RAGValue]:
     if value is None:
         return None
     return "GREEN" if value > 0 else "RED"
-
-
-def deployment_rag(value: str) -> Optional[RAGValue]:
-    """RAG status for Pega deployment type.
-
-    GREEN for "CloudK", AMBER for "Cuttyhunk", RED otherwise.
-    """
-    if not value:
-        return None
-    if "CloudK" in value:
-        return "GREEN"
-    if "Cuttyhunk" in value:
-        return "AMBER"
-    return "RED"
-
-
-def pega_version_rag(value: str) -> Optional[RAGValue]:
-    """RAG status for Pega version strings.
-
-    Accepts both internal (8.24.53) and external (24.2.3) version formats.
-    GREEN if version is at or above the latest release for its major.minor track.
-    AMBER if version is on a current track but patch is behind latest.
-    RED if version is on an outdated track or unrecognized.
-    """
-    LATEST_RELEASES = ["25.1.1", "24.2.3"]
-
-    if not value:
-        return None
-
-    # Convert to external format if needed (returns unchanged if already external or unrecognized)
-    external = internal_to_external_version(value)
-
-    # Skip versions with suffixes (dev builds, etc.)
-    if "-" in external:
-        return None
-
-    parts = external.split(".")
-    if len(parts) != 3:
-        return None
-
-    try:
-        major = int(parts[0])
-        minor = int(parts[1])
-        patch = int(parts[2])
-    except ValueError:
-        return None
-
-    # Find matching track from latest releases
-    for latest in LATEST_RELEASES:
-        latest_parts = latest.split(".")
-        latest_major = int(latest_parts[0])
-        latest_minor = int(latest_parts[1])
-        latest_patch = int(latest_parts[2])
-
-        # Check if on same major.minor track
-        if major == latest_major and minor == latest_minor:
-            if patch >= latest_patch:
-                return "GREEN"
-            else:
-                return "AMBER"
-
-        # Check if newer than any latest release (future version)
-        if major > latest_major or (major == latest_major and minor > latest_minor):
-            return "GREEN"
-
-    return "RED"
-
-
-# =============================================================================
-# Pega Version Conversion
-# =============================================================================
-
-
-def internal_to_external_version(internal_version: str) -> str:
-    """Convert Pega internal version to external (marketing) version.
-
-    Conversion rules:
-
-    - Old versions (8.x where x < 23, 7.x): unchanged
-    - 8.23.x → 23.1.x
-    - 8.24.x (x < 50) → 24.1.x
-    - 8.24.5x (x ≥ 50) → 24.2.(x-50)
-    - With suffixes (-dev-, -962, etc.): unchanged
-    - 25.x, 26.x: already external, unchanged
-    """
-    if not internal_version:
-        return internal_version
-
-    # Check for suffix (like -dev-, -962, etc.) - return unchanged
-    if "-" in internal_version:
-        return internal_version
-
-    parts = internal_version.split(".")
-    if len(parts) != 3:
-        return internal_version
-
-    # Not starting with "8." - already external or different format
-    if parts[0] != "8":
-        return internal_version
-
-    try:
-        second = int(parts[1])
-        third = int(parts[2])
-    except ValueError:
-        return internal_version
-
-    # Old versions (8.1-8.22) - return unchanged
-    if second < 23:
-        return internal_version
-
-    # Convert 8.23+ versions
-    if third >= 50:
-        minor = 2
-        patch = third - 50
-    else:
-        minor = 1
-        patch = third
-
-    return f"{second}.{minor}.{patch}"
-
-
-def external_to_internal_version(external_version: str) -> str:
-    """Convert Pega external (marketing) version to internal version.
-
-    Conversion rules (inverse of internal_to_external_version):
-
-    - 23.1.x → 8.23.x
-    - 24.1.x → 8.24.x
-    - 24.2.x → 8.24.(x+50)
-    - Old versions (8.x, 7.x), new format (25.x, 26.x), with suffixes: unchanged
-    """
-    if not external_version:
-        return external_version
-
-    # Check for suffix - return unchanged
-    if "-" in external_version:
-        return external_version
-
-    parts = external_version.split(".")
-    if len(parts) != 3:
-        return external_version
-
-    try:
-        major = int(parts[0])
-        minor = int(parts[1])
-        patch = int(parts[2])
-    except ValueError:
-        return external_version
-
-    # Old or non-convertible versions
-    if major < 23:
-        return external_version
-
-    # Already internal format (starts with 8) or new format (25+)
-    if major == 8 or major >= 25:
-        return external_version
-
-    # Convert 23.x.x or 24.x.x back to internal
-    if minor == 1:
-        third = patch
-    elif minor == 2:
-        third = 50 + patch
-    else:
-        return external_version
-
-    return f"8.{major}.{third}"
 
 
 # =============================================================================

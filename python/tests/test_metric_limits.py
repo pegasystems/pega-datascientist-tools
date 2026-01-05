@@ -6,7 +6,7 @@ import pytest
 from pdstools.utils.metric_limits import (
     MetricLimits,
     add_rag_columns,
-    percentage_within_0_1_range_rag,
+    exclusive_0_1_range_rag,
     standard_NBAD_channels_rag,
     standard_NBAD_configurations_rag,
     standard_NBAD_directions_rag,
@@ -150,7 +150,7 @@ class TestNBADDirectionsRAG:
 
 
 class TestPercentageRAG:
-    """Tests for percentage_within_0_1_range_rag."""
+    """Tests for exclusive_0_1_range_rag."""
 
     @pytest.mark.parametrize(
         "value,expected",
@@ -166,7 +166,7 @@ class TestPercentageRAG:
         ],
     )
     def test_percentage_rag_status(self, value, expected):
-        assert percentage_within_0_1_range_rag(value) == expected
+        assert exclusive_0_1_range_rag(value) == expected
 
 
 class TestAddRagColumns:

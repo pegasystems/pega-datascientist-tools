@@ -302,7 +302,7 @@ formatted_channel_overview = (
             "Positives": "TotalPositiveCount",
             "Responses": "TotalResponseCount",
             "OmniChannel": "OmniChannelPercentage",
-            "CTR": report_utils.percentage_within_0_1_range_rag,
+            "CTR": report_utils.exclusive_0_1_range_rag,
             "Configuration" : report_utils.standard_NBAD_configurations_rag,
             "Channel" : report_utils.standard_NBAD_channels_rag,
             "Direction" : report_utils.standard_NBAD_directions_rag,
@@ -510,7 +510,7 @@ if prediction_file_path:
                     "CTR_Test",
                     "CTR_Control",
                     "CTR_NBA",
-                ): report_utils.percentage_within_0_1_range_rag,
+                ): report_utils.exclusive_0_1_range_rag,
                 "Lift": "EngagementLift",
             },
         )

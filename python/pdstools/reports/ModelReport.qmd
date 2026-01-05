@@ -240,7 +240,7 @@ gt = (
             "ResponseCount": "TotalResponseCount",
             "Positives": "TotalPositiveCount",
             "Performance":"ModelPerformance",
-            "Base Propensity": report_utils.percentage_within_0_1_range_rag,
+            "Base Propensity": report_utils.exclusive_0_1_range_rag,
         },
     ).cols_label(
         ResponseCount="Responses",
