@@ -26,62 +26,11 @@ from .metric_limits import (  # noqa: F401
     standard_NBAD_predictions_rag,
 )
 
+# Re-export NumberFormat, MetricFormats, and MetricLimits for external use
+from .number_format import NumberFormat  # noqa: F401
+from .metric_limits import MetricFormats, MetricLimits  # noqa: F401
+
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Metric Formatting Configuration
-# =============================================================================
-
-# Centralized metric format definitions used by both table functions for
-# some very common metrics
-
-# Format: metric_id -> (decimals, is_percent)
-# TODO consider using a standard format instead of this custom definition. Also
-# consider to allow a metric definition argument to extend this when using the
-# table formatting functions.
-# For inspiration on formats, see:
-# see Great Tables https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html#great_tables.vals.fmt_number
-# or pandas Styler https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.format.html
-# or Python f strings https://docs.python.org/3/library/string.html#formatspec
-# or C/C++ printf format https://cplusplus.com/reference/cstdio/printf/
-METRIC_FORMAT_DEFINITIONS = {
-    "ModelPerformance": (2, False),
-    "EngagementLift": (0, True),
-    "OmniChannelPercentage": (1, True),
-    "InboundNoActionRatio": (0, True),
-    "OutboundNoActionRatio": (0, True),
-    "CTR": (3, True),
-}
-DEFAULT_NUMBER_DECIMALS = 0
-
-
-def _compact_number_format(value) -> str:
-    """Format numbers in compact notation (e.g., 1230 -> '1K', 1230000 -> '1M').
-
-    Similar to great_tables' compact=True option. Uses rounding, no decimals.
-    """
-    if value is None or (isinstance(value, float) and (value != value)):  # NaN check
-        return ""
-    try:
-        num = float(value)
-    except (ValueError, TypeError):
-        return str(value)
-
-    if num == 0:
-        return "0"
-
-    abs_num = abs(num)
-    if abs_num >= 1_000_000_000_000:
-        return f"{round(num / 1_000_000_000_000):.0f}T"
-    elif abs_num >= 1_000_000_000:
-        return f"{round(num / 1_000_000_000):.0f}B"
-    elif abs_num >= 1_000_000:
-        return f"{round(num / 1_000_000):.0f}M"
-    elif abs_num >= 1_000:
-        return f"{round(num / 1_000):.0f}K"
-    else:
-        return f"{round(num):.0f}"
 
 
 def get_output_filename(
@@ -647,7 +596,7 @@ def create_metric_itable(
                 styles.append("")
         return styles
 
-    # Build format dict from centralized config
+    # Build format dict from centralized config using MetricFormats
     expanded_mapping = {}
     for key, value in (column_to_metric or {}).items():
         if isinstance(key, tuple):
@@ -661,15 +610,16 @@ def create_metric_itable(
         metric_id = expanded_mapping.get(col, col)
         if isinstance(metric_id, tuple):
             metric_id = metric_id[0]
-        if isinstance(metric_id, str) and metric_id in METRIC_FORMAT_DEFINITIONS:
-            decimals, is_percent = METRIC_FORMAT_DEFINITIONS[metric_id]
-            if is_percent:
-                format_dict[col] = f"{{:.{decimals}%}}"
-            else:
-                format_dict[col] = f"{{:,.{decimals}f}}"
+        if isinstance(metric_id, str):
+            fmt = MetricFormats.get(metric_id)
+            if fmt is not None:
+                format_dict[col] = fmt.to_pandas_format()
+            elif source_table[col].dtype.is_numeric():
+                # Use default compact formatting for numeric columns
+                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
         elif source_table[col].dtype.is_numeric():
-            # Use compact formatting for default numeric columns
-            format_dict[col] = _compact_number_format
+            # Use default compact formatting for numeric columns
+            format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
 
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
@@ -764,21 +714,6 @@ def create_metric_gttable(
     if not highlight_issues_only:
         RAG_COLORS["GREEN"] = "green"
 
-    # Build metric formatters from centralized config
-    metric_formatters = {}
-    for metric_id, (decimals, is_percent) in METRIC_FORMAT_DEFINITIONS.items():
-        if is_percent:
-            metric_formatters[metric_id] = lambda gt, cols, d=decimals: gt.fmt_percent(
-                decimals=d, columns=cols
-            )
-        else:
-            metric_formatters[metric_id] = lambda gt, cols, d=decimals: gt.fmt_number(
-                decimals=d, columns=cols
-            )
-
-    def default_number_formatter(gt, cols):
-        return gt.fmt_number(decimals=0, compact=True, columns=cols)
-
     gt = GT(source_table, **gt_kwargs)
     gt = gt.tab_options(
         table_font_size="12px",
@@ -798,18 +733,17 @@ def create_metric_gttable(
         else:
             expanded_mapping[key] = value
 
-    # Apply formatting based on metric type
-    # Match by: 1) explicit mapping in column_to_metric, or 2) column name equals metric ID
+    # Apply formatting based on metric type using MetricFormats
     formatted_cols = set()
-    for metric_id, formatter in metric_formatters.items():
-        cols = [
-            col
-            for col in source_table.columns
-            if expanded_mapping.get(col, col) == metric_id
-        ]
-        if cols:
-            gt = formatter(gt, cols)
-            formatted_cols.update(cols)
+    for col in source_table.columns:
+        metric_id = expanded_mapping.get(col, col)
+        if isinstance(metric_id, tuple):
+            metric_id = metric_id[0]
+        if isinstance(metric_id, str):
+            fmt = MetricFormats.get(metric_id)
+            if fmt is not None:
+                gt = fmt.apply_to_gt(gt, [col])
+                formatted_cols.add(col)
 
     # Apply default number formatting to numeric columns not yet formatted
     # Exclude columns used as row/group names from numeric formatting
@@ -824,7 +758,7 @@ def create_metric_gttable(
         and source_table[col].dtype.is_numeric()
     ]
     if numeric_cols:
-        gt = default_number_formatter(gt, numeric_cols)
+        gt = MetricFormats.DEFAULT_FORMAT.apply_to_gt(gt, numeric_cols)
 
     # Apply RAG coloring
     df_with_rag = add_rag_columns(

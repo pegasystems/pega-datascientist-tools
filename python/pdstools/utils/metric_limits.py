@@ -13,10 +13,12 @@ values in tables.
 import difflib
 import re
 from functools import lru_cache
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Callable, Dict, Literal, Optional, Union
 from ..resources import get_metric_limits_path
 
 import polars as pl
+
+from .number_format import NumberFormat
 
 # Type alias for RAG status values
 RAGValue = Literal["RED", "AMBER", "YELLOW", "GREEN"]
@@ -172,6 +174,11 @@ class MetricLimits:
         -------
         Optional[RAGValue]
             "RED", "AMBER", "GREEN", or None if metric not found or value is None.
+
+        Raises
+        ------
+        TypeError
+            If the value is not a valid type for the metric (e.g., string instead of numeric).
         """
         if value is None:
             return None
@@ -189,6 +196,14 @@ class MetricLimits:
         if is_bool:
             expected = bp_min if bp_min is not None else bp_max
             return "GREEN" if value == expected else "RED"
+
+        # Validate that value is numeric for non-boolean metrics
+        if not isinstance(value, (int, float)):
+            raise TypeError(
+                f"Metric '{metric_id}' requires a numeric value, but received "
+                f"{type(value).__name__}: {value!r}. "
+                f"Check that the column contains numeric data, not strings. "
+            )
 
         # Check RED conditions (outside hard limits)
         if min_val is not None and value < min_val:
@@ -585,3 +600,135 @@ def add_rag_columns(
         rag_expressions.append(build_rag_expr(col, spec))
 
     return df.with_columns(rag_expressions)
+
+
+# =============================================================================
+# Metric Format Definitions
+# =============================================================================
+
+
+class MetricFormats:
+    """Registry of predefined number formats for common metrics.
+
+    This class provides centralized format definitions that can be used
+    across different table rendering backends (great_tables, itables, etc.).
+
+    Examples
+    --------
+    >>> from pdstools.utils.metric_limits import MetricFormats
+    >>>
+    >>> # Get format for a specific metric
+    >>> fmt = MetricFormats.get("ModelPerformance")
+    >>> fmt.format_value(0.875)
+    '0.88'
+    >>>
+    >>> # Check if a metric has a defined format
+    >>> MetricFormats.has_format("CTR")
+    True
+    >>>
+    >>> # List all defined metrics
+    >>> MetricFormats.list_metrics()
+    ['ModelPerformance', 'EngagementLift', ...]
+    """
+
+    # Core metric format definitions
+    _FORMATS: Dict[str, NumberFormat] = {
+        # Model performance: 2 decimals, no scaling
+        "ModelPerformance": NumberFormat(decimals=2),
+        # Engagement lift: 0 decimals, shown as percentage
+        "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
+        # Omni-channel percentage: 1 decimal, shown as percentage
+        "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),
+        # Inbound no-action ratio: 0 decimals, shown as percentage
+        "InboundNoActionRatio": NumberFormat(decimals=0, scale_by=100, suffix="%"),
+        # Outbound no-action ratio: 0 decimals, shown as percentage
+        "OutboundNoActionRatio": NumberFormat(decimals=0, scale_by=100, suffix="%"),
+        # Click-through rate: 3 decimals, shown as percentage
+        "CTR": NumberFormat(decimals=3, scale_by=100, suffix="%"),
+    }
+
+    # Default format for numeric columns not in the registry
+    DEFAULT_FORMAT = NumberFormat(decimals=0, compact=True)
+
+    @classmethod
+    def get(cls, metric_id: str) -> Optional[NumberFormat]:
+        """Get the format definition for a metric.
+
+        Parameters
+        ----------
+        metric_id : str
+            The metric identifier.
+
+        Returns
+        -------
+        NumberFormat or None
+            The format definition, or None if not defined.
+        """
+        return cls._FORMATS.get(metric_id)
+
+    @classmethod
+    def get_or_default(cls, metric_id: str) -> NumberFormat:
+        """Get the format definition for a metric, or the default format.
+
+        Parameters
+        ----------
+        metric_id : str
+            The metric identifier.
+
+        Returns
+        -------
+        NumberFormat
+            The format definition, or DEFAULT_FORMAT if not defined.
+        """
+        return cls._FORMATS.get(metric_id, cls.DEFAULT_FORMAT)
+
+    @classmethod
+    def has_format(cls, metric_id: str) -> bool:
+        """Check if a metric has a defined format.
+
+        Parameters
+        ----------
+        metric_id : str
+            The metric identifier.
+
+        Returns
+        -------
+        bool
+            True if the metric has a defined format.
+        """
+        return metric_id in cls._FORMATS
+
+    @classmethod
+    def list_metrics(cls) -> list:
+        """List all metrics with defined formats.
+
+        Returns
+        -------
+        list
+            List of metric identifiers.
+        """
+        return list(cls._FORMATS.keys())
+
+    @classmethod
+    def register(cls, metric_id: str, format_spec: NumberFormat) -> None:
+        """Register a custom format for a metric.
+
+        Parameters
+        ----------
+        metric_id : str
+            The metric identifier.
+        format_spec : NumberFormat
+            The format specification.
+        """
+        cls._FORMATS[metric_id] = format_spec
+
+    @classmethod
+    def all_formats(cls) -> Dict[str, NumberFormat]:
+        """Get all defined metric formats.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping metric IDs to NumberFormat instances.
+        """
+        return cls._FORMATS.copy()
