@@ -1337,6 +1337,15 @@ wheels = [
 ]
 
 [[package]]
+name = "itables"
+version = "2.6.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/b9/f6a50d98cd303e01604370a39301382a5cf36f2571ff98746d9dfd73f4d4/itables-2.6.2.tar.gz", hash = "sha256:3f73f3041074db6437fbd2f72e8ab5f24c9685707625c085ff71701d43e4c62f", size = 2360659, upload-time = "2025-12-26T17:55:29.441Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/8f/37c3cf033cbd6450150c7d7d7fe916f99c98d7c56f6271dbdeee46368c38/itables-2.6.2-py3-none-any.whl", hash = "sha256:b0ceaef1a7fe2878021049cef10c281d47ce6afcd5807c57d22addd61e5fab05", size = 2393605, upload-time = "2025-12-26T17:55:26.721Z" },
+]
+
+[[package]]
 name = "jedi"
 version = "0.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2374,6 +2383,7 @@ tests = [
     { name = "great-tables" },
     { name = "httpx" },
     { name = "ipywidgets" },
+    { name = "itables" },
     { name = "moto" },
     { name = "onnx" },
     { name = "onnxruntime", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -2419,6 +2429,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'api'" },
     { name = "httpx", marker = "extra == 'docs'" },
     { name = "ipywidgets", marker = "extra == 'explanations'" },
+    { name = "itables", marker = "extra == 'tests'" },
     { name = "moto", marker = "extra == 'tests'" },
     { name = "myst-parser", marker = "extra == 'docs'" },
     { name = "nbsphinx", marker = "extra == 'docs'" },

@@ -21,7 +21,6 @@ from . import Schema
 from .ADMTrees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
-from .CDH_Guidelines import CDHGuidelines
 from .Plots import Plots
 from .Reports import Reports
 
@@ -98,7 +97,6 @@ class ADMDatamart:
     aggregates: Aggregates
     agb: AGB
     generate: Reports
-    cdh_guidelines: CDHGuidelines
     bin_aggregator: BinAggregator
     first_action_dates: Optional[pl.LazyFrame]
 
@@ -122,9 +120,6 @@ class ADMDatamart:
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
         self.generate = Reports(datamart=self)
-        self.cdh_guidelines = (
-            CDHGuidelines()
-        )  # not sure if this should be part of the ADM DM
 
         model_data_validated = self._validate_model_data(
             model_df, extract_pyname_keys=extract_pyname_keys
@@ -143,7 +138,9 @@ class ADMDatamart:
         )
         self.bin_aggregator = BinAggregator(dm=self)
 
-    def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> Optional[pl.LazyFrame]:
+    def _get_first_action_dates(
+        self, df: Optional[pl.LazyFrame]
+    ) -> Optional[pl.LazyFrame]:
         if df is None:
             return df
         return (

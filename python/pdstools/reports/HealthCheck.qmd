@@ -39,7 +39,6 @@ from pdstools import (
     Prediction,
     read_ds_export,
 )
-from pdstools.adm.CDH_Guidelines import CDHGuidelines
 from pdstools.utils import pega_template, report_utils, cdh_utils
 from pdstools.adm.Plots import fig_update_facet
 
@@ -55,8 +54,6 @@ import numpy as np
 import json
 import io
 import datetime
-
-cdh_guidelines = CDHGuidelines()
 
 ```
 
@@ -294,25 +291,23 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 ```{python}
 
 formatted_channel_overview = (
-    report_utils.table_standard_formatting(
+    report_utils.create_metric_gttable(
         df_channel_overview,
         title=f"Channel Overview (models updated since {active_models_threshold_date_string})",
-        cdh_guidelines=cdh_guidelines,
-        highlight_limits={
-            "Positive Responses": "Positives",
-            "Model Performance": "Performance",
-            "Responses": "Responses",
-            "Actions": ["Actions", "Used Actions"],
-            "Treatments": ["Treatments", "Used Treatments"],
-            "Issues": "Issues",
-            "OmniChannel": "OmniChannel",
-            "CTR": "CTR",
+        column_to_metric={
+            "Performance": "ModelPerformance",
+            ("Actions", "Used Actions"): "ActionCount",
+            ("Treatments", "Used Treatments"): "TreatmentCount",
+            "Issues" : "IssueCount",
+            "Positives": "TotalPositiveCount",
+            "Responses": "TotalResponseCount",
+            "OmniChannel": "OmniChannelPercentage",
+            "CTR": report_utils.exclusive_0_1_range_rag,
+            "Configuration" : report_utils.standard_NBAD_configurations_rag,
+            "Channel" : report_utils.standard_NBAD_channels_rag,
+            "Direction" : report_utils.standard_NBAD_directions_rag,
+
         },
-        highlight_lists={
-            "Channel": cdh_guidelines.standard_channels,
-            "Direction": cdh_guidelines.standard_directions,
-        },
-        highlight_configurations=["Configuration"],
     )
     .cols_label(
         CTR="Base Rate",
@@ -489,30 +484,34 @@ if prediction_file_path:
     )
 
     gt = (
-        report_utils.table_standard_formatting(
+        report_utils.create_metric_gttable(
             predictions_overview,
             title="Prediction Overview",
             subtitle="by Channel",
-            cdh_guidelines=cdh_guidelines,
-            highlight_limits={
+            column_to_metric={
                 # "Actions": "Actions",
                 # "Unique Treatments": "Treatments",
-                "Positive Responses": [
+                (
                     "Positives",
                     "Positives_Test",
                     "Positives_Control",
                     "Positives_NBA",
-                ],
-                "Responses": [
+                ): "TotalPositiveCount",
+                (
                     "Responses",
                     "Negatives",
                     "Negatives_Test",
                     "Negatives_Control",
                     "Negatives_NBA",
-                ],
-                "Model Performance": "Performance",
-                "CTR": ["CTR", "CTR_Test", "CTR_Control", "CTR_NBA"],
-                "Engagement Lift": "Lift",
+                ): "TotalResponseCount",
+                "Performance": "ModelPerformance",
+                (
+                    "CTR",
+                    "CTR_Test",
+                    "CTR_Control",
+                    "CTR_NBA",
+                ): report_utils.exclusive_0_1_range_rag,
+                "Lift": "EngagementLift",
             },
         )
         .fmt_percent(
@@ -520,23 +519,25 @@ if prediction_file_path:
             scale_values=False,
             columns=["TestPercentage", "ControlPercentage"],
         )
-        .cols_label(cases={
-            "Responses": "Responses (Total)",
-            "Positives": "Positives (Total)",
-            "Positives_Test": "Positives Test Group",
-            "Negatives_Test": "Negatives Test Group",
-            "Positives_Control": "Positives Control Group",
-            "Negatives_Control": "Negatives Control Group",
-            "Positives_NBA": "Positives NBA Group",
-            "Negatives_NBA": "Negatives NBA Group",
-            "Performance": "Overall Performance",
-            "ControlPercentage": "Control Group Size",
-            "TestPercentage": "Test Group Size",
-            "CTR": "Overall CTR",
-            "CTR_Test": "CTR Test Group",
-            "CTR_Control": "CTR Control Group",
-            "CTR_NBA": "CTR NBA Group",
-            "DateRange Min" : "Date"}
+        .cols_label(
+            cases={
+                "Responses": "Responses (Total)",
+                "Positives": "Positives (Total)",
+                "Positives_Test": "Positives Test Group",
+                "Negatives_Test": "Negatives Test Group",
+                "Positives_Control": "Positives Control Group",
+                "Negatives_Control": "Negatives Control Group",
+                "Positives_NBA": "Positives NBA Group",
+                "Negatives_NBA": "Negatives NBA Group",
+                "Performance": "Overall Performance",
+                "ControlPercentage": "Control Group Size",
+                "TestPercentage": "Test Group Size",
+                "CTR": "Overall CTR",
+                "CTR_Test": "CTR Test Group",
+                "CTR_Control": "CTR Control Group",
+                "CTR_NBA": "CTR NBA Group",
+                "DateRange Min": "Date",
+            }
         )
         .cols_hide(
             [
@@ -546,7 +547,7 @@ if prediction_file_path:
                 "usesImpactAnalyzer",
                 "isValid",
                 "DateRange Max",
-                "Negatives"
+                "Negatives",
             ]
         )
         .tab_style(
@@ -596,6 +597,7 @@ The recommended [Service and data health limits for Pega Customer Decision Hub o
 ```{python}
 # TODO this currently does not include
 # any filtering on active models.
+from pdstools.utils.metric_limits import MetricLimits
 df_action_overview = pl.DataFrame(
     {
         "Item": [
@@ -636,33 +638,33 @@ df_action_overview = pl.DataFrame(
             report_utils.sample_values(datamart, datamart_all_columns, ["Channel", "Direction"]),
         ],
         "Best Practice": [
-            cdh_guidelines.best_practice_min("Actions"),
-            cdh_guidelines.best_practice_min("Actions per Group"),
-            cdh_guidelines.best_practice_min("Treatments"),
-            cdh_guidelines.best_practice_min("Treatments per Channel"),
-            cdh_guidelines.best_practice_min("Treatments per Channel per Action"),
-            cdh_guidelines.best_practice_min("Issues"),
-            cdh_guidelines.best_practice_min("Groups per Issue"),
-            cdh_guidelines.best_practice_min("Groups per Issue"),
-            cdh_guidelines.best_practice_min("Channels"),
+            MetricLimits.best_practice_min("ActionCount"),
+            MetricLimits.best_practice_min("ActionsPerGroupMaximum"),
+            MetricLimits.best_practice_min("TreatmentCount"),
+            MetricLimits.best_practice_min("TreatmentsPerChannelAverage"),
+            MetricLimits.best_practice_min("AverageTreatmentsPerChannelPerAction"),
+            MetricLimits.best_practice_min("IssueCount"),
+            MetricLimits.best_practice_min("AverageGroupsPerIssue"),
+            MetricLimits.best_practice_min("AverageGroupsPerIssue"),
+            MetricLimits.best_practice_min("ChannelsUsingADM"),
         ],
         "Cloud Service Limit": [
-            cdh_guidelines.best_practice_max("Actions"),
-            cdh_guidelines.best_practice_max("Actions per Group"),
-            cdh_guidelines.best_practice_max("Treatments"),
-            cdh_guidelines.best_practice_max("Treatments per Channel"),
-            cdh_guidelines.best_practice_max("Treatments per Channel per Action"),
-            cdh_guidelines.best_practice_max("Issues"),
-            cdh_guidelines.best_practice_max("Groups per Issue"),
-            cdh_guidelines.best_practice_max("Groups per Issue"),
-            cdh_guidelines.best_practice_max("Channels"),
+            MetricLimits.best_practice_max("ActionCount"),
+            MetricLimits.best_practice_max("ActionsPerGroupMaximum"),
+            MetricLimits.best_practice_max("ActionCount"),
+            MetricLimits.best_practice_max("TreatmentsPerChannelAverage"),
+            MetricLimits.best_practice_max("AverageTreatmentsPerChannelPerAction"),
+            MetricLimits.best_practice_max("IssueCount"),
+            MetricLimits.best_practice_max("AverageGroupsPerIssue"),
+            MetricLimits.best_practice_max("AverageGroupsPerIssue"),
+            MetricLimits.best_practice_max("ChannelsUsingADM"),
         ],
     },
     strict=False,
 )
 
 gt = (
-    report_utils.table_standard_formatting(df_action_overview, title="Action Overview", cdh_guidelines=cdh_guidelines)
+    report_utils.create_metric_gttable(df_action_overview, title="Action Overview")
     .fmt_number(decimals=1, columns=["Number"])
     .fmt_number(decimals=0, columns=["Best Practice", "Cloud Service Limit"])
 )
@@ -712,7 +714,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
         ).sort(["Issue", "Group"])
     ).with_columns(pl.format("<b>{}</b", pl.col("Issue")).alias("Issue"))
 
-    gt = report_utils.table_standard_formatting(
+    gt = report_utils.create_metric_gttable(
         df_action_hierarchy.collect(),
         title="Action Hierarchy",
         # subtitle=f"for models updated since {active_models_threshold_date_string}",
@@ -942,7 +944,7 @@ In the standard configuration there is one Adaptive model per treatment/action f
 model_overview = datamart.aggregates.summary_by_configuration()
 
 display(
-    report_utils.table_standard_formatting(
+    report_utils.create_metric_gttable(
         model_overview.with_columns(
             NBAD=pl.when(pl.col("usesNBAD").is_null())
             .then(pl.lit("?"))
@@ -954,20 +956,19 @@ display(
             .when(pl.col("usesAGB"))
             .then(pl.lit("Yes"))
             .otherwise(pl.lit("No")),
-        ).drop("usesNBAD", "usesAGB").collect(),
+        )
+        .drop("usesNBAD", "usesAGB")
+        .collect(),
         title="Model Overview",
-        cdh_guidelines=cdh_guidelines,
-        highlight_limits={
-            "Actions": "Actions",
-            "Treatments": "Unique Treatments",
-            "Positive Responses": "Positives",
-            "Responses": "ResponseCount",
-            "Model Performance": "Performance",
-        },
-        highlight_lists={
-            "Channel": cdh_guidelines.standard_channels,
-            "Direction": cdh_guidelines.standard_directions,
-            "Configuration": cdh_guidelines.standard_non_default_configurations,
+        column_to_metric={
+            "Actions": "ActionCount",
+            "Unique Treatments": "TreatmentCount",
+            "Positives": "TotalPositiveCount",
+            "ResponseCount": "TotalResponseCount",
+            "Performance": "ModelPerformance",
+            "Channel": report_utils.standard_NBAD_channels_rag,
+            "Direction": report_utils.standard_NBAD_directions_rag,
+            "Configuration": report_utils.standard_NBAD_configurations_rag,
         },
     )
     .tab_style(
@@ -1223,12 +1224,14 @@ if datamart.predictor_data is not None:
         .fill_null(0)
     )
 
-    gt = report_utils.table_standard_formatting(
-        predictors_per_category, "Number of Predictors per Predictor Category",
-        cdh_guidelines=cdh_guidelines
-    )
-    gt = report_utils.table_style_predictor_count(
-        gt, [x for x in predictors_per_category.columns if not x in {"Configuration"}]
+    gt = report_utils.create_metric_gttable(
+        predictors_per_category,
+        "Number of Predictors per Predictor Category",
+        column_to_metric={
+            tuple(
+                x for x in predictors_per_category.columns if x not in {"Configuration"}
+            ): "PredictorCount"
+        },
     )
 
     display(gt)
@@ -1353,19 +1356,20 @@ If predictors perform poorly across all models, that may be because of data sour
 if datamart.predictor_data is not None:
     bad_predictors = (
         datamart.aggregates.predictors_global_overview()
-        .filter(pl.col("Mean") < cdh_guidelines.min("Model Performance"))
+        .filter(pl.col("Mean") < MetricLimits.minimum("ModelPerformance"))
         .collect()
     )
     # responses_column_index = bad_predictors.columns.index("Response Count")
 
     display(
-        report_utils.table_standard_formatting(
+        report_utils.create_metric_gttable(
             bad_predictors,
             title="Overview of Poor Predictors",
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
-            cdh_guidelines=cdh_guidelines,
-            highlight_limits={"Responses":[ "Response Count Min", "Response Count Max"]},
+            column_to_metric={
+                ("Response Count Min", "Response Count Max"): "TotalResponseCount"
+            },
         )
         .tab_options(container_height="400px", container_overflow_y=True)
         .tab_spanner(
@@ -1542,36 +1546,36 @@ All below lists are guidance. With new treatments/actions being introduced regul
 maturity_criteria = {
     "Number of models in last snapshot": True,
     f"Models that have never been used (responses = 0)": (
-        pl.col("ResponseCount") < cdh_guidelines.min("Responses")
+        pl.col("ResponseCount") < MetricLimits.minimum("TotalResponseCount")
     ),
     f"Models that have been used (responses > 0) but never received a positive response": (
-        (pl.col("Positives") < cdh_guidelines.min("Positive Responses"))
-        & (pl.col("ResponseCount") >= cdh_guidelines.min("Responses"))
+        (pl.col("Positives") < MetricLimits.minimum("TotalPositiveCount"))
+        & (pl.col("ResponseCount") >= MetricLimits.minimum("TotalResponseCount"))
     ),
-    f"Models that are still in an immature phase of learning (positives < {int(cdh_guidelines.best_practice_min('Positive Responses'))})": (
-        (pl.col("Positives") < cdh_guidelines.best_practice_min("Positive Responses"))
-        & (pl.col("Positives") >= cdh_guidelines.min("Positive Responses"))
+    f"Models that are still in an immature phase of learning (positives < {int(MetricLimits.best_practice_min('TotalPositiveCount'))})": (
+        (pl.col("Positives") < MetricLimits.best_practice_min("TotalPositiveCount"))
+        & (pl.col("Positives") >= MetricLimits.minimum("TotalPositiveCount"))
     ),
     "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)": (
         (pl.col("Performance") == 0.5)
         & (
             pl.col("Positives")
-            >= cdh_guidelines.best_practice_min("Positive Responses")
+            >= MetricLimits.best_practice_min("TotalPositiveCount")
         )
     ),
-    f"Models that have received sufficient responses but still have a low performance (AUC < {cdh_guidelines.min('Model Performance')})": (
+    f"Models that have received sufficient responses but still have a low performance (AUC < {MetricLimits.minimum('ModelPerformance')})": (
         (pl.col("Performance") > 0.5)
-        & (pl.col("Performance") < (cdh_guidelines.min("Model Performance") / 100))
+        & (pl.col("Performance") < (MetricLimits.minimum("ModelPerformance") / 100))
         & (
             pl.col("Positives")
-            >= cdh_guidelines.best_practice_min("Positive Responses")
+            >= MetricLimits.best_practice_min("TotalPositiveCount")
         )
     ),
-    f"Models with sufficient positive responses (≥ {int(cdh_guidelines.best_practice_min('Positive Responses'))}) and a decent performance (≥ {cdh_guidelines.min('Model Performance')})": (
-        (pl.col("Performance") >= (cdh_guidelines.min("Model Performance") / 100))
+    f"Models with sufficient positive responses (≥ {int(MetricLimits.best_practice_min('TotalPositiveCount'))}) and a decent performance (≥ {MetricLimits.minimum('ModelPerformance')})": (
+        (pl.col("Performance") >= (MetricLimits.minimum("ModelPerformance") / 100))
         & (
             pl.col("Positives")
-            >= cdh_guidelines.best_practice_min("Positive Responses")
+            >= MetricLimits.best_practice_min("TotalPositiveCount")
         )
     ),
 }
@@ -1596,10 +1600,9 @@ maturity_overview = pl.concat(
 )
 
 display(
-    report_utils.table_standard_formatting(
+    report_utils.create_metric_gttable(
         maturity_overview,
         title="Model Maturity Overview",
-        cdh_guidelines=cdh_guidelines,
     ).fmt_number(
         decimals=2,
         columns=["Average Performance"],

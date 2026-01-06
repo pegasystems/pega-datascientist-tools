@@ -226,31 +226,28 @@ The classifier maps the model scores (average of the log odds of the active pred
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
 ```{python}
-try:
-    gt = (
-        report_utils.table_standard_formatting(
-            classifier.collect().select(
-                pl.last("ResponseCount"),
-                pl.last("Positives"),
-                (pl.last("Positives") / pl.last("ResponseCount")).alias(
-                    "Base Propensity"
-                ),
-                (pl.lit(auc_roc) * 100).alias("Performance"),
+gt = (
+    report_utils.create_metric_gttable(
+        classifier.collect().select(
+            pl.last("ResponseCount"),
+            pl.last("Positives"),
+            (pl.last("Positives") / pl.last("ResponseCount")).alias(
+                "Base Propensity"
             ),
-            highlight_limits={
-                "Responses": "ResponseCount",
-                "Positive Responses": "Positives",
-                "Model Performance": "Performance",
-                "CTR": "Base Propensity",
-            },
-        ).cols_label(
-            ResponseCount="Responses",
-        )
+            (pl.lit(auc_roc) * 100).alias("Performance"),
+        ),
+        column_to_metric={
+            "ResponseCount": "TotalResponseCount",
+            "Positives": "TotalPositiveCount",
+            "Performance":"ModelPerformance",
+            "Base Propensity": report_utils.exclusive_0_1_range_rag,
+        },
+    ).cols_label(
+        ResponseCount="Responses",
     )
+)
 
-    display(gt)
-except Exception as e:
-    report_utils.quarto_plot_exception("Model Performance", e)
+display(gt)
 ```
 
 ## Score Distribution
@@ -305,7 +302,7 @@ try:
 
     # TODO some of the formatting could be done in GT instead of in polars
 
-    gt = report_utils.table_standard_formatting(
+    gt = report_utils.create_metric_gttable(
         human_friendly_scoredistribution, title="Score Distribution"
     ).tab_style(
         # this won't happen now - we could consider adding
@@ -541,7 +538,7 @@ predictors_summary_info = (
 # TODO we can easily color the predictors by Category
 
 gt = (
-    report_utils.table_standard_formatting(
+    report_utils.create_metric_gttable(
         predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(),
         rowname_col="PredictorLink",
         title="Predictor Overview"
@@ -616,7 +613,7 @@ def show_single_predictor(pred):
     # Predictor summary
 
     display(
-        report_utils.table_standard_formatting(predictor_properties.collect())
+        report_utils.create_metric_gttable(predictor_properties.collect())
         .fmt_number(
             decimals=2,
             scale_by=100.0,
@@ -683,7 +680,7 @@ def show_single_predictor(pred):
     ).collect()
 
     display(
-        report_utils.table_standard_formatting(human_friendly_binning_table)
+        report_utils.create_metric_gttable(human_friendly_binning_table)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
 
