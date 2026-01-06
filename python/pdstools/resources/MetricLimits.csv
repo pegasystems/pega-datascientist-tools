@@ -4,7 +4,7 @@ DecisionHealth,InboundOptionality,2,7,,,"Green colored metrics currently availab
 DecisionHealth,OutboundNoActionRatio,,0,0.3,0.8,Can be higher than inbound,Values below Minimum or above Maximum will be colored RED (if Min/Max are defined).
 DecisionHealth,OutboundOptionality,2,7,,,,Values between Minimum and Best Practice Min or between Best Practice Max and Maximum become AMBER.
 Environment,IsOnCloudK,,TRUE,,,,
-Environment,IsPegaCloud,,TRUE,,,,For logical values:
+Environment,IsPegaCloud,TRUE,,,,,For logical values:
 ML Models,ActivePredictorsPerModelAverage,2,5,100,,Per configuration?,Use either Best Practice Min or Max (or both) to give the GOOD value (which becomes green)
 ML Models,DailyPositiveCount,1,200,,,,
 ML Models,DailyResponseCount,1,200,,,,Good values (Green) will not result in an issue code
@@ -23,9 +23,9 @@ NBA Configuration,ChannelsUsingADM,1,2,,,,
 NBA Configuration,ConfigurationCount,,,,,,
 NBA Configuration,StandardNBADConfigurationCount,,,,,,
 NBA Configuration,StandardNBADConfigurationPercentage,,,,,,
-NBA Configuration,UsingADM,,TRUE,,,,
+NBA Configuration,UsingADM,TRUE,,,,,
 NBA Configuration,UsingAGB,,TRUE,,,,
-NBA Configuration,UsingNBAD,,TRUE,,,,
+NBA Configuration,UsingNBAD,TRUE,,,,,
 NBA Configuration,UsingImpactAnalyzer,,TRUE,,,,
 Taxonomy,ActionCount,50,100,2500,10000,From service health limits,
 Taxonomy,ActiveActionCount,50,100,2500,10000,,

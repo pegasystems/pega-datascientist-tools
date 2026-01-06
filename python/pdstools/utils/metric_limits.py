@@ -179,6 +179,12 @@ class MetricLimits:
         ------
         TypeError
             If the value is not a valid type for the metric (e.g., string instead of numeric).
+
+        Notes
+        -----
+        For boolean metrics:
+        - If TRUE is in Minimum or Maximum (hard limit): TRUE → GREEN, FALSE → RED
+        - If TRUE is in Best Practice Min or Max (soft limit): TRUE → GREEN, FALSE → AMBER
         """
         if value is None:
             return None
@@ -194,8 +200,14 @@ class MetricLimits:
         is_bool = limits.get("is_boolean", False)
 
         if is_bool:
-            expected = bp_min if bp_min is not None else bp_max
-            return "GREEN" if value == expected else "RED"
+            # Check hard limits first (Minimum/Maximum) - violations are RED
+            if min_val is True or max_val is True:
+                return "GREEN" if value is True else "RED"
+            # Check soft limits (Best Practice Min/Max) - violations are AMBER
+            if bp_min is True or bp_max is True:
+                return "GREEN" if value is True else "AMBER"
+            # No boolean limits defined, default to GREEN
+            return "GREEN"
 
         # Validate that value is numeric for non-boolean metrics
         if not isinstance(value, (int, float)):
