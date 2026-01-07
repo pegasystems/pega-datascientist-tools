@@ -493,9 +493,21 @@ def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
 
 
+def _escape_html_attr(text: str) -> str:
+    """Escape text for use in HTML attributes."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
 def create_metric_itable(
     source_table: pl.DataFrame,
     column_to_metric: Optional[Dict] = None,
+    column_descriptions: Optional[Dict[str, str]] = None,
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
@@ -520,6 +532,10 @@ def create_metric_itable(
           Supports tuple keys for multiple values: {("Yes", "yes"): True}
 
         If a column is not in this dict, its name is used as the metric ID.
+    column_descriptions : dict, optional
+        Mapping from column names to tooltip descriptions. When provided,
+        column headers will display the description as a tooltip on hover.
+        Example: {"Performance": "Model AUC performance metric"}
     color_background : bool, default False
         If True, colors the cell background. If False, colors the text (foreground).
     strict_metric_validation : bool, default True
@@ -552,6 +568,10 @@ def create_metric_itable(
     ...         # Multiple column values to same metric value
     ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
     ...     },
+    ...     column_descriptions={
+    ...         "Performance": "Model AUC performance metric",
+    ...         "Channel": "Communication channel for the action",
+    ...     },
     ...     paging=False
     ... )
     """
@@ -577,6 +597,17 @@ def create_metric_itable(
     # Convert to pandas for styling
     pdf = source_table.to_pandas()
     pdf_rag = df_with_rag.to_pandas()
+
+    # Rename columns to include HTML tooltips if column_descriptions provided
+    # Must be done before styling since Styler doesn't have rename method
+    column_rename = {}
+    if column_descriptions:
+        for col in source_table.columns:
+            if col in column_descriptions:
+                escaped_desc = _escape_html_attr(column_descriptions[col])
+                column_rename[col] = f'<span title="{escaped_desc}">{col}</span>'
+        if column_rename:
+            pdf = pdf.rename(columns=column_rename)
 
     def style_row(row):
         styles = []
@@ -643,6 +674,7 @@ def create_metric_gttable(
     title: Optional[str] = None,
     subtitle: Optional[str] = None,
     column_to_metric: Optional[Dict] = None,
+    column_descriptions: Optional[Dict[str, str]] = None,
     color_background: bool = True,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = True,
@@ -671,6 +703,10 @@ def create_metric_gttable(
           Supports tuple keys for multiple values: {("Yes", "yes"): True}
 
         If a column is not in this dict, its name is used as the metric ID.
+    column_descriptions : dict, optional
+        Mapping from column names to tooltip descriptions. When provided,
+        column headers will display the description as a tooltip on hover.
+        Example: {"Performance": "Model AUC performance metric"}
     color_background : bool, default True
         If True, colors the cell background. If False, colors the text.
     strict_metric_validation : bool, default True
@@ -704,10 +740,14 @@ def create_metric_gttable(
     ...         # Multiple column values to same metric value
     ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
     ...     },
+    ...     column_descriptions={
+    ...         "Performance": "Model AUC performance metric",
+    ...         "Channel": "Communication channel for the action",
+    ...     },
     ...     rowname_col="Name",
     ... )
     """
-    from great_tables import GT, loc, style
+    from great_tables import GT, loc, style, html
     from .metric_limits import add_rag_columns
 
     RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
@@ -723,6 +763,17 @@ def create_metric_gttable(
 
     if title is not None:
         gt = gt.tab_header(title=title, subtitle=subtitle)
+
+    # Apply column label tooltips if column_descriptions provided
+    if column_descriptions:
+        label_kwargs = {}
+        for col in source_table.columns:
+            if col in column_descriptions:
+                escaped_desc = _escape_html_attr(column_descriptions[col])
+                # Wrap column label in span with title attribute for tooltip
+                label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
+        if label_kwargs:
+            gt = gt.cols_label(**label_kwargs)
 
     # Expand tuple keys to individual columns
     expanded_mapping = {}
