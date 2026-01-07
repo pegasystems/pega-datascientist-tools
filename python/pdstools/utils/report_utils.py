@@ -1,3 +1,4 @@
+import html
 import os
 import datetime
 import io
@@ -493,17 +494,6 @@ def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
 
 
-def _escape_html_attr(text: str) -> str:
-    """Escape text for use in HTML attributes."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#39;")
-    )
-
-
 def create_metric_itable(
     source_table: pl.DataFrame,
     column_to_metric: Optional[Dict] = None,
@@ -604,7 +594,7 @@ def create_metric_itable(
     if column_descriptions:
         for col in source_table.columns:
             if col in column_descriptions:
-                escaped_desc = _escape_html_attr(column_descriptions[col])
+                escaped_desc = html.escape(column_descriptions[col], quote=True)
                 column_rename[col] = f'<span title="{escaped_desc}">{col}</span>'
         if column_rename:
             pdf = pdf.rename(columns=column_rename)
@@ -747,6 +737,7 @@ def create_metric_gttable(
     ...     rowname_col="Name",
     ... )
     """
+    import html as html_module
     from great_tables import GT, loc, style, html
     from .metric_limits import add_rag_columns
 
@@ -769,7 +760,7 @@ def create_metric_gttable(
         label_kwargs = {}
         for col in source_table.columns:
             if col in column_descriptions:
-                escaped_desc = _escape_html_attr(column_descriptions[col])
+                escaped_desc = html_module.escape(column_descriptions[col], quote=True)
                 # Wrap column label in span with title attribute for tooltip
                 label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
         if label_kwargs:
