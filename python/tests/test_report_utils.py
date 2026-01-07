@@ -109,6 +109,103 @@ def test_set_command_options():
     assert report_utils._set_command_options(execute_params=False) == []
 
 
+def test_create_metric_gttable_column_descriptions():
+    """Test that column_descriptions adds tooltips to GT table headers."""
+    df = pl.DataFrame(
+        {
+            "Model": ["A", "B", "C"],
+            "Performance": [0.72, 0.58, 0.85],
+            "Channel": ["Web", "Email", "Mobile"],
+        }
+    )
+
+    column_descriptions = {
+        "Model": "The predictive model name",
+        "Performance": "Model AUC score (0.5-1.0)",
+    }
+
+    gt = report_utils.create_metric_gttable(
+        df,
+        column_descriptions=column_descriptions,
+        strict_metric_validation=False,
+    )
+
+    # Convert to HTML and check for title attributes
+    html = gt.as_raw_html()
+    assert 'title="The predictive model name"' in html
+    assert 'title="Model AUC score (0.5-1.0)"' in html
+    # Channel was not in column_descriptions, so should not have tooltip
+    assert html.count('title="') == 2
+
+
+def test_create_metric_itable_column_descriptions(monkeypatch):
+    """Test that column_descriptions renames columns with HTML tooltips for itables."""
+    df = pl.DataFrame(
+        {
+            "Model": ["A", "B", "C"],
+            "Performance": [0.72, 0.58, 0.85],
+            "Channel": ["Web", "Email", "Mobile"],
+        }
+    )
+
+    column_descriptions = {
+        "Model": "The predictive model name",
+        "Performance": "Model AUC score (0.5-1.0)",
+    }
+
+    # Mock itables.show to capture what it receives
+    captured_df = None
+
+    def mock_show(styled_df, **kwargs):
+        nonlocal captured_df
+        # The styled_df is a pandas Styler, get the underlying DataFrame
+        captured_df = styled_df.data
+        return None
+
+    import itables
+
+    monkeypatch.setattr(itables, "show", mock_show)
+
+    report_utils.create_metric_itable(
+        df,
+        column_descriptions=column_descriptions,
+        strict_metric_validation=False,
+    )
+
+    assert captured_df is not None
+    # Check that Model column was renamed to include tooltip
+    model_col = [c for c in captured_df.columns if "Model" in c][0]
+    assert 'title="The predictive model name"' in model_col
+    assert "<span" in model_col
+
+    # Check that Performance column was renamed to include tooltip
+    perf_col = [c for c in captured_df.columns if "Performance" in c][0]
+    assert 'title="Model AUC score (0.5-1.0)"' in perf_col
+
+    # Channel was not in column_descriptions, so should not have tooltip
+    channel_col = [c for c in captured_df.columns if "Channel" in c][0]
+    assert channel_col == "Channel"  # unchanged
+
+
+def test_create_metric_gttable_without_column_descriptions():
+    """Test that GT table works normally without column_descriptions."""
+    df = pl.DataFrame(
+        {
+            "Model": ["A", "B"],
+            "Value": [1.0, 2.0],
+        }
+    )
+
+    gt = report_utils.create_metric_gttable(
+        df,
+        strict_metric_validation=False,
+    )
+
+    html = gt.as_raw_html()
+    # No tooltips should be added
+    assert 'title="' not in html
+
+
 def test_write_params_files_size_reduction_method(tmp_path):
     """Test _write_params_files sets plotly-connected correctly based on size_reduction_method."""
     import yaml
