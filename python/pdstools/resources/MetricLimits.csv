@@ -6,8 +6,9 @@ DecisionHealth,OutboundOptionality,2,7,,,,Values between Minimum and Best Practi
 Environment,IsCloudK,,TRUE,,,,
 Environment,IsPegaCloud,TRUE,,,,,For logical values:
 Environment,HasMLAIData,TRUE,,,,,Use Minimum or Best Practice Min to indicate whether not satisfying is critical (RED) or not best practice (AMBER)
-ML Models,ActivePredictorsPerModelAverage,2,5,100,,Per configuration?,
-ML Models,DailyPositiveCount,1,200,,,,Good values (Green) will not result in an issue code
+Environment,IsOnPDC,TRUE,,,,,
+ML Models,ActivePredictorsPerModelAverage,2,5,100,,Per configuration?,Good values (Green) will not result in an issue code
+ML Models,DailyPositiveCount,1,200,,,,
 ML Models,DailyResponseCount,1,200,,,,
 ML Models,TotalPositiveCount,1,200,,,Only used internally in PDS tools for ADM Health Checks,
 ML Models,TotalResponseCount,1,200,,,,
