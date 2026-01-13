@@ -38,7 +38,7 @@ jobs:
         run: |
           uv run python .github/scripts/excel_to_csv.py \
             --input python/pdstools/resources/MetricLimits.xlsx \
-            --table Table1 \
+            --table Thresholds \
             --output python/pdstools/resources/MetricLimits.csv
 
       - name: Upload CSV artifact
