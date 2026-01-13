@@ -1,0 +1,60 @@
+name: Export Excel table to CSV
+
+on:
+  push:
+    paths:
+      - "python/pdstools/resources/**/*.xlsx"
+      - ".github/scripts/excel_to_csv.py"
+      - ".github/workflows/excel_to_csv.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Install dependencies
+        run: uv sync --extra tests
+
+      - name: Convert named table to CSV
+        run: |
+          uv run python .github/scripts/excel_to_csv.py \
+            --input python/pdstools/resources/MetricLimits.xlsx \
+            --table Table1 \
+            --output python/pdstools/resources/MetricLimits.csv
+
+      - name: Upload CSV artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: exported-csv
+          path: python/pdstools/resources/MetricLimits.csv
+
+      - name: Commit CSV if changed
+        run: |
+          if git diff --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add python/pdstools/resources/MetricLimits.csv
+          git commit -m "Auto-export CSV from Excel table"
+          git push
