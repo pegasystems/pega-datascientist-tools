@@ -13,21 +13,18 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument(
         "--input",
-        required=False,
+        required=True,
         help="Path to .xlsx",
-        default="python/pdstools/resources/MetricLimits.xlsx",
     )
     p.add_argument(
         "--table",
-        required=False,
+        required=True,
         help="Named Excel table (e.g. MyTable)",
-        default="Table1",
     )
     p.add_argument(
         "--output",
-        required=False,
+        required=True,
         help="Path to output CSV",
-        default="python/pdstools/resources/output.csv",
     )
     args = p.parse_args()
 
