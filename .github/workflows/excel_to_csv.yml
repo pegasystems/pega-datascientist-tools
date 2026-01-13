@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - "python/pdstools/resources/**/*.xlsx"
-      - ".github/scripts/excel_to_csv.py"
       - ".github/workflows/excel_to_csv.yml"
   workflow_dispatch: {}
 
@@ -36,10 +35,7 @@ jobs:
 
       - name: Convert named table to CSV
         run: |
-          uv run python .github/scripts/excel_to_csv.py \
-            --input python/pdstools/resources/MetricLimits.xlsx \
-            --table Thresholds \
-            --output python/pdstools/resources/MetricLimits.csv
+          uv run python -c "import polars as pl; pl.read_excel('python/pdstools/resources/MetricLimits.xlsx', table_name='Thresholds', engine='openpyxl').write_csv('python/pdstools/resources/MetricLimits.csv', line_terminator='\n')"
 
       - name: Upload CSV artifact
         uses: actions/upload-artifact@v4
