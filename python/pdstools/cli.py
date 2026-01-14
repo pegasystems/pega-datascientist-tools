@@ -9,27 +9,37 @@ import argparse
 import sys
 from importlib import resources
 
+# App configuration with display names and paths
+APPS = {
+    "health_check": {
+        "display_name": "Health Check",
+        "path": "pdstools.app.health_check",
+    },
+    "decision_analyzer": {
+        "display_name": "Decision Analyzer",
+        "path": "pdstools.app.decision_analyzer",
+    },
+}
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps."
     )
-    subparsers = parser.add_subparsers(dest="command")
 
-    # Subparser for the 'run' command
-    run_parser = subparsers.add_parser("run", help="Run the specified pdstools app")
-    run_parser.add_argument(
-        "app",
-        choices=["health_check", "decision_analyzer"],
-        help='The app to run: "health_check" or "decision_analyzer"',
-        default="health_check",
-        nargs="?",  # This makes the 'app' argument optional, allowing the default to take effect
+    # Create help text with display names
+    app_choices = list(APPS.keys())
+    help_text = "The app to run: " + " | ".join(
+        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices]
     )
-    run_parser.set_defaults(func=run)
 
-    # Set 'run' as the default subcommand
-    parser.set_defaults(command="run", func=run, app="health_check")
-
+    parser.add_argument(
+        "app",
+        choices=app_choices,
+        help=help_text,
+        nargs="?",  # This makes the 'app' argument optional
+        default=None,  # Explicitly set default to None
+    )
     return parser
 
 
@@ -37,22 +47,79 @@ def main():
     parser = create_parser()
     args, unknown = parser.parse_known_args()
 
-    # Manually handle the default command if none is provided
-    if args.command is None:
-        args.command = "run"
-        args.app = "health_check"
-
-    args.func(args, unknown)
+    run(args, unknown)
 
 
 def run(args, unknown):
-    from streamlit.web import cli as stcli
+    try:
+        from streamlit.web import cli as stcli
+    except ImportError:
+        print(
+            "Error: streamlit is not installed. Try installing the optionall dependency group 'app'.\n"
+            "If you are using uvx, try running uvx 'pdstools[app]' instead."
+        )
+        sys.exit(1)
 
-    print("Running app.")
-    print(unknown)
+    # If no app is specified, prompt the user to choose
+    if args.app is None:
+        app_list = list(APPS.keys())
+        print("Available pdstools apps:")
+        for i, app_key in enumerate(app_list, 1):
+            display_name = APPS[app_key]["display_name"]
+            print(f"  {i}. {display_name}")
+
+        while True:
+            try:
+                choice = input(
+                    f"\nPlease select an app to run (1-{len(app_list)}): "
+                ).strip()
+
+                # Check if it's a number
+                if choice.isdigit() and 1 <= int(choice) <= len(app_list):
+                    args.app = app_list[int(choice) - 1]
+                    break
+
+                # Check if it's an internal app name
+                elif choice.lower() in APPS:
+                    args.app = choice.lower()
+                    break
+
+                # Check if it's a display name (case insensitive)
+                else:
+                    found = False
+                    for app_key, app_info in APPS.items():
+                        if choice.lower() == app_info["display_name"].lower():
+                            args.app = app_key
+                            found = True
+                            break
+                    if found:
+                        break
+
+                    # If we get here, invalid input
+                    valid_options = []
+                    valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
+                    valid_options.extend(APPS.keys())
+                    valid_options.extend(
+                        [app_info["display_name"] for app_info in APPS.values()]
+                    )
+                    print(
+                        f"Invalid choice. Please enter: {', '.join(valid_options[:4])}..."
+                    )
+
+            except (KeyboardInterrupt, EOFError):
+                print("\nExiting...")
+                sys.exit(0)
+            except Exception:
+                print("Invalid input. Please try again.")
+
+    display_name = APPS[args.app]["display_name"]
+    print(f"Running {display_name} app...")
+
+    app_path = APPS[args.app]["path"]
+    with resources.path(app_path, "Home.py") as filepath:
+        filename = str(filepath)
+
     if args.app == "decision_analyzer":
-        with resources.path("pdstools.app.decision_analyzer", "Home.py") as filepath:
-            filename = str(filepath)
         sys.argv = [
             "streamlit",
             "run",
@@ -61,8 +128,6 @@ def run(args, unknown):
             "false",
         ]
     else:  # health_check
-        with resources.path("pdstools.app.health_check", "Home.py") as filepath:
-            filename = str(filepath)
         sys.argv = ["streamlit", "run", filename]
 
     if unknown:
