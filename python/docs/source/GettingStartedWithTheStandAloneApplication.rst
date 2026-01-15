@@ -24,11 +24,37 @@ Before installing the Python components, you need to install these external appl
 
 These are standalone applications, not Python libraries, and must be installed separately on your system.
 
+
+Installation
+------------
+
 To use the stand-alone health check application, you need to install several Python components. Choose your preferred Python package manager:
 
 .. tabs::
+   .. group-tab:: uv tool (recommended)
 
-   .. group-tab:: uv (Recommended)
+      We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
+
+      **Step 1:** Install uv
+
+      If you haven't yet, install uv from https://github.com/astral-sh/uv. We recommend using the standalone installer, as it has a ``uv self update`` function.
+
+      **Step 2:** Install the pdstools applications as uv tool
+
+      The simplest method of running the Health Check application is by installing it to your system as a tool:
+
+      .. code-block:: bash
+
+         uv tool install 'pdstools[app]'
+
+      This will install the pdstools application globally on your system, making the ``pdstools`` command available from any terminal.
+
+      .. Note:: You do not need to create a virtual environment with this method - uv handles that for you. This assures global access and avoids dependency conflicts.
+
+      .. Note:: If you are a developer and want to contribute to the codebase, consider using the "uv + venv" method instead to install the app into a local virtual environment.
+
+
+   .. group-tab:: uv + venv
 
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
@@ -50,7 +76,7 @@ To use the stand-alone health check application, you need to install several Pyt
 
          uv pip install 'pdstools[app]'
 
-      **Note:** If you don't have Python or no compatible version installed, uv will automatically install a compatible version for you.
+      .. note:: If you don't have Python or no compatible version installed, uv will automatically install a compatible version for you.
 
    .. group-tab:: pip + venv
 
@@ -120,11 +146,21 @@ Once everything is installed, you can launch the Health Check application:
 
 .. tabs::
 
-   .. group-tab:: uv (Recommended)
+   .. group-tab:: uv tool (recommended)
+
+      From any terminal, simply run:
 
       .. code-block:: bash
 
-         uv run pdstools run
+         pdstools
+
+      This will prompt you to open either the ADM Health Check or the Decision Analyzer application. Choose the Health Check option.
+
+   .. group-tab:: uv + venv
+
+      .. code-block:: bash
+
+         uv run pdstools
 
    .. group-tab:: pip + venv
 
@@ -132,13 +168,13 @@ Once everything is installed, you can launch the Health Check application:
 
       .. code-block:: bash
 
-         pdstools run
+         pdstools
 
    .. group-tab:: pip (global)
 
       .. code-block:: bash
 
-         pdstools run
+         pdstools
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
@@ -177,8 +213,13 @@ Upgrading pdstools
 If you already had an older version of pdstools, make sure to upgrade to the latest version:
 
 .. tabs::
+   .. group-tab:: uv tool (recommended)
 
-   .. group-tab:: uv (Recommended)
+      .. code-block:: bash
+
+         uv tool update pdstools
+
+   .. group-tab:: uv + venv
 
       .. code-block:: bash
 

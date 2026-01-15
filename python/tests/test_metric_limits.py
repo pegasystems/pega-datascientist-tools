@@ -217,7 +217,9 @@ class TestAddRagColumns:
         # UsingAGB has best_practice_min=True (boolean metric)
         result = add_rag_columns(
             df,
-            column_to_metric={"AGB": ("UsingAGB", {"Yes": True, "No": False})},
+            column_to_metric={
+                "AGB": ("UsingAGB", {"Yes": True, "No": False, "?": False})
+            },
             strict_metric_validation=True,
         )
         assert "AGB_RAG" in result.columns
