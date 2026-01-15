@@ -1,9 +1,9 @@
 """Metric limits and NBAD configuration utilities.
 
 The MetricLimits.csv in resources defines min/max and best practice values
-for CDH/DSM metrics. It currently is sourced from an Excel file that gets
-exported to CSV (no special options, just straight export) and copied into
-this library.
+for CDH/DSM metrics. The CSV contains numeric values directly:
+- Boolean metrics use 1.0 for True requirements (in Minimum or Best Practice Min)
+- Percentages/ratios are stored as rates (0-1), not as percentages (0-100)
 
 This module provides access methods to this data and validation functions
 that turn metric values into "RAG" indicators that can be used to highlight
@@ -31,26 +31,8 @@ ValueMapping = dict[Union[str, tuple], Any]
 # Can be: "MetricID" or ("MetricID", ValueMapping) or callable
 MetricSpec = Union[str, tuple[str, ValueMapping], Callable]
 
-
-def _convert_excel_csv_value(value: str) -> Union[float, bool, None]:
-    """Convert Excel/CSV value to Python type (float, bool, or None)."""
-    if value is None or value == "":
-        return None
-    if isinstance(value, str):
-        value_upper = value.upper().strip()
-        if value_upper == "TRUE":
-            return True
-        if value_upper == "FALSE":
-            return False
-        if "%" in value:
-            try:
-                return float(value.replace("%", "").strip()) / 100.0
-            except (ValueError, TypeError):
-                return None
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return None
+# Columns containing limit values in MetricLimits.csv
+_LIMIT_COLUMNS = ["Minimum", "Best Practice Min", "Best Practice Max", "Maximum"]
 
 
 def _normalize_name(name: str) -> str:
@@ -71,28 +53,31 @@ class MetricLimits:
     @classmethod
     @lru_cache(maxsize=1)
     def get_limits(cls) -> pl.DataFrame:
-        """Get all metric limits as a DataFrame."""
-        raw_csv = pl.read_csv(source=get_metric_limits_path()).filter(
+        """Get all metric limits as a DataFrame.
+
+        The CSV contains numeric values directly. Boolean metrics are detected
+        by checking if all defined limit values are either 0.0 or 1.0.
+        """
+        limits_df = pl.read_csv(source=get_metric_limits_path()).filter(
             pl.col("MetricID").is_not_null() & (pl.col("MetricID") != "")
         )
 
-        limits_df = raw_csv.with_columns(
-            [
-                pl.col(col)
-                .map_elements(_convert_excel_csv_value, return_dtype=pl.Object)
-                .alias(col)
-                for col in [
-                    "Minimum",
-                    "Best Practice Min",
-                    "Best Practice Max",
-                    "Maximum",
-                ]
-            ]
+        # Cast limit columns to Float64 (they're already numeric in the CSV)
+        limits_df = limits_df.with_columns(
+            [pl.col(col).cast(pl.Float64) for col in _LIMIT_COLUMNS]
         )
 
+        # A metric is boolean if all its defined (non-null) limits are 0.0 or 1.0
+        def is_boolean_metric(row: dict) -> bool:
+            values = [row.get(col) for col in _LIMIT_COLUMNS]
+            defined_values = [v for v in values if v is not None]
+            if not defined_values:
+                return False
+            return all(v in (0.0, 1.0) for v in defined_values)
+
         return limits_df.with_columns(
-            pl.col("Best Practice Min")
-            .map_elements(lambda x: isinstance(x, bool), return_dtype=pl.Boolean)
+            pl.struct(_LIMIT_COLUMNS)
+            .map_elements(is_boolean_metric, return_dtype=pl.Boolean)
             .alias("is_boolean")
         )
 
@@ -200,12 +185,16 @@ class MetricLimits:
         is_bool = limits.get("is_boolean", False)
 
         if is_bool:
+            # For boolean metrics, 1.0 represents True, 0.0 represents False
+            # Accept both Python bool and numeric representations
+            value_is_true = value is True or value == 1.0
+
             # Check hard limits first (Minimum/Maximum) - violations are RED
-            if min_val is True or max_val is True:
-                return "GREEN" if value is True else "RED"
+            if min_val == 1.0 or max_val == 1.0:
+                return "GREEN" if value_is_true else "RED"
             # Check soft limits (Best Practice Min/Max) - violations are AMBER
-            if bp_min is True or bp_max is True:
-                return "GREEN" if value is True else "AMBER"
+            if bp_min == 1.0 or bp_max == 1.0:
+                return "GREEN" if value_is_true else "AMBER"
             # No boolean limits defined, default to GREEN
             return "GREEN"
 
