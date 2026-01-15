@@ -25,7 +25,7 @@ ML Models,ClickThroughTrend,0.95,1.05,,,Some variance can occur so 0.96 can occu
 NBA Configuration,ChannelsUsingADM,1.0,2.0,,,
 NBA Configuration,ConfigurationCount,,,,,
 NBA Configuration,StandardNBADConfigurationCount,,,,,
-NBA Configuration,StandardNBADConfigurationPercentage,,,0.2,0.9,
+NBA Configuration,StandardNBADConfigurationPercentage,0.2,0.9,,,
 NBA Configuration,UsingADM,1.0,,,,
 NBA Configuration,UsingAGB,,1.0,,,
 NBA Configuration,UsingNBAD,1.0,,,,
