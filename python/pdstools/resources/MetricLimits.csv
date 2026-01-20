@@ -1,7 +1,7 @@
 Category,MetricID,Minimum,Best Practice Min,Best Practice Max,Maximum,Notes (won't be used)
-DecisionHealth,InboundNoActionRatio,,0.0,0.1,0.8,Ratios are 0-1 percentages are 0-100%. Mark suggests to reverse the metric so higher numbers are generally better.
+DecisionHealth,InboundNoActionRatio,,0.0,0.1,0.9,Ratios are 0-1 percentages are 0-100%. Mark suggests to reverse the metric so higher numbers are generally better.
 DecisionHealth,InboundOptionality,2.0,7.0,,,Green colored metrics currently available black not (yet)
-DecisionHealth,OutboundNoActionRatio,,0.0,0.3,0.8,Can be higher than inbound
+DecisionHealth,OutboundNoActionRatio,,0.0,0.3,0.9,Can be higher than inbound
 DecisionHealth,OutboundOptionality,2.0,7.0,,,
 Environment,IsCloudK,,1.0,,,
 Environment,IsPegaCloud,1.0,,,,
