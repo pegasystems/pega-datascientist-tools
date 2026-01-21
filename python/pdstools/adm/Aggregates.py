@@ -447,7 +447,7 @@ class Aggregates:
                     "Responses Inbound",
                     "Responses Outbound",
                 ),
-                (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
+                (cdh_utils.weighted_performance_polars()).alias("Performance"),
             )
             .with_columns(
                 # applies to totals not delta
@@ -767,8 +767,7 @@ class Aggregates:
                 pl.col("ModelID").n_unique(),
                 *action_dim_agg,
                 pl.sum(["ResponseCount", "Positives"]),
-                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
-                * 100.0,
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
             )
             .with_columns(
                 (pl.col("ModelID") / pl.col("Actions"))

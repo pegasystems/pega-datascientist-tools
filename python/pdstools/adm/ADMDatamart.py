@@ -444,6 +444,14 @@ class ADMDatamart:
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        # This aligns with MetricLimits.csv thresholds for RAG evaluation
+        perf_max = df.select(pl.col("Performance").max()).collect().item()
+        if perf_max is not None and perf_max > 1.0:
+            df = df.with_columns(
+                Performance=pl.col("Performance") / 100.0,
+            )
+
         return df
 
     def _validate_predictor_data(
@@ -475,6 +483,16 @@ class ADMDatamart:
                 df=df
             )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
+
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        # Only normalize if data appears to be in 50-100 scale (max > 1)
+        # Must happen after schema types are applied (Performance cast to Float64)
+        if "Performance" in df.collect_schema().names():
+            perf_max = df.select(pl.col("Performance").max()).collect().item()
+            if perf_max is not None and perf_max > 1.0:
+                df = df.with_columns(
+                    Performance=pl.col("Performance") / 100.0,
+                )
         return df
 
     def apply_predictor_categorization(

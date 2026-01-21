@@ -624,7 +624,7 @@ class MetricFormats:
     """
 
     _FORMATS: Dict[str, NumberFormat] = {
-        "ModelPerformance": NumberFormat(decimals=2),
+        "ModelPerformance": NumberFormat(decimals=2, scale_by=100),
         "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
         "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),
         "InboundNoActionRatio": NumberFormat(decimals=0, scale_by=100, suffix="%"),
