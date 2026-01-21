@@ -1356,7 +1356,7 @@ If predictors perform poorly across all models, that may be because of data sour
 if datamart.predictor_data is not None:
     bad_predictors = (
         datamart.aggregates.predictors_global_overview()
-        .filter(pl.col("Mean") < MetricLimits.minimum("ModelPerformance"))
+        .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
         .collect()
     )
     # responses_column_index = bad_predictors.columns.index("Response Count")
@@ -1565,14 +1565,14 @@ maturity_criteria = {
     ),
     f"Models that have received sufficient responses but still have a low performance (AUC < {MetricLimits.minimum('ModelPerformance')})": (
         (pl.col("Performance") > 0.5)
-        & (pl.col("Performance") < (MetricLimits.minimum("ModelPerformance") / 100))
+        & (pl.col("Performance") < MetricLimits.minimum("ModelPerformance"))
         & (
             pl.col("Positives")
             >= MetricLimits.best_practice_min("TotalPositiveCount")
         )
     ),
     f"Models with sufficient positive responses (≥ {int(MetricLimits.best_practice_min('TotalPositiveCount'))}) and a decent performance (≥ {MetricLimits.minimum('ModelPerformance')})": (
-        (pl.col("Performance") >= (MetricLimits.minimum("ModelPerformance") / 100))
+        (pl.col("Performance") >= MetricLimits.minimum("ModelPerformance"))
         & (
             pl.col("Positives")
             >= MetricLimits.best_practice_min("TotalPositiveCount")

@@ -252,16 +252,16 @@ class TestEvaluateMetricRAG:
         limits = MetricLimits.get_limit_for_metric("ModelPerformance")
 
         # Test below minimum is RED
-        assert MetricLimits.evaluate_metric_rag("ModelPerformance", 49.0) == "RED"
+        assert MetricLimits.evaluate_metric_rag("ModelPerformance", 0.49) == "RED"
 
         # Test above maximum is RED
-        assert MetricLimits.evaluate_metric_rag("ModelPerformance", 101.0) == "RED"
+        assert MetricLimits.evaluate_metric_rag("ModelPerformance", 1.01) == "RED"
 
         # Test within best practice range is GREEN
         bp_min = limits["best_practice_min"]
         if bp_min is not None:
             assert (
-                MetricLimits.evaluate_metric_rag("ModelPerformance", bp_min + 1)
+                MetricLimits.evaluate_metric_rag("ModelPerformance", bp_min + 0.01)
                 == "GREEN"
             )
 
