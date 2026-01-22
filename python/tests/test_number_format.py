@@ -118,7 +118,7 @@ class TestMetricFormats:
     @pytest.mark.parametrize(
         "metric_id,value,expected",
         [
-            ("ModelPerformance", 0.875, "0.88"),
+            ("ModelPerformance", 0.875, "87.50"),
             ("CTR", 0.00123, "0.123%"),
             ("EngagementLift", 0.15, "15%"),
         ],

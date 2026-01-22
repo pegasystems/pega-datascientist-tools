@@ -16,7 +16,7 @@ ML Models,EngagementLift,0.0,1.0,,,
 ML Models,ImmatureModelCount,,,,,
 ML Models,MatureModelPercentage,0.5,0.8,,,Ratios are 0-1 percentages are 0-100%
 ML Models,ModelCount,,,,,
-ML Models,ModelPerformance,52.0,55.0,80.0,90.0,
+ML Models,ModelPerformance,0.52,0.55,0.8,0.9,
 ML Models,ModelsWithoutPositivesCount,,,,,
 ML Models,ModelsWithoutResponsesCount,,,,,
 ML Models,OmniChannelPercentage,0.01,0.5,1.0,,Percentage actions used across channels

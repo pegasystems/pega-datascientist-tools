@@ -598,6 +598,17 @@ class Prediction:
             .collect()
             .lazy()
         )
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        # This aligns with MetricLimits.csv thresholds for RAG evaluation
+        perf_max = (
+            predictions_raw_data_prepped.select(pl.col("Performance").max())
+            .collect()
+            .item()
+        )
+        if perf_max is not None and perf_max > 1.0:
+            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
+                Performance=pl.col("Performance") / 100.0,
+            )
         schema = predictions_raw_data_prepped.collect_schema()
         if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
