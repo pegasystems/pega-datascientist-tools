@@ -2291,6 +2291,7 @@ all = [
     { name = "duckdb" },
     { name = "great-tables" },
     { name = "httpx" },
+    { name = "ipykernel" },
     { name = "ipywidgets" },
     { name = "onnx" },
     { name = "onnxruntime", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -2317,6 +2318,7 @@ api = [
 ]
 app = [
     { name = "great-tables" },
+    { name = "ipykernel" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
     { name = "pydot" },
@@ -2353,6 +2355,7 @@ explanations = [
 ]
 healthcheck = [
     { name = "great-tables" },
+    { name = "ipykernel" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
     { name = "pydot" },
@@ -2382,6 +2385,7 @@ tests = [
     { name = "duckdb" },
     { name = "great-tables" },
     { name = "httpx" },
+    { name = "ipykernel" },
     { name = "ipywidgets" },
     { name = "itables" },
     { name = "moto" },
@@ -2428,6 +2432,7 @@ requires-dist = [
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13" },
     { name = "httpx", marker = "extra == 'api'" },
     { name = "httpx", marker = "extra == 'docs'" },
+    { name = "ipykernel", marker = "extra == 'healthcheck'" },
     { name = "ipywidgets", marker = "extra == 'explanations'" },
     { name = "itables", marker = "extra == 'tests'" },
     { name = "moto", marker = "extra == 'tests'" },

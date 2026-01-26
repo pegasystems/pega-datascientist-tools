@@ -63,10 +63,10 @@ def run(args, unknown):
     # If no app is specified, prompt the user to choose
     if args.app is None:
         app_list = list(APPS.keys())
-        print("Available pdstools apps:")
+        print("Available pdstools apps:", flush=True)
         for i, app_key in enumerate(app_list, 1):
             display_name = APPS[app_key]["display_name"]
-            print(f"  {i}. {display_name}")
+            print(f"  {i}. {display_name}", flush=True)
 
         while True:
             try:
