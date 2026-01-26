@@ -212,10 +212,10 @@ try:
 
     active_range_info = datamart.active_ranges(model_id).collect().to_dicts()[0]
 
-    auc_roc = round(active_range_info['AUC_ActiveRange'], 4)
+    auc_roc = active_range_info['AUC_ActiveRange']
 
     report_utils.quarto_print(
-        f"The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the 'active' bins of the Classifier. In Pega, AUC is always scaled to a number 50-100."
+        f"The model performance is **{round(auc_roc*100, 2)}** measured as AUC-ROC. This number is calculated from the 'active' bins of the Classifier. In Pega, AUC is always scaled to a number 50-100."
     )
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance", e)
@@ -234,7 +234,7 @@ gt = (
             (pl.last("Positives") / pl.last("ResponseCount")).alias(
                 "Base Propensity"
             ),
-            (pl.lit(auc_roc) * 100).alias("Performance"),
+            (pl.lit(auc_roc)).alias("Performance"),
         ),
         column_to_metric={
             "ResponseCount": "TotalResponseCount",
