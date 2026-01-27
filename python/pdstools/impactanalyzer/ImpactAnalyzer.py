@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union, overload, Literal
 from datetime import datetime
 import json
 
@@ -153,10 +153,55 @@ class ImpactAnalyzer:
 
         self.ia_data = raw_data
 
+    # When return_wide_df=True, always returns LazyFrame
+    @classmethod
+    @overload
+    def from_pdc(
+        cls,
+        pdc_source: Union[
+            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
+        ],
+        *,
+        reader: Optional[Callable] = None,
+        query: Optional[QUERY] = None,
+        return_wide_df: Literal[True],
+        return_df: bool = ...,
+    ) -> pl.LazyFrame: ...
+
+    # When return_df=True, always returns LazyFrame
+    @classmethod
+    @overload
+    def from_pdc(
+        cls,
+        pdc_source: Union[
+            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
+        ],
+        *,
+        reader: Optional[Callable] = None,
+        query: Optional[QUERY] = None,
+        return_wide_df: Literal[False] = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
+    # Default case: when both are False or not provided, returns ImpactAnalyzer
+    @classmethod
+    @overload
+    def from_pdc(
+        cls,
+        pdc_source: Union[
+            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
+        ],
+        *,
+        reader: Optional[Callable] = None,
+        query: Optional[QUERY] = None,
+    ) -> "ImpactAnalyzer": ...
+
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: Union[os.PathLike, str, List[os.PathLike], List[str]],
+        pdc_source: Union[
+            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
+        ],
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
@@ -170,7 +215,7 @@ class ImpactAnalyzer:
 
         Parameters
         ----------
-        pdc_source : Union[os.PathLike, str, List[os.PathLike], List[str]]
+        pdc_source : Union[Path, str, os.PathLike, List[Union[Path, str, os.PathLike]]]
             Path to PDC JSON file, or a list of paths to concatenate.
         reader : Optional[Callable], optional
             Custom function to read source data into a dict. If None, uses
@@ -234,6 +279,23 @@ class ImpactAnalyzer:
             return normalized_ia_data
 
         return ImpactAnalyzer(normalized_ia_data)
+
+    @classmethod
+    @overload
+    def from_vbd(
+        cls,
+        vbd_source: Union[os.PathLike, str],
+        *,
+        return_df: Literal[True],
+    ) -> Optional[pl.LazyFrame]: ...
+
+    # Default case: when return_df is not provided or False, returns ImpactAnalyzer
+    @classmethod
+    @overload
+    def from_vbd(
+        cls,
+        vbd_source: Union[os.PathLike, str],
+    ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_vbd(
@@ -340,6 +402,23 @@ class ImpactAnalyzer:
             return ia_data
 
         return ImpactAnalyzer(ia_data)
+
+    @classmethod
+    @overload
+    def from_ih(
+        cls,
+        ih_source: Union[os.PathLike, str],
+        *,
+        return_df: Literal[True],
+    ) -> Optional[pl.LazyFrame]: ...
+
+    # Default case: when return_df is not provided or False, returns ImpactAnalyzer
+    @classmethod
+    @overload
+    def from_ih(
+        cls,
+        ih_source: Union[os.PathLike, str],
+    ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_ih(
