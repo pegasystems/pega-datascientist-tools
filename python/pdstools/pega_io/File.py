@@ -160,8 +160,17 @@ def import_file(
     elif extension == ".gz":
         import gzip
 
-        extension = os.path.splitext(os.path.splitext(file)[0])[1]
-        file = BytesIO(gzip.GzipFile(file).read())
+        if isinstance(file, str):
+            extension = os.path.splitext(os.path.splitext(file)[0])[1]
+            file = BytesIO(gzip.GzipFile(file).read())
+        else:
+            # For BytesIO objects, extract extension from name attribute if available
+            if hasattr(file, "name"):
+                extension = os.path.splitext(os.path.splitext(file.name)[0])[1]
+            else:
+                extension = ""  # Default to empty if we can't determine
+            file.seek(0)
+            file = BytesIO(gzip.decompress(file.read()))
 
     if extension == ".csv":
         csv_opts = dict(
