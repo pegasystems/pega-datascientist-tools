@@ -728,6 +728,11 @@ class Prediction:
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
         """
         predictions_raw_data = read_ds_export(predictions_filename, base_path)
+        if predictions_raw_data is None:
+            raise ValueError(
+                f"Unable to read prediction data from {predictions_filename}. "
+                "Please check if the file exists and is in a supported format."
+            )
         return cls(predictions_raw_data, query=query)
 
     @classmethod
