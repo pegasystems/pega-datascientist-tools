@@ -515,6 +515,7 @@ def test_from_processed_data():
     predictions_cache = pred.save_data(temp_path)
 
     cached_data = read_ds_export(predictions_cache)
+    assert cached_data is not None
 
     loaded_pred = Prediction.from_processed_data(cached_data)
     assert loaded_pred.is_available
