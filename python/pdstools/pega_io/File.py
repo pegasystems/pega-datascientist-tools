@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def read_ds_export(
-    filename: Union[str, BytesIO],
+    filename: Union[str, os.PathLike, BytesIO],
     path: Union[str, os.PathLike] = ".",
     verbose: bool = False,
     **reading_opts,
@@ -40,12 +40,13 @@ def read_ds_export(
 
     Parameters
     ----------
-    filename : Union[str, BytesIO]
+    filename : Union[str, os.PathLike, BytesIO]
         Can be one of the following:
         - A string with the full path to the file
+        - A PathLike object with the path to the file
         - A string with the name of the file (to be searched in the given path)
         - A BytesIO object containing the file data (e.g., from an uploaded file in a webapp)
-    path : str, default = '.'
+    path : Union[str, os.PathLike], default = '.'
         The location of the file
     verbose : bool, default = True
         Whether to print out which file will be imported
@@ -75,17 +76,21 @@ def read_ds_export(
         _, extension = os.path.splitext(filename.name)
         return import_file(filename, extension, **reading_opts)
 
+    # Convert PathLike to string for processing
+    filename_str = str(filename) if isinstance(filename, os.PathLike) else filename
+    path_str = str(path) if isinstance(path, os.PathLike) else path
+
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
-    if os.path.isfile(filename):
-        file = filename
-    elif os.path.isfile(os.path.join(path, filename)):
+    if os.path.isfile(filename_str):
+        file = filename_str
+    elif os.path.isfile(os.path.join(path_str, filename_str)):
         logger.debug("File found in directory")
-        file = os.path.join(path, filename)
+        file = os.path.join(path_str, filename_str)
     else:
         logger.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path, filename)
+        file = get_latest_file(path_str, filename_str)
 
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
@@ -97,13 +102,13 @@ def read_ds_export(
         try:
             import requests
 
-            response = requests.get(f"{path}/{filename}")
+            response = requests.get(f"{path_str}/{filename_str}")
             logger.info(f"Response: {response}")
             if response.status_code == 200:
                 logger.debug("File found online, importing and parsing to BytesIO")
-                file = f"{path}/{filename}"
+                file = f"{path_str}/{filename_str}"
                 file = BytesIO(response.content)
-                _, extension = os.path.splitext(filename)
+                _, extension = os.path.splitext(filename_str)
 
         except ImportError:
             warnings.warn(
@@ -120,8 +125,8 @@ def read_ds_export(
         except Exception as e:
             logger.info(e)
             if verbose:
-                print(f"File {filename} not found in dir {path}")
-            logger.info(f"File not found: {path}/{filename}")
+                print(f"File {filename_str} not found in dir {path_str}")
+            logger.info(f"File not found: {path_str}/{filename_str}")
             return None
 
     if "extension" not in vars() and not isinstance(file, BytesIO):
@@ -155,8 +160,17 @@ def import_file(
     elif extension == ".gz":
         import gzip
 
-        extension = os.path.splitext(os.path.splitext(file)[0])[1]
-        file = BytesIO(gzip.GzipFile(file).read())
+        if isinstance(file, str):
+            extension = os.path.splitext(os.path.splitext(file)[0])[1]
+            file = BytesIO(gzip.GzipFile(file).read())
+        else:
+            # For BytesIO objects, extract extension from name attribute if available
+            if hasattr(file, "name"):
+                extension = os.path.splitext(os.path.splitext(file.name)[0])[1]
+            else:
+                extension = ""  # Default to empty if we can't determine
+            file.seek(0)
+            file = BytesIO(gzip.decompress(file.read()))
 
     if extension == ".csv":
         csv_opts = dict(
