@@ -525,3 +525,66 @@ def test_from_processed_data():
     assert original_df.equals(loaded_df)
 
     shutil.rmtree(temp_path)
+
+
+def test_performance_range_in_summary_methods(preds_singleday):
+    """Test that Performance values are in the 0.5-1.0 range in summary methods."""
+    # Test summary_by_channel
+    channel_summary = preds_singleday.summary_by_channel().collect()
+    performance_values = channel_summary["Performance"].to_list()
+
+    for perf in performance_values:
+        assert perf >= 0.5, f"Performance {perf} is below 0.5"
+        assert perf <= 1.0, f"Performance {perf} is above 1.0"
+
+    # Test overall_summary
+    overall_summary = preds_singleday.overall_summary().collect()
+    overall_perf = overall_summary["Performance"].item()
+
+    assert overall_perf >= 0.5, f"Overall Performance {overall_perf} is below 0.5"
+    assert overall_perf <= 1.0, f"Overall Performance {overall_perf} is above 1.0"
+
+    # Test with mock data
+    pred_mock = Prediction.from_mock_data(days=30)
+    mock_channel_summary = pred_mock.summary_by_channel().collect()
+    mock_performance_values = mock_channel_summary["Performance"].to_list()
+
+    for perf in mock_performance_values:
+        assert perf >= 0.5, f"Mock Performance {perf} is below 0.5"
+        assert perf <= 1.0, f"Mock Performance {perf} is above 1.0"
+
+
+def test_performance_normalization_from_pega_scale():
+    """Test that Performance is correctly normalized from Pega's 50-100 scale to 0.5-1.0."""
+    # Create data with Performance in Pega's 50-100 scale
+    pega_scale_data = pl.DataFrame(
+        {
+            "pySnapShotTime": cdh_utils.to_prpc_date_time(
+                datetime.datetime(2040, 4, 1)
+            )[0:15],
+            "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!TESTPREDICTION"] * 4,
+            "pyModelType": "PREDICTION",
+            "pySnapshotType": ["Daily"] * 3 + [None],
+            "pyDataUsage": ["Control", "Test", "NBA", ""],
+            "pyPositives": [100, 400, 500, 1000],
+            "pyNegatives": [1000, 2000, 3000, 6000],
+            "pyCount": [1100, 2400, 3500, 7000],
+            "pyValue": [65.0, 70.0, 75.0, 80.0],  # Pega scale (50-100)
+        }
+    ).lazy()
+
+    # Initialize Prediction (should auto-normalize)
+    pred = Prediction(pega_scale_data)
+
+    # Check that Performance values are normalized
+    performance = (
+        pred.predictions.select("Performance").collect()["Performance"].to_list()
+    )
+
+    # Verify all performance values are in 0.5-1.0 range
+    for perf in performance:
+        assert perf >= 0.5, f"Performance {perf} is below 0.5"
+        assert perf <= 1.0, f"Performance {perf} is above 1.0"
+
+    # Specifically verify the normalization (65/100 = 0.65, etc.)
+    assert abs(performance[0] - 0.65) < 0.001, f"Expected 0.65, got {performance[0]}"

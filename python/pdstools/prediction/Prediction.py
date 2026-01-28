@@ -1094,7 +1094,7 @@ class Prediction:
             - TestPercentage: Percentage of responses in test group
 
             Performance Metrics:
-            - Performance: Weighted model performance (AUC)
+            - Performance: Weighted model performance (AUC) in range 0.5-1.0
             - Positives: Sum of positive responses
             - Negatives: Sum of negative responses
             - Responses: Sum of all responses
@@ -1280,7 +1280,7 @@ class Prediction:
             - usesNBAD: Boolean indicating if any of the predictions is a standard NBAD prediction
 
             Performance Metrics:
-            - Performance: Weighted average performance across all valid channels
+            - Performance: Weighted average performance (AUC) across all valid channels in range 0.5-1.0
             - Positives Inbound: Sum of positive responses across all valid inbound channels
             - Positives Outbound: Sum of positive responses across all valid outbound channels
             - Responses Inbound: Sum of all responses across all valid inbound channels
