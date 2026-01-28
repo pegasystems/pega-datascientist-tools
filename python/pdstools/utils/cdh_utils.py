@@ -21,6 +21,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    overload,
 )
 
 import polars as pl
@@ -36,6 +37,18 @@ if TYPE_CHECKING:  # pragma: no cover
         Figure = Union["px.Figure", Any]
     except ImportError:
         Figure = Union[Any]
+
+
+@overload
+def _apply_query(
+    df: pl.LazyFrame, query: Optional[QUERY] = None, allow_empty: bool = False
+) -> pl.LazyFrame: ...
+
+
+@overload
+def _apply_query(
+    df: pl.DataFrame, query: Optional[QUERY] = None, allow_empty: bool = False
+) -> pl.DataFrame: ...
 
 
 def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False) -> F:

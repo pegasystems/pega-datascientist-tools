@@ -84,7 +84,7 @@ class PredictionPlots(LazyNamespace):
         """
         # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
         # where multiple lazy queries from the same LazyFrame can cause crashes
-        queried_data = cdh_utils._apply_query(self.prediction.predictions, query).lazy()
+        queried_data = cdh_utils._apply_query(self.prediction.predictions, query)
         date_range = (
             queried_data.select(
                 pl.format(
