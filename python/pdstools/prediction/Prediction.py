@@ -232,6 +232,11 @@ class PredictionPlots(LazyNamespace):
         if return_df:
             return plt_data
 
+        # Scale Performance from 0.5-1.0 internal format to 50-100 for display
+        for trace in plt.data:
+            if hasattr(trace, "y") and trace.y is not None:
+                trace.y = tuple(y * 100 if y is not None else None for y in trace.y)
+
         plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
         return plt
 
