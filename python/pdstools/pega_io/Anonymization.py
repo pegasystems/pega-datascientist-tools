@@ -275,7 +275,7 @@ class Anonymization:
                 "Polars-hash not installed. Please install using pip install polars-hash"
             )
 
-        df = pl.concat(
+        df: pl.LazyFrame = pl.concat(  # type: ignore[assignment]
             [pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed"
         )
         schema = df.collect_schema()
@@ -301,18 +301,16 @@ class Anonymization:
             print("Numeric columns:", nums)
             print("Symbolic columns:", symb)
 
-        min_max_map = (
-            df.select(
-                [
-                    pl.struct(
-                        pl.col(num).min().alias("min"), pl.col(num).max().alias("max")
-                    ).alias(num)
-                    for num in nums
-                ]
-            )
-            .collect()
-            .to_dict(as_series=False)
-        )
+        min_max_df = df.select(
+            [
+                pl.struct(
+                    pl.col(num).min().alias("min"), pl.col(num).max().alias("max")
+                ).alias(num)
+                for num in nums
+            ]
+        ).collect()
+
+        min_max_map = min_max_df.to_dict(as_series=False)
 
         anonymised_df = df.select(
             pl.col(symb_nonanonymised),

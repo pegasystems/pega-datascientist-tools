@@ -84,9 +84,9 @@ class PredictionPlots(LazyNamespace):
         """
         # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
         # where multiple lazy queries from the same LazyFrame can cause crashes
+        queried_data = cdh_utils._apply_query(self.prediction.predictions, query)
         date_range = (
-            cdh_utils._apply_query(self.prediction.predictions, query)
-            .select(
+            queried_data.select(
                 pl.format(
                     "period: {} to {}",
                     pl.col("SnapshotTime").min().dt.to_string("%v"),
@@ -231,6 +231,11 @@ class PredictionPlots(LazyNamespace):
         )
         if return_df:
             return plt_data
+
+        # Scale Performance from 0.5-1.0 internal format to 50-100 for display
+        for trace in plt.data:
+            if hasattr(trace, "y") and trace.y is not None:
+                trace.y = tuple(y * 100 if y is not None else None for y in trace.y)
 
         plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
         return plt
@@ -722,6 +727,11 @@ class Prediction:
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
         """
         predictions_raw_data = read_ds_export(predictions_filename, base_path)
+        if predictions_raw_data is None:
+            raise ValueError(
+                f"Unable to read prediction data from {predictions_filename}. "
+                "Please check if the file exists and is in a supported format."
+            )
         return cls(predictions_raw_data, query=query)
 
     @classmethod
@@ -1088,7 +1098,7 @@ class Prediction:
             - TestPercentage: Percentage of responses in test group
 
             Performance Metrics:
-            - Performance: Weighted model performance (AUC)
+            - Performance: Weighted model performance (AUC) in range 0.5-1.0
             - Positives: Sum of positive responses
             - Negatives: Sum of negative responses
             - Responses: Sum of all responses
@@ -1274,7 +1284,7 @@ class Prediction:
             - usesNBAD: Boolean indicating if any of the predictions is a standard NBAD prediction
 
             Performance Metrics:
-            - Performance: Weighted average performance across all valid channels
+            - Performance: Weighted average performance (AUC) across all valid channels in range 0.5-1.0
             - Positives Inbound: Sum of positive responses across all valid inbound channels
             - Positives Outbound: Sum of positive responses across all valid outbound channels
             - Responses Inbound: Sum of all responses across all valid inbound channels
