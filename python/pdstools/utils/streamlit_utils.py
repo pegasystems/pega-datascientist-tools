@@ -172,33 +172,8 @@ def from_file_path(extract_pyname_keys, codespaces):
         placeholder=placeholder,
     )
     if dir != "":
-        # Use the user's home directory as a safe base for any relative paths provided.
-        base_dir = Path.home()
-        # Treat the provided path as relative to the base_dir and normalize it.
-        user_path = Path(dir)
-        if user_path.is_absolute():
-            # Rebase absolute paths onto the base_dir to avoid escaping it.
-            user_path = user_path.relative_to(user_path.anchor)
-        candidate = (base_dir / user_path).expanduser().resolve()
         try:
-            # Ensure the resolved candidate is within the base directory.
-            if os.path.commonpath([str(base_dir), str(candidate)]) != str(base_dir):
-                raise PermissionError(
-                    f"Directory outside of allowed base path: {candidate}"
-                )
-        except PermissionError as e:
-            st.error(
-                f"""**Invalid directory**:
-            {e}
-            Please supply a folder within your home directory ({base_dir})."""
-            )
-            st.stop()
-
-        norm_dir = str(candidate)
-        try:
-            model_matches = pega_io.get_latest_file(
-                norm_dir, target="model_data", base_dir=str(base_dir)
-            )
+            model_matches = pega_io.get_latest_file(dir, target="model_data")
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -218,9 +193,7 @@ def from_file_path(extract_pyname_keys, codespaces):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = pega_io.get_latest_file(
-            norm_dir, target="predictor_data", base_dir=str(base_dir)
-        )
+        predictor_matches = pega_io.get_latest_file(dir, target="predictor_data")
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
@@ -250,20 +223,20 @@ def from_file_path(extract_pyname_keys, codespaces):
             model_analysis = st.checkbox("Only run model-based Health Check")
             if model_analysis:
                 st.session_state["dm"] = cached_datamart(
-                    base_path=norm_dir,
+                    base_path=dir,
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
                     extract_pyname_keys=extract_pyname_keys,
                 )
         else:
             st.session_state["dm"] = cached_datamart(
-                base_path=norm_dir,
+                base_path=dir,
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
             )
 
-        prediction_matches = pega_io.get_latest_file(norm_dir, target="prediction_data")
+        prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
         box, data = st.columns([1, 15])
         if prediction_matches is not None:
             box.write("## √")

@@ -79,23 +79,18 @@ def read_ds_export(
     # Convert PathLike to string for processing
     filename_str = str(filename) if isinstance(filename, os.PathLike) else filename
     path_str = str(path) if isinstance(path, os.PathLike) else path
-    # Normalize base path to an absolute, expanded form before using it
-    path_str = os.path.abspath(os.path.expanduser(path_str))
-    # When treating the filename as being inside path_str, strip any directory
-    # components to avoid path traversal via the filename argument.
-    safe_filename = os.path.basename(filename_str) if isinstance(filename_str, str) else filename_str
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
     if os.path.isfile(filename_str):
         file = filename_str
-    elif os.path.isfile(os.path.join(path_str, safe_filename)):
+    elif os.path.isfile(os.path.join(path_str, filename_str)):
         logger.debug("File found in directory")
-        file = os.path.join(path_str, safe_filename)
+        file = os.path.join(path_str, filename_str)
     else:
         logger.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path_str, safe_filename)
+        file = get_latest_file(path_str, filename_str)
 
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
@@ -338,10 +333,7 @@ def read_multi_zip(
 
 
 def get_latest_file(
-    path: Union[str, os.PathLike],
-    target: str,
-    verbose: bool = False,
-    base_dir: Optional[Union[str, os.PathLike]] = None,
+    path: Union[str, os.PathLike], target: str, verbose: bool = False
 ) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
@@ -352,16 +344,12 @@ def get_latest_file(
     Parameters
     ----------
     path : str
-        The filepath where the data is stored. If ``base_dir`` is provided,
-        this is interpreted as a path relative to ``base_dir``.
+        The filepath where the data is stored
     target : str in ['model_data', 'predictor_data', 'prediction_data']
         Whether to look for data about the predictive models ('model_data')
         or the predictor bins ('predictor_data')
     verbose : bool, default = False
         Whether to print all found files before comparing name criteria for debugging purposes
-    base_dir : str or os.PathLike, optional
-        Optional base directory that ``path`` must reside in. When provided,
-        the resolved directory is constrained to be within this base directory.
 
     Returns
     -------
@@ -378,34 +366,7 @@ def get_latest_file(
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
-    # Normalize and validate the directory path before listing.
-    # If a base_dir is provided, ensure that the resolved path stays within it.
-    if base_dir is not None:
-        base_real = os.path.realpath(
-            os.path.abspath(os.path.expanduser(base_dir))
-        )
-        candidate = os.path.realpath(
-            os.path.join(base_real, os.fspath(path))
-        )
-        # Ensure candidate directory is within the base directory
-        if os.path.commonpath([base_real, candidate]) != base_real:
-            raise PermissionError(
-                f"Access to directory outside of base directory is not allowed: {candidate}"
-            )
-        norm_path = candidate
-    else:
-        norm_path = os.path.realpath(
-            os.path.abspath(os.path.expanduser(os.fspath(path)))
-        )
-
-    if not os.path.exists(norm_path):
-        raise FileNotFoundError(f"Path does not exist: {norm_path}")
-    if not os.path.isdir(norm_path):
-        raise NotADirectoryError(f"Not a directory: {norm_path}")
-
-    files_dir = [
-        f for f in os.listdir(norm_path) if os.path.isfile(os.path.join(norm_path, f))
-    ]
+    files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
@@ -418,7 +379,7 @@ def get_latest_file(
             )
         return None
 
-    paths = [os.path.join(norm_path, name) for name in matches]
+    paths = [os.path.join(path, name) for name in matches]
 
     def f(x):
         try:
