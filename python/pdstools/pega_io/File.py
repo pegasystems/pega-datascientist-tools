@@ -81,18 +81,21 @@ def read_ds_export(
     path_str = str(path) if isinstance(path, os.PathLike) else path
     # Normalize base path to an absolute, expanded form before using it
     path_str = os.path.abspath(os.path.expanduser(path_str))
+    # When treating the filename as being inside path_str, strip any directory
+    # components to avoid path traversal via the filename argument.
+    safe_filename = os.path.basename(filename_str) if isinstance(filename_str, str) else filename_str
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
     if os.path.isfile(filename_str):
         file = filename_str
-    elif os.path.isfile(os.path.join(path_str, filename_str)):
+    elif os.path.isfile(os.path.join(path_str, safe_filename)):
         logger.debug("File found in directory")
-        file = os.path.join(path_str, filename_str)
+        file = os.path.join(path_str, safe_filename)
     else:
         logger.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path_str, filename_str)
+        file = get_latest_file(path_str, safe_filename)
 
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
