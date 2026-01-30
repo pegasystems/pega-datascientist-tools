@@ -338,7 +338,10 @@ def read_multi_zip(
 
 
 def get_latest_file(
-    path: Union[str, os.PathLike], target: str, verbose: bool = False
+    path: Union[str, os.PathLike],
+    target: str,
+    verbose: bool = False,
+    base_dir: Optional[Union[str, os.PathLike]] = None,
 ) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
@@ -349,12 +352,16 @@ def get_latest_file(
     Parameters
     ----------
     path : str
-        The filepath where the data is stored
+        The filepath where the data is stored. If ``base_dir`` is provided,
+        this is interpreted as a path relative to ``base_dir``.
     target : str in ['model_data', 'predictor_data', 'prediction_data']
         Whether to look for data about the predictive models ('model_data')
         or the predictor bins ('predictor_data')
     verbose : bool, default = False
         Whether to print all found files before comparing name criteria for debugging purposes
+    base_dir : str or os.PathLike, optional
+        Optional base directory that ``path`` must reside in. When provided,
+        the resolved directory is constrained to be within this base directory.
 
     Returns
     -------
@@ -371,8 +378,26 @@ def get_latest_file(
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
-    # Normalize and validate the directory path before listing
-    norm_path = os.path.normpath(os.path.abspath(os.path.expanduser(path)))
+    # Normalize and validate the directory path before listing.
+    # If a base_dir is provided, ensure that the resolved path stays within it.
+    if base_dir is not None:
+        base_real = os.path.realpath(
+            os.path.abspath(os.path.expanduser(base_dir))
+        )
+        candidate = os.path.realpath(
+            os.path.join(base_real, os.fspath(path))
+        )
+        # Ensure candidate directory is within the base directory
+        if os.path.commonpath([base_real, candidate]) != base_real:
+            raise PermissionError(
+                f"Access to directory outside of base directory is not allowed: {candidate}"
+            )
+        norm_path = candidate
+    else:
+        norm_path = os.path.realpath(
+            os.path.abspath(os.path.expanduser(os.fspath(path)))
+        )
+
     if not os.path.exists(norm_path):
         raise FileNotFoundError(f"Path does not exist: {norm_path}")
     if not os.path.isdir(norm_path):

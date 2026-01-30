@@ -172,10 +172,33 @@ def from_file_path(extract_pyname_keys, codespaces):
         placeholder=placeholder,
     )
     if dir != "":
-        # Normalize the user-provided directory path
-        norm_dir = os.path.abspath(os.path.expanduser(dir))
+        # Use the user's home directory as a safe base for any relative paths provided.
+        base_dir = Path.home()
+        # Treat the provided path as relative to the base_dir and normalize it.
+        user_path = Path(dir)
+        if user_path.is_absolute():
+            # Rebase absolute paths onto the base_dir to avoid escaping it.
+            user_path = user_path.relative_to(user_path.anchor)
+        candidate = (base_dir / user_path).expanduser().resolve()
         try:
-            model_matches = pega_io.get_latest_file(norm_dir, target="model_data")
+            # Ensure the resolved candidate is within the base directory.
+            if os.path.commonpath([str(base_dir), str(candidate)]) != str(base_dir):
+                raise PermissionError(
+                    f"Directory outside of allowed base path: {candidate}"
+                )
+        except PermissionError as e:
+            st.error(
+                f"""**Invalid directory**:
+            {e}
+            Please supply a folder within your home directory ({base_dir})."""
+            )
+            st.stop()
+
+        norm_dir = str(candidate)
+        try:
+            model_matches = pega_io.get_latest_file(
+                norm_dir, target="model_data", base_dir=str(base_dir)
+            )
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -195,7 +218,9 @@ def from_file_path(extract_pyname_keys, codespaces):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = pega_io.get_latest_file(norm_dir, target="predictor_data")
+        predictor_matches = pega_io.get_latest_file(
+            norm_dir, target="predictor_data", base_dir=str(base_dir)
+        )
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
