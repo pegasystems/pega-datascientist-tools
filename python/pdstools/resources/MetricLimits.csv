@@ -3,10 +3,13 @@ DecisionHealth,InboundNoActionRatio,,0.0,0.1,0.9,Ratios are 0-1 percentages are 
 DecisionHealth,InboundOptionality,2.0,7.0,,,Green colored metrics currently available black not (yet)
 DecisionHealth,OutboundNoActionRatio,,0.0,0.3,0.9,Can be higher than inbound
 DecisionHealth,OutboundOptionality,2.0,7.0,,,
+DecisionHealth,InboundVolumeTrend,0.75,0.95,,,
+DecisionHealth,OutboundVolumeTrend,0.75,0.95,,,
 Environment,IsCloudK,,1.0,,,
 Environment,IsPegaCloud,1.0,,,,
 Environment,HasMLAIData,1.0,,,,
 Environment,IsOnPDC,1.0,,,,
+Environment,Currency,-4.0,-2.0,,,How many minor versions behind the most recent version of Pega?
 ML Models,ActivePredictorsPerModelAverage,2.0,5.0,100.0,,Per configuration?
 ML Models,DailyPositiveCount,1.0,200.0,,,
 ML Models,DailyResponseCount,1.0,200.0,,,
@@ -14,7 +17,7 @@ ML Models,TotalPositiveCount,1.0,200.0,,,Only used internally in PDS tools for A
 ML Models,TotalResponseCount,1.0,200.0,,,
 ML Models,EngagementLift,0.0,1.0,,,
 ML Models,ImmatureModelCount,,,,,
-ML Models,MatureModelPercentage,0.5,0.8,,,Ratios are 0-1 percentages are 0-100%
+ML Models,MatureModelPercentage,0.5,0.75,,,Ratios are 0-1 percentages are 0-100%
 ML Models,ModelCount,,,,,
 ML Models,ModelPerformance,0.52,0.55,0.8,0.9,
 ML Models,ModelsWithoutPositivesCount,,,,,
