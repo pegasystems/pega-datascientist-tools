@@ -372,7 +372,7 @@ def get_latest_file(
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
     # Normalize and validate the directory path before listing
-    norm_path = os.path.abspath(os.path.expanduser(path))
+    norm_path = os.path.normpath(os.path.abspath(os.path.expanduser(path)))
     if not os.path.exists(norm_path):
         raise FileNotFoundError(f"Path does not exist: {norm_path}")
     if not os.path.isdir(norm_path):
@@ -393,7 +393,7 @@ def get_latest_file(
             )
         return None
 
-    paths = [os.path.join(path, name) for name in matches]
+    paths = [os.path.join(norm_path, name) for name in matches]
 
     def f(x):
         try:

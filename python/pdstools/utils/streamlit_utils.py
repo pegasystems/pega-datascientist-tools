@@ -195,7 +195,7 @@ def from_file_path(extract_pyname_keys, codespaces):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = pega_io.get_latest_file(dir, target="predictor_data")
+        predictor_matches = pega_io.get_latest_file(norm_dir, target="predictor_data")
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
