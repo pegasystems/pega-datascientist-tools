@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-from typing import Callable, Dict, List, Optional, Union, overload, Literal
+from typing import Callable, Dict, List, Optional, Sequence, Union, overload, Literal
 from datetime import datetime
 import json
 
@@ -714,7 +714,7 @@ class ImpactAnalyzer:
 
     def summarize_control_groups(
         self,
-        by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
+        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
         drop_internal_cols: bool = True,
     ) -> pl.LazyFrame:
         """Aggregate metrics by control group.
@@ -742,12 +742,12 @@ class ImpactAnalyzer:
         >>> ia.summarize_control_groups().collect()
         >>> ia.summarize_control_groups(by="Channel").collect()
         """
-        if not by:
-            group_by = []
-        elif not isinstance(by, list):
-            group_by = [by]
+        if by is None:
+            group_by: List[Union[str, pl.Expr]] = []
+        elif isinstance(by, (list, tuple)):
+            group_by = list(by)
         else:
-            group_by = by
+            group_by = [by]
 
         agg_exprs = [
             pl.sum("Impressions", "Accepts"),
@@ -774,7 +774,7 @@ class ImpactAnalyzer:
 
     def summarize_experiments(
         self,
-        by: Optional[Union[List[str], List[pl.Expr], str, pl.Expr]] = None,
+        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
     ) -> pl.LazyFrame:
         """Summarize experiment metrics comparing test vs control groups.
 
@@ -817,18 +817,22 @@ class ImpactAnalyzer:
         >>> ia.summarize_experiments().collect()
         >>> ia.summarize_experiments(by="Channel").collect()
         """
-        if not by:
-            by = []
-        if isinstance(by, str):
-            by = [by]
+        # Normalize 'by' parameter to a sequence
+        if by is None:
+            by_list: Sequence[Union[str, pl.Expr]] = []
+        elif isinstance(by, (str, pl.Expr)):
+            by_list = [by]
+        else:
+            # Already a sequence (list, tuple, etc.)
+            by_list = by
 
         def _lift_pl(test, control):
             return (pl.col(test) - pl.col(control)) / pl.col(control)
 
         # Extract column names from expressions for use with pl.exclude()
-        def _get_column_names(by_list):
-            column_names = []
-            for item in by_list:
+        def _get_column_names(items: Sequence[Union[str, pl.Expr]]) -> List[str]:
+            column_names: List[str] = []
+            for item in items:
                 if isinstance(item, pl.Expr):
                     # Extract the root column name from the expression
                     column_names.append(item.meta.output_name())
@@ -836,10 +840,10 @@ class ImpactAnalyzer:
                     column_names.append(item)
             return column_names
 
-        by_column_names = _get_column_names(by)
+        by_column_names: List[str] = _get_column_names(by_list)
 
         control_groups_summary = self.summarize_control_groups(
-            by, drop_internal_cols=False
+            by_list if by_list else None, drop_internal_cols=False
         )
 
         has_pega_value_lift = "Pega_ValueLift" in self.ia_data.collect_schema().names()
@@ -858,7 +862,7 @@ class ImpactAnalyzer:
             )
             .join(
                 control_groups_summary.select(
-                    *by, pl.exclude(by_column_names).name.suffix("_Test")
+                    *by_list, pl.exclude(by_column_names).name.suffix("_Test")
                 ),
                 how="left",
                 left_on="Test",
@@ -866,7 +870,7 @@ class ImpactAnalyzer:
             )
             .join(
                 control_groups_summary.select(
-                    *by, pl.exclude(by_column_names).name.suffix("_Control")
+                    *by_list, pl.exclude(by_column_names).name.suffix("_Control")
                 ),
                 how="left",
                 left_on=["Control"] + by_column_names,
