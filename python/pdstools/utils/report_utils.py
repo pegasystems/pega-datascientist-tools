@@ -218,11 +218,21 @@ def run_quarto(
     if verbose:
         print(f"Executing: {' '.join(command)} in temp directory {temp_dir}")
 
+    # Set QUARTO_PYTHON to ensure Quarto uses the same Python that's running pdstools.
+    # This is critical for isolated environments (uv tool, pipx) where the default
+    # system Python may not have the required dependencies like ipykernel.
+    import sys
+
+    env = os.environ.copy()
+    env["QUARTO_PYTHON"] = sys.executable
+    logger.info(f"Setting QUARTO_PYTHON to: {sys.executable}")
+
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,  # Redirect stderr to stdout
         cwd=temp_dir,
+        env=env,
         text=True,
         bufsize=1,  # Line buffered
     )
