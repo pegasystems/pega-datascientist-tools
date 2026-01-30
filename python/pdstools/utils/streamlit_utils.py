@@ -172,8 +172,10 @@ def from_file_path(extract_pyname_keys, codespaces):
         placeholder=placeholder,
     )
     if dir != "":
+        # Normalize the user-provided directory path
+        norm_dir = os.path.abspath(os.path.expanduser(dir))
         try:
-            model_matches = pega_io.get_latest_file(dir, target="model_data")
+            model_matches = pega_io.get_latest_file(norm_dir, target="model_data")
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -223,20 +225,20 @@ def from_file_path(extract_pyname_keys, codespaces):
             model_analysis = st.checkbox("Only run model-based Health Check")
             if model_analysis:
                 st.session_state["dm"] = cached_datamart(
-                    base_path=dir,
+                    base_path=norm_dir,
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
                     extract_pyname_keys=extract_pyname_keys,
                 )
         else:
             st.session_state["dm"] = cached_datamart(
-                base_path=dir,
+                base_path=norm_dir,
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
             )
 
-        prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
+        prediction_matches = pega_io.get_latest_file(norm_dir, target="prediction_data")
         box, data = st.columns([1, 15])
         if prediction_matches is not None:
             box.write("## √")

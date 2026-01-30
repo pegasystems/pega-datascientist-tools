@@ -79,6 +79,8 @@ def read_ds_export(
     # Convert PathLike to string for processing
     filename_str = str(filename) if isinstance(filename, os.PathLike) else filename
     path_str = str(path) if isinstance(path, os.PathLike) else path
+    # Normalize base path to an absolute, expanded form before using it
+    path_str = os.path.abspath(os.path.expanduser(path_str))
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
@@ -366,7 +368,16 @@ def get_latest_file(
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
-    files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    # Normalize and validate the directory path before listing
+    norm_path = os.path.abspath(os.path.expanduser(path))
+    if not os.path.exists(norm_path):
+        raise FileNotFoundError(f"Path does not exist: {norm_path}")
+    if not os.path.isdir(norm_path):
+        raise NotADirectoryError(f"Not a directory: {norm_path}")
+
+    files_dir = [
+        f for f in os.listdir(norm_path) if os.path.isfile(os.path.join(norm_path, f))
+    ]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
