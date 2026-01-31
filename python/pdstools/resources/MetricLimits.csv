@@ -3,13 +3,10 @@ DecisionHealth,InboundNoActionRatio,,0.0,0.1,0.9,Ratios are 0-1 percentages are 
 DecisionHealth,InboundOptionality,2.0,7.0,,,Green colored metrics currently available black not (yet)
 DecisionHealth,OutboundNoActionRatio,,0.0,0.3,0.9,Can be higher than inbound
 DecisionHealth,OutboundOptionality,2.0,7.0,,,
-DecisionHealth,InboundVolumeTrend,0.75,0.95,,,
-DecisionHealth,OutboundVolumeTrend,0.75,0.95,,,
 Environment,IsCloudK,,1.0,,,
 Environment,IsPegaCloud,1.0,,,,
 Environment,HasMLAIData,1.0,,,,
 Environment,IsOnPDC,1.0,,,,
-Environment,Currency,-4.0,-2.0,,,How many minor versions behind the most recent version of Pega?
 ML Models,ActivePredictorsPerModelAverage,2.0,5.0,100.0,,Per configuration?
 ML Models,DailyPositiveCount,1.0,200.0,,,
 ML Models,DailyResponseCount,1.0,200.0,,,
@@ -17,11 +14,13 @@ ML Models,TotalPositiveCount,1.0,200.0,,,Only used internally in PDS tools for A
 ML Models,TotalResponseCount,1.0,200.0,,,
 ML Models,EngagementLift,0.0,1.0,,,
 ML Models,ImmatureModelCount,,,,,
-ML Models,MatureModelPercentage,0.5,0.75,,,Ratios are 0-1 percentages are 0-100%
+ML Models,MatureModelPercentage,0.5,0.8,,,Ratios are 0-1 percentages are 0-100%
 ML Models,ModelCount,,,,,
-ML Models,ModelPerformance,0.52,0.55,0.8,0.9,
+ML Models,ModelPerformance,52.0,55.0,80.0,90.0,
+ML Models,ModelsWithGoodAUCPercentage,0.3,0.5,,,
 ML Models,ModelsWithoutPositivesCount,,,,,
 ML Models,ModelsWithoutResponsesCount,,,,,
+ML Models,ModelsWithoutResponsesPercentage,,,0.1,0.3,
 ML Models,OmniChannelPercentage,0.01,0.5,1.0,,Percentage actions used across channels
 ML Models,PredictorCount,50.0,200.0,700.0,2000.0,We don’t have this per model category or overall - only by configuration
 ML Models,ClickThroughTrend,0.95,1.05,,,Some variance can occur so 0.96 can occur without alarm bells. Best practice is seeing growth
