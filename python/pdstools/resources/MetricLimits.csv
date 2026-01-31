@@ -23,7 +23,7 @@ ML Models,ModelPerformance,0.52,0.55,0.8,0.9,
 ML Models,ModelsWithGoodAUCPercentage,0.3,0.5,,,
 ML Models,ModelsWithoutPositivesCount,,,,,
 ML Models,ModelsWithoutResponsesCount,,,,,
-ML Models,ModelsWithoutPositivesPercentage,,,0.1,0.3,
+ML Models,ModelsWithoutResponsesPercentage,,,0.1,0.3,
 ML Models,OmniChannelPercentage,0.01,0.5,1.0,,Percentage actions used across channels
 ML Models,PredictorCount,50.0,200.0,700.0,2000.0,We don’t have this per model category or overall - only by configuration
 ML Models,ClickThroughTrend,0.95,1.05,,,Some variance can occur so 0.96 can occur without alarm bells. Best practice is seeing growth
