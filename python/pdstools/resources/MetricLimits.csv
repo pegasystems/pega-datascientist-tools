@@ -20,7 +20,7 @@ ML Models,ImmatureModelCount,,,,,
 ML Models,MatureModelPercentage,0.5,0.75,,,Ratios are 0-1 percentages are 0-100%
 ML Models,ModelCount,,,,,
 ML Models,ModelPerformance,0.52,0.55,0.8,0.9,
-ML Models,ModelsWithGoodAUCPercentage,0.3,0.5,,,
+ML Models,ModelsWithGoodAUCPercentage,0.5,0.8,,,
 ML Models,ModelsWithoutPositivesCount,,,,,
 ML Models,ModelsWithoutResponsesCount,,,,,
 ML Models,ModelsWithoutResponsesPercentage,,,0.1,0.3,
