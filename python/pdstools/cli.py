@@ -19,6 +19,10 @@ APPS = {
         "display_name": "Decision Analyzer",
         "path": "pdstools.app.decision_analyzer",
     },
+    "impact_analyzer": {
+        "display_name": "Impact Analyzer",
+        "path": "pdstools.app.impact_analyzer",
+    },
 }
 
 
