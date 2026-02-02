@@ -19,6 +19,10 @@ APPS = {
         "display_name": "Decision Analyzer",
         "path": "pdstools.app.decision_analyzer",
     },
+    "impact_analyzer": {
+        "display_name": "Impact Analyzer",
+        "path": "pdstools.app.impact_analyzer",
+    },
 }
 
 
@@ -44,6 +48,8 @@ def create_parser():
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        del sys.argv[1]
     parser = create_parser()
     args, unknown = parser.parse_known_args()
 

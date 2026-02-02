@@ -53,10 +53,15 @@ toc_object_entries_show_parents = "hide"
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = ["../../pdstools"]
-autoapi_ignore = ["**/app/*", "**/app.py", "**/queries/*", "queries"]
+autoapi_ignore = [
+    "**/app/*",
+    "**/app.py",
+    "**/pdstools/app/**",
+    "**/queries/*",
+    "queries",
+]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
-autoapi_ignore = ["**/pdstools/app/**"]
 
 # -- Sphinx-tabs settings ----------------------------------------------------
 sphinx_tabs_valid_builders = ["html", "singlehtml"]
