@@ -48,6 +48,8 @@ def create_parser():
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        del sys.argv[1]
     parser = create_parser()
     args, unknown = parser.parse_known_args()
 
