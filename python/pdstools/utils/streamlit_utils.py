@@ -23,6 +23,13 @@ def cached_sample():
 
 @st.cache_resource
 def cached_datamart(**kwargs):
+    """Load ADMDatamart with caching.
+
+    Parameters
+    ----------
+    **kwargs
+        Arguments passed to ADMDatamart.from_ds_export
+    """
     with st.spinner("Loading datamart..."):
         try:
             datamart = ADMDatamart.from_ds_export(**kwargs)
@@ -43,6 +50,13 @@ def cached_sample_prediction():
 
 @st.cache_resource
 def cached_prediction_table(**kwargs):
+    """Load Prediction with caching.
+
+    Parameters
+    ----------
+    **kwargs
+        Arguments passed to Prediction.from_ds_export
+    """
     with st.spinner("Loading prediction table..."):
         try:
             prediction = Prediction.from_ds_export(**kwargs)
@@ -58,7 +72,21 @@ def cached_prediction_table(**kwargs):
             return None
 
 
-def import_datamart(extract_pyname_keys: bool):
+def import_datamart(
+    extract_pyname_keys: bool,
+    infer_schema_length: int = 10000,
+):
+    """Import ADMDatamart data from various sources.
+
+    Parameters
+    ----------
+    extract_pyname_keys : bool
+        Whether to extract additional keys from pyName column
+    infer_schema_length : int, default 10000
+        Number of rows to scan for schema inference when reading CSV/JSON files.
+        For large production datasets, increase this value (e.g., 200000) if columns
+        are not being detected correctly.
+    """
     options = [
         "Direct file path",
         "Direct file upload",
@@ -92,15 +120,15 @@ def import_datamart(extract_pyname_keys: bool):
     elif st.session_state["data_source"] == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif st.session_state["data_source"] == "Direct file upload":
-        from_uploaded_file(extract_pyname_keys, codespaces)
+        from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length)
     elif st.session_state["data_source"] == "Direct file path":
-        from_file_path(extract_pyname_keys, codespaces)
+        from_file_path(extract_pyname_keys, codespaces, infer_schema_length)
 
     if "dm" in st.session_state:
         st.success("Import Successful!")
 
 
-def from_uploaded_file(extract_pyname_keys, codespaces):
+def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000):
     model_file = st.file_uploader(
         "Upload Model Snapshot", type=["json", "zip", "parquet", "csv", "arrow"]
     )
@@ -125,6 +153,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
                 model_filename=model_file,
                 predictor_filename=predictor_file,
                 extract_pyname_keys=extract_pyname_keys,
+                infer_schema_length=infer_schema_length,
             )
         except Exception as e:
             st.write("Oh oh.", e)
@@ -140,7 +169,9 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
         if model_analysis:
             try:
                 st.session_state["dm"] = cached_datamart(
-                    model_filename=model_file, extract_pyname_keys=extract_pyname_keys
+                    model_filename=model_file,
+                    extract_pyname_keys=extract_pyname_keys,
+                    infer_schema_length=infer_schema_length,
                 )
             except Exception as e:
                 st.write("Oh oh.", e)
@@ -149,6 +180,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
         try:
             st.session_state["prediction"] = cached_prediction_table(
                 predictions_filename=prediction_file_path,
+                infer_schema_length=infer_schema_length,
             )
         except Exception as e:
             st.write("Oh oh.", e)
@@ -158,7 +190,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
         del st.session_state["prediction"]
 
 
-def from_file_path(extract_pyname_keys, codespaces):
+def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
@@ -227,6 +259,7 @@ def from_file_path(extract_pyname_keys, codespaces):
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
                     extract_pyname_keys=extract_pyname_keys,
+                    infer_schema_length=infer_schema_length,
                 )
         else:
             st.session_state["dm"] = cached_datamart(
@@ -234,6 +267,7 @@ def from_file_path(extract_pyname_keys, codespaces):
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
+                infer_schema_length=infer_schema_length,
             )
 
         prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
@@ -242,7 +276,8 @@ def from_file_path(extract_pyname_keys, codespaces):
             box.write("## √")
             data.write(f"Prediction table found: {prediction_matches}")
             st.session_state["prediction"] = cached_prediction_table(
-                predictions_filename=prediction_matches
+                predictions_filename=prediction_matches,
+                infer_schema_length=infer_schema_length,
             )
         else:
             box.write("## X")
