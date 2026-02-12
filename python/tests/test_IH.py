@@ -2,6 +2,7 @@
 Testing the functionality of the IH class
 """
 
+import math
 from datetime import timedelta
 
 import polars as pl
@@ -205,13 +206,15 @@ def test_summary_success_rates_complex(ih):
         # Check that success rates are between 0 and 1
         success_rates = result[f"SuccessRate_{metric}"].to_list()
         for rate in success_rates:
-            if not pl.Series([rate]).is_null().item():
+            # Skip null and NaN values (NaN can occur when both positives and negatives are 0)
+            if rate is not None and not math.isnan(rate):
                 assert 0 <= rate <= 1
 
         # Check that standard errors are positive
         std_errs = result[f"StdErr_{metric}"].to_list()
         for err in std_errs:
-            if not pl.Series([err]).is_null().item():
+            # Skip null and NaN values
+            if err is not None and not math.isnan(err):
                 assert err >= 0
 
 
