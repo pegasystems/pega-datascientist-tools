@@ -234,3 +234,76 @@ def test_write_params_files_size_reduction_method(tmp_path):
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
     assert config["format"]["html"]["plotly-connected"] is False
+
+
+def test_create_metric_gttable_callable_rag_with_metric_format():
+    """Test that columns with callable RAG functions still get formatting from MetricFormats.
+
+    This is critical for the Channel Overview table in HealthCheck.qmd where CTR
+    (Base Rate) uses exclusive_0_1_range_rag for RAG coloring but should still be
+    formatted as a percentage with 3 decimals from the MetricFormats registry.
+
+    Fixes: https://github.com/pegasystems/pega-datascientist-tools/issues/527
+    """
+    from pdstools.utils.metric_limits import exclusive_0_1_range_rag
+
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web", "Mobile", "Email"],
+            "CTR": [0.023456, 0.00123, 0.1],  # Small decimal values like real CTR
+        }
+    )
+
+    gt = report_utils.create_metric_gttable(
+        df,
+        column_to_metric={
+            "CTR": exclusive_0_1_range_rag,  # Callable for RAG
+        },
+        strict_metric_validation=False,
+    )
+
+    html = gt.as_raw_html()
+
+    # CTR should be formatted as percentage with 3 decimals (from MetricFormats)
+    # 0.023456 -> "2.346%" (3 decimals)
+    # 0.00123 -> "0.123%"
+    # 0.1 -> "10.000%"
+    assert "2.346%" in html
+    assert "0.123%" in html
+    assert "10.000%" in html
+
+    # Should NOT show raw decimal values
+    assert "0.023456" not in html
+    assert "0.00123" not in html
+
+
+def test_create_metric_gttable_callable_rag_without_format():
+    """Test that columns with callable RAG but no MetricFormat use default formatting."""
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web", "Mobile"],
+            "CustomMetric": [12345.678, 99999.123],  # No format defined for this
+        }
+    )
+
+    def custom_rag(value):
+        return "GREEN" if value > 50000 else "AMBER"
+
+    gt = report_utils.create_metric_gttable(
+        df,
+        column_to_metric={
+            "CustomMetric": custom_rag,  # Callable for RAG, no format defined
+        },
+        strict_metric_validation=False,
+    )
+
+    html = gt.as_raw_html()
+
+    # Should use default compact formatting (from MetricFormats.DEFAULT_FORMAT)
+    # Large numbers get formatted with K/M suffixes or similar
+    # At minimum, shouldn't show raw floating point values
+    assert "CustomMetric" in html  # Column exists
+    # Default format is NumberFormat(decimals=0, compact=True)
+    # 12345.678 -> "12K" or similar compact format
+    # 99999.123 -> "100K" or similar compact format
+    assert "12345.678" not in html  # Raw value should not appear
