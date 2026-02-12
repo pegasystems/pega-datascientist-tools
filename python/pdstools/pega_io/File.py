@@ -48,23 +48,29 @@ def read_ds_export(
         - A BytesIO object containing the file data (e.g., from an uploaded file in a webapp)
     path : Union[str, os.PathLike], default = '.'
         The location of the file
-    verbose : bool, default = True
+    verbose : bool, default = False
         Whether to print out which file will be imported
-
-    Keyword arguments
-    -----------------
-    Any:
-        Any arguments to plug into the scan_* function from Polars.
+    infer_schema_length : int, default = 10000
+        Number of rows to scan when inferring the schema for CSV/JSON files.
+        For large production datasets, increase this value (e.g., 200000) if columns
+        are not being detected correctly. Higher values use more memory but provide
+        more accurate schema detection.
+    **reading_opts
+        Additional arguments passed to the Polars scan_* functions.
 
     Returns
     -------
     pl.LazyFrame
         The (lazy) dataframe
 
-    Examples:
-        >>> df = read_ds_export(filename='full/path/to/ModelSnapshot.json')
-        >>> df = read_ds_export(filename='ModelSnapshot.json', path='data/ADMData')
-        >>> df = read_ds_export(filename=uploaded_file)  # Where uploaded_file is a BytesIO object
+    Examples
+    --------
+    >>> df = read_ds_export(filename='full/path/to/ModelSnapshot.json')
+    >>> df = read_ds_export(filename='ModelSnapshot.json', path='data/ADMData')
+    >>> df = read_ds_export(filename=uploaded_file)  # Where uploaded_file is a BytesIO object
+
+    >>> # For large datasets with schema detection issues:
+    >>> df = read_ds_export(filename='large_export.csv', infer_schema_length=200000)
 
     """
     file: Union[str, BytesIO]

@@ -693,6 +693,7 @@ class Prediction:
         base_path: Union[os.PathLike, str] = ".",
         *,
         query: Optional[QUERY] = None,
+        infer_schema_length: int = 10000,
     ):
         """Import from a Pega Dataset Export of the PR_DATA_DM_SNAPSHOTS table.
 
@@ -704,6 +705,11 @@ class Prediction:
             A base path to provide if predictions_filename is not given as a full path, by default "."
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON files.
+            For large production datasets, increase this value (e.g., 200000) if columns
+            are not being detected correctly. Higher values use more memory but provide
+            more accurate schema detection. By default 10000
 
         Returns
         -------
@@ -714,6 +720,13 @@ class Prediction:
         --------
         >>> from pdstools import Prediction
         >>> pred = Prediction.from_ds_export('predictions.zip', '/my_export_folder')
+
+        >>> # For large datasets with schema detection issues:
+        >>> pred = Prediction.from_ds_export(
+                'predictions.zip',
+                '/my_export_folder',
+                infer_schema_length=200000
+                )
 
         Note
         ----
@@ -726,7 +739,9 @@ class Prediction:
         pdstools.pega_io.File.read_ds_export : More information on file compatibility
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
         """
-        predictions_raw_data = read_ds_export(predictions_filename, base_path)
+        predictions_raw_data = read_ds_export(
+            predictions_filename, base_path, infer_schema_length=infer_schema_length
+        )
         if predictions_raw_data is None:
             raise ValueError(
                 f"Unable to read prediction data from {predictions_filename}. "

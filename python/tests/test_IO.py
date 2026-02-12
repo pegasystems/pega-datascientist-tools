@@ -252,3 +252,60 @@ def test_cache_to_file():
     assert input_df.collect().equals(pl.read_parquet(cached_path_parquet))
     for file in [cached_path_parquet, cached_path_arrow]:
         os.remove(file)
+
+
+# Tests for infer_schema_length parameter
+def test_infer_schema_length_csv():
+    """Test that infer_schema_length parameter is accepted for CSV files."""
+    path = f"{basePath}/data"
+    models = "pr_data_dm_admmart_mdl_fact.csv"
+    # Test with various infer_schema_length values
+    result = pega_io.read_ds_export(path=path, filename=models, infer_schema_length=100)
+    assert polars_checks(result)
+
+    result_large = pega_io.read_ds_export(
+        path=path, filename=models, infer_schema_length=100000
+    )
+    assert polars_checks(result_large)
+
+
+def test_infer_schema_length_json():
+    """Test that infer_schema_length parameter is accepted for JSON files."""
+    path = f"{basePath}/data"
+    models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
+    # Test with various infer_schema_length values
+    result = pega_io.read_ds_export(path=path, filename=models, infer_schema_length=50)
+    assert polars_checks(result)
+
+    result_large = pega_io.read_ds_export(
+        path=path, filename=models, infer_schema_length=100000
+    )
+    assert polars_checks(result_large)
+
+
+def test_infer_schema_length_affects_schema_inference(tmp_path):
+    """Test that infer_schema_length affects schema inference for late-appearing values.
+
+    Creates a CSV where a column has empty values for the first N rows but has
+    numeric values later. With a small infer_schema_length that doesn't reach
+    the numeric values, the column is detected as String.
+    """
+    n_empty_rows = 100
+    n_total_rows = 150
+
+    # Create CSV where 'late_numeric' has empty values for first 100 rows
+    csv_path = tmp_path / "late_values.csv"
+    data = {
+        "id": [f"id_{i}" for i in range(n_total_rows)],
+        "late_numeric": [""] * n_empty_rows
+        + [str(i) for i in range(n_total_rows - n_empty_rows)],
+    }
+    pl.DataFrame(data).write_csv(csv_path)
+
+    # With small sample (only empty values), column is String
+    result_small = pega_io.read_ds_export(str(csv_path), infer_schema_length=50)
+    assert result_small.collect_schema()["late_numeric"] == pl.String
+
+    # With larger sample, still String but data is correctly loaded
+    result_large = pega_io.read_ds_export(str(csv_path), infer_schema_length=200)
+    assert len(result_large.collect()) == n_total_rows
