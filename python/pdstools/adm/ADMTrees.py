@@ -447,21 +447,22 @@ class ADMTreesModel:
             self._decode_trees()
 
         try:
-            self.properties = {
+            self._properties = {
                 prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
             }
         except Exception:  # pragma: no cover
             logger.info("Could not extract the properties.")
+            self._properties = {}
 
         try:
-            self.learning_rate = self.properties["configuration"]["parameters"][
+            self.learning_rate = self._properties["configuration"]["parameters"][
                 "learningRateEta"
             ]
         except Exception:  # pragma: no cover
             logger.info("Could not find the learning rate in the model.")
 
         try:
-            self.context_keys = self.properties["configuration"]["contextKeys"]
+            self.context_keys = self._properties["configuration"]["contextKeys"]
         except Exception:  # pragma: no cover
             logger.info("Could not find context keys.")
             self.context_keys = kwargs.get("context_keys", None)
@@ -472,11 +473,13 @@ class ADMTreesModel:
             return 1 + (max(map(self._depth, d.values())) if d else 0)
         return 0
 
-    def _safe_numeric_compare(self, left: Union[int, float], operator: str, right: Union[int, float]) -> bool:
+    def _safe_numeric_compare(
+        self, left: Union[int, float], operator: str, right: Union[int, float]
+    ) -> bool:
         """Safely compare two numeric values without using eval().
-        
+
         This method replaces dangerous eval() calls with safe numeric comparisons.
-        
+
         Parameters
         ----------
         left : Union[int, float]
@@ -485,12 +488,12 @@ class ADMTreesModel:
             Comparison operator as string ('<', '>', '==', '<=', '>=', '!=')
         right : Union[int, float]
             Right operand for comparison
-            
+
         Returns
         -------
         bool
             Result of the comparison
-            
+
         Raises
         ------
         ValueError
@@ -511,11 +514,13 @@ class ADMTreesModel:
         else:
             raise ValueError(f"Unsupported operator: {operator}")
 
-    def _safe_condition_evaluate(self, value: Any, operator: str, comparison_set: Union[set, float, str]) -> bool:
+    def _safe_condition_evaluate(
+        self, value: Any, operator: str, comparison_set: Union[set, float, str]
+    ) -> bool:
         """Safely evaluate conditions without using eval().
-        
+
         This method replaces dangerous eval() calls with safe condition evaluation.
-        
+
         Parameters
         ----------
         value : Any
@@ -524,7 +529,7 @@ class ADMTreesModel:
             The operator ('in', '<', '>', '==')
         comparison_set : Union[set, float, str]
             The value or set to compare against
-            
+
         Returns
         -------
         bool
@@ -542,8 +547,280 @@ class ADMTreesModel:
             else:
                 raise ValueError(f"Unsupported operator: {operator}")
         except (ValueError, TypeError) as e:
-            logger.warning(f"Safe evaluation failed for {value} {operator} {comparison_set}: {e}")
+            logger.warning(
+                f"Safe evaluation failed for {value} {operator} {comparison_set}: {e}"
+            )
             return False
+
+    @cached_property
+    def metrics(self) -> dict[str, Any]:
+        """Compute CDH_ADM005-style diagnostic metrics for this model.
+
+        Returns a flat dictionary of key/value pairs aligned with the
+        CDH_ADM005 telemetry event specification.  Metrics that cannot be
+        computed from an exported model (e.g. saturation counts that
+        require bin-level data) are omitted.
+
+        See Also
+        --------
+        https://dai-docs.pega.com/features/telemetry-metrics/events/CDH_ADM005/
+
+        Returns
+        -------
+        dict[str, Any]
+            Metric name → value mapping.
+        """
+        return self._compute_metrics()
+
+    def _compute_metrics(self) -> dict[str, Any]:
+        """Internal implementation that walks the trees once to gather
+        all CDH_ADM005 metrics efficiently.
+
+        For exported (decoded) models, predictor types are inferred from
+        split operators (``<`` → numeric, ``in`` / ``==`` → symbolic).
+        For encoded models (from datamart blobs with ``inputsEncoder``),
+        the encoder metadata provides authoritative type information and
+        allows computing saturation metrics.
+
+        Tree-splits pruned count is server-side only and cannot be derived
+        from the exported model structure.
+        """
+
+        # --- helpers -------------------------------------------------------
+        def _count_nodes(tree: Dict) -> int:
+            c = 1
+            if "left" in tree:
+                c += _count_nodes(tree["left"])
+            if "right" in tree:
+                c += _count_nodes(tree["right"])
+            return c
+
+        def _tree_depth(tree: Dict) -> int:
+            d = 1
+            dl = _tree_depth(tree["left"]) if "left" in tree else 0
+            dr = _tree_depth(tree["right"]) if "right" in tree else 0
+            return d + max(dl, dr)
+
+        def _collect_splits(tree: Dict, var_ops, var_split_count):
+            if "split" in tree:
+                parts = tree["split"].split(" ", 2)
+                var = parts[0]
+                op = parts[1] if len(parts) > 1 else ""
+                var_ops[var].add(op)
+                var_split_count[var] += 1
+            if "left" in tree:
+                _collect_splits(tree["left"], var_ops, var_split_count)
+            if "right" in tree:
+                _collect_splits(tree["right"], var_ops, var_split_count)
+
+        def _classify_predictor(name: str) -> str:
+            """Classify a predictor as 'ih', 'context_key', or 'other'."""
+            if name.startswith("IH."):
+                return "ih"
+            if (
+                name.startswith("py")
+                or name.startswith("Param.")
+                or ".Context." in name
+            ):
+                return "context_key"
+            return "other"
+
+        # --- walk all trees ------------------------------------------------
+        var_ops: dict[str, set[str]] = collections.defaultdict(set)
+        var_split_count: dict[str, int] = collections.defaultdict(int)
+        depths: list[int] = []
+        total_nodes = 0
+
+        for tree in self.model:
+            total_nodes += _count_nodes(tree)
+            depths.append(_tree_depth(tree))
+            _collect_splits(tree, var_ops, var_split_count)
+
+        # --- encoder-based classification (when available) -----------------
+        encoder_info = self._get_encoder_info()
+
+        if encoder_info is not None:
+            # authoritative type from encoder metadata
+            all_predictors = set(encoder_info.keys())
+            all_numeric = {
+                n for n, info in encoder_info.items() if info["type"] == "numeric"
+            }
+            all_symbolic = {
+                n for n, info in encoder_info.items() if info["type"] == "symbolic"
+            }
+            active_numeric = all_numeric & set(var_ops)
+            active_symbolic = all_symbolic & set(var_ops)
+        else:
+            # infer from split operators
+            all_predictors = None
+            active_numeric = {v for v, ops in var_ops.items() if "<" in ops}
+            active_symbolic = {
+                v for v, ops in var_ops.items() if "in" in ops or "==" in ops
+            }
+
+        active_ih = {v for v in var_ops if _classify_predictor(v) == "ih"}
+        active_context_key = {
+            v for v in var_ops if _classify_predictor(v) == "context_key"
+        }
+        active_other = {v for v in var_ops if _classify_predictor(v) == "other"}
+
+        # total predictor counts from the configuration if available
+        total_predictors: dict[str, str] | None = None
+        try:
+            total_predictors = self.predictors
+        except Exception:
+            pass
+
+        if total_predictors is not None:
+            all_ih = {n for n in total_predictors if _classify_predictor(n) == "ih"}
+            total_pred_count = len(total_predictors)
+            if all_predictors is None:
+                all_numeric = {
+                    n
+                    for n, t in total_predictors.items()
+                    if t.lower() in {"numeric", "double", "integer", "float"}
+                }
+                all_symbolic = {
+                    n
+                    for n, t in total_predictors.items()
+                    if t.lower() in {"symbolic", "string", "boolean"}
+                }
+        elif all_predictors is not None:
+            all_ih = {n for n in all_predictors if _classify_predictor(n) == "ih"}
+            total_pred_count = len(all_predictors)
+        else:
+            all_ih = active_ih
+            total_pred_count = len(var_ops)
+            all_numeric = active_numeric
+            all_symbolic = active_symbolic
+
+        # --- saturation metrics (encoder-only) -----------------------------
+        saturated_ctx = 0
+        saturated_symbolic = 0
+        max_saturation_ctx: float = 0.0
+        if encoder_info is not None:
+            for name, info in encoder_info.items():
+                if info["max_bins"] is not None and info["max_bins"] > 0:
+                    ratio = info["used_bins"] / info["max_bins"]
+                    saturated = info["used_bins"] >= info["max_bins"]
+                    cat = _classify_predictor(name)
+                    if cat == "context_key":
+                        if saturated:
+                            saturated_ctx += 1
+                        if ratio > max_saturation_ctx:
+                            max_saturation_ctx = ratio
+                    if info["type"] == "symbolic" and saturated:
+                        saturated_symbolic += 1
+
+        # --- training stats from properties --------------------------------
+        props = getattr(self, "_properties", {}) or {}
+        training = props.get("trainingStats", {})
+
+        # --- assemble metrics dict -----------------------------------------
+        m: dict[str, Any] = {}
+
+        # Properties-level metrics
+        m["auc"] = props.get("auc", props.get("performance"))
+        m["success_rate"] = props.get("successRate")
+        m["factory_update_time"] = props.get("factoryUpdateTime")
+
+        # Data quality
+        m["response_positive_count"] = training.get("positiveCount")
+        m["response_negative_count"] = training.get("negativeCount")
+
+        # Model complexity
+        m["number_of_tree_nodes"] = total_nodes
+        m["tree_depth_max"] = max(depths) if depths else 0
+        m["tree_depth_avg"] = round(sum(depths) / len(depths), 2) if depths else 0.0
+        m["number_of_trees"] = len(self.model)
+        m["number_of_splits_on_ih_predictors"] = sum(
+            var_split_count[v] for v in active_ih
+        )
+        m["number_of_splits_on_context_key_predictors"] = sum(
+            var_split_count[v] for v in active_context_key
+        )
+        m["number_of_splits_on_other_predictors"] = sum(
+            var_split_count[v] for v in active_other
+        )
+
+        # Predictor info
+        m["total_number_of_active_predictors"] = len(var_ops)
+        m["total_number_of_predictors"] = total_pred_count
+        m["number_of_active_ih_predictors"] = len(active_ih)
+        m["total_number_of_ih_predictors"] = len(all_ih)
+        m["number_of_active_context_key_predictors"] = len(active_context_key)
+        m["number_of_active_symbolic_predictors"] = len(active_symbolic)
+        m["total_number_of_symbolic_predictors"] = len(all_symbolic)
+        m["number_of_active_numeric_predictors"] = len(active_numeric)
+        m["total_number_of_numeric_predictors"] = len(all_numeric)
+
+        # Saturation (only when encoder metadata is available)
+        if encoder_info is not None:
+            m["number_of_saturated_context_key_predictors"] = saturated_ctx
+            m["number_of_saturated_symbolic_predictors"] = saturated_symbolic
+            m["max_saturation_rate_on_context_key_predictors"] = round(
+                max_saturation_ctx * 100, 1
+            )
+
+        return m
+
+    def _get_encoder_info(self) -> Optional[dict[str, dict[str, Any]]]:
+        """Extract predictor metadata from the inputsEncoder if present.
+
+        Returns a dict mapping predictor name to a dict with keys:
+        - ``type``: ``"numeric"`` or ``"symbolic"``
+        - ``used_bins``: number of bins currently used
+        - ``max_bins``: maximum bins allowed (``None`` if unknown)
+
+        Returns ``None`` if no encoder metadata is available (e.g. for
+        exported/decoded models).
+        """
+        # Try different locations where encoders may live
+        raw_encoders = None
+        for path in [
+            lambda: self.trees["model"]["inputsEncoder"]["encoders"],
+            lambda: self.trees["model"]["model"]["inputsEncoder"]["encoders"],
+        ]:
+            try:
+                raw_encoders = path()
+                break
+            except (KeyError, TypeError):
+                continue
+
+        if raw_encoders is None:
+            return None
+
+        result: dict[str, dict[str, Any]] = {}
+        for entry in raw_encoders:
+            name = entry["key"]
+            value = entry["value"]
+            encoder = value.get("encoder", {})
+            encoder_type = next(iter(encoder), None)
+
+            if encoder_type == "quantileArray":
+                enc_data = encoder[encoder_type]
+                summary = enc_data.get("summary", {})
+                bins = summary.get("list", summary.get("initialValues", []))
+                result[name] = {
+                    "type": "numeric",
+                    "used_bins": len(bins),
+                    "max_bins": enc_data.get("maxNumberOfBins"),
+                }
+            elif encoder_type == "stringTranslator":
+                enc_data = encoder[encoder_type]
+                result[name] = {
+                    "type": "symbolic",
+                    "used_bins": len(enc_data.get("symbols", [])),
+                    "max_bins": enc_data.get("maxNumberOfBins"),
+                }
+            else:
+                result[name] = {
+                    "type": "unknown",
+                    "used_bins": 0,
+                    "max_bins": None,
+                }
+
+        return result
 
     @cached_property
     def predictors(self):
@@ -644,16 +921,28 @@ class ADMTreesModel:
         return variable, sign, splitvalue
 
     def get_predictors(self) -> Optional[Dict]:
+        """Extract predictor names and types from model metadata.
+
+        Tries to find predictor metadata from the ``configuration``
+        section of the JSON.  Models exported via the Prediction Studio
+        "Save Model" button include a ``configuration`` key with an
+        explicit predictor list.  However, models exported in the newer
+        format (e.g. via automated pipelines or newer Pega versions) may
+        omit the ``configuration`` section entirely, containing only
+        ``type``, ``modelVersion``, ``algorithm``, ``trainingStats``,
+        ``auc``, etc. at the top level.  In that case, predictor names
+        and types are inferred from the tree split nodes instead.
+        """
         self.nospaces = True
         try:
-            predictors = self.properties["configuration"]["predictors"]
+            predictors = self._properties["configuration"]["predictors"]
         except Exception:  # pragma: no cover
             try:
-                predictors = self.properties["predictors"]
+                predictors = self._properties["predictors"]
             except Exception:
                 try:
                     predictors = []
-                    for i in self.properties.split("=")[4].split(
+                    for i in self._properties.split("=")[4].split(
                         "com.pega.decision.adm.client.PredictorInfo: "
                     ):
                         if i.startswith("{"):
@@ -663,14 +952,59 @@ class ADMTreesModel:
                                 predictors += [i[:-2]]
 
                 except Exception:
-                    print("Could not find the predictors.")
-                    return None
+                    # No explicit predictor metadata available — infer
+                    # from tree splits (see docstring above).
+                    return self._infer_predictors_from_splits()
         predictors_dict = {}
         for predictor in predictors:
             if isinstance(predictor, str):  # pragma: no cover
                 predictor = json.loads(predictor)
             predictors_dict[predictor["name"]] = predictor["type"]
         return predictors_dict
+
+    def _infer_predictors_from_splits(self) -> Optional[Dict]:
+        """Infer predictor names and types from tree split nodes.
+
+        When no explicit predictor metadata is available (e.g. in exported
+        models without a ``configuration`` section), we walk the trees and
+        derive predictor names from splits. The operator determines the
+        type: ``<`` → numeric, ``in``/``==`` → symbolic.
+
+        Returns
+        -------
+        dict[str, str] | None
+            Mapping of predictor name → type ("numeric" or "symbolic").
+        """
+        var_ops: dict[str, set[str]] = collections.defaultdict(set)
+
+        def _collect(tree: Dict):
+            if "split" in tree:
+                parts = tree["split"].split(" ", 2)
+                if len(parts) >= 2:
+                    var_ops[parts[0]].add(parts[1])
+            if "left" in tree:
+                _collect(tree["left"])
+            if "right" in tree:
+                _collect(tree["right"])
+
+        for tree in self.model:
+            _collect(tree)
+
+        if not var_ops:
+            logger.info("No splits found, cannot infer predictors.")
+            return None
+
+        result: Dict[str, str] = {}
+        for name, ops in var_ops.items():
+            if "<" in ops:
+                result[name] = "numeric"
+            elif "in" in ops or "==" in ops:
+                result[name] = "symbolic"
+            else:
+                result[name] = "symbolic"
+
+        logger.info(f"Inferred {len(result)} predictors from tree splits.")
+        return result
 
     @lru_cache
     def get_gains_per_split(
@@ -1295,7 +1629,7 @@ class MultiTrees:  # pragma: no cover
             return MultiTrees(
                 {
                     **self.trees,
-                    **{pl.datetime(other.properties["factoryUpdateTime"]): other},
+                    **{pl.datetime(other.metrics["factory_update_time"]): other},
                 }
             )
 
