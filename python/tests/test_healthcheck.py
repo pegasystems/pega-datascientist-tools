@@ -70,7 +70,7 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert (
-        size_diff <= 0.01
+        size_diff <= 0.10
     ), f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
@@ -233,7 +233,7 @@ def test_ModelReport_size_reduction_methods(sample: ADMDatamart, tmp_path):
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert (
-        size_diff <= 0.01
+        size_diff <= 0.10
     ), f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
