@@ -143,3 +143,128 @@ def test_metrics_no_encoder(exported_model: ADMTreesModel):
     m = exported_model.metrics
     assert "number_of_saturated_context_key_predictors" not in m
     assert exported_model._get_encoder_info() is None
+
+
+# --- gain distribution tests -----------------------------------------------
+
+
+def test_metrics_gain_distribution(tree_sample: ADMTreesModel):
+    """Gain distribution metrics are present and internally consistent."""
+    m = tree_sample.metrics
+    assert m["total_gain"] > 0
+    assert m["mean_gain_per_split"] > 0
+    assert m["median_gain_per_split"] > 0
+    assert m["max_gain_per_split"] >= m["mean_gain_per_split"]
+    assert m["gain_std"] >= 0
+
+
+def test_metrics_gain_exported_model(exported_model: ADMTreesModel):
+    """Exported model gain metrics are present and consistent."""
+    m = exported_model.metrics
+    assert m["total_gain"] >= 0.0
+    assert m["mean_gain_per_split"] >= 0.0
+    assert m["gain_std"] >= 0.0
+
+
+# --- leaf score tests -------------------------------------------------------
+
+
+def test_metrics_leaf_scores(tree_sample: ADMTreesModel):
+    """Leaf score metrics are present and sensible."""
+    m = tree_sample.metrics
+    assert m["number_of_leaves"] > 0
+    assert m["leaf_score_min"] <= m["leaf_score_mean"] <= m["leaf_score_max"]
+    assert m["leaf_score_std"] >= 0
+
+
+def test_metrics_leaf_scores_exported(exported_model: ADMTreesModel):
+    """Exported model leaf scores are sensible."""
+    m = exported_model.metrics
+    assert m["number_of_leaves"] >= m["number_of_trees"]
+    assert m["leaf_score_min"] <= m["leaf_score_max"]
+
+
+# --- tree structure tests ---------------------------------------------------
+
+
+def test_metrics_tree_structure(tree_sample: ADMTreesModel):
+    """Structure metrics: stumps, depth std, avg leaves."""
+    m = tree_sample.metrics
+    assert m["number_of_stump_trees"] >= 0
+    assert m["number_of_stump_trees"] <= m["number_of_trees"]
+    assert m["tree_depth_std"] >= 0
+    assert m["avg_leaves_per_tree"] >= 1.0
+
+
+def test_metrics_stump_count_exported(exported_model: ADMTreesModel):
+    """Exported model has some stump trees but not all."""
+    m = exported_model.metrics
+    assert m["number_of_stump_trees"] >= 0
+    assert m["number_of_stump_trees"] <= m["number_of_trees"]
+    assert m["tree_depth_std"] >= 0.0
+
+
+# --- split type tests -------------------------------------------------------
+
+
+def test_metrics_split_types(tree_sample: ADMTreesModel):
+    """Split-type metrics are present and consistent."""
+    m = tree_sample.metrics
+    assert m["number_of_numeric_splits"] + m["number_of_symbolic_splits"] > 0
+    assert 0.0 <= m["symbolic_split_fraction"] <= 1.0
+    assert m["number_of_unique_splits"] > 0
+    assert m["number_of_unique_predictors_split_on"] > 0
+    assert m["split_reuse_ratio"] >= 1.0
+
+
+def test_metrics_split_types_exported(exported_model: ADMTreesModel):
+    """Exported model split-type metrics are consistent."""
+    m = exported_model.metrics
+    total = m["number_of_numeric_splits"] + m["number_of_symbolic_splits"]
+    assert total >= 0
+    assert 0.0 <= m["symbolic_split_fraction"] <= 1.0
+    assert m["number_of_unique_splits"] >= 0
+    assert m["split_reuse_ratio"] >= 0.0
+
+
+# --- convergence tests ------------------------------------------------------
+
+
+def test_metrics_convergence(tree_sample: ADMTreesModel):
+    """Convergence metrics are present and positive."""
+    m = tree_sample.metrics
+    assert m["mean_abs_score_first_10"] > 0
+    assert m["mean_abs_score_last_10"] > 0
+    assert m["score_decay_ratio"] > 0
+
+
+def test_metrics_convergence_gain_halves(tree_sample: ADMTreesModel):
+    """Gain halves are present (both can be zero if no gains)."""
+    m = tree_sample.metrics
+    assert "mean_gain_first_half" in m
+    assert "mean_gain_last_half" in m
+
+
+# --- feature importance concentration tests ---------------------------------
+
+
+def test_metrics_feature_importance(tree_sample: ADMTreesModel):
+    """Feature importance concentration metrics."""
+    m = tree_sample.metrics
+    assert m["top_predictor_by_gain"] is not None
+    assert 0.0 < m["top_predictor_gain_share"] <= 1.0
+    assert 0.0 <= m["predictor_gain_entropy"] <= 1.0
+
+
+def test_metrics_feature_importance_exported(exported_model: ADMTreesModel):
+    """Exported model feature importance metrics are consistent."""
+    m = exported_model.metrics
+    # The exported model has splits, so it has feature importance
+    if m["total_gain"] > 0:
+        assert m["top_predictor_by_gain"] is not None
+        assert 0.0 < m["top_predictor_gain_share"] <= 1.0
+        assert 0.0 <= m["predictor_gain_entropy"] <= 1.0
+    else:
+        assert m["top_predictor_by_gain"] is None
+        assert m["top_predictor_gain_share"] == 0.0
+        assert m["predictor_gain_entropy"] == 0.0

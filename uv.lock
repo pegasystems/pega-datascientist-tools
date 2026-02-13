@@ -2323,6 +2323,7 @@ dependencies = [
 [package.optional-dependencies]
 adm = [
     { name = "plotly", extra = ["express"] },
+    { name = "pydot" },
     { name = "requests" },
 ]
 all = [
@@ -2497,6 +2498,7 @@ requires-dist = [
     { name = "pyarrow", marker = "extra == 'explanations'" },
     { name = "pydantic", marker = "extra == 'api'" },
     { name = "pydantic", marker = "extra == 'docs'" },
+    { name = "pydot", marker = "extra == 'adm'" },
     { name = "pydot", marker = "extra == 'healthcheck'" },
     { name = "pytest", marker = "extra == 'tests'" },
     { name = "pytest-asyncio", marker = "extra == 'tests'" },

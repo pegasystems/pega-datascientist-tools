@@ -8,13 +8,14 @@ import copy
 import functools
 import json
 import logging
+import math
 import multiprocessing
 import operator
 import zlib
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from math import exp
-from statistics import mean
+from statistics import mean, median, stdev
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -563,7 +564,7 @@ class ADMTreesModel:
 
         See Also
         --------
-        https://dai-docs.pega.com/features/telemetry-metrics/events/CDH_ADM005/
+        Pega CDH_ADM005 telemetry event specification in the Pega platform documentation.
 
         Returns
         -------
@@ -572,18 +573,152 @@ class ADMTreesModel:
         """
         return self._compute_metrics()
 
+    @staticmethod
+    def metric_descriptions() -> dict[str, str]:
+        """Return a dictionary mapping metric names to human-readable descriptions.
+
+        These descriptions document every metric returned by the
+        :attr:`metrics` property. They can be used programmatically to
+        annotate reports or plots.
+
+        Returns
+        -------
+        dict[str, str]
+            Metric name → one-line description.
+        """
+        return {
+            # Properties-level
+            "auc": "Area Under the ROC Curve — overall model discrimination power.",
+            "success_rate": "Proportion of positive outcomes in the training data.",
+            "factory_update_time": "Timestamp of the last factory (re)build of this model.",
+            "response_positive_count": "Number of positive responses in training data.",
+            "response_negative_count": "Number of negative responses in training data.",
+            # Model complexity
+            "number_of_tree_nodes": "Total node count across all trees (splits + leaves).",
+            "tree_depth_max": "Maximum depth of any single tree in the ensemble.",
+            "tree_depth_avg": "Average depth across all trees.",
+            "tree_depth_std": "Standard deviation of tree depths — uniformity of tree complexity.",
+            "number_of_trees": "Total number of boosting rounds (trees) in the model.",
+            "number_of_stump_trees": "Trees with no splits (single root node). Stumps contribute no learned signal.",
+            "avg_leaves_per_tree": "Average number of leaf nodes per tree — a proxy for tree complexity.",
+            # Splits by predictor category
+            "number_of_splits_on_ih_predictors": "Total splits on Interaction History (IH.*) predictors.",
+            "number_of_splits_on_context_key_predictors": "Total splits on context-key predictors (py*, Param.*, *.Context.*).",
+            "number_of_splits_on_other_predictors": "Total splits on customer/other predictors.",
+            # Predictor counts
+            "total_number_of_active_predictors": "Predictors that appear in at least one split.",
+            "total_number_of_predictors": "All predictors known to the model (active or not).",
+            "number_of_active_ih_predictors": "Active IH predictors (appear in splits).",
+            "total_number_of_ih_predictors": "All IH predictors in the model configuration.",
+            "number_of_active_context_key_predictors": "Active context-key predictors.",
+            "number_of_active_symbolic_predictors": "Active symbolic (categorical) predictors.",
+            "total_number_of_symbolic_predictors": "All symbolic predictors in configuration.",
+            "number_of_active_numeric_predictors": "Active numeric (continuous) predictors.",
+            "total_number_of_numeric_predictors": "All numeric predictors in configuration.",
+            # Gain distribution
+            "total_gain": "Sum of all split gains — total information gained by the ensemble.",
+            "mean_gain_per_split": "Average gain per split node (analogous to XGBoost gain importance).",
+            "median_gain_per_split": "Median gain — robust central tendency, less sensitive to outlier splits.",
+            "max_gain_per_split": "Largest single split gain — identifies the most informative split.",
+            "gain_std": "Standard deviation of gains — high values indicate a few dominant splits.",
+            # Leaf scores
+            "number_of_leaves": "Total leaf nodes across all trees.",
+            "leaf_score_mean": "Average leaf score (log-odds contribution). Near zero means balanced.",
+            "leaf_score_std": "Spread of leaf scores — wider spread means better discrimination.",
+            "leaf_score_min": "Most negative leaf score.",
+            "leaf_score_max": "Most positive leaf score.",
+            # Split types
+            "number_of_numeric_splits": "Splits using '<' (numeric/continuous thresholds).",
+            "number_of_symbolic_splits": "Splits using 'in' or '==' (categorical membership).",
+            "symbolic_split_fraction": "Fraction of splits that are symbolic (0–1).",
+            "number_of_unique_splits": "Distinct split conditions across all trees.",
+            "number_of_unique_predictors_split_on": "Number of distinct predictor variables used in splits.",
+            "split_reuse_ratio": "Total splits / unique splits — how often the same condition recurs across trees.",
+            "avg_symbolic_set_size": "Average number of categories in symbolic 'in { ... }' splits.",
+            # Learning convergence
+            "mean_abs_score_first_10": "Mean |root score| of the first 10 trees — initial correction magnitude.",
+            "mean_abs_score_last_10": "Mean |root score| of the last 10 trees — late correction magnitude.",
+            "score_decay_ratio": "Ratio last/first — values < 1 indicate convergence, >> 1 indicates instability.",
+            "mean_gain_first_half": "Average gain in the first half of trees.",
+            "mean_gain_last_half": "Average gain in the second half — lower values suggest convergence.",
+            # Feature importance concentration
+            "top_predictor_by_gain": "Predictor with the highest total gain.",
+            "top_predictor_gain_share": "Fraction of total gain from the top predictor (0–1). High = dominance.",
+            "predictor_gain_entropy": "Normalised Shannon entropy of gain distribution (0–1). Low = concentrated.",
+            # Saturation (encoder-based only)
+            "number_of_saturated_context_key_predictors": "Context-key predictors that have reached max bin capacity.",
+            "number_of_saturated_symbolic_predictors": "Symbolic predictors at max bin capacity.",
+            "max_saturation_rate_on_context_key_predictors": "Highest bin-fill percentage among context-key predictors.",
+        }
+
     def _compute_metrics(self) -> dict[str, Any]:
         """Internal implementation that walks the trees once to gather
-        all CDH_ADM005 metrics efficiently.
+        all diagnostic metrics efficiently.
+
+        The returned dictionary contains the following groups of metrics:
+
+        **Properties-level** – sourced from the model JSON envelope:
+            ``auc``, ``success_rate``, ``factory_update_time``,
+            ``response_positive_count``, ``response_negative_count``.
+
+        **Model complexity** – basic structural counts:
+            ``number_of_trees``, ``number_of_tree_nodes``,
+            ``tree_depth_max``, ``tree_depth_avg``, ``tree_depth_std``,
+            ``number_of_stump_trees``, ``avg_leaves_per_tree``.
+
+        **Splits by predictor category** – how many splits fall on each
+        predictor type:
+            ``number_of_splits_on_ih_predictors``,
+            ``number_of_splits_on_context_key_predictors``,
+            ``number_of_splits_on_other_predictors``.
+
+        **Predictor counts** – active vs total:
+            ``total_number_of_active_predictors``,
+            ``total_number_of_predictors``,
+            ``number_of_active_ih_predictors``,
+            ``total_number_of_ih_predictors``,
+            ``number_of_active_context_key_predictors``,
+            ``number_of_active_symbolic_predictors``,
+            ``total_number_of_symbolic_predictors``,
+            ``number_of_active_numeric_predictors``,
+            ``total_number_of_numeric_predictors``.
+
+        **Gain distribution** – summary statistics over all split gains,
+        analogous to XGBoost's ``importance_type='gain'``:
+            ``total_gain``, ``mean_gain_per_split``,
+            ``median_gain_per_split``, ``max_gain_per_split``,
+            ``gain_std``.
+
+        **Leaf scores** – distribution of leaf-node scores:
+            ``number_of_leaves``, ``leaf_score_mean``,
+            ``leaf_score_std``, ``leaf_score_min``, ``leaf_score_max``.
+
+        **Split types** – numeric vs symbolic split breakdown:
+            ``number_of_numeric_splits``, ``number_of_symbolic_splits``,
+            ``symbolic_split_fraction``, ``number_of_unique_splits``,
+            ``number_of_unique_predictors_split_on``,
+            ``split_reuse_ratio``, ``avg_symbolic_set_size``.
+
+        **Learning convergence** – whether later boosting rounds still
+        contribute meaningfully:
+            ``mean_abs_score_first_10``, ``mean_abs_score_last_10``,
+            ``score_decay_ratio``, ``mean_gain_first_half``,
+            ``mean_gain_last_half``.
+
+        **Feature importance concentration** – how evenly predictive
+        power is spread across predictors:
+            ``top_predictor_by_gain``, ``top_predictor_gain_share``,
+            ``predictor_gain_entropy``.
+
+        **Saturation** *(encoder-based models only)* – bin saturation:
+            ``number_of_saturated_context_key_predictors``,
+            ``number_of_saturated_symbolic_predictors``,
+            ``max_saturation_rate_on_context_key_predictors``.
 
         For exported (decoded) models, predictor types are inferred from
         split operators (``<`` → numeric, ``in`` / ``==`` → symbolic).
         For encoded models (from datamart blobs with ``inputsEncoder``),
-        the encoder metadata provides authoritative type information and
-        allows computing saturation metrics.
-
-        Tree-splits pruned count is server-side only and cannot be derived
-        from the exported model structure.
+        the encoder metadata provides authoritative type information.
         """
 
         # --- helpers -------------------------------------------------------
@@ -601,17 +736,77 @@ class ADMTreesModel:
             dr = _tree_depth(tree["right"]) if "right" in tree else 0
             return d + max(dl, dr)
 
-        def _collect_splits(tree: Dict, var_ops, var_split_count):
-            if "split" in tree:
-                parts = tree["split"].split(" ", 2)
-                var = parts[0]
-                op = parts[1] if len(parts) > 1 else ""
-                var_ops[var].add(op)
-                var_split_count[var] += 1
+        def _walk_tree(
+            tree: Dict,
+            var_ops: dict[str, set[str]],
+            var_split_count: dict[str, int],
+            all_gains: list[float],
+            leaf_scores: list[float],
+            split_strings: list[str],
+            numeric_split_count: list[int],
+            symbolic_split_count: list[int],
+            symbolic_set_sizes: list[int],
+            leaf_count: list[int],
+        ) -> None:
+            """Single-pass recursive walk collecting all per-node data."""
+            is_leaf = "split" not in tree
+            if is_leaf:
+                leaf_scores.append(tree["score"])
+                leaf_count[0] += 1
+                return
+
+            # --- internal (split) node ---
+            split_str = tree["split"]
+            gain = tree.get("gain", 0.0)
+            split_strings.append(split_str)
+
+            if gain > 0:
+                all_gains.append(gain)
+
+            parts = split_str.split(" ", 2)
+            var = parts[0]
+            op = parts[1] if len(parts) > 1 else ""
+            var_ops[var].add(op)
+            var_split_count[var] += 1
+
+            if op == "<":
+                numeric_split_count[0] += 1
+            elif op in {"in", "=="}:
+                symbolic_split_count[0] += 1
+                # Count set size for "in { a, b, c }" splits
+                if op == "in" and len(parts) > 2:
+                    set_body = parts[2].strip()
+                    if set_body.startswith("{") and set_body.endswith("}"):
+                        inner = set_body[1:-1].strip()
+                        n_items = len(inner.split(",")) if inner else 0
+                        symbolic_set_sizes.append(n_items)
+
             if "left" in tree:
-                _collect_splits(tree["left"], var_ops, var_split_count)
+                _walk_tree(
+                    tree["left"],
+                    var_ops,
+                    var_split_count,
+                    all_gains,
+                    leaf_scores,
+                    split_strings,
+                    numeric_split_count,
+                    symbolic_split_count,
+                    symbolic_set_sizes,
+                    leaf_count,
+                )
             if "right" in tree:
-                _collect_splits(tree["right"], var_ops, var_split_count)
+                _walk_tree(
+                    tree["right"],
+                    var_ops,
+                    var_split_count,
+                    all_gains,
+                    leaf_scores,
+                    split_strings,
+                    numeric_split_count,
+                    symbolic_split_count,
+                    symbolic_set_sizes,
+                    leaf_count,
+                )
 
         def _classify_predictor(name: str) -> str:
             """Classify a predictor as 'ih', 'context_key', or 'other'."""
@@ -625,22 +820,53 @@ class ADMTreesModel:
                 return "context_key"
             return "other"
 
-        # --- walk all trees ------------------------------------------------
+        # --- walk all trees (single pass) ----------------------------------
         var_ops: dict[str, set[str]] = collections.defaultdict(set)
         var_split_count: dict[str, int] = collections.defaultdict(int)
         depths: list[int] = []
         total_nodes = 0
+        all_gains: list[float] = []
+        leaf_scores: list[float] = []
+        split_strings: list[str] = []
+        numeric_split_count = [0]
+        symbolic_split_count = [0]
+        symbolic_set_sizes: list[int] = []
+        leaf_count = [0]
+        stump_count = 0
+        per_tree_gains: list[list[float]] = []  # gains per tree for convergence
+        root_scores: list[float] = []  # root score per tree for convergence
 
         for tree in self.model:
             total_nodes += _count_nodes(tree)
             depths.append(_tree_depth(tree))
-            _collect_splits(tree, var_ops, var_split_count)
+            root_scores.append(tree["score"])
+
+            # Track per-tree gains for convergence metrics
+            pre_len = len(all_gains)
+            _walk_tree(
+                tree,
+                var_ops,
+                var_split_count,
+                all_gains,
+                leaf_scores,
+                split_strings,
+                numeric_split_count,
+                symbolic_split_count,
+                symbolic_set_sizes,
+                leaf_count,
+            )
+            tree_gains = all_gains[pre_len:]
+            per_tree_gains.append(tree_gains)
+            if "split" not in tree:
+                stump_count += 1
+
+        n_trees = len(self.model)
+        total_splits = numeric_split_count[0] + symbolic_split_count[0]
 
         # --- encoder-based classification (when available) -----------------
         encoder_info = self._get_encoder_info()
 
         if encoder_info is not None:
-            # authoritative type from encoder metadata
             all_predictors = set(encoder_info.keys())
             all_numeric = {
                 n for n, info in encoder_info.items() if info["type"] == "numeric"
@@ -651,7 +877,6 @@ class ADMTreesModel:
             active_numeric = all_numeric & set(var_ops)
             active_symbolic = all_symbolic & set(var_ops)
         else:
-            # infer from split operators
             all_predictors = None
             active_numeric = {v for v, ops in var_ops.items() if "<" in ops}
             active_symbolic = {
@@ -712,11 +937,24 @@ class ADMTreesModel:
                     if info["type"] == "symbolic" and saturated:
                         saturated_symbolic += 1
 
+        # --- feature importance by gain ------------------------------------
+        var_total_gain: dict[str, float] = collections.defaultdict(float)
+        for split_str, g in zip(split_strings, all_gains):
+            var_name = split_str.split(" ", 1)[0]
+            var_total_gain[var_name] += g
+        # Also accumulate gains for split strings with gain == 0 not in
+        # all_gains; however the walk only appends gain > 0 to all_gains
+        # but split_strings includes all splits.  Re-derive from trees:
+        var_total_gain_full: dict[str, float] = collections.defaultdict(float)
+        for tree in self.model:
+            self._accumulate_gain(tree, var_total_gain_full)
+        sum_all_gain = sum(var_total_gain_full.values())
+
         # --- training stats from properties --------------------------------
         props = getattr(self, "_properties", {}) or {}
         training = props.get("trainingStats", {})
 
-        # --- assemble metrics dict -----------------------------------------
+        # === assemble metrics dict =========================================
         m: dict[str, Any] = {}
 
         # Properties-level metrics
@@ -728,11 +966,16 @@ class ADMTreesModel:
         m["response_positive_count"] = training.get("positiveCount")
         m["response_negative_count"] = training.get("negativeCount")
 
-        # Model complexity
+        # --- Model complexity ----------------------------------------------
         m["number_of_tree_nodes"] = total_nodes
         m["tree_depth_max"] = max(depths) if depths else 0
         m["tree_depth_avg"] = round(sum(depths) / len(depths), 2) if depths else 0.0
-        m["number_of_trees"] = len(self.model)
+        m["tree_depth_std"] = round(stdev(depths), 2) if len(depths) >= 2 else 0.0
+        m["number_of_trees"] = n_trees
+        m["number_of_stump_trees"] = stump_count
+        m["avg_leaves_per_tree"] = (
+            round(leaf_count[0] / n_trees, 2) if n_trees > 0 else 0.0
+        )
         m["number_of_splits_on_ih_predictors"] = sum(
             var_split_count[v] for v in active_ih
         )
@@ -743,7 +986,7 @@ class ADMTreesModel:
             var_split_count[v] for v in active_other
         )
 
-        # Predictor info
+        # --- Predictor info ------------------------------------------------
         m["total_number_of_active_predictors"] = len(var_ops)
         m["total_number_of_predictors"] = total_pred_count
         m["number_of_active_ih_predictors"] = len(active_ih)
@@ -754,7 +997,96 @@ class ADMTreesModel:
         m["number_of_active_numeric_predictors"] = len(active_numeric)
         m["total_number_of_numeric_predictors"] = len(all_numeric)
 
-        # Saturation (only when encoder metadata is available)
+        # --- Gain distribution ---------------------------------------------
+        m["total_gain"] = round(sum(all_gains), 4) if all_gains else 0.0
+        m["mean_gain_per_split"] = round(mean(all_gains), 4) if all_gains else 0.0
+        m["median_gain_per_split"] = round(median(all_gains), 4) if all_gains else 0.0
+        m["max_gain_per_split"] = round(max(all_gains), 4) if all_gains else 0.0
+        m["gain_std"] = round(stdev(all_gains), 4) if len(all_gains) >= 2 else 0.0
+
+        # --- Leaf scores ---------------------------------------------------
+        m["number_of_leaves"] = leaf_count[0]
+        m["leaf_score_mean"] = round(mean(leaf_scores), 6) if leaf_scores else 0.0
+        m["leaf_score_std"] = (
+            round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
+        )
+        m["leaf_score_min"] = round(min(leaf_scores), 6) if leaf_scores else 0.0
+        m["leaf_score_max"] = round(max(leaf_scores), 6) if leaf_scores else 0.0
+
+        # --- Split types ---------------------------------------------------
+        m["number_of_numeric_splits"] = numeric_split_count[0]
+        m["number_of_symbolic_splits"] = symbolic_split_count[0]
+        m["symbolic_split_fraction"] = (
+            round(symbolic_split_count[0] / total_splits, 4)
+            if total_splits > 0
+            else 0.0
+        )
+        unique_splits = set(split_strings)
+        m["number_of_unique_splits"] = len(unique_splits)
+        m["number_of_unique_predictors_split_on"] = len(var_ops)
+        m["split_reuse_ratio"] = (
+            round(len(split_strings) / len(unique_splits), 2) if unique_splits else 0.0
+        )
+        m["avg_symbolic_set_size"] = (
+            round(mean(symbolic_set_sizes), 2) if symbolic_set_sizes else 0.0
+        )
+
+        # --- Learning convergence ------------------------------------------
+        window = min(10, n_trees)
+        if window > 0:
+            abs_root_first = [abs(s) for s in root_scores[:window]]
+            abs_root_last = [abs(s) for s in root_scores[-window:]]
+            m["mean_abs_score_first_10"] = round(mean(abs_root_first), 6)
+            m["mean_abs_score_last_10"] = round(mean(abs_root_last), 6)
+            m["score_decay_ratio"] = (
+                round(m["mean_abs_score_last_10"] / m["mean_abs_score_first_10"], 4)
+                if m["mean_abs_score_first_10"] > 0
+                else 0.0
+            )
+        else:
+            m["mean_abs_score_first_10"] = 0.0
+            m["mean_abs_score_last_10"] = 0.0
+            m["score_decay_ratio"] = 0.0
+
+        half = n_trees // 2
+        if half > 0:
+            gains_first = [g for tree_g in per_tree_gains[:half] for g in tree_g]
+            gains_last = [g for tree_g in per_tree_gains[half:] for g in tree_g]
+            m["mean_gain_first_half"] = (
+                round(mean(gains_first), 4) if gains_first else 0.0
+            )
+            m["mean_gain_last_half"] = round(mean(gains_last), 4) if gains_last else 0.0
+        else:
+            m["mean_gain_first_half"] = 0.0
+            m["mean_gain_last_half"] = 0.0
+
+        # --- Feature importance concentration ------------------------------
+        if var_total_gain_full and sum_all_gain > 0:
+            top_var = max(var_total_gain_full, key=var_total_gain_full.get)
+            m["top_predictor_by_gain"] = top_var
+            m["top_predictor_gain_share"] = round(
+                var_total_gain_full[top_var] / sum_all_gain, 4
+            )
+            # Shannon entropy (normalised to [0, 1])
+            n_vars = len(var_total_gain_full)
+            if n_vars > 1:
+                entropy = 0.0
+                for g in var_total_gain_full.values():
+                    p = g / sum_all_gain
+                    if p > 0:
+                        entropy -= p * math.log2(p)
+                max_entropy = math.log2(n_vars)
+                m["predictor_gain_entropy"] = (
+                    round(entropy / max_entropy, 4) if max_entropy > 0 else 0.0
+                )
+            else:
+                m["predictor_gain_entropy"] = 0.0
+        else:
+            m["top_predictor_by_gain"] = None
+            m["top_predictor_gain_share"] = 0.0
+            m["predictor_gain_entropy"] = 0.0
+
+        # --- Saturation (only when encoder metadata is available) ----------
         if encoder_info is not None:
             m["number_of_saturated_context_key_predictors"] = saturated_ctx
             m["number_of_saturated_symbolic_predictors"] = saturated_symbolic
@@ -763,6 +1095,17 @@ class ADMTreesModel:
             )
 
         return m
+
+    @staticmethod
+    def _accumulate_gain(tree: Dict, var_gain: dict[str, float]) -> None:
+        """Recursively accumulate gain per predictor variable."""
+        if "split" in tree:
+            var_name = tree["split"].split(" ", 1)[0]
+            var_gain[var_name] += tree.get("gain", 0.0)
+        if "left" in tree:
+            ADMTreesModel._accumulate_gain(tree["left"], var_gain)
+        if "right" in tree:
+            ADMTreesModel._accumulate_gain(tree["right"], var_gain)
 
     def _get_encoder_info(self) -> Optional[dict[str, dict[str, Any]]]:
         """Extract predictor metadata from the inputsEncoder if present.
