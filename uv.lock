@@ -1360,11 +1360,11 @@ wheels = [
 
 [[package]]
 name = "itables"
-version = "2.6.2"
+version = "2.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/b9/f6a50d98cd303e01604370a39301382a5cf36f2571ff98746d9dfd73f4d4/itables-2.6.2.tar.gz", hash = "sha256:3f73f3041074db6437fbd2f72e8ab5f24c9685707625c085ff71701d43e4c62f", size = 2360659, upload-time = "2025-12-26T17:55:29.441Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/c1/bd0bdc1314cf2d682d4e364c2df381f127a39c7d1953a008af5de66f9e7d/itables-2.7.0.tar.gz", hash = "sha256:fd9e541973a654f79dcebbd7c0d875a08db7b99a3fc467a91de260c78f6643ea", size = 2386312, upload-time = "2026-02-04T19:52:14.823Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/8f/37c3cf033cbd6450150c7d7d7fe916f99c98d7c56f6271dbdeee46368c38/itables-2.6.2-py3-none-any.whl", hash = "sha256:b0ceaef1a7fe2878021049cef10c281d47ce6afcd5807c57d22addd61e5fab05", size = 2393605, upload-time = "2025-12-26T17:55:26.721Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/f9/dffe93846eb054da789173c3c03e8f6a565e2c18bb941d54085032f8060b/itables-2.7.0-py3-none-any.whl", hash = "sha256:68910282840c0770da2f336a207e64c75e052b31949ac97faa15a1f621727a4c", size = 2420679, upload-time = "2026-02-04T19:52:08.031Z" },
 ]
 
 [[package]]
