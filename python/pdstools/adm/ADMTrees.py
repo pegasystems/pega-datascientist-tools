@@ -652,71 +652,13 @@ class ADMTreesModel:
         }
 
     def _compute_metrics(self) -> dict[str, Any]:
-        """Internal implementation that walks the trees once to gather
-        all diagnostic metrics efficiently.
+        """Walk the trees once to gather all diagnostic metrics.
 
-        The returned dictionary contains the following groups of metrics:
-
-        **Properties-level** – sourced from the model JSON envelope:
-            ``auc``, ``success_rate``, ``factory_update_time``,
-            ``response_positive_count``, ``response_negative_count``.
-
-        **Model complexity** – basic structural counts:
-            ``number_of_trees``, ``number_of_tree_nodes``,
-            ``tree_depth_max``, ``tree_depth_avg``, ``tree_depth_std``,
-            ``number_of_stump_trees``, ``avg_leaves_per_tree``.
-
-        **Splits by predictor category** – how many splits fall on each
-        predictor type:
-            ``number_of_splits_on_ih_predictors``,
-            ``number_of_splits_on_context_key_predictors``,
-            ``number_of_splits_on_other_predictors``.
-
-        **Predictor counts** – active vs total:
-            ``total_number_of_active_predictors``,
-            ``total_number_of_predictors``,
-            ``number_of_active_ih_predictors``,
-            ``total_number_of_ih_predictors``,
-            ``number_of_active_context_key_predictors``,
-            ``number_of_active_symbolic_predictors``,
-            ``total_number_of_symbolic_predictors``,
-            ``number_of_active_numeric_predictors``,
-            ``total_number_of_numeric_predictors``.
-
-        **Gain distribution** – summary statistics over all split gains,
-        analogous to XGBoost's ``importance_type='gain'``:
-            ``total_gain``, ``mean_gain_per_split``,
-            ``median_gain_per_split``, ``max_gain_per_split``,
-            ``gain_std``.
-
-        **Leaf scores** – distribution of leaf-node scores:
-            ``number_of_leaves``, ``leaf_score_mean``,
-            ``leaf_score_std``, ``leaf_score_min``, ``leaf_score_max``.
-
-        **Split types** – numeric vs symbolic split breakdown:
-            ``number_of_numeric_splits``, ``number_of_symbolic_splits``,
-            ``symbolic_split_fraction``, ``number_of_unique_splits``,
-            ``number_of_unique_predictors_split_on``,
-            ``split_reuse_ratio``, ``avg_symbolic_set_size``.
-
-        **Learning convergence** – whether later boosting rounds still
-        contribute meaningfully:
-            ``mean_abs_score_first_10``, ``mean_abs_score_last_10``,
-            ``score_decay_ratio``, ``mean_gain_first_half``,
-            ``mean_gain_last_half``.
-
-        **Feature importance concentration** – how evenly predictive
-        power is spread across predictors:
-            ``top_predictor_by_gain``, ``top_predictor_gain_share``,
-            ``predictor_gain_entropy``.
-
-        **Saturation** *(encoder-based models only)* – bin saturation:
-            ``number_of_saturated_context_key_predictors``,
-            ``number_of_saturated_symbolic_predictors``,
-            ``max_saturation_rate_on_context_key_predictors``.
+        For the full list of returned keys and their descriptions, see
+        :meth:`metric_descriptions`.
 
         For exported (decoded) models, predictor types are inferred from
-        split operators (``<`` → numeric, ``in`` / ``==`` → symbolic).
+        split operators (``<`` → numeric, ``in``/``==`` → symbolic).
         For encoded models (from datamart blobs with ``inputsEncoder``),
         the encoder metadata provides authoritative type information.
         """
@@ -939,16 +881,9 @@ class ADMTreesModel:
 
         # --- feature importance by gain ------------------------------------
         var_total_gain: dict[str, float] = collections.defaultdict(float)
-        for split_str, g in zip(split_strings, all_gains):
-            var_name = split_str.split(" ", 1)[0]
-            var_total_gain[var_name] += g
-        # Also accumulate gains for split strings with gain == 0 not in
-        # all_gains; however the walk only appends gain > 0 to all_gains
-        # but split_strings includes all splits.  Re-derive from trees:
-        var_total_gain_full: dict[str, float] = collections.defaultdict(float)
         for tree in self.model:
-            self._accumulate_gain(tree, var_total_gain_full)
-        sum_all_gain = sum(var_total_gain_full.values())
+            self._accumulate_gain(tree, var_total_gain)
+        sum_all_gain = sum(var_total_gain.values())
 
         # --- training stats from properties --------------------------------
         props = getattr(self, "_properties", {}) or {}
@@ -1061,17 +996,17 @@ class ADMTreesModel:
             m["mean_gain_last_half"] = 0.0
 
         # --- Feature importance concentration ------------------------------
-        if var_total_gain_full and sum_all_gain > 0:
-            top_var = max(var_total_gain_full, key=var_total_gain_full.get)
+        if var_total_gain and sum_all_gain > 0:
+            top_var = max(var_total_gain, key=var_total_gain.get)
             m["top_predictor_by_gain"] = top_var
             m["top_predictor_gain_share"] = round(
-                var_total_gain_full[top_var] / sum_all_gain, 4
+                var_total_gain[top_var] / sum_all_gain, 4
             )
             # Shannon entropy (normalised to [0, 1])
-            n_vars = len(var_total_gain_full)
+            n_vars = len(var_total_gain)
             if n_vars > 1:
                 entropy = 0.0
-                for g in var_total_gain_full.values():
+                for g in var_total_gain.values():
                     p = g / sum_all_gain
                     if p > 0:
                         entropy -= p * math.log2(p)

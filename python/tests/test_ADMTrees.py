@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ADMDatamart functions
-"""
+"""Tests for ADM Gradient Boosting (ADMTrees) functionality."""
 
 import pathlib
 
