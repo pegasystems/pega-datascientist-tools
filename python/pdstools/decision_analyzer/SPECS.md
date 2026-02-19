@@ -49,7 +49,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Prerequisites (do before page work)
 
-- [ ] **Caching overhaul** — Current caching is inconsistent ("sometimes caches too much, sometimes too little"). Align with IA app pattern using `@st.cache_resource`.
+- [x] **Caching overhaul** — Added `@st.cache_resource` for `load_decision_analyzer()`. Home.py no longer nukes all state with `st.session_state.clear()`. Removed dead commented-out `@st.cache_data` wrappers and unused imports.
 - [ ] **Split `get_data_filters()`** — 200-line function in `da_streamlit_utils.py` doing too much. Break into: categorical filter, numeric filter, temporal filter, multiselect manager, state cleanup.
 - [ ] **Dynamic stage UI** — Stages should be driven from data, support arbitrary count. Currently some pages hardcode stage names.
 - [ ] **Session state cleanup** — Too much stored in session state. Review and minimize.

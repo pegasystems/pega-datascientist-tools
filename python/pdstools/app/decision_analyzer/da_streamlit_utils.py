@@ -12,17 +12,7 @@ from pdstools.decision_analyzer.data_read_utils import (
 from pdstools.pega_io.File import read_ds_export
 
 
-from pdstools.decision_analyzer.plots import (
-    #     propensity_vs_optionality,
-    #     optionality_per_stage,
-    #     offer_quality_piecharts,
-    #     action_variation,
-    #     optionality_trend,
-    #     prio_factor_boxplots,
-    #     rank_boxplot,
-    plot_priority_component_distribution,
-    #     trend_chart,
-)
+from pdstools.decision_analyzer.plots import plot_priority_component_distribution
 
 
 def ensure_data():
@@ -304,54 +294,21 @@ def handle_direct_file_path():
     return None
 
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_propensity_vs_optionality(df: pl.LazyFrame):
-#     return propensity_vs_optionality(df)
+@st.cache_resource
+def load_decision_analyzer(
+    _raw_data: pl.LazyFrame,
+    level: str,
+    sample_size: int,
+):
+    """Cache the DecisionAnalyzer instance so it persists across page navigations.
 
+    Uses @st.cache_resource because DecisionAnalyzer is a stateful object
+    (not serializable). The leading underscore on _raw_data tells Streamlit
+    not to hash it (LazyFrames are not hashable by default).
+    """
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_optionality_per_stage(df: pl.LazyFrame, NBADStages_Mapping):
-#     return optionality_per_stage(df, NBADStages_Mapping)
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_offer_quality_piecharts(
-#     df: pl.LazyFrame, propensityTH, NBADStages_FilterView, NBADStages_Mapping
-# ):
-#     return offer_quality_piecharts(
-#         df, propensityTH, NBADStages_FilterView, NBADStages_Mapping
-#     )
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_action_variation(df: pl.LazyFrame):
-#     return action_variation(df)
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_optionality_trend(df: pl.LazyFrame, NBADStages_Mapping):
-#     return optionality_trend(df, NBADStages_Mapping)
-
-
-# def st_prio_factor_boxplots(
-#     df: pl.LazyFrame,
-#     reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
-# ) -> Optional[go.Figure]:
-#     # Call the core function to generate the plot and check for warnings
-#     fig, warning_message = prio_factor_boxplots(df, reference)
-
-#     if warning_message:
-#         st.warning(warning_message)
-#         st.stop()
-
-#     return fig
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_rank_boxplot(
-#     df: pl.LazyFrame, reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None
-# ):
-#     return rank_boxplot(df, reference)
+    return DecisionAnalyzer(_raw_data, level=level, sample_size=sample_size)
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
@@ -359,12 +316,3 @@ def st_priority_component_distribution(
     value_data: pl.LazyFrame, component, granularity
 ):
     return plot_priority_component_distribution(value_data, component, granularity)
-
-
-# def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:
-#     fig, warning_message = trend_chart(df, scope)
-
-#     if warning_message:
-#         st.warning(warning_message)
-
-#     return fig

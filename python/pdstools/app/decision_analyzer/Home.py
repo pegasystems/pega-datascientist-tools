@@ -9,8 +9,8 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_direct_file_path,
     handle_file_upload,
     handle_sample_data,
+    load_decision_analyzer,
 )
-from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
 st.set_page_config(layout="wide")
 pl.enable_string_cache()  # Done here, but also put in ensure_data()
@@ -44,8 +44,8 @@ The charts use [Plotly](https://plotly.com/graphing-libraries/) — you can pan,
 ### Data import
 """
 
-st.session_state.clear()
-st.cache_data.clear()
+if "decision_data" in st.session_state:
+    del st.session_state["decision_data"]
 st.session_state["filters"] = []
 
 # level = st.selectbox(
@@ -76,18 +76,16 @@ elif source == "Direct File Path":
     raw_data = handle_direct_file_path()
 if raw_data is not None:
     with st.spinner("Reading Data"):
-        st.session_state.decision_data = DecisionAnalyzer(
-            raw_data, level=level, sample_size=sample_size
-        )
+        da = load_decision_analyzer(raw_data, level=level, sample_size=sample_size)
+        st.session_state.decision_data = da
         del raw_data
 
-        if "decision_data" in st.session_state:
-            if st.session_state.decision_data.validation_error:
-                st.warning(st.session_state.decision_data.validation_error)
-            extract_type = st.session_state.decision_data.extract_type
-            format_label = (
-                "**Explainability Extract (v1)** — arbitration stage only"
-                if extract_type == "explainability_extract"
-                else "**Decision Analyzer / EEV2 (v2)** — full pipeline"
-            )
-            st.success(f"Data loaded successfully. Detected format: {format_label}")
+        if da.validation_error:
+            st.warning(da.validation_error)
+        extract_type = da.extract_type
+        format_label = (
+            "**Explainability Extract (v1)** — arbitration stage only"
+            if extract_type == "explainability_extract"
+            else "**Decision Analyzer / EEV2 (v2)** — full pipeline"
+        )
+        st.success(f"Data loaded successfully. Detected format: {format_label}")
