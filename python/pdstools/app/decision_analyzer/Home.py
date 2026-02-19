@@ -12,21 +12,13 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     load_decision_analyzer,
 )
 
-st.set_page_config(layout="wide")
-pl.enable_string_cache()  # Done here, but also put in ensure_data()
-# pl.Config.set_engine_affinity(engine="streaming") this is still buggy, probably can turn back on in the future polars patches
+st.set_page_config(layout="wide", page_title="Decision Analysis")
+pl.enable_string_cache()
 
-# TODO: the caching is not optimal yet, sometimes caches too much, sometimes too little - need to clean this up
-# TODO: fix up the commentary, labels, annotations everywhere, align with Dennis' designs and NBA designer terminology
-# TODO: support multiple physical formats: hives partioned folders, parquet, Pega dataset exports etc. NOTE: we can delete if the read_data func is sufficient.
-# TODO: support different content types: not only "Decision Analyzer" but also Interaction History (similar for
-# TODO: the most part but lacking filter component names etc, and wont have pxEngagementStage but is implicitly for
-# TODO: the last stage), or the Explainability Extract (no filter component names either, and has a Remaining perspective
-# TODO: with stages from Arbitration onwards - but no details of what gets filtered where).
+st.caption(f"pdstools {pdstools_version}")
 
-
-f"""
-# Decision Analyzer App (pdstools {pdstools_version})
+"""
+# Decision Analysis
 
 Visualize and analyze NBA decision data. This app supports **two data formats**:
 
