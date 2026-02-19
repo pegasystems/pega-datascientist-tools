@@ -42,6 +42,7 @@ version = {attr="pdstools.__version__"}
 [project.optional-dependencies]
 adm = [
     "plotly[express]>=6.0",
+    'pydot',
     'requests',
 ]
 pega_io = ['aioboto3', 'polars_hash']

@@ -796,6 +796,13 @@ def create_metric_gttable(
             if fmt is not None:
                 gt = fmt.apply_to_gt(gt, [col])
                 formatted_cols.add(col)
+        elif callable(metric_id):
+            # When a callable is used for RAG, still apply formatting if
+            # the column name itself has a format defined in MetricFormats
+            fmt = MetricFormats.get(col)
+            if fmt is not None:
+                gt = fmt.apply_to_gt(gt, [col])
+                formatted_cols.add(col)
 
     # Apply default number formatting to numeric columns not yet formatted
     # Exclude columns used as row/group names from numeric formatting

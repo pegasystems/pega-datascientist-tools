@@ -42,5 +42,5 @@ The installation and getting started guide can be found [in the documentation](h
 
 # Contributing
 
-We love feedback. If you have interesting analysis plots you would like to share, we are very interested in incoporating them. If you developed tools or library functions that may be of interest to others, consider sending us a pull request. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/blob/master/CONTRIBUTING.md) for guidelines.
+We love feedback. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/blob/master/CONTRIBUTING.md) for guidelines.
 

@@ -169,12 +169,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
     "pyApplication": {
         "label": "pyApplication",
         "default": False,
-        "type": pl.Float64,
+        "type": pl.Utf8,
     },
     "pyApplicationVersion": {
         "label": "pyApplicationVersion",
         "default": False,
-        "type": pl.Float64,
+        "type": pl.Utf8,
     },
 }
 

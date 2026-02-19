@@ -1,6 +1,7 @@
 import datetime
 import subprocess
-from typing import Dict, Iterable, List, Optional, Type, Union
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set, Type, Union
 
 import polars as pl
 
@@ -15,6 +16,121 @@ from .table_definition import (
 # Putting it here AND in the Home.py file should therefore be enough,
 # because every other file imports from utils.py (hence running this part too.)
 pl.enable_string_cache()
+
+
+@dataclass
+class ColumnResolver:
+    """Resolves column mappings between raw data and a standardized schema.
+
+    Raw decision data can come from multiple sources with different schemas:
+    - Explainability Extract vs Decision Analyzer exports
+    - Inbound vs Outbound channel data
+
+    For example, channel information may appear as:
+    - 'pyChannel' (already using the target name), this column doesn't exist on Inbound calls
+    - 'Primary_ContainerPayload_Channel' (raw name needing rename),
+    this column has the channel information on Inbound calls but it is null on Outbound calls
+    - Both columns present (conflict requiring resolution)
+
+    This class normalizes these variations by:
+    - Mapping raw column names to standardized target labels
+    - Resolving conflicts when both raw and target columns exist
+    - Building the final schema with consistent column names
+
+    Attributes
+    ----------
+    table_definition : Dict
+        Column definitions with 'label' (target name), 'default', and 'type' keys
+    raw_columns : Set[str]
+        Column names present in the raw data
+    """
+
+    table_definition: Dict
+    raw_columns: Set[str]
+
+    # Results populated by resolve()
+    rename_mapping: Dict[str, str] = field(default_factory=dict, init=False)
+    type_mapping: Dict[str, Type[pl.DataType]] = field(default_factory=dict, init=False)
+    columns_to_drop: List[str] = field(default_factory=list, init=False)
+    final_columns: List[str] = field(default_factory=list, init=False)
+    _resolved: bool = field(default=False, init=False)
+
+    def __post_init__(self):
+        self.resolve()
+
+    def resolve(self) -> "ColumnResolver":
+        """Resolve all column mappings and conflicts.
+
+        Returns
+        -------
+        ColumnResolver
+            Self, for method chaining
+        """
+        if self._resolved:
+            return self
+
+        resolved_targets: Dict[str, str] = {}  # target_label -> actual column name
+        columns_needing_rename: Dict[str, str] = {}  # raw_col -> target_label
+
+        for raw_col, config in self.table_definition.items():
+            target_label = config["label"]
+            raw_exists = raw_col in self.raw_columns
+            target_exists = target_label in self.raw_columns
+            needs_rename = raw_col != target_label
+
+            if not raw_exists and not target_exists:
+                continue
+
+            # Only cast default columns; non-default columns have unreliable type definitions.
+            if raw_exists and target_exists and needs_rename:
+                # Conflict: both exist - prefer the already-correctly-named column
+                self.columns_to_drop.append(raw_col)
+                resolved_targets[target_label] = target_label
+                if config["default"]:
+                    self.type_mapping[target_label] = config["type"]
+            elif raw_exists:
+                if needs_rename:
+                    columns_needing_rename[raw_col] = target_label
+                resolved_targets[target_label] = raw_col
+                if config["default"]:
+                    self.type_mapping[raw_col] = config["type"]
+            elif target_exists:
+                resolved_targets[target_label] = target_label
+                if config["default"]:
+                    self.type_mapping[target_label] = config["type"]
+
+        remaining_columns = self.raw_columns - set(self.columns_to_drop)
+        for raw_col, target_label in columns_needing_rename.items():
+            if raw_col in remaining_columns:
+                self.rename_mapping[raw_col] = target_label
+
+        for raw_col, config in self.table_definition.items():
+            target_label = config["label"]
+            if (
+                target_label in resolved_targets
+                and target_label not in self.final_columns
+            ):
+                self.final_columns.append(target_label)
+
+        self._resolved = True
+        return self
+
+    def get_missing_columns(self) -> List[str]:
+        """Get list of required columns missing from the raw data.
+
+        Returns
+        -------
+        List[str]
+            Column names that are marked as default but not found in raw data
+        """
+        missing = []
+        for raw_col, config in self.table_definition.items():
+            if not config["default"]:
+                continue
+            target_label = config["label"]
+            if raw_col not in self.raw_columns and target_label not in self.raw_columns:
+                missing.append(raw_col)
+        return missing
 
 
 # superset, in order
@@ -209,7 +325,6 @@ def determine_extract_type(raw_data):
 def rename_and_cast_types(
     df: pl.LazyFrame,
     table_definition: Dict,
-    include_cols: Optional[Iterable[str]] = None,
 ) -> pl.LazyFrame:
     """Rename columns and cast data types based on table definition.
 
@@ -219,34 +334,53 @@ def rename_and_cast_types(
         The input dataframe to process
     table_definition : Dict
         Dictionary containing column definitions with 'label', 'default', and 'type' keys
-    include_cols : Optional[Iterable[str]], optional
-        Additional columns to include beyond default columns
 
     Returns
     -------
     pl.LazyFrame
         Processed dataframe with renamed columns and cast types
     """
-    # df = cdh_utils._polars_capitalize(df)
-
-    type_map = get_schema(
-        df,
+    resolver = ColumnResolver(
         table_definition=table_definition,
-        include_cols=include_cols or {},
+        raw_columns=set(df.collect_schema().names()),
     )
-    # cast types
-    for name, _type in type_map.items():
-        if df.select(name).collect_schema().dtypes()[0] != _type:
-            if _type == pl.Datetime:
-                df = df.with_columns(parse_pega_date_time_formats(name))
-            else:
-                df = df.with_columns(pl.col(name).cast(_type))
-    # rename
-    name_dict = {}
-    for col, properties in table_definition.items():
-        name_dict[col] = properties["label"]
 
-    return df.rename(name_dict).select(list(name_dict.values()))
+    if resolver.columns_to_drop:
+        df = df.drop(resolver.columns_to_drop)
+
+    df = _cast_columns(df, resolver.type_mapping)
+
+    return df.rename(resolver.rename_mapping).select(resolver.final_columns)
+
+
+def _cast_columns(
+    df: pl.LazyFrame, type_mapping: Dict[str, Type[pl.DataType]]
+) -> pl.LazyFrame:
+    """Cast columns to their target types.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The dataframe to process
+    type_mapping : Dict[str, Type[pl.DataType]]
+        Mapping of column names to their target types
+
+    Returns
+    -------
+    pl.LazyFrame
+        Dataframe with columns cast to target types
+    """
+    schema = df.collect_schema()
+    for col_name, target_type in type_mapping.items():
+        if col_name not in schema.names():
+            continue
+        current_type = schema[col_name]
+        if current_type != target_type:
+            if target_type == pl.Datetime:
+                df = df.with_columns(parse_pega_date_time_formats(col_name))
+            else:
+                df = df.with_columns(pl.col(col_name).cast(target_type))
+    return df
 
 
 def get_table_definition(table: str):
@@ -257,45 +391,6 @@ def get_table_definition(table: str):
     if table not in mapping:
         raise ValueError(f"Unknown table: {table}")
     return mapping[table]
-
-
-def get_schema(
-    df: pl.LazyFrame,
-    table_definition: Dict,
-    include_cols: Iterable[str],
-) -> Dict[str, Type[pl.DataType]]:
-    """Build type mapping for dataframe columns based on table definition.
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        The input dataframe to analyze
-    table_definition : Dict
-        Dictionary containing column definitions with 'label', 'default', and 'type' keys
-    include_cols : Iterable[str]
-        Additional columns to include beyond default columns
-
-    Returns
-    -------
-    Dict[str, Type[pl.DataType]]
-        Mapping of column names to their data types
-    """
-    type_map: Dict[str, Type[pl.DataType]] = {}
-    available_columns = df.collect_schema().names()
-
-    for defined_col, config in table_definition.items():
-        # Find matching column in dataframe (try original name, then label)
-        actual_col = None
-        if defined_col in available_columns:
-            actual_col = defined_col
-        elif config["label"] in available_columns:
-            actual_col = config["label"]
-
-        # Include column if found and is default or explicitly requested
-        if actual_col and (config["default"] or actual_col in include_cols):
-            type_map[actual_col] = config["type"]
-
-    return type_map
 
 
 def create_hierarchical_selectors(

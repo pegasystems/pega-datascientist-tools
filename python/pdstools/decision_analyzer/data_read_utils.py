@@ -7,6 +7,7 @@ from typing import Dict, Optional, List, Tuple
 import polars as pl
 
 from .table_definition import TableConfig
+from .utils import ColumnResolver
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
@@ -151,6 +152,10 @@ def validate_columns(
     """
     Validate that default columns from table definition exist in the dataframe.
 
+    This function checks if required columns exist in the data, accounting for
+    the fact that columns may be present under either their source name or
+    their target label name.
+
     Args:
         df: The dataframe to validate
         extract_type: Table configuration mapping column names to their properties
@@ -158,11 +163,11 @@ def validate_columns(
     Returns:
         Tuple containing validation success (bool) and error message (str or None)
     """
-    existing_columns = df.collect_schema().names()
-    default_columns = [
-        col for col, properties in extract_type.items() if properties["default"]
-    ]
-    missing_columns = [col for col in default_columns if col not in existing_columns]
+    resolver = ColumnResolver(
+        table_definition=extract_type,
+        raw_columns=set(df.collect_schema().names()),
+    )
+    missing_columns = resolver.get_missing_columns()
 
     if missing_columns:
         return (

@@ -158,6 +158,7 @@ class ADMDatamart:
         *,
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
+        infer_schema_length: int = 10000,
     ):
         """Import the ADMDatamart class from a Pega Dataset Export
 
@@ -177,6 +178,11 @@ class ADMDatamart:
             An optional argument to filter out selected data, by default None
         extract_pyname_keys : bool, optional
             Whether to extract additional keys from the `pyName` column, by default True
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON files.
+            For large production datasets, increase this value (e.g., 200000) if columns
+            are not being detected correctly. Higher values use more memory but provide
+            more accurate schema detection. By default 10000
 
         Returns
         -------
@@ -196,6 +202,12 @@ class ADMDatamart:
                 predictor_df = '/Downloads/predictor_snapshots.parquet'
                 )
 
+        >>> # To use a higher schema inference length for large datasets:
+        >>> dm = ADMDatamart.from_ds_export(
+                base_path='/my_export_folder',
+                infer_schema_length=200000
+                )
+
         Note
         ----
         By default, the dataset export in Infinity returns a zip file per table.
@@ -209,8 +221,16 @@ class ADMDatamart:
         """
         # "model_data"/"predictor_data" are magic keywords
         # to automatically find data files in base_path
-        model_df = read_ds_export(model_filename or "model_data", base_path)
-        predictor_df = read_ds_export(predictor_filename or "predictor_data", base_path)
+        model_df = read_ds_export(
+            model_filename or "model_data",
+            base_path,
+            infer_schema_length=infer_schema_length,
+        )
+        predictor_df = read_ds_export(
+            predictor_filename or "predictor_data",
+            base_path,
+            infer_schema_length=infer_schema_length,
+        )
         return cls(
             model_df, predictor_df, query=query, extract_pyname_keys=extract_pyname_keys
         )
