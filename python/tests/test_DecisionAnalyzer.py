@@ -15,7 +15,7 @@ import pathlib
 import polars as pl
 import pytest
 
-from pdstools.decision_analyzer.decision_data import DecisionAnalyzer
+from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.decision_analyzer.utils import (
     ColumnResolver,
     apply_filter,
@@ -48,6 +48,34 @@ def da_v2():
 # ---------------------------------------------------------------------------
 # Extract type detection
 # ---------------------------------------------------------------------------
+
+
+class TestClassMethodConstructors:
+    """Test from_explainability_extract and from_decision_analyzer class methods."""
+
+    def test_from_explainability_extract(self):
+        da = DecisionAnalyzer.from_explainability_extract(
+            f"{basePath}/data/sample_explainability_extract.parquet",
+            sample_size=1000,
+        )
+        assert da.extract_type == "explainability_extract"
+        assert da.decision_data.collect().height > 0
+
+    def test_from_decision_analyzer(self):
+        da = DecisionAnalyzer.from_decision_analyzer(
+            f"{basePath}/data/sample_eev2.parquet",
+            sample_size=1000,
+        )
+        assert da.extract_type == "decision_analyzer"
+        assert da.decision_data.collect().height > 0
+
+    def test_from_explainability_extract_invalid_path(self):
+        with pytest.raises(Exception):
+            DecisionAnalyzer.from_explainability_extract("/nonexistent/path.parquet")
+
+    def test_from_decision_analyzer_invalid_path(self):
+        with pytest.raises(Exception):
+            DecisionAnalyzer.from_decision_analyzer("/nonexistent/path.parquet")
 
 
 class TestExtractTypeDetection:

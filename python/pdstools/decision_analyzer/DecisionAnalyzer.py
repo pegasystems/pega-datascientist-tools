@@ -1,6 +1,9 @@
+# python/pdstools/decision_analyzer/DecisionAnalyzer.py
 from bisect import bisect_left
 from functools import cached_property
 from typing import List, Literal, Optional, Union, Dict
+import logging
+import os
 import warnings
 
 import polars as pl
@@ -16,35 +19,102 @@ from .utils import (
     gini_coefficient,
     rename_and_cast_types,
 )
+from ..pega_io.File import read_ds_export
+
+logger = logging.getLogger(__name__)
 
 
 class DecisionAnalyzer:
+    """Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
+
+    This class processes raw decision data to create a comprehensive analysis
+    framework for NBA (Next-Best-Action). It supports two data source formats:
+
+    - **Explainability Extract (v1)**: Simpler format with actions at the
+      arbitration stage. Stages are synthetically derived from ranking.
+    - **Decision Analyzer / EEV2 (v2)**: Full pipeline data with real stage
+      information, filter component names, and detailed strategy tracking.
+
+    Data can be loaded via class methods or directly:
+
+    - :meth:`from_explainability_extract`: Load from an Explainability Extract file.
+    - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
+    - Direct ``__init__``: Auto-detects format from the data schema.
+
+    Attributes
+    ----------
+    decision_data : pl.LazyFrame
+        Interaction-level decision data (with global filters applied if any).
+    extract_type : str
+        Either ``"explainability_extract"`` or ``"decision_analyzer"``.
+    plot : Plot
+        Plot accessor for visualization methods.
+
+    Examples
+    --------
+    >>> from pdstools import DecisionAnalyzer
+    >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+    >>> da.get_overview_stats
+    >>> da.plot.sensitivity()
     """
-    Container data class for the raw decision data. Only one instance of this
-    should exist and will be associated with the streamlit app state.
 
-    It will keep a pointer to the raw interaction level data (as a
-    lazy frame) but also has VBD-style aggregation(s) to speed things up.
-    """
+    @classmethod
+    def from_explainability_extract(
+        cls,
+        source: Union[str, os.PathLike],
+        **kwargs,
+    ) -> "DecisionAnalyzer":
+        """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
 
-    # Raw data with only data-level pre-processing from the source. Should never
-    # be accessed outside of this class.
-    unfiltered_raw_decision_data: pl.LazyFrame = None
+        Parameters
+        ----------
+        source : Union[str, os.PathLike]
+            Path to the Explainability Extract parquet file, or a URL.
+        **kwargs
+            Additional keyword arguments passed to ``__init__`` (e.g.
+            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
 
-    # Interaction-level decision data with possibly the global filters applied. Try
-    # to avoid accessing it directly, use class methods instead, but sometimes we
-    # need to use this directly.
-    decision_data: pl.LazyFrame = None
+        Returns
+        -------
+        DecisionAnalyzer
 
-    # Decision data rolled up over interactions and customers, keeping a number of
-    # meaningful aggregates useful for many analyses. Never access directly, always
-    # use access method getPreaggregatedFilterView as this field is populated
-    # on first use only, and reset when the global filters change.
-    preaggregated_decision_data_filterview: pl.LazyFrame = None
+        Examples
+        --------
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+        """
+        raw_data = read_ds_export(str(source))
+        if raw_data is None:
+            raise ValueError(f"Could not read data from {source}")
+        return cls(raw_data, **kwargs)
 
-    # Similar, but providing a view per stage, so strategy results can be duplicated.
-    # Also never access directly, use getPreaggregatedRemainingView.
-    preaggregated_decision_data_remainingview: pl.LazyFrame = None
+    @classmethod
+    def from_decision_analyzer(
+        cls,
+        source: Union[str, os.PathLike],
+        **kwargs,
+    ) -> "DecisionAnalyzer":
+        """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
+
+        Parameters
+        ----------
+        source : Union[str, os.PathLike]
+            Path to the Decision Analyzer parquet file, or a URL.
+        **kwargs
+            Additional keyword arguments passed to ``__init__`` (e.g.
+            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+
+        Returns
+        -------
+        DecisionAnalyzer
+
+        Examples
+        --------
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+        """
+        raw_data = read_ds_export(str(source))
+        if raw_data is None:
+            raise ValueError(f"Could not read data from {source}")
+        return cls(raw_data, **kwargs)
 
     # Superset of all fields available for data filtering in various places.
     fields_for_data_filtering = [
@@ -286,7 +356,7 @@ class DecisionAnalyzer:
             pl.col("Propensity", "Priority").sample(
                 n=num_samples, with_replacement=True, shuffle=True
             ),
-            pl.count().alias("Decisions"),
+            pl.len().alias("Decisions"),
         ]
 
         self.preaggregated_decision_data_filterview = (
@@ -416,7 +486,7 @@ class DecisionAnalyzer:
                 if field in schema_keys:
                     available_fields.append(field)
         else:
-            all_columns = self.decision_data.columns
+            all_columns = self.decision_data.collect_schema().names()
 
             for field in self.fields_for_data_filtering:
                 if field in all_columns:
@@ -658,9 +728,9 @@ class DecisionAnalyzer:
             )
         )
 
-        group_level_win_losses = group_level_win_losses.melt(
-            id_vars=level,
-            value_vars=["Wins", "Losses"],
+        group_level_win_losses = group_level_win_losses.unpivot(
+            index=level,
+            on=["Wins", "Losses"],
             variable_name="Status",
             value_name="Percentage",
         ).sort(["Status", "Percentage"], descending=True)
@@ -793,11 +863,9 @@ class DecisionAnalyzer:
                     Decisions=pl.col("Decisions").cast(pl.Int32),
                 )
                 .collect()
-                .with_row_count(  # TODO: renamed to with_row_index in newer polars version
-                    "ActionIndex", 1
-                )
+                .with_row_index("ActionIndex", 1)
                 .with_columns(
-                    ActionsFraction=pl.col("ActionIndex") / pl.count(),
+                    ActionsFraction=pl.col("ActionIndex") / pl.len(),
                     ActionIndex=pl.col("ActionIndex").cast(pl.UInt32),
                     Decisions=pl.col("Decisions").cast(pl.UInt32),
                     cumDecisions=pl.col("cumDecisions").cast(pl.UInt32),

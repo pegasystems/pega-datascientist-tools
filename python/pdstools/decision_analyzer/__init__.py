@@ -1,7 +1,7 @@
 import sys
 
 from . import plots, utils
-from .decision_data import DecisionAnalyzer
+from .DecisionAnalyzer import DecisionAnalyzer
 
 if "streamlit" in sys.modules:
     from ..app.decision_analyzer import da_streamlit_utils

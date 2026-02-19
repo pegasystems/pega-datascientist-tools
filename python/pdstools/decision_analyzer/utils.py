@@ -1,5 +1,3 @@
-import datetime
-import subprocess
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Type, Union
 
@@ -157,7 +155,9 @@ def apply_filter(
         if len(col_diff) == 0:
             df = df.filter(item)
         else:
-            raise pl.ColumnNotFoundError(col_diff)
+            from polars.exceptions import ColumnNotFoundError
+
+            raise ColumnNotFoundError(col_diff)
         return df
 
     if filters is None:
@@ -293,25 +293,6 @@ def get_first_level_stats(
         "Actions": counts.get_column("Actions").item(),
         "Rows": counts.get_column("row_count").item(),
     }
-
-
-def get_git_version_and_date():
-    # Get the version tag
-    version = (
-        subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
-        .decode()
-        .strip()
-        .replace("v", "")
-    )
-
-    # Get the date the tag was pushed
-    date_str = (
-        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])
-        .decode()
-        .strip()
-    )
-    date = datetime.datetime.strptime(date_str.split()[0], "%Y-%m-%d")
-    return version, date.strftime("%d %b %Y")
 
 
 def determine_extract_type(raw_data):

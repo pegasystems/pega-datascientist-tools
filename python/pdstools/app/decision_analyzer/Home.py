@@ -9,7 +9,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_file_upload,
     handle_sample_data,
 )
-from pdstools.decision_analyzer.decision_data import DecisionAnalyzer
+from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
 st.set_page_config(layout="wide")
 pl.enable_string_cache()  # Done here, but also put in ensure_data()
