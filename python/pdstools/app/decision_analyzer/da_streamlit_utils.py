@@ -33,7 +33,11 @@ def ensure_data():
 
 def ensure_funnel():
     if st.session_state.decision_data.extract_type == "explainability_extract":
-        st.warning("You can only view this page with EEV2 dataset")
+        st.warning(
+            "This page requires **Decision Analyzer (v2)** data with full stage "
+            "pipeline information. Explainability Extract (v1) data only contains "
+            "the arbitration stage and cannot show the decision funnel."
+        )
         st.stop()
 
 

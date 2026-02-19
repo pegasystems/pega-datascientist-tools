@@ -213,6 +213,21 @@ class DecisionAnalyzer:
         self.validation_error = validation_error if not validation_result else None
         if not validation_result:
             warnings.warn(validation_error, UserWarning)
+        # Bail out early if critical columns are missing — cleanup_raw_data
+        # would crash with an opaque ColumnNotFoundError otherwise.
+        critical_cols = {"pxInteractionID", "pyIssue", "pyGroup", "pyName"}
+        available = set(raw_data.collect_schema().names())
+        # Account for renames defined in the table definition
+        renamed = {
+            v["label"] for v in table_def.values() if v["label"] in available
+        } | available
+        missing_critical = critical_cols - renamed
+        if missing_critical:
+            raise ValueError(
+                f"Cannot construct DecisionAnalyzer: critical columns missing "
+                f"from the data: {', '.join(sorted(missing_critical))}"
+            )
+
         # cast datatypes
         raw_data = rename_and_cast_types(df=raw_data, table_definition=table_def).sort(
             "pxInteractionID"
@@ -439,14 +454,13 @@ class DecisionAnalyzer:
         available_cols = set(self.decision_data.collect_schema().names())
         columns_to_keep = [col for col in needed_columns if col in available_cols]
 
-        print("In sample function")
         total_interaction_count = (
             self.decision_data.set_sorted("pxInteractionID")
             .select(pl.n_unique("pxInteractionID").alias("unique_count"))
             .collect()
             .item()
         )
-        print(f"Total interaction count: {total_interaction_count}")
+        logger.debug("Sampling from %d total interactions", total_interaction_count)
         # Set num_sample_interactions attribute - use sample_size if we have more interactions than sample_size
         self.sample_size = min(total_interaction_count, self.sample_size)
         target_sample_size = self.sample_size
@@ -542,7 +556,7 @@ class DecisionAnalyzer:
         preproc_df = (
             df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
             .with_columns(
-                pl.col(self.level).cast(pl.Categorical(ordering="physical")),
+                pl.col(self.level).cast(pl.Categorical),
             )
             .filter(
                 pl.col("pyName").is_not_null()
@@ -656,8 +670,6 @@ class DecisionAnalyzer:
         """
         Calculates prio and rank for all PVCL combinations
         """
-        # TODO: make generic to support situations where P, V, C or L are missing?
-        # NOTE: Should we calculate for different stages?
         rank_exprs = [
             pl.struct(
                 [
@@ -676,13 +688,24 @@ class DecisionAnalyzer:
             for x in ["prio_PVCL", "prio_VCL", "prio_PCL", "prio_PVL", "prio_PVC"]
         ]
 
+        # Fill missing PVCL components with 1.0 (neutral for multiplication).
+        available = set(self.sample.collect_schema().names())
+        pvcl_defaults = {
+            "Propensity": 1.0,
+            "Value": 1.0,
+            "Context Weight": 1.0,
+            "Levers": 1.0,
+        }
+        fill_exprs = []
+        for col_name, default in pvcl_defaults.items():
+            if col_name in available:
+                fill_exprs.append(pl.col(col_name).fill_null(default))
+            else:
+                fill_exprs.append(pl.lit(default).alias(col_name))
+
         rank_df = (
             apply_filter(
-                self.sample.with_columns(
-                    pl.col("Value").fill_null(1),
-                    pl.col("Levers").fill_null(1),
-                    pl.col("Context Weight").fill_null(1),
-                ),
+                self.sample.with_columns(fill_exprs),
                 additional_filters,
             )
             .with_columns(overrides)
@@ -1079,9 +1102,12 @@ class DecisionAnalyzer:
             (
                 self.getPreaggregatedFilterView.select(
                     pl.n_unique("pyName").alias("Actions"),
-                    pl.n_unique("pyChannel").alias(
-                        "Channels"
-                    ),  # TODO plus direction of course
+                    (
+                        pl.struct("pyChannel", "pyDirection").n_unique()
+                        if "pyDirection"
+                        in self.getPreaggregatedFilterView.collect_schema().names()
+                        else pl.n_unique("pyChannel")
+                    ).alias("Channels"),
                     (
                         (pl.max("pxDecisionTime_max") - pl.min("pxDecisionTime_min"))
                         + pl.duration(days=1)

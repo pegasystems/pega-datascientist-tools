@@ -141,16 +141,11 @@ class TestConstruction:
         schema = da.decision_data.collect_schema()
         assert "is_mandatory" in schema.names()
 
-    def test_missing_columns_produces_warning(self):
-        """Constructing from data with missing required columns should warn.
-
-        Current behavior: the constructor warns about missing columns but then
-        crashes during cleanup_raw_data because it proceeds with incomplete data.
-        This is a known limitation to address during refactoring.
-        """
+    def test_missing_columns_raises_valueerror(self):
+        """Constructing from data with missing critical columns should raise ValueError."""
         minimal = pl.LazyFrame({"pxInteractionID": ["1"], "pyName": ["A"]})
         with pytest.warns(UserWarning, match="missing"):
-            with pytest.raises(Exception):
+            with pytest.raises(ValueError, match="critical columns missing"):
                 DecisionAnalyzer(minimal, sample_size=100)
 
 
