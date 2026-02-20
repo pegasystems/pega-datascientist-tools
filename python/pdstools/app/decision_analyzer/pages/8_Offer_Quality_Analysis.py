@@ -104,7 +104,7 @@ st.plotly_chart(
         propensityTH=propensityTH,
         AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
     ),
-    use_container_width=True,
+    width="stretch",
 )
 
 ## Trend Chart
@@ -115,5 +115,5 @@ vf = st.session_state.decision_data.get_offer_quality(
 
 st.plotly_chart(
     getTrendChart(vf, stage=st.session_state.stage),
-    use_container_width=True,
+    width="stretch",
 )

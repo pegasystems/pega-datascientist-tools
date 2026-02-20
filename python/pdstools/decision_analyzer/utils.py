@@ -295,6 +295,47 @@ def get_first_level_stats(
     }
 
 
+def resolve_aliases(
+    df: pl.LazyFrame,
+    *table_definitions: Dict,
+) -> pl.LazyFrame:
+    """Rename alias columns to their canonical names before validation.
+
+    Scans all table definitions for ``aliases`` entries. If an alias is found
+    in the data but the canonical name is not, the column is renamed.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data that may use alternative column names.
+    *table_definitions : Dict
+        One or more table definition dicts (DecisionAnalyzer, ExplainabilityExtract).
+
+    Returns
+    -------
+    pl.LazyFrame
+        Data with alias columns renamed to canonical names.
+    """
+    raw_cols = set(df.collect_schema().names())
+    renames: Dict[str, str] = {}
+
+    for table_def in table_definitions:
+        for canonical, config in table_def.items():
+            aliases = config.get("aliases", [])
+            if not aliases:
+                continue
+            # Only rename if the canonical name (and its label) are absent
+            label = config["label"]
+            if canonical in raw_cols or label in raw_cols:
+                continue
+            for alias in aliases:
+                if alias in raw_cols and alias not in renames:
+                    renames[alias] = canonical
+                    break
+
+    return df.rename(renames) if renames else df
+
+
 def determine_extract_type(raw_data):
     return (
         "decision_analyzer"

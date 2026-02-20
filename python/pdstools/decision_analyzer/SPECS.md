@@ -30,6 +30,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Medium Priority
 
+- [ ] **Deeper filter component / strategy analysis** — The Action Funnel page shows a simple top-N list of components that filter actions. Expand this with: which actions are most affected by which component, overlap between components (are the same actions filtered by multiple rules), component impact over time (trend), and component-level drill-down showing why specific high-value actions are being dropped.
 - [ ] **Move `filtered_action_counts` into class** — Standalone function in `utils.py` that duplicates the `aggregate_remaining_per_stage` pattern.
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win_rank flexibility** — `get_win_loss_distribution_data` has fixed rank parameter. Return all ranks, let UI filter.
@@ -38,6 +39,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Low Priority
 
+- [ ] **Graceful degradation for minimal data** — Some exports only contain context keys (Issue, Group, Name, InteractionID, SubjectID) without scoring columns (Priority, Propensity, Value, pxDecisionTime). The app currently crashes with a ColumnNotFoundError. Should show a clear message about which columns are missing and ideally support a reduced analysis mode (e.g. action distribution only, no sensitivity/optionality).
 - [ ] **Add treatment to NBADScope_Mapping** — Currently commented out.
 - [ ] **Customer-level aggregates** — May need per-customer stats (postponed, current data not representative).
 - [ ] **AB test: include IA properties** — `getABTestResults` should include Impact Analyzer properties when populated.
@@ -57,8 +59,8 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Restructure (align with IA app pattern)
 
-- [ ] **Simplify Home.py** — Follow IA pattern: data source selector → load function → success/error. Current Home.py is cleaner now but still has legacy TODOs.
-- [ ] **Simplify da_streamlit_utils.py** — Reduce complexity, possibly reuse `streamlit_utils.py` shared code.
+- [x] **Simplify Home.py** — Now follows the shared pattern: `standard_page_config()` → `show_version_header()` → data source selector → load function → success/error. Removed `os` import, dropped `os.getcwd() == "/app"` check.
+- [x] **Simplify da_streamlit_utils.py** — Fixed backwards dependency: moved `get_current_index` to shared `streamlit_utils.py`, re-exported from `da_streamlit_utils` for backward compat. Removed dead commented-out wrappers, cleaned imports. Accepted parquet uploads. Still has complex `get_data_filters()` (200 lines) — to be split later.
 
 ---
 
@@ -103,9 +105,14 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] Consistent stage color scheme
 - [ ] Fix session state key warning
 
-### Pages 8-9 (Unfinished)
-- [ ] **Page 8: Offer Quality** — needs generalization, session state cleanup, move logic to class
-- [ ] **Page 9: Thresholding** — largely broken. Fix: explode issue with num_samples > 1, filtering, interactive thresholds. Consider rewrite or removal.
+### Page 8: Offer Quality (⚠ incomplete)
+- [ ] Needs generalization, session state cleanup, move logic to class
+- [ ] Pages moved from `unfinished_pages/` subfolder into regular `pages/` — unfinishedness tracked here
+
+### Page 9: Thresholding (⚠ incomplete)
+- [ ] Largely broken. Fix: explode issue with num_samples > 1, filtering, interactive thresholds
+- [ ] Consider rewrite or removal
+- [ ] Pages moved from `unfinished_pages/` subfolder into regular `pages/` — unfinishedness tracked here
 
 ### Page 10: Arbitration Component Distribution
 - [ ] Finish proposition distribution side-by-side view
@@ -116,6 +123,30 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] Refactor lever calculation into DecisionAnalyzer class
 - [ ] Move plots to plots module
 - [ ] Start target win ratio at > 0
+
+---
+
+---
+
+## Technical Debt
+
+_(No open items — see Resolved section below.)_
+
+---
+
+## Cross-App Consistency
+
+Shared infrastructure added to `streamlit_utils.py` and adopted by all three apps (Health Check, Impact Analyzer, Decision Analyzer).
+
+- [x] **`standard_page_config()`** — Consistent `set_page_config` with `layout="wide"`, shared `menu_items` (bug report + docs links). All Home pages and sub-pages use it.
+- [x] **`show_version_header()`** — Displays `pdstools {version}` caption with upgrade hint. Checks PyPI for latest version and shows a warning if outdated. All Home pages call it.
+- [x] **`ensure_session_data()`** — Shared guard function. DA uses via `ensure_data()`, IA via `ensure_impact_analyzer()`.
+- [x] **`--deploy-env` CLI flag** — `cli.py` accepts `--deploy-env ec2` (or any value), propagates as `PDSTOOLS_DEPLOY_ENV` env var. DA reads via `get_deploy_env()` / `is_managed_deployment()`. Replaces `os.getcwd() == "/app"` hack. EC2 sample path configurable via `PDSTOOLS_SAMPLE_DATA_PATH` env var.
+- [x] **Unified data source labels** — All apps use "Sample data", "File upload", "File path".
+- [x] **DA file upload expanded** — Now accepts `zip, parquet, json, csv, arrow` (was `zip, parquet` only).
+- [x] **IA sys.path hack removed** — Home.py and all pages no longer manipulate `sys.path`.
+- [x] **Consistent welcome text** — All Home pages have a clean title, brief description, and version header with upgrade hint.
+- [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern in a separate page with different labels ("Direct file path", "CDH Sample", etc.). Could be aligned further in a follow-up.
 
 ---
 
@@ -132,3 +163,4 @@ Tracked on branch: `refactor/decision-analyzer`
 - ~~`ColumnNotFoundError` import~~ — Fixed
 - ~~`print()` in sample()~~ — Replaced with logger
 - ~~`.columns` performance warning~~ — Fixed
+- ~~Hardwired EC2 paths~~ — Replaced `os.getcwd() == "/app"` with `--deploy-env` CLI flag and `PDSTOOLS_DEPLOY_ENV` env var. Sample path configurable via `PDSTOOLS_SAMPLE_DATA_PATH`.

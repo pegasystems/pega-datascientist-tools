@@ -6,17 +6,18 @@
 # ///
 
 import argparse
+import os
 import sys
 from importlib import resources
 
 # App configuration with display names and paths
 APPS = {
     "health_check": {
-        "display_name": "Health Check",
+        "display_name": "Adaptive Model Health Check",
         "path": "pdstools.app.health_check",
     },
     "decision_analyzer": {
-        "display_name": "Decision Analyzer",
+        "display_name": "Decision Analysis",
         "path": "pdstools.app.decision_analyzer",
     },
     "impact_analyzer": {
@@ -43,6 +44,15 @@ def create_parser():
         help=help_text,
         nargs="?",  # This makes the 'app' argument optional
         default=None,  # Explicitly set default to None
+    )
+    parser.add_argument(
+        "--deploy-env",
+        dest="deploy_env",
+        default=None,
+        help=(
+            "Set the deployment environment (e.g. 'ec2'). "
+            "Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."
+        ),
     )
     return parser
 
@@ -117,6 +127,10 @@ def run(args, unknown):
                 sys.exit(0)
             except Exception:
                 print("Invalid input. Please try again.")
+
+    # Propagate deployment environment to the Streamlit process
+    if args.deploy_env:
+        os.environ["PDSTOOLS_DEPLOY_ENV"] = args.deploy_env
 
     display_name = APPS[args.app]["display_name"]
     print(f"Running {display_name} app...")

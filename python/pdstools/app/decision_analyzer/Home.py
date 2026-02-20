@@ -1,37 +1,36 @@
-import os
-
+# python/pdstools/app/decision_analyzer/Home.py
 import polars as pl
 import streamlit as st
 
-from pdstools import __version__ as pdstools_version
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
-    get_options,
-    handle_direct_file_path,
+    handle_file_path,
     handle_file_upload,
     handle_sample_data,
+    is_managed_deployment,
     load_decision_analyzer,
 )
+from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
 
-st.set_page_config(layout="wide", page_title="Decision Analysis")
+standard_page_config(page_title="Decision Analysis")
 pl.enable_string_cache()
 
-st.caption(f"pdstools {pdstools_version}")
+show_version_header()
 
 """
 # Decision Analysis
 
-Visualize and analyze NBA decision data. This app supports **two data formats**:
+Visualize and diagnose your NBA decision pipeline. Two data formats are supported — the
+format is auto-detected on upload:
 
-| | **Explainability Extract (v1)** | **Decision Analyzer / EEV2 (v2)** |
+| | **Explainability Extract (v1)** | **Action Analysis / EEV2 (v2)** |
 |---|---|---|
 | Scope | Arbitration stage only | Full decision pipeline |
 | Stages | Synthetic (Arbitration → Output) | Real stages from strategy framework |
 | Filter components | Not available | Available (which rule filtered what) |
 | Use case | Quick arbitration analysis | Deep pipeline diagnostics |
 
-Upload your data below. The format is auto-detected.
-
-The charts use [Plotly](https://plotly.com/graphing-libraries/) — you can pan, zoom, and hover for details.
+All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
+zoom, and hover for details.
 
 ### Data import
 """
@@ -40,35 +39,44 @@ if "decision_data" in st.session_state:
     del st.session_state["decision_data"]
 st.session_state["filters"] = []
 
-# level = st.selectbox(
-#     "Select Stage Granularity",
-#     ("StageGroup", "Stage"),
-# )
-level = "StageGroup"  # TODO: Allow user to select the level once "Stage" level is implemented
+# TODO: Allow user to select the level once "Stage" level is implemented
+level = "StageGroup"
 
 sample_size = st.number_input(
     "Sample Size",
     min_value=1000,
     value=50000,
     step=1000,
-    help="Number of interactions used in resource-intensive analysis. Reduce the sample size if the app runs too slowly. Note that statistical significance decreases as sample size decreases.",
+    help=(
+        "Number of interactions used in resource-intensive analysis. "
+        "Reduce the sample size if the app runs too slowly. "
+        "Note that statistical significance decreases as sample size decreases."
+    ),
 )
 
-file_upload_options = get_options()
-source = st.selectbox(
-    "Select folder with the Decision Analyzer data or select the anonymized sample data",
-    options=file_upload_options,
-    index=0,
-)
-if source == "Sample Data":
-    raw_data = handle_sample_data(os.getcwd() == "/app")
-elif source == "File Upload":
-    raw_data = handle_file_upload()
-elif source == "Direct File Path":
-    raw_data = handle_direct_file_path()
+# File upload — always visible. Drag-and-drop or use the Browse button.
+raw_data = handle_file_upload()
+
+# For managed deployments, also show a server-side file path input
+if is_managed_deployment():
+    if raw_data is None:
+        raw_data = handle_file_path()
+
+# If no file uploaded, load sample data automatically
+if raw_data is None:
+    with st.spinner("Loading sample data"):
+        raw_data = handle_sample_data()
+    st.info(
+        "No file uploaded — using built-in sample data. "
+        "Upload your own data above to analyze it."
+    )
+
 if raw_data is not None:
     with st.spinner("Reading Data"):
-        da = load_decision_analyzer(raw_data, level=level, sample_size=sample_size)
+        data_id = str(hash(raw_data.explain(optimized=False)))
+        da = load_decision_analyzer(
+            raw_data, level=level, sample_size=sample_size, data_fingerprint=data_id
+        )
         st.session_state.decision_data = da
         del raw_data
 
@@ -78,6 +86,19 @@ if raw_data is not None:
         format_label = (
             "**Explainability Extract (v1)** — arbitration stage only"
             if extract_type == "explainability_extract"
-            else "**Decision Analyzer / EEV2 (v2)** — full pipeline"
+            else "**Action Analysis / EEV2 (v2)** — full pipeline"
         )
-        st.success(f"Data loaded successfully. Detected format: {format_label}")
+
+        overview = da.get_overview_stats
+        rows = da.decision_data.select(pl.len()).collect().item()
+        summary = (
+            f"Data loaded successfully. Detected format: {format_label}\n\n"
+            f"**{rows:,}** rows · "
+            f"**{overview['Decisions']:,}** decisions · "
+            f"**{overview['Customers']:,}** customers · "
+            f"**{overview['Actions']}** actions · "
+            f"**{overview['Channels']}** channels · "
+            f"**{overview['Duration'].days}** days "
+            f"(from {overview['StartDate']})"
+        )
+        st.success(summary)

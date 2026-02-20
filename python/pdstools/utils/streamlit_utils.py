@@ -7,13 +7,99 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 
+from .. import __version__ as pdstools_version
 from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
 from ..prediction.Prediction import Prediction
 from ..utils import datasets
 from ..utils.types import ANY_FRAME
 from . import cdh_utils
-from pdstools.app.decision_analyzer.da_streamlit_utils import get_current_index
+
+# ---------------------------------------------------------------------------
+# Shared Streamlit helpers — used by all pdstools apps
+# ---------------------------------------------------------------------------
+
+_MENU_ITEMS = {
+    "Report a bug": "https://github.com/pegasystems/pega-datascientist-tools/issues",
+    "Get help": "https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html",
+}
+
+
+def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
+    """Apply a consistent ``st.set_page_config`` across all pdstools apps.
+
+    Parameters
+    ----------
+    page_title : str
+        The browser-tab title for the page.
+    layout : str, default "wide"
+        Streamlit layout mode.
+    **kwargs
+        Extra keyword arguments forwarded to ``st.set_page_config``.
+    """
+    kwargs.setdefault("menu_items", _MENU_ITEMS)
+    st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+
+
+def show_version_header(check_latest: bool = True):
+    """Display the pdstools version, an upgrade hint, and optionally a staleness warning.
+
+    Parameters
+    ----------
+    check_latest : bool, default True
+        If *True*, queries PyPI for the latest version and shows an upgrade
+        warning when the installed version is outdated.
+    """
+    st.caption(
+        f"pdstools {pdstools_version} · "
+        "Keep up to date: `uv pip install --upgrade pdstools`"
+    )
+
+    if check_latest:
+        latest = st_get_latest_pdstools_version()
+        if latest and pdstools_version != latest:
+            st.warning(
+                f"A newer version of pdstools is available (**{latest}**, "
+                f"you have {pdstools_version}). "
+                "Run `uv pip install --upgrade pdstools` to update."
+            )
+
+
+def ensure_session_data(key: str, message: str | None = None):
+    """Guard that stops page execution when *key* is missing from session state.
+
+    Parameters
+    ----------
+    key : str
+        The ``st.session_state`` key to check.
+    message : str or None
+        Custom warning text. Falls back to a generic "Please load data on the Home page."
+    """
+    if key not in st.session_state:
+        st.warning(message or "Please load data on the Home page.")
+        st.stop()
+
+
+def get_deploy_env() -> str | None:
+    """Return the deployment environment set via ``--deploy-env`` CLI flag.
+
+    Returns ``None`` when running locally without the flag.
+    """
+    return os.environ.get("PDSTOOLS_DEPLOY_ENV")
+
+
+def is_managed_deployment() -> bool:
+    """Return *True* when the app is running in a managed deployment (e.g. EC2)."""
+    return get_deploy_env() is not None
+
+
+def get_current_index(options, key, default=0):
+    """Get index from session state if key exists and value is in options, else return default."""
+    return (
+        options.index(st.session_state[key])
+        if key in st.session_state and st.session_state[key] in options
+        else default
+    )
 
 
 @st.cache_resource

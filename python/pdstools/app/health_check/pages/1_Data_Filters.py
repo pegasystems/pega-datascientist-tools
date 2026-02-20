@@ -58,4 +58,4 @@ if "dm" in st.session_state:
         )
 
 else:
-    st.warning("Please configure your files in the `data import` tab.")
+    st.warning("Please load data on the Home page.")

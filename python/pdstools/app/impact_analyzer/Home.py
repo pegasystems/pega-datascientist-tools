@@ -1,29 +1,26 @@
+# python/pdstools/app/impact_analyzer/Home.py
 from pathlib import Path
-import sys
 
 import streamlit as st
 
-
-repo_python_path = Path(__file__).resolve().parents[3]
-if str(repo_python_path) not in sys.path:
-    sys.path.insert(0, str(repo_python_path))
-
-from pdstools.app.impact_analyzer.ia_streamlit_utils import (  # noqa: E402
+from pdstools.app.impact_analyzer.ia_streamlit_utils import (
     load_pdc_from_paths,
     load_pdc_from_uploads,
     load_sample_pdc,
     load_vbd_from_path,
     load_vbd_from_upload,
 )
+from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
 
+standard_page_config(page_title="Impact Analyzer")
 
-st.set_page_config(layout="wide", page_title="Impact Analyzer")
+show_version_header()
 
 """
-# Impact Analyzer App
+# Impact Analyzer
 
-Analyze Impact Analyzer experiments from PDC exports or VBD Scenario Planner Actuals.
-Upload data to begin, then explore summaries in subsequent pages.
+Analyze A/B test experiments from PDC exports or VBD Scenario Planner Actuals.
+Upload your data below, then explore lift metrics and trends in the sidebar pages.
 """
 
 if "impact_analyzer" in st.session_state:

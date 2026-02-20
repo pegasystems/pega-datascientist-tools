@@ -11,6 +11,10 @@ import polars.selectors as cs
 
 from .data_read_utils import validate_columns
 from .plots import Plot
+from .table_definition import (
+    DecisionAnalyzer as DecisionAnalyzer_TD,
+    ExplainabilityExtract as ExplainabilityExtract_TD,
+)
 from .utils import (
     NBADScope_Mapping,
     apply_filter,
@@ -18,6 +22,7 @@ from .utils import (
     get_table_definition,
     gini_coefficient,
     rename_and_cast_types,
+    resolve_aliases,
 )
 from ..pega_io.File import read_ds_export
 
@@ -196,6 +201,10 @@ class DecisionAnalyzer:
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
+        # Normalize alternative column names (e.g. "Issue" → "pyIssue")
+        raw_data = resolve_aliases(
+            raw_data, DecisionAnalyzer_TD, ExplainabilityExtract_TD
+        )
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
         # Get table definition and add any additional columns to it
@@ -1118,7 +1127,11 @@ class DecisionAnalyzer:
             .collect()
             .hstack(
                 self.sample.select(
-                    pl.n_unique("pySubjectID").alias("Customers"),
+                    (
+                        pl.n_unique("pySubjectID")
+                        if "pySubjectID" in self.sample.collect_schema().names()
+                        else pl.n_unique("pxInteractionID")
+                    ).alias("Customers"),
                     pl.n_unique("pxInteractionID").alias("Decisions"),
                 ).collect()
             )

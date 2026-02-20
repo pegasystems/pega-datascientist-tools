@@ -118,14 +118,14 @@ with st.container(border=True):
         )
         st.plotly_chart(
             remanining_funnel,
-            use_container_width=True,
+            width="stretch",
         )
         scope_index = get_current_index(scope_options, "scope")
 
     with filtered_tab:
         st.plotly_chart(
             filtered_funnel,
-            use_container_width=True,
+            width="stretch",
         )
     st.selectbox(
         "Granularity:",

@@ -1,4 +1,7 @@
-from typing import Dict, Type, TypedDict
+from typing import Dict, List, Type, TypedDict
+
+from typing_extensions import NotRequired
+
 import polars as pl
 
 
@@ -6,6 +9,7 @@ class TableConfig(TypedDict):
     label: str
     default: bool
     type: Type[pl.DataType]
+    aliases: NotRequired[List[str]]
 
 
 DecisionAnalyzer: Dict[str, TableConfig] = {
@@ -18,42 +22,43 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "label": "pySubjectID",
         "default": False,
         "type": pl.Categorical,
-    },  # should be optional
+        "aliases": ["Subject ID", "SubjectID"],
+    },
     "Primary_pySubjectType": {
         "label": "pySubjectType",
         "default": False,
         "type": pl.Categorical,
+        "aliases": ["Subject Type", "SubjectType"],
     },
-    # "StrategicSegment": {"label": "StrategicSegment", "default": False, "type": pl.Categorical},
     "pxInteractionID": {
         "label": "pxInteractionID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Interaction ID", "InteractionID"],
     },
     "pxDecisionTime": {
         "label": "pxDecisionTime",
         "default": True,
         "type": pl.Datetime,
+        "aliases": ["Decision Time", "DecisionTime"],
     },
-    # "pxRank": {
-    #     "label": "pxRank",
-    #     "default": True,
-    #     "type": pl.Int64,
-    # },
     "pyIssue": {
         "label": "pyIssue",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Issue"],
     },
     "pyGroup": {
         "label": "pyGroup",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Group"],
     },
     "pyName": {
         "label": "pyName",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Name", "Action"],
     },
     "pyTreatment": {
         "label": "pyTreatment",
@@ -184,38 +189,50 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "label": "pySubjectID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Subject ID", "SubjectID"],
     },
     "pxInteractionID": {
         "label": "pxInteractionID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Interaction ID", "InteractionID"],
     },
     "pxDecisionTime": {
         "label": "pxDecisionTime",
         "default": True,
         "type": pl.Datetime,
+        "aliases": ["Decision Time", "DecisionTime"],
     },
     "pyIssue": {
         "label": "pyIssue",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Issue"],
     },
     "pyGroup": {
         "label": "pyGroup",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Group"],
     },
-    "pyName": {"label": "pyName", "default": True, "type": pl.Utf8},
+    "pyName": {
+        "label": "pyName",
+        "default": True,
+        "type": pl.Utf8,
+        "aliases": ["Name", "Action"],
+    },
     # "pyTreatment": {"label": "pyTreatment", "default": False, "type": pl.Utf8},
     "pyChannel": {
         "label": "pyChannel",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Channel"],
     },
     "pyDirection": {
         "label": "pyDirection",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Direction"],
     },
     "Value": {"label": "Value", "default": True, "type": pl.Float64},
     "ContextWeight": {
@@ -252,6 +269,7 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "label": "ModelControlGroup",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["ModelControl"],
     },
     # "EvalautionCriteria": {
     #     "label": "EvalautionCriteria",
