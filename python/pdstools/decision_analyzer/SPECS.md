@@ -39,6 +39,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Low Priority
 
+- [ ] **Pre-aggregated data visualization** — Some exports contain pre-computed analysis results (sensitivity scores, action funnel data, decision summaries) rather than raw interaction-level data. Currently unsupported. Could bypass the DecisionAnalyzer and directly visualize the pre-aggregated parquet/csv files in the appropriate pages.
 - [ ] **Graceful degradation for minimal data** — Some exports only contain context keys (Issue, Group, Name, InteractionID, SubjectID) without scoring columns (Priority, Propensity, Value, pxDecisionTime). The app currently crashes with a ColumnNotFoundError. Should show a clear message about which columns are missing and ideally support a reduced analysis mode (e.g. action distribution only, no sensitivity/optionality).
 - [ ] **Add treatment to NBADScope_Mapping** — Currently commented out.
 - [ ] **Customer-level aggregates** — May need per-customer stats (postponed, current data not representative).
@@ -125,6 +126,18 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] Start target win ratio at > 0
 
 ---
+
+---
+
+## Sampling & Large Data
+
+Current approach: hash-based interaction sampling (`pxInteractionID.hash() % 1000 < threshold`). Keeps all actions within a sampled interaction together. Default 50,000 interactions. Used for expensive analyses (sensitivity, reranking, optionality); pre-aggregation runs on full data.
+
+- [ ] **Fix docstring** — `sample()` says "taking the first 50,000 interactions" but actually uses hash-based sampling. Update to match implementation.
+- [ ] **Stratified sampling option** — Current sampling is purely random by interaction ID. Consider optional stratification by channel, direction, or other categorical dimensions to ensure proportional representation in the sample. Important when channel distribution is skewed.
+- [ ] **Early-stage sampling for large files** — When input exceeds a threshold (e.g. estimated >5M rows from file size or initial scan), auto-downsample during the file reading phase in the app before the DecisionAnalyzer constructor runs. Show a warning explaining the downsampling.
+- [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` currently `.collect()`s the full dataset. For GB-scale data this is the memory bottleneck. Investigate polars streaming engine or chunked processing to avoid loading everything into memory.
+- [ ] **Data size warning in UI** — Show a warning when uploaded data exceeds a practical size threshold (e.g. >500 MB, >5M rows), with guidance on expected load times and memory usage.
 
 ---
 

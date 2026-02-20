@@ -65,7 +65,7 @@ def show_version_header(check_latest: bool = True):
             )
 
 
-def ensure_session_data(key: str, message: str | None = None):
+def ensure_session_data(key: str, message: Optional[str] = None):
     """Guard that stops page execution when *key* is missing from session state.
 
     Parameters
@@ -80,7 +80,7 @@ def ensure_session_data(key: str, message: str | None = None):
         st.stop()
 
 
-def get_deploy_env() -> str | None:
+def get_deploy_env() -> Optional[str]:
     """Return the deployment environment set via ``--deploy-env`` CLI flag.
 
     Returns ``None`` when running locally without the flag.

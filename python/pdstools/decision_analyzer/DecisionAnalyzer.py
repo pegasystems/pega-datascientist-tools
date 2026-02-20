@@ -28,6 +28,9 @@ from ..pega_io.File import read_ds_export
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SAMPLE_SIZE = 50_000
+"""Default number of unique interactions to sample for resource-intensive analyses."""
+
 
 class DecisionAnalyzer:
     """Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
@@ -140,7 +143,7 @@ class DecisionAnalyzer:
         self,
         raw_data: pl.LazyFrame,
         level="StageGroup",
-        sample_size=50000,
+        sample_size=DEFAULT_SAMPLE_SIZE,
         mandatory_expr: Optional[pl.Expr] = None,
         additional_columns: Optional[Dict[str, pl.DataType]] = None,
     ):
@@ -434,9 +437,11 @@ class DecisionAnalyzer:
 
     @cached_property
     def sample(self):
-        """
-        Create a sample of the data by taking the first 50,000 interactions.
-        If there are fewer than 50,000 total interactions, no sampling is performed.
+        """Hash-based deterministic sample of interactions for resource-intensive analyses.
+
+        Selects up to ``sample_size`` unique interactions using a hash of
+        ``pxInteractionID``. All actions within a selected interaction are kept.
+        If fewer interactions exist than ``sample_size``, no sampling is performed.
         """
         needed_columns = [
             "pxInteractionID",

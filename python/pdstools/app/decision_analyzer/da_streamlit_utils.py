@@ -1,7 +1,7 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import polars as pl
 import streamlit as st
@@ -255,7 +255,7 @@ def get_data_filters(
     return queries
 
 
-def get_options() -> list[str]:
+def get_options() -> List[str]:
     """Data source options.
 
     'File path' is only shown in managed deployments where users need to
@@ -268,7 +268,7 @@ def get_options() -> list[str]:
     return options
 
 
-def handle_sample_data() -> pl.LazyFrame | None:
+def handle_sample_data() -> Optional[pl.LazyFrame]:
     """Load sample data, using a local S3 path in managed deployments."""
     if is_managed_deployment():
         return read_data(Path(_EC2_SAMPLE_PATH))
@@ -286,6 +286,15 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
     with zipfile.ZipFile(file_buffer, "r") as zf:
         inner_names = [n for n in zf.namelist() if not n.startswith("__MACOSX")]
         inner_exts = {Path(n).suffix.lower() for n in inner_names if Path(n).suffix}
+
+        # Reject archives with only unsupported file types
+        supported_exts = {".csv", ".parquet", ".json", ".ndjson", ".arrow", ".zip"}
+        if not inner_exts.intersection(supported_exts):
+            raise ValueError(
+                f"The uploaded archive does not contain recognizable data files. "
+                f"Found: {', '.join(sorted(inner_exts))}. "
+                f"Expected raw decision data in csv, parquet, json, or arrow format."
+            )
 
         # If the zip contains .zip files, use the legacy gzipped-ndjson reader
         if ".zip" in inner_exts:
@@ -310,7 +319,7 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> pl.LazyFrame | None:
+def handle_file_upload() -> Optional[pl.LazyFrame]:
     """Show file uploader accepting one or more files and return a LazyFrame, or None."""
     import tempfile
 
@@ -365,7 +374,7 @@ def handle_file_upload() -> pl.LazyFrame | None:
     return pl.concat(frames, how="diagonal", rechunk=True)
 
 
-def handle_file_path() -> pl.LazyFrame | None:
+def handle_file_path() -> Optional[pl.LazyFrame]:
     """Show text input for a file/folder path and return a LazyFrame, or None."""
     st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
     path = st.text_input(

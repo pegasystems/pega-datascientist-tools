@@ -9,6 +9,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     is_managed_deployment,
     load_decision_analyzer,
 )
+from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
 from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
 
 standard_page_config(page_title="Decision Analysis")
@@ -45,7 +46,7 @@ level = "StageGroup"
 sample_size = st.number_input(
     "Sample Size",
     min_value=1000,
-    value=50000,
+    value=DEFAULT_SAMPLE_SIZE,
     step=1000,
     help=(
         "Number of interactions used in resource-intensive analysis. "
