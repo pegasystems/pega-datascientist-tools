@@ -4,7 +4,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ## Completed
 
-- [x] **Test harness**: 89 unit tests covering v1/v2 core functionality
+- [x] **Test harness**: 98 unit tests covering v1/v2 core functionality (including component impact/drilldown tests)
 - [x] **File rename**: `decision_data.py` → `DecisionAnalyzer.py`
 - [x] **Class method constructors**: `from_explainability_extract()`, `from_decision_analyzer()`
 - [x] **Deprecated polars APIs**: `pl.count()→pl.len()`, `with_row_count→with_row_index`, `melt→unpivot`, `Categorical(ordering=)→Categorical`, `ColumnNotFoundError` import
@@ -30,7 +30,6 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Medium Priority
 
-- [ ] **Deeper filter component / strategy analysis** — The Action Funnel page shows a simple top-N list of components that filter actions. Expand this with: which actions are most affected by which component, overlap between components (are the same actions filtered by multiple rules), component impact over time (trend), and component-level drill-down showing why specific high-value actions are being dropped.
 - [ ] **Move `filtered_action_counts` into class** — Standalone function in `utils.py` that duplicates the `aggregate_remaining_per_stage` pattern.
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win_rank flexibility** — `get_win_loss_distribution_data` has fixed rank parameter. Return all ranks, let UI filter.
@@ -89,6 +88,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] Better coloring for filter components
 - [ ] Move top-N control from sidebar to section
 - [ ] Handle many stages gracefully
+- [x] **Deeper filter component / strategy analysis (partial)** — Added `getComponentActionImpact()` (component × action matrix), `getComponentDrilldown()` (per-component detail with scoring context from surviving rows), enhanced `getFilterComponentData()` with `pxComponentType`. Added corresponding plot methods (`component_action_impact`, `component_drilldown`, enhanced `filtering_components` with component type coloring). Integrated into Streamlit page 4 (Action Funnel). Remaining: component overlap analysis, component impact over time (trend).
 
 ### Page 5: Global Sensitivity
 - [ ] Infer top-X from data (max rank per channel for Final records)

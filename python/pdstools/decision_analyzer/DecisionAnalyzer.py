@@ -656,10 +656,15 @@ class DecisionAnalyzer:
     def getFilterComponentData(
         self, top_n, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.DataFrame:
+        group_cols = [self.level, "pxComponentName"]
+        available = set(self.getPreaggregatedFilterView.collect_schema().names())
+        if "pxComponentType" in available:
+            group_cols.append("pxComponentType")
+
         stages_actions_df = (
             apply_filter(self.getPreaggregatedFilterView, additional_filters)
             .filter(pl.col(self.level) != "Output")
-            .group_by(self.level, "pxComponentName")
+            .group_by(group_cols)
             .agg(pl.sum("Decisions").alias("Filtered Decisions"))
             .collect()
         )
@@ -675,6 +680,136 @@ class DecisionAnalyzer:
         ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
 
         return result
+
+    def getComponentActionImpact(
+        self,
+        top_n: int = 10,
+        scope: str = "pyName",
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+    ) -> pl.DataFrame:
+        """Per-component breakdown of which items are filtered and how many.
+
+        For each component, returns the top-N items (at the chosen scope
+        granularity) it filters out. The scope controls whether the breakdown
+        is at Issue, Group, or Action level.
+
+        Parameters
+        ----------
+        top_n : int, default 10
+            Maximum number of items to return per component.
+        scope : str, default "pyName"
+            Granularity level: ``"pyIssue"``, ``"pyGroup"``, or ``"pyName"``.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters to apply before aggregation.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns include pxComponentName, StageGroup, scope columns, and
+            Filtered Decisions. Sorted by component then descending count.
+        """
+        filtered_data = apply_filter(self.decision_data, additional_filters).filter(
+            pl.col("pxRecordType") == "FILTERED_OUT"
+        )
+
+        # Build scope columns up to and including the requested level
+        scope_hierarchy = ["pyIssue", "pyGroup", "pyName"]
+        scope_idx = scope_hierarchy.index(scope) if scope in scope_hierarchy else 2
+        scope_cols = scope_hierarchy[: scope_idx + 1]
+
+        group_cols = ["pxComponentName", self.level] + scope_cols
+        available = set(filtered_data.collect_schema().names())
+        group_cols = [c for c in group_cols if c in available]
+
+        impact_df = (
+            filtered_data.group_by(group_cols)
+            .agg(pl.len().alias("Filtered Decisions"))
+            .collect()
+        )
+
+        # Top-N items per component
+        result = pl.concat(
+            pl.collect_all(
+                [
+                    part.lazy()
+                    .top_k(top_n, by="Filtered Decisions")
+                    .sort("Filtered Decisions", descending=True)
+                    for part in impact_df.partition_by("pxComponentName")
+                ]
+            )
+        ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+
+        return result.sort(
+            ["pxComponentName", "Filtered Decisions"], descending=[False, True]
+        )
+
+    def getComponentDrilldown(
+        self,
+        component_name: str,
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+    ) -> pl.DataFrame:
+        """Deep-dive into a single filter component showing dropped actions and
+        their potential value.
+
+        Since scoring columns (Priority, Value, Propensity) are typically null
+        on FILTERED_OUT rows, this method derives the action's "potential value"
+        by looking up average scores from rows where the same action survives
+        (non-null Priority/Value). This gives the "value of what's being
+        dropped" perspective.
+
+        Parameters
+        ----------
+        component_name : str
+            The pxComponentName to drill into.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters to apply before aggregation.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns: pyIssue, pyGroup, pyName, Filtered Decisions,
+            avg_Priority, avg_Value, avg_Propensity, pxComponentType (if
+            available). Sorted by Filtered Decisions descending.
+        """
+        base = apply_filter(self.decision_data, additional_filters)
+        available = set(base.collect_schema().names())
+
+        # Filtered rows for this component
+        filtered_rows = base.filter(
+            (pl.col("pxRecordType") == "FILTERED_OUT")
+            & (pl.col("pxComponentName") == component_name)
+        )
+
+        group_cols = ["pyIssue", "pyGroup", "pyName"]
+        agg_exprs = [pl.len().alias("Filtered Decisions")]
+        if "pxComponentType" in available:
+            group_cols.append("pxComponentType")
+
+        filtered_agg = filtered_rows.group_by(group_cols).agg(agg_exprs).collect()
+
+        # Reference scores from surviving rows (non-null Priority)
+        score_cols = ["Priority", "Value", "Propensity"]
+        present_scores = [c for c in score_cols if c in available]
+
+        if present_scores:
+            score_aggs = [pl.col(c).mean().alias(f"avg_{c}") for c in present_scores]
+            reference_scores = (
+                base.filter(pl.col("Priority").is_not_null())
+                .group_by(["pyIssue", "pyGroup", "pyName"])
+                .agg(score_aggs)
+                .collect()
+            )
+            result = filtered_agg.join(
+                reference_scores,
+                on=["pyIssue", "pyGroup", "pyName"],
+                how="left",
+            )
+        else:
+            result = filtered_agg
+
+        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(
+            "Filtered Decisions", descending=True
+        )
 
     def reRank(
         self,

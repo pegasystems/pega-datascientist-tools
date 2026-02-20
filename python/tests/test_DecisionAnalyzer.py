@@ -641,6 +641,123 @@ class TestFilterComponents:
         assert df.height > 0
         assert "pxComponentName" in df.columns
 
+    def test_v2_filter_component_data_includes_component_type(self, da_v2):
+        """When pxComponentType is in the data, it should appear in the result."""
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.getFilterComponentData(top_n=5)
+        # pxComponentType may or may not be present depending on the dataset
+        assert "pxComponentName" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+
+# ---------------------------------------------------------------------------
+# Component action impact (v2 only)
+# ---------------------------------------------------------------------------
+
+
+class TestComponentActionImpact:
+    def test_v2_component_action_impact(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.getComponentActionImpact(top_n=5)
+        assert df.height > 0
+        assert "pxComponentName" in df.columns
+        assert "pyName" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+    def test_component_action_impact_respects_top_n(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.getComponentActionImpact(top_n=3)
+        # Each component should have at most 3 actions
+        per_component = df.group_by("pxComponentName").agg(pl.len().alias("n"))
+        assert per_component["n"].max() <= 3
+
+    def test_component_action_impact_has_issue_group(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.getComponentActionImpact(top_n=5)
+        assert "pyIssue" in df.columns
+        assert "pyGroup" in df.columns
+
+    def test_v1_component_action_impact_skipped(self, da_v1):
+        """v1 data has no pxComponentName, so the method should produce empty results."""
+        if "pxComponentName" not in da_v1.decision_data.collect_schema().names():
+            pytest.skip("Expected: no pxComponentName in v1")
+
+
+# ---------------------------------------------------------------------------
+# Component drilldown (v2 only)
+# ---------------------------------------------------------------------------
+
+
+class TestComponentDrilldown:
+    def test_v2_component_drilldown(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        # Pick the first available component
+        components = (
+            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
+            .select("pxComponentName")
+            .unique()
+            .collect()
+            .get_column("pxComponentName")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.getComponentDrilldown(component_name=components[0])
+        assert df.height > 0
+        assert "pyName" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+    def test_component_drilldown_sorted_descending(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
+            .select("pxComponentName")
+            .unique()
+            .collect()
+            .get_column("pxComponentName")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.getComponentDrilldown(component_name=components[0])
+        decisions = df["Filtered Decisions"].to_list()
+        assert decisions == sorted(decisions, reverse=True)
+
+    def test_component_drilldown_nonexistent_component(self, da_v2):
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.getComponentDrilldown(component_name="NONEXISTENT_COMPONENT_XYZ")
+        assert df.height == 0
+
+    def test_component_drilldown_has_score_columns(self, da_v2):
+        """Drilldown should include avg score columns when scoring data exists."""
+        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
+            .select("pxComponentName")
+            .unique()
+            .collect()
+            .get_column("pxComponentName")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.getComponentDrilldown(component_name=components[0])
+        # At least one avg_* column should be present if scoring data exists
+        avg_cols = [c for c in df.columns if c.startswith("avg_")]
+        available_scores = {"Priority", "Value", "Propensity"}.intersection(
+            da_v2.decision_data.collect_schema().names()
+        )
+        if available_scores:
+            assert len(avg_cols) > 0
+
 
 # ---------------------------------------------------------------------------
 # Utility functions

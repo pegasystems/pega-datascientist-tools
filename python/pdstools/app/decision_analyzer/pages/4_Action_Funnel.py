@@ -177,3 +177,93 @@ st.download_button(
     file_name="file.csv",
     data=csv,
 )
+
+# ---------------------------------------------------------------------------
+# Component → Action Impact
+# ---------------------------------------------------------------------------
+has_components = (
+    "pxComponentName"
+    in st.session_state.decision_data.decision_data.collect_schema().names()
+)
+if has_components:
+    with st.container(border=True):
+        "## Component → Action Impact"
+        """
+        Which specific actions are most affected by each filter component?
+        This shows the top actions that each component filters out.
+        """
+        impact_top_n = st.number_input(
+            "Actions per component:",
+            min_value=1,
+            max_value=30,
+            value=5,
+            key="impact_top_n",
+        )
+        impact_fig = st.session_state.decision_data.plot.component_action_impact(
+            top_n=impact_top_n,
+            scope=st.session_state.scope,
+            additional_filters=(
+                st.session_state["local_filters"]
+                if st.session_state["local_filters"] != []
+                else None
+            ),
+        )
+        st.plotly_chart(impact_fig, use_container_width=True)
+
+    # ---------------------------------------------------------------------------
+    # Component Drilldown
+    # ---------------------------------------------------------------------------
+    with st.container(border=True):
+        "## Component Drilldown"
+        """
+        Select a filter component to see all actions it drops, enriched with
+        scoring context (average Priority / Value / Propensity from surviving
+        rows of the same action). Sort by value to find high-value actions
+        being removed.
+        """
+        component_names = (
+            st.session_state.decision_data.decision_data.filter(
+                pl.col("pxRecordType") == "FILTERED_OUT"
+            )
+            .select("pxComponentName")
+            .unique()
+            .collect()
+            .get_column("pxComponentName")
+            .sort()
+            .to_list()
+        )
+        if component_names:
+            selected_component = st.selectbox(
+                "Select component:",
+                options=component_names,
+                key="drilldown_component",
+            )
+            sort_options = ["Filtered Decisions", "avg_Value", "avg_Priority"]
+            sort_by = st.selectbox(
+                "Sort by:",
+                options=sort_options,
+                key="drilldown_sort",
+            )
+            drilldown_fig = st.session_state.decision_data.plot.component_drilldown(
+                component_name=selected_component,
+                sort_by=sort_by,
+                additional_filters=(
+                    st.session_state["local_filters"]
+                    if st.session_state["local_filters"] != []
+                    else None
+                ),
+            )
+            st.plotly_chart(drilldown_fig, use_container_width=True)
+
+            # Also show the raw data table
+            drilldown_df = st.session_state.decision_data.getComponentDrilldown(
+                component_name=selected_component,
+                additional_filters=(
+                    st.session_state["local_filters"]
+                    if st.session_state["local_filters"] != []
+                    else None
+                ),
+            )
+            st.dataframe(drilldown_df)
+        else:
+            st.info("No filter components found in the data.")
