@@ -1,5 +1,3 @@
-import datetime
-import subprocess
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Type, Union
 
@@ -157,7 +155,9 @@ def apply_filter(
         if len(col_diff) == 0:
             df = df.filter(item)
         else:
-            raise pl.ColumnNotFoundError(col_diff)
+            from polars.exceptions import ColumnNotFoundError
+
+            raise ColumnNotFoundError(col_diff)
         return df
 
     if filters is None:
@@ -295,23 +295,45 @@ def get_first_level_stats(
     }
 
 
-def get_git_version_and_date():
-    # Get the version tag
-    version = (
-        subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
-        .decode()
-        .strip()
-        .replace("v", "")
-    )
+def resolve_aliases(
+    df: pl.LazyFrame,
+    *table_definitions: Dict,
+) -> pl.LazyFrame:
+    """Rename alias columns to their canonical names before validation.
 
-    # Get the date the tag was pushed
-    date_str = (
-        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])
-        .decode()
-        .strip()
-    )
-    date = datetime.datetime.strptime(date_str.split()[0], "%Y-%m-%d")
-    return version, date.strftime("%d %b %Y")
+    Scans all table definitions for ``aliases`` entries. If an alias is found
+    in the data but the canonical name is not, the column is renamed.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data that may use alternative column names.
+    *table_definitions : Dict
+        One or more table definition dicts (DecisionAnalyzer, ExplainabilityExtract).
+
+    Returns
+    -------
+    pl.LazyFrame
+        Data with alias columns renamed to canonical names.
+    """
+    raw_cols = set(df.collect_schema().names())
+    renames: Dict[str, str] = {}
+
+    for table_def in table_definitions:
+        for canonical, config in table_def.items():
+            aliases = config.get("aliases", [])
+            if not aliases:
+                continue
+            # Only rename if the canonical name (and its label) are absent
+            label = config["label"]
+            if canonical in raw_cols or label in raw_cols:
+                continue
+            for alias in aliases:
+                if alias in raw_cols and alias not in renames:
+                    renames[alias] = canonical
+                    break
+
+    return df.rename(renames) if renames else df
 
 
 def determine_extract_type(raw_data):

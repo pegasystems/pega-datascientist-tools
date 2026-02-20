@@ -152,7 +152,7 @@ if st.session_state.get("analysis_applied", False):
         "In Arbitration",
         "Current Win Count",
     )
-    st.plotly_chart(original_fig, use_container_width=True)
+    st.plotly_chart(original_fig, width="stretch")
     # Parameter Distribution Analysis
     show_distributions = st.checkbox(
         "Show distribution of arbitration components",
@@ -205,7 +205,7 @@ if st.session_state.get("analysis_applied", False):
                     )
 
                     fig = create_parameter_distribution_boxplots(segmented_df)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
     with st.expander("🎯 Boosting Strategies", expanded=False):
         st.markdown(f"""
         **1. Address funnel losses:** If {funnel_loss_pct:.2f}% filter-out rate is too high, investigate earlier decision stages to understand why your actions are eliminated.
@@ -244,7 +244,7 @@ if st.session_state.get("analysis_applied", False):
             "After Lever Adjustment",
             "New Win Count",
         )
-        st.plotly_chart(new_fig, use_container_width=True)
+        st.plotly_chart(new_fig, width="stretch")
 
         # Show summary statistics
         total_new_wins = new_plot_data["new_win_count"].sum()

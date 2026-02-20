@@ -1,6 +1,9 @@
+# python/pdstools/decision_analyzer/DecisionAnalyzer.py
 from bisect import bisect_left
 from functools import cached_property
 from typing import List, Literal, Optional, Union, Dict
+import logging
+import os
 import warnings
 
 import polars as pl
@@ -8,6 +11,10 @@ import polars.selectors as cs
 
 from .data_read_utils import validate_columns
 from .plots import Plot
+from .table_definition import (
+    DecisionAnalyzer as DecisionAnalyzer_TD,
+    ExplainabilityExtract as ExplainabilityExtract_TD,
+)
 from .utils import (
     NBADScope_Mapping,
     apply_filter,
@@ -15,36 +22,107 @@ from .utils import (
     get_table_definition,
     gini_coefficient,
     rename_and_cast_types,
+    resolve_aliases,
 )
+from ..pega_io.File import read_ds_export
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_SAMPLE_SIZE = 50_000
+"""Default number of unique interactions to sample for resource-intensive analyses."""
 
 
 class DecisionAnalyzer:
+    """Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
+
+    This class processes raw decision data to create a comprehensive analysis
+    framework for NBA (Next-Best-Action). It supports two data source formats:
+
+    - **Explainability Extract (v1)**: Simpler format with actions at the
+      arbitration stage. Stages are synthetically derived from ranking.
+    - **Decision Analyzer / EEV2 (v2)**: Full pipeline data with real stage
+      information, filter component names, and detailed strategy tracking.
+
+    Data can be loaded via class methods or directly:
+
+    - :meth:`from_explainability_extract`: Load from an Explainability Extract file.
+    - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
+    - Direct ``__init__``: Auto-detects format from the data schema.
+
+    Attributes
+    ----------
+    decision_data : pl.LazyFrame
+        Interaction-level decision data (with global filters applied if any).
+    extract_type : str
+        Either ``"explainability_extract"`` or ``"decision_analyzer"``.
+    plot : Plot
+        Plot accessor for visualization methods.
+
+    Examples
+    --------
+    >>> from pdstools import DecisionAnalyzer
+    >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+    >>> da.get_overview_stats
+    >>> da.plot.sensitivity()
     """
-    Container data class for the raw decision data. Only one instance of this
-    should exist and will be associated with the streamlit app state.
 
-    It will keep a pointer to the raw interaction level data (as a
-    lazy frame) but also has VBD-style aggregation(s) to speed things up.
-    """
+    @classmethod
+    def from_explainability_extract(
+        cls,
+        source: Union[str, os.PathLike],
+        **kwargs,
+    ) -> "DecisionAnalyzer":
+        """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
 
-    # Raw data with only data-level pre-processing from the source. Should never
-    # be accessed outside of this class.
-    unfiltered_raw_decision_data: pl.LazyFrame = None
+        Parameters
+        ----------
+        source : Union[str, os.PathLike]
+            Path to the Explainability Extract parquet file, or a URL.
+        **kwargs
+            Additional keyword arguments passed to ``__init__`` (e.g.
+            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
 
-    # Interaction-level decision data with possibly the global filters applied. Try
-    # to avoid accessing it directly, use class methods instead, but sometimes we
-    # need to use this directly.
-    decision_data: pl.LazyFrame = None
+        Returns
+        -------
+        DecisionAnalyzer
 
-    # Decision data rolled up over interactions and customers, keeping a number of
-    # meaningful aggregates useful for many analyses. Never access directly, always
-    # use access method getPreaggregatedFilterView as this field is populated
-    # on first use only, and reset when the global filters change.
-    preaggregated_decision_data_filterview: pl.LazyFrame = None
+        Examples
+        --------
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+        """
+        raw_data = read_ds_export(str(source))
+        if raw_data is None:
+            raise ValueError(f"Could not read data from {source}")
+        return cls(raw_data, **kwargs)
 
-    # Similar, but providing a view per stage, so strategy results can be duplicated.
-    # Also never access directly, use getPreaggregatedRemainingView.
-    preaggregated_decision_data_remainingview: pl.LazyFrame = None
+    @classmethod
+    def from_decision_analyzer(
+        cls,
+        source: Union[str, os.PathLike],
+        **kwargs,
+    ) -> "DecisionAnalyzer":
+        """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
+
+        Parameters
+        ----------
+        source : Union[str, os.PathLike]
+            Path to the Decision Analyzer parquet file, or a URL.
+        **kwargs
+            Additional keyword arguments passed to ``__init__`` (e.g.
+            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+
+        Returns
+        -------
+        DecisionAnalyzer
+
+        Examples
+        --------
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+        """
+        raw_data = read_ds_export(str(source))
+        if raw_data is None:
+            raise ValueError(f"Could not read data from {source}")
+        return cls(raw_data, **kwargs)
 
     # Superset of all fields available for data filtering in various places.
     fields_for_data_filtering = [
@@ -65,7 +143,7 @@ class DecisionAnalyzer:
         self,
         raw_data: pl.LazyFrame,
         level="StageGroup",
-        sample_size=50000,
+        sample_size=DEFAULT_SAMPLE_SIZE,
         mandatory_expr: Optional[pl.Expr] = None,
         additional_columns: Optional[Dict[str, pl.DataType]] = None,
     ):
@@ -126,6 +204,10 @@ class DecisionAnalyzer:
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
+        # Normalize alternative column names (e.g. "Issue" → "pyIssue")
+        raw_data = resolve_aliases(
+            raw_data, DecisionAnalyzer_TD, ExplainabilityExtract_TD
+        )
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
         # Get table definition and add any additional columns to it
@@ -143,6 +225,21 @@ class DecisionAnalyzer:
         self.validation_error = validation_error if not validation_result else None
         if not validation_result:
             warnings.warn(validation_error, UserWarning)
+        # Bail out early if critical columns are missing — cleanup_raw_data
+        # would crash with an opaque ColumnNotFoundError otherwise.
+        critical_cols = {"pxInteractionID", "pyIssue", "pyGroup", "pyName"}
+        available = set(raw_data.collect_schema().names())
+        # Account for renames defined in the table definition
+        renamed = {
+            v["label"] for v in table_def.values() if v["label"] in available
+        } | available
+        missing_critical = critical_cols - renamed
+        if missing_critical:
+            raise ValueError(
+                f"Cannot construct DecisionAnalyzer: critical columns missing "
+                f"from the data: {', '.join(sorted(missing_critical))}"
+            )
+
         # cast datatypes
         raw_data = rename_and_cast_types(df=raw_data, table_definition=table_def).sort(
             "pxInteractionID"
@@ -286,7 +383,7 @@ class DecisionAnalyzer:
             pl.col("Propensity", "Priority").sample(
                 n=num_samples, with_replacement=True, shuffle=True
             ),
-            pl.count().alias("Decisions"),
+            pl.len().alias("Decisions"),
         ]
 
         self.preaggregated_decision_data_filterview = (
@@ -340,9 +437,11 @@ class DecisionAnalyzer:
 
     @cached_property
     def sample(self):
-        """
-        Create a sample of the data by taking the first 50,000 interactions.
-        If there are fewer than 50,000 total interactions, no sampling is performed.
+        """Hash-based deterministic sample of interactions for resource-intensive analyses.
+
+        Selects up to ``sample_size`` unique interactions using a hash of
+        ``pxInteractionID``. All actions within a selected interaction are kept.
+        If fewer interactions exist than ``sample_size``, no sampling is performed.
         """
         needed_columns = [
             "pxInteractionID",
@@ -369,14 +468,13 @@ class DecisionAnalyzer:
         available_cols = set(self.decision_data.collect_schema().names())
         columns_to_keep = [col for col in needed_columns if col in available_cols]
 
-        print("In sample function")
         total_interaction_count = (
             self.decision_data.set_sorted("pxInteractionID")
             .select(pl.n_unique("pxInteractionID").alias("unique_count"))
             .collect()
             .item()
         )
-        print(f"Total interaction count: {total_interaction_count}")
+        logger.debug("Sampling from %d total interactions", total_interaction_count)
         # Set num_sample_interactions attribute - use sample_size if we have more interactions than sample_size
         self.sample_size = min(total_interaction_count, self.sample_size)
         target_sample_size = self.sample_size
@@ -416,7 +514,7 @@ class DecisionAnalyzer:
                 if field in schema_keys:
                     available_fields.append(field)
         else:
-            all_columns = self.decision_data.columns
+            all_columns = self.decision_data.collect_schema().names()
 
             for field in self.fields_for_data_filtering:
                 if field in all_columns:
@@ -472,7 +570,7 @@ class DecisionAnalyzer:
         preproc_df = (
             df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
             .with_columns(
-                pl.col(self.level).cast(pl.Categorical(ordering="physical")),
+                pl.col(self.level).cast(pl.Categorical),
             )
             .filter(
                 pl.col("pyName").is_not_null()
@@ -558,10 +656,15 @@ class DecisionAnalyzer:
     def getFilterComponentData(
         self, top_n, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
     ) -> pl.DataFrame:
+        group_cols = [self.level, "pxComponentName"]
+        available = set(self.getPreaggregatedFilterView.collect_schema().names())
+        if "pxComponentType" in available:
+            group_cols.append("pxComponentType")
+
         stages_actions_df = (
             apply_filter(self.getPreaggregatedFilterView, additional_filters)
             .filter(pl.col(self.level) != "Output")
-            .group_by(self.level, "pxComponentName")
+            .group_by(group_cols)
             .agg(pl.sum("Decisions").alias("Filtered Decisions"))
             .collect()
         )
@@ -578,6 +681,136 @@ class DecisionAnalyzer:
 
         return result
 
+    def getComponentActionImpact(
+        self,
+        top_n: int = 10,
+        scope: str = "pyName",
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+    ) -> pl.DataFrame:
+        """Per-component breakdown of which items are filtered and how many.
+
+        For each component, returns the top-N items (at the chosen scope
+        granularity) it filters out. The scope controls whether the breakdown
+        is at Issue, Group, or Action level.
+
+        Parameters
+        ----------
+        top_n : int, default 10
+            Maximum number of items to return per component.
+        scope : str, default "pyName"
+            Granularity level: ``"pyIssue"``, ``"pyGroup"``, or ``"pyName"``.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters to apply before aggregation.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns include pxComponentName, StageGroup, scope columns, and
+            Filtered Decisions. Sorted by component then descending count.
+        """
+        filtered_data = apply_filter(self.decision_data, additional_filters).filter(
+            pl.col("pxRecordType") == "FILTERED_OUT"
+        )
+
+        # Build scope columns up to and including the requested level
+        scope_hierarchy = ["pyIssue", "pyGroup", "pyName"]
+        scope_idx = scope_hierarchy.index(scope) if scope in scope_hierarchy else 2
+        scope_cols = scope_hierarchy[: scope_idx + 1]
+
+        group_cols = ["pxComponentName", self.level] + scope_cols
+        available = set(filtered_data.collect_schema().names())
+        group_cols = [c for c in group_cols if c in available]
+
+        impact_df = (
+            filtered_data.group_by(group_cols)
+            .agg(pl.len().alias("Filtered Decisions"))
+            .collect()
+        )
+
+        # Top-N items per component
+        result = pl.concat(
+            pl.collect_all(
+                [
+                    part.lazy()
+                    .top_k(top_n, by="Filtered Decisions")
+                    .sort("Filtered Decisions", descending=True)
+                    for part in impact_df.partition_by("pxComponentName")
+                ]
+            )
+        ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+
+        return result.sort(
+            ["pxComponentName", "Filtered Decisions"], descending=[False, True]
+        )
+
+    def getComponentDrilldown(
+        self,
+        component_name: str,
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+    ) -> pl.DataFrame:
+        """Deep-dive into a single filter component showing dropped actions and
+        their potential value.
+
+        Since scoring columns (Priority, Value, Propensity) are typically null
+        on FILTERED_OUT rows, this method derives the action's "potential value"
+        by looking up average scores from rows where the same action survives
+        (non-null Priority/Value). This gives the "value of what's being
+        dropped" perspective.
+
+        Parameters
+        ----------
+        component_name : str
+            The pxComponentName to drill into.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters to apply before aggregation.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns: pyIssue, pyGroup, pyName, Filtered Decisions,
+            avg_Priority, avg_Value, avg_Propensity, pxComponentType (if
+            available). Sorted by Filtered Decisions descending.
+        """
+        base = apply_filter(self.decision_data, additional_filters)
+        available = set(base.collect_schema().names())
+
+        # Filtered rows for this component
+        filtered_rows = base.filter(
+            (pl.col("pxRecordType") == "FILTERED_OUT")
+            & (pl.col("pxComponentName") == component_name)
+        )
+
+        group_cols = ["pyIssue", "pyGroup", "pyName"]
+        agg_exprs = [pl.len().alias("Filtered Decisions")]
+        if "pxComponentType" in available:
+            group_cols.append("pxComponentType")
+
+        filtered_agg = filtered_rows.group_by(group_cols).agg(agg_exprs).collect()
+
+        # Reference scores from surviving rows (non-null Priority)
+        score_cols = ["Priority", "Value", "Propensity"]
+        present_scores = [c for c in score_cols if c in available]
+
+        if present_scores:
+            score_aggs = [pl.col(c).mean().alias(f"avg_{c}") for c in present_scores]
+            reference_scores = (
+                base.filter(pl.col("Priority").is_not_null())
+                .group_by(["pyIssue", "pyGroup", "pyName"])
+                .agg(score_aggs)
+                .collect()
+            )
+            result = filtered_agg.join(
+                reference_scores,
+                on=["pyIssue", "pyGroup", "pyName"],
+                how="left",
+            )
+        else:
+            result = filtered_agg
+
+        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(
+            "Filtered Decisions", descending=True
+        )
+
     def reRank(
         self,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
@@ -586,8 +819,6 @@ class DecisionAnalyzer:
         """
         Calculates prio and rank for all PVCL combinations
         """
-        # TODO: make generic to support situations where P, V, C or L are missing?
-        # NOTE: Should we calculate for different stages?
         rank_exprs = [
             pl.struct(
                 [
@@ -606,13 +837,24 @@ class DecisionAnalyzer:
             for x in ["prio_PVCL", "prio_VCL", "prio_PCL", "prio_PVL", "prio_PVC"]
         ]
 
+        # Fill missing PVCL components with 1.0 (neutral for multiplication).
+        available = set(self.sample.collect_schema().names())
+        pvcl_defaults = {
+            "Propensity": 1.0,
+            "Value": 1.0,
+            "Context Weight": 1.0,
+            "Levers": 1.0,
+        }
+        fill_exprs = []
+        for col_name, default in pvcl_defaults.items():
+            if col_name in available:
+                fill_exprs.append(pl.col(col_name).fill_null(default))
+            else:
+                fill_exprs.append(pl.lit(default).alias(col_name))
+
         rank_df = (
             apply_filter(
-                self.sample.with_columns(
-                    pl.col("Value").fill_null(1),
-                    pl.col("Levers").fill_null(1),
-                    pl.col("Context Weight").fill_null(1),
-                ),
+                self.sample.with_columns(fill_exprs),
                 additional_filters,
             )
             .with_columns(overrides)
@@ -658,9 +900,9 @@ class DecisionAnalyzer:
             )
         )
 
-        group_level_win_losses = group_level_win_losses.melt(
-            id_vars=level,
-            value_vars=["Wins", "Losses"],
+        group_level_win_losses = group_level_win_losses.unpivot(
+            index=level,
+            on=["Wins", "Losses"],
             variable_name="Status",
             value_name="Percentage",
         ).sort(["Status", "Percentage"], descending=True)
@@ -793,11 +1035,9 @@ class DecisionAnalyzer:
                     Decisions=pl.col("Decisions").cast(pl.Int32),
                 )
                 .collect()
-                .with_row_count(  # TODO: renamed to with_row_index in newer polars version
-                    "ActionIndex", 1
-                )
+                .with_row_index("ActionIndex", 1)
                 .with_columns(
-                    ActionsFraction=pl.col("ActionIndex") / pl.count(),
+                    ActionsFraction=pl.col("ActionIndex") / pl.len(),
                     ActionIndex=pl.col("ActionIndex").cast(pl.UInt32),
                     Decisions=pl.col("Decisions").cast(pl.UInt32),
                     cumDecisions=pl.col("cumDecisions").cast(pl.UInt32),
@@ -1011,9 +1251,12 @@ class DecisionAnalyzer:
             (
                 self.getPreaggregatedFilterView.select(
                     pl.n_unique("pyName").alias("Actions"),
-                    pl.n_unique("pyChannel").alias(
-                        "Channels"
-                    ),  # TODO plus direction of course
+                    (
+                        pl.struct("pyChannel", "pyDirection").n_unique()
+                        if "pyDirection"
+                        in self.getPreaggregatedFilterView.collect_schema().names()
+                        else pl.n_unique("pyChannel")
+                    ).alias("Channels"),
                     (
                         (pl.max("pxDecisionTime_max") - pl.min("pxDecisionTime_min"))
                         + pl.duration(days=1)
@@ -1024,7 +1267,11 @@ class DecisionAnalyzer:
             .collect()
             .hstack(
                 self.sample.select(
-                    pl.n_unique("pySubjectID").alias("Customers"),
+                    (
+                        pl.n_unique("pySubjectID")
+                        if "pySubjectID" in self.sample.collect_schema().names()
+                        else pl.n_unique("pxInteractionID")
+                    ).alias("Customers"),
                     pl.n_unique("pxInteractionID").alias("Decisions"),
                 ).collect()
             )

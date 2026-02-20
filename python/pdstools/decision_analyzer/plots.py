@@ -422,19 +422,23 @@ class Plot:
                 .to_list()
             )
 
+        color_kwargs = {}
+        if "pxComponentType" in df.columns:
+            color_kwargs["color"] = "pxComponentType"
+        else:
+            color_kwargs["color"] = "Filtered Decisions"
+            color_kwargs["color_continuous_scale"] = "reds"
+
         fig = px.bar(
-            df.with_columns(
-                pl.col("Filtered Decisions").cast(pl.Float32)
-            ),  # TODO expect the data to be float...
+            df.with_columns(pl.col("Filtered Decisions").cast(pl.Float32)),
             x="Filtered Decisions",
             y="pxComponentName",
-            color="Filtered Decisions",
-            color_continuous_scale="reds",
             orientation="h",
             facet_col=self._decision_data.level,
             facet_col_wrap=2,
             template="pega",
             category_orders={self._decision_data.level: AvailableNBADStages},
+            **color_kwargs,
         )
 
         # TODO generalize this
@@ -606,6 +610,177 @@ class Plot:
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
+
+    def component_action_impact(
+        self,
+        top_n: int = 10,
+        scope: str = "pyName",
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        return_df=False,
+    ):
+        """Horizontal bar chart showing which items each component filters most.
+
+        One facet per component (top components by total filtering), bars show
+        items sorted by filtered decision count. The scope controls whether the
+        breakdown is at Issue, Group, or Action level.
+
+        Parameters
+        ----------
+        top_n : int, default 10
+            Maximum number of items per component.
+        scope : str, default "pyName"
+            Granularity: ``"pyIssue"``, ``"pyGroup"``, or ``"pyName"``.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+        return_df : bool, default False
+            If True, return the DataFrame instead of a figure.
+
+        Returns
+        -------
+        go.Figure or pl.DataFrame
+        """
+        df = self._decision_data.getComponentActionImpact(
+            top_n=top_n, scope=scope, additional_filters=additional_filters
+        )
+        if return_df:
+            return df
+
+        # Top components by total filtering volume
+        component_totals = (
+            df.group_by("pxComponentName")
+            .agg(pl.sum("Filtered Decisions").alias("total"))
+            .sort("total", descending=True)
+        )
+        top_components = (
+            component_totals.head(6).get_column("pxComponentName").to_list()
+        )
+        plot_df = df.filter(pl.col("pxComponentName").is_in(top_components))
+
+        if plot_df.height == 0:
+            fig = go.Figure()
+            fig.add_annotation(text="No filter data available", showarrow=False)
+            return fig
+
+        # Use the scope column for the y-axis label
+        y_col = scope if scope in plot_df.columns else "pyName"
+        # Determine a color column (one level above scope in hierarchy)
+        color_col = None
+        if scope == "pyName" and "pyIssue" in plot_df.columns:
+            color_col = "pyIssue"
+        elif scope == "pyGroup" and "pyIssue" in plot_df.columns:
+            color_col = "pyIssue"
+
+        scope_label = NBADScope_Mapping.get(scope, scope)
+
+        fig = px.bar(
+            plot_df,
+            x="Filtered Decisions",
+            y=y_col,
+            orientation="h",
+            facet_col="pxComponentName",
+            facet_col_wrap=2,
+            color=color_col,
+            template="pega",
+        )
+        fig.update_yaxes(matches=None, automargin=True, title="")
+        fig.update_xaxes(matches=None, title="")
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_layout(
+            title=f"Top {top_n} {scope_label.lower()}s filtered per component",
+            height=max(400, 120 * min(top_n, 10)),
+            showlegend=color_col is not None,
+            legend_title_text=NBADScope_Mapping.get(color_col, "") if color_col else "",
+        )
+        return fig
+
+    def component_drilldown(
+        self,
+        component_name: str,
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        sort_by: str = "Filtered Decisions",
+        return_df=False,
+    ):
+        """Bar chart drilling into a single component's filtered actions with
+        value context.
+
+        Shows filtered actions sorted by the chosen metric, with secondary
+        axis for average scoring values when available.
+
+        Parameters
+        ----------
+        component_name : str
+            The pxComponentName to drill into.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+        sort_by : str, default "Filtered Decisions"
+            Column to sort by. Also accepts "avg_Value", "avg_Priority".
+        return_df : bool, default False
+            If True, return the DataFrame instead of a figure.
+
+        Returns
+        -------
+        go.Figure or pl.DataFrame
+        """
+        df = self._decision_data.getComponentDrilldown(
+            component_name=component_name,
+            additional_filters=additional_filters,
+        )
+        if return_df:
+            return df
+
+        if df.height == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text=f"No actions filtered by '{component_name}'", showarrow=False
+            )
+            return fig
+
+        if sort_by in df.columns:
+            df = df.sort(sort_by, descending=True)
+        plot_df = df.head(30)
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+        fig.add_trace(
+            go.Bar(
+                y=plot_df["pyName"],
+                x=plot_df["Filtered Decisions"],
+                orientation="h",
+                name="Filtered Decisions",
+                marker_color="#cd001f",
+                hovertemplate=(
+                    "<b>%{y}</b><br>" "Filtered: %{x}<br>" "<extra></extra>"
+                ),
+            ),
+            secondary_y=False,
+        )
+
+        if "avg_Value" in plot_df.columns:
+            non_null_values = plot_df.filter(pl.col("avg_Value").is_not_null())
+            if non_null_values.height > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        y=non_null_values["pyName"],
+                        x=non_null_values["avg_Value"],
+                        mode="markers",
+                        name="Avg Value (surviving)",
+                        marker=dict(color="#1f77b4", size=8, symbol="diamond"),
+                    ),
+                    secondary_y=True,
+                )
+
+        fig.update_layout(
+            title=f"Component Drilldown: {component_name}",
+            height=max(400, 25 * min(plot_df.height, 30)),
+            template="plotly_white",
+            yaxis=dict(automargin=True, autorange="reversed"),
+            showlegend=True,
+        )
+        fig.update_xaxes(title="Filtered Decisions")
+        fig.update_yaxes(title="", secondary_y=False)
+        fig.update_yaxes(title="Avg Value", secondary_y=True)
+
+        return fig
 
     def optionality_per_stage(self, return_df=False):
         df = self._decision_data.get_optionality_data(self.sample)

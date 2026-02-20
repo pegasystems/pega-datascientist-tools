@@ -148,7 +148,7 @@ if st.session_state["dm"].predictor_data is not None:
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
                 disabled=st.session_state["dm"].context_keys + ["Name"],
-                use_container_width=True,
+                width="stretch",
             )
             st.session_state["only_active_predictors"] = st.checkbox(
                 label="Show only active predictors",

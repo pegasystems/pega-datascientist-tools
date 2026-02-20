@@ -1,3 +1,4 @@
+# python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
 import tempfile
 import urllib.request
 from pathlib import Path
@@ -6,15 +7,15 @@ from typing import Iterable, List, Optional
 import streamlit as st
 
 from pdstools import ImpactAnalyzer
+from pdstools.utils.streamlit_utils import ensure_session_data
 
 
 SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
 
 
 def ensure_impact_analyzer() -> None:
-    if "impact_analyzer" not in st.session_state:
-        st.warning("Please load data on the Home page.")
-        st.stop()
+    """Guard: stop if Impact Analyzer data is not loaded."""
+    ensure_session_data("impact_analyzer")
 
 
 def _write_uploaded_file(uploaded_file) -> str:

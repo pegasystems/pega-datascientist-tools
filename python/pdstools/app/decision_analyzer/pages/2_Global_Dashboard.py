@@ -39,7 +39,7 @@ with col1:
         st.session_state.decision_data.plot.propensity_vs_optionality(
             "Arbitration"
         ).update_layout(showlegend=False, height=300),
-        use_container_width=True,
+        width="stretch",
     )
 
     if st.session_state.decision_data.extract_type == "decision_analyzer":
@@ -52,7 +52,7 @@ with col1:
             st.session_state.decision_data.plot.action_variation(
                 "Output"
             ).update_layout(width=300, height=300),
-            use_container_width=True,
+            width="stretch",
         )
 
 with col2:
@@ -71,7 +71,7 @@ with col2:
         ).update_layout(
             height=300,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     "## Quality of the Offers"
@@ -111,5 +111,5 @@ with col2:
 
     # st.plotly_chart(
     #     offer_quality_piecharts(vf, propensityTH=default_propensity_th, st.session_state.decision_data.NBADStages_FilterView, st.session_data.decision_data.NBADStages_Mapping),
-    #     use_container_width=True,
+    #     width="stretch",
     # )
