@@ -5,9 +5,14 @@ import streamlit as st
 
 from pdstools.utils import streamlit_utils
 from pdstools.utils.cdh_utils import setup_logger
-from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
+from pdstools.utils.streamlit_utils import (
+    show_sidebar_branding,
+    show_version_header,
+    standard_page_config,
+)
 
 standard_page_config(page_title="Adaptive Model Health Check")
+show_sidebar_branding("ADM Health Check")
 
 if "log_buffer" not in st.session_state:
     logger, st.session_state.log_buffer = setup_logger()

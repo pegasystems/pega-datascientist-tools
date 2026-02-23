@@ -161,7 +161,7 @@ if st.session_state.local_filters != []:
                 horizontal=True,
                 # models=models,
             ),
-            width="stretch",
+            use_container_width=True,
             key="win_distribution_chart",
         )
 
@@ -180,7 +180,7 @@ if st.session_state.local_filters != []:
                 "Decisions",
                 horizontal=True,
             ),
-            width="stretch",
+            use_container_width=True,
             key="loss_distribution_chart",
         )
 
@@ -199,7 +199,7 @@ if st.session_state.local_filters != []:
             st.session_state.decision_data.plot.sensitivity(
                 reference_group=st.session_state["local_filters"],
             ),
-            width="stretch",
+            use_container_width=True,
             key="sensitivity_chart",
         )
     "## Why are the actions winning"
@@ -218,7 +218,7 @@ if st.session_state.local_filters != []:
     if fig is not None:
         st.plotly_chart(
             fig,
-            width="stretch",
+            use_container_width=True,
             key="prio_factor_boxplots_chart",
         )
 
@@ -233,7 +233,7 @@ if st.session_state.local_filters != []:
         st.session_state.decision_data.plot.rank_boxplot(
             reference=st.session_state["local_filters"],
         ),
-        width="stretch",
+        use_container_width=True,
         key="rank_boxplot_chart",
     )
 else:

@@ -24,6 +24,30 @@ _MENU_ITEMS = {
     "Get help": "https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html",
 }
 
+_ASSETS_DIR = Path(__file__).resolve().parent.parent / "app" / "assets"
+
+
+def _apply_sidebar_logo():
+    """Re-apply the sidebar logo from session state (for sub-pages)."""
+    title = st.session_state.get("_pdstools_app_title")
+    if not title:
+        return
+    logo_path = _ASSETS_DIR / "pega-logo.svg"
+    if logo_path.exists():
+        st.logo(str(logo_path), size="large")
+    st.html(
+        "<style>"
+        "[data-testid='stSidebarNav']::before {"
+        "  content: '" + title.replace("'", "\\'") + "';"
+        "  display: block;"
+        "  font-size: 1.1rem;"
+        "  font-weight: 500;"
+        "  color: #5a5c63;"
+        "  padding: 0 1rem 0.75rem;"
+        "}"
+        "</style>"
+    )
+
 
 def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
     """Apply a consistent ``st.set_page_config`` across all pdstools apps.
@@ -38,7 +62,27 @@ def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
         Extra keyword arguments forwarded to ``st.set_page_config``.
     """
     kwargs.setdefault("menu_items", _MENU_ITEMS)
+    logo_path = _ASSETS_DIR / "pega-logo.svg"
+    if logo_path.exists():
+        kwargs.setdefault("page_icon", str(logo_path))
     st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+    _apply_sidebar_logo()
+
+
+def show_sidebar_branding(title: str):
+    """Display the Pega logo and an app title at the top of the sidebar.
+
+    Uses ``st.logo`` for the logo and CSS injection for the title, so both
+    render above the page navigation. Call once from the Home page; sub-pages
+    re-apply automatically via ``standard_page_config`` or ``ensure_data``.
+
+    Parameters
+    ----------
+    title : str
+        Application title shown below the logo in the sidebar.
+    """
+    st.session_state["_pdstools_app_title"] = title
+    _apply_sidebar_logo()
 
 
 def show_version_header(check_latest: bool = True):

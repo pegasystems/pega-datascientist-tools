@@ -10,9 +10,14 @@ from pdstools.app.impact_analyzer.ia_streamlit_utils import (
     load_vbd_from_path,
     load_vbd_from_upload,
 )
-from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
+from pdstools.utils.streamlit_utils import (
+    show_sidebar_branding,
+    show_version_header,
+    standard_page_config,
+)
 
 standard_page_config(page_title="Impact Analyzer")
+show_sidebar_branding("Impact Analyzer")
 
 show_version_header()
 

@@ -67,7 +67,7 @@ with st.container(border=True):
             stage=st.session_state.optionality_stage,
             df=st.session_state["local_optionality"],
         ),
-        width="stretch",
+        use_container_width=True,
     )
 
     st.selectbox(
@@ -85,7 +85,7 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
                 st.session_state.decision_data.plot.optionality_funnel(
                     df=st.session_state["local_optionality"]
                 ),
-                width="stretch",
+                use_container_width=True,
             )
 
 
@@ -113,7 +113,7 @@ if warning is not None:
     st.warning(warning)
 st.plotly_chart(
     fig,
-    width="stretch",
+    use_container_width=True,
 )
 
 "## Offer variation"
@@ -126,7 +126,7 @@ is there a lot of variation in what we are offering?
 
 st.plotly_chart(
     st.session_state.decision_data.plot.action_variation(stage="Output"),
-    width="stretch",
+    use_container_width=True,
 )
 action_variability_stats = st.session_state.decision_data.get_offer_variability_stats(
     "Output"

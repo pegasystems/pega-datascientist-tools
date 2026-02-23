@@ -117,14 +117,14 @@ with st.container(border=True):
         )
         st.plotly_chart(
             remanining_funnel,
-            width="stretch",
+            use_container_width=True,
         )
         scope_index = get_current_index(scope_options, "scope")
 
     with filtered_tab:
         st.plotly_chart(
             filtered_funnel,
-            width="stretch",
+            use_container_width=True,
         )
     st.selectbox(
         "Granularity:",
@@ -207,7 +207,7 @@ if has_components:
                 else None
             ),
         )
-        st.plotly_chart(impact_fig, width="stretch")
+        st.plotly_chart(impact_fig, use_container_width=True)
 
     # ---------------------------------------------------------------------------
     # Component Drilldown
@@ -252,7 +252,7 @@ if has_components:
                     else None
                 ),
             )
-            st.plotly_chart(drilldown_fig, width="stretch")
+            st.plotly_chart(drilldown_fig, use_container_width=True)
 
             # Also show the raw data table
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(

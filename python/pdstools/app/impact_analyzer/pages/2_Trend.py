@@ -31,7 +31,7 @@ with st.expander("Display options", expanded=True):
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
 
 fig = ia.plot.trend(metric=metric, facet=facet, every=granularity)
-st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig, use_container_width=True)
 
 table = ia.plot.trend(
     metric=metric, facet=facet, every=granularity, return_df=True

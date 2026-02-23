@@ -14,6 +14,7 @@ from pdstools.pega_io.File import read_ds_export
 
 from pdstools.decision_analyzer.plots import plot_priority_component_distribution
 from pdstools.utils.streamlit_utils import (
+    _apply_sidebar_logo,
     ensure_session_data,
     get_current_index,  # noqa: F401 — re-exported for backward compat
     is_managed_deployment,
@@ -28,6 +29,7 @@ _EC2_SAMPLE_PATH = os.environ.get(
 
 def ensure_data():
     """Guard: stop if decision data is not loaded."""
+    _apply_sidebar_logo()
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
 
 

@@ -51,12 +51,12 @@ with st.container(border=True):
     with hist_tab:
         st.plotly_chart(
             histogram,
-            width="stretch",
+            use_container_width=True,
         )
     with box_tab:
         st.plotly_chart(
             box_plot,
-            width="stretch",
+            use_container_width=True,
         )
 
     scope_index = get_current_index(scope_options, "scope")

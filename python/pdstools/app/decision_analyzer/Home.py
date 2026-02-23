@@ -10,9 +10,14 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
-from pdstools.utils.streamlit_utils import show_version_header, standard_page_config
+from pdstools.utils.streamlit_utils import (
+    show_sidebar_branding,
+    show_version_header,
+    standard_page_config,
+)
 
 standard_page_config(page_title="Decision Analysis")
+show_sidebar_branding("Decision Analysis")
 pl.enable_string_cache()
 
 show_version_header()

@@ -26,7 +26,7 @@ with st.expander("Display options", expanded=True):
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
 
 fig = ia.plot.overview(metric=metric, facet=facet)
-st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig, use_container_width=True)
 
 table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
 st.dataframe(table)

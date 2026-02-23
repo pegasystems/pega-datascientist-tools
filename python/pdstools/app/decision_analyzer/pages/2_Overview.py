@@ -38,7 +38,7 @@ with col1:
         st.session_state.decision_data.plot.propensity_vs_optionality(
             "Arbitration"
         ).update_layout(showlegend=False, height=300),
-        width="stretch",
+        use_container_width=True,
     )
 
 with col2:
@@ -57,5 +57,5 @@ with col2:
         ).update_layout(
             height=300,
         ),
-        width="stretch",
+        use_container_width=True,
     )
