@@ -8,7 +8,6 @@ from da_streamlit_utils import (
     ensure_data,
 )
 from pdstools.decision_analyzer.utils import (
-    NBADScope_Mapping,
     get_first_level_stats,
 )
 
@@ -58,7 +57,7 @@ with st.session_state["sidebar"]:
     st.selectbox(
         "Select Scope",
         options=scope_options,
-        format_func=lambda option: NBADScope_Mapping[option],
+        # column names are already friendly
         index=scope_index,
         key="scope",
     )
@@ -151,7 +150,7 @@ if st.session_state.local_filters != []:
             # TODO these numbers may not be correct
             f"The action(s) in the comparison group win {win_count} times"
         )
-        f"""Distribution of the {NBADScope_Mapping[st.session_state.scope]}s that the comparison group wins from in Arbitration"""
+        f"""Distribution of the {st.session_state.scope}s that the comparison group wins from in Arbitration"""
 
         st.plotly_chart(
             st.session_state.decision_data.plot.distribution(
@@ -171,7 +170,7 @@ if st.session_state.local_filters != []:
         st.info(
             f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times"
         )
-        f"""Distribution of the {NBADScope_Mapping[st.session_state.scope]}s that the comparison group loses to in Arbitration"""
+        f"""Distribution of the {st.session_state.scope}s that the comparison group loses to in Arbitration"""
 
         st.plotly_chart(
             st.session_state.decision_data.plot.distribution(

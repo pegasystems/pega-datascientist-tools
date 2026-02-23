@@ -100,13 +100,13 @@ with col2:
     #     df=st.session_state.decision_data.decision_data.filter(
     #         pl.col("pxEngagementStage").is_in(["Arbitration", "Final"])
     #     ),
-    #     groupby_cols=["pxEngagementStage", "pxInteractionID"],
+    #     groupby_cols=["pxEngagementStage", "Interaction ID"],
     #     priorityTH=default_propensity_th[1],
     #     propensityTH=default_priority_th[1],
     # )
     # st.dataframe(arbitration_action_counts.collect())
     # # Pie Chart
-    # vf = st.session_state.decision_data.get_offer_quality(arbitration_action_counts, group_by="pxInteractionID")
+    # vf = st.session_state.decision_data.get_offer_quality(arbitration_action_counts, group_by="Interaction ID")
     # st.dataframe(vf.head().collect())
 
     # st.plotly_chart(

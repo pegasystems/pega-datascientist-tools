@@ -136,14 +136,14 @@ class TestConstruction:
 
     def test_construction_with_mandatory_expr(self):
         raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
-        mandatory = pl.col("pyIssue") == "Service"
+        mandatory = pl.col("Issue") == "Service"
         da = DecisionAnalyzer(raw, sample_size=1000, mandatory_expr=mandatory)
         schema = da.decision_data.collect_schema()
         assert "is_mandatory" in schema.names()
 
     def test_missing_columns_raises_valueerror(self):
         """Constructing from data with missing critical columns should raise ValueError."""
-        minimal = pl.LazyFrame({"pxInteractionID": ["1"], "pyName": ["A"]})
+        minimal = pl.LazyFrame({"Interaction ID": ["1"], "Action": ["A"]})
         with pytest.warns(UserWarning, match="missing"):
             with pytest.raises(ValueError, match="critical columns missing"):
                 DecisionAnalyzer(minimal, sample_size=100)
@@ -211,7 +211,7 @@ class TestDataCleanup:
         """Ranks should be 1..N within each interaction, no gaps."""
         sample = (
             da_v1.decision_data.head(10000)
-            .group_by("pxInteractionID")
+            .group_by("Interaction ID")
             .agg(
                 pl.col("pxRank").min().alias("min_rank"),
                 pl.col("pxRank").max().alias("max_rank"),
@@ -276,7 +276,7 @@ class TestSampling:
         raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
         da = DecisionAnalyzer(raw, sample_size=1000)
         n_interactions = (
-            da.sample.select(pl.n_unique("pxInteractionID")).collect().item()
+            da.sample.select(pl.n_unique("Interaction ID")).collect().item()
         )
         # Should be at most sample_size (may be less due to hash sampling)
         assert n_interactions <= 1500  # some tolerance for hash-based sampling
@@ -284,10 +284,10 @@ class TestSampling:
     def test_sample_has_required_columns(self, da_v1):
         cols = da_v1.sample.collect_schema().names()
         for required in [
-            "pxInteractionID",
-            "pyIssue",
-            "pyGroup",
-            "pyName",
+            "Interaction ID",
+            "Issue",
+            "Group",
+            "Action",
             "pxRank",
             "Priority",
         ]:
@@ -357,8 +357,8 @@ class TestGlobalFilters:
 
         # Apply a filter that reduces data
         da.applyGlobalDataFilters(
-            pl.col("pyIssue")
-            == da.decision_data.select(pl.col("pyIssue").first()).collect().item()
+            pl.col("Issue")
+            == da.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         filtered_count = da.decision_data.collect().height
         assert filtered_count <= original_count
@@ -377,21 +377,21 @@ class TestGlobalFilters:
 class TestDistributionData:
     def test_v1_distribution_by_name(self, da_v1):
         df = da_v1.getDistributionData(
-            stage="Arbitration", grouping_levels="pyName"
+            stage="Arbitration", grouping_levels="Action"
         ).collect()
         assert df.height > 0
-        assert "pyName" in df.columns
+        assert "Action" in df.columns
         assert "Decisions" in df.columns
 
     def test_v2_distribution_by_name(self, da_v2):
         df = da_v2.getDistributionData(
-            stage="Arbitration", grouping_levels="pyName"
+            stage="Arbitration", grouping_levels="Action"
         ).collect()
         assert df.height > 0
 
     def test_distribution_sorted_descending(self, da_v1):
         df = da_v1.getDistributionData(
-            stage="Arbitration", grouping_levels="pyName"
+            stage="Arbitration", grouping_levels="Action"
         ).collect()
         decisions = df["Decisions"].to_list()
         assert decisions == sorted(decisions, reverse=True)
@@ -404,12 +404,12 @@ class TestDistributionData:
 
 class TestFunnelData:
     def test_v2_funnel_returns_two_frames(self, da_v2):
-        remaining, filtered = da_v2.getFunnelData(scope="pyIssue")
+        remaining, filtered = da_v2.getFunnelData(scope="Issue")
         assert isinstance(remaining, pl.LazyFrame)
         assert isinstance(filtered, pl.DataFrame)
 
     def test_v1_funnel_returns_two_frames(self, da_v1):
-        remaining, filtered = da_v1.getFunnelData(scope="pyIssue")
+        remaining, filtered = da_v1.getFunnelData(scope="Issue")
         assert isinstance(remaining, pl.LazyFrame)
         assert isinstance(filtered, pl.DataFrame)
 
@@ -447,18 +447,18 @@ class TestSensitivity:
 
 class TestWinLoss:
     def test_v1_win_loss_returns_data(self, da_v1):
-        df = da_v1.get_win_loss_distribution_data(level="pyIssue", win_rank=1).collect()
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
         assert df.height > 0
         assert "Status" in df.columns
 
     def test_win_loss_has_wins_and_losses(self, da_v1):
-        df = da_v1.get_win_loss_distribution_data(level="pyIssue", win_rank=1).collect()
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
         statuses = df["Status"].unique().to_list()
         assert "Wins" in statuses
         assert "Losses" in statuses
 
     def test_win_percentages_sum_to_one(self, da_v1):
-        df = da_v1.get_win_loss_distribution_data(level="pyIssue", win_rank=1).collect()
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
         for status in ["Wins", "Losses"]:
             total = df.filter(pl.col("Status") == status)["Percentage"].sum()
             assert abs(total - 1.0) < 0.01, f"{status} percentages sum to {total}"
@@ -508,13 +508,13 @@ class TestOverviewStats:
 
 class TestTrendData:
     def test_v1_trend_returns_data(self, da_v1):
-        df = da_v1.get_trend_data(stage="Arbitration", scope="pyIssue").collect()
+        df = da_v1.get_trend_data(stage="Arbitration", scope="Issue").collect()
         assert df.height > 0
         assert "day" in df.columns
         assert "Decisions" in df.columns
 
     def test_v2_trend_returns_data(self, da_v2):
-        df = da_v2.get_trend_data(stage="Arbitration", scope="pyIssue").collect()
+        df = da_v2.get_trend_data(stage="Arbitration", scope="Issue").collect()
         assert df.height > 0
 
 
@@ -576,8 +576,8 @@ class TestReRank:
 class TestWinDistribution:
     def test_baseline_distribution(self, da_v1):
         lever_cond = (
-            pl.col("pyIssue")
-            == da_v1.decision_data.select(pl.col("pyIssue").first()).collect().item()
+            pl.col("Issue")
+            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         result = da_v1.get_win_distribution_data(lever_condition=lever_cond)
         assert result.height > 0
@@ -586,8 +586,8 @@ class TestWinDistribution:
 
     def test_lever_adjusted_distribution(self, da_v1):
         lever_cond = (
-            pl.col("pyIssue")
-            == da_v1.decision_data.select(pl.col("pyIssue").first()).collect().item()
+            pl.col("Issue")
+            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         result = da_v1.get_win_distribution_data(
             lever_condition=lever_cond, lever_value=2.0
@@ -596,13 +596,13 @@ class TestWinDistribution:
 
     def test_distribution_with_no_winner_tracking(self, da_v1):
         lever_cond = (
-            pl.col("pyIssue")
-            == da_v1.decision_data.select(pl.col("pyIssue").first()).collect().item()
+            pl.col("Issue")
+            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         result = da_v1.get_win_distribution_data(
             lever_condition=lever_cond, all_interactions=1000
         )
-        assert "No Winner" in result["pyName"].to_list()
+        assert "No Winner" in result["Action"].to_list()
 
 
 # ---------------------------------------------------------------------------
@@ -635,19 +635,19 @@ class TestOptionality:
 class TestFilterComponents:
     def test_v2_filter_component_data(self, da_v2):
         """Filter component data should only be available for v2."""
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getFilterComponentData(top_n=5)
         assert df.height > 0
-        assert "pxComponentName" in df.columns
+        assert "Component Name" in df.columns
 
     def test_v2_filter_component_data_includes_component_type(self, da_v2):
         """When pxComponentType is in the data, it should appear in the result."""
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getFilterComponentData(top_n=5)
         # pxComponentType may or may not be present depending on the dataset
-        assert "pxComponentName" in df.columns
+        assert "Component Name" in df.columns
         assert "Filtered Decisions" in df.columns
 
 
@@ -658,32 +658,32 @@ class TestFilterComponents:
 
 class TestComponentActionImpact:
     def test_v2_component_action_impact(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getComponentActionImpact(top_n=5)
         assert df.height > 0
-        assert "pxComponentName" in df.columns
-        assert "pyName" in df.columns
+        assert "Component Name" in df.columns
+        assert "Action" in df.columns
         assert "Filtered Decisions" in df.columns
 
     def test_component_action_impact_respects_top_n(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getComponentActionImpact(top_n=3)
         # Each component should have at most 3 actions
-        per_component = df.group_by("pxComponentName").agg(pl.len().alias("n"))
+        per_component = df.group_by("Component Name").agg(pl.len().alias("n"))
         assert per_component["n"].max() <= 3
 
     def test_component_action_impact_has_issue_group(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getComponentActionImpact(top_n=5)
-        assert "pyIssue" in df.columns
-        assert "pyGroup" in df.columns
+        assert "Issue" in df.columns
+        assert "Group" in df.columns
 
     def test_v1_component_action_impact_skipped(self, da_v1):
         """v1 data has no pxComponentName, so the method should produce empty results."""
-        if "pxComponentName" not in da_v1.decision_data.collect_schema().names():
+        if "Component Name" not in da_v1.decision_data.collect_schema().names():
             pytest.skip("Expected: no pxComponentName in v1")
 
 
@@ -694,33 +694,33 @@ class TestComponentActionImpact:
 
 class TestComponentDrilldown:
     def test_v2_component_drilldown(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         # Pick the first available component
         components = (
-            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
-            .select("pxComponentName")
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
             .unique()
             .collect()
-            .get_column("pxComponentName")
+            .get_column("Component Name")
             .to_list()
         )
         if not components:
             pytest.skip("No filtered components in dataset")
         df = da_v2.getComponentDrilldown(component_name=components[0])
         assert df.height > 0
-        assert "pyName" in df.columns
+        assert "Action" in df.columns
         assert "Filtered Decisions" in df.columns
 
     def test_component_drilldown_sorted_descending(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         components = (
-            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
-            .select("pxComponentName")
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
             .unique()
             .collect()
-            .get_column("pxComponentName")
+            .get_column("Component Name")
             .to_list()
         )
         if not components:
@@ -730,21 +730,21 @@ class TestComponentDrilldown:
         assert decisions == sorted(decisions, reverse=True)
 
     def test_component_drilldown_nonexistent_component(self, da_v2):
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.getComponentDrilldown(component_name="NONEXISTENT_COMPONENT_XYZ")
         assert df.height == 0
 
     def test_component_drilldown_has_score_columns(self, da_v2):
         """Drilldown should include avg score columns when scoring data exists."""
-        if "pxComponentName" not in da_v2.decision_data.collect_schema().names():
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         components = (
-            da_v2.decision_data.filter(pl.col("pxRecordType") == "FILTERED_OUT")
-            .select("pxComponentName")
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
             .unique()
             .collect()
-            .get_column("pxComponentName")
+            .get_column("Component Name")
             .to_list()
         )
         if not components:
@@ -811,14 +811,16 @@ class TestUtilities:
 class TestColumnResolver:
     def test_basic_rename(self):
         table_def = {
-            "raw_col": {"label": "target_col", "default": True, "type": pl.Utf8}
+            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}
         }
         resolver = ColumnResolver(table_definition=table_def, raw_columns={"raw_col"})
         assert resolver.rename_mapping == {"raw_col": "target_col"}
         assert "target_col" in resolver.final_columns
 
     def test_column_already_named_correctly(self):
-        table_def = {"my_col": {"label": "my_col", "default": True, "type": pl.Utf8}}
+        table_def = {
+            "my_col": {"display_name": "my_col", "default": True, "type": pl.Utf8}
+        }
         resolver = ColumnResolver(table_definition=table_def, raw_columns={"my_col"})
         assert resolver.rename_mapping == {}
         assert "my_col" in resolver.final_columns
@@ -826,7 +828,7 @@ class TestColumnResolver:
     def test_conflict_prefers_target(self):
         """When both raw and target columns exist, target wins and raw is dropped."""
         table_def = {
-            "raw_col": {"label": "target_col", "default": True, "type": pl.Utf8}
+            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}
         }
         resolver = ColumnResolver(
             table_definition=table_def,
@@ -838,7 +840,7 @@ class TestColumnResolver:
     def test_missing_columns_detected(self):
         table_def = {
             "required_col": {
-                "label": "required_col",
+                "display_name": "required_col",
                 "default": True,
                 "type": pl.Utf8,
             }
@@ -850,7 +852,7 @@ class TestColumnResolver:
     def test_non_default_columns_not_in_missing(self):
         table_def = {
             "optional_col": {
-                "label": "optional_col",
+                "display_name": "optional_col",
                 "default": False,
                 "type": pl.Utf8,
             }
@@ -867,17 +869,17 @@ class TestColumnResolver:
 class TestScopeHelpers:
     def test_v1_possible_scope_values(self, da_v1):
         scopes = da_v1.getPossibleScopeValues()
-        assert "pyIssue" in scopes
-        assert "pyGroup" in scopes
+        assert "Issue" in scopes
+        assert "Group" in scopes
 
     def test_v2_possible_scope_values(self, da_v2):
         scopes = da_v2.getPossibleScopeValues()
-        assert "pyIssue" in scopes
+        assert "Issue" in scopes
 
     def test_available_fields_for_filtering(self, da_v1):
         fields = da_v1.getAvailableFieldsForFiltering()
         assert len(fields) > 0
-        assert "pyName" in fields
+        assert "Action" in fields
 
     def test_available_categorical_fields(self, da_v1):
         fields = da_v1.getAvailableFieldsForFiltering(categoricalOnly=True)

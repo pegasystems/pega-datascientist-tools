@@ -43,7 +43,7 @@ def ensure_funnel():
 
 def ensure_getFilterComponentData():
     return (
-        "pxComponentName"
+        "Component Name"
         in st.session_state.decision_data.decision_data.collect_schema().names()
     )
 
@@ -130,11 +130,6 @@ def get_data_filters(
         "Filter data on",
         columns,
         key=f"{filter_type}_multiselect",
-        format_func=lambda x: (
-            x.lstrip("py")
-            if x.startswith("py")
-            else (x.lstrip("px") if x.startswith("px") else x)
-        ),
         on_change=_save_multiselect,
     )
     for column in to_filter_columns:
@@ -142,7 +137,8 @@ def get_data_filters(
         left.write("## ↳")
 
         # Treat columns with < 20 unique values as categorical
-        if (df.schema[column] == pl.Categorical) or (df.schema[column] == pl.Utf8):
+        col_dtype = df.collect_schema()[column]
+        if (col_dtype == pl.Categorical) or (col_dtype == pl.Utf8):
             if f"{filter_type}categories_{column}" not in st.session_state.keys():
                 st.session_state[f"{filter_type}categories_{column}"] = (
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
@@ -198,7 +194,7 @@ def get_data_filters(
                 if user_text_input:
                     queries.append(pl.col(column).str.contains(user_text_input))
 
-        elif df.schema[column] in pl.NUMERIC_DTYPES:
+        elif col_dtype.is_numeric():
             min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
@@ -232,7 +228,7 @@ def get_data_filters(
             st.session_state[f"{filter_type}selected_{column}"] = user_num_input
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
-        elif df.schema[column] in pl.TEMPORAL_DTYPES:
+        elif col_dtype.is_temporal():
             value = (
                 df.select(pl.min(column)).collect().item(),
                 df.select(pl.max(column)).collect().item(),

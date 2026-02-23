@@ -21,10 +21,10 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### High Priority
 
-- [ ] **Generalize context keys** — `pyIssue/pyGroup/pyName` are hardcoded everywhere. Should be configurable or inferred from data. Affects: `getActionVariationData`, `get_first_level_stats`, `reRank`, `get_sensitivity`.
+- [ ] **Human-friendly field names (display_name refactor)** — Eliminate internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) from all UI surfaces, plot labels, and filter dropdowns. Users should only ever see friendly names like "Issue", "Interaction ID", "Channel", etc. The data dictionary (`table_definition.py`) is the single source of truth for these names. Changing a name there should propagate everywhere. See dedicated section below for the full plan.
 - [x] **Handle missing PVCL components** — `reRank()` now checks which columns exist and fills missing ones with 1.0 (neutral for multiplication).
 - [ ] **Fix num_samples > 1** — Pre-aggregation sampling locked at 1 because >1 breaks `.explode()` in thresholding. Either fix thresholding or document limitation.
-- [ ] **Validate fields_for_data_filtering** — Subset against actual available columns instead of hardcoded list.
+- [ ] **Validate fields_for_data_filtering** — Subset against actual available columns instead of hardcoded list. Update to use display names after the friendly-names refactor.
 - [ ] **Human-friendly stage names** — Map internal names to display names (e.g. "Final" → "Presented"). May need a config dict.
 - [x] **Channels + direction** — `get_overview_stats` now counts unique channel/direction combinations (falls back to channel-only if pyDirection absent).
 
@@ -40,7 +40,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 - [ ] **Pre-aggregated data visualization** — Some exports contain pre-computed analysis results (sensitivity scores, action funnel data, decision summaries) rather than raw interaction-level data. Currently unsupported. Could bypass the DecisionAnalyzer and directly visualize the pre-aggregated parquet/csv files in the appropriate pages.
 - [ ] **Graceful degradation for minimal data** — Some exports only contain context keys (Issue, Group, Name, InteractionID, SubjectID) without scoring columns (Priority, Propensity, Value, pxDecisionTime). The app currently crashes with a ColumnNotFoundError. Should show a clear message about which columns are missing and ideally support a reduced analysis mode (e.g. action distribution only, no sensitivity/optionality).
-- [ ] **Add treatment to NBADScope_Mapping** — Currently commented out.
+- [ ] **Add treatment to scope hierarchy** — Currently commented out in `NBADScope_Mapping`. Will be addressed as part of the friendly-names refactor (treatment becomes a display name in the data dictionary).
 - [ ] **Customer-level aggregates** — May need per-customer stats (postponed, current data not representative).
 - [ ] **AB test: include IA properties** — `getABTestResults` should include Impact Analyzer properties when populated.
 - [ ] **Optimize thresholding quantiles** — Current implementation is verbose and potentially slow.
@@ -129,15 +129,170 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ---
 
-## Sampling & Large Data
+## Human-Friendly Field Names (`display_name` refactor)
 
-Current approach: hash-based interaction sampling (`pxInteractionID.hash() % 1000 < threshold`). Keeps all actions within a sampled interaction together. Default 50,000 interactions. Used for expensive analyses (sensitivity, reranking, optionality); pre-aggregation runs on full data.
+**Goal**: Users never see internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) in the UI. Every column uses a user-friendly name like "Issue", "Interaction ID", "Channel". The data dictionary (`table_definition.py`) is the single source of truth — changing a name there propagates everywhere.
 
-- [ ] **Fix docstring** — `sample()` says "taking the first 50,000 interactions" but actually uses hash-based sampling. Update to match implementation.
-- [ ] **Stratified sampling option** — Current sampling is purely random by interaction ID. Consider optional stratification by channel, direction, or other categorical dimensions to ensure proportional representation in the sample. Important when channel distribution is skewed.
-- [ ] **Early-stage sampling for large files** — When input exceeds a threshold (e.g. estimated >5M rows from file size or initial scan), auto-downsample during the file reading phase in the app before the DecisionAnalyzer constructor runs. Show a warning explaining the downsampling.
-- [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` currently `.collect()`s the full dataset. For GB-scale data this is the memory bottleneck. Investigate polars streaming engine or chunked processing to avoid loading everything into memory.
-- [ ] **Data size warning in UI** — Show a warning when uploaded data exceeds a practical size threshold (e.g. >500 MB, >5M rows), with guidance on expected load times and memory usage.
+### Current state
+
+- `TableConfig` has a `label` field that serves as the rename target (e.g. `Primary_ContainerPayload_Channel` → `pyChannel`). But most labels are just the internal Pega name again (`"pyIssue"` → label `"pyIssue"`), not user-friendly.
+- `NBADScope_Mapping` in `utils.py` is a parallel dict (`{"pyIssue": "Issue", ...}`) used only in plot legends — a second source of truth for display names.
+- The filter multiselect in `get_data_filters()` has a `format_func` hack that strips `py`/`px` prefixes — a third approach to the same problem.
+- Internal names like `pyIssue`, `pyGroup`, `pyName` are hardcoded in polars expressions across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, and tests.
+
+### Design
+
+Replace `label` with `display_name`. Single-pass rename at ingestion. All downstream code uses friendly names.
+
+**`TableConfig` before → after:**
+```python
+# BEFORE
+"pyIssue": {"label": "pyIssue", "default": True, "type": pl.Categorical, "aliases": ["Issue"]}
+
+# AFTER
+"pyIssue": {"display_name": "Issue", "default": True, "type": pl.Categorical, "aliases": ["Issue"]}
+```
+
+The raw column key (`"pyIssue"`) identifies what arrives in the data. The `display_name` (`"Issue"`) is what the column is renamed to. `aliases` lists additional incoming names that should also map to this entry (e.g. data that already uses `"Issue"` instead of `"pyIssue"`).
+
+**Full rename mapping (representative entries):**
+| Raw key | display_name |
+|---|---|
+| `pyIssue` | Issue |
+| `pyGroup` | Group |
+| `pyName` | Action |
+| `pxInteractionID` | Interaction ID |
+| `pxDecisionTime` | Decision Time |
+| `Primary_pySubjectID` | Subject ID |
+| `Primary_ContainerPayload_Channel` | Channel |
+| `Primary_ContainerPayload_Direction` | Direction |
+| `pxComponentName` | Component Name |
+| `pxComponentType` | Component Type |
+| `Stage_pyName` | Stage |
+| `Stage_pyStageGroup` | Stage Group |
+| `Stage_pyOrder` | Stage Order |
+| `pxStrategyName` | Strategy Name |
+| `pyTreatment` | Treatment |
+
+### Implementation steps
+
+- [ ] **Replace `label` with `display_name`** in `TableConfig` TypedDict and all entries in both `DecisionAnalyzer` and `ExplainabilityExtract` dicts in `table_definition.py`.
+- [ ] **Simplify `ColumnResolver`** — single rename pass: raw column key → `display_name`. Remove the intermediate `label` concept. When both raw key and display_name exist as columns, prefer display_name (existing conflict resolution logic).
+- [ ] **Update `resolve_aliases`** — target is now `display_name` instead of the raw key.
+- [ ] **Update all `pl.col()` references** — mechanical search-and-replace across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, `da_streamlit_utils.py`, and tests. This is the largest part of the work.
+- [ ] **Retire `NBADScope_Mapping`** — no longer needed; column names are already friendly. Remove from `utils.py` and all plot code that references it for legend titles.
+- [ ] **Remove `format_func` hack** in `get_data_filters()` — the multiselect can show column names directly.
+- [ ] **Update `fields_for_data_filtering`** — use display names.
+- [ ] **Update `preaggregation_columns`** — use display names.
+- [ ] **Update `audit_tag_mapping`** — if it references internal names (currently it uses strategy-level names, likely unaffected).
+- [ ] **Update tests** — all assertions and column references in `test_DecisionAnalyzer.py`.
+
+### Risks & notes
+
+- This is a large, invasive change but purely mechanical. Best done in a single PR to avoid half-renamed state.
+- The `aliases` field ensures backward compatibility: data arriving with either internal names or friendly names will work.
+- Stage names (`"Arbitration"`, `"Output"`, `"AvailableActions"`) are **not** renamed in this pass — those are already readable. Stage-name customization (e.g. "Final" → "Presented") is tracked as a separate item.
+
+---
+
+## CLI Pre-Ingestion Sampling (`--sample`)
+
+**Goal**: For large datasets, sample data **before** it enters the `DecisionAnalyzer` constructor, reducing memory usage and startup time. Sampling is always stratified on Interaction ID so all decisions within an interaction stay together.
+
+### Current state
+
+- `DecisionAnalyzer` has a `sample` cached property that creates a **secondary** subset (default 50k interactions) for expensive analyses (sensitivity, reranking, optionality). The full data is always loaded into `decision_data` and used for pre-aggregation.
+- No way to limit data size from the CLI or before the constructor runs.
+- The existing hash-based sampling logic in `sample` is proven and fast.
+
+### Design
+
+Add a `--sample` CLI flag and a shared `sample_interactions()` utility. The CLI passes the limit via env var. Home.py applies the sampling to the raw LazyFrame before constructing DecisionAnalyzer.
+
+**CLI usage:**
+```bash
+# Absolute count — keep at most 100k interactions (all their rows)
+pdstools decision_analyzer --sample 100000
+
+# Percentage — keep ~10% of interactions
+pdstools decision_analyzer --sample 10%
+```
+
+**Utility function** (`decision_analyzer/utils.py`):
+```python
+def sample_interactions(
+    df: pl.LazyFrame,
+    n: Optional[int] = None,
+    fraction: Optional[float] = None,
+    id_column: str = "Interaction ID",
+) -> pl.LazyFrame:
+```
+- Exactly one of `n` or `fraction` must be provided.
+- Uses hash-based filtering: `col(id_column).hash() % 10000 < threshold`. No `.collect()` needed — the filter pushes down into the scan.
+- Deterministic: same data + same limit = same sample.
+
+**Data flow:**
+```
+CLI --sample 100000
+  → env var PDSTOOLS_SAMPLE_LIMIT=100000
+    → Home.py reads env var
+      → raw_data = sample_interactions(raw_data, n=100000)
+        → DecisionAnalyzer(raw_data, ...)
+```
+
+### Implementation steps
+
+- [ ] **Add `sample_interactions()` utility** in `decision_analyzer/utils.py`. Reuse the hash-based approach from the existing `sample` property.
+- [ ] **Add `--sample` CLI flag** to `create_parser()` in `cli.py`. Parse: if value ends in `%`, treat as fraction; otherwise as absolute count. Propagate as `PDSTOOLS_SAMPLE_LIMIT` env var.
+- [ ] **Apply in Home.py** — read `PDSTOOLS_SAMPLE_LIMIT` env var. If set, apply `sample_interactions()` to `raw_data` before passing to `load_decision_analyzer()`. Show an `st.info()` banner explaining the pre-sampling.
+- [ ] **Update the internal `sample` property docstring** — clarify that it operates on potentially pre-sampled data, so two layers of reduction are possible.
+- [ ] **Note on column naming**: the `id_column` parameter defaults to the post-rename display name. If sampling is applied before `rename_and_cast_types`, pass the raw column name. The friendly-names refactor determines the exact default — either `"Interaction ID"` (post-rename) or `"pxInteractionID"` (pre-rename). Since sampling happens on the raw LazyFrame in Home.py before DA construction, and alias resolution hasn't run yet, the utility should try common names (`pxInteractionID`, `InteractionID`, `Interaction ID`) and use whichever exists.
+
+### Existing sampling items (updated)
+
+- [ ] **Fix docstring** — `sample()` says "taking the first 50,000 interactions" but actually uses hash-based sampling. Update to match.
+- [ ] **Stratified sampling option** — Current `sample` property is purely random by interaction ID. Consider optional stratification by channel/direction for proportional representation. Separate from the CLI pre-ingestion sampling.
+- [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` currently `.collect()`s the full dataset. For GB-scale data this is the memory bottleneck. Investigate polars streaming engine or chunked processing.
+- [ ] **Data size warning in UI** — Show a warning when uploaded data exceeds a practical size threshold (e.g. >500 MB, >5M rows).
+
+---
+
+## CLI Data Path (`--data-path`)
+
+**Goal**: Provide a CLI option to specify the path to decision data. Useful for managed installs (Docker, EC2) where data is at a known location. The path shows in Home.py as an alternative data source.
+
+### Current state
+
+- `PDSTOOLS_SAMPLE_DATA_PATH` env var points to a hardcoded S3-mounted path (`/s3-files/anonymized/anonymized`). Only used when `is_managed_deployment()` is true.
+- `handle_file_path()` in `da_streamlit_utils.py` shows a text input for manual path entry, but only in managed deployments.
+- `_EC2_SAMPLE_PATH` constant in `da_streamlit_utils.py` is the default.
+
+### Design
+
+Replace `PDSTOOLS_SAMPLE_DATA_PATH` and `_EC2_SAMPLE_PATH` with a single `--data-path` CLI flag. The path is shown in Home.py as an alternative data source alongside file upload.
+
+**CLI usage:**
+```bash
+# Docker/EC2 deployment
+pdstools decision_analyzer --deploy-env ec2 --data-path /s3-files/data
+
+# Local use — point at a directory
+pdstools decision_analyzer --data-path /Users/me/exports/latest/
+```
+
+**Data loading priority in Home.py:**
+1. **File upload** — always visible, user drags/drops files.
+2. **Configured data path** — if `--data-path` was given, show a section: `📂 Configured data path: /path/to/data` with a load button. In managed deployments, auto-load if no file was uploaded.
+3. **Sample data** — fallback to GitHub-hosted demo data (only when neither upload nor data path produced data).
+
+### Implementation steps
+
+- [ ] **Add `--data-path` CLI flag** to `create_parser()` in `cli.py`. Propagate as `PDSTOOLS_DATA_PATH` env var.
+- [ ] **Retire `PDSTOOLS_SAMPLE_DATA_PATH`** env var and `_EC2_SAMPLE_PATH` constant in `da_streamlit_utils.py`.
+- [ ] **Add `get_data_path()` helper** in `streamlit_utils.py` — reads `PDSTOOLS_DATA_PATH` env var, returns `Optional[str]`.
+- [ ] **Update Home.py data loading flow** — after file upload, check `get_data_path()`. If set and no upload, show the configured path section and load from it. In managed deployments, auto-load without requiring a button click.
+- [ ] **Update `handle_sample_data()`** — remove the `_EC2_SAMPLE_PATH` branch. Managed deployments use `--data-path` instead.
+- [ ] **Update Cross-App Consistency section** — mark `PDSTOOLS_SAMPLE_DATA_PATH` as retired, document `--data-path`.
 
 ---
 
@@ -154,7 +309,9 @@ Shared infrastructure added to `streamlit_utils.py` and adopted by all three app
 - [x] **`standard_page_config()`** — Consistent `set_page_config` with `layout="wide"`, shared `menu_items` (bug report + docs links). All Home pages and sub-pages use it.
 - [x] **`show_version_header()`** — Displays `pdstools {version}` caption with upgrade hint. Checks PyPI for latest version and shows a warning if outdated. All Home pages call it.
 - [x] **`ensure_session_data()`** — Shared guard function. DA uses via `ensure_data()`, IA via `ensure_impact_analyzer()`.
-- [x] **`--deploy-env` CLI flag** — `cli.py` accepts `--deploy-env ec2` (or any value), propagates as `PDSTOOLS_DEPLOY_ENV` env var. DA reads via `get_deploy_env()` / `is_managed_deployment()`. Replaces `os.getcwd() == "/app"` hack. EC2 sample path configurable via `PDSTOOLS_SAMPLE_DATA_PATH` env var.
+- [x] **`--deploy-env` CLI flag** — `cli.py` accepts `--deploy-env ec2` (or any value), propagates as `PDSTOOLS_DEPLOY_ENV` env var. DA reads via `get_deploy_env()` / `is_managed_deployment()`. Replaces `os.getcwd() == "/app"` hack.
+- [ ] **`--data-path` CLI flag** — Replace `PDSTOOLS_SAMPLE_DATA_PATH` env var and `_EC2_SAMPLE_PATH` constant with a proper `--data-path` CLI flag. See dedicated section above.
+- [ ] **`--sample` CLI flag** — Pre-ingestion interaction sampling for large datasets. See dedicated section above.
 - [x] **Unified data source labels** — All apps use "Sample data", "File upload", "File path".
 - [x] **DA file upload expanded** — Now accepts `zip, parquet, json, csv, arrow` (was `zip, parquet` only).
 - [x] **IA sys.path hack removed** — Home.py and all pages no longer manipulate `sys.path`.

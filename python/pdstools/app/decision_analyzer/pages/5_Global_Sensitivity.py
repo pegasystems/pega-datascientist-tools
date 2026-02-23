@@ -1,6 +1,6 @@
 import streamlit as st
 from da_streamlit_utils import get_current_index, ensure_data
-from pdstools.decision_analyzer.utils import NBADScope_Mapping
+
 
 # TODO The coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO Infer the top-X by channel from the data (max rank per channel for Final records)
@@ -61,7 +61,7 @@ with st.container(border=True):
     st.selectbox(
         "Granularity:",
         options=scope_options,
-        format_func=lambda option: NBADScope_Mapping[option],
+        # column names are already friendly
         index=scope_index,
         key="glob_sensitivity_scope",
     )

@@ -12,7 +12,6 @@ from da_streamlit_utils import (
 )
 
 from pdstools.decision_analyzer.utils import (
-    NBADScope_Mapping,
     get_first_level_stats,
 )
 
@@ -130,7 +129,7 @@ with st.container(border=True):
     st.selectbox(
         "Granularity:",
         options=scope_options,
-        format_func=lambda option: NBADScope_Mapping[option],
+        # column names are already friendly
         index=scope_index,
         key="scope",
     )
@@ -142,12 +141,12 @@ action got dropped in which stage and by what component.
 """
 
 data = st.session_state.decision_data.decision_data.filter(
-    pl.col("pxRecordType") == "FILTERED_OUT"
+    pl.col("Record Type") == "FILTERED_OUT"
 )
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])
 data = (
-    data.group_by(["StageOrder", "StageGroup", "Stage", "pxComponentName"])
+    data.group_by(["StageOrder", "StageGroup", "Stage", "Component Name"])
     .agg(pl.len().alias("filter count"))
     .with_columns(
         (
@@ -182,7 +181,7 @@ st.download_button(
 # Component → Action Impact
 # ---------------------------------------------------------------------------
 has_components = (
-    "pxComponentName"
+    "Component Name"
     in st.session_state.decision_data.decision_data.collect_schema().names()
 )
 if has_components:
@@ -208,7 +207,7 @@ if has_components:
                 else None
             ),
         )
-        st.plotly_chart(impact_fig, use_container_width=True)
+        st.plotly_chart(impact_fig, width="stretch")
 
     # ---------------------------------------------------------------------------
     # Component Drilldown
@@ -223,12 +222,12 @@ if has_components:
         """
         component_names = (
             st.session_state.decision_data.decision_data.filter(
-                pl.col("pxRecordType") == "FILTERED_OUT"
+                pl.col("Record Type") == "FILTERED_OUT"
             )
-            .select("pxComponentName")
+            .select("Component Name")
             .unique()
             .collect()
-            .get_column("pxComponentName")
+            .get_column("Component Name")
             .sort()
             .to_list()
         )
@@ -253,7 +252,7 @@ if has_components:
                     else None
                 ),
             )
-            st.plotly_chart(drilldown_fig, use_container_width=True)
+            st.plotly_chart(drilldown_fig, width="stretch")
 
             # Also show the raw data table
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(

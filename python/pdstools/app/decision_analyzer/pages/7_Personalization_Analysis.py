@@ -30,7 +30,7 @@ st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     st.session_state["local_filters"] = get_data_filters(
         st.session_state.decision_data.sample,
-        columns=["pyChannel", "pyDirection", "pyIssue", "pyGroup"],
+        columns=["Channel", "Direction", "Issue", "Group"],
         queries=[],
         filter_type="local",
     )
