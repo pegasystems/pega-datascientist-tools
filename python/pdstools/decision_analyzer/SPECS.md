@@ -30,7 +30,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Medium Priority
 
-- [ ] **Move `filtered_action_counts` into class** — Standalone function in `utils.py` that duplicates the `aggregate_remaining_per_stage` pattern.
+- [x] **Move `filtered_action_counts` into class** — Standalone function in `utils.py` that duplicates the `aggregate_remaining_per_stage` pattern. Now a method on `DecisionAnalyzer`.
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win_rank flexibility** — `get_win_loss_distribution_data` has fixed rank parameter. Return all ranks, let UI filter.
 - [ ] **Caching for parameterized methods** — `getThresholdingData` and `get_sensitivity` are expensive but not cached. Consider `lru_cache` or polars caching.
