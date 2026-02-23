@@ -5,10 +5,6 @@ from da_streamlit_utils import (
     get_current_index,
     ensure_data,
 )
-from pdstools.decision_analyzer.utils import (
-    filtered_action_counts,
-)
-
 # TODO generalize a bit: no actions, just one, with a low propensity, sufficient
 # TODO support the propensity based categories for those stages that have it
 # TODO code align the way we name the stages in the "remaining" view like done elsewhere
@@ -82,9 +78,7 @@ with st.session_state["sidebar"]:
         key="stage",
     )
 
-# TODO: see about moving this into a class
-action_counts = filtered_action_counts(
-    df=st.session_state.decision_data.sample,
+action_counts = st.session_state.decision_data.filtered_action_counts(
     groupby_cols=["StageGroup", "Interaction ID", "day"] + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,

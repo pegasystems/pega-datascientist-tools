@@ -268,6 +268,13 @@ def handle_sample_data() -> Optional[pl.LazyFrame]:
     """Load sample data, using a local S3 path in managed deployments."""
     if is_managed_deployment():
         return read_data(Path(_EC2_SAMPLE_PATH))
+
+    # Prefer local file when available (e.g. during development), fall back
+    # to downloading from GitHub for installed-package users.
+    local_path = Path(__file__).resolve().parents[4] / "data" / "sample_eev2.parquet"
+    if local_path.exists():
+        return pl.scan_parquet(local_path)
+
     return read_ds_export(
         filename="sample_eev2.parquet",
         path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",

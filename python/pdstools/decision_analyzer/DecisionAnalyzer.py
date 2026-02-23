@@ -1170,7 +1170,68 @@ class DecisionAnalyzer:
 
         return remaining_view
 
-    # TODO refactor this into the DecisionData class and refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
+    def filtered_action_counts(
+        self,
+        groupby_cols: list,
+        propensityTH: Optional[float] = None,
+        priorityTH: Optional[float] = None,
+    ) -> pl.LazyFrame:
+        """Return action counts from the sample, optionally classified by propensity/priority thresholds.
+
+        Parameters
+        ----------
+        groupby_cols : list
+            Column names to group by.
+        propensityTH : float, optional
+            Propensity threshold for classifying offers.
+        priorityTH : float, optional
+            Priority threshold for classifying offers.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Aggregated action counts per group, with quality buckets when
+            both thresholds are provided.
+        """
+        df = self.sample
+        additional_cols = ["Action", "Propensity"]
+        required_cols = list(set(groupby_cols + additional_cols))
+        for col in required_cols:
+            if col not in df.collect_schema().names():
+                raise ValueError(f"Column '{col}' not found in the dataframe.")
+
+        if propensityTH is None or priorityTH is None:
+            return df.group_by(groupby_cols).agg(
+                no_of_offers=pl.count("Action"),
+            )
+
+        propensity_classifying_expr = [
+            pl.col("Action")
+            .where((pl.col("Propensity") == 0.5) & (pl.col("StageGroup") != "Output"))
+            .count()
+            .alias("new_models"),
+            pl.col("Action")
+            .where(
+                (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5)
+            )
+            .count()
+            .alias("poor_propensity_offers"),
+            pl.col("Action")
+            .where((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .count()
+            .alias("poor_priority_offers"),
+            pl.col("Action")
+            .where(
+                (pl.col("Propensity") >= propensityTH)
+                & (pl.col("Propensity") != 0.5)
+                & (pl.col("Priority") >= priorityTH)
+            )
+            .count()
+            .alias("good_offers"),
+        ]
+        return df.group_by(groupby_cols).agg(
+            no_of_offers=pl.count("Action"), *propensity_classifying_expr
+        )
 
     def get_offer_quality(self, df, group_by):
         """
