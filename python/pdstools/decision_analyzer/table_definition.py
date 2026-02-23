@@ -1,263 +1,244 @@
-from typing import Dict, Type, TypedDict
+# python/pdstools/decision_analyzer/table_definition.py
+from typing import Dict, List, Type, TypedDict
+
+from typing_extensions import NotRequired
+
 import polars as pl
 
 
 class TableConfig(TypedDict):
-    label: str
+    display_name: str
     default: bool
     type: Type[pl.DataType]
+    aliases: NotRequired[List[str]]
 
 
 DecisionAnalyzer: Dict[str, TableConfig] = {
     "pxRecordType": {
-        "label": "pxRecordType",
+        "display_name": "Record Type",
         "default": False,
         "type": pl.Categorical,
     },
     "Primary_pySubjectID": {
-        "label": "pySubjectID",
+        "display_name": "Subject ID",
         "default": False,
         "type": pl.Categorical,
-    },  # should be optional
-    "Primary_pySubjectType": {
-        "label": "pySubjectType",
-        "default": False,
-        "type": pl.Categorical,
+        "aliases": ["Subject ID", "SubjectID", "pySubjectID"],
     },
-    # "StrategicSegment": {"label": "StrategicSegment", "default": False, "type": pl.Categorical},
+    "Primary_pySubjectType": {
+        "display_name": "Subject Type",
+        "default": False,
+        "type": pl.Categorical,
+        "aliases": ["Subject Type", "SubjectType", "pySubjectType"],
+    },
     "pxInteractionID": {
-        "label": "pxInteractionID",
+        "display_name": "Interaction ID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Interaction ID", "InteractionID"],
     },
     "pxDecisionTime": {
-        "label": "pxDecisionTime",
+        "display_name": "Decision Time",
         "default": True,
         "type": pl.Datetime,
+        "aliases": ["Decision Time", "DecisionTime"],
     },
-    # "pxRank": {
-    #     "label": "pxRank",
-    #     "default": True,
-    #     "type": pl.Int64,
-    # },
     "pyIssue": {
-        "label": "pyIssue",
+        "display_name": "Issue",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Issue"],
     },
     "pyGroup": {
-        "label": "pyGroup",
+        "display_name": "Group",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Group"],
     },
     "pyName": {
-        "label": "pyName",
+        "display_name": "Action",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Name", "Action"],
     },
     "pyTreatment": {
-        "label": "pyTreatment",
+        "display_name": "Treatment",
         "default": False,
         "type": pl.Utf8,
+        "aliases": ["Treatment"],
     },
     "PlacementType": {
-        "label": "PlacementType",
+        "display_name": "Placement Type",
         "default": False,
         "type": pl.Categorical,
     },
     "pxStrategyName": {
-        "label": "pxStrategyName",
+        "display_name": "Strategy Name",
         "default": False,
         "type": pl.Categorical,
+        "aliases": ["Strategy Name"],
     },
-    # "ChannelSubGroup": {"label": "ChannelSubGroup", "default": False, "type": pl.Categorical},
-    # "ChannelGroup": {"label": "ChannelGroup", "default": False, "type": pl.Categorical},
     "Primary_ContainerPayload_Channel": {
-        "label": "pyChannel",
+        "display_name": "Channel",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Channel", "pyChannel"],
     },
     "Primary_ContainerPayload_Direction": {
-        "label": "pyDirection",
+        "display_name": "Direction",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Direction", "pyDirection"],
     },
     "Stage_pyName": {
-        "label": "Stage",
+        "display_name": "Stage",
         "default": True,
         "type": pl.Categorical,
     },
     "Stage_pyStageGroup": {
-        "label": "StageGroup",
+        "display_name": "StageGroup",
         "default": True,
         "type": pl.Categorical,
     },
     "Stage_pyOrder": {
-        "label": "StageOrder",
+        "display_name": "StageOrder",
         "default": True,
         "type": pl.Int32,
     },
     "pxComponentName": {
-        "label": "pxComponentName",
+        "display_name": "Component Name",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Component Name"],
     },
     "pxComponentType": {
-        "label": "pxComponentType",
+        "display_name": "Component Type",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Component Type"],
     },
-    # "MktType": {"label": "MktType", "default": False, "type": pl.Categorical},
-    # "MktValue": {"label": "MktValue", "default": False, "type": pl.Float64},
-    # "pyReason": {"label": "pyReason", "default": False, "type": pl.Utf8},
-    # "ModelControlGroup": {
-    #     "label": "ModelControlGroup",
-    #     "default": True,
-    #     "type": pl.Categorical,
-    # },
     "Value": {
-        "label": "Value",
+        "display_name": "Value",
         "default": True,
         "type": pl.Float64,
     },
     "ContextWeight": {
-        "label": "Context Weight",
+        "display_name": "Context Weight",
         "default": True,
         "type": pl.Float64,
     },
     "Weight": {
-        "label": "Levers",
+        "display_name": "Levers",
         "default": True,
         "type": pl.Float64,
     },
-    # "ActionWeight": {"label": "ActionWeight", "default": False, "type": pl.Float64},
-    # "pyModelPropensity": {
-    #     "label": "pyModelPropensity",
-    #     "default": False,
-    #     "type": pl.Float64,
-    # },
     "FinalPropensity": {
-        "label": "Propensity",
+        "display_name": "Propensity",
         "default": False,
         "type": pl.Float64,
     },
-    # "pyPropensity": {
-    #     "label": "pyPropensity",
-    #     "default": False,
-    #     "type": pl.Float64,
-    # },
-    # "pyModelPositives": {
-    #     "label": "pyModelPositives",
-    #     "default": False,
-    #     "type": pl.Float32,
-    # },
-    # "pyModelPerformance": {
-    #     "label": "pyModelPerformance",
-    #     "default": False,
-    #     "type": pl.Float32,
-    # },
-    # "pyModelEvidence": {
-    #     "label": "pyModelEvidence",
-    #     "default": False,
-    #     "type": pl.Float32,
-    # },
     "Priority": {
-        "label": "Priority",
+        "display_name": "Priority",
         "default": False,
         "type": pl.Float32,
     },
     "pyApplication": {
-        "label": "pyApplication",
+        "display_name": "Application",
         "default": False,
         "type": pl.Utf8,
+        "aliases": ["Application"],
     },
     "pyApplicationVersion": {
-        "label": "pyApplicationVersion",
+        "display_name": "Application Version",
         "default": False,
         "type": pl.Utf8,
+        "aliases": ["Application Version"],
     },
 }
 
 
 ExplainabilityExtract: Dict[str, TableConfig] = {
     "pySubjectID": {
-        "label": "pySubjectID",
+        "display_name": "Subject ID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Subject ID", "SubjectID"],
     },
     "pxInteractionID": {
-        "label": "pxInteractionID",
+        "display_name": "Interaction ID",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["Interaction ID", "InteractionID"],
     },
     "pxDecisionTime": {
-        "label": "pxDecisionTime",
+        "display_name": "Decision Time",
         "default": True,
         "type": pl.Datetime,
+        "aliases": ["Decision Time", "DecisionTime"],
     },
     "pyIssue": {
-        "label": "pyIssue",
+        "display_name": "Issue",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Issue"],
     },
     "pyGroup": {
-        "label": "pyGroup",
+        "display_name": "Group",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Group"],
     },
-    "pyName": {"label": "pyName", "default": True, "type": pl.Utf8},
-    # "pyTreatment": {"label": "pyTreatment", "default": False, "type": pl.Utf8},
+    "pyName": {
+        "display_name": "Action",
+        "default": True,
+        "type": pl.Utf8,
+        "aliases": ["Name", "Action"],
+    },
+    # "pyTreatment": {"display_name": "Treatment", "default": False, "type": pl.Utf8},
     "pyChannel": {
-        "label": "pyChannel",
+        "display_name": "Channel",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Channel"],
     },
     "pyDirection": {
-        "label": "pyDirection",
+        "display_name": "Direction",
         "default": True,
         "type": pl.Categorical,
+        "aliases": ["Direction"],
     },
-    "Value": {"label": "Value", "default": True, "type": pl.Float64},
+    "Value": {"display_name": "Value", "default": True, "type": pl.Float64},
     "ContextWeight": {
-        "label": "Context Weight",
+        "display_name": "Context Weight",
         "default": True,
         "type": pl.Float64,
     },
     "Weight": {
-        "label": "Levers",
+        "display_name": "Levers",
         "default": True,
         "type": pl.Float64,
     },
-    # "pyModelPropensity": {
-    #     "label": "pyModelPropensity",
-    #     "default": True,
-    #     "type": pl.Float64,
-    # },
     "pyPropensity": {
-        "label": "pyPropensity",
+        "display_name": "pyPropensity",
         "default": True,
         "type": pl.Float64,
     },
     "FinalPropensity": {
-        "label": "Propensity",
+        "display_name": "Propensity",
         "default": True,
         "type": pl.Float64,
     },
     "Priority": {
-        "label": "Priority",
+        "display_name": "Priority",
         "default": True,
         "type": pl.Float32,
     },
     "ModelControlGroup": {
-        "label": "ModelControlGroup",
+        "display_name": "ModelControlGroup",
         "default": True,
         "type": pl.Utf8,
+        "aliases": ["ModelControl"],
     },
-    # "EvalautionCriteria": {
-    #     "label": "EvalautionCriteria",
-    #     "default": True,
-    #     "type": pl.Utf8,
-    # },
 }
 
 

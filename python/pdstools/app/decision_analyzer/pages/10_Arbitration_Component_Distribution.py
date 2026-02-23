@@ -5,7 +5,6 @@ from da_streamlit_utils import (
     st_priority_component_distribution,
 )
 
-from pdstools.decision_analyzer.utils import NBADScope_Mapping
 
 # # TODO Finish up to show effect on proposition distribution (side to side)
 
@@ -64,7 +63,7 @@ with st.container(border=True):
     st.selectbox(
         "Granularity:",
         options=scope_options,
-        format_func=lambda option: NBADScope_Mapping[option],
+        # column names are already friendly
         index=scope_index,
         key="scope",
     )

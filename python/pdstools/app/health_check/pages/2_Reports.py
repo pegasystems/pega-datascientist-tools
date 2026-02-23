@@ -9,7 +9,9 @@ import streamlit as st
 from pdstools import ADMDatamart
 from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.show_versions import show_versions
-from pdstools.utils.streamlit_utils import model_selection_df
+from pdstools.utils.streamlit_utils import _apply_sidebar_logo, model_selection_df
+
+_apply_sidebar_logo()
 
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")

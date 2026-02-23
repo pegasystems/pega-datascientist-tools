@@ -1,6 +1,7 @@
+# python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import polars as pl
 import streamlit as st
@@ -11,35 +12,40 @@ from pdstools.decision_analyzer.data_read_utils import (
 )
 from pdstools.pega_io.File import read_ds_export
 
+from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+from pdstools.utils.streamlit_utils import (
+    _apply_sidebar_logo,
+    ensure_session_data,
+    get_current_index,  # noqa: F401 — re-exported for backward compat
+    is_managed_deployment,
+)
 
-from pdstools.decision_analyzer.plots import (
-    #     propensity_vs_optionality,
-    #     optionality_per_stage,
-    #     offer_quality_piecharts,
-    #     action_variation,
-    #     optionality_trend,
-    #     prio_factor_boxplots,
-    #     rank_boxplot,
-    plot_priority_component_distribution,
-    #     trend_chart,
+# Default sample data path for EC2 deployments. Override with
+# PDSTOOLS_SAMPLE_DATA_PATH env var if needed.
+_EC2_SAMPLE_PATH = os.environ.get(
+    "PDSTOOLS_SAMPLE_DATA_PATH", "/s3-files/anonymized/anonymized"
 )
 
 
 def ensure_data():
-    if "decision_data" not in st.session_state:
-        st.warning("Please upload your data in the Home page")
-        st.stop()
+    """Guard: stop if decision data is not loaded."""
+    _apply_sidebar_logo()
+    ensure_session_data("decision_data", "Please upload your data in the Home page.")
 
 
 def ensure_funnel():
     if st.session_state.decision_data.extract_type == "explainability_extract":
-        st.warning("You can only view this page with EEV2 dataset")
+        st.warning(
+            "This page requires **Action Analysis (v2)** data with full stage "
+            "pipeline information. Explainability Extract (v1) data only contains "
+            "the arbitration stage and cannot show the decision funnel."
+        )
         st.stop()
 
 
 def ensure_getFilterComponentData():
     return (
-        "pxComponentName"
+        "Component Name"
         in st.session_state.decision_data.decision_data.collect_schema().names()
     )
 
@@ -50,17 +56,7 @@ def ensure_getFilterComponentData():
 polars_lazyframe_hashing = {
     pl.LazyFrame: lambda x: hash(x.explain(optimized=False)),
     pl.Expr: lambda x: str(x.inspect()),
-    # datetime.datetime: lambda x: x.strftime("%Y%m%d%H%M%S")
 }
-
-
-def get_current_index(options, key, default=0):
-    """Get index from session state if key exists and value is in options, else return default"""
-    return (
-        options.index(st.session_state[key])
-        if key in st.session_state and st.session_state[key] in options
-        else default
-    )
 
 
 def show_filtered_counts(statsBefore, statsAfter):
@@ -136,11 +132,6 @@ def get_data_filters(
         "Filter data on",
         columns,
         key=f"{filter_type}_multiselect",
-        format_func=lambda x: (
-            x.lstrip("py")
-            if x.startswith("py")
-            else (x.lstrip("px") if x.startswith("px") else x)
-        ),
         on_change=_save_multiselect,
     )
     for column in to_filter_columns:
@@ -148,7 +139,8 @@ def get_data_filters(
         left.write("## ↳")
 
         # Treat columns with < 20 unique values as categorical
-        if (df.schema[column] == pl.Categorical) or (df.schema[column] == pl.Utf8):
+        col_dtype = df.collect_schema()[column]
+        if (col_dtype == pl.Categorical) or (col_dtype == pl.Utf8):
             if f"{filter_type}categories_{column}" not in st.session_state.keys():
                 st.session_state[f"{filter_type}categories_{column}"] = (
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
@@ -204,7 +196,7 @@ def get_data_filters(
                 if user_text_input:
                     queries.append(pl.col(column).str.contains(user_text_input))
 
-        elif df.schema[column] in pl.NUMERIC_DTYPES:
+        elif col_dtype.is_numeric():
             min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
@@ -238,7 +230,7 @@ def get_data_filters(
             st.session_state[f"{filter_type}selected_{column}"] = user_num_input
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
-        elif df.schema[column] in pl.TEMPORAL_DTYPES:
+        elif col_dtype.is_temporal():
             value = (
                 df.select(pl.min(column)).collect().item(),
                 df.select(pl.max(column)).collect().item(),
@@ -261,93 +253,173 @@ def get_data_filters(
     return queries
 
 
-def get_options():
-    is_ec2 = os.getcwd() == "/app"
-    if is_ec2:
-        return ["Sample Data", "File Upload"]
-    else:
-        return ["Sample Data", "File Upload", "Direct File Path"]
+def get_options() -> List[str]:
+    """Data source options.
+
+    'File path' is only shown in managed deployments where users need to
+    reference server-side paths (e.g. S3-mounted directories). For local use,
+    the file uploader's browse button is sufficient.
+    """
+    options = ["Sample data", "File upload"]
+    if is_managed_deployment():
+        options.append("File path")
+    return options
 
 
-def handle_sample_data(is_ec2):
-    if is_ec2:
-        path = Path("/s3-files/anonymized/anonymized")
-        return read_data(path)
-    else:
-        return read_ds_export(
-            filename="sample_eev2.parquet",
-            path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
-        )
+def handle_sample_data() -> Optional[pl.LazyFrame]:
+    """Load sample data, using a local S3 path in managed deployments."""
+    if is_managed_deployment():
+        return read_data(Path(_EC2_SAMPLE_PATH))
 
+    # Prefer local file when available (e.g. during development), fall back
+    # to downloading from GitHub for installed-package users.
+    local_path = Path(__file__).resolve().parents[4] / "data" / "sample_eev2.parquet"
+    if local_path.exists():
+        return pl.scan_parquet(local_path)
 
-def handle_file_upload():
-    uploaded_file = st.file_uploader("Choose your zipped file", type="zip")
-    if uploaded_file is not None:
-        return read_nested_zip_files(uploaded_file)
-
-
-def handle_direct_file_path():
-    st.write(
-        """You can import the data simply by pointing the app to the directory
-        where the original files are located."""
+    return read_ds_export(
+        filename="sample_eev2.parquet",
+        path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
     )
-    dir = st.text_input(
+
+
+def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
+    """Read a zip file, handling both nested-gzip (EEV2) and flat archive layouts."""
+    import tempfile
+    import zipfile
+
+    with zipfile.ZipFile(file_buffer, "r") as zf:
+        inner_names = [n for n in zf.namelist() if not n.startswith("__MACOSX")]
+        inner_exts = {Path(n).suffix.lower() for n in inner_names if Path(n).suffix}
+
+        # Reject archives with only unsupported file types
+        supported_exts = {".csv", ".parquet", ".json", ".ndjson", ".arrow", ".zip"}
+        if not inner_exts.intersection(supported_exts):
+            raise ValueError(
+                f"The uploaded archive does not contain recognizable data files. "
+                f"Found: {', '.join(sorted(inner_exts))}. "
+                f"Expected raw decision data in csv, parquet, json, or arrow format."
+            )
+
+        # If the zip contains .zip files, use the legacy gzipped-ndjson reader
+        if ".zip" in inner_exts:
+            file_buffer.seek(0)
+            return read_nested_zip_files(file_buffer)
+
+        # Otherwise extract to a temp directory and use read_data
+        tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
+        zf.extractall(tmp_dir)
+
+    return read_data(tmp_dir)
+
+
+def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
+    """Extract a tar/tar.gz/tgz archive to a temp directory and read its contents."""
+    import tarfile
+    import tempfile
+
+    tmp_dir = tempfile.mkdtemp(prefix="da_tar_")
+    with tarfile.open(fileobj=file_buffer, mode="r:*") as tf:
+        tf.extractall(tmp_dir, filter="data")
+    return read_data(tmp_dir)
+
+
+def handle_file_upload() -> Optional[pl.LazyFrame]:
+    """Show file uploader accepting one or more files and return a LazyFrame, or None."""
+    import tempfile
+
+    uploaded_files = st.file_uploader(
+        "Upload decision data",
+        type=["zip", "parquet", "json", "csv", "arrow", "gz", "tgz", "tar"],
+        accept_multiple_files=True,
+    )
+    if not uploaded_files:
+        return None
+
+    frames: list[pl.LazyFrame] = []
+    for f in uploaded_files:
+        name_lower = f.name.lower()
+        suffix = Path(f.name).suffix.lower()
+        if suffix == ".parquet":
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp:
+                tmp.write(f.getbuffer())
+                frames.append(pl.scan_parquet(tmp.name))
+        elif suffix == ".zip":
+            frames.append(_read_uploaded_zip(f))
+        elif (
+            name_lower.endswith(".tar.gz")
+            or name_lower.endswith(".tgz")
+            or suffix == ".tar"
+        ):
+            frames.append(_read_uploaded_tar(f))
+        elif suffix in {".json", ".ndjson"}:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(f.getbuffer())
+                frames.append(pl.scan_ndjson(tmp.name))
+        elif suffix == ".csv":
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+                tmp.write(f.getbuffer())
+                frames.append(pl.scan_csv(tmp.name))
+        elif suffix == ".arrow":
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".arrow") as tmp:
+                tmp.write(f.getbuffer())
+                frames.append(pl.scan_ipc(tmp.name))
+        elif suffix == ".gz":
+            # .gz that isn't .tar.gz — try as gzipped ndjson
+            import gzip
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ndjson") as tmp:
+                tmp.write(gzip.decompress(f.getbuffer()))
+                frames.append(pl.scan_ndjson(tmp.name))
+
+    if not frames:
+        return None
+    if len(frames) == 1:
+        return frames[0]
+    return pl.concat(frames, how="diagonal", rechunk=True)
+
+
+def handle_file_path() -> Optional[pl.LazyFrame]:
+    """Show text input for a file/folder path and return a LazyFrame, or None."""
+    st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
+    path = st.text_input(
         "File or partitioned folder path",
-        placeholder="/Users/Downloads",
+        placeholder="/path/to/data",
     )
-    if dir:
-        return read_data(dir)
-    return None
+    if not path:
+        return None
+    p = Path(path)
+    # Single zip file: extract first, then read the extracted contents
+    if p.is_file() and p.suffix.lower() == ".zip":
+        import tempfile
+        import zipfile
+
+        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
+        with zipfile.ZipFile(p, "r") as zf:
+            zf.extractall(tmp_dir)
+        return read_data(tmp_dir)
+    return read_data(path)
 
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_propensity_vs_optionality(df: pl.LazyFrame):
-#     return propensity_vs_optionality(df)
+@st.cache_resource
+def load_decision_analyzer(
+    _raw_data: pl.LazyFrame,
+    level: str,
+    sample_size: int,
+    data_fingerprint: str = "",
+):
+    """Cache the DecisionAnalyzer instance so it persists across page navigations.
 
+    Uses @st.cache_resource because DecisionAnalyzer is a stateful object
+    (not serializable). The leading underscore on _raw_data tells Streamlit
+    not to hash it (LazyFrames are not hashable by default).
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_optionality_per_stage(df: pl.LazyFrame, NBADStages_Mapping):
-#     return optionality_per_stage(df, NBADStages_Mapping)
+    data_fingerprint is derived from the LazyFrame's query plan so the cache
+    busts when different data is loaded.
+    """
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_offer_quality_piecharts(
-#     df: pl.LazyFrame, propensityTH, NBADStages_FilterView, NBADStages_Mapping
-# ):
-#     return offer_quality_piecharts(
-#         df, propensityTH, NBADStages_FilterView, NBADStages_Mapping
-#     )
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_action_variation(df: pl.LazyFrame):
-#     return action_variation(df)
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_optionality_trend(df: pl.LazyFrame, NBADStages_Mapping):
-#     return optionality_trend(df, NBADStages_Mapping)
-
-
-# def st_prio_factor_boxplots(
-#     df: pl.LazyFrame,
-#     reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
-# ) -> Optional[go.Figure]:
-#     # Call the core function to generate the plot and check for warnings
-#     fig, warning_message = prio_factor_boxplots(df, reference)
-
-#     if warning_message:
-#         st.warning(warning_message)
-#         st.stop()
-
-#     return fig
-
-
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_rank_boxplot(
-#     df: pl.LazyFrame, reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None
-# ):
-#     return rank_boxplot(df, reference)
+    return DecisionAnalyzer(_raw_data, level=level, sample_size=sample_size)
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
@@ -355,12 +427,3 @@ def st_priority_component_distribution(
     value_data: pl.LazyFrame, component, granularity
 ):
     return plot_priority_component_distribution(value_data, component, granularity)
-
-
-# def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:
-#     fig, warning_message = trend_chart(df, scope)
-
-#     if warning_message:
-#         st.warning(warning_message)
-
-#     return fig

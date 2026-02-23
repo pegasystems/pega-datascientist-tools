@@ -1,8 +1,14 @@
 import streamlit as st
 import json
 import polars as pl
-from pdstools.utils.streamlit_utils import filter_dataframe, model_and_row_counts
+from pdstools.utils.streamlit_utils import (
+    _apply_sidebar_logo,
+    filter_dataframe,
+    model_and_row_counts,
+)
 from pdstools.utils.cdh_utils import _apply_query
+
+_apply_sidebar_logo()
 
 """# Add custom filters"""
 
@@ -58,4 +64,4 @@ if "dm" in st.session_state:
         )
 
 else:
-    st.warning("Please configure your files in the `data import` tab.")
+    st.warning("Please load data on the Home page.")

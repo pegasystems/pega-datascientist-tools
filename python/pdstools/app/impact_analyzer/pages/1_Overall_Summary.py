@@ -1,19 +1,10 @@
-from pathlib import Path
-import sys
-
+# python/pdstools/app/impact_analyzer/pages/1_Overall_Summary.py
 import streamlit as st
 
+from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
+from pdstools.utils.streamlit_utils import standard_page_config
 
-repo_python_path = Path(__file__).resolve().parents[4]
-if str(repo_python_path) not in sys.path:
-    sys.path.insert(0, str(repo_python_path))
-
-from pdstools.app.impact_analyzer.ia_streamlit_utils import (  # noqa: E402
-    ensure_impact_analyzer,
-)
-
-
-st.set_page_config(layout="wide", page_title="Impact Analyzer - Overall Summary")
+standard_page_config(page_title="Impact Analyzer - Overall Summary")
 
 ensure_impact_analyzer()
 

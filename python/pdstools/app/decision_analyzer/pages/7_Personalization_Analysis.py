@@ -1,7 +1,6 @@
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
-    get_current_index,
     get_data_filters,
     ensure_data,
 )
@@ -9,7 +8,6 @@ from da_streamlit_utils import (
 # TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
 # TODO for optionality plot allow to overlay propensity but also maybe add priority?
 # TODO think more about the "offer variation" or personalization index - I now calculated PI from the AUC of the variation curve
-# TODO there is some caching warning: The widget with key "optionality_stage" was created with a default value but also had its value set via the Session State API.
 
 "# Personalization Analysis"
 
@@ -30,7 +28,7 @@ st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     st.session_state["local_filters"] = get_data_filters(
         st.session_state.decision_data.sample,
-        columns=["pyChannel", "pyDirection", "pyIssue", "pyGroup"],
+        columns=["Channel", "Direction", "Issue", "Group"],
         queries=[],
         filter_type="local",
     )
@@ -55,8 +53,14 @@ with st.container(border=True):
     you would expect higher propensities as there is more to choose from.
     """
 
-    if "optionality_stage" not in st.session_state:
-        st.session_state.optionality_stage = "Arbitration"
+    stage_options = st.session_state.decision_data.getPossibleStageValues()
+    if (
+        "optionality_stage" not in st.session_state
+        or st.session_state.optionality_stage not in stage_options
+    ):
+        st.session_state.optionality_stage = (
+            "Arbitration" if "Arbitration" in stage_options else stage_options[0]
+        )
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
@@ -66,12 +70,9 @@ with st.container(border=True):
         use_container_width=True,
     )
 
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
-    stage_index = get_current_index(stage_options, "optionality_stage")
     st.selectbox(
         "Select Stage",
         options=stage_options,
-        index=stage_index,
         key="optionality_stage",
     )
 

@@ -2,7 +2,7 @@ from typing import List, Optional, Union, Tuple, Dict
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from .utils import NBADScope_Mapping
+
 
 import polars as pl
 
@@ -173,15 +173,13 @@ class Plot:
         )
 
         fig.update_layout(
-            title=f"Wins and Losses of {NBADScope_Mapping[level]}s in Arbitration",
+            title=f"Wins and Losses of {level}s in Arbitration",
             font_size=12,
             polar_angularaxis_rotation=90,
             xaxis_title="",
             yaxis_title="",
         )
-        fig.update_xaxes(tickformat=".2%").update_layout(
-            legend_title_text=f"{NBADScope_Mapping[level]}"
-        )
+        fig.update_xaxes(tickformat=".2%").update_layout(legend_title_text=f"{level}")
 
         return fig
 
@@ -341,9 +339,7 @@ class Plot:
                 template="pega",
             )
 
-        fig.update_layout(
-            xaxis_title="", legend_title_text=f"{NBADScope_Mapping[scope]}"
-        )
+        fig.update_layout(xaxis_title="", legend_title_text=f"{scope}")
 
         return fig, warning_message
 
@@ -384,7 +380,7 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
-                legend_title_text=f"{NBADScope_Mapping[scope]}",
+                legend_title_text=f"{scope}",
                 legend=dict(traceorder="reversed"),
             )
         )
@@ -418,23 +414,27 @@ class Plot:
         for stage in [x for x in stages if x != "Final"]:
             top_n_actions_dict[stage] = (
                 df.filter(pl.col(self._decision_data.level) == stage)
-                .get_column("pxComponentName")
+                .get_column("Component Name")
                 .to_list()
             )
 
+        color_kwargs = {}
+        if "Component Type" in df.columns:
+            color_kwargs["color"] = "Component Type"
+        else:
+            color_kwargs["color"] = "Filtered Decisions"
+            color_kwargs["color_continuous_scale"] = "reds"
+
         fig = px.bar(
-            df.with_columns(
-                pl.col("Filtered Decisions").cast(pl.Float32)
-            ),  # TODO expect the data to be float...
+            df.with_columns(pl.col("Filtered Decisions").cast(pl.Float32)),
             x="Filtered Decisions",
-            y="pxComponentName",
-            color="Filtered Decisions",
-            color_continuous_scale="reds",
+            y="Component Name",
             orientation="h",
             facet_col=self._decision_data.level,
             facet_col_wrap=2,
             template="pega",
             category_orders={self._decision_data.level: AvailableNBADStages},
+            **color_kwargs,
         )
 
         # TODO generalize this
@@ -506,7 +506,7 @@ class Plot:
             color=breakdown,
             orientation="h" if horizontal else "v",
             template="pega",
-        ).update_layout(legend_title_text=f"{NBADScope_Mapping[breakdown]}")
+        ).update_layout(legend_title_text=f"{breakdown}")
 
         if horizontal:
             fig = (
@@ -540,7 +540,7 @@ class Plot:
         ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
         segmented_df = (
             df.with_columns(
-                segment=pl.when(reference)  # pl.col("pyName").is_in(models)
+                segment=pl.when(reference)  # pl.col("Action").is_in(models)
                 .then(pl.lit("Selected Actions"))
                 .otherwise(pl.lit("Others"))
             ).select(prio_factors + ["segment"])
@@ -606,6 +606,175 @@ class Plot:
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
+
+    def component_action_impact(
+        self,
+        top_n: int = 10,
+        scope: str = "Action",
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        return_df=False,
+    ):
+        """Horizontal bar chart showing which items each component filters most.
+
+        One facet per component (top components by total filtering), bars show
+        items sorted by filtered decision count. The scope controls whether the
+        breakdown is at Issue, Group, or Action level.
+
+        Parameters
+        ----------
+        top_n : int, default 10
+            Maximum number of items per component.
+        scope : str, default "Action"
+            Granularity: ``"Issue"``, ``"Group"``, or ``"Action"``.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+        return_df : bool, default False
+            If True, return the DataFrame instead of a figure.
+
+        Returns
+        -------
+        go.Figure or pl.DataFrame
+        """
+        df = self._decision_data.getComponentActionImpact(
+            top_n=top_n, scope=scope, additional_filters=additional_filters
+        )
+        if return_df:
+            return df
+
+        # Top components by total filtering volume
+        component_totals = (
+            df.group_by("Component Name")
+            .agg(pl.sum("Filtered Decisions").alias("total"))
+            .sort("total", descending=True)
+        )
+        top_components = component_totals.head(6).get_column("Component Name").to_list()
+        plot_df = df.filter(pl.col("Component Name").is_in(top_components))
+
+        if plot_df.height == 0:
+            fig = go.Figure()
+            fig.add_annotation(text="No filter data available", showarrow=False)
+            return fig
+
+        # Use the scope column for the y-axis label
+        y_col = scope if scope in plot_df.columns else "Action"
+        # Determine a color column (one level above scope in hierarchy)
+        color_col = None
+        if scope == "Action" and "Issue" in plot_df.columns:
+            color_col = "Issue"
+        elif scope == "Group" and "Issue" in plot_df.columns:
+            color_col = "Issue"
+
+        scope_label = scope
+
+        fig = px.bar(
+            plot_df,
+            x="Filtered Decisions",
+            y=y_col,
+            orientation="h",
+            facet_col="Component Name",
+            facet_col_wrap=2,
+            color=color_col,
+            template="pega",
+        )
+        fig.update_yaxes(matches=None, automargin=True, title="")
+        fig.update_xaxes(matches=None, title="")
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_layout(
+            title=f"Top {top_n} {scope_label.lower()}s filtered per component",
+            height=max(400, 120 * min(top_n, 10)),
+            showlegend=color_col is not None,
+            legend_title_text=color_col if color_col else "",
+        )
+        return fig
+
+    def component_drilldown(
+        self,
+        component_name: str,
+        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        sort_by: str = "Filtered Decisions",
+        return_df=False,
+    ):
+        """Bar chart drilling into a single component's filtered actions with
+        value context.
+
+        Shows filtered actions sorted by the chosen metric, with secondary
+        axis for average scoring values when available.
+
+        Parameters
+        ----------
+        component_name : str
+            The pxComponentName to drill into.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+        sort_by : str, default "Filtered Decisions"
+            Column to sort by. Also accepts "avg_Value", "avg_Priority".
+        return_df : bool, default False
+            If True, return the DataFrame instead of a figure.
+
+        Returns
+        -------
+        go.Figure or pl.DataFrame
+        """
+        df = self._decision_data.getComponentDrilldown(
+            component_name=component_name,
+            additional_filters=additional_filters,
+        )
+        if return_df:
+            return df
+
+        if df.height == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text=f"No actions filtered by '{component_name}'", showarrow=False
+            )
+            return fig
+
+        if sort_by in df.columns:
+            df = df.sort(sort_by, descending=True)
+        plot_df = df.head(30)
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+        fig.add_trace(
+            go.Bar(
+                y=plot_df["Action"],
+                x=plot_df["Filtered Decisions"],
+                orientation="h",
+                name="Filtered Decisions",
+                marker_color="#cd001f",
+                hovertemplate=(
+                    "<b>%{y}</b><br>" "Filtered: %{x}<br>" "<extra></extra>"
+                ),
+            ),
+            secondary_y=False,
+        )
+
+        if "avg_Value" in plot_df.columns:
+            non_null_values = plot_df.filter(pl.col("avg_Value").is_not_null())
+            if non_null_values.height > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        y=non_null_values["Action"],
+                        x=non_null_values["avg_Value"],
+                        mode="markers",
+                        name="Avg Value (surviving)",
+                        marker=dict(color="#1f77b4", size=8, symbol="diamond"),
+                    ),
+                    secondary_y=True,
+                )
+
+        fig.update_layout(
+            title=f"Component Drilldown: {component_name}",
+            height=max(400, 25 * min(plot_df.height, 30)),
+            template="plotly_white",
+            yaxis=dict(automargin=True, autorange="reversed"),
+            showlegend=True,
+        )
+        fig.update_xaxes(title="Filtered Decisions")
+        fig.update_yaxes(title="", secondary_y=False)
+        fig.update_yaxes(title="Avg Value", secondary_y=True)
+
+        return fig
 
     def optionality_per_stage(self, return_df=False):
         df = self._decision_data.get_optionality_data(self.sample)
@@ -784,7 +953,7 @@ def plot_priority_component_distribution(
         color=granularity,
         template="pega",
     ).update_layout(
-        legend_title_text=NBADScope_Mapping[granularity],
+        legend_title_text=granularity,
         xaxis_title=component,
         yaxis_title="Number of Actions",
     )
@@ -797,7 +966,7 @@ def plot_priority_component_distribution(
         title=f"{component} Distribution by Issue",
         template="pega",
     ).update_layout(
-        xaxis_title=NBADScope_Mapping[granularity],
+        xaxis_title=granularity,
         yaxis_title=component,
         showlegend=False,
     )
@@ -868,8 +1037,8 @@ def create_win_distribution_plot(
         plot_data = data
     else:
         # Aggregate data based on scope level, but handle "No Winner" separately
-        no_winner_data = data.filter(pl.col("pyName") == "No Winner")
-        regular_data = data.filter(pl.col("pyName") != "No Winner")
+        no_winner_data = data.filter(pl.col("Action") == "No Winner")
+        regular_data = data.filter(pl.col("Action") != "No Winner")
 
         if regular_data.height > 0:
             aggregated_regular = (
@@ -898,20 +1067,20 @@ def create_win_distribution_plot(
     fig = go.Figure()
 
     # Create hover template based on the level in hierarchy
-    if scope_config["x_col"] == "pyGroup" and "pyIssue" in plot_data.columns:
+    if scope_config["x_col"] == "Group" and "Issue" in plot_data.columns:
         # Show pyIssue in hover when level is pyGroup
         hover_template = (
             "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
         )
-        customdata = plot_data["pyIssue"]
+        customdata = plot_data["Issue"]
     elif (
-        scope_config["x_col"] == "pyName"
-        and "pyGroup" in plot_data.columns
-        and "pyIssue" in plot_data.columns
+        scope_config["x_col"] == "Action"
+        and "Group" in plot_data.columns
+        and "Issue" in plot_data.columns
     ):
         # Show both pyGroup and pyIssue in hover when level is pyName (Action)
         hover_template = "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
-        customdata = list(zip(plot_data["pyGroup"], plot_data["pyIssue"]))
+        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
     else:
         # Default hover template
         hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"

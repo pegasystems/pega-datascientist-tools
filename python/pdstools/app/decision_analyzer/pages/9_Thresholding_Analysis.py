@@ -92,7 +92,7 @@ st.plotly_chart(
 # st.write(current_threshold)
 xxx = st.session_state.decision_data.getDistributionData(
     "Output",
-    ["pyIssue", "pyGroup"],
+    ["Issue", "Group"],
     additional_filters=(
         pl.col(f"{thresholding_on}_min") > current_threshold
     ),  # Hmm, probalby not the right way
@@ -101,8 +101,8 @@ xxx = st.session_state.decision_data.getDistributionData(
 st.write(
     st.session_state.decision_data.plot.distribution(
         xxx,
-        scope="pyIssue",
-        breakdown="pyGroup",
+        scope="Issue",
+        breakdown="Group",
         horizontal=True,
     )
 )

@@ -73,11 +73,11 @@ if st.session_state.get("analysis_applied", False):
         lever_condition
     )
     interactions_survived_till_arbitration = (
-        relevant_interactions.select("pxInteractionID").collect().n_unique()
+        relevant_interactions.select("Interaction ID").collect().n_unique()
     )
     current_number_of_wins = (
         relevant_interactions.filter(pl.col("pxRank") == 1)
-        .select("pxInteractionID")
+        .select("Interaction ID")
         .collect()
         .n_unique()
     )
@@ -171,7 +171,7 @@ if st.session_state.get("analysis_applied", False):
                     st.session_state.decision_data.arbitration_stage.filter(
                         lever_condition
                     )
-                    .select("pxInteractionID")
+                    .select("Interaction ID")
                     .unique()
                 )
 
@@ -182,7 +182,7 @@ if st.session_state.get("analysis_applied", False):
                             st.session_state.decision_data.stages_from_arbitration_down
                         )
                     )
-                    .join(relevant_interactions, on="pxInteractionID", how="inner")
+                    .join(relevant_interactions, on="Interaction ID", how="inner")
                     .with_columns(
                         segment=pl.when(lever_condition)
                         .then(pl.lit("Selected Actions"))

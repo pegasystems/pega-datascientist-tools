@@ -1,5 +1,4 @@
-import datetime
-import subprocess
+# python/pdstools/decision_analyzer/utils.py
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Type, Union
 
@@ -9,7 +8,6 @@ from ..utils.cdh_utils import parse_pega_date_time_formats
 from .table_definition import (
     DecisionAnalyzer,
     ExplainabilityExtract,
-    # audit_tag_mapping,
 )
 
 # As long as this is run once, anywhere, it's enabled globally.
@@ -27,20 +25,20 @@ class ColumnResolver:
     - Inbound vs Outbound channel data
 
     For example, channel information may appear as:
-    - 'pyChannel' (already using the target name), this column doesn't exist on Inbound calls
-    - 'Primary_ContainerPayload_Channel' (raw name needing rename),
-    this column has the channel information on Inbound calls but it is null on Outbound calls
-    - Both columns present (conflict requiring resolution)
+    - 'Channel' (already using the display name)
+    - 'pyChannel' (an alias for the display name)
+    - 'Primary_ContainerPayload_Channel' (raw name needing rename)
+    - Both raw key and display_name present (conflict requiring resolution)
 
     This class normalizes these variations by:
-    - Mapping raw column names to standardized target labels
-    - Resolving conflicts when both raw and target columns exist
+    - Mapping raw column names to standardized display names
+    - Resolving conflicts when both raw and display_name columns exist
     - Building the final schema with consistent column names
 
     Attributes
     ----------
     table_definition : Dict
-        Column definitions with 'label' (target name), 'default', and 'type' keys
+        Column definitions with 'display_name', 'default', and 'type' keys
     raw_columns : Set[str]
         Column names present in the raw data
     """
@@ -69,14 +67,14 @@ class ColumnResolver:
         if self._resolved:
             return self
 
-        resolved_targets: Dict[str, str] = {}  # target_label -> actual column name
-        columns_needing_rename: Dict[str, str] = {}  # raw_col -> target_label
+        resolved_targets: Dict[str, str] = {}  # display_name -> actual column name
+        columns_needing_rename: Dict[str, str] = {}  # raw_col -> display_name
 
         for raw_col, config in self.table_definition.items():
-            target_label = config["label"]
+            display_name = config["display_name"]
             raw_exists = raw_col in self.raw_columns
-            target_exists = target_label in self.raw_columns
-            needs_rename = raw_col != target_label
+            target_exists = display_name in self.raw_columns
+            needs_rename = raw_col != display_name
 
             if not raw_exists and not target_exists:
                 continue
@@ -85,32 +83,32 @@ class ColumnResolver:
             if raw_exists and target_exists and needs_rename:
                 # Conflict: both exist - prefer the already-correctly-named column
                 self.columns_to_drop.append(raw_col)
-                resolved_targets[target_label] = target_label
+                resolved_targets[display_name] = display_name
                 if config["default"]:
-                    self.type_mapping[target_label] = config["type"]
+                    self.type_mapping[display_name] = config["type"]
             elif raw_exists:
                 if needs_rename:
-                    columns_needing_rename[raw_col] = target_label
-                resolved_targets[target_label] = raw_col
+                    columns_needing_rename[raw_col] = display_name
+                resolved_targets[display_name] = raw_col
                 if config["default"]:
                     self.type_mapping[raw_col] = config["type"]
             elif target_exists:
-                resolved_targets[target_label] = target_label
+                resolved_targets[display_name] = display_name
                 if config["default"]:
-                    self.type_mapping[target_label] = config["type"]
+                    self.type_mapping[display_name] = config["type"]
 
         remaining_columns = self.raw_columns - set(self.columns_to_drop)
-        for raw_col, target_label in columns_needing_rename.items():
+        for raw_col, display_name in columns_needing_rename.items():
             if raw_col in remaining_columns:
-                self.rename_mapping[raw_col] = target_label
+                self.rename_mapping[raw_col] = display_name
 
         for raw_col, config in self.table_definition.items():
-            target_label = config["label"]
+            display_name = config["display_name"]
             if (
-                target_label in resolved_targets
-                and target_label not in self.final_columns
+                display_name in resolved_targets
+                and display_name not in self.final_columns
             ):
-                self.final_columns.append(target_label)
+                self.final_columns.append(display_name)
 
         self._resolved = True
         return self
@@ -127,21 +125,15 @@ class ColumnResolver:
         for raw_col, config in self.table_definition.items():
             if not config["default"]:
                 continue
-            target_label = config["label"]
-            if raw_col not in self.raw_columns and target_label not in self.raw_columns:
+            display_name = config["display_name"]
+            if raw_col not in self.raw_columns and display_name not in self.raw_columns:
                 missing.append(raw_col)
         return missing
 
 
-# superset, in order
-# TODO add treatment and subset against available columns
-
-NBADScope_Mapping = {
-    "pyIssue": "Issue",
-    "pyGroup": "Group",
-    "pyName": "Action",
-    # , "Treatment" : "Treatment"
-}
+# Scope hierarchy for plots and UI dropdowns.
+# Keys are the display names used in the data after renaming.
+SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 
 
 def apply_filter(
@@ -157,7 +149,9 @@ def apply_filter(
         if len(col_diff) == 0:
             df = df.filter(item)
         else:
-            raise pl.ColumnNotFoundError(col_diff)
+            from polars.exceptions import ColumnNotFoundError
+
+            raise ColumnNotFoundError(col_diff)
         return df
 
     if filters is None:
@@ -176,78 +170,6 @@ def apply_filter(
     return df
 
 
-# TODO refactor this into the DecisionData class and refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
-def filtered_action_counts(
-    df: pl.LazyFrame,
-    groupby_cols: list,
-    propensityTH: float = None,
-    priorityTH: float = None,
-) -> pl.LazyFrame:
-    """
-    Returns a DataFrame with action counts filtered based on the given propensity and priority thresholds.
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        The input dataframe.
-    groupby_cols : list
-        The list of column names to group by(["pxEngagementStage", "pxInteractionID"]).
-    propensityTH : float
-        The propensity threshold.
-    priorityTH : float
-        The priority threshold.
-
-    Returns
-    -------
-    pl.LazyFrame
-        A DataFrame with action counts filtered based on the given propensity and priority thresholds.
-    """
-
-    additional_cols = [
-        "pyName",
-        "Propensity",
-        "Priority",
-    ]
-    required_cols = list(set(groupby_cols + additional_cols))
-    # TODO below is a pattern (to check required columns) we probably need all over the place - but maybe at the level of the streamlit pages
-    for col in required_cols:
-        if col not in df.collect_schema().names():
-            raise ValueError(f"Column '{col}' not found in the dataframe.")
-
-    propensity_classifying_expr = [
-        pl.col("pyName")
-        .where((pl.col("Propensity") == 0.5) & (pl.col("StageGroup") != "Output"))
-        .count()
-        .alias("new_models"),
-        pl.col("pyName")
-        .where((pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
-        .count()
-        .alias("poor_propensity_offers"),
-        pl.col("pyName")
-        .where((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
-        .count()
-        .alias("poor_priority_offers"),
-        pl.col("pyName")
-        .where(
-            (pl.col("Propensity") >= propensityTH)
-            & (pl.col("Propensity") != 0.5)
-            & (pl.col("Priority") >= priorityTH)
-        )
-        .count()
-        .alias("good_offers"),
-    ]
-    if propensityTH is None or priorityTH is None:
-        filtered_action_counts = df.group_by(groupby_cols).agg(
-            no_of_offers=pl.count("pyName"),
-        )
-    else:
-        filtered_action_counts = df.group_by(groupby_cols).agg(
-            no_of_offers=pl.count("pyName"), *propensity_classifying_expr
-        )
-
-    return filtered_action_counts
-
-
 def area_under_curve(df: pl.DataFrame, col_x: str, col_y: str):
     return (
         df.with_columns(
@@ -264,61 +186,104 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
     return area_under_curve(df, col_x, col_y) * 2 - 1
 
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
 def get_first_level_stats(
     interaction_data: pl.LazyFrame, filters: List[pl.Expr] = None
 ):
-    """
-    Returns some first level stats of a dataframe. Used to
-    show effects of user data filters.
-    """
-    action_path = [
-        "pyIssue",
-        "pyGroup",
-        "pyName",
-    ]  # TODO generalize context keys, match with available data
-    counts = (
-        apply_filter(interaction_data, filters)
-        .select(
-            pl.struct(action_path).n_unique().alias("Actions"),
-            pl.count().alias("row_count"),
-            # pl.col("pyName")
-            # .unique()
-            # .implode(),  # pyName hardcoded here... and what is this implode for?
-        )
-        .collect()
-    )
+    """Returns first-level stats of a dataframe for the filter summary.
 
-    return {
+    Shows unique actions (Issue/Group/Action combinations), unique
+    interactions (decisions), and total rows so users understand the
+    impact of their filters.
+    """
+    action_path = ["Issue", "Group", "Action"]
+    schema = apply_filter(interaction_data, filters).collect_schema()
+    has_interaction_id = "Interaction ID" in schema.names()
+
+    select_exprs = [
+        pl.struct(action_path).n_unique().alias("Actions"),
+        pl.len().alias("row_count"),
+    ]
+    if has_interaction_id:
+        select_exprs.append(pl.n_unique("Interaction ID").alias("interaction_count"))
+
+    counts = apply_filter(interaction_data, filters).select(select_exprs).collect()
+
+    stats = {
         "Actions": counts.get_column("Actions").item(),
         "Rows": counts.get_column("row_count").item(),
     }
+    if has_interaction_id:
+        stats["Interactions"] = counts.get_column("interaction_count").item()
+    return stats
 
 
-def get_git_version_and_date():
-    # Get the version tag
-    version = (
-        subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
-        .decode()
-        .strip()
-        .replace("v", "")
-    )
+def resolve_aliases(
+    df: pl.LazyFrame,
+    *table_definitions: Dict,
+) -> pl.LazyFrame:
+    """Rename alias columns to their canonical raw key names before validation.
 
-    # Get the date the tag was pushed
-    date_str = (
-        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])
-        .decode()
-        .strip()
-    )
-    date = datetime.datetime.strptime(date_str.split()[0], "%Y-%m-%d")
-    return version, date.strftime("%d %b %Y")
+    Scans all table definitions for ``aliases`` entries. If an alias is found
+    in the data but neither the raw key nor the display_name is present, the
+    column is renamed to the raw key so downstream processing can find it.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data that may use alternative column names.
+    *table_definitions : Dict
+        One or more table definition dicts (DecisionAnalyzer, ExplainabilityExtract).
+
+    Returns
+    -------
+    pl.LazyFrame
+        Data with alias columns renamed to canonical raw key names.
+    """
+    raw_cols = set(df.collect_schema().names())
+    renames: Dict[str, str] = {}
+
+    # Collect all raw keys across all table definitions so we never rename
+    # a column that is itself a canonical raw key in another definition.
+    all_raw_keys = set()
+    for table_def in table_definitions:
+        all_raw_keys.update(table_def.keys())
+
+    for table_def in table_definitions:
+        for canonical, config in table_def.items():
+            aliases = config.get("aliases", [])
+            if not aliases:
+                continue
+            # Only rename if neither the canonical raw key nor the display_name are present
+            display_name = config["display_name"]
+            if canonical in raw_cols or display_name in raw_cols:
+                continue
+            for alias in aliases:
+                if alias in raw_cols and alias not in renames:
+                    # Don't rename if the alias is itself a raw key in another table definition
+                    if alias in all_raw_keys and alias != canonical:
+                        continue
+                    renames[alias] = canonical
+                    break
+
+    return df.rename(renames) if renames else df
 
 
 def determine_extract_type(raw_data):
+    """Detect whether the data is a Decision Analyzer (v2) or Explainability Extract (v1).
+
+    The heuristic is: if any column name matches the raw key, display name, or
+    aliases for the ``pxStrategyName`` entry in the DecisionAnalyzer table
+    definition, the data is v2.
+    """
+    strategy_config = DecisionAnalyzer.get("pxStrategyName", {})
+    strategy_names = {"pxStrategyName"}
+    if strategy_config:
+        strategy_names.add(strategy_config["display_name"])
+        strategy_names.update(strategy_config.get("aliases", []))
+
+    available = set(raw_data.collect_schema().names())
     return (
-        "decision_analyzer"
-        if "pxStrategyName" in raw_data.collect_schema().names()
-        else "explainability_extract"
+        "decision_analyzer" if strategy_names & available else "explainability_extract"
     )
 
 
@@ -328,12 +293,16 @@ def rename_and_cast_types(
 ) -> pl.LazyFrame:
     """Rename columns and cast data types based on table definition.
 
+    Performs a single-pass rename from raw column keys to display names,
+    then casts types for default columns.
+
     Parameters
     ----------
     df : pl.LazyFrame
         The input dataframe to process
     table_definition : Dict
-        Dictionary containing column definitions with 'label', 'default', and 'type' keys
+        Dictionary containing column definitions with 'display_name', 'default',
+        and 'type' keys
 
     Returns
     -------
@@ -419,7 +388,7 @@ def create_hierarchical_selectors(
 
     # Step 1: Get all available issues
     available_issues = (
-        data.select("pyIssue").unique().collect().get_column("pyIssue").to_list()
+        data.select("Issue").unique().collect().get_column("Issue").to_list()
     )
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
@@ -431,12 +400,12 @@ def create_hierarchical_selectors(
     )
 
     # Step 2: Get groups for current issue
-    filtered_by_issue = data.filter(pl.col("pyIssue") == current_issue)
+    filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
     available_groups = (
-        filtered_by_issue.select("pyGroup")
+        filtered_by_issue.select("Group")
         .unique()
         .collect()
-        .get_column("pyGroup")
+        .get_column("Group")
         .to_list()
     )
     group_options = ["All"] + available_groups
@@ -452,14 +421,14 @@ def create_hierarchical_selectors(
         filtered_by_issue_group = filtered_by_issue
     else:
         filtered_by_issue_group = filtered_by_issue.filter(
-            pl.col("pyGroup") == current_group
+            pl.col("Group") == current_group
         )
 
     available_actions = (
-        filtered_by_issue_group.select("pyName")
+        filtered_by_issue_group.select("Action")
         .unique()
         .collect()
-        .get_column("pyName")
+        .get_column("Action")
         .to_list()
     )
     action_options = ["All"] + available_actions
@@ -480,10 +449,6 @@ def get_scope_config(
     """
     Generate scope configuration for lever application and plotting based on user selections.
 
-    This utility function determines the appropriate scope level (Issue, Group, or Action)
-    based on hierarchical user selections and returns configuration needed for both
-    lever condition generation and plotting.
-
     Parameters
     ----------
     selected_issue : str
@@ -503,51 +468,32 @@ def get_scope_config(
         - x_col: Column name to use for x-axis in plots
         - selected_value: The actual selected value for highlighting
         - plot_title_prefix: Prefix for plot titles
-
-    Notes
-    -----
-    The function follows hierarchical logic:
-    - If action != "All": Action-level scope
-    - Elif group != "All": Group-level scope
-    - Else: Issue-level scope
-
-    Examples
-    --------
-    Action-level selection:
-    >>> config = get_scope_config("Service", "Cards", "SpecificAction")
-    >>> config["level"]  # "Action"
-    >>> config["lever_condition"]  # pl.col("pyName") == "SpecificAction"
-
-    Group-level selection:
-    >>> config = get_scope_config("Service", "Cards", "All")
-    >>> config["level"]  # "Group"
-    >>> config["lever_condition"]  # (pl.col("pyIssue") == "Service") & (pl.col("pyGroup") == "Cards")
     """
     if selected_action != "All":
         return {
             "level": "Action",
-            "lever_condition": pl.col("pyName") == selected_action,
-            "group_cols": ["pyIssue", "pyGroup", "pyName"],
-            "x_col": "pyName",
+            "lever_condition": pl.col("Action") == selected_action,
+            "group_cols": ["Issue", "Group", "Action"],
+            "x_col": "Action",
             "selected_value": selected_action,
             "plot_title_prefix": "Win Count by Action",
         }
     elif selected_group != "All":
         return {
             "level": "Group",
-            "lever_condition": (pl.col("pyIssue") == selected_issue)
-            & (pl.col("pyGroup") == selected_group),
-            "group_cols": ["pyIssue", "pyGroup"],
-            "x_col": "pyGroup",
+            "lever_condition": (pl.col("Issue") == selected_issue)
+            & (pl.col("Group") == selected_group),
+            "group_cols": ["Issue", "Group"],
+            "x_col": "Group",
             "selected_value": selected_group,
             "plot_title_prefix": "Win Count by Group",
         }
     else:
         return {
             "level": "Issue",
-            "lever_condition": pl.col("pyIssue") == selected_issue,
-            "group_cols": ["pyIssue"],
-            "x_col": "pyIssue",
+            "lever_condition": pl.col("Issue") == selected_issue,
+            "group_cols": ["Issue"],
+            "x_col": "Issue",
             "selected_value": selected_issue,
             "plot_title_prefix": "Win Count by Issue",
         }

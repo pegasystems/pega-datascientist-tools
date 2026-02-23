@@ -133,6 +133,11 @@ python -m build --sdist --wheel --outdir dist/ .
 - Use `polars.LazyFrame` where feasible; collect only at boundaries.
 - Prefer expression-based transforms (`pl.Expr`) over Python loops.
 - Keep IO in dedicated helpers; avoid side effects in pure functions.
+- Column names in DecisionAnalyzer use human-friendly display names
+  (e.g. "Issue", "Action", "Interaction ID") defined in
+  `table_definition.py`. Never use internal Pega names (`pyIssue`,
+  `pxInteractionID`, etc.) in new code. Internal working columns
+  (`pxRank`, `is_mandatory`, `day`) are exceptions.
 
 ### Tests
 - Use pytest fixtures for shared setup.
