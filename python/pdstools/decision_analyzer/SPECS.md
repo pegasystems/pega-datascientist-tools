@@ -21,7 +21,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### High Priority
 
-- [ ] **Human-friendly field names (display_name refactor)** — Eliminate internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) from all UI surfaces, plot labels, and filter dropdowns. Users should only ever see friendly names like "Issue", "Interaction ID", "Channel", etc. The data dictionary (`table_definition.py`) is the single source of truth for these names. Changing a name there should propagate everywhere. See dedicated section below for the full plan.
+- [x] **Human-friendly field names (display_name refactor)** — Internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) replaced with friendly names ("Issue", "Interaction ID", "Channel", etc.) on all UI surfaces. `table_definition.py` is the single source of truth via `display_name`. See dedicated section below for details. Remaining internal names (`pxRank`, `is_mandatory`, `day`) are internal working columns (expected exceptions).
 - [x] **Handle missing PVCL components** — `reRank()` now checks which columns exist and fills missing ones with 1.0 (neutral for multiplication).
 - [ ] **Fix num_samples > 1** — Pre-aggregation sampling locked at 1 because >1 breaks `.explode()` in thresholding. Either fix thresholding or document limitation.
 - [ ] **Validate fields_for_data_filtering** — Subset against actual available columns instead of hardcoded list. Update to use display names after the friendly-names refactor.
@@ -66,13 +66,16 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ## Streamlit Pages
 
-### Page 1: Global Filters
+### Page 1: Global Data Filters
+- [x] **Rename to Global Data Filters** — Page file renamed from `1_Global_Filters.py` to `1_Global_Data_Filters.py`, title updated.
+- [x] **Add Interactions to filter summary** — `get_first_level_stats()` now reports Actions (unique Issue/Group/Action combos), Interactions (unique Interaction IDs, i.e. decisions), and Rows (total dataset rows). Removed stale "sampling settings" remark from page text.
+- [x] **Fix deprecated polars serialization API** — Replaced `Expr.from_json` → `Expr.deserialize` and `meta.write_json` → `meta.serialize` (aligned with Health Check page).
 - [ ] Customize filter dropdown (focus on logical filter fields)
 - [ ] Add reset button for filters
 - [ ] Make code robust against heavy filtering (e.g. dropping stages)
 - [ ] Apply filters by default when set
 
-### Page 2: Global Dashboard
+### Page 2: Overview
 - [ ] Add Value Finder-style pie chart at arbitration
 - [ ] Speed up first-use (does too much computation upfront)
 
@@ -133,12 +136,12 @@ Tracked on branch: `refactor/decision-analyzer`
 
 **Goal**: Users never see internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) in the UI. Every column uses a user-friendly name like "Issue", "Interaction ID", "Channel". The data dictionary (`table_definition.py`) is the single source of truth — changing a name there propagates everywhere.
 
-### Current state
+### Current state (at time of writing — now completed)
 
-- `TableConfig` has a `label` field that serves as the rename target (e.g. `Primary_ContainerPayload_Channel` → `pyChannel`). But most labels are just the internal Pega name again (`"pyIssue"` → label `"pyIssue"`), not user-friendly.
-- `NBADScope_Mapping` in `utils.py` is a parallel dict (`{"pyIssue": "Issue", ...}`) used only in plot legends — a second source of truth for display names.
-- The filter multiselect in `get_data_filters()` has a `format_func` hack that strips `py`/`px` prefixes — a third approach to the same problem.
-- Internal names like `pyIssue`, `pyGroup`, `pyName` are hardcoded in polars expressions across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, and tests.
+- `TableConfig` used a `label` field. Most labels were just the internal Pega name again (`"pyIssue"` → label `"pyIssue"`), not user-friendly.
+- `NBADScope_Mapping` in `utils.py` was a parallel dict — a second source of truth for display names.
+- The filter multiselect in `get_data_filters()` had a `format_func` hack that strips `py`/`px` prefixes — a third approach.
+- Internal names were hardcoded in polars expressions across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, and tests.
 
 ### Design
 
@@ -176,16 +179,16 @@ The raw column key (`"pyIssue"`) identifies what arrives in the data. The `displ
 
 ### Implementation steps
 
-- [ ] **Replace `label` with `display_name`** in `TableConfig` TypedDict and all entries in both `DecisionAnalyzer` and `ExplainabilityExtract` dicts in `table_definition.py`.
-- [ ] **Simplify `ColumnResolver`** — single rename pass: raw column key → `display_name`. Remove the intermediate `label` concept. When both raw key and display_name exist as columns, prefer display_name (existing conflict resolution logic).
-- [ ] **Update `resolve_aliases`** — target is now `display_name` instead of the raw key.
-- [ ] **Update all `pl.col()` references** — mechanical search-and-replace across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, `da_streamlit_utils.py`, and tests. This is the largest part of the work.
-- [ ] **Retire `NBADScope_Mapping`** — no longer needed; column names are already friendly. Remove from `utils.py` and all plot code that references it for legend titles.
-- [ ] **Remove `format_func` hack** in `get_data_filters()` — the multiselect can show column names directly.
-- [ ] **Update `fields_for_data_filtering`** — use display names.
-- [ ] **Update `preaggregation_columns`** — use display names.
-- [ ] **Update `audit_tag_mapping`** — if it references internal names (currently it uses strategy-level names, likely unaffected).
-- [ ] **Update tests** — all assertions and column references in `test_DecisionAnalyzer.py`.
+- [x] **Replace `label` with `display_name`** in `TableConfig` TypedDict and all entries in both `DecisionAnalyzer` and `ExplainabilityExtract` dicts in `table_definition.py`.
+- [x] **Simplify `ColumnResolver`** — single rename pass: raw column key → `display_name`. Remove the intermediate `label` concept. When both raw key and display_name exist as columns, prefer display_name (existing conflict resolution logic).
+- [x] **Update `resolve_aliases`** — target is now `display_name` instead of the raw key.
+- [x] **Update all `pl.col()` references** — mechanical search-and-replace across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, `da_streamlit_utils.py`, and tests. Remaining `pxRank` / `is_mandatory` / `day` references are internal working columns (expected).
+- [x] **Retire `NBADScope_Mapping`** — removed from `utils.py` and all plot code.
+- [x] **Remove `format_func` hack** in `get_data_filters()` — multiselect shows column names directly.
+- [x] **Update `fields_for_data_filtering`** — uses display names.
+- [x] **Update `preaggregation_columns`** — uses display names.
+- [x] **Update `audit_tag_mapping`** — no longer exists; not applicable.
+- [x] **Update tests** — assertions and column references in `test_DecisionAnalyzer.py` updated.
 
 ### Risks & notes
 

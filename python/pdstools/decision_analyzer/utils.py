@@ -258,24 +258,32 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
 def get_first_level_stats(
     interaction_data: pl.LazyFrame, filters: List[pl.Expr] = None
 ):
-    """
-    Returns some first level stats of a dataframe. Used to
-    show effects of user data filters.
+    """Returns first-level stats of a dataframe for the filter summary.
+
+    Shows unique actions (Issue/Group/Action combinations), unique
+    interactions (decisions), and total rows so users understand the
+    impact of their filters.
     """
     action_path = ["Issue", "Group", "Action"]
-    counts = (
-        apply_filter(interaction_data, filters)
-        .select(
-            pl.struct(action_path).n_unique().alias("Actions"),
-            pl.count().alias("row_count"),
-        )
-        .collect()
-    )
+    schema = apply_filter(interaction_data, filters).collect_schema()
+    has_interaction_id = "Interaction ID" in schema.names()
 
-    return {
+    select_exprs = [
+        pl.struct(action_path).n_unique().alias("Actions"),
+        pl.len().alias("row_count"),
+    ]
+    if has_interaction_id:
+        select_exprs.append(pl.n_unique("Interaction ID").alias("interaction_count"))
+
+    counts = apply_filter(interaction_data, filters).select(select_exprs).collect()
+
+    stats = {
         "Actions": counts.get_column("Actions").item(),
         "Rows": counts.get_column("row_count").item(),
     }
+    if has_interaction_id:
+        stats["Interactions"] = counts.get_column("interaction_count").item()
+    return stats
 
 
 def resolve_aliases(

@@ -1,3 +1,4 @@
+import io
 import json
 
 import polars as pl
@@ -13,7 +14,7 @@ from pdstools.decision_analyzer.utils import get_first_level_stats
 # TODO Summarize the current filtering even if not re-applying it. Add possibility to reset the filter in the Global Filter page.
 # TODO Make rest of code robust against heavy filtering, e.g. dropping stages etc
 
-"""# Global Filters"""
+"""# Global Data Filters"""
 
 """Here you can filter the decision data for analysis. You don't need to, if
 you don't, then **all** data will be used.
@@ -21,8 +22,6 @@ you don't, then **all** data will be used.
 In the drop down below, select the columns you wish to filter (e.g. Group, Issue, Channel etc).
 For each column, a new configuration screen will be added in which you can specify
 what values you want to use in the Decision Analyzer.
-
-In the future, we may have sampling settings here as well.
 """
 
 ensure_data()
@@ -39,7 +38,8 @@ with st.container(border=True):
     if uploaded_file:
         imported_filters = json.load(uploaded_file)
         for key, val in imported_filters.items():
-            expr_list.append(pl.Expr.from_json(json.dumps(val)))
+            str_io = io.StringIO(json.dumps(val))
+            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
 
 st.session_state["filters"] = get_data_filters(
     st.session_state.decision_data.unfiltered_raw_decision_data,
@@ -51,10 +51,11 @@ st.session_state["filters"] = get_data_filters(
 # Allow for optional save
 # TODO: consider doing this by default
 if st.session_state["filters"] != []:
-    deserialize_exprs = {}
+    serialized_exprs = {}
     for i, expr in enumerate(st.session_state["filters"]):
-        deserialize_exprs[i] = json.loads(expr.meta.write_json())
-    data = json.dumps(deserialize_exprs)
+        serialized = expr.meta.serialize(format="json")
+        serialized_exprs[i] = json.loads(serialized)
+    data = json.dumps(serialized_exprs)
     st.download_button(
         label="Save current filters",
         data=data,

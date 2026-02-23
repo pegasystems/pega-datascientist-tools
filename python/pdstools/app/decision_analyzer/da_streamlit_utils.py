@@ -375,7 +375,7 @@ def handle_file_path() -> Optional[pl.LazyFrame]:
     st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
     path = st.text_input(
         "File or partitioned folder path",
-        placeholder="/Users/Downloads",
+        placeholder="/path/to/data",
     )
     if not path:
         return None
