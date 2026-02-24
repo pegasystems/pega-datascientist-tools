@@ -11,7 +11,10 @@ from pdstools.decision_analyzer.data_read_utils import (
 )
 from pdstools.pega_io.File import read_ds_export
 
-from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+from pdstools.decision_analyzer.plots import (
+    plot_component_overview,
+    plot_priority_component_distribution,
+)
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
@@ -58,6 +61,56 @@ def stage_level_selector():
     chosen = st.session_state.get("_stage_level_radio", current)
     if chosen != da.level:
         da.set_level(chosen)
+
+
+def stage_selectbox(
+    label: str = "Select Stage",
+    key: str = "stage",
+    default: Optional[str] = None,
+    **kwargs,
+):
+    """Render a stage selectbox that groups stages by their Stage Group.
+
+    When the DecisionAnalyzer ``level`` is ``"Stage"`` and a stage→group
+    mapping exists, each option is displayed as ``"GroupName / StageName"``
+    so the user can see which group a stage belongs to.  At ``"Stage Group"``
+    level (or when there is no mapping), options are shown as-is.
+
+    Parameters
+    ----------
+    label : str
+        Widget label.
+    key : str
+        Session-state key for the selected value.
+    default : str, optional
+        Preferred default value (e.g. ``"Arbitration"``).  Falls back to
+        the first option when the default is not available.
+    **kwargs
+        Extra keyword arguments forwarded to ``st.selectbox``.
+    """
+    da = st.session_state.decision_data
+    stage_options = da.getPossibleStageValues()
+    mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
+
+    if mapping:
+        format_func = lambda s: f"{mapping.get(s, '?')}  ·  {s}"  # noqa: E731
+    else:
+        format_func = str
+
+    # Determine index
+    if default and key not in st.session_state and default in stage_options:
+        index = stage_options.index(default)
+    else:
+        index = get_current_index(stage_options, key)
+
+    st.selectbox(
+        label,
+        options=stage_options,
+        index=index,
+        key=key,
+        format_func=format_func,
+        **kwargs,
+    )
 
 
 def ensure_funnel():
@@ -521,3 +574,8 @@ def st_priority_component_distribution(
     value_data: pl.LazyFrame, component, granularity
 ):
     return plot_priority_component_distribution(value_data, component, granularity)
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def st_component_overview(value_data: pl.LazyFrame, components, granularity):
+    return plot_component_overview(value_data, components, granularity)

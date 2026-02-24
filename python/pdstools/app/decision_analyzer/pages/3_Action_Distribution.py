@@ -5,6 +5,7 @@ from da_streamlit_utils import (
     get_current_index,
     ensure_data,
     stage_level_selector,
+    stage_selectbox,
 )
 
 
@@ -35,15 +36,8 @@ with st.session_state["sidebar"]:
     stage_level_selector()
 
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
 
-    stage_index = get_current_index(stage_options, "stage")
-    st.selectbox(
-        "Select Stage",
-        options=stage_options,
-        index=stage_index,
-        key="stage",
-    )
+    stage_selectbox()
 distribution_data = st.session_state.decision_data.getDistributionData(
     st.session_state.stage, scope_options
 )

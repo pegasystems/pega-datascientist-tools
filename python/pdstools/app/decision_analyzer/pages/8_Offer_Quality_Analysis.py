@@ -6,6 +6,7 @@ from da_streamlit_utils import (
     get_current_index,
     ensure_data,
     stage_level_selector,
+    stage_selectbox,
 )
 # TODO generalize a bit: no actions, just one, with a low propensity, sufficient
 # TODO support the propensity based categories for those stages that have it
@@ -56,7 +57,6 @@ with st.session_state["sidebar"]:
     stage_level_selector()
 
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
 
     # TODO too much kept in session state here, not necessary
 
@@ -85,13 +85,7 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
-    stage_index = get_current_index(stage_options, "stage")
-    st.selectbox(
-        "Select Stage",
-        options=stage_options,
-        index=stage_index,
-        key="stage",
-    )
+    stage_selectbox()
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
     groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"]

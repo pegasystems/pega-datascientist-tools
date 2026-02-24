@@ -662,6 +662,30 @@ class DecisionAnalyzer:
         # ]
         return options
 
+    @property
+    def stage_to_group_mapping(self) -> Dict[str, str]:
+        """Map each Stage name to its Stage Group.
+
+        Only meaningful when ``level == "Stage"`` and both columns exist.
+        Returns an empty dict otherwise (including v1 / explainability data).
+        """
+        if self.level != "Stage":
+            return {}
+        available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+        if "Stage Group" not in available or "Stage" not in available:
+            return {}
+        mapping_df = (
+            self.unfiltered_raw_decision_data.select(["Stage", "Stage Group"])
+            .unique()
+            .collect()
+        )
+        return dict(
+            zip(
+                mapping_df.get_column("Stage").to_list(),
+                mapping_df.get_column("Stage Group").to_list(),
+            )
+        )
+
     def getDistributionData(
         self,
         stage: str,
@@ -1188,13 +1212,56 @@ class DecisionAnalyzer:
         ).filter(pl.col(self.level) == "Arbitration")
         return thresholds_long
 
-    def priority_component_distribution(self, component, granularity):
-        distribution_data = (
-            self.sample.filter(pl.col("Priority").is_not_null())
-            .select([granularity, component])
-            .sort(granularity)
+    def priority_component_distribution(self, component, granularity, stage=None):
+        """Data for a single component's distribution, grouped by granularity.
+
+        Parameters
+        ----------
+        component : str
+            Column name of the component to analyze.
+        granularity : str
+            Column to group by (e.g. "Issue", "Group", "Action").
+        stage : str, optional
+            Filter to actions remaining at this stage. If None, uses all
+            rows with non-null Priority.
+        """
+        cols = [granularity, component]
+        df = self._remaining_at_stage(stage)
+        return df.select(cols).sort(granularity)
+
+    def all_components_distribution(self, granularity, stage=None):
+        """Data for the overview panel: all prioritization components at once.
+
+        Parameters
+        ----------
+        granularity : str
+            Column to group by.
+        stage : str, optional
+            Filter to actions remaining at this stage.
+        """
+        from .utils import PRIO_COMPONENTS
+
+        available = set(self.sample.collect_schema().names())
+        cols = [c for c in PRIO_COMPONENTS if c in available]
+        df = self._remaining_at_stage(stage)
+        return df.select([granularity] + cols).sort(granularity)
+
+    def _remaining_at_stage(self, stage=None):
+        """Return sample rows remaining at *stage*.
+
+        Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
+        order is >= the selected stage are "remaining" there.  If *stage*
+        is None, falls back to rows with non-null Priority.
+        """
+        if stage is None:
+            return self.sample.filter(pl.col("Priority").is_not_null())
+        stage_idx = (
+            self.AvailableNBADStages.index(stage)
+            if stage in self.AvailableNBADStages
+            else 0
         )
-        return distribution_data
+        remaining_stages = self.AvailableNBADStages[stage_idx:]
+        return self.sample.filter(pl.col(self.level).is_in(remaining_stages))
 
     def aggregate_remaining_per_stage(
         self, df: pl.LazyFrame, group_by_columns: List[str], aggregations: List = []

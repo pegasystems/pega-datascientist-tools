@@ -140,6 +140,9 @@ SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 # Priority factors (PVCL) used in arbitration scoring and sensitivity analysis.
 PRIO_FACTORS = ["Propensity", "Value", "Context Weight", "Levers"]
 
+# All prioritization components including the computed Priority itself.
+PRIO_COMPONENTS = PRIO_FACTORS + ["Priority"]
+
 
 def apply_filter(
     df: pl.LazyFrame, filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None

@@ -1,9 +1,10 @@
+# python/pdstools/app/decision_analyzer/pages/7_Personalization_Analysis.py
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
-    get_data_filters,
     ensure_data,
     stage_level_selector,
+    stage_selectbox,
 )
 
 # TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
@@ -23,30 +24,10 @@ The propensity pre-arbitration is not available in the actual Decision Analyser 
 in the Arbitration stage for the actions prioritized by AI.
 """
 ensure_data()
-if "local_optionality" not in st.session_state:
-    st.session_state["local_optionality"] = st.session_state.decision_data.sample
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     stage_level_selector()
 
-    st.session_state["local_filters"] = get_data_filters(
-        st.session_state.decision_data.sample,
-        columns=["Channel", "Direction", "Issue", "Group"],
-        queries=[],
-        filter_type="local",
-    )
-    if st.button("Apply Filters"):
-        # Only filter and update the DataFrame when the button is clicked
-        if st.session_state["local_filters"]:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample.filter(
-                    st.session_state["local_filters"]
-                )
-            )
-        else:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample
-            )
 "### Optionality"
 
 with st.container(border=True):
@@ -56,28 +37,15 @@ with st.container(border=True):
     you would expect higher propensities as there is more to choose from.
     """
 
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
-    if (
-        "optionality_stage" not in st.session_state
-        or st.session_state.optionality_stage not in stage_options
-    ):
-        st.session_state.optionality_stage = (
-            "Arbitration" if "Arbitration" in stage_options else stage_options[0]
-        )
-
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
-            stage=st.session_state.optionality_stage,
-            df=st.session_state["local_optionality"],
+            stage=st.session_state.get("optionality_stage", "Arbitration"),
+            df=st.session_state.decision_data.sample,
         ),
         use_container_width=True,
     )
 
-    st.selectbox(
-        "Select Stage",
-        options=stage_options,
-        key="optionality_stage",
-    )
+    stage_selectbox(key="optionality_stage", default="Arbitration")
 
 if st.session_state.decision_data.extract_type != "explainability_extract":
     with st.container(border=True):
@@ -86,7 +54,7 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
         if st.session_state.decision_data.extract_type == "decision_analyzer":
             st.plotly_chart(
                 st.session_state.decision_data.plot.optionality_funnel(
-                    df=st.session_state["local_optionality"]
+                    df=st.session_state.decision_data.sample
                 ),
                 use_container_width=True,
             )
@@ -102,7 +70,7 @@ changes in the number of available actions
 
 optionality_data_with_trend_per_stage = (
     st.session_state.decision_data.get_optionality_data_with_trend(
-        df=st.session_state["local_optionality"]
+        df=st.session_state.decision_data.sample
     )
     .group_by(["day", st.session_state.decision_data.level])
     .agg(nOffers=pl.col("nOffers").max())

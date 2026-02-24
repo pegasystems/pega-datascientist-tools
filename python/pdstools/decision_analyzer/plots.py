@@ -932,32 +932,116 @@ def getTrendChart(
     return fig
 
 
+# ECDF sends one point per row to the browser; cap to keep it responsive.
+_ECDF_MAX_ROWS = 50_000
+
+
 def plot_priority_component_distribution(
     value_data: pl.LazyFrame, component: str, granularity: str
 ):
-    histogram = px.histogram(
-        value_data.collect(),
+    """Violin + ECDF + summary statistics for a single prioritization component.
+
+    Returns
+    -------
+    tuple of (go.Figure, go.Figure, pl.DataFrame)
+        violin_fig, ecdf_fig, stats_df
+    """
+    collected = value_data.collect()
+
+    violin_fig = px.violin(
+        collected,
         x=component,
-        nbins=20,
-        title=f"{component} Distribution",
         color=granularity,
         template="pega",
+        box=True,
+        points=False,
     ).update_layout(
-        yaxis_title="Number of Actions",
+        yaxis_title=granularity,
+        xaxis_title=component,
+        legend_title_text=granularity,
     )
 
-    # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
-    box_plot = px.box(
-        value_data.collect(),
-        x=granularity,
-        y=component,
-        title=f"{component} Distribution by Issue",
+    ecdf_fig = px.ecdf(
+        collected,
+        x=component,
+        color=granularity,
         template="pega",
+        markers=False,
     ).update_layout(
+        yaxis_title="Cumulative Proportion",
+        xaxis_title=component,
+        legend_title_text=granularity,
+    )
+
+    stats_df = (
+        value_data.group_by(granularity)
+        .agg(
+            pl.col(component).count().alias("Count"),
+            pl.col(component).mean().alias("Mean"),
+            pl.col(component).median().alias("Median"),
+            pl.col(component).std().alias("Std"),
+            pl.col(component).min().alias("Min"),
+            pl.col(component).quantile(0.05).alias("P5"),
+            pl.col(component).quantile(0.25).alias("P25"),
+            pl.col(component).quantile(0.75).alias("P75"),
+            pl.col(component).quantile(0.95).alias("P95"),
+            pl.col(component).max().alias("Max"),
+        )
+        .sort(granularity)
+        .collect()
+    )
+
+    return violin_fig, ecdf_fig, stats_df
+
+
+def plot_component_overview(
+    value_data: pl.LazyFrame, components: List[str], granularity: str
+) -> go.Figure:
+    """Small-multiples violin panel showing all components side by side.
+
+    Each component is a separate facet so their different scales don't
+    interfere. The violins are colored by *granularity* (e.g. Issue).
+
+    Returns
+    -------
+    go.Figure
+    """
+    available = set(value_data.collect_schema().names())
+    components = [c for c in components if c in available]
+    if not components:
+        fig = go.Figure()
+        fig.add_annotation(text="No component columns available", showarrow=False)
+        return fig
+
+    collected = value_data.select([granularity] + components).collect()
+    melted = collected.unpivot(
+        on=components, index=granularity, variable_name="Component", value_name="Value"
+    )
+
+    fig = px.violin(
+        melted,
+        x="Value",
+        y=granularity,
+        color=granularity,
+        facet_col="Component",
+        facet_col_wrap=3,
+        template="pega",
+        box=True,
+        points=False,
+    )
+    # Break all axis sharing so each facet scales independently.
+    fig.update_xaxes(matches=None, title="")
+    fig.update_yaxes(matches=None, title="")
+    for axis_name in list(fig.layout.to_plotly_json()):
+        if axis_name.startswith("xaxis"):
+            fig.layout[axis_name]["matches"] = None
+            fig.layout[axis_name]["autorange"] = True
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.update_layout(
+        height=max(350, 200 * ((len(components) + 2) // 3)),
         showlegend=False,
     )
-
-    return histogram, box_plot
+    return fig
 
 
 def create_win_distribution_plot(
