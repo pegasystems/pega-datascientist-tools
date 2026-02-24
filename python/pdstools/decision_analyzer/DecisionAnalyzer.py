@@ -201,7 +201,7 @@ class DecisionAnalyzer:
         >>> decision_analyzer = DecisionAnalyzer(raw_data, mandatory_expr=mandatory)
         """
         self.plot = Plot(self)
-        self.level = level  # Stage or StageGroup
+        self.level = level
         self.sample_size = sample_size
         # Normalize alternative column names (e.g. "Issue" → "Issue")
         raw_data = resolve_aliases(
@@ -299,6 +299,69 @@ class DecisionAnalyzer:
                 stage_df = pl.concat([stage_df, arb])
             stage_df = stage_df.sort("Stage Order")
             self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
+
+    @property
+    def available_levels(self) -> List[str]:
+        """Stage granularity levels available for this dataset.
+
+        Returns ``["Stage Group", "Stage"]`` for Decision Analyzer (v2) data
+        when both columns are present, or ``["Stage Group"]`` for
+        Explainability Extract (v1) data where only synthetic stages exist.
+        """
+        if self.extract_type == "explainability_extract":
+            return ["Stage Group"]
+        available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+        levels = []
+        if "Stage Group" in available:
+            levels.append("Stage Group")
+        if "Stage" in available:
+            levels.append("Stage")
+        return levels if levels else ["Stage Group"]
+
+    def set_level(self, level: str):
+        """Switch the stage granularity level used for all analyses.
+
+        Recomputes the available stages for the new level and invalidates
+        all cached properties so subsequent queries use the new granularity.
+
+        Parameters
+        ----------
+        level : str
+            ``"Stage Group"`` or ``"Stage"``.
+        """
+        if level == self.level:
+            return
+        valid_levels = set(self.available_levels)
+        if level not in valid_levels:
+            raise ValueError(
+                f"level must be one of {sorted(valid_levels)}, got '{level}'"
+            )
+        self.level = level
+        self._recompute_available_stages()
+        self._invalidate_cached_properties()
+
+    def _recompute_available_stages(self):
+        """Derive ``AvailableNBADStages`` from the data for the current level."""
+        if self.extract_type == "explainability_extract":
+            self.AvailableNBADStages = ["Arbitration", "Output"]
+            return
+
+        stage_df = (
+            self.unfiltered_raw_decision_data.group_by(self.level)
+            .agg(pl.min("Stage Order"))
+            .collect()
+        )
+        if (
+            "Arbitration" not in stage_df[self.level].to_list()
+            and self.level == "Stage Group"
+        ):
+            arb = pl.DataFrame(
+                {self.level: "Arbitration", "Stage Order": 3800},
+                schema=stage_df.schema,
+            )
+            stage_df = pl.concat([stage_df, arb])
+        stage_df = stage_df.sort("Stage Order")
+        self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
     @cached_property
     def stages_from_arbitration_down(self):
@@ -444,8 +507,11 @@ class DecisionAnalyzer:
         """Hash-based deterministic sample of interactions for resource-intensive analyses.
 
         Selects up to ``sample_size`` unique interactions using a hash of
-        ``pxInteractionID``. All actions within a selected interaction are kept.
+        Interaction ID. All actions within a selected interaction are kept.
         If fewer interactions exist than ``sample_size``, no sampling is performed.
+
+        When the ``--sample`` CLI flag is active, this operates on the
+        already-reduced dataset, so two layers of sampling may apply.
         """
         needed_columns = [
             "Interaction ID",
@@ -934,7 +1000,7 @@ class DecisionAnalyzer:
         )
         schema = per_offer_count_and_stage.collect_schema()
         zero_actions = (
-            per_offer_count_and_stage.group_by("Stage Group")
+            per_offer_count_and_stage.group_by(self.level)
             .agg(interaction_count=pl.sum("Interactions"))
             .with_columns(
                 Interactions=(total_interactions - pl.col("interaction_count")).cast(
@@ -999,9 +1065,9 @@ class DecisionAnalyzer:
                     pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"])
                 ),
             )
-            .group_by(["Stage Group", "available_actions"])
+            .group_by([self.level, "available_actions"])
             .agg(pl.sum("Interactions"))
-            .sort(["Stage Group", "available_actions"])
+            .sort([self.level, "available_actions"])
         )
         return optionality_funnel
 

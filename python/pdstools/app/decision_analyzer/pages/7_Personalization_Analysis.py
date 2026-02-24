@@ -3,6 +3,7 @@ import streamlit as st
 from da_streamlit_utils import (
     get_data_filters,
     ensure_data,
+    stage_level_selector,
 )
 
 # TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
@@ -26,6 +27,8 @@ if "local_optionality" not in st.session_state:
     st.session_state["local_optionality"] = st.session_state.decision_data.sample
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
+    stage_level_selector()
+
     st.session_state["local_filters"] = get_data_filters(
         st.session_state.decision_data.sample,
         columns=["Channel", "Direction", "Issue", "Group"],
@@ -101,7 +104,7 @@ optionality_data_with_trend_per_stage = (
     st.session_state.decision_data.get_optionality_data_with_trend(
         df=st.session_state["local_optionality"]
     )
-    .group_by(["day", "Stage Group"])
+    .group_by(["day", st.session_state.decision_data.level])
     .agg(nOffers=pl.col("nOffers").max())
     .sort("day")
 )

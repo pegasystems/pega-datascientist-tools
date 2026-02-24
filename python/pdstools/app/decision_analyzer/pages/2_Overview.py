@@ -21,7 +21,7 @@ has_arbitration_data = (
 col1, col2 = st.columns(2)
 
 with col1:
-    "## :green[Overview]"
+    "## :green[Source Data]"
 
     overview = st.session_state.decision_data.get_overview_stats
 
@@ -47,7 +47,7 @@ with col1:
             use_container_width=True,
         )
     else:
-        st.info(
+        st.warning(
             "No actions survive to the arbitration stage in this data set. "
             "Optionality analysis is not available."
         )
@@ -72,7 +72,7 @@ with col2:
             use_container_width=True,
         )
     else:
-        st.info(
+        st.warning(
             "No actions survive to the arbitration stage in this data set. "
             "Sensitivity analysis is not available."
         )

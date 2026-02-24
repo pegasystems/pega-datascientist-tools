@@ -5,6 +5,7 @@ from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecha
 from da_streamlit_utils import (
     get_current_index,
     ensure_data,
+    stage_level_selector,
 )
 # TODO generalize a bit: no actions, just one, with a low propensity, sufficient
 # TODO support the propensity based categories for those stages that have it
@@ -52,6 +53,8 @@ if propensity_th is None or priority_th is None:
     st.stop()
 
 with st.session_state["sidebar"]:
+    stage_level_selector()
+
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     stage_options = st.session_state.decision_data.getPossibleStageValues()
 
@@ -91,7 +94,8 @@ with st.session_state["sidebar"]:
     )
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
-    groupby_cols=["Stage Group", "Interaction ID", "day"] + [st.session_state.scope],
+    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"]
+    + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )

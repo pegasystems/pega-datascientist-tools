@@ -1,5 +1,7 @@
 # python/pdstools/decision_analyzer/utils.py
+import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, Union
 
 import polars as pl
@@ -500,3 +502,175 @@ def get_scope_config(
             "selected_value": selected_issue,
             "plot_title_prefix": "Win Count by Issue",
         }
+
+
+logger = logging.getLogger(__name__)
+
+_INTERACTION_ID_RAW_KEY = "pxInteractionID"
+
+
+def _get_interaction_id_candidates() -> List[str]:
+    """Build the set of possible interaction ID column names from the schema.
+
+    Collects the raw key, display name, and aliases from both table
+    definitions so this stays in sync with ``column_schema.py``.
+    """
+    candidates: List[str] = [_INTERACTION_ID_RAW_KEY]
+    for table_def in (DecisionAnalyzer, ExplainabilityExtract):
+        config = table_def.get(_INTERACTION_ID_RAW_KEY)
+        if config is None:
+            continue
+        display = config["display_name"]
+        if display not in candidates:
+            candidates.append(display)
+        for alias in config.get("aliases", []):
+            if alias not in candidates:
+                candidates.append(alias)
+    return candidates
+
+
+def _find_interaction_id_column(columns: Set[str]) -> str:
+    """Return the first matching interaction ID column name from the data."""
+    for candidate in _get_interaction_id_candidates():
+        if candidate in columns:
+            return candidate
+    raise ValueError(
+        "Cannot sample: no interaction ID column found. "
+        f"Looked for: {', '.join(_get_interaction_id_candidates())}"
+    )
+
+
+def sample_interactions(
+    df: pl.LazyFrame,
+    n: Optional[int] = None,
+    fraction: Optional[float] = None,
+    id_column: Optional[str] = None,
+) -> pl.LazyFrame:
+    """Sample interactions from a LazyFrame before ingestion.
+
+    Uses deterministic hash-based filtering so the same data and limit
+    always produce the same sample. All rows belonging to a selected
+    interaction are kept (stratified on interaction ID).
+
+    Exactly one of *n* or *fraction* must be provided.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data to sample from.
+    n : int, optional
+        Maximum number of unique interactions to keep.
+    fraction : float, optional
+        Fraction of interactions to keep (0.0–1.0).
+    id_column : str, optional
+        Name of the interaction ID column. Auto-detected if not given.
+
+    Returns
+    -------
+    pl.LazyFrame
+        Filtered LazyFrame containing only the sampled interactions.
+    """
+    if (n is None) == (fraction is None):
+        raise ValueError("Exactly one of 'n' or 'fraction' must be provided.")
+
+    available = set(df.collect_schema().names())
+    if id_column is None:
+        id_column = _find_interaction_id_column(available)
+
+    if fraction is not None:
+        if not 0.0 < fraction <= 1.0:
+            raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+        threshold = int(fraction * 10_000)
+    else:
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()
+        if total <= n:
+            logger.info(
+                "Data has %d interactions (≤ requested %d), skipping sampling.",
+                total,
+                n,
+            )
+            return df
+        threshold = int((n / total) * 10_000)
+
+    return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+
+
+def sample_and_save(
+    df: pl.LazyFrame,
+    n: Optional[int] = None,
+    fraction: Optional[float] = None,
+    output_dir: Optional[str] = None,
+) -> pl.LazyFrame:
+    """Sample interactions and persist the result as a parquet file.
+
+    Writes ``decision_analyzer_sample.parquet`` into *output_dir* (defaults
+    to the current working directory). Returns a LazyFrame scanning the
+    written file so downstream code benefits from a fast parquet scan.
+
+    If the data is smaller than the requested sample, sampling is skipped
+    and the original LazyFrame is returned unchanged (no file is written).
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data to sample from.
+    n : int, optional
+        Maximum number of unique interactions to keep.
+    fraction : float, optional
+        Fraction of interactions to keep (0.0–1.0).
+    output_dir : str, optional
+        Directory for the sample parquet file. Defaults to ``"."``.
+
+    Returns
+    -------
+    pl.LazyFrame
+        Either a scan of the written parquet file, or the original
+        LazyFrame when sampling was skipped.
+    """
+    available = set(df.collect_schema().names())
+    id_column = _find_interaction_id_column(available)
+
+    # Check whether sampling would actually reduce the data.
+    if n is not None:
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()
+        if total <= n:
+            logger.info(
+                "Data has %d interactions (≤ requested %d), skipping sampling.",
+                total,
+                n,
+            )
+            return df
+
+    sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+
+    dest = Path(output_dir) if output_dir else Path(".")
+    dest.mkdir(parents=True, exist_ok=True)
+    out_path = dest / "decision_analyzer_sample.parquet"
+
+    logger.info("Writing sampled data to %s", out_path)
+    sampled.collect().write_parquet(out_path)
+
+    return pl.scan_parquet(out_path)
+
+
+def parse_sample_flag(value: str) -> Dict[str, Union[int, float]]:
+    """Parse the ``--sample`` CLI flag value into keyword arguments.
+
+    Supports absolute counts (``"100000"``) and percentages (``"10%"``).
+
+    Returns
+    -------
+    dict
+        Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+    """
+    value = value.strip()
+    if value.endswith("%"):
+        pct = float(value[:-1])
+        if not 0 < pct <= 100:
+            raise ValueError(f"Percentage must be in (0, 100], got {pct}")
+        return {"fraction": pct / 100.0}
+    else:
+        count = int(value)
+        if count <= 0:
+            raise ValueError(f"Sample count must be positive, got {count}")
+        return {"n": count}

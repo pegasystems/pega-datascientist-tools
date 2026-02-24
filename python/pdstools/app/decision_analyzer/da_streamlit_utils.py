@@ -27,6 +27,39 @@ def ensure_data():
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
 
 
+def _apply_stage_level():
+    """Callback: sync the DA level with the radio widget value."""
+    da = st.session_state.decision_data
+    da.set_level(st.session_state["_stage_level_radio"])
+
+
+def stage_level_selector():
+    """Show a radio toggle for stage granularity when multiple levels are available.
+
+    Calls ``set_level`` on the DecisionAnalyzer instance when the user
+    switches. Only renders the widget for v2 data that has both
+    "Stage Group" and "Stage" columns; for v1 data this is a no-op.
+    """
+    da = st.session_state.decision_data
+    levels = da.available_levels
+    if len(levels) <= 1:
+        return
+    current = da.level if da.level in levels else levels[0]
+    st.radio(
+        "Stage Granularity",
+        options=levels,
+        index=levels.index(current),
+        horizontal=True,
+        key="_stage_level_radio",
+        on_change=_apply_stage_level,
+        help="'Stage Group' shows high-level pipeline phases; 'Stage' shows individual strategy stages.",
+    )
+    # Also apply on first render (no callback fires on initial load)
+    chosen = st.session_state.get("_stage_level_radio", current)
+    if chosen != da.level:
+        da.set_level(chosen)
+
+
 def ensure_funnel():
     if st.session_state.decision_data.extract_type == "explainability_extract":
         st.warning(

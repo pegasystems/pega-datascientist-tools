@@ -11,8 +11,11 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
+from pdstools.decision_analyzer.utils import parse_sample_flag, sample_and_save
 from pdstools.utils.streamlit_utils import (
     get_data_path,
+    get_sample_limit,
+    get_temp_dir,
     show_sidebar_branding,
     show_version_header,
     standard_page_config,
@@ -47,7 +50,6 @@ if "decision_data" in st.session_state:
     del st.session_state["decision_data"]
 st.session_state["filters"] = []
 
-# TODO: Allow user to select the level once "Stage" level is implemented
 level = "Stage Group"
 
 sample_size = st.number_input(
@@ -56,9 +58,13 @@ sample_size = st.number_input(
     value=DEFAULT_SAMPLE_SIZE,
     step=1000,
     help=(
-        "Number of interactions used in resource-intensive analysis. "
-        "Reduce the sample size if the app runs too slowly. "
-        "Note that statistical significance decreases as sample size decreases."
+        "Maximum number of interactions sampled for resource-intensive pages "
+        "(Global Data Filters, Win/Loss Analysis, Personalization Analysis, "
+        "Business Lever Analysis). Other pages use the full dataset. "
+        "This is *not* the same as the `--sample` CLI flag, which reduces "
+        "the data before ingestion. "
+        "Reduce this value if those pages run too slowly; increase it for "
+        "higher statistical significance."
     ),
 )
 
@@ -86,6 +92,25 @@ if raw_data is None:
         "No file uploaded — using built-in sample data. "
         "Upload your own data above to analyze it."
     )
+
+# Pre-ingestion sampling (--sample CLI flag)
+sample_limit_raw = get_sample_limit()
+if raw_data is not None and sample_limit_raw:
+    try:
+        sample_kwargs = parse_sample_flag(sample_limit_raw)
+    except ValueError as e:
+        st.error(f"Invalid --sample value: {e}")
+        st.stop()
+
+    with st.spinner("Sampling interactions…"):
+        raw_data = sample_and_save(
+            raw_data,
+            n=sample_kwargs.get("n"),  # type: ignore[arg-type]
+            fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
+            output_dir=get_temp_dir(),
+        )
+    label = sample_limit_raw.strip()
+    st.info(f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions.")
 
 if raw_data is not None:
     with st.spinner("Reading Data"):

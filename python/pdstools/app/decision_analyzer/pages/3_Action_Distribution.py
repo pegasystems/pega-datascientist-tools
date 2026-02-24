@@ -4,6 +4,7 @@ import streamlit as st
 from da_streamlit_utils import (
     get_current_index,
     ensure_data,
+    stage_level_selector,
 )
 
 
@@ -17,14 +18,12 @@ from da_streamlit_utils import (
 """
 # Distribution of the Actions
 
-This is simply showing the overall distribution of the actions at the selected stage. This can help
-answering questions like:
+Shows which actions are present at a given pipeline stage. Use the **Stage
+Granularity** toggle in the sidebar to switch between coarse stage groups
+and individual stages, then pick a stage to inspect.
 
 * What are the most common offers? In which issues/groups?
-
-* What are the most common offers for a certain group of issues, within a certain channel etc - by applying filters first, or using
-the graph controls directly.
-
+* How does the distribution change after filtering stages?
 * Does the distribution look okay?
 """
 
@@ -33,6 +32,8 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
 with st.session_state["sidebar"]:
+    stage_level_selector()
+
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     stage_options = st.session_state.decision_data.getPossibleStageValues()
 

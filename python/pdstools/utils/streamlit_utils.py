@@ -140,6 +140,22 @@ def get_data_path() -> Optional[str]:
     return os.environ.get("PDSTOOLS_DATA_PATH")
 
 
+def get_sample_limit() -> Optional[str]:
+    """Return the raw sample limit string set via ``--sample`` CLI flag.
+
+    Returns ``None`` when no sampling was requested.
+    """
+    return os.environ.get("PDSTOOLS_SAMPLE_LIMIT")
+
+
+def get_temp_dir() -> Optional[str]:
+    """Return the temp directory set via ``--temp-dir`` CLI flag.
+
+    Returns ``None`` when no temp directory was configured.
+    """
+    return os.environ.get("PDSTOOLS_TEMP_DIR")
+
+
 def is_managed_deployment() -> bool:
     """Return *True* when the app is running in a managed deployment (e.g. EC2)."""
     return get_deploy_env() is not None
