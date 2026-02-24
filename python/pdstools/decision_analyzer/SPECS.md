@@ -290,12 +290,13 @@ pdstools decision_analyzer --data-path /Users/me/exports/latest/
 
 ### Implementation steps
 
-- [ ] **Add `--data-path` CLI flag** to `create_parser()` in `cli.py`. Propagate as `PDSTOOLS_DATA_PATH` env var.
-- [ ] **Retire `PDSTOOLS_SAMPLE_DATA_PATH`** env var and `_EC2_SAMPLE_PATH` constant in `da_streamlit_utils.py`.
-- [ ] **Add `get_data_path()` helper** in `streamlit_utils.py` — reads `PDSTOOLS_DATA_PATH` env var, returns `Optional[str]`.
-- [ ] **Update Home.py data loading flow** — after file upload, check `get_data_path()`. If set and no upload, show the configured path section and load from it. In managed deployments, auto-load without requiring a button click.
-- [ ] **Update `handle_sample_data()`** — remove the `_EC2_SAMPLE_PATH` branch. Managed deployments use `--data-path` instead.
-- [ ] **Update Cross-App Consistency section** — mark `PDSTOOLS_SAMPLE_DATA_PATH` as retired, document `--data-path`.
+- [x] **Add `--data-path` CLI flag** to `create_parser()` in `cli.py`. Propagate as `PDSTOOLS_DATA_PATH` env var.
+- [x] **Retire `PDSTOOLS_SAMPLE_DATA_PATH`** env var and `_EC2_SAMPLE_PATH` constant in `da_streamlit_utils.py`.
+- [x] **Add `get_data_path()` helper** in `streamlit_utils.py` — reads `PDSTOOLS_DATA_PATH` env var, returns `Optional[str]`.
+- [x] **Update Home.py data loading flow** — after file upload, check `get_data_path()`. If set and no upload, load from the configured path. Sample data only loads when neither upload nor data path produced data.
+- [x] **Update `handle_sample_data()`** — removed the `_EC2_SAMPLE_PATH` branch. Managed deployments use `--data-path` instead.
+- [x] **Add `handle_data_path()`** in `da_streamlit_utils.py` — loads data from the configured path, supporting all formats (parquet, csv, json, arrow, zip, directories).
+- [x] **Update Cross-App Consistency section** — marked `--data-path` as done.
 
 ---
 
@@ -313,7 +314,7 @@ Shared infrastructure added to `streamlit_utils.py` and adopted by all three app
 - [x] **`show_version_header()`** — Displays `pdstools {version}` caption with upgrade hint. Checks PyPI for latest version and shows a warning if outdated. All Home pages call it.
 - [x] **`ensure_session_data()`** — Shared guard function. DA uses via `ensure_data()`, IA via `ensure_impact_analyzer()`.
 - [x] **`--deploy-env` CLI flag** — `cli.py` accepts `--deploy-env ec2` (or any value), propagates as `PDSTOOLS_DEPLOY_ENV` env var. DA reads via `get_deploy_env()` / `is_managed_deployment()`. Replaces `os.getcwd() == "/app"` hack.
-- [ ] **`--data-path` CLI flag** — Replace `PDSTOOLS_SAMPLE_DATA_PATH` env var and `_EC2_SAMPLE_PATH` constant with a proper `--data-path` CLI flag. See dedicated section above.
+- [x] **`--data-path` CLI flag** — Replace `PDSTOOLS_SAMPLE_DATA_PATH` env var and `_EC2_SAMPLE_PATH` constant with a proper `--data-path` CLI flag. See dedicated section above.
 - [ ] **`--sample` CLI flag** — Pre-ingestion interaction sampling for large datasets. See dedicated section above.
 - [x] **Unified data source labels** — All apps use "Sample data", "File upload", "File path".
 - [x] **DA file upload expanded** — Now accepts `zip, parquet, json, csv, arrow` (was `zip, parquet` only).
@@ -336,4 +337,4 @@ Shared infrastructure added to `streamlit_utils.py` and adopted by all three app
 - ~~`ColumnNotFoundError` import~~ — Fixed
 - ~~`print()` in sample()~~ — Replaced with logger
 - ~~`.columns` performance warning~~ — Fixed
-- ~~Hardwired EC2 paths~~ — Replaced `os.getcwd() == "/app"` with `--deploy-env` CLI flag and `PDSTOOLS_DEPLOY_ENV` env var. Sample path configurable via `PDSTOOLS_SAMPLE_DATA_PATH`.
+- ~~Hardwired EC2 paths~~ — Replaced `os.getcwd() == "/app"` with `--deploy-env` CLI flag and `PDSTOOLS_DEPLOY_ENV` env var. `PDSTOOLS_SAMPLE_DATA_PATH` and `_EC2_SAMPLE_PATH` retired in favor of `--data-path` CLI flag.

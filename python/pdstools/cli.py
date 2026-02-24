@@ -54,6 +54,16 @@ def create_parser():
             "Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."
         ),
     )
+    parser.add_argument(
+        "--data-path",
+        dest="data_path",
+        default=None,
+        help=(
+            "Path to a data file or directory to load on startup. "
+            "Supports parquet, csv, json, arrow, zip, and partitioned folders. "
+            "Exposed to the app as the PDSTOOLS_DATA_PATH env var."
+        ),
+    )
     return parser
 
 
@@ -128,9 +138,11 @@ def run(args, unknown):
             except Exception:
                 print("Invalid input. Please try again.")
 
-    # Propagate deployment environment to the Streamlit process
+    # Propagate CLI flags to the Streamlit process via env vars
     if args.deploy_env:
         os.environ["PDSTOOLS_DEPLOY_ENV"] = args.deploy_env
+    if args.data_path:
+        os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
 
     display_name = APPS[args.app]["display_name"]
     print(f"Running {display_name} app...")

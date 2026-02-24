@@ -132,6 +132,14 @@ def get_deploy_env() -> Optional[str]:
     return os.environ.get("PDSTOOLS_DEPLOY_ENV")
 
 
+def get_data_path() -> Optional[str]:
+    """Return the data path set via ``--data-path`` CLI flag.
+
+    Returns ``None`` when no path was configured.
+    """
+    return os.environ.get("PDSTOOLS_DATA_PATH")
+
+
 def is_managed_deployment() -> bool:
     """Return *True* when the app is running in a managed deployment (e.g. EC2)."""
     return get_deploy_env() is not None

@@ -3,6 +3,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    handle_data_path,
     handle_file_path,
     handle_file_upload,
     handle_sample_data,
@@ -11,6 +12,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
 from pdstools.utils.streamlit_utils import (
+    get_data_path,
     show_sidebar_branding,
     show_version_header,
     standard_page_config,
@@ -68,7 +70,15 @@ if is_managed_deployment():
     if raw_data is None:
         raw_data = handle_file_path()
 
-# If no file uploaded, load sample data automatically
+# If --data-path was provided, load from that path (takes priority over sample data)
+configured_path = get_data_path()
+if raw_data is None and configured_path:
+    with st.spinner(f"Loading data from configured path: {configured_path}"):
+        raw_data = handle_data_path()
+    if raw_data is not None:
+        st.info(f"📂 Loaded data from configured path: `{configured_path}`")
+
+# Fall back to sample data only when nothing else provided
 if raw_data is None:
     with st.spinner("Loading sample data"):
         raw_data = handle_sample_data()

@@ -1,3 +1,4 @@
+# python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
 import plotly.express as px
 import polars as pl
 import streamlit as st
@@ -42,6 +43,16 @@ with st.session_state["sidebar"]:
     value_range = st.session_state.decision_data.getThresholdingData(
         thresholding_on, quantile_range=[0, 100]
     )["Threshold"].to_list()
+
+    if all(v is None for v in value_range):
+        st.warning(
+            "⚠️ No actions survive to the arbitration stage in this data set. "
+            "Thresholding Analysis requires actions at or after arbitration. "
+            "Please check your data or filters."
+        )
+        st.stop()
+
+    value_range = [v if v is not None else 0.0 for v in value_range]
 
     current_threshold = st.slider(
         "Threshold :sunglasses:", value_range[0], value_range[1]

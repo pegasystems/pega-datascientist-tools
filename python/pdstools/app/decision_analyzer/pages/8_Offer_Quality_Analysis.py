@@ -1,3 +1,4 @@
+# python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py
 import streamlit as st
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
@@ -26,39 +27,50 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 defaultPercentile = 0.05
 
+
+def _safe_thresholds(thresholding_data):
+    """Extract threshold values, returning None if no data survives to arbitration."""
+    values = thresholding_data["Threshold"].to_list()
+    if all(v is None for v in values):
+        return None
+    return [round(v, 4) if v is not None else 0.0 for v in values]
+
+
+propensity_th = _safe_thresholds(
+    st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100])
+)
+priority_th = _safe_thresholds(
+    st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100])
+)
+
+if propensity_th is None or priority_th is None:
+    st.warning(
+        "⚠️ No actions survive to the arbitration stage in this data set. "
+        "Offer Quality Analysis requires actions at or after arbitration. "
+        "Please check your data or filters."
+    )
+    st.stop()
+
 with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     stage_options = st.session_state.decision_data.getPossibleStageValues()
-
-    default_propensity_th = [
-        round(x, 4)
-        for x in st.session_state.decision_data.getThresholdingData(
-            "Propensity", [0, 5, 100]
-        )["Threshold"].to_list()
-    ]
-    default_priority_th = [
-        round(x, 4)
-        for x in st.session_state.decision_data.getThresholdingData(
-            "Priority", [0, 5, 100]
-        )["Threshold"].to_list()
-    ]
 
     # TODO too much kept in session state here, not necessary
 
     propensityTH = st.slider(
         "Propensity threshold",
-        default_propensity_th[0],
-        default_propensity_th[2],
-        default_propensity_th[1],
-        # step=(default_propensity_th[2]-default_propensity_th[0])/10,
+        propensity_th[0],
+        propensity_th[2],
+        propensity_th[1],
+        # step=(propensity_th[2]-propensity_th[0])/10,
         format="%.4f",
     )
     priorityTH = st.slider(
         "Priority threshold",
-        default_priority_th[0],
-        default_priority_th[2],
-        default_priority_th[1],
-        # step=(default_priority_th[2]-default_priority_th[0])/10,
+        priority_th[0],
+        priority_th[2],
+        priority_th[1],
+        # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
     )
 

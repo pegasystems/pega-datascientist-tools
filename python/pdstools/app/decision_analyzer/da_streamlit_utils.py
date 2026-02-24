@@ -1,5 +1,4 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
-import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -17,13 +16,8 @@ from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
     get_current_index,  # noqa: F401 — re-exported for backward compat
+    get_data_path,
     is_managed_deployment,
-)
-
-# Default sample data path for EC2 deployments. Override with
-# PDSTOOLS_SAMPLE_DATA_PATH env var if needed.
-_EC2_SAMPLE_PATH = os.environ.get(
-    "PDSTOOLS_SAMPLE_DATA_PATH", "/s3-files/anonymized/anonymized"
 )
 
 
@@ -309,10 +303,7 @@ def get_options() -> List[str]:
 
 
 def handle_sample_data() -> Optional[pl.LazyFrame]:
-    """Load sample data, using a local S3 path in managed deployments."""
-    if is_managed_deployment():
-        return read_data(Path(_EC2_SAMPLE_PATH))
-
+    """Load built-in sample data for demo purposes."""
     # Prefer local file when available (e.g. during development), fall back
     # to downloading from GitHub for installed-package users.
     local_path = Path(__file__).resolve().parents[4] / "data" / "sample_eev2.parquet"
@@ -323,6 +314,34 @@ def handle_sample_data() -> Optional[pl.LazyFrame]:
         filename="sample_eev2.parquet",
         path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
     )
+
+
+def handle_data_path() -> Optional[pl.LazyFrame]:
+    """Load data from the ``--data-path`` CLI flag, if configured.
+
+    Supports the same formats as the file upload: parquet, csv, json, arrow,
+    zip archives, and partitioned directories.
+    """
+    data_path = get_data_path()
+    if not data_path:
+        return None
+
+    p = Path(data_path)
+    if not p.exists():
+        st.error(f"Configured data path does not exist: `{data_path}`")
+        return None
+
+    # Single zip file: extract first, then read the extracted contents
+    if p.is_file() and p.suffix.lower() == ".zip":
+        import tempfile
+        import zipfile
+
+        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
+        with zipfile.ZipFile(p, "r") as zf:
+            zf.extractall(tmp_dir)
+        return read_data(tmp_dir)
+
+    return read_data(data_path)
 
 
 def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:

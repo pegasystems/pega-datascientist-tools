@@ -33,7 +33,7 @@ To use the Decision Analyzer Tool, you need to install several Python components
 
 .. tabs::
    .. tab:: uv tool (recommended)
-      
+
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
       **Step 1:** Install uv
@@ -145,7 +145,7 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
 .. tabs::
    .. tab:: uv tool (recommended)
-      
+
       .. code-block:: bash
 
          pdstools decision_analyzer
@@ -169,6 +169,25 @@ Once everything is installed, you can launch the Decision Analyzer application:
       .. code-block:: bash
 
          pdstools decision_analyzer
+
+You can also point the app at a data file or directory on startup using
+``--data-path``. This is useful for server deployments or when you always work
+with data at a known location:
+
+.. code-block:: bash
+
+   # Load a parquet file directly
+   pdstools decision_analyzer --data-path /path/to/data.parquet
+
+   # Load a partitioned directory
+   pdstools decision_analyzer --data-path /path/to/export_folder/
+
+   # Docker/EC2 deployment with S3-mounted data
+   pdstools decision_analyzer --deploy-env ec2 --data-path /s3-files/data
+
+When ``--data-path`` is provided, the app loads that data automatically instead
+of falling back to the built-in sample dataset. You can still override it by
+uploading a file through the UI.
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
@@ -203,7 +222,7 @@ If you already had an older version of pdstools, make sure to upgrade to the lat
 
 .. tabs::
    .. tab:: uv + tool (recommended)
-      
+
       .. code-block:: bash
 
          uv tool update pdstools
