@@ -52,7 +52,7 @@ Tracked on branch: `refactor/decision-analyzer`
 ### Prerequisites (do before page work)
 
 - [x] **Caching overhaul** — Added `@st.cache_resource` for `load_decision_analyzer()`. Home.py no longer nukes all state with `st.session_state.clear()`. Removed dead commented-out `@st.cache_data` wrappers and unused imports.
-- [ ] **Split `get_data_filters()`** — 200-line function in `da_streamlit_utils.py` doing too much. Break into: categorical filter, numeric filter, temporal filter, multiselect manager, state cleanup.
+- [x] **Split `get_data_filters()`** — Extracted five focused helpers from the monolithic 200-line function: `_persist_widget_value()` (session-state workaround), `_clean_unselected_filters()` (state cleanup), `_render_column_selector()` (multiselect manager), `_render_categorical_filter()`, `_render_numeric_filter()`, `_render_temporal_filter()`. `get_data_filters()` is now a thin orchestrator that dispatches to these by dtype. Public API unchanged.
 - [ ] **Dynamic stage UI** — Stages should be driven from data, support arbitrary count. Currently some pages hardcode stage names.
 - [ ] **Session state cleanup** — Too much stored in session state. Review and minimize.
 - [ ] **Move inline plot code to plots module** — Business lever analysis (page 11) has plots defined inline.
@@ -60,7 +60,7 @@ Tracked on branch: `refactor/decision-analyzer`
 ### Restructure (align with IA app pattern)
 
 - [x] **Simplify Home.py** — Now follows the shared pattern: `standard_page_config()` → `show_version_header()` → data source selector → load function → success/error. Removed `os` import, dropped `os.getcwd() == "/app"` check.
-- [x] **Simplify da_streamlit_utils.py** — Fixed backwards dependency: moved `get_current_index` to shared `streamlit_utils.py`, re-exported from `da_streamlit_utils` for backward compat. Removed dead commented-out wrappers, cleaned imports. Accepted parquet uploads. Still has complex `get_data_filters()` (200 lines) — to be split later.
+- [x] **Simplify da_streamlit_utils.py** — Fixed backwards dependency: moved `get_current_index` to shared `streamlit_utils.py`, re-exported from `da_streamlit_utils` for backward compat. Removed dead commented-out wrappers, cleaned imports. Accepted parquet uploads. `get_data_filters()` split into focused helpers (see Prerequisites).
 
 ---
 

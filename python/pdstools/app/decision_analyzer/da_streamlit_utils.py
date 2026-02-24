@@ -68,187 +68,229 @@ def show_filtered_counts(statsBefore, statsAfter):
         )
 
 
-def _clean_unselected_filters(to_filter_columns, filter_type):
+def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
+    """Copy widget value to a persistent session-state key.
+
+    Streamlit clears keyed widget state on page navigation. We work around
+    this by copying the value to a second key that survives navigation.
+    See https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
+    """
+    src = f"{filter_type}{regex}_selected_{column}"
+    dst = f"{filter_type}{regex}selected_{column}"
+    st.session_state[dst] = st.session_state[src]
+
+
+def _clean_unselected_filters(to_filter_columns: List[str], filter_type: str):
+    """Remove session-state keys for columns no longer in the filter list."""
     keys_to_remove = []
     for key in st.session_state.keys():
-        if key.__contains__("selected_"):
+        if "selected_" in key:
             column_name = key.split("selected_", 1)[1]
             if column_name not in to_filter_columns:
                 keys_to_remove.append(column_name)
     for column in keys_to_remove:
-        selected_key = f"{filter_type}selected_{column}"
-        _selected_key = f"{filter_type}_selected_{column}"
-        regexselected_key = f"{filter_type}regexselected_{column}"
-        regex_selected_key = f"{filter_type}regex_selected_{column}"
-        categories_key = f"{filter_type}categories_{column}"
-        for val in [
-            selected_key,
-            _selected_key,
-            categories_key,
-            regexselected_key,
-            regex_selected_key,
+        for key in [
+            f"{filter_type}selected_{column}",
+            f"{filter_type}_selected_{column}",
+            f"{filter_type}regexselected_{column}",
+            f"{filter_type}regex_selected_{column}",
+            f"{filter_type}categories_{column}",
         ]:
-            if val in st.session_state:
-                del st.session_state[val]
+            if key in st.session_state:
+                del st.session_state[key]
 
 
-def get_data_filters(
-    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
-) -> List[
-    pl.Expr
-]:  # this one is way too complex, should be split up into probably 5 functions
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
-
-    Parameters
-    ----------
-    df : pl.DataFrame
-        Original dataframe
-    """
-
-    def _save_selected(
-        filter_type, column, regex=""
-    ):  ## see the issue on why we need to save a different session.state variable https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
-        st.session_state[f"{filter_type}{regex}selected_{column}"] = st.session_state[
-            f"{filter_type}{regex}_selected_{column}"
-        ]
+def _render_column_selector(
+    df: pl.LazyFrame, columns: List[str], filter_type: str
+) -> List[str]:
+    """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
         st.session_state[f"{filter_type}multiselect"] = st.session_state[
             f"{filter_type}_multiselect"
         ]
 
-    if columns is None:
-        columns = df.collect_schema().names()
-    if queries is None:
-        queries = []
-
-    st.session_state[f"{filter_type}_multiselect"] = (
-        st.session_state[f"{filter_type}multiselect"]
-        if f"{filter_type}multiselect" in st.session_state
-        else []
+    st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(
+        f"{filter_type}multiselect", []
     )
-    to_filter_columns = st.multiselect(
+    return st.multiselect(
         "Filter data on",
         columns,
         key=f"{filter_type}_multiselect",
         on_change=_save_multiselect,
     )
+
+
+def _render_categorical_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: List[pl.Expr],
+):
+    """Render filter UI for a categorical/string column.
+
+    Uses a multiselect when fewer than 200 unique values exist, otherwise
+    falls back to a regex text input.
+    """
+    categories_key = f"{filter_type}categories_{column}"
+    if categories_key not in st.session_state:
+        st.session_state[categories_key] = (
+            df.select(pl.col(column).unique()).collect().to_series().to_list()
+        )
+
+    widget_key = f"{filter_type}_selected_{column}"
+    persisted_key = f"{filter_type}selected_{column}"
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state.get(
+            persisted_key, st.session_state[categories_key]
+        )
+
+    categories = st.session_state[categories_key]
+
+    if len(categories) < 200:
+        default = st.session_state.get(persisted_key, categories)
+        st.session_state[widget_key] = default
+        selected = container.multiselect(
+            f"Values for {column}",
+            options=categories,
+            key=widget_key,
+            on_change=_persist_widget_value,
+            kwargs={"filter_type": filter_type, "column": column},
+        )
+        if selected != categories:
+            queries.append(
+                pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key])
+            )
+    else:
+        # Too many unique values — use regex input instead
+        if widget_key in st.session_state:
+            del st.session_state[widget_key]
+        regex_persisted = f"{filter_type}regexselected_{column}"
+        default = st.session_state.get(regex_persisted, "")
+        user_text_input = container.text_input(
+            f"Substring or regex in {column}",
+            value=default,
+            key=f"{filter_type}regex_selected_{column}",
+            on_change=_persist_widget_value,
+            kwargs={
+                "filter_type": filter_type,
+                "column": column,
+                "regex": "regex",
+            },
+        )
+        if user_text_input:
+            queries.append(pl.col(column).str.contains(user_text_input))
+
+
+def _render_numeric_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: List[pl.Expr],
+):
+    """Render filter UI for a numeric column (slider or dual number inputs)."""
+    min_col, max_col = container.columns((1, 1))
+    _min = float(df.select(pl.min(column)).collect().item())
+    _max = float(df.select(pl.max(column)).collect().item())
+
+    persisted_key = f"{filter_type}selected_{column}"
+    if persisted_key not in st.session_state:
+        default_min, default_max = _min, _max
+    else:
+        default_min, default_max = st.session_state[persisted_key]
+
+    if _max - _min <= 200:
+        user_num_input = container.slider(
+            f"Values for {column}",
+            min_value=_min,
+            max_value=_max,
+            value=(default_min, default_max),
+        )
+    else:
+        user_min = min_col.number_input(
+            label=f"Min value for {column} (Min:{_min})",
+            min_value=_min,
+            max_value=_max,
+            value=default_min,
+        )
+        user_max = max_col.number_input(
+            label=f"Max value for {column} (Max:{_max})",
+            min_value=_min,
+            max_value=_max,
+            value=default_max,
+        )
+        user_num_input = [user_min, user_max]
+
+    st.session_state[persisted_key] = user_num_input
+    if user_num_input[0] != _min or user_num_input[1] != _max:
+        queries.append(pl.col(column).is_between(*user_num_input))
+
+
+def _render_temporal_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: List[pl.Expr],
+):
+    """Render filter UI for a temporal (date/datetime) column."""
+    value = (
+        df.select(pl.min(column)).collect().item(),
+        df.select(pl.max(column)).collect().item(),
+    )
+    widget_key = f"{filter_type}_selected_{column}"
+    persisted_key = f"{filter_type}selected_{column}"
+    st.session_state[widget_key] = st.session_state.get(persisted_key, value)
+
+    user_date_input = container.date_input(
+        f"Values for {column}",
+        value=value,
+        key=widget_key,
+        on_change=_persist_widget_value,
+        kwargs={"filter_type": filter_type, "column": column},
+    )
+    if len(user_date_input) == 2:
+        queries.append(pl.col(column).is_between(*user_date_input))
+
+
+def get_data_filters(
+    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
+) -> List[pl.Expr]:
+    """Build filter expressions via interactive Streamlit widgets.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Source data used to derive filter options.
+    columns : list, optional
+        Columns available for filtering. Defaults to all columns in *df*.
+    queries : list, optional
+        Pre-existing filter expressions to extend.
+    filter_type : str
+        Prefix for session-state keys, allowing independent filter sets
+        (e.g. ``"global"`` vs ``"local"``).
+    """
+    if columns is None:
+        columns = df.collect_schema().names()
+    if queries is None:
+        queries = []
+
+    to_filter_columns = _render_column_selector(df, columns, filter_type)
+
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
         left.write("## ↳")
 
-        # Treat columns with < 20 unique values as categorical
         col_dtype = df.collect_schema()[column]
-        if (col_dtype == pl.Categorical) or (col_dtype == pl.Utf8):
-            if f"{filter_type}categories_{column}" not in st.session_state.keys():
-                st.session_state[f"{filter_type}categories_{column}"] = (
-                    df.select(pl.col(column).unique()).collect().to_series().to_list()
-                )
-            if f"{filter_type}_selected_{column}" not in st.session_state.keys():
-                st.session_state[f"{filter_type}_selected_{column}"] = (
-                    st.session_state[f"{filter_type}categories_{column}"]
-                    if f"{filter_type}selected_{column}" not in st.session_state
-                    else st.session_state[f"{filter_type}selected_{column}"]
-                )
-            if len(st.session_state[f"{filter_type}categories_{column}"]) < 200:
-                options = st.session_state[f"{filter_type}categories_{column}"]
-                default_selected = (
-                    st.session_state[f"{filter_type}selected_{column}"]
-                    if f"{filter_type}selected_{column}" in st.session_state
-                    else options
-                )
-                st.session_state[f"{filter_type}_selected_{column}"] = default_selected
-                selected = right.multiselect(
-                    f"Values for {column}",
-                    options=options,
-                    key=f"{filter_type}_selected_{column}",
-                    on_change=_save_selected,
-                    kwargs={"filter_type": filter_type, "column": column},
-                )
-                if selected != st.session_state[f"{filter_type}categories_{column}"]:
-                    queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"{filter_type}selected_{column}"])
-                    )
-
-            else:
-                key_to_delete = f"{filter_type}_selected_{column}"
-                if key_to_delete in st.session_state:
-                    del st.session_state[key_to_delete]
-                default_selected = (
-                    st.session_state[f"{filter_type}regexselected_{column}"]
-                    if f"{filter_type}regexselected_{column}" in st.session_state
-                    else ""
-                )
-                user_text_input = right.text_input(
-                    f"Substring or regex in {column}",
-                    value=default_selected,
-                    key=f"{filter_type}regex_selected_{column}",
-                    on_change=_save_selected,
-                    kwargs={
-                        "filter_type": filter_type,
-                        "column": column,
-                        "regex": "regex",
-                    },
-                )
-                if user_text_input:
-                    queries.append(pl.col(column).str.contains(user_text_input))
-
+        if col_dtype in (pl.Categorical, pl.Utf8):
+            _render_categorical_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_numeric():
-            min_col, max_col = right.columns((1, 1))
-            _min = float(df.select(pl.min(column)).collect().item())
-            _max = float(df.select(pl.max(column)).collect().item())
-            if f"{filter_type}selected_{column}" not in st.session_state:
-                default_min, default_max = _min, _max
-            else:
-                default_min, default_max = st.session_state[
-                    f"{filter_type}selected_{column}"
-                ]
-            if _max - _min <= 200:
-                user_num_input = right.slider(
-                    f"Values for {column}",
-                    min_value=_min,
-                    max_value=_max,
-                    value=(default_min, default_max),
-                )
-            else:
-                user_min = min_col.number_input(
-                    label=f"Min value for {column} (Min:{_min})",
-                    min_value=_min,
-                    max_value=_max,
-                    value=default_min,
-                )
-                user_max = max_col.number_input(
-                    label=f"Max value for {column} (Max:{_max})",
-                    min_value=_min,
-                    max_value=_max,
-                    value=default_max,
-                )
-                user_num_input = [user_min, user_max]
-            st.session_state[f"{filter_type}selected_{column}"] = user_num_input
-            if user_num_input[0] != _min or user_num_input[1] != _max:
-                queries.append(pl.col(column).is_between(*user_num_input))
+            _render_numeric_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_temporal():
-            value = (
-                df.select(pl.min(column)).collect().item(),
-                df.select(pl.max(column)).collect().item(),
-            )
-            st.session_state[f"{filter_type}_selected_{column}"] = (
-                (st.session_state[f"{filter_type}selected_{column}"])
-                if f"{filter_type}selected_{column}" in st.session_state
-                else value
-            )
-            user_date_input = right.date_input(
-                f"Values for {column}",
-                value=value,
-                key=f"{filter_type}_selected_{column}",
-                on_change=_save_selected,
-                kwargs={"filter_type": filter_type, "column": column},
-            )
-            if len(user_date_input) == 2:
-                queries.append(pl.col(column).is_between(*user_date_input))
+            _render_temporal_filter(df, column, right, filter_type, queries)
+
     _clean_unselected_filters(to_filter_columns, filter_type)
     return queries
 
