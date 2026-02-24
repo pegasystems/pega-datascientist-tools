@@ -21,7 +21,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### High Priority
 
-- [x] **Human-friendly field names (display_name refactor)** — Internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) replaced with friendly names ("Issue", "Interaction ID", "Channel", etc.) on all UI surfaces. `table_definition.py` is the single source of truth via `display_name`. See dedicated section below for details. Remaining internal names (`pxRank`, `is_mandatory`, `day`) are internal working columns (expected exceptions).
+- [x] **Human-friendly field names (display_name refactor)** — Internal Pega field names (`pyIssue`, `pxInteractionID`, etc.) replaced with friendly names ("Issue", "Interaction ID", "Channel", etc.) on all UI surfaces. `table_definition.py` is the single source of truth via `display_name`. See dedicated section below for details. Remaining internal names (`is_mandatory`, `day`) are internal working columns (expected exceptions). `pxRank` has been renamed to `Rank`.
 - [x] **Handle missing PVCL components** — `reRank()` now checks which columns exist and fills missing ones with 1.0 (neutral for multiplication).
 - [ ] **Fix num_samples > 1** — Pre-aggregation sampling locked at 1 because >1 breaks `.explode()` in thresholding. Either fix thresholding or document limitation.
 - [ ] **Validate fields_for_data_filtering** — Subset against actual available columns instead of hardcoded list. Update to use display names after the friendly-names refactor.
@@ -34,7 +34,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win_rank flexibility** — `get_win_loss_distribution_data` has fixed rank parameter. Return all ranks, let UI filter.
 - [ ] **Caching for parameterized methods** — `getThresholdingData` and `get_sensitivity` are expensive but not cached. Consider `lru_cache` or polars caching.
-- [ ] **DRY prio factor list** — `["Propensity", "Value", "Context Weight", "Levers"]` repeated in DecisionAnalyzer.py and plots.py. Define once.
+- [x] **DRY prio factor list** — `PRIO_FACTORS` constant defined in `utils.py`, used by `DecisionAnalyzer.py` and `plots.py`.
 
 ### Low Priority
 
@@ -182,7 +182,7 @@ The raw column key (`"pyIssue"`) identifies what arrives in the data. The `displ
 - [x] **Replace `label` with `display_name`** in `TableConfig` TypedDict and all entries in both `DecisionAnalyzer` and `ExplainabilityExtract` dicts in `table_definition.py`.
 - [x] **Simplify `ColumnResolver`** — single rename pass: raw column key → `display_name`. Remove the intermediate `label` concept. When both raw key and display_name exist as columns, prefer display_name (existing conflict resolution logic).
 - [x] **Update `resolve_aliases`** — target is now `display_name` instead of the raw key.
-- [x] **Update all `pl.col()` references** — mechanical search-and-replace across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, `da_streamlit_utils.py`, and tests. Remaining `pxRank` / `is_mandatory` / `day` references are internal working columns (expected).
+- [x] **Update all `pl.col()` references** — mechanical search-and-replace across `DecisionAnalyzer.py`, `utils.py`, `plots.py`, all Streamlit pages, `da_streamlit_utils.py`, and tests. Remaining `is_mandatory` / `day` references are internal working columns (expected). `pxRank` has been renamed to `Rank`.
 - [x] **Retire `NBADScope_Mapping`** — removed from `utils.py` and all plot code.
 - [x] **Remove `format_func` hack** in `get_data_filters()` — multiselect shows column names directly.
 - [x] **Update `fields_for_data_filtering`** — uses display names.

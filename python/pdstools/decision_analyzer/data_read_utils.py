@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional, List, Tuple
 import polars as pl
 
-from .table_definition import TableConfig
+from .column_schema import TableConfig
 from .utils import ColumnResolver
 
 

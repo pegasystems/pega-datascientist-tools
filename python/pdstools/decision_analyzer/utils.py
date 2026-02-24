@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Set, Type, Union
 import polars as pl
 
 from ..utils.cdh_utils import parse_pega_date_time_formats
-from .table_definition import (
+from .column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
 )
@@ -134,6 +134,9 @@ class ColumnResolver:
 # Scope hierarchy for plots and UI dropdowns.
 # Keys are the display names used in the data after renaming.
 SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
+
+# Priority factors (PVCL) used in arbitration scoring and sensitivity analysis.
+PRIO_FACTORS = ["Propensity", "Value", "Context Weight", "Levers"]
 
 
 def apply_filter(

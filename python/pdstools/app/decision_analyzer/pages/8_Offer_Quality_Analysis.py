@@ -79,7 +79,7 @@ with st.session_state["sidebar"]:
     )
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
-    groupby_cols=["StageGroup", "Interaction ID", "day"] + [st.session_state.scope],
+    groupby_cols=["Stage Group", "Interaction ID", "day"] + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )

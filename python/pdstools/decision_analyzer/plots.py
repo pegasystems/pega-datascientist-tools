@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 
 import polars as pl
 
-from .utils import apply_filter
+from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
 
 
@@ -179,7 +179,7 @@ class Plot:
             xaxis_title="",
             yaxis_title="",
         )
-        fig.update_xaxes(tickformat=".2%").update_layout(legend_title_text=f"{level}")
+        fig.update_xaxes(tickformat=".2%")
 
         return fig
 
@@ -222,7 +222,7 @@ class Plot:
     def optionality_funnel(self, df):
         plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
         total_interactions = (
-            plot_data.filter(pl.col("StageGroup") == plot_data.row(0)[0])
+            plot_data.filter(pl.col("Stage Group") == plot_data.row(0)[0])
             .select(pl.sum("Interactions"))
             .row(0)[0]
         )
@@ -248,7 +248,7 @@ class Plot:
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_with_percent["StageGroup"],
+                    x=df_with_percent["Stage Group"],
                     y=df_with_percent["percentage"],
                     mode="lines",
                     stackgroup="one",
@@ -339,7 +339,7 @@ class Plot:
                 template="pega",
             )
 
-        fig.update_layout(xaxis_title="", legend_title_text=f"{scope}")
+        fig.update_layout(xaxis_title="")
 
         return fig, warning_message
 
@@ -380,7 +380,6 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
-                legend_title_text=f"{scope}",
                 legend=dict(traceorder="reversed"),
             )
         )
@@ -391,7 +390,7 @@ class Plot:
             color=scope,
             hover_data=["count", "average_actions"],
             color_discrete_map=color_map,
-            category_orders={"StageGroup": self._decision_data.AvailableNBADStages},
+            category_orders={"Stage Group": self._decision_data.AvailableNBADStages},
         ).update_layout(
             template="plotly_white",
             xaxis_title="Filtered Actions per Decision",
@@ -506,7 +505,7 @@ class Plot:
             color=breakdown,
             orientation="h" if horizontal else "v",
             template="pega",
-        ).update_layout(legend_title_text=f"{breakdown}")
+        )
 
         if horizontal:
             fig = (
@@ -532,12 +531,7 @@ class Plot:
         return_df=False,
     ) -> Tuple[go.Figure, Optional[str]]:
         df = self._decision_data.arbitration_stage
-        prio_factors = [
-            "Propensity",
-            "Value",
-            "Context Weight",
-            "Levers",
-        ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
+        prio_factors = PRIO_FACTORS
         segmented_df = (
             df.with_columns(
                 segment=pl.when(reference)  # pl.col("Action").is_in(models)
@@ -600,11 +594,11 @@ class Plot:
                     self._decision_data.stages_from_arbitration_down
                 )
             )
-            .select("pxRank")
+            .select("Rank")
             .collect()
         )
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
-        fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
+        fig = px.box(ranks, x="Rank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
 
     def component_action_impact(
@@ -683,7 +677,6 @@ class Plot:
             title=f"Top {top_n} {scope_label.lower()}s filtered per component",
             height=max(400, 120 * min(top_n, 10)),
             showlegend=color_col is not None,
-            legend_title_text=color_col if color_col else "",
         )
         return fig
 
@@ -791,9 +784,7 @@ class Plot:
         fig.update_layout(
             template="pega",
             title="Number of Actions per Customer",
-            xaxis_title="Stage",
             yaxis_title="Number of Actions",
-            legend_title_text="Stage",
         )
         fig.update_xaxes(
             categoryorder="array",
@@ -831,7 +822,6 @@ class Plot:
                 template="pega",
             )
 
-        fig.update_layout(legend_title_text="Stage")
         fig.update_xaxes(title="")
         fig.update_yaxes(title="Number of Unique Offers")
 
@@ -843,7 +833,7 @@ def offer_quality_piecharts(
     propensityTH,
     AvailableNBADStages,
     return_df=False,
-    level="StageGroup",
+    level="Stage Group",
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
@@ -903,7 +893,7 @@ def offer_quality_piecharts(
 
 
 def getTrendChart(
-    df: pl.LazyFrame, stage: str = "Output", return_df=False, level="StageGroup"
+    df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
@@ -953,8 +943,6 @@ def plot_priority_component_distribution(
         color=granularity,
         template="pega",
     ).update_layout(
-        legend_title_text=granularity,
-        xaxis_title=component,
         yaxis_title="Number of Actions",
     )
 
@@ -966,8 +954,6 @@ def plot_priority_component_distribution(
         title=f"{component} Distribution by Issue",
         template="pega",
     ).update_layout(
-        xaxis_title=granularity,
-        yaxis_title=component,
         showlegend=False,
     )
 
@@ -1135,7 +1121,7 @@ def create_win_distribution_plot(
 
 def create_parameter_distribution_boxplots(
     segmented_df: pl.DataFrame,
-    parameters: List[str] = ["Propensity", "Value", "Context Weight", "Levers"],
+    parameters: Optional[List[str]] = None,
     title: str = "Parameter Distributions: Selected Actions vs Competitors",
 ) -> go.Figure:
     """
@@ -1156,6 +1142,9 @@ def create_parameter_distribution_boxplots(
     go.Figure
         Plotly figure with box plots
     """
+    if parameters is None:
+        parameters = PRIO_FACTORS
+
     colors = [
         "#1f77b4",  # Blue for Selected Actions
         "#ff7f0e",  # Orange for Others

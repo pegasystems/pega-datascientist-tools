@@ -95,8 +95,8 @@ with st.session_state["sidebar"]:
 
     # st.session_state.decision_data.level = st.multiselect(
     #     "Stage Granularity",
-    #     ["StageGroup", "Stage"],
-    #     default="StageGroup"
+    #     ["Stage Group", "Stage"],
+    #     default="Stage Group"
     # )
 
 
@@ -146,7 +146,7 @@ data = st.session_state.decision_data.decision_data.filter(
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])
 data = (
-    data.group_by(["StageOrder", "StageGroup", "Stage", "Component Name"])
+    data.group_by(["Stage Order", "Stage Group", "Stage", "Component Name"])
     .agg(pl.len().alias("filter count"))
     .with_columns(
         (

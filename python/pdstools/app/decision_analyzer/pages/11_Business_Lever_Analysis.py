@@ -76,7 +76,7 @@ if st.session_state.get("analysis_applied", False):
         relevant_interactions.select("Interaction ID").collect().n_unique()
     )
     current_number_of_wins = (
-        relevant_interactions.filter(pl.col("pxRank") == 1)
+        relevant_interactions.filter(pl.col("Rank") == 1)
         .select("Interaction ID")
         .collect()
         .n_unique()
@@ -178,7 +178,7 @@ if st.session_state.get("analysis_applied", False):
                 # Filter sample to only those interactions (all actions in head-to-head battles)
                 segmented_df = (
                     st.session_state.decision_data.sample.filter(
-                        pl.col("StageGroup").is_in(
+                        pl.col("Stage Group").is_in(
                             st.session_state.decision_data.stages_from_arbitration_down
                         )
                     )

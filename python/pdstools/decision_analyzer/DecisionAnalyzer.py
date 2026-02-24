@@ -11,7 +11,7 @@ import polars.selectors as cs
 
 from .data_read_utils import validate_columns
 from .plots import Plot
-from .table_definition import (
+from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
     ExplainabilityExtract as ExplainabilityExtract_TD,
 )
@@ -141,7 +141,7 @@ class DecisionAnalyzer:
     def __init__(
         self,
         raw_data: pl.LazyFrame,
-        level="StageGroup",
+        level="Stage Group",
         sample_size=DEFAULT_SAMPLE_SIZE,
         mandatory_expr: Optional[pl.Expr] = None,
         additional_columns: Optional[Dict[str, pl.DataType]] = None,
@@ -158,9 +158,9 @@ class DecisionAnalyzer:
         ----------
         raw_data : pl.LazyFrame
             Raw decision data containing interaction-level records from Explainability Extract.
-        level : str, default "StageGroup"
+        level : str, default "Stage Group"
             Granularity level for stage analysis. Options:
-            - "StageGroup": Groups stages into categories (recommended)
+            - "Stage Group": Groups stages into categories (recommended)
             - "Stage": Individual stage-level analysis
         sample_size : int, default 50000
             Maximum number of unique interactions to sample for analysis. Larger values
@@ -264,7 +264,7 @@ class DecisionAnalyzer:
             "Channel",
             "Direction",
             "Component Name",
-            # "ModelControlGroup",
+            # "Model Control Group",
             "day",
         }
         self.preaggregation_columns = self.preaggregation_columns.intersection(
@@ -285,16 +285,19 @@ class DecisionAnalyzer:
         elif self.extract_type == "decision_analyzer":
             stage_df = (
                 self.unfiltered_raw_decision_data.group_by(self.level)
-                .agg(pl.min("StageOrder"))
+                .agg(pl.min("Stage Order"))
                 .collect()
             )
-            if "Arbitration" not in stage_df[self.level] and self.level == "StageGroup":
+            if (
+                "Arbitration" not in stage_df[self.level]
+                and self.level == "Stage Group"
+            ):
                 arb = pl.DataFrame(
-                    {self.level: "Arbitration", "StageOrder": 3800},
+                    {self.level: "Arbitration", "Stage Order": 3800},
                     schema=stage_df.schema,
                 )
                 stage_df = pl.concat([stage_df, arb])
-            stage_df = stage_df.sort("StageOrder")
+            stage_df = stage_df.sort("Stage Order")
             self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
     @cached_property
@@ -374,7 +377,7 @@ class DecisionAnalyzer:
         stats_cols = ["Decision Time", "Value", "Propensity", "Priority"]
         exprs = [
             pl.col("Interaction ID")
-            .filter(pl.col("pxRank") <= i)
+            .filter(pl.col("Rank") <= i)
             .count()
             .alias(f"Win_at_rank{i}")
             for i in range(1, self.max_win_rank + 1)
@@ -390,7 +393,7 @@ class DecisionAnalyzer:
         self.preaggregated_decision_data_filterview = (
             self.decision_data.group_by(
                 self.preaggregation_columns.union(
-                    {self.level, "StageOrder", "Record Type"}
+                    {self.level, "Stage Order", "Record Type"}
                 )
             )
             .agg(exprs)
@@ -451,8 +454,8 @@ class DecisionAnalyzer:
             "Issue",
             "Group",
             self.level,
-            "StageOrder",
-            "pxRank",
+            "Stage Order",
+            "Rank",
             "Priority",
             "Propensity",
             "Value",
@@ -536,8 +539,8 @@ class DecisionAnalyzer:
 
         # Build ranking columns - include StageOrder only if it exists
         ranking_cols = ["is_mandatory", "Priority"]
-        if "StageOrder" in df.collect_schema().names():
-            ranking_cols.append("StageOrder")
+        if "Stage Order" in df.collect_schema().names():
+            ranking_cols.append("Stage Order")
         ranking_cols.extend(
             [
                 pl.col("Issue").rank() * -1,
@@ -547,22 +550,22 @@ class DecisionAnalyzer:
         )
 
         df = df.with_columns(
-            pxRank=pl.struct(ranking_cols)
+            Rank=pl.struct(ranking_cols)
             .rank(descending=True, method="ordinal", seed=1)
             .over("Interaction ID")
         )
 
         if self.extract_type == "explainability_extract":
             df = df.with_columns(
-                pl.when(pl.col("pxRank") == 1)
+                pl.when(pl.col("Rank") == 1)
                 .then(pl.lit("Output"))
                 .otherwise(pl.lit("Arbitration"))
                 .alias(self.level),
-                pl.when(pl.col("pxRank") == 1)
+                pl.when(pl.col("Rank") == 1)
                 .then(pl.lit(3800))
                 .otherwise(pl.lit(10000))
-                .alias("StageOrder"),
-                pl.when(pl.col("pxRank") == 1)
+                .alias("Stage Order"),
+                pl.when(pl.col("Rank") == 1)
                 .then(pl.lit("OUTPUT"))
                 .otherwise(pl.lit("FILTERED_OUT"))
                 .alias("Record Type"),
@@ -821,7 +824,7 @@ class DecisionAnalyzer:
                 [
                     "is_mandatory",
                     x,
-                    "StageOrder",
+                    "Stage Order",
                     pl.col("Issue").rank() * -1,
                     pl.col("Group").rank() * -1,
                     pl.col("Action").rank() * -1,
@@ -931,7 +934,7 @@ class DecisionAnalyzer:
         )
         schema = per_offer_count_and_stage.collect_schema()
         zero_actions = (
-            per_offer_count_and_stage.group_by("StageGroup")
+            per_offer_count_and_stage.group_by("Stage Group")
             .agg(interaction_count=pl.sum("Interactions"))
             .with_columns(
                 Interactions=(total_interactions - pl.col("interaction_count")).cast(
@@ -996,9 +999,9 @@ class DecisionAnalyzer:
                     pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"])
                 ),
             )
-            .group_by(["StageGroup", "available_actions"])
+            .group_by(["Stage Group", "available_actions"])
             .agg(pl.sum("Interactions"))
-            .sort(["StageGroup", "available_actions"])
+            .sort(["Stage Group", "available_actions"])
         )
         return optionality_funnel
 
@@ -1048,14 +1051,14 @@ class DecisionAnalyzer:
         tbl = (
             self.getPreaggregatedRemainingView.group_by(
                 # TODO: we should include all the IA properties but they're not populated currently
-                [self.level, "ModelControlGroup"]
+                [self.level, "Model Control Group"]
             )
             .agg(pl.count())
             .collect()
             .pivot(
                 index=self.level,
                 values="count",
-                columns=["ModelControlGroup"],
+                columns=["Model Control Group"],
                 sort_columns=True,
             )
             .with_columns(
@@ -1136,7 +1139,7 @@ class DecisionAnalyzer:
         """
         stage_orders = (
             df.group_by(self.level)
-            .agg(pl.min("StageOrder"))
+            .agg(pl.min("Stage Order"))
             .with_columns(
                 pl.col(self.level)
                 .cast(pl.Utf8)
@@ -1207,7 +1210,7 @@ class DecisionAnalyzer:
 
         propensity_classifying_expr = [
             pl.col("Action")
-            .where((pl.col("Propensity") == 0.5) & (pl.col("StageGroup") != "Output"))
+            .where((pl.col("Propensity") == 0.5) & (pl.col("Stage Group") != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
@@ -1365,7 +1368,7 @@ class DecisionAnalyzer:
         is_global_sensitivity = False
         if filters is None:
             is_global_sensitivity = True
-            filters = pl.col("pxRank") <= win_rank
+            filters = pl.col("Rank") <= win_rank
 
         sensitivity = (
             apply_filter(
@@ -1440,9 +1443,9 @@ class DecisionAnalyzer:
 
     def get_winning_or_losing_interactions(self, win_rank, group_filter, win: bool):
         if win:
-            rank_filter = pl.col("pxRank") <= win_rank
+            rank_filter = pl.col("Rank") <= win_rank
         else:
-            rank_filter = pl.col("pxRank") > win_rank
+            rank_filter = pl.col("Rank") > win_rank
         return (
             apply_filter(self.sample, group_filter)
             .filter(
@@ -1455,7 +1458,7 @@ class DecisionAnalyzer:
     def winning_from(self, interactions, win_rank, groupby_cols, top_k):
         winning_from = (
             self.sample.filter(
-                pl.col("pxRank") > win_rank
+                pl.col("Rank") > win_rank
             )  # TODO generalize this to any stage from Arbitration up but excluding Final
             .join(
                 interactions,
@@ -1472,7 +1475,7 @@ class DecisionAnalyzer:
 
     def losing_to(self, interactions, win_rank, groupby_cols, top_k):
         return (
-            self.sample.filter(pl.col("pxRank") <= win_rank)
+            self.sample.filter(pl.col("Rank") <= win_rank)
             .join(
                 interactions,
                 on="Interaction ID",
@@ -1549,17 +1552,15 @@ class DecisionAnalyzer:
         if lever_value is None:
             # Return baseline distribution only
             original_winners = self.reRank(
-                additional_filters=pl.col("StageGroup").is_in(
+                additional_filters=pl.col("Stage Group").is_in(
                     self.stages_from_arbitration_down
                 ),
-            ).select(["Issue", "Group", "Action"] + ["Interaction ID", "pxRank"])
+            ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
 
             result = (
                 original_winners.group_by(["Issue", "Group", "Action"])
                 .agg(
-                    original_win_count=pl.col("pxRank")
-                    .filter(pl.col("pxRank") == 1)
-                    .len(),
+                    original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
                     n_decisions_survived_to_arbitration=pl.col(
                         "Interaction ID"
                     ).n_unique(),
@@ -1608,19 +1609,17 @@ class DecisionAnalyzer:
                         .otherwise(pl.col("Levers"))
                     ).alias("Levers")
                 ],
-                additional_filters=pl.col("StageGroup").is_in(
+                additional_filters=pl.col("Stage Group").is_in(
                     self.stages_from_arbitration_down
                 ),
             ).select(
-                ["Issue", "Group", "Action"] + ["Interaction ID", "pxRank", "rank_PVCL"]
+                ["Issue", "Group", "Action"] + ["Interaction ID", "Rank", "rank_PVCL"]
             )
 
             result = (
                 recalculated_winners.group_by(["Issue", "Group", "Action"])
                 .agg(
-                    original_win_count=pl.col("pxRank")
-                    .filter(pl.col("pxRank") == 1)
-                    .len(),
+                    original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
                     new_win_count=pl.col("rank_PVCL")
                     .filter(pl.col("rank_PVCL") == 1)
                     .len(),

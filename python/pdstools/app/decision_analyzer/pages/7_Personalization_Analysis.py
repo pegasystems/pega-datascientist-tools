@@ -101,7 +101,7 @@ optionality_data_with_trend_per_stage = (
     st.session_state.decision_data.get_optionality_data_with_trend(
         df=st.session_state["local_optionality"]
     )
-    .group_by(["day", "StageGroup"])
+    .group_by(["day", "Stage Group"])
     .agg(nOffers=pl.col("nOffers").max())
     .sort("day")
 )

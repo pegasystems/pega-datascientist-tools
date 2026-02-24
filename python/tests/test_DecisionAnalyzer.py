@@ -159,11 +159,11 @@ class TestDataCleanup:
 
     def test_v1_has_rank_column(self, da_v1):
         schema = da_v1.decision_data.collect_schema()
-        assert "pxRank" in schema.names()
+        assert "Rank" in schema.names()
 
     def test_v2_has_rank_column(self, da_v2):
         schema = da_v2.decision_data.collect_schema()
-        assert "pxRank" in schema.names()
+        assert "Rank" in schema.names()
 
     def test_v1_has_day_column(self, da_v1):
         schema = da_v1.decision_data.collect_schema()
@@ -180,10 +180,10 @@ class TestDataCleanup:
     def test_v1_synthetic_stages(self, da_v1):
         """v1 should have synthetic Arbitration and Output stages."""
         stages = (
-            da_v1.decision_data.select("StageGroup")
+            da_v1.decision_data.select("Stage Group")
             .unique()
             .collect()
-            .get_column("StageGroup")
+            .get_column("Stage Group")
             .to_list()
         )
         assert "Arbitration" in stages
@@ -198,11 +198,11 @@ class TestDataCleanup:
     def test_v1_rank_1_is_output(self, da_v1):
         """In v1, rank-1 actions should be in Output stage."""
         rank1 = (
-            da_v1.decision_data.filter(pl.col("pxRank") == 1)
-            .select("StageGroup")
+            da_v1.decision_data.filter(pl.col("Rank") == 1)
+            .select("Stage Group")
             .unique()
             .collect()
-            .get_column("StageGroup")
+            .get_column("Stage Group")
             .to_list()
         )
         assert "Output" in rank1
@@ -213,9 +213,9 @@ class TestDataCleanup:
             da_v1.decision_data.head(10000)
             .group_by("Interaction ID")
             .agg(
-                pl.col("pxRank").min().alias("min_rank"),
-                pl.col("pxRank").max().alias("max_rank"),
-                pl.col("pxRank").n_unique().alias("n_ranks"),
+                pl.col("Rank").min().alias("min_rank"),
+                pl.col("Rank").max().alias("max_rank"),
+                pl.col("Rank").n_unique().alias("n_ranks"),
                 pl.len().alias("n_rows"),
             )
             .collect()
@@ -288,7 +288,7 @@ class TestSampling:
             "Issue",
             "Group",
             "Action",
-            "pxRank",
+            "Rank",
             "Priority",
         ]:
             assert required in cols, f"Missing column: {required}"
@@ -329,16 +329,16 @@ class TestPreaggregation:
     def test_remaining_counts_geq_filter_counts(self, da_v2):
         """Remaining view totals should be >= filter view totals at each stage."""
         remaining = (
-            da_v2.getPreaggregatedRemainingView.group_by("StageGroup")
+            da_v2.getPreaggregatedRemainingView.group_by("Stage Group")
             .agg(pl.sum("Decisions"))
             .collect()
-            .sort("StageGroup")
+            .sort("Stage Group")
         )
         filtered = (
-            da_v2.getPreaggregatedFilterView.group_by("StageGroup")
+            da_v2.getPreaggregatedFilterView.group_by("Stage Group")
             .agg(pl.sum("Decisions"))
             .collect()
-            .sort("StageGroup")
+            .sort("Stage Group")
         )
         # Remaining at earlier stages includes later stages, so total remaining >= filtered
         assert remaining["Decisions"].sum() >= filtered["Decisions"].sum()
@@ -561,7 +561,7 @@ class TestReRank:
 
     def test_rerank_with_filters(self, da_v1):
         df = da_v1.reRank(
-            additional_filters=pl.col("StageGroup").is_in(
+            additional_filters=pl.col("Stage Group").is_in(
                 da_v1.stages_from_arbitration_down
             )
         ).collect()

@@ -46,7 +46,7 @@ if "decision_data" in st.session_state:
 st.session_state["filters"] = []
 
 # TODO: Allow user to select the level once "Stage" level is implemented
-level = "StageGroup"
+level = "Stage Group"
 
 sample_size = st.number_input(
     "Sample Size",
