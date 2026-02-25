@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from httpx import URL, Response
 
@@ -15,7 +15,7 @@ class PegaException(Exception):
         endpoint: str,
         params: dict,
         response: Response,
-        override_message: Optional[str] = None,
+        override_message: str | None = None,
     ):  # pragma: no cover
         self.base_url = base_url
         self.endpoint = endpoint

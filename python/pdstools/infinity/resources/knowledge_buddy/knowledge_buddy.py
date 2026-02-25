@@ -1,4 +1,4 @@
-from typing import Literal, Optional, TypedDict
+from typing import Literal, TypedDict
 
 import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
@@ -44,7 +44,7 @@ class BuddyResponse(BaseModel):
     question_id: str = Field(validation_alias=AliasChoices("questionID", "question_id"))
     answer: str
     status: str
-    search_results: Optional[list[SearchResult]] = Field(
+    search_results: list[SearchResult] | None = Field(
         None,
         validation_alias=AliasChoices("searchResults", "search_results"),
     )
@@ -76,12 +76,12 @@ class _KnowledgeBuddyMixin:
         question: str,
         buddy: str,
         include_search_results: bool = False,
-        question_source: Optional[str] = None,
-        question_tag: Optional[str] = None,
-        additional_text_inputs: Optional[list[TextInput]] = None,
-        filter_attributes: Optional[list[FilterAttributes]] = None,
-        user_name: Optional[str] = None,
-        user_email: Optional[str] = None,
+        question_source: str | None = None,
+        question_tag: str | None = None,
+        additional_text_inputs: list[TextInput] | None = None,
+        filter_attributes: list[FilterAttributes] | None = None,
+        user_name: str | None = None,
+        user_email: str | None = None,
     ) -> BuddyResponse:
         """Send a question to the Knowledge Buddy.
 
@@ -135,7 +135,7 @@ class _KnowledgeBuddyMixin:
         self,
         question_id: str,
         helpful: Literal["Yes", "No", "Unsure"] = "Unsure",
-        comments: Optional[str] = None,
+        comments: str | None = None,
     ):
         """Capture feedback for a question asked to the Knowledge Buddy.
 

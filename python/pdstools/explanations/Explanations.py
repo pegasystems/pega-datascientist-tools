@@ -2,7 +2,6 @@ __all__ = ["Explanations"]
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
 from .Aggregate import Aggregate
 from .FilterWidget import FilterWidget
@@ -55,10 +54,10 @@ class Explanations:
         self,
         root_dir: str = ".tmp",
         data_folder: str = "explanations_data",
-        data_file: Optional[str] = None,
-        model_name: Optional[str] = "",
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
+        data_file: str | None = None,
+        model_name: str | None = "",
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
     ):
         self.root_dir = root_dir
         self.data_folder = data_folder
@@ -77,8 +76,8 @@ class Explanations:
 
     def _set_date_range(
         self,
-        from_date: Optional[datetime],
-        to_date: Optional[datetime],
+        from_date: datetime | None,
+        to_date: datetime | None,
         days: int = 7,
     ):
         """Set the date range for processing explanation files.

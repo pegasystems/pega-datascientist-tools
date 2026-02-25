@@ -1,7 +1,7 @@
 __all__ = ["Plots"]
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -233,7 +233,7 @@ class Plots(LazyNamespace):
         y_col: str,
         x_title: str = X_AXIS_TITLE_DEFAULT,
         y_title: str = Y_AXIS_TITLE_DEFAULT,
-        context: Optional[ContextInfo] = None,
+        context: ContextInfo | None = None,
     ) -> go.Figure:
         title = "Overall average predictor contributions for "
         if context is None:

@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     TypeVar,
     overload,
 )
@@ -38,7 +37,7 @@ if TYPE_CHECKING:  # pragma: no cover
 @overload
 def _apply_query(
     df: pl.LazyFrame,
-    query: Optional[QUERY] = None,
+    query: QUERY | None = None,
     allow_empty: bool = False,
 ) -> pl.LazyFrame: ...
 
@@ -46,12 +45,12 @@ def _apply_query(
 @overload
 def _apply_query(
     df: pl.DataFrame,
-    query: Optional[QUERY] = None,
+    query: QUERY | None = None,
     allow_empty: bool = False,
 ) -> pl.DataFrame: ...
 
 
-def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False) -> F:
+def _apply_query(df: F, query: QUERY | None = None, allow_empty: bool = False) -> F:
     if query is None:
         return df
 
@@ -247,7 +246,7 @@ def _extract_keys(
 
 def parse_pega_date_time_formats(
     timestamp_col="SnapshotTime",
-    timestamp_fmt: Optional[str] = None,
+    timestamp_fmt: str | None = None,
     timestamp_dtype: PolarsTemporalType = pl.Datetime,
 ) -> pl.Expr:
     """Parses Pega DateTime formats.
@@ -387,7 +386,7 @@ def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 def auc_from_bincounts(
     pos: list[int] | pl.Series,
     neg: list[int] | pl.Series,
-    probs: Optional[list[float] | pl.Series] = None,
+    probs: list[float] | pl.Series | None = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -479,7 +478,7 @@ def aucpr_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 def aucpr_from_bincounts(
     pos: list[int] | pl.Series,
     neg: list[int] | pl.Series,
-    probs: Optional[list[float] | pl.Series] = None,
+    probs: list[float] | pl.Series | None = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -544,7 +543,7 @@ def auc_to_gini(auc: float) -> float:
 
 def _capitalize(
     fields: str | Iterable[str],
-    extra_endwords: Optional[Iterable[str]] = None,
+    extra_endwords: Iterable[str] | None = None,
 ) -> list[str]:
     """Applies automatic capitalization, aligned with the R counterpart.
 
@@ -656,7 +655,7 @@ def _capitalize(
     return fields
 
 
-def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) -> F:
+def _polars_capitalize(df: F, extra_endwords: Iterable[str] | None = None) -> F:
     cols = df.collect_schema().names()
     renamed_cols = _capitalize(cols, extra_endwords)
 
@@ -1386,8 +1385,8 @@ def setup_logger():
 
 
 def create_working_and_temp_dir(
-    name: Optional[str] = None,
-    working_dir: Optional[PathLike] = None,
+    name: str | None = None,
+    working_dir: PathLike | None = None,
 ) -> tuple[Path, Path]:
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir
@@ -1425,9 +1424,9 @@ def safe_flatten_list(alist: list, extras: list = None) -> list:
 
 def _get_start_end_date_args(
     data: pl.Series | pl.LazyFrame | pl.DataFrame,
-    start_date: Optional[datetime.datetime] = None,
-    end_date: Optional[datetime.datetime] = None,
-    window: Optional[int | datetime.timedelta] = None,
+    start_date: datetime.datetime | None = None,
+    end_date: datetime.datetime | None = None,
+    window: int | datetime.timedelta | None = None,
     datetime_field="SnapshotTime",
 ):
     if isinstance(data, pl.DataFrame):

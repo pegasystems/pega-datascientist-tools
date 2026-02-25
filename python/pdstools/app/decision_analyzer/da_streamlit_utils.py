@@ -1,7 +1,6 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 import os
 from pathlib import Path
-from typing import Optional
 
 import polars as pl
 import streamlit as st
@@ -270,7 +269,7 @@ def get_options() -> list[str]:
     return options
 
 
-def handle_sample_data() -> Optional[pl.LazyFrame]:
+def handle_sample_data() -> pl.LazyFrame | None:
     """Load sample data, using a local S3 path in managed deployments."""
     if is_managed_deployment():
         return read_data(Path(_EC2_SAMPLE_PATH))
@@ -328,7 +327,7 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> Optional[pl.LazyFrame]:
+def handle_file_upload() -> pl.LazyFrame | None:
     """Show file uploader accepting one or more files and return a LazyFrame, or None."""
     import tempfile
 
@@ -383,7 +382,7 @@ def handle_file_upload() -> Optional[pl.LazyFrame]:
     return pl.concat(frames, how="diagonal", rechunk=True)
 
 
-def handle_file_path() -> Optional[pl.LazyFrame]:
+def handle_file_path() -> pl.LazyFrame | None:
     """Show text input for a file/folder path and return a LazyFrame, or None."""
     st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
     path = st.text_input(

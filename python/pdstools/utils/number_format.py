@@ -10,7 +10,7 @@ See: https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html
 
 from dataclasses import dataclass
 from math import isnan
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable
 
 import polars as pl
 
@@ -179,7 +179,7 @@ class NumberFormat:
         self,
         df: pl.DataFrame,
         column: str,
-        output_column: Optional[str] = None,
+        output_column: str | None = None,
     ) -> pl.DataFrame:
         """Add a formatted string column to a DataFrame.
 

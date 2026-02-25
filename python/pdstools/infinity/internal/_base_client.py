@@ -8,7 +8,6 @@ from typing import (
     Any,
     Generic,
     Literal,
-    Optional,
     TypeVar,
 )
 
@@ -62,7 +61,7 @@ class BaseClient(Generic[_HttpxClientT]):
         *,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -113,9 +112,9 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         base_url: str,
         client_id: str,
         client_secret: str,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         verify: bool = False,
-        pega_version: Optional[str] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         return cls(
@@ -137,7 +136,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         cls,
         file_path: str,
         verify: bool = False,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: float = 90,
     ):
@@ -157,12 +156,12 @@ For full compatibility, please supply the pega_version argument to the Infinity 
     @classmethod
     def from_basic_auth(
         cls,
-        base_url: Optional[str] = None,
-        user_name: Optional[str] = None,
-        password: Optional[str] = None,
+        base_url: str | None = None,
+        user_name: str | None = None,
+        password: str | None = None,
         *,
         verify: bool = True,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: int = 90,
     ):
@@ -197,7 +196,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -260,7 +259,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
     def handle_pega_exception(self, endpoint, params, response):
         if hasattr(self, "custom_exception_hook"):
-            exception: Optional[Exception] = self.custom_exception_hook(
+            exception: Exception | None = self.custom_exception_hook(
                 self._base_url,
                 endpoint,
                 params,
@@ -422,7 +421,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -506,7 +505,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
 
     def handle_pega_exception(self, endpoint, params, response):
         if hasattr(self, "custom_exception_hook"):
-            exception: Optional[Exception] = self.custom_exception_hook(
+            exception: Exception | None = self.custom_exception_hook(
                 self._base_url,
                 endpoint,
                 params,

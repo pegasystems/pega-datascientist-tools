@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, Optional, overload
+from typing import Literal, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -24,7 +24,7 @@ def read_ds_export(
     path: str | os.PathLike = ".",
     verbose: bool = False,
     **reading_opts,
-) -> Optional[pl.LazyFrame]:
+) -> pl.LazyFrame | None:
     """Read in most out of the box Pega dataset export formats
     Accepts one of the following formats:
     - .csv
@@ -518,7 +518,7 @@ def cache_to_file(
 
 def read_dataflow_output(
     files: Iterable[str] | str,
-    cache_file_name: Optional[str] = None,
+    cache_file_name: str | None = None,
     *,
     extension: Literal["json"] = "json",
     compression: Literal["gzip"] = "gzip",

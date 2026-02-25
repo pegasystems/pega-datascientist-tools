@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import polars as pl
 
@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_output_filename(
-    name: Optional[str],  # going to be the full file name
+    name: str | None,  # going to be the full file name
     report_type: str,
-    model_id: Optional[str] = None,
+    model_id: str | None = None,
     output_type: str = "html",
 ) -> str:
     """Generate the output filename based on the report parameters."""
@@ -78,10 +78,10 @@ def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
 
 def _write_params_files(
     temp_dir: Path,
-    params: Optional[dict] = None,
+    params: dict | None = None,
     project: dict = {"type": "default"},
-    analysis: Optional[dict] = None,
-    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
+    analysis: dict | None = None,
+    size_reduction_method: Literal["strip", "cdn"] | None = None,
 ) -> None:
     """Write parameters to YAML files for Quarto processing.
 
@@ -138,16 +138,16 @@ def _write_params_files(
 
 
 def run_quarto(
-    qmd_file: Optional[str] = None,
-    output_filename: Optional[str] = None,
-    output_type: Optional[str] = "html",
-    params: Optional[dict] = None,
+    qmd_file: str | None = None,
+    output_filename: str | None = None,
+    output_type: str | None = "html",
+    params: dict | None = None,
     project: dict = {"type": "default"},
-    analysis: Optional[dict] = None,
+    analysis: dict | None = None,
     temp_dir: Path = Path(),
     verbose: bool = False,
     *,
-    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
+    size_reduction_method: Literal["strip", "cdn"] | None = None,
 ) -> int:
     """Run the Quarto command to generate the report.
 
@@ -287,8 +287,8 @@ def run_quarto(
 
 
 def _set_command_options(
-    output_type: Optional[str] = None,
-    output_filename: Optional[str] = None,
+    output_type: str | None = None,
+    output_filename: str | None = None,
     execute_params: bool = False,
 ) -> list[str]:
     """Set the options for the Quarto command.
@@ -516,8 +516,8 @@ def polars_subset_to_existing_cols(all_columns, cols):
 
 def create_metric_itable(
     source_table: pl.DataFrame,
-    column_to_metric: Optional[dict] = None,
-    column_descriptions: Optional[dict[str, str]] = None,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
@@ -682,10 +682,10 @@ def create_metric_itable(
 
 def create_metric_gttable(
     source_table: pl.DataFrame,
-    title: Optional[str] = None,
-    subtitle: Optional[str] = None,
-    column_to_metric: Optional[dict] = None,
-    column_descriptions: Optional[dict[str, str]] = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
     color_background: bool = True,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = True,
@@ -954,7 +954,7 @@ def show_credits(quarto_source: str):
     )
 
 
-def serialize_query(query: Optional[QUERY]) -> Optional[dict]:
+def serialize_query(query: QUERY | None) -> dict | None:
     if query is None:
         return None
 
@@ -975,7 +975,7 @@ def serialize_query(query: Optional[QUERY]) -> Optional[dict]:
     raise ValueError(f"Unsupported query type: {type(query)}")
 
 
-def deserialize_query(serialized_query: Optional[dict]) -> Optional[QUERY]:
+def deserialize_query(serialized_query: dict | None) -> QUERY | None:
     """Deserialize a query that was previously serialized with serialize_query.
 
     Parameters

@@ -116,7 +116,7 @@ class MetricLimits:
         return limits
 
     @classmethod
-    def minimum(cls, metric_id: str) -> Optional[float]:
+    def minimum(cls, metric_id: str) -> float | None:
         """Get the minimum (hard limit) for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -124,7 +124,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("minimum")
 
     @classmethod
-    def maximum(cls, metric_id: str) -> Optional[float]:
+    def maximum(cls, metric_id: str) -> float | None:
         """Get the maximum (hard limit) for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -132,7 +132,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("maximum")
 
     @classmethod
-    def best_practice_min(cls, metric_id: str) -> Optional[float | bool]:
+    def best_practice_min(cls, metric_id: str) -> float | bool | None:
         """Get the best practice minimum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -140,7 +140,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_min")
 
     @classmethod
-    def best_practice_max(cls, metric_id: str) -> Optional[float | bool]:
+    def best_practice_max(cls, metric_id: str) -> float | bool | None:
         """Get the best practice maximum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -148,7 +148,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_max")
 
     @classmethod
-    def evaluate_metric_rag(cls, metric_id: str, value) -> Optional[RAGValue]:
+    def evaluate_metric_rag(cls, metric_id: str, value) -> RAGValue | None:
         """Evaluate RAG status for a metric value.
 
         Parameters
@@ -304,7 +304,7 @@ def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
     )
 
 
-def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_configurations_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD configuration names.
 
     Returns AMBER if any is a default/other/multi-channel or a non-standard configuration,
@@ -350,7 +350,7 @@ def get_standard_NBAD_channels() -> list[str]:
     return STANDARD_NBAD_CHANNELS.copy()
 
 
-def standard_NBAD_channels_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_channels_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD channel names.
 
     Returns GREEN for standard channels, YELLOW for Other, AMBER for multi-channel/unknown.
@@ -371,7 +371,7 @@ def standard_NBAD_channels_rag(value: str) -> Optional[RAGValue]:
     return "AMBER"
 
 
-def standard_NBAD_directions_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_directions_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise."""
     if not value:
         return None
@@ -409,7 +409,7 @@ ALL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA]
 
 
 def get_predictions_channel_mapping(
-    custom_predictions: Optional[list] = None,
+    custom_predictions: list | None = None,
 ) -> pl.DataFrame:
     """Get prediction to channel/direction mapping as a DataFrame."""
     custom_predictions = custom_predictions or []
@@ -437,7 +437,7 @@ def is_standard_NBAD_prediction(field: str = "Prediction") -> pl.Expr:
     )
 
 
-def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_predictions_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD prediction names.
 
     Returns GREEN for single-channel, YELLOW for multi-channel, AMBER for unknown.
@@ -472,20 +472,20 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
 # =============================================================================
 
 
-def exclusive_0_1_range_rag(value: float) -> Optional[RAGValue]:
+def exclusive_0_1_range_rag(value: float) -> RAGValue | None:
     """RAG for percentage values. GREEN if 0 < value < 1, RED otherwise."""
     if value is None:
         return None
     return "GREEN" if 0 < value < 1 else "RED"
 
 
-def positive_values(value: float) -> Optional[RAGValue]:
+def positive_values(value: float) -> RAGValue | None:
     if value is None:
         return None
     return "GREEN" if value >= 0 else "RED"
 
 
-def strict_positive_values(value: float) -> Optional[RAGValue]:
+def strict_positive_values(value: float) -> RAGValue | None:
     if value is None:
         return None
     return "GREEN" if value > 0 else "RED"
@@ -498,7 +498,7 @@ def strict_positive_values(value: float) -> Optional[RAGValue]:
 
 def add_rag_columns(
     df: pl.DataFrame,
-    column_to_metric: Optional[dict[str, MetricSpec]] = None,
+    column_to_metric: dict[str, MetricSpec] | None = None,
     strict_metric_validation: bool = True,
 ) -> pl.DataFrame:
     """Add RAG status columns to a DataFrame.
@@ -644,7 +644,7 @@ class MetricFormats:
     DEFAULT_FORMAT = NumberFormat(decimals=0, compact=True)
 
     @classmethod
-    def get(cls, metric_id: str) -> Optional[NumberFormat]:
+    def get(cls, metric_id: str) -> NumberFormat | None:
         """Get format for a metric, or None if not defined."""
         return cls._FORMATS.get(metric_id)
 

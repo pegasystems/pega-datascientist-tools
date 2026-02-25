@@ -4,7 +4,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Optional,
     TypeVar,
     Union,
     cast,
@@ -52,7 +51,7 @@ class Plots(LazyNamespace):
     def funnel_chart(
         self,
         by: str,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: Literal[False] = False,
     ) -> Figure: ...
 
@@ -60,14 +59,14 @@ class Plots(LazyNamespace):
     def funnel_chart(
         self,
         by: str,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: Literal[True] = True,
     ) -> pl.LazyFrame: ...
 
     def funnel_chart(
         self,
         by: str = "Group",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         df = _apply_query(self.vf.df, query)
@@ -225,9 +224,9 @@ class Plots(LazyNamespace):
 
     def _get_thresholds(
         self,
-        thresholds: Optional[Iterable[float]] = None,
-        quantiles: Optional[Iterable[float]] = None,
-        default: Optional[Iterable[float]] = None,
+        thresholds: Iterable[float] | None = None,
+        quantiles: Iterable[float] | None = None,
+        default: Iterable[float] | None = None,
     ) -> Iterable[float]:
         if thresholds is not None and quantiles is not None:
             raise ValueError("Please only supply thresholds OR quantiles, not both.")
@@ -242,8 +241,8 @@ class Plots(LazyNamespace):
     def pie_charts(
         self,
         *,
-        thresholds: Optional[Iterable[float]] = None,
-        quantiles: Optional[Iterable[float]] = None,
+        thresholds: Iterable[float] | None = None,
+        quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
         thresholds = self._get_thresholds(thresholds, quantiles)
@@ -264,7 +263,7 @@ class Plots(LazyNamespace):
         )
         steps = []
         last_threshold = 0.0
-        default_n: Optional[int] = None
+        default_n: int | None = None
         for i, ((stage, threshold), _df) in enumerate(
             df.group_by("Stage", "Threshold", maintain_order=True),
         ):
@@ -342,8 +341,8 @@ class Plots(LazyNamespace):
     def distribution_per_threshold(
         self,
         *,
-        thresholds: Optional[Iterable[float]] = None,
-        quantiles: Optional[Iterable[float]] = None,
+        thresholds: Iterable[float] | None = None,
+        quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
         thresholds = self._get_thresholds(

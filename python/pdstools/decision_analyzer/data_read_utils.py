@@ -3,7 +3,6 @@ import os
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
 
 import polars as pl
 
@@ -46,7 +45,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
     return pl.concat(dfs, rechunk=True)
 
 
-def read_gzipped_data(data: BytesIO) -> Optional[pl.DataFrame]:
+def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
     """Reads gzipped ndjson data from a BytesIO object and returns a Polars DataFrame.
 
     Parameters
@@ -150,7 +149,7 @@ def read_data(path):
 def validate_columns(
     df: pl.LazyFrame,
     extract_type: dict[str, TableConfig],
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """Validate that default columns from table definition exist in the dataframe.
 
     This function checks if required columns exist in the data, accounting for

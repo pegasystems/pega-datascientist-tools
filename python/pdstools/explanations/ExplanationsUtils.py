@@ -11,14 +11,14 @@ __all__ = [
 
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 
 
-def validate(top_n: Optional[int] = None, top_k: Optional[int] = None):
+def validate(top_n: int | None = None, top_k: int | None = None):
     """Validate the parameters for top_n and top_k."""
     if top_n:
         if not isinstance(top_n, int) or top_n <= 1:
@@ -181,8 +181,8 @@ class ContextOperations(LazyNamespace):
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate
 
-        self._df: Optional[pl.DataFrame] = None
-        self._context_keys: Optional[list[str]] = None
+        self._df: pl.DataFrame | None = None
+        self._context_keys: list[str] | None = None
         self.initialized = False
 
         super().__init__()
@@ -214,7 +214,7 @@ class ContextOperations(LazyNamespace):
 
     def get_df(
         self,
-        context_infos: Optional[list[ContextInfo]] = None,
+        context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
@@ -228,7 +228,7 @@ class ContextOperations(LazyNamespace):
 
     def get_list(
         self,
-        context_infos: Optional[list[ContextInfo]] = None,
+        context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
         """Get the list of context information filtered by the provided context information."""

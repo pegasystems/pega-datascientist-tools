@@ -9,7 +9,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Optional,
     TypeVar,
     Union,
     overload,
@@ -43,9 +42,9 @@ P = ParamSpec("P")
 
 
 def requires(
-    model_columns: Optional[Iterable[str]] = None,
-    predictor_columns: Optional[Iterable[str]] = None,
-    combined_columns: Optional[Iterable[str]] = None,
+    model_columns: Iterable[str] | None = None,
+    predictor_columns: Iterable[str] | None = None,
+    combined_columns: Iterable[str] | None = None,
 ):
     def decorator(
         func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
@@ -232,9 +231,9 @@ class Plots(LazyNamespace):
         *,
         last: bool = True,
         rounding: int = 5,
-        query: Optional[QUERY] = None,
-        facet: Optional[str | pl.Expr] = None,
-        color: Optional[str] = "Performance",
+        query: QUERY | None = None,
+        facet: str | pl.Expr | None = None,
+        color: str | None = "Performance",
         return_df: bool = False,
     ):
         """The Bubble Chart, as seen in Prediction Studio
@@ -329,8 +328,8 @@ class Plots(LazyNamespace):
         *,
         every: str | timedelta = "1d",
         cumulative: bool = True,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ):
         """Statistics over time
@@ -468,8 +467,8 @@ class Plots(LazyNamespace):
         by: str = "Name",
         *,
         top_n: int = 0,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ):
         """Proposition Success Rates
@@ -617,7 +616,7 @@ class Plots(LazyNamespace):
 
     def multiple_score_distributions(
         self,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         show_all: bool = True,
     ) -> list[Figure]:
         """Generate the score distribution plot for all models in the query
@@ -738,7 +737,7 @@ class Plots(LazyNamespace):
     def multiple_predictor_binning(
         self,
         model_id: str,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         show_all=True,
     ) -> list[Figure]:
         """Generate predictor binning plots for all predictors in a model.
@@ -781,8 +780,8 @@ class Plots(LazyNamespace):
         *,
         y_col: str,
         metric_col: str,
-        metric_weight_col: Optional[str] = None,
-        legend_col: Optional[str] = None,
+        metric_weight_col: str | None = None,
+        legend_col: str | None = None,
         return_df: bool = False,
     ):
         if legend_col is None:
@@ -908,9 +907,9 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Performance",
-        top_n: Optional[int] = None,
+        top_n: int | None = None,
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plots a box plot of the performance of the predictors
@@ -992,7 +991,7 @@ class Plots(LazyNamespace):
         *,
         metric: str = "Performance",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plot the predictor category performance
@@ -1056,7 +1055,7 @@ class Plots(LazyNamespace):
         self,
         *,
         by: str = "Configuration",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plots the predictor contribution for each configuration
@@ -1128,10 +1127,10 @@ class Plots(LazyNamespace):
         self,
         *,
         top_predictors: int = 20,
-        top_groups: Optional[int] = None,
+        top_groups: int | None = None,
         by: str = "Name",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a heatmap showing predictor performance across different groups.
@@ -1210,7 +1209,7 @@ class Plots(LazyNamespace):
         ] = "Performance",
         *,
         by: str = "Name",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a tree map visualization showing hierarchical model metrics.
@@ -1291,7 +1290,7 @@ class Plots(LazyNamespace):
         self,
         *,
         by: str | list[str] = ["EntryType", "Type"],
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a box plot showing the distribution of predictor counts by type.
@@ -1366,7 +1365,7 @@ class Plots(LazyNamespace):
         model_id: str,
         predictor_name: str,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a binning lift plot for a specific predictor showing propensity lift per bin.
@@ -1493,7 +1492,7 @@ class Plots(LazyNamespace):
         overlap_col="Name",
         *,
         show_fraction=True,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate an overlap matrix heatmap showing shared actions across different groups.
@@ -1566,7 +1565,7 @@ class Plots(LazyNamespace):
     def partitioned_plot(
         self,
         func: Callable,
-        facets: list[dict[str, Optional[str]]],
+        facets: list[dict[str, str | None]],
         show_plots: bool = True,
         *args,
         **kwargs,

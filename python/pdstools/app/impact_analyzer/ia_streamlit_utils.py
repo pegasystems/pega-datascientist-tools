@@ -3,7 +3,6 @@ import tempfile
 import urllib.request
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional
 
 import streamlit as st
 
@@ -64,10 +63,10 @@ def load_pdc_from_uploads(uploaded_files: Iterable) -> ImpactAnalyzer:
 
 
 @st.cache_resource
-def load_vbd_from_path(path: str) -> Optional[ImpactAnalyzer]:
+def load_vbd_from_path(path: str) -> ImpactAnalyzer | None:
     return ImpactAnalyzer.from_vbd(path)
 
 
-def load_vbd_from_upload(uploaded_file) -> Optional[ImpactAnalyzer]:
+def load_vbd_from_upload(uploaded_file) -> ImpactAnalyzer | None:
     path = _write_uploaded_file(uploaded_file)
     return load_vbd_from_path(path)

@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import polars as pl
 
@@ -23,9 +23,9 @@ class ValueFinder:
         self,
         df: pl.LazyFrame,
         *,
-        query: Optional[QUERY] = None,
-        n_customers: Optional[int] = None,
-        threshold: Optional[float] = None,
+        query: QUERY | None = None,
+        n_customers: int | None = None,
+        threshold: float | None = None,
     ):
         self.df: pl.LazyFrame = cdh_utils._apply_schema_types(df, Schema.pyValueFinder)
         self.df = cdh_utils._polars_capitalize(self.df)
@@ -50,12 +50,12 @@ class ValueFinder:
     @classmethod
     def from_ds_export(
         cls,
-        filename: Optional[str] = None,
+        filename: str | None = None,
         base_path: os.PathLike | str = ".",
         *,
-        query: Optional[QUERY] = None,
-        n_customers: Optional[int] = None,
-        threshold: Optional[float] = None,
+        query: QUERY | None = None,
+        n_customers: int | None = None,
+        threshold: float | None = None,
     ):
         df = read_ds_export(filename or "value_finder", base_path)
         if df is None:
@@ -68,9 +68,9 @@ class ValueFinder:
         cls,
         files: Iterable[str] | str,
         *,
-        query: Optional[QUERY] = None,
-        n_customers: Optional[int] = None,
-        threshold: Optional[float] = None,
+        query: QUERY | None = None,
+        n_customers: int | None = None,
+        threshold: float | None = None,
         cache_file_prefix: str = "",
         extension: Literal["json"] = "json",
         compression: Literal["gzip"] = "gzip",
@@ -91,7 +91,7 @@ class ValueFinder:
             threshold=threshold,
         )  # pragma: no cover
 
-    def set_threshold(self, new_threshold: Optional[float] = None):
+    def set_threshold(self, new_threshold: float | None = None):
         if new_threshold:
             self._th = pl.LazyFrame({"th": new_threshold})
         else:
@@ -103,7 +103,7 @@ class ValueFinder:
     def threshold(self):
         return self._th.collect().item()
 
-    def save_data(self, path: os.PathLike | str = ".") -> Optional[Path]:
+    def save_data(self, path: os.PathLike | str = ".") -> Path | None:
         """Cache the pyValueFinder dataset to a Parquet file
 
         Parameters

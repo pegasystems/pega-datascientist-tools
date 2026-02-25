@@ -2,7 +2,7 @@ __all__ = ["Aggregate"]
 
 import logging
 import pathlib
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -45,7 +45,7 @@ class Aggregate(LazyNamespace):
 
     def get_predictor_contributions(
         self,
-        context: Optional[dict[str, str]] = None,
+        context: dict[str, str] | None = None,
         top_n: int = _DEFAULT.TOP_N.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
@@ -96,7 +96,7 @@ class Aggregate(LazyNamespace):
     def get_predictor_value_contributions(
         self,
         predictors: list[str],
-        context: Optional[dict[str, str]] = None,
+        context: dict[str, str] | None = None,
         top_k: int = _DEFAULT.TOP_K.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
@@ -169,7 +169,7 @@ class Aggregate(LazyNamespace):
 
     def get_unique_contexts_list(
         self,
-        context_infos: Optional[list[ContextInfo]] = None,
+        context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
         return self.context_operations.get_list(context_infos, with_partition_col)
@@ -215,8 +215,8 @@ class Aggregate(LazyNamespace):
 
     def _get_predictor_contributions(
         self,
-        contexts: Optional[list[ContextInfo]] = None,
-        predictors: Optional[list[str]] = None,
+        contexts: list[ContextInfo] | None = None,
+        predictors: list[str] | None = None,
         limit: int = _DEFAULT.TOP_N.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
@@ -289,8 +289,8 @@ class Aggregate(LazyNamespace):
 
     def _get_predictor_value_contributions(
         self,
-        contexts: Optional[list[ContextInfo]] = None,
-        predictors: Optional[list[str]] = None,
+        contexts: list[ContextInfo] | None = None,
+        predictors: list[str] | None = None,
         limit: int = _DEFAULT.TOP_K.value,
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
@@ -442,7 +442,7 @@ class Aggregate(LazyNamespace):
 
     def _get_df(
         self,
-        contexts: Optional[list[ContextInfo]] = None,
+        contexts: list[ContextInfo] | None = None,
     ):
         contexts = contexts or []
 
@@ -455,7 +455,7 @@ class Aggregate(LazyNamespace):
 
     def _get_base_df(
         self,
-        df_filtered_contexts: Optional[pl.DataFrame] = None,
+        df_filtered_contexts: pl.DataFrame | None = None,
     ) -> pl.LazyFrame:
         if self.df_overall is None or self.df_contextual is None:
             self._load_data()
@@ -470,7 +470,7 @@ class Aggregate(LazyNamespace):
 
     def _get_group_by_columns(
         self,
-        predictors: Optional[list[str]] = None,
+        predictors: list[str] | None = None,
     ) -> list[str]:
         if predictors is None or len(predictors) == 0:
             return [
@@ -488,7 +488,7 @@ class Aggregate(LazyNamespace):
 
     def _get_sort_over_columns(
         self,
-        predictors: Optional[list[str]] = None,
+        predictors: list[str] | None = None,
     ) -> list[str]:
         if predictors is None or len(predictors) == 0:
             return [_COL.PREDICTOR_NAME.value, _COL.PARTITON.value]

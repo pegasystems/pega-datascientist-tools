@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import Optional
 
 import plotly.express as px
 import polars as pl
@@ -112,7 +111,7 @@ def show_version_header(check_latest: bool = True):
             )
 
 
-def ensure_session_data(key: str, message: Optional[str] = None):
+def ensure_session_data(key: str, message: str | None = None):
     """Guard that stops page execution when *key* is missing from session state.
 
     Parameters
@@ -128,7 +127,7 @@ def ensure_session_data(key: str, message: Optional[str] = None):
         st.stop()
 
 
-def get_deploy_env() -> Optional[str]:
+def get_deploy_env() -> str | None:
     """Return the deployment environment set via ``--deploy-env`` CLI flag.
 
     Returns ``None`` when running locally without the flag.
@@ -436,7 +435,7 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
 
 def filter_dataframe(
     df: pl.LazyFrame,
-    schema: Optional[dict] = None,
+    schema: dict | None = None,
     queries=[],
 ) -> pl.LazyFrame:
     """Adds a UI on top of a dataframe to let viewers filter columns

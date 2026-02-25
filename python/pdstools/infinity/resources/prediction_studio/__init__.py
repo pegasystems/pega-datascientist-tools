@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from . import v24_1, v24_2
 from .base import AsyncPredictionStudioBase, PredictionStudioBase
@@ -7,7 +6,7 @@ from .base import AsyncPredictionStudioBase, PredictionStudioBase
 logger = logging.getLogger(__name__)
 
 
-def get(version: str) -> Optional[type[PredictionStudioBase]]:
+def get(version: str) -> type[PredictionStudioBase] | None:
     if not version:
         return None
     if version == "24.1":
@@ -22,7 +21,7 @@ def get(version: str) -> Optional[type[PredictionStudioBase]]:
     return v24_2.PredictionStudio
 
 
-def get_async(version: str) -> Optional[type[AsyncPredictionStudioBase]]:
+def get_async(version: str) -> type[AsyncPredictionStudioBase] | None:
     if not version:
         return None
     if version == "24.1":

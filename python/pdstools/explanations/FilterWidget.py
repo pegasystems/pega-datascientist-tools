@@ -1,7 +1,7 @@
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 from IPython.display import display
 from ipywidgets import widgets
@@ -21,7 +21,7 @@ class FilterWidget(LazyNamespace):
     _CHANGED_VALUE = "new"
     _CHANGED_WIDGET = "owner"
 
-    _selector_widget: Optional[widgets.Select]
+    _selector_widget: widgets.Select | None
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
@@ -59,7 +59,7 @@ class FilterWidget(LazyNamespace):
 
         self._display_context_selector()
 
-    def set_selected_context(self, context_info: Optional[ContextInfo] = None):
+    def set_selected_context(self, context_info: ContextInfo | None = None):
         """Set the selected context information.
 
         Args:
@@ -151,7 +151,7 @@ class FilterWidget(LazyNamespace):
     def _get_selected_context(
         self,
         with_any_option: bool = True,
-    ) -> Optional[ContextInfo]:
+    ) -> ContextInfo | None:
         # return None if with_any_option is False and any context key value is set to ANY_CONTEXT
         if not with_any_option and any(
             x == self._ANY_CONTEXT for x in self._selected_context_key.values()

@@ -4,7 +4,7 @@ import os
 import warnings
 from bisect import bisect_left
 from functools import cached_property
-from typing import Literal, Optional
+from typing import Literal
 
 import polars as pl
 import polars.selectors as cs
@@ -148,8 +148,8 @@ class DecisionAnalyzer:
         raw_data: pl.LazyFrame,
         level="StageGroup",
         sample_size=DEFAULT_SAMPLE_SIZE,
-        mandatory_expr: Optional[pl.Expr] = None,
-        additional_columns: Optional[dict[str, pl.DataType]] = None,
+        mandatory_expr: pl.Expr | None = None,
+        additional_columns: dict[str, pl.DataType] | None = None,
     ):
         """Initialize DecisionAnalyzer with raw decision data.
 
@@ -346,7 +346,7 @@ class DecisionAnalyzer:
 
     def applyGlobalDataFilters(
         self,
-        filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        filters: pl.Expr | list[pl.Expr] | None = None,
     ):
         """Apply a global set of filters"""
         self._invalidate_cached_properties()
@@ -604,7 +604,7 @@ class DecisionAnalyzer:
         self,
         stage: str,
         grouping_levels: str | list[str],
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         distribution_data = (
             apply_filter(self.getPreaggregatedRemainingView, additional_filters)
@@ -622,7 +622,7 @@ class DecisionAnalyzer:
     def getFunnelData(
         self,
         scope,
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
@@ -662,7 +662,7 @@ class DecisionAnalyzer:
     def getFilterComponentData(
         self,
         top_n,
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]
         available = set(self.getPreaggregatedFilterView.collect_schema().names())
@@ -693,7 +693,7 @@ class DecisionAnalyzer:
         self,
         top_n: int = 10,
         scope: str = "Action",
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
         """Per-component breakdown of which items are filtered and how many.
 
@@ -756,7 +756,7 @@ class DecisionAnalyzer:
     def getComponentDrilldown(
         self,
         component_name: str,
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
         their potential value.
@@ -825,7 +825,7 @@ class DecisionAnalyzer:
 
     def reRank(
         self,
-        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         overrides: list[pl.Expr] = [],
     ) -> pl.LazyFrame:
         """Calculates prio and rank for all PVCL combinations"""
@@ -1190,8 +1190,8 @@ class DecisionAnalyzer:
     def filtered_action_counts(
         self,
         groupby_cols: list,
-        propensityTH: Optional[float] = None,
-        priorityTH: Optional[float] = None,
+        propensityTH: float | None = None,
+        priorityTH: float | None = None,
     ) -> pl.LazyFrame:
         """Return action counts from the sample, optionally classified by propensity/priority thresholds.
 
@@ -1507,8 +1507,8 @@ class DecisionAnalyzer:
     def get_win_distribution_data(
         self,
         lever_condition: pl.Expr,
-        lever_value: Optional[float] = None,
-        all_interactions: Optional[int] = None,
+        lever_value: float | None = None,
+        all_interactions: int | None = None,
     ) -> pl.DataFrame:
         """Calculate win distribution data for business lever analysis.
 

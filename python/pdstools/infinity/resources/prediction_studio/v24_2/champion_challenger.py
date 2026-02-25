@@ -1,7 +1,6 @@
 import logging
 import random
 import string
-from typing import Optional
 
 import polars as pl
 from pydantic import validate_call
@@ -61,12 +60,12 @@ class _ChampionChallengerV24_2Mixin:
         client,
         prediction_id: str,
         active_model,
-        cc_id: Optional[str] = None,
-        context: Optional[str] = None,
-        category: Optional[str] = None,
+        cc_id: str | None = None,
+        context: str | None = None,
+        category: str | None = None,
         challenger_model=None,
-        champion_percentage: Optional[float] = None,
-        model_objective: Optional[str] = None,
+        champion_percentage: float | None = None,
+        model_objective: str | None = None,
     ):
         super().__init__(client=client)
         self.prediction_id = prediction_id
@@ -448,7 +447,7 @@ class _ChampionChallengerV24_2Mixin:
     async def remove_predictor(
         self,
         name: str,
-        parameterized: Optional[bool] = False,
+        parameterized: bool | None = False,
         is_active_model: bool = True,
     ):
         """Removes a predictor from a model in a prediction setup.
@@ -506,9 +505,9 @@ class _ChampionChallengerV24_2Mixin:
         self,
         new_model,
         challenger_response_share: float,
-        predictor_mapping: Optional[list[dict[str, str | int]]] = None,
-        model_label: Optional[str] = None,
-        learn_independently: Optional[bool] = True,
+        predictor_mapping: list[dict[str, str | int]] | None = None,
+        model_label: str | None = None,
+        learn_independently: bool | None = True,
     ):
         """Add a new model as a challenger in the prediction setup.
 
@@ -599,7 +598,7 @@ class _ChampionChallengerV24_2Mixin:
         self,
         challenger_response_share: float,
         adm_model_type: AdmModelType | str,
-        model_label: Optional[str] = None,
+        model_label: str | None = None,
         predictor_mapping: list[dict] | None = None,
         learn_independently: bool | None = True,
     ):

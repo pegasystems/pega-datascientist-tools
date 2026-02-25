@@ -4,7 +4,7 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal, Optional
+from typing import TYPE_CHECKING, Callable, Literal
 
 import polars as pl
 
@@ -35,24 +35,22 @@ class Reports(LazyNamespace):
         self,
         model_ids: str | list[str],
         *,
-        name: Optional[
-            str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str
+        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Report",
         disclaimer: str = "",
         subtitle: str = "",
-        output_dir: Optional[PathLike] = None,
+        output_dir: PathLike | None = None,
         only_active_predictors: bool = True,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        model_file_path: Optional[PathLike] = None,
-        predictor_file_path: Optional[PathLike] = None,
-        qmd_file: Optional[PathLike] = None,
-        size_reduction_method: Optional[
-            Literal["strip", "cdn"]
-        ] = "cdn",  # TODO: temporary default to support DJS use cases
+        progress_callback: Callable[[int, int], None] | None = None,
+        model_file_path: PathLike | None = None,
+        predictor_file_path: PathLike | None = None,
+        qmd_file: PathLike | None = None,
+        size_reduction_method: Literal["strip", "cdn"]
+        | None = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """Generates model reports for Naive Bayes ADM models.
 
@@ -210,26 +208,24 @@ class Reports(LazyNamespace):
 
     def health_check(
         self,
-        name: Optional[
-            str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str
+        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Overview",
         subtitle: str = "",
         disclaimer: str = "",
-        output_dir: Optional[os.PathLike] = None,
+        output_dir: os.PathLike | None = None,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
         prediction=None,
-        model_file_path: Optional[PathLike] = None,
-        predictor_file_path: Optional[PathLike] = None,
-        prediction_file_path: Optional[PathLike] = None,
-        qmd_file: Optional[PathLike] = None,
-        size_reduction_method: Optional[
-            Literal["strip", "cdn"]
-        ] = "cdn",  # TODO: temporary default to support DJS use cases
+        model_file_path: PathLike | None = None,
+        predictor_file_path: PathLike | None = None,
+        prediction_file_path: PathLike | None = None,
+        qmd_file: PathLike | None = None,
+        size_reduction_method: Literal["strip", "cdn"]
+        | None = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
         """Generates Health Check report for ADM models, optionally including predictor and prediction sections.
 
@@ -376,7 +372,7 @@ class Reports(LazyNamespace):
         self,
         name: Path | str = Path("Tables.xlsx"),
         predictor_binning: bool = False,
-    ) -> tuple[Optional[Path], list[str]]:
+    ) -> tuple[Path | None, list[str]]:
         """Export raw data to an Excel file.
 
         This method exports the last snapshots of model_data, predictor summary,

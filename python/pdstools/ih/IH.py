@@ -5,7 +5,6 @@ import math
 import os
 import random
 from collections import defaultdict
-from typing import Optional
 
 import polars as pl
 import polars.selectors as cs
@@ -95,7 +94,7 @@ class IH:
     def from_ds_export(
         cls,
         ih_filename: os.PathLike | str,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ) -> "IH":
         """Create an IH instance from a Pega Dataset Export.
 

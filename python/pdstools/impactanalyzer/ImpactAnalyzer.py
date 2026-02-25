@@ -167,8 +167,8 @@ class ImpactAnalyzer:
         | list[Path]
         | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: Literal[True],
         return_df: bool = ...,
     ) -> pl.LazyFrame: ...
@@ -185,8 +185,8 @@ class ImpactAnalyzer:
         | list[Path]
         | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: Literal[False] = ...,
         return_df: Literal[True],
     ) -> pl.LazyFrame: ...
@@ -203,8 +203,8 @@ class ImpactAnalyzer:
         | list[Path]
         | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
     ) -> "ImpactAnalyzer": ...
 
     @classmethod
@@ -217,8 +217,8 @@ class ImpactAnalyzer:
         | list[Path]
         | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: bool = False,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
@@ -302,7 +302,7 @@ class ImpactAnalyzer:
         vbd_source: os.PathLike | str,
         *,
         return_df: Literal[True],
-    ) -> Optional[pl.LazyFrame]: ...
+    ) -> pl.LazyFrame | None: ...
 
     # Default case: when return_df is not provided or False, returns ImpactAnalyzer
     @classmethod
@@ -428,7 +428,7 @@ class ImpactAnalyzer:
         ih_source: os.PathLike | str,
         *,
         return_df: Literal[True],
-    ) -> Optional[pl.LazyFrame]: ...
+    ) -> pl.LazyFrame | None: ...
 
     # Default case: when return_df is not provided or False, returns ImpactAnalyzer
     @classmethod
@@ -480,7 +480,7 @@ class ImpactAnalyzer:
         cls,
         json_data: dict,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_wide_df: bool = False,
     ) -> pl.LazyFrame:
         """Transform PDC Impact Analyzer JSON into normalized long format.
@@ -736,7 +736,7 @@ class ImpactAnalyzer:
 
     def summarize_control_groups(
         self,
-        by: Optional[Sequence[str | pl.Expr] | str | pl.Expr] = None,
+        by: Sequence[str | pl.Expr] | str | pl.Expr | None = None,
         drop_internal_cols: bool = True,
     ) -> pl.LazyFrame:
         """Aggregate metrics by control group.
@@ -797,7 +797,7 @@ class ImpactAnalyzer:
 
     def summarize_experiments(
         self,
-        by: Optional[Sequence[str | pl.Expr] | str | pl.Expr] = None,
+        by: Sequence[str | pl.Expr] | str | pl.Expr | None = None,
     ) -> pl.LazyFrame:
         """Summarize experiment metrics comparing test vs control groups.
 

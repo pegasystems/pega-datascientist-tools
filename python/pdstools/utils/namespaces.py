@@ -3,7 +3,6 @@ import logging
 import sys
 import types
 from functools import wraps
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +29,8 @@ class LazyNamespaceMeta(type):
 
 
 class LazyNamespace(metaclass=LazyNamespaceMeta):
-    dependencies: Optional[list[str]]
-    dependency_group: Optional[str]
+    dependencies: list[str] | None
+    dependency_group: str | None
 
     def __init__(self):
         self._dependencies_checked = False
@@ -66,8 +65,8 @@ class MissingDependenciesException(Exception):
     def __init__(
         self,
         deps: list[str],
-        namespace: Optional[str] = None,
-        deps_group: Optional[str] = None,
+        namespace: str | None = None,
+        deps_group: str | None = None,
     ):
         if namespace:
             message = f"To use {namespace}, you are missing{' an' if len(deps) == 1 else ''} optional {'dependency:' if len(deps) == 1 else 'dependencies:'} {', '.join(deps)}."

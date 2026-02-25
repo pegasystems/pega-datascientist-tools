@@ -1,5 +1,5 @@
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -15,7 +15,7 @@ class Aggregates:
     def get_customer_summary(
         self,
         *,
-        threshold: Optional[float] = None,
+        threshold: float | None = None,
     ) -> pl.LazyFrame:
         """Computes the summary of propensities for all customers
 
@@ -43,7 +43,7 @@ class Aggregates:
             )
         )
 
-    def get_counts_per_stage(self, *, threshold: Optional[float] = None):
+    def get_counts_per_stage(self, *, threshold: float | None = None):
         threshold = threshold or self.vf.threshold
         customer_summary = self.get_customer_summary(threshold=threshold)
         return (

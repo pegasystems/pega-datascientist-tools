@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs
@@ -23,7 +23,7 @@ class Aggregates:
     def last(
         self,
         *,
-        data: Optional[pl.LazyFrame] = None,
+        data: pl.LazyFrame | None = None,
         table: Literal["model_data", "predictor_data", "combined_data"] = "model_data",
     ) -> pl.LazyFrame:
         """Gets the last snapshot of the given table
@@ -60,9 +60,9 @@ class Aggregates:
 
     def _combine_data(
         self,
-        model_df: Optional[pl.LazyFrame],
-        predictor_df: Optional[pl.LazyFrame],
-    ) -> Optional[pl.LazyFrame]:
+        model_df: pl.LazyFrame | None,
+        predictor_df: pl.LazyFrame | None,
+    ) -> pl.LazyFrame | None:
         """Combines the model and predictor tables to the `combined_data` attribute
 
         Parameters
@@ -89,11 +89,11 @@ class Aggregates:
     def predictor_performance_pivot(
         self,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         active_only: bool = False,
         by="Name",
-        top_predictors: Optional[int] = None,
-        top_groups: Optional[int] = None,
+        top_predictors: int | None = None,
+        top_groups: int | None = None,
     ) -> pl.LazyFrame:
         """Creates a pivot table of the predictor performance per 'group'
 
@@ -185,7 +185,7 @@ class Aggregates:
     def model_summary(
         self,
         by: str = "Name",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ) -> pl.LazyFrame:
         """Generate a summary of statistic for each model (based on model ID)
 
@@ -244,7 +244,7 @@ class Aggregates:
         df: pl.LazyFrame | pl.DataFrame,
         top_n: int,
         metric: str = "PredictorPerformance",
-        facets: Optional[list] = None,
+        facets: list | None = None,
     ):
         """Subsets DataFrame to contain only top_n predictors.
 
@@ -295,11 +295,11 @@ class Aggregates:
     def _adm_model_summary(
         self,
         *,
-        query: Optional[QUERY] = None,
-        every: Optional[str],
+        query: QUERY | None = None,
+        every: str | None,
         by_channel: bool = False,
         debug: bool = False,
-        custom_channels: Optional[dict[str, str]] = None,
+        custom_channels: dict[str, str] | None = None,
     ) -> pl.LazyFrame:
         custom_channels = custom_channels or {}
 
@@ -401,7 +401,7 @@ class Aggregates:
 
     def _summarize_meta_info(
         self,
-        grouping: Optional[list[str]],
+        grouping: list[str] | None,
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
@@ -426,7 +426,7 @@ class Aggregates:
 
     def _summarize_model_analytics(
         self,
-        grouping: Optional[list[str]],
+        grouping: list[str] | None,
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
@@ -479,7 +479,7 @@ class Aggregates:
 
     def _summarize_action_analytics(
         self,
-        grouping: Optional[list[str]],
+        grouping: list[str] | None,
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
@@ -558,7 +558,7 @@ class Aggregates:
 
     def _summarize_model_usage(
         self,
-        grouping: Optional[list[str]],
+        grouping: list[str] | None,
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
@@ -579,12 +579,12 @@ class Aggregates:
     def summary_by_channel(
         self,
         *,
-        query: Optional[QUERY] = None,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[int | datetime.timedelta] = None,
-        every: Optional[str] = None,
-        custom_channels: Optional[dict[str, str]] = None,
+        query: QUERY | None = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
+        custom_channels: dict[str, str] | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
@@ -853,9 +853,9 @@ class Aggregates:
 
     def predictors_overview(
         self,
-        model_id: Optional[str] = None,
-        additional_aggregations: Optional[list] = None,
-    ) -> Optional[pl.LazyFrame]:
+        model_id: str | None = None,
+        additional_aggregations: list | None = None,
+    ) -> pl.LazyFrame | None:
         """Generate a summary of the last snapshot of predictor data.
 
         This method provides an overview of predictor performance and characteristics
@@ -953,10 +953,10 @@ class Aggregates:
     def overall_summary(
         self,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[int | datetime.timedelta] = None,
-        every: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.

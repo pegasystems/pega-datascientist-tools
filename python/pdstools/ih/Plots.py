@@ -2,7 +2,7 @@
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import polars as pl
 
@@ -72,9 +72,9 @@ class Plots(LazyNamespace):
         *,
         metric: str = "Engagement",
         by: str = "Channel",
-        reference_values: Optional[dict[str, float]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        reference_values: dict[str, float] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create gauge charts showing success rates by condition and dimension.
@@ -191,9 +191,9 @@ class Plots(LazyNamespace):
     def response_count_tree_map(
         self,
         *,
-        by: Optional[list[str]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        by: list[str] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a treemap of response count distribution.
@@ -265,9 +265,9 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        by: Optional[list[str]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        by: list[str] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a treemap colored by success rates.
@@ -353,9 +353,9 @@ class Plots(LazyNamespace):
         *,
         by: str = "Name",
         title: str = "Action Distribution",
-        query: Optional[QUERY] = None,
-        color: Optional[str] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        color: str | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart of action distribution.
@@ -458,9 +458,9 @@ class Plots(LazyNamespace):
         *,
         metric: str = "Engagement",
         every: str | timedelta = "1d",
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of success rates over time.
@@ -531,8 +531,8 @@ class Plots(LazyNamespace):
         *,
         every: str | timedelta = "1d",
         title: str = "Responses",
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart of response counts over time.
@@ -595,10 +595,10 @@ class Plots(LazyNamespace):
         *,
         metric: str = "Engagement",
         every: str | timedelta = "1d",
-        by: Optional[str] = None,
+        by: str | None = None,
         title: str = "Model Performance over Time",
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of model AUC over time.

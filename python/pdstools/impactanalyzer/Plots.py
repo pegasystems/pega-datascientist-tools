@@ -1,7 +1,7 @@
 """Plotting utilities for Impact Analyzer visualization."""
 
 import logging
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import polars as pl
 
@@ -84,7 +84,7 @@ class Plots(LazyNamespace):
         return default_experiments
 
     @staticmethod
-    def _get_facet_config(data: pl.DataFrame, facet: Optional[str]) -> dict:
+    def _get_facet_config(data: pl.DataFrame, facet: str | None) -> dict:
         """Determine optimal faceting configuration.
 
         Automatically selects column wrapping based on the number of
@@ -120,10 +120,10 @@ class Plots(LazyNamespace):
     def overview(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR_Lift",
-        facet: Optional[str] = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart comparing experiment performance.
@@ -211,11 +211,11 @@ class Plots(LazyNamespace):
     def control_groups_trend(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR",
-        facet: Optional[str] = None,
-        every: Optional[str] = None,
+        facet: str | None = None,
+        every: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of control group metrics over time.
@@ -308,11 +308,11 @@ class Plots(LazyNamespace):
     def trend(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR_Lift",
-        facet: Optional[str] = None,
-        every: Optional[str] = None,
+        facet: str | None = None,
+        every: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of experiment lift metrics over time.

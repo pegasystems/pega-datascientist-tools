@@ -1,4 +1,4 @@
-from typing import Literal, Optional, overload
+from typing import Literal, overload
 
 import polars as pl
 
@@ -31,20 +31,20 @@ class Model(_ModelV24_2Mixin, PreviousModel):
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[False] = False,
     ) -> PaginatedList[Notification]: ...
 
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[True] = True,
     ) -> pl.DataFrame: ...
 
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
     ) -> PaginatedList[Notification] | pl.DataFrame:
         """Fetches a list of notifications for a specific model.
@@ -90,7 +90,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
 class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
     async def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
     ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
         """Fetches a list of notifications for a specific model.

@@ -6,7 +6,7 @@ import pathlib
 from datetime import timedelta
 from glob import glob
 from importlib.resources import files as resources_files
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import duckdb
 import polars as pl
@@ -64,7 +64,7 @@ class Preprocess(LazyNamespace):
         self._conn = None
 
         self.selected_files: list[str] = []
-        self.contexts: Optional[dict[str, dict[str, list[str]]]] = None
+        self.contexts: dict[str, dict[str, list[str]]] | None = None
         self.unique_contexts_filename = f"{self.data_folderpath}/unique_contexts.json"
 
         super().__init__()

@@ -5,7 +5,6 @@ import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Union,
 )
 
@@ -56,7 +55,7 @@ class PredictionPlots(LazyNamespace):
     def _prediction_trend(
         self,
         period: str,
-        query: Optional[QUERY],
+        query: QUERY | None,
         metric: str,
         title: str,
         **kwargs,
@@ -161,7 +160,7 @@ class PredictionPlots(LazyNamespace):
         self,
         period: str = "1d",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
@@ -246,7 +245,7 @@ class PredictionPlots(LazyNamespace):
         self,
         period: str = "1d",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
@@ -332,7 +331,7 @@ class PredictionPlots(LazyNamespace):
         period: str = "1d",
         facetting=False,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
@@ -423,7 +422,7 @@ class PredictionPlots(LazyNamespace):
         period: str = "1d",
         facetting=False,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
@@ -576,7 +575,7 @@ class Prediction:
         self,
         df: pl.LazyFrame,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ):
         """Initialize the Prediction class
 
@@ -702,7 +701,7 @@ class Prediction:
         predictions_filename: os.PathLike | str,
         base_path: os.PathLike | str = ".",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         infer_schema_length: int = 10000,
     ):
         """Import from a Pega Dataset Export of the PR_DATA_DM_SNAPSHOTS table.
@@ -790,7 +789,7 @@ class Prediction:
         df: pl.LazyFrame,
         *,
         return_df=False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ):
         """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
 
@@ -875,7 +874,7 @@ class Prediction:
 
         return cls(prediction_data, query=query)
 
-    def save_data(self, path: os.PathLike | str = ".") -> Optional[os.PathLike]:
+    def save_data(self, path: os.PathLike | str = ".") -> os.PathLike | None:
         """Cache predictions to a file.
 
         Parameters
@@ -1088,12 +1087,12 @@ class Prediction:
 
     def summary_by_channel(
         self,
-        custom_predictions: Optional[list[list]] = None,
+        custom_predictions: list[list] | None = None,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[int | datetime.timedelta] = None,
-        every: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
@@ -1286,12 +1285,12 @@ class Prediction:
     # then use those. If there are valid non-multi-channel predictions then only use those.
     def overall_summary(
         self,
-        custom_predictions: Optional[list[list]] = None,
+        custom_predictions: list[list] | None = None,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[int | datetime.timedelta] = None,
-        every: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.

@@ -1,7 +1,6 @@
 import math
 import os
 from glob import glob
-from typing import Optional
 
 import polars as pl
 
@@ -17,9 +16,9 @@ class Anonymization:
         path_to_files: str,
         temporary_path: str = "/tmp/anonymisation",
         output_file: str = "anonymised.parquet",
-        skip_columns_with_prefix: Optional[list[str]] = None,
+        skip_columns_with_prefix: list[str] | None = None,
         batch_size: int = 500,
-        file_limit: Optional[int] = None,
+        file_limit: int | None = None,
     ):
         """Initialize the Anonymization object.
 

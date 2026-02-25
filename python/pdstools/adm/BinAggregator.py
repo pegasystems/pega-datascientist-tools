@@ -1,7 +1,7 @@
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import polars as pl
 
@@ -37,12 +37,12 @@ class BinAggregator(LazyNamespace):
         *,
         n: int = 10,
         distribution: Literal["lin", "log"] = "lin",
-        boundaries: Optional[float | list] = None,
-        symbols: Optional[str | list] = None,
-        minimum: Optional[float] = None,
-        maximum: Optional[float] = None,
-        aggregation: Optional[str] = None,
-        as_numeric: Optional[bool] = None,
+        boundaries: float | list | None = None,
+        symbols: str | list | None = None,
+        minimum: float | None = None,
+        maximum: float | None = None,
+        aggregation: str | None = None,
+        as_numeric: bool | None = None,
         return_df: bool = False,
         verbose: bool = False,
     ) -> pl.DataFrame | Figure:
@@ -512,9 +512,9 @@ class BinAggregator(LazyNamespace):
         predictor: str,
         n: int,
         distribution: str = "lin",
-        boundaries: Optional[list] = None,
-        minimum: Optional[float] = None,
-        maximum: Optional[float] = None,
+        boundaries: list | None = None,
+        minimum: float | None = None,
+        maximum: float | None = None,
     ) -> pl.DataFrame:
         import numpy as np
 

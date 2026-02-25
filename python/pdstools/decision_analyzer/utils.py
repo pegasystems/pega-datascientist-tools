@@ -1,6 +1,5 @@
 # python/pdstools/decision_analyzer/utils.py
 from dataclasses import dataclass, field
-from typing import Optional
 
 import polars as pl
 
@@ -141,7 +140,7 @@ SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 
 def apply_filter(
     df: pl.LazyFrame,
-    filters: Optional[pl.Expr | list[pl.Expr]] = None,
+    filters: pl.Expr | list[pl.Expr] | None = None,
 ):
     """Apply a global set of filters. Kept outside of the DecisionData class as
     this is really more of a utility function, not bound to that class at all.
@@ -372,9 +371,9 @@ def get_table_definition(table: str):
 
 def create_hierarchical_selectors(
     data: pl.LazyFrame,
-    selected_issue: Optional[str] = None,
-    selected_group: Optional[str] = None,
-    selected_action: Optional[str] = None,
+    selected_issue: str | None = None,
+    selected_group: str | None = None,
+    selected_action: str | None = None,
 ) -> dict[str, dict[str, list[str] | int]]:
     """Create hierarchical filter options and calculate indices for selectbox widgets.
 

@@ -1,5 +1,4 @@
 import warnings
-from typing import Optional
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..adm.ADMTrees import ADMTrees
@@ -7,7 +6,7 @@ from ..utils.types import QUERY
 from ..valuefinder.ValueFinder import ValueFinder
 
 
-def cdh_sample(query: Optional[QUERY] = None) -> ADMDatamart:
+def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
     """Import a sample dataset from the CDH Sample application
 
     Parameters
@@ -50,7 +49,7 @@ def sample_trees():
             )
 
 
-def sample_value_finder(threshold: Optional[float] = None) -> ValueFinder:
+def sample_value_finder(threshold: float | None = None) -> ValueFinder:
     """Import a sample dataset of a Value Finder simulation
 
     This simulation was ran on a stock CDH Sample system.

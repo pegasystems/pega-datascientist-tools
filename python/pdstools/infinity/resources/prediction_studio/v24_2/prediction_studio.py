@@ -1,5 +1,5 @@
 import base64
-from typing import Literal, Optional, overload
+from typing import Literal, overload
 
 import anyio
 import polars as pl
@@ -191,8 +191,8 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
     def get_prediction(
         self,
-        prediction_id: Optional[str] = None,
-        label: Optional[str] = None,
+        prediction_id: str | None = None,
+        label: str | None = None,
         **kwargs,
     ) -> Prediction:
         """Finds and returns a specific prediction from Prediction Studio.
@@ -226,8 +226,8 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
     def get_model(
         self,
-        model_id: Optional[str] = None,
-        label: Optional[str] = None,
+        model_id: str | None = None,
+        label: str | None = None,
         **kwargs,
     ) -> Model:
         """Finds and returns a specific model from Prediction Studio.
@@ -280,20 +280,20 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[False] = False,
     ) -> PaginatedList[Notification]: ...
 
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[True] = True,
     ) -> pl.DataFrame: ...
 
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
     ) -> PaginatedList[Notification] | pl.DataFrame:
         """Fetches a list of notifications from Prediction Studio.
@@ -415,8 +415,8 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
     async def get_prediction(
         self,
-        prediction_id: Optional[str] = None,
-        label: Optional[str] = None,
+        prediction_id: str | None = None,
+        label: str | None = None,
         **kwargs,
     ) -> AsyncPrediction:
         """Finds and returns a specific prediction from Prediction Studio.
@@ -443,8 +443,8 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
     async def get_model(
         self,
-        model_id: Optional[str] = None,
-        label: Optional[str] = None,
+        model_id: str | None = None,
+        label: str | None = None,
         **kwargs,
     ) -> AsyncModel:
         """Finds and returns a specific model from Prediction Studio.
@@ -489,7 +489,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
     async def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
     ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
         """Fetches a list of notifications from Prediction Studio.
