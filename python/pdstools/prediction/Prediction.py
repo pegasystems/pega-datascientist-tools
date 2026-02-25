@@ -609,11 +609,7 @@ class Prediction:
             .lazy()
         )
         # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
-        perf_max = (
-            predictions_raw_data_prepped.select(pl.col("Performance").max())
-            .collect()
-            .item()
-        )
+        perf_max = predictions_raw_data_prepped.select(pl.col("Performance").max()).collect().item()
         if perf_max is not None and perf_max > 1.0:
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
                 Performance=pl.col("Performance") / 100.0,
@@ -678,16 +674,12 @@ class Prediction:
                 Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
                 ModelName=pl.col("pyModelId").str.extract(r".+!(.+)"),
                 CTR=pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives")),
-                CTR_Test=pl.col("Positives_Test")
-                / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
-                CTR_Control=pl.col("Positives_Control")
-                / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
-                CTR_NBA=pl.col("Positives_NBA")
-                / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
+                CTR_Test=pl.col("Positives_Test") / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
+                CTR_Control=pl.col("Positives_Control") / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
+                CTR_NBA=pl.col("Positives_NBA") / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
             )
             .with_columns(
-                CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
-                / pl.col("CTR_Control"),
+                CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control")) / pl.col("CTR_Control"),
                 isValidPrediction=self.prediction_validity_expr,
             )
             .sort(["pyModelId", "SnapshotTime"])
@@ -982,19 +974,13 @@ class Prediction:
                             "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity",
                         ]
                         * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"]
-                        * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"]
-                        * n_conditions
+                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * n_conditions
+                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * n_conditions
                     )
                     * days,
                     "pyModelType": "PREDICTION",
-                    "pySnapshotType": ["Daily", "Daily", "Daily", None]
-                    * n_predictions
-                    * days,
-                    "pyDataUsage": ["Control", "Test", "NBA", ""]
-                    * n_predictions
-                    * days,  # Control=Random, Test=Model
+                    "pySnapshotType": ["Daily", "Daily", "Daily", None] * n_predictions * days,
+                    "pyDataUsage": ["Control", "Test", "NBA", ""] * n_predictions * days,  # Control=Random, Test=Model
                     # "pyPositives": (
                     #     [100, 160, 120, None] + [200, 420, 250, None] + [350, 700, 380, None]
                     # )
@@ -1024,12 +1010,7 @@ class Prediction:
                             ],
                         ),
                     ),
-                    "pyNegatives": (
-                        [10000] * n_conditions
-                        + [6000] * n_conditions
-                        + [40000] * n_conditions
-                    )
-                    * days,
+                    "pyNegatives": ([10000] * n_conditions + [6000] * n_conditions + [40000] * n_conditions) * days,
                     "pyValue": list(
                         itertools.chain.from_iterable(
                             [
@@ -1080,9 +1061,7 @@ class Prediction:
         return (
             self.is_available
             # or even stronger: pos = pos_test + pos_control
-            and self.predictions.select(self.prediction_validity_expr.all())
-            .collect()
-            .item()
+            and self.predictions.select(self.prediction_validity_expr.all()).collect().item()
         )
 
     def summary_by_channel(
@@ -1218,9 +1197,7 @@ class Prediction:
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
-                .dt.total_seconds()
-                .alias("Duration"),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min()).dt.total_seconds().alias("Duration"),
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("Negatives").sum(),
@@ -1233,8 +1210,7 @@ class Prediction:
                 pl.col("Negatives_NBA").sum(),
             )
             .with_columns(
-                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0)
-                & (pl.col("Negatives_NBA") > 0),
+                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0) & (pl.col("Negatives_NBA") > 0),
                 ControlPercentage=100.0
                 * (pl.col("Positives_Control") + pl.col("Negatives_Control"))
                 / (
@@ -1256,12 +1232,9 @@ class Prediction:
                     + pl.col("Negatives_NBA")
                 ),
                 CTR=pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives")),
-                CTR_Test=pl.col("Positives_Test")
-                / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
-                CTR_Control=pl.col("Positives_Control")
-                / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
-                CTR_NBA=pl.col("Positives_NBA")
-                / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
+                CTR_Test=pl.col("Positives_Test") / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
+                CTR_Control=pl.col("Positives_Control") / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
+                CTR_NBA=pl.col("Positives_NBA") / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
                 ChannelDirectionGroup=pl.when(
                     pl.col("Channel").is_not_null()
                     & pl.col("Direction").is_not_null()
@@ -1274,8 +1247,7 @@ class Prediction:
                 isValid=self.prediction_validity_expr,
             )
             .with_columns(
-                Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
-                / pl.col("CTR_Control"),
+                Lift=(pl.col("CTR_Test") - pl.col("CTR_Control")) / pl.col("CTR_Control"),
             )
             .drop([] if debug else ([] + ([] if every is None else ["Period"])))
             .sort("Prediction", "DateRange Min")
@@ -1388,18 +1360,12 @@ class Prediction:
                     pl.col("Performance").filter(validity_filter_expr),
                     pl.col("Responses").filter(validity_filter_expr),
                 ).alias("Performance"),
-                pl.col("Positives")
-                .filter(validity_filter_expr, Direction="Inbound")
-                .sum()
-                .alias("Positives Inbound"),
+                pl.col("Positives").filter(validity_filter_expr, Direction="Inbound").sum().alias("Positives Inbound"),
                 pl.col("Positives")
                 .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
                 .alias("Positives Outbound"),
-                pl.col("Responses")
-                .filter(validity_filter_expr, Direction="Inbound")
-                .sum()
-                .alias("Responses Inbound"),
+                pl.col("Responses").filter(validity_filter_expr, Direction="Inbound").sum().alias("Responses Inbound"),
                 pl.col("Responses")
                 .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
@@ -1407,10 +1373,7 @@ class Prediction:
                 pl.col("Channel")
                 .filter(validity_filter_expr)
                 .filter(
-                    (
-                        pl.col("Lift").filter(validity_filter_expr)
-                        == pl.col("Lift").filter(validity_filter_expr).min()
-                    )
+                    (pl.col("Lift").filter(validity_filter_expr) == pl.col("Lift").filter(validity_filter_expr).min())
                     & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()
@@ -1418,10 +1381,7 @@ class Prediction:
                 pl.col("Lift")
                 .filter(validity_filter_expr)
                 .filter(
-                    (
-                        pl.col("Lift").filter(validity_filter_expr)
-                        == pl.col("Lift").filter(validity_filter_expr).min()
-                    )
+                    (pl.col("Lift").filter(validity_filter_expr) == pl.col("Lift").filter(validity_filter_expr).min())
                     & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()

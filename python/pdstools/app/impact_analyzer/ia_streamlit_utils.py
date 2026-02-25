@@ -29,12 +29,7 @@ def _write_uploaded_files(uploaded_files: Iterable) -> list[str]:
 
 
 def _resolve_sample_pdc_path() -> Path:
-    local_path = (
-        Path(__file__).resolve().parents[4]
-        / "data"
-        / "ia"
-        / "CDH_Metrics_ImpactAnalyzer.json"
-    )
+    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
     if local_path.exists():
         return local_path
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp:

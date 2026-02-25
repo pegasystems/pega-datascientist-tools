@@ -33,13 +33,9 @@ def test_from_pdc():
     # EngagementPolicy test is inactive, all others should be there
     assert (
         "EngagementPolicy"
-        not in analyzer.ia_data.select(pl.col("ControlGroup").unique())
-        .collect()["ControlGroup"]
-        .to_list()
+        not in analyzer.ia_data.select(pl.col("ControlGroup").unique()).collect()["ControlGroup"].to_list()
     )
-    assert analyzer.ia_data.select(pl.col("ControlGroup").unique().sort()).collect()[
-        "ControlGroup"
-    ].to_list() == [
+    assert analyzer.ia_data.select(pl.col("ControlGroup").unique().sort()).collect()["ControlGroup"].to_list() == [
         "LeverPriority",
         "ModelControl_1",
         "ModelControl_2",
@@ -74,10 +70,7 @@ def test_from_pdc():
         lift_data == 0.012584196
     )  # this just asserts the above expression works, it is the raw value from the data file
     experiment_data_recalculated = (
-        analyzer.summarize_experiments("Channel")
-        .collect()
-        .filter(Experiment="NBA vs Random")
-        .filter(Channel="Email")
+        analyzer.summarize_experiments("Channel").collect().filter(Experiment="NBA vs Random").filter(Channel="Email")
     )
     assert round(experiment_data_recalculated["CTR_Lift"].item(), 6) == 0.012584
     assert (
@@ -103,8 +96,7 @@ def test_from_pdc():
     assert analyzer.summarize_experiments().select(
         pl.col("Value_Lift").round(1),
     ).collect()["Value_Lift"].to_list() == [
-        round(x, 1) if x is not None else x
-        for x in [1.032273, 0.002653, None, 0.018921, 0.911865]
+        round(x, 1) if x is not None else x for x in [1.032273, 0.002653, None, 0.018921, 0.911865]
     ]
 
     # However for a specific channel the Value Lift should be exactly the same, as this is just copied from the data

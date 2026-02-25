@@ -105,10 +105,7 @@ class ColumnResolver:
 
         for raw_col, config in self.table_definition.items():
             display_name = config["display_name"]
-            if (
-                display_name in resolved_targets
-                and display_name not in self.final_columns
-            ):
+            if display_name in resolved_targets and display_name not in self.final_columns:
                 self.final_columns.append(display_name)
 
         self._resolved = True
@@ -286,9 +283,7 @@ def determine_extract_type(raw_data):
         strategy_names.update(strategy_config.get("aliases", []))
 
     available = set(raw_data.collect_schema().names())
-    return (
-        "decision_analyzer" if strategy_names & available else "explainability_extract"
-    )
+    return "decision_analyzer" if strategy_names & available else "explainability_extract"
 
 
 def rename_and_cast_types(
@@ -393,27 +388,17 @@ def create_hierarchical_selectors(
 
     """
     # Step 1: Get all available issues
-    available_issues = (
-        data.select("Issue").unique().collect().get_column("Issue").to_list()
-    )
+    available_issues = data.select("Issue").unique().collect().get_column("Issue").to_list()
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
         issue_index = available_issues.index(selected_issue)
 
     # Use the selected issue (or first one if none selected)
-    current_issue = (
-        selected_issue if selected_issue in available_issues else available_issues[0]
-    )
+    current_issue = selected_issue if selected_issue in available_issues else available_issues[0]
 
     # Step 2: Get groups for current issue
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
-    available_groups = (
-        filtered_by_issue.select("Group")
-        .unique()
-        .collect()
-        .get_column("Group")
-        .to_list()
-    )
+    available_groups = filtered_by_issue.select("Group").unique().collect().get_column("Group").to_list()
     group_options = ["All"] + available_groups
     group_index = 0  # Default to "All"
     if selected_group and selected_group in group_options:
@@ -430,13 +415,7 @@ def create_hierarchical_selectors(
             pl.col("Group") == current_group,
         )
 
-    available_actions = (
-        filtered_by_issue_group.select("Action")
-        .unique()
-        .collect()
-        .get_column("Action")
-        .to_list()
-    )
+    available_actions = filtered_by_issue_group.select("Action").unique().collect().get_column("Action").to_list()
     action_options = ["All"] + available_actions
     action_index = 0  # Default to "All"
     if selected_action and selected_action in action_options:
@@ -489,8 +468,7 @@ def get_scope_config(
     if selected_group != "All":
         return {
             "level": "Group",
-            "lever_condition": (pl.col("Issue") == selected_issue)
-            & (pl.col("Group") == selected_group),
+            "lever_condition": (pl.col("Issue") == selected_issue) & (pl.col("Group") == selected_group),
             "group_cols": ["Issue", "Group"],
             "x_col": "Group",
             "selected_value": selected_group,

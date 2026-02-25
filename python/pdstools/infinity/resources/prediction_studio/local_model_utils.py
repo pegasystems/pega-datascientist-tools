@@ -110,10 +110,7 @@ class Metadata(BaseModel):
     @staticmethod
     def _convert_keys(data: dict, conversion_func) -> dict:
         if isinstance(data, dict):
-            return {
-                conversion_func(k): Metadata._convert_keys(v, conversion_func)
-                for k, v in data.items()
-            }
+            return {conversion_func(k): Metadata._convert_keys(v, conversion_func) for k, v in data.items()}
         if isinstance(data, list):
             return [Metadata._convert_keys(i, conversion_func) for i in data]
         return data
@@ -303,13 +300,10 @@ class ONNXModel(LocalModel):
             session,
             metadata,
         )
-        valid_output = (
-            metadata.internal
-            or self.__check_for_valid_output_node_structure(
-                error_stream,
-                session,
-                metadata,
-            )
+        valid_output = metadata.internal or self.__check_for_valid_output_node_structure(
+            error_stream,
+            session,
+            metadata,
         )
         if not (valid_input and valid_output):
             raise ONNXModelValidationError(
@@ -549,9 +543,7 @@ class ONNXModel(LocalModel):
         predictor_with_dynamic_size = [
             f"{name}({value_info.shape})"
             for name, value_info in model_input_info.items()
-            if any(
-                dim is not None and not isinstance(dim, int) for dim in value_info.shape
-            )
+            if any(dim is not None and not isinstance(dim, int) for dim in value_info.shape)
         ]
         if predictor_with_dynamic_size:
             error_stream.write(
@@ -579,9 +571,7 @@ class ONNXModel(LocalModel):
 
         """
         predictor_with_invalid_shape = [
-            f"{name}({info.shape})"
-            for name, info in model_input_info.items()
-            if len(info.shape) != 2
+            f"{name}({info.shape})" for name, info in model_input_info.items() if len(info.shape) != 2
         ]
         if predictor_with_invalid_shape:
             error_stream.write(
@@ -618,9 +608,7 @@ class ONNXModel(LocalModel):
         missing_predictors = ""
 
         if not metadata.predictor_list:
-            any_array_predictor_input = any(
-                info.shape[1] != 1 for info in model_input_info.values()
-            )
+            any_array_predictor_input = any(info.shape[1] != 1 for info in model_input_info.values())
             if any_array_predictor_input:
                 missing_predictors = self.__get_missing_predictors(model_input_info, [])
         else:
@@ -720,9 +708,7 @@ class ONNXModel(LocalModel):
 
         """
         if metadata.predictor_list is not None:
-            model_input_info_map = {
-                name: info.shape[1] for name, info in model_input_info.items()
-            }
+            model_input_info_map = {name: info.shape[1] for name, info in model_input_info.items()}
             predictor_map = self.__create_predictor_map(metadata)
             predictor_with_invalid_size = [
                 f"{name}{model_input_info[name].shape}"
@@ -731,9 +717,7 @@ class ONNXModel(LocalModel):
                 and (
                     len(predictors) != model_input_info_map[name]
                     or any(
-                        p.index < 1 or p.index > model_input_info_map[name]
-                        if p.index is not None
-                        else True
+                        p.index < 1 or p.index > model_input_info_map[name] if p.index is not None else True
                         for p in predictors
                     )
                 )
@@ -763,8 +747,4 @@ class ONNXModel(LocalModel):
             A comma-separated string of missing predictor names.
 
         """
-        return ", ".join(
-            name
-            for name in model_input_info.keys()
-            if name not in predictor_input_names
-        )
+        return ", ".join(name for name in model_input_info.keys() if name not in predictor_input_names)

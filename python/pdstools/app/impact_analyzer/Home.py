@@ -103,9 +103,7 @@ elif source == "File upload":
         accept_multiple_files=True,
     )
     if uploaded_files:
-        suffixes = {
-            Path(uploaded_file.name).suffix.lower() for uploaded_file in uploaded_files
-        }
+        suffixes = {Path(uploaded_file.name).suffix.lower() for uploaded_file in uploaded_files}
         if suffixes.issubset({".json", ".ndjson"}):
             with st.spinner("Loading PDC data"):
                 impact_analyzer = _load_with_warning(

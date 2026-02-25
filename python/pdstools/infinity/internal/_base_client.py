@@ -221,8 +221,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except Exception as e:
             if on_error == "warn":
                 print(
-                    "Could not validate connection to the Infinity system. "
-                    "Please check if the system is up.",
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
                 )
                 return None
             if on_error == "error":
@@ -467,8 +466,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         except Exception as e:
             if on_error == "warn":
                 print(
-                    "Could not validate connection to the Infinity system. "
-                    "Please check if the system is up.",
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
                 )
                 return None
             if on_error == "error":

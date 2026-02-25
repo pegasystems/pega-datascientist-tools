@@ -116,9 +116,7 @@ with health_check:
         logger.exception(f"An error occurred during Health Check generation: {e}")
         if "health_check_error_download" not in st.session_state:
             st.error(f"An error occurred: {e}")
-            log_file_path = (
-                f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
-            )
+            log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
             with open(log_file_path, "w") as log_file:
                 log_file.write(st.session_state.log_buffer.getvalue())
                 log_file.write(show_versions(print_output=False))
@@ -159,9 +157,7 @@ if st.session_state["dm"].predictor_data is not None:
                 value=True,
             )
             st.session_state["selected_models"] = (
-                edited_df.filter(pl.col("Generate Report"))
-                .get_column("ModelID")
-                .to_list()
+                edited_df.filter(pl.col("Generate Report")).get_column("ModelID").to_list()
             )
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
             if len(st.session_state["selected_models"]) > 0:
@@ -184,9 +180,7 @@ if st.session_state["dm"].predictor_data is not None:
                             model_ids=st.session_state["selected_models"],
                             name="",
                             output_dir=working_dir,
-                            only_active_predictors=st.session_state[
-                                "only_active_predictors"
-                            ],
+                            only_active_predictors=st.session_state["only_active_predictors"],
                             output_type="html",
                             keep_temp_files=keep_temp_files,
                             progress_callback=update_progress,
@@ -195,9 +189,7 @@ if st.session_state["dm"].predictor_data is not None:
                             file = open(outfile, "rb")
                         st.session_state["model_report_files"] = file
                         st.session_state["model_report_name"] = (
-                            outfile.name
-                            if len(st.session_state["selected_models"]) == 1
-                            else "ModelReports.zip"
+                            outfile.name if len(st.session_state["selected_models"]) == 1 else "ModelReports.zip"
                         )
 
                         btn = st.download_button(

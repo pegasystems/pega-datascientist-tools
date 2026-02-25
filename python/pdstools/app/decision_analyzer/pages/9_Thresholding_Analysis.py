@@ -95,9 +95,7 @@ st.plotly_chart(
 xxx = st.session_state.decision_data.getDistributionData(
     "Output",
     ["Issue", "Group"],
-    additional_filters=(
-        pl.col(f"{thresholding_on}_min") > current_threshold
-    ),  # Hmm, probalby not the right way
+    additional_filters=(pl.col(f"{thresholding_on}_min") > current_threshold),  # Hmm, probalby not the right way
     # additional_filters=((pl.col(thresholding_on).list.eval(pl.element() > current_threshold)).list.any()),
 )
 st.write(

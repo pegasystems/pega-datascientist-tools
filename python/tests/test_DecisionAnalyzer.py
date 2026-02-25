@@ -118,10 +118,7 @@ class TestConstruction:
 
     def test_v1_unfiltered_equals_decision_data_initially(self, da_v1):
         """Before any filters, both should point to the same data."""
-        assert (
-            da_v1.unfiltered_raw_decision_data.collect().height
-            == da_v1.decision_data.collect().height
-        )
+        assert da_v1.unfiltered_raw_decision_data.collect().height == da_v1.decision_data.collect().height
 
     def test_construction_with_additional_columns(self):
         raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
@@ -177,13 +174,7 @@ class TestDataCleanup:
 
     def test_v1_synthetic_stages(self, da_v1):
         """v1 should have synthetic Arbitration and Output stages."""
-        stages = (
-            da_v1.decision_data.select("StageGroup")
-            .unique()
-            .collect()
-            .get_column("StageGroup")
-            .to_list()
-        )
+        stages = da_v1.decision_data.select("StageGroup").unique().collect().get_column("StageGroup").to_list()
         assert "Arbitration" in stages
         assert "Output" in stages
 
@@ -273,9 +264,7 @@ class TestSampling:
         """With a very small sample_size, the number of interactions should be limited."""
         raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
         da = DecisionAnalyzer(raw, sample_size=1000)
-        n_interactions = (
-            da.sample.select(pl.n_unique("Interaction ID")).collect().item()
-        )
+        n_interactions = da.sample.select(pl.n_unique("Interaction ID")).collect().item()
         # Should be at most sample_size (may be less due to hash sampling)
         assert n_interactions <= 1500  # some tolerance for hash-based sampling
 
@@ -355,8 +344,7 @@ class TestGlobalFilters:
 
         # Apply a filter that reduces data
         da.applyGlobalDataFilters(
-            pl.col("Issue")
-            == da.decision_data.select(pl.col("Issue").first()).collect().item(),
+            pl.col("Issue") == da.decision_data.select(pl.col("Issue").first()).collect().item(),
         )
         filtered_count = da.decision_data.collect().height
         assert filtered_count <= original_count
@@ -576,20 +564,14 @@ class TestReRank:
 
 class TestWinDistribution:
     def test_baseline_distribution(self, da_v1):
-        lever_cond = (
-            pl.col("Issue")
-            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
-        )
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         result = da_v1.get_win_distribution_data(lever_condition=lever_cond)
         assert result.height > 0
         assert "original_win_count" in result.columns
         assert "selected_action" in result.columns
 
     def test_lever_adjusted_distribution(self, da_v1):
-        lever_cond = (
-            pl.col("Issue")
-            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
-        )
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         result = da_v1.get_win_distribution_data(
             lever_condition=lever_cond,
             lever_value=2.0,
@@ -597,10 +579,7 @@ class TestWinDistribution:
         assert "new_win_count" in result.columns
 
     def test_distribution_with_no_winner_tracking(self, da_v1):
-        lever_cond = (
-            pl.col("Issue")
-            == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
-        )
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         result = da_v1.get_win_distribution_data(
             lever_condition=lever_cond,
             all_interactions=1000,

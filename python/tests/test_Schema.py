@@ -28,9 +28,7 @@ def test_adm_model_snapshot_schema():
         "pxObjClass",
     ]
     for field in categorical_fields:
-        assert (
-            getattr(schema, field) == pl.Categorical
-        ), f"Field {field} should be Categorical"
+        assert getattr(schema, field) == pl.Categorical, f"Field {field} should be Categorical"
 
     # Check datetime fields
     datetime_fields = [
@@ -40,9 +38,7 @@ def test_adm_model_snapshot_schema():
         "pyFactoryUpdatetime",
     ]
     for field in datetime_fields:
-        assert (
-            getattr(schema, field) == pl.Datetime
-        ), f"Field {field} should be Datetime"
+        assert getattr(schema, field) == pl.Datetime, f"Field {field} should be Datetime"
 
 
 def test_adm_predictor_binning_snapshot_schema():
@@ -67,16 +63,12 @@ def test_adm_predictor_binning_snapshot_schema():
         "pyEntryType",
     ]
     for field in categorical_fields:
-        assert (
-            getattr(schema, field) == pl.Categorical
-        ), f"Field {field} should be Categorical"
+        assert getattr(schema, field) == pl.Categorical, f"Field {field} should be Categorical"
 
     # Check datetime fields
     datetime_fields = ["pxCommitDateTime", "pxSaveDateTime", "pySnapshotTime"]
     for field in datetime_fields:
-        assert (
-            getattr(schema, field) == pl.Datetime
-        ), f"Field {field} should be Datetime"
+        assert getattr(schema, field) == pl.Datetime, f"Field {field} should be Datetime"
 
 
 def test_create_dataframe_with_schema():
@@ -102,15 +94,9 @@ def test_create_dataframe_with_schema():
     assert df.schema["pyModelID"] == pl.Utf8
     assert df.schema["pyPerformance"] == pl.Float64
     assert df.schema["pySuccessRate"] == pl.Float64
-    assert (
-        df.schema["pyResponseCount"] == pl.Int64
-    )  # Note: This will be Int64 by default, not Float32
-    assert (
-        df.schema["pyActivePredictors"] == pl.Int64
-    )  # Note: This will be Int64 by default, not UInt16
-    assert (
-        df.schema["pyTotalPredictors"] == pl.Int64
-    )  # Note: This will be Int64 by default, not UInt16
+    assert df.schema["pyResponseCount"] == pl.Int64  # Note: This will be Int64 by default, not Float32
+    assert df.schema["pyActivePredictors"] == pl.Int64  # Note: This will be Int64 by default, not UInt16
+    assert df.schema["pyTotalPredictors"] == pl.Int64  # Note: This will be Int64 by default, not UInt16
 
     # Create DataFrame with explicit schema
     df_with_schema = pl.DataFrame(data, schema=schema)

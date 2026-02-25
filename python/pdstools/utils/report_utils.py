@@ -43,16 +43,8 @@ def get_output_filename(
     """Generate the output filename based on the report parameters."""
     name = name.replace(" ", "_") if name else None
     if report_type == "ModelReport":
-        return (
-            f"{report_type}_{name}_{model_id}.{output_type}"
-            if name
-            else f"{report_type}_{model_id}.{output_type}"
-        )
-    return (
-        f"{report_type}_{name}.{output_type}"
-        if name
-        else f"{report_type}.{output_type}"
-    )
+        return f"{report_type}_{name}_{model_id}.{output_type}" if name else f"{report_type}_{model_id}.{output_type}"
+    return f"{report_type}_{name}.{output_type}" if name else f"{report_type}.{output_type}"
 
 
 def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
@@ -260,17 +252,11 @@ def run_quarto(
     if return_code != 0:
         captured_output = "\n".join(output_lines)
         raise RuntimeError(
-            f"Quarto rendering failed with return code {return_code}.\n"
-            f"Output:\n{captured_output}",
+            f"Quarto rendering failed with return code {return_code}.\nOutput:\n{captured_output}",
         )
 
     # Post-process HTML files to deduplicate JavaScript libraries
-    if (
-        return_code == 0
-        and output_type == "html"
-        and size_reduction_method == "strip"
-        and output_filename is not None
-    ):
+    if return_code == 0 and output_type == "html" and size_reduction_method == "strip" and output_filename is not None:
         try:
             html_file_path = temp_dir / output_filename
             if html_file_path.exists():
@@ -846,11 +832,7 @@ def create_metric_gttable(
             continue
 
         for rag_value, color in RAG_COLORS.items():
-            row_indices = (
-                df_with_rag.with_row_index()
-                .filter(pl.col(rag_col) == rag_value)["index"]
-                .to_list()
-            )
+            row_indices = df_with_rag.with_row_index().filter(pl.col(rag_col) == rag_value)["index"].to_list()
             if row_indices:
                 if color_background:
                     gt = gt.tab_style(
@@ -1037,9 +1019,7 @@ def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> s
         result = html_content
         for match in reversed(to_remove):
             start, end = match.span()
-            result = (
-                result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
-            )
+            result = result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
 
         if verbose and to_remove:
             size_reduction = 1 - len(result) / len(html_content)

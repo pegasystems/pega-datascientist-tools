@@ -46,9 +46,7 @@ if "dm" in st.session_state:
         )
     if st.session_state["filters"] != []:
         filtered_modelid_count, filtered_row_count = model_and_row_counts(
-            _apply_query(
-                st.session_state["dm"].model_data, st.session_state["filters"]
-            ),
+            _apply_query(st.session_state["dm"].model_data, st.session_state["filters"]),
         )
         serialized_exprs = {}
         for i, expr in enumerate(st.session_state["filters"]):

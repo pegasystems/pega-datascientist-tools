@@ -332,9 +332,7 @@ class Plots(LazyNamespace):
                 fig.data[i].visible = True
 
         for i in range(len(fig.layout.sliders[0].steps)):
-            fig.layout.sliders[0].steps[
-                i
-            ].label = f"{float(fig.layout.sliders[0].steps[i].label):.{rounding - 2}%}"
+            fig.layout.sliders[0].steps[i].label = f"{float(fig.layout.sliders[0].steps[i].label):.{rounding - 2}%}"
 
         return fig
 

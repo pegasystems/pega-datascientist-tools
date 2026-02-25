@@ -79,10 +79,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
         )
         if return_df:
             return pl.DataFrame(
-                [
-                    getattr(notification, "_public_dict", {})
-                    for notification in notifications
-                ],
+                [getattr(notification, "_public_dict", {}) for notification in notifications],
             )
         return notifications
 

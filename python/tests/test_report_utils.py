@@ -69,21 +69,13 @@ def test_get_output_filename():
         report_utils.get_output_filename("test_report", "ModelReport", "model1", "html")
         == "ModelReport_test_report_model1.html"
     )
+    assert report_utils.get_output_filename(None, "ModelReport", "model1", "html") == "ModelReport_model1.html"
     assert (
-        report_utils.get_output_filename(None, "ModelReport", "model1", "html")
-        == "ModelReport_model1.html"
+        report_utils.get_output_filename("test_report", "HealthCheck", None, "html") == "HealthCheck_test_report.html"
     )
+    assert report_utils.get_output_filename(None, "HealthCheck", None, "html") == "HealthCheck.html"
     assert (
-        report_utils.get_output_filename("test_report", "HealthCheck", None, "html")
-        == "HealthCheck_test_report.html"
-    )
-    assert (
-        report_utils.get_output_filename(None, "HealthCheck", None, "html")
-        == "HealthCheck.html"
-    )
-    assert (
-        report_utils.get_output_filename("test report", "HealthCheck", None, "html")
-        == "HealthCheck_test_report.html"
+        report_utils.get_output_filename("test report", "HealthCheck", None, "html") == "HealthCheck_test_report.html"
     )
 
 

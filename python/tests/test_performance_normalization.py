@@ -54,12 +54,7 @@ class TestPerformanceNormalization:
     def test_model_data_normalized(self, model_df_50_100):
         """Model Performance 55, 70, 85 → 0.55, 0.70, 0.85."""
         dm = ADMDatamart(model_df=model_df_50_100)
-        perfs = (
-            dm.model_data.select("Performance")
-            .collect()["Performance"]
-            .sort()
-            .to_list()
-        )
+        perfs = dm.model_data.select("Performance").collect()["Performance"].sort().to_list()
         assert perfs == pytest.approx([0.55, 0.70, 0.85], abs=0.001)
 
     def test_model_data_not_double_normalized(self):
@@ -85,12 +80,7 @@ class TestPerformanceNormalization:
     def test_predictor_data_normalized(self, predictor_df_50_100):
         """Predictor Performance 62, 70 → 0.62, 0.70."""
         dm = ADMDatamart(predictor_df=predictor_df_50_100)
-        perfs = (
-            dm.predictor_data.select("Performance")
-            .collect()["Performance"]
-            .sort()
-            .to_list()
-        )
+        perfs = dm.predictor_data.select("Performance").collect()["Performance"].sort().to_list()
         assert perfs == pytest.approx([0.62, 0.70], abs=0.01)
 
     def test_prediction_data_normalized(self):
@@ -116,9 +106,7 @@ class TestAggregatesPerformance:
         dm = ADMDatamart(model_df=model_df_50_100)
         summary = getattr(dm.aggregates, aggregate_method)().collect()
         perf = summary["Performance"][0]
-        assert (
-            0.5 <= perf <= 1.0
-        ), f"{aggregate_method} Performance {perf} should be in 0.5-1.0"
+        assert 0.5 <= perf <= 1.0, f"{aggregate_method} Performance {perf} should be in 0.5-1.0"
 
 
 class TestMetricFormatsDisplay:

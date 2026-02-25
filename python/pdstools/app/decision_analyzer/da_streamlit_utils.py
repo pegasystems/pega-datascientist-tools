@@ -42,10 +42,7 @@ def ensure_funnel():
 
 
 def ensure_getFilterComponentData():
-    return (
-        "Component Name"
-        in st.session_state.decision_data.decision_data.collect_schema().names()
-    )
+    return "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 
 
 # st.elements.utils._shown_default_value_warning = (
@@ -95,9 +92,7 @@ def get_data_filters(
     columns=None,
     queries=None,
     filter_type="local",
-) -> list[
-    pl.Expr
-]:  # this one is way too complex, should be split up into probably 5 functions
+) -> list[pl.Expr]:  # this one is way too complex, should be split up into probably 5 functions
     """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
@@ -117,9 +112,7 @@ def get_data_filters(
         ]
 
     def _save_multiselect():
-        st.session_state[f"{filter_type}multiselect"] = st.session_state[
-            f"{filter_type}_multiselect"
-        ]
+        st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
     if columns is None:
         columns = df.collect_schema().names()
@@ -127,9 +120,7 @@ def get_data_filters(
         queries = []
 
     st.session_state[f"{filter_type}_multiselect"] = (
-        st.session_state[f"{filter_type}multiselect"]
-        if f"{filter_type}multiselect" in st.session_state
-        else []
+        st.session_state[f"{filter_type}multiselect"] if f"{filter_type}multiselect" in st.session_state else []
     )
     to_filter_columns = st.multiselect(
         "Filter data on",
@@ -171,9 +162,7 @@ def get_data_filters(
                 )
                 if selected != st.session_state[f"{filter_type}categories_{column}"]:
                     queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"{filter_type}selected_{column}"]),
+                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"{filter_type}selected_{column}"]),
                     )
 
             else:
@@ -206,9 +195,7 @@ def get_data_filters(
             if f"{filter_type}selected_{column}" not in st.session_state:
                 default_min, default_max = _min, _max
             else:
-                default_min, default_max = st.session_state[
-                    f"{filter_type}selected_{column}"
-                ]
+                default_min, default_max = st.session_state[f"{filter_type}selected_{column}"]
             if _max - _min <= 200:
                 user_num_input = right.slider(
                     f"Values for {column}",
@@ -349,11 +336,7 @@ def handle_file_upload() -> pl.LazyFrame | None:
                 frames.append(pl.scan_parquet(tmp.name))
         elif suffix == ".zip":
             frames.append(_read_uploaded_zip(f))
-        elif (
-            name_lower.endswith(".tar.gz")
-            or name_lower.endswith(".tgz")
-            or suffix == ".tar"
-        ):
+        elif name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz") or suffix == ".tar":
             frames.append(_read_uploaded_tar(f))
         elif suffix in {".json", ".ndjson"}:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:

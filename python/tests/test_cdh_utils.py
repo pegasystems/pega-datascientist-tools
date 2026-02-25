@@ -67,9 +67,7 @@ def test_auc_from_bincounts():
 
 
 def test_aucpr_from_probs():
-    assert (
-        abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
-    )
+    assert abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
     assert cdh_utils.aucpr_from_probs([1, 1, 1], [0.6, 0.2, 0.2]) == 0.0
     # assert abs(cdh_utils.aucpr_from_probs([1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
     #    [0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875]) - 0.8610687) < 1e-6
@@ -94,25 +92,14 @@ def test_auc2gini():
 
 
 def test_fromPRPCDateTime():
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True)
-        == "2018-03-16 13:41:27 GMT"
-    )
+    assert cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True) == "2018-03-16 13:41:27 GMT"
     assert cdh_utils.from_prpc_date_time(
         "20180316T134127.847 GMT",
         False,
     ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.847345", True)
-        == "2018-03-16 13:41:27 "
-    )
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.8", True)
-        == "2018-03-16 13:41:27 "
-    )
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
-    )
+    assert cdh_utils.from_prpc_date_time("20180316T134127.847345", True) == "2018-03-16 13:41:27 "
+    assert cdh_utils.from_prpc_date_time("20180316T134127.8", True) == "2018-03-16 13:41:27 "
+    assert cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
 
 
 def test_toPRPCDateTime():
@@ -138,9 +125,7 @@ def test_toPRPCDateTime():
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
-            :-3
-        ]
+        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]
         == "20180316T134127.847 GMT+0000"[:-3]
     )
 
@@ -369,11 +354,7 @@ def test_weighted_performance_polars():
         },
     )
 
-    output = (
-        input.group_by("Channel")
-        .agg(cdh_utils.weighted_performance_polars())
-        .sort("Channel")
-    )
+    output = input.group_by("Channel").agg(cdh_utils.weighted_performance_polars()).sort("Channel")
 
     expected_output = pl.DataFrame(
         {"Channel": ["SMS", "Web"], "Performance": [0.6, 0.6]},
@@ -397,11 +378,7 @@ def test_zRatio():
         },
     )
 
-    output = (
-        input.with_columns(cdh_utils.z_ratio())
-        .with_columns(pl.col("ZRatio").round(2))
-        .sort("Predictor_range")
-    )
+    output = input.with_columns(cdh_utils.z_ratio()).with_columns(pl.col("ZRatio").round(2)).sort("Predictor_range")
 
     Zratios = [-3.05, 1.66, -2.24, 1.76, -0.51]
     expected_output = input.sort("Predictor_range").with_columns(
@@ -455,9 +432,7 @@ def test_log_odds():
         LogOdds=pl.Series(log_odds_results).round(5),
     )
 
-    log_odds_expected_results = [
-        round(x, 5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]
-    ]
+    log_odds_expected_results = [round(x, 5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]]
 
     expected_output = input.with_columns(
         pl.Series(name="LogOdds", values=log_odds_expected_results),
@@ -658,12 +633,8 @@ def test_gains_table():
 
     # with responses, the order should be the same as in the classifier data
     gains = cdh_utils.gains_table(df, "Positives", index="Responses")
-    assert gains.get_column("cum_x").round(4).to_list() == [0] + [
-        round(e, 4) for e in df["CumTotal"].to_list()
-    ]
-    assert gains.get_column("cum_y").round(4).to_list() == [0] + [
-        round(e, 4) for e in df["CumPos"].to_list()
-    ]
+    assert gains.get_column("cum_x").round(4).to_list() == [0] + [round(e, 4) for e in df["CumTotal"].to_list()]
+    assert gains.get_column("cum_y").round(4).to_list() == [0] + [round(e, 4) for e in df["CumPos"].to_list()]
 
     # With a grouping field
 
@@ -714,17 +685,11 @@ def test_apply_query():
 
     assert df.equals(cdh_utils._apply_query(df))
 
-    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")["categories"].unique().to_list() == ["C"]
 
-    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])["categories"].unique().to_list() == ["C"]
 
-    assert cdh_utils._apply_query(df, query={"categories": ["C"]})[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query={"categories": ["C"]})["categories"].unique().to_list() == ["C"]
 
     with pytest.raises(ValueError):  # should raise; lists need to be expressions
         cdh_utils._apply_query(df, query=[{"categories": ["C"]}])

@@ -305,8 +305,7 @@ def test_infer_schema_length_affects_schema_inference(tmp_path):
     csv_path = tmp_path / "late_values.csv"
     data = {
         "id": [f"id_{i}" for i in range(n_total_rows)],
-        "late_numeric": [""] * n_empty_rows
-        + [str(i) for i in range(n_total_rows - n_empty_rows)],
+        "late_numeric": [""] * n_empty_rows + [str(i) for i in range(n_total_rows - n_empty_rows)],
     }
     pl.DataFrame(data).write_csv(csv_path)
 

@@ -109,9 +109,7 @@ def test_onnx_creation_fails():
 )
 def test_validate_regression_onnx_model(model, initial_types, metadata):
     assert (
-        ONNXModel.from_sklearn_pipeline(model=model, initial_types=initial_types)
-        .add_metadata(metadata)
-        .validate()
+        ONNXModel.from_sklearn_pipeline(model=model, initial_types=initial_types).add_metadata(metadata).validate()
         is True
     )
 

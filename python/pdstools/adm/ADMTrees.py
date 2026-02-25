@@ -63,8 +63,7 @@ class AGB:
         """
         if "Modeldata" not in df.columns:
             raise ValueError(
-                "Modeldata column not in the data. "
-                "Please make sure to include it by setting 'subset' to False.",
+                "Modeldata column not in the data. Please make sure to include it by setting 'subset' to False.",
             )
 
         def _get_type(val):
@@ -129,9 +128,7 @@ class AGB:
             df = cdh_utils._apply_query(df, query)
 
         model_types = self.discover_model_types(df)
-        agb_models = [
-            model for model, type in model_types.items() if type.endswith("GbModel")
-        ]
+        agb_models = [model for model, type in model_types.items() if type.endswith("GbModel")]
         logger.info(f"Found AGB models: {agb_models}")
         df = df.filter(pl.col("Configuration").is_in(agb_models))
         if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
@@ -183,10 +180,7 @@ class ADMTrees:  # pragma: no cover
     def get_multi_trees(file: pl.DataFrame, n_threads=1, verbose=True, **kwargs):
         out = {}
         df = file.filter(pl.col("Modeldata").is_not_null()).select(
-            pl.col("SnapshotTime")
-            .dt.round("1s")
-            .cast(pl.Utf8)
-            .str.strip_chars_end(".000000000"),
+            pl.col("SnapshotTime").dt.round("1s").cast(pl.Utf8).str.strip_chars_end(".000000000"),
             pl.col("Modeldata").str.decode("base64"),
             pl.col("Configuration").cast(pl.Utf8),
         )
@@ -218,10 +212,7 @@ class ADMTrees:  # pragma: no cover
         dict_per_config: dict[Any, Any] = {key[0]: {} for key in out.keys()}
         for (configuration, timestamp), value in out.items():
             dict_per_config[configuration][timestamp] = value
-        return {
-            key: MultiTrees(value, model_name=key)
-            for key, value in dict_per_config.items()
-        }
+        return {key: MultiTrees(value, model_name=key) for key, value in dict_per_config.items()}
 
 
 class ADMTreesModel:
@@ -341,9 +332,7 @@ class ADMTreesModel:
     def _decode_trees(self):  # pragma: no cover
         def quantile_decoder(encoder: dict, index: int, verbose=False):
             if encoder["summaryType"] == "INITIAL_SUMMARY":
-                return encoder["summary"]["initialValues"][
-                    index
-                ]  # Note: could also be index-1
+                return encoder["summary"]["initialValues"][index]  # Note: could also be index-1
             return encoder["summary"]["list"][index - 1].split("=")[0]
 
         def string_decoder(encoder: dict, index: int, sign, verbose=False):
@@ -436,9 +425,7 @@ class ADMTreesModel:
                         self.model = self.trees["model"]["booster"]["trees"]
                     except Exception as e3:
                         try:
-                            self.model = self.trees["model"]["model"]["booster"][
-                                "trees"
-                            ]
+                            self.model = self.trees["model"]["model"]["booster"]["trees"]
                         except Exception as e4:
                             raise (e1, e2, e3, e4)
 
@@ -447,17 +434,13 @@ class ADMTreesModel:
             self._decode_trees()
 
         try:
-            self._properties = {
-                prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
-            }
+            self._properties = {prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"}
         except Exception:  # pragma: no cover
             logger.info("Could not extract the properties.")
             self._properties = {}
 
         try:
-            self.learning_rate = self._properties["configuration"]["parameters"][
-                "learningRateEta"
-            ]
+            self.learning_rate = self._properties["configuration"]["parameters"]["learningRateEta"]
         except Exception:  # pragma: no cover
             logger.info("Could not find the learning rate in the model.")
 
@@ -761,11 +744,7 @@ class ADMTreesModel:
             """Classify a predictor as 'ih', 'context_key', or 'other'."""
             if name.startswith("IH."):
                 return "ih"
-            if (
-                name.startswith("py")
-                or name.startswith("Param.")
-                or ".Context." in name
-            ):
+            if name.startswith("py") or name.startswith("Param.") or ".Context." in name:
                 return "context_key"
             return "other"
 
@@ -817,25 +796,17 @@ class ADMTreesModel:
 
         if encoder_info is not None:
             all_predictors = set(encoder_info.keys())
-            all_numeric = {
-                n for n, info in encoder_info.items() if info["type"] == "numeric"
-            }
-            all_symbolic = {
-                n for n, info in encoder_info.items() if info["type"] == "symbolic"
-            }
+            all_numeric = {n for n, info in encoder_info.items() if info["type"] == "numeric"}
+            all_symbolic = {n for n, info in encoder_info.items() if info["type"] == "symbolic"}
             active_numeric = all_numeric & set(var_ops)
             active_symbolic = all_symbolic & set(var_ops)
         else:
             all_predictors = None
             active_numeric = {v for v, ops in var_ops.items() if "<" in ops}
-            active_symbolic = {
-                v for v, ops in var_ops.items() if "in" in ops or "==" in ops
-            }
+            active_symbolic = {v for v, ops in var_ops.items() if "in" in ops or "==" in ops}
 
         active_ih = {v for v in var_ops if _classify_predictor(v) == "ih"}
-        active_context_key = {
-            v for v in var_ops if _classify_predictor(v) == "context_key"
-        }
+        active_context_key = {v for v in var_ops if _classify_predictor(v) == "context_key"}
         active_other = {v for v in var_ops if _classify_predictor(v) == "other"}
 
         # total predictor counts from the configuration if available
@@ -850,14 +821,10 @@ class ADMTreesModel:
             total_pred_count = len(total_predictors)
             if all_predictors is None:
                 all_numeric = {
-                    n
-                    for n, t in total_predictors.items()
-                    if t.lower() in {"numeric", "double", "integer", "float"}
+                    n for n, t in total_predictors.items() if t.lower() in {"numeric", "double", "integer", "float"}
                 }
                 all_symbolic = {
-                    n
-                    for n, t in total_predictors.items()
-                    if t.lower() in {"symbolic", "string", "boolean"}
+                    n for n, t in total_predictors.items() if t.lower() in {"symbolic", "string", "boolean"}
                 }
         elif all_predictors is not None:
             all_ih = {n for n in all_predictors if _classify_predictor(n) == "ih"}
@@ -914,18 +881,10 @@ class ADMTreesModel:
         m["tree_depth_std"] = round(stdev(depths), 2) if len(depths) >= 2 else 0.0
         m["number_of_trees"] = n_trees
         m["number_of_stump_trees"] = stump_count
-        m["avg_leaves_per_tree"] = (
-            round(leaf_count[0] / n_trees, 2) if n_trees > 0 else 0.0
-        )
-        m["number_of_splits_on_ih_predictors"] = sum(
-            var_split_count[v] for v in active_ih
-        )
-        m["number_of_splits_on_context_key_predictors"] = sum(
-            var_split_count[v] for v in active_context_key
-        )
-        m["number_of_splits_on_other_predictors"] = sum(
-            var_split_count[v] for v in active_other
-        )
+        m["avg_leaves_per_tree"] = round(leaf_count[0] / n_trees, 2) if n_trees > 0 else 0.0
+        m["number_of_splits_on_ih_predictors"] = sum(var_split_count[v] for v in active_ih)
+        m["number_of_splits_on_context_key_predictors"] = sum(var_split_count[v] for v in active_context_key)
+        m["number_of_splits_on_other_predictors"] = sum(var_split_count[v] for v in active_other)
 
         # --- Predictor info ------------------------------------------------
         m["total_number_of_active_predictors"] = len(var_ops)
@@ -948,29 +907,19 @@ class ADMTreesModel:
         # --- Leaf scores ---------------------------------------------------
         m["number_of_leaves"] = leaf_count[0]
         m["leaf_score_mean"] = round(mean(leaf_scores), 6) if leaf_scores else 0.0
-        m["leaf_score_std"] = (
-            round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
-        )
+        m["leaf_score_std"] = round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
         m["leaf_score_min"] = round(min(leaf_scores), 6) if leaf_scores else 0.0
         m["leaf_score_max"] = round(max(leaf_scores), 6) if leaf_scores else 0.0
 
         # --- Split types ---------------------------------------------------
         m["number_of_numeric_splits"] = numeric_split_count[0]
         m["number_of_symbolic_splits"] = symbolic_split_count[0]
-        m["symbolic_split_fraction"] = (
-            round(symbolic_split_count[0] / total_splits, 4)
-            if total_splits > 0
-            else 0.0
-        )
+        m["symbolic_split_fraction"] = round(symbolic_split_count[0] / total_splits, 4) if total_splits > 0 else 0.0
         unique_splits = set(split_strings)
         m["number_of_unique_splits"] = len(unique_splits)
         m["number_of_unique_predictors_split_on"] = len(var_ops)
-        m["split_reuse_ratio"] = (
-            round(len(split_strings) / len(unique_splits), 2) if unique_splits else 0.0
-        )
-        m["avg_symbolic_set_size"] = (
-            round(mean(symbolic_set_sizes), 2) if symbolic_set_sizes else 0.0
-        )
+        m["split_reuse_ratio"] = round(len(split_strings) / len(unique_splits), 2) if unique_splits else 0.0
+        m["avg_symbolic_set_size"] = round(mean(symbolic_set_sizes), 2) if symbolic_set_sizes else 0.0
 
         # --- Learning convergence ------------------------------------------
         window = min(10, n_trees)
@@ -993,9 +942,7 @@ class ADMTreesModel:
         if half > 0:
             gains_first = [g for tree_g in per_tree_gains[:half] for g in tree_g]
             gains_last = [g for tree_g in per_tree_gains[half:] for g in tree_g]
-            m["mean_gain_first_half"] = (
-                round(mean(gains_first), 4) if gains_first else 0.0
-            )
+            m["mean_gain_first_half"] = round(mean(gains_first), 4) if gains_first else 0.0
             m["mean_gain_last_half"] = round(mean(gains_last), 4) if gains_last else 0.0
         else:
             m["mean_gain_first_half"] = 0.0
@@ -1018,9 +965,7 @@ class ADMTreesModel:
                     if p > 0:
                         entropy -= p * math.log2(p)
                 max_entropy = math.log2(n_vars)
-                m["predictor_gain_entropy"] = (
-                    round(entropy / max_entropy, 4) if max_entropy > 0 else 0.0
-                )
+                m["predictor_gain_entropy"] = round(entropy / max_entropy, 4) if max_entropy > 0 else 0.0
             else:
                 m["predictor_gain_entropy"] = 0.0
         else:
@@ -1472,9 +1417,7 @@ class ADMTreesModel:
 
     def get_tree_stats(self) -> pl.DataFrame:
         """Generate a dataframe with useful stats for each tree"""
-        stats: dict[str, list] = {
-            k: [] for k in ["treeID", "score", "depth", "nsplits", "gains", "meangains"]
-        }
+        stats: dict[str, list] = {k: [] for k in ["treeID", "score", "depth", "nsplits", "gains", "meangains"]}
         for treeID, tree in enumerate(self.model):
             stats["treeID"].append(treeID)
             stats["score"].append(tree["score"])
@@ -1644,9 +1587,7 @@ class ADMTreesModel:
                         labelname = values
                     else:
                         totallen = len(self.all_values_per_split[variable])
-                        labelname = (
-                            f"{list(values)[0:2] + ['...']} ({len(values)}/{totallen})"
-                        )
+                        labelname = f"{list(values)[0:2] + ['...']} ({len(values)}/{totallen})"
                     label += f"\nSplit: {variable} in {labelname}\nGain: {node['gain']}"
 
                 else:
@@ -1840,9 +1781,7 @@ class ADMTreesModel:
     ):
         context_keys = context_keys if context_keys is not None else self.context_keys
         predictorCategorization = (
-            predictorCategorization
-            if predictorCategorization is not None
-            else self.predictor_categorization
+            predictorCategorization if predictorCategorization is not None else self.predictor_categorization
         )
         splitsPerTree = list()
         for splits in self.splits_per_tree.values():
@@ -1961,9 +1900,7 @@ class MultiTrees:  # pragma: no cover
         for timestamp, tree in self.trees.items():
             to_plot = tree.splitsPerVariableType[0]
             if predictor_categorization is not None:
-                to_plot = tree.computeCategorizationOverTime(predictor_categorization)[
-                    0
-                ]
+                to_plot = tree.computeCategorizationOverTime(predictor_categorization)[0]
             outdf.append(
                 pl.DataFrame(to_plot).with_columns(
                     SnapshotTime=pl.lit(timestamp).str.to_date(format="%Y-%m-%d %X"),

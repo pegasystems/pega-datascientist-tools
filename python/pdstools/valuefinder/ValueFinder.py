@@ -33,9 +33,7 @@ class ValueFinder:
 
         self.set_threshold(threshold)
         self.n_customers: int = n_customers or int(
-            self.df.select(pl.col("CustomerID").n_unique().cast(pl.UInt32))
-            .collect()
-            .item(),
+            self.df.select(pl.col("CustomerID").n_unique().cast(pl.UInt32)).collect().item(),
         )
 
         self.nbad_stages = [

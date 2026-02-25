@@ -74,11 +74,7 @@ class SyncAPIResource(ABC):
             for name, method in vars(klass).items():
                 if name in _seen:
                     continue
-                if (
-                    callable(method)
-                    and getattr(method, "_api_method", False)
-                    and inspect.iscoroutinefunction(method)
-                ):
+                if callable(method) and getattr(method, "_api_method", False) and inspect.iscoroutinefunction(method):
                     _seen.add(name)
                     original = method
 
@@ -122,9 +118,7 @@ class SyncAPIResource(ABC):
         return self._client.delete(endpoint, **kwargs)
 
     async def _sleep(self, seconds: float) -> None:
-        time.sleep(
-            seconds
-        )  # Intentional: SyncAPIResource runs inside _run_sync's own event loop
+        time.sleep(seconds)  # Intentional: SyncAPIResource runs inside _run_sync's own event loop
 
     @property
     def _public_fields(self):
@@ -132,11 +126,7 @@ class SyncAPIResource(ABC):
 
     @property
     def _public_dict(self):
-        return {
-            key: value
-            for key, value in self.__dict__.items()
-            if not key.startswith("_")
-        }
+        return {key: value for key, value in self.__dict__.items() if not key.startswith("_")}
 
     def __repr__(self, fields: list[str] | None = None):
         classname = self.__class__.__name__
@@ -199,11 +189,7 @@ class AsyncAPIResource(ABC):
 
     @property
     def _public_dict(self):
-        return {
-            key: value
-            for key, value in self.__dict__.items()
-            if not key.startswith("_")
-        }
+        return {key: value for key, value in self.__dict__.items() if not key.startswith("_")}
 
     def __repr__(self, fields: list[str] | None = None):
         classname = self.__class__.__name__

@@ -143,9 +143,7 @@ class Plots(LazyNamespace):
         )
         index = 0
         for row in plot_data.iter_rows(named=True):
-            ref_value = (
-                reference_values.get(row[by], None) if reference_values else None
-            )
+            ref_value = reference_values.get(row[by], None) if reference_values else None
             gauge = {
                 "axis": {"tickformat": ",.2%"},
                 "threshold": {
@@ -159,11 +157,7 @@ class Plots(LazyNamespace):
                     gauge = {
                         "axis": {"tickformat": ",.2%"},
                         "bar": {
-                            "color": (
-                                "#EC5300"
-                                if row[f"SuccessRate_{metric}"] < (0.75 * ref_value)
-                                else "#EC9B00"
-                            ),
+                            "color": ("#EC5300" if row[f"SuccessRate_{metric}"] < (0.75 * ref_value) else "#EC9B00"),
                         },
                         "threshold": {
                             "line": {"color": "red", "width": 2},
@@ -645,8 +639,7 @@ class Plots(LazyNamespace):
                 query=query,
             )
             .filter(
-                pl.col.Propensity.is_not_null()
-                & pl.col(f"Interaction_Outcome_{metric}").is_not_null(),
+                pl.col.Propensity.is_not_null() & pl.col(f"Interaction_Outcome_{metric}").is_not_null(),
             )
             .group_by(cdh_utils.safe_flatten_list([by, facet, "OutcomeTime"]))
             .agg(

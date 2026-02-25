@@ -257,9 +257,7 @@ class Plots(LazyNamespace):
 
         """
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
-                [facet] if facet is not None else []
-            )
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
             grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
 
@@ -353,9 +351,7 @@ class Plots(LazyNamespace):
 
         """
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
-                [facet] if facet is not None else []
-            )
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
             grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
 

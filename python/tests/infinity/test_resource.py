@@ -390,10 +390,7 @@ class TestRepr:
 
     def test_repr_with_explicit_fields(self):
         resource = SyncRepr(self._client(), name="Charlie", age=25, score=9.5)
-        assert (
-            resource.__repr__(fields=["name", "score"])
-            == "SyncRepr(name='Charlie', score=9.5)"
-        )
+        assert resource.__repr__(fields=["name", "score"]) == "SyncRepr(name='Charlie', score=9.5)"
 
     def test_repr_no_public_fields(self):
         resource = SyncRepr(self._client())

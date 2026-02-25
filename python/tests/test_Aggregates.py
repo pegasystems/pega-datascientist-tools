@@ -141,18 +141,14 @@ def test_summary_by_channel(dm_aggregates):
 
     # Force one channel to be invalid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel == "SMS")
-        .then(pl.lit(0))
-        .otherwise("Positives"),
+        Positives=pl.when(pl.col.Channel == "SMS").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel["isValid"].to_list() == [True, False, True]
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel != "Web")
-        .then(pl.lit(0))
-        .otherwise("Positives"),
+        Positives=pl.when(pl.col.Channel != "Web").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel["isValid"].to_list() == [False, False, True]
@@ -270,9 +266,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel != "SMS")
-        .then(pl.lit(0))
-        .otherwise("Positives"),
+        Positives=pl.when(pl.col.Channel != "SMS").then(pl.lit(0)).otherwise("Positives"),
     )
 
     overall_summary = dm_aggregates.overall_summary().collect()
@@ -426,9 +420,7 @@ def test_overall_summary_timeslices(dm_minimal):
 
     assert s1["Actions"].item() == 3  # A, B, C
     assert s1["New Actions"].item() == 3
-    assert (
-        s1["Used Actions"].item() == 3
-    )  # B not updated but newly introduced counts as used
+    assert s1["Used Actions"].item() == 3  # B not updated but newly introduced counts as used
     s2 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 2, 1),
         window=timedelta(weeks=4),
@@ -436,9 +428,7 @@ def test_overall_summary_timeslices(dm_minimal):
     ).collect()
     assert s2["Actions"].item() == 3
     assert s2["New Actions"].item() == 1  # E is new
-    assert (
-        s2["Used Actions"].item() == 3
-    )  # B and C are used, E is not used but introduced new
+    assert s2["Used Actions"].item() == 3  # B and C are used, E is not used but introduced new
     s3 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 2, 1),
     ).collect()

@@ -104,9 +104,7 @@ class _ChampionChallengerV24_2Mixin:
                 if self.active_model.modeling_technique
                 else None,
                 "role": self.active_model.status,
-                "champion_percentage": 100
-                if self.champion_percentage is None
-                else self.champion_percentage,
+                "champion_percentage": 100 if self.champion_percentage is None else self.champion_percentage,
             }
 
         # Challenger model details
@@ -146,10 +144,7 @@ class _ChampionChallengerV24_2Mixin:
         )
         champion_challengers = await _maybe_await(prediction.get_champion_challengers())
         for champion_challenger in champion_challengers:
-            if (
-                champion_challenger.active_model.component_name
-                == self.active_model.component_name
-            ):
+            if champion_challenger.active_model.component_name == self.active_model.component_name:
                 self.active_model = champion_challenger.active_model
                 self.champion_percentage = champion_challenger.champion_percentage
                 self.model_objective = champion_challenger.model_objective
@@ -416,7 +411,9 @@ class _ChampionChallengerV24_2Mixin:
             if not self.challenger_model:
                 raise PegaMLopsError("Challenger model is not set.")
             model = self.challenger_model
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/add"
+        endpoint = (
+            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/add"
+        )
         if parameterized:
             predictor_category = "parameterized"
         else:
@@ -485,7 +482,9 @@ class _ChampionChallengerV24_2Mixin:
                 raise PegaMLopsError("Challenger model is not set.")
             model = self.challenger_model
 
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/remove"
+        endpoint = (
+            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/remove"
+        )
         if parameterized:
             predictorCategory = "parameterized"
         else:
@@ -569,8 +568,7 @@ class _ChampionChallengerV24_2Mixin:
 
         if predictor_mapping:
             override_mappings = [
-                {"predictor": key["predictor"], "property": key["property"]}
-                for key in predictor_mapping
+                {"predictor": key["predictor"], "property": key["property"]} for key in predictor_mapping
             ]
             data["overrideMappings"] = override_mappings
         try:
@@ -655,8 +653,7 @@ class _ChampionChallengerV24_2Mixin:
         }
         if predictor_mapping is not None:
             data["overrideMmappings"] = [
-                {"predictor": key["predictor"], "property": key["property"]}
-                for key in predictor_mapping
+                {"predictor": key["predictor"], "property": key["property"]} for key in predictor_mapping
             ]
         try:
             response = await self._a_post(endpoint, data=data)

@@ -123,10 +123,7 @@ class S3Data:
                             "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0],
                         )
             else:
-                to_import = [
-                    s3_object.key
-                    async for s3_object in bucket.objects.filter(Prefix=prefix)
-                ]
+                to_import = [s3_object.key async for s3_object in bucket.objects.filter(Prefix=prefix)]
             return getNewFiles(to_import)
 
         createPathIfNotExists(self.temp_dir)

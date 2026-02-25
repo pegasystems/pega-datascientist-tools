@@ -100,9 +100,7 @@ class _PredictionV24_2Mixin:
 
         """
         start_date_str = (
-            start_date.strftime("%d/%m/%Y")
-            if start_date
-            else (date.today() - timedelta(days=7)).strftime("%d/%m/%Y")
+            start_date.strftime("%d/%m/%Y") if start_date else (date.today() - timedelta(days=7)).strftime("%d/%m/%Y")
         )
         end_date_str = end_date.strftime("%d/%m/%Y") if end_date else None
 
@@ -167,9 +165,7 @@ class _PredictionV24_2Mixin:
             Details the result of the deployment process.
 
         """
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
         if message is None:
             message = "Approving the changes"
         data = {"reviewNote": message}
@@ -196,9 +192,7 @@ class _PredictionV24_2Mixin:
             modification pending deployment.
 
         """
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
         responses = await self._a_get(endpoint, data=None)
         return responses["listOfChanges"]
 
@@ -297,16 +291,10 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         from ....internal._resource import _run_sync
 
         models = _run_sync(self._get_models)
-        non_active = [
-            mod for mod in models if mod["role"] not in {"ACTIVE", "CHAMPION"}
-        ]
+        non_active = [mod for mod in models if mod["role"] not in {"ACTIVE", "CHAMPION"}]
 
         only_active = [
-            mod
-            for mod in models
-            if all(
-                key not in mod for key in ["championPercentage", "challengerPercentage"]
-            )
+            mod for mod in models if all(key not in mod for key in ["championPercentage", "challengerPercentage"])
         ]
 
         for model in non_active:
@@ -325,9 +313,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                     champion_percentage=100 - model["challengerPercentage"],
                     challenger_model=Model(client=self._client, **active_model_temp),
                     context=model["contextName"],
-                    category=model["categoryName"]
-                    if model.get("categoryName") is not None
-                    else None,
+                    category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=[
                         Model(
@@ -356,9 +342,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                 "modelType": model["type"],
                 "status": model["role"],
                 "componentName": model["componentName"],
-                "modelingTechnique": model["modelingTechnique"]
-                if model.get("modelingTechnique") is not None
-                else None,
+                "modelingTechnique": model["modelingTechnique"] if model.get("modelingTechnique") is not None else None,
             }
             ccs.append(
                 ChampionChallenger(
@@ -366,9 +350,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                     prediction_id=self.prediction_id,
                     context=model["contextName"],
                     model_objective=model["model_type"],
-                    category=model["categoryName"]
-                    if model.get("categoryName") is not None
-                    else None,
+                    category=model["categoryName"] if model.get("categoryName") is not None else None,
                     challenger_model=None,
                     active_model=Model(client=self._client, **active_model_temp),
                 ),
@@ -408,7 +390,9 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+        endpoint = (
+            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+        )
         data = {}
         if context:
             data["contextName"] = context
@@ -487,16 +471,10 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
 
         ccs = []
         models = await self._get_models()
-        non_active = [
-            mod for mod in models if mod["role"] not in {"ACTIVE", "CHAMPION"}
-        ]
+        non_active = [mod for mod in models if mod["role"] not in {"ACTIVE", "CHAMPION"}]
 
         only_active = [
-            mod
-            for mod in models
-            if all(
-                key not in mod for key in ["championPercentage", "challengerPercentage"]
-            )
+            mod for mod in models if all(key not in mod for key in ["championPercentage", "challengerPercentage"])
         ]
 
         for model in non_active:
@@ -518,9 +496,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                         **active_model_temp,
                     ),
                     context=model["contextName"],
-                    category=model["categoryName"]
-                    if model.get("categoryName") is not None
-                    else None,
+                    category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=[
                         AsyncModel(
@@ -549,9 +525,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                 "modelType": model["type"],
                 "status": model["role"],
                 "componentName": model["componentName"],
-                "modelingTechnique": model["modelingTechnique"]
-                if model.get("modelingTechnique") is not None
-                else None,
+                "modelingTechnique": model["modelingTechnique"] if model.get("modelingTechnique") is not None else None,
             }
             ccs.append(
                 AsyncChampionChallenger(
@@ -559,9 +533,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     prediction_id=self.prediction_id,
                     context=model["contextName"],
                     model_objective=model["model_type"],
-                    category=model["categoryName"]
-                    if model.get("categoryName") is not None
-                    else None,
+                    category=model["categoryName"] if model.get("categoryName") is not None else None,
                     challenger_model=None,
                     active_model=AsyncModel(client=self._client, **active_model_temp),
                 ),
@@ -599,7 +571,9 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+        endpoint = (
+            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+        )
         data = {}
         if context:
             data["contextName"] = context

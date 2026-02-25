@@ -172,10 +172,8 @@ def test_summary_success_rates_with_query(ih):
     # In the mock data, the summary is aggregated to a single row regardless of query
     # So we check that the values are different instead of the row count
     assert (
-        result_web["Positives_Engagement"].item()
-        != all_results["Positives_Engagement"].item()
-        or result_web["Negatives_Engagement"].item()
-        != all_results["Negatives_Engagement"].item()
+        result_web["Positives_Engagement"].item() != all_results["Positives_Engagement"].item()
+        or result_web["Negatives_Engagement"].item() != all_results["Negatives_Engagement"].item()
     )
 
 

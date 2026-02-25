@@ -186,19 +186,13 @@ class Preprocess(LazyNamespace):
         while True:
             file_batches = {}
             for _ in range(self.file_batch_limit):
-                selected_contexts = all_contexts[
-                    curr_idx : curr_idx + self.query_batch_limit
-                ]
-                file_batch_key = (
-                    curr_idx // self.query_batch_limit + 1
-                ) * self.query_batch_limit
+                selected_contexts = all_contexts[curr_idx : curr_idx + self.query_batch_limit]
+                file_batch_key = (curr_idx // self.query_batch_limit + 1) * self.query_batch_limit
                 file_batches[file_batch_key] = selected_contexts
                 curr_idx += self.query_batch_limit
                 if curr_idx >= len(all_contexts):
                     break
-            contexts_dict_key = file_batch_id * (
-                self.file_batch_limit * self.query_batch_limit
-            )
+            contexts_dict_key = file_batch_id * (self.file_batch_limit * self.query_batch_limit)
             contexts_dict[contexts_dict_key] = file_batches
 
             if curr_idx >= len(all_contexts):
@@ -249,11 +243,7 @@ class Preprocess(LazyNamespace):
 
     @staticmethod
     def _get_table_name(predictor_type) -> _TABLE_NAME:
-        return (
-            _TABLE_NAME.NUMERIC
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC
-        )
+        return _TABLE_NAME.NUMERIC if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC
 
     def _get_create_table_sql_formatted(
         self,
@@ -338,9 +328,7 @@ class Preprocess(LazyNamespace):
 
     def _read_overall_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
-            _TABLE_NAME.NUMERIC_OVERALL
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC_OVERALL
+            _TABLE_NAME.NUMERIC_OVERALL if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC_OVERALL
         )
         return self._read_resource_file(
             package_name=queries_data,
@@ -348,11 +336,7 @@ class Preprocess(LazyNamespace):
         )
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
-        sql_file = (
-            _TABLE_NAME.NUMERIC
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC
-        )
+        sql_file = _TABLE_NAME.NUMERIC if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC
 
         return self._read_resource_file(
             package_name=queries_data,
@@ -360,11 +344,7 @@ class Preprocess(LazyNamespace):
         )
 
     def _read_resource_file(self, package_name, filename_w_ext):
-        return (
-            resources_files(package_name)
-            .joinpath(filename_w_ext)
-            .read_text(encoding="utf-8")
-        )
+        return resources_files(package_name).joinpath(filename_w_ext).read_text(encoding="utf-8")
 
     def _get_model_contexts_sql_formatted(self, tbl_name: _TABLE_NAME):
         sql = self._read_resource_file(
@@ -462,9 +442,7 @@ class Preprocess(LazyNamespace):
         )
         files_ = []
         for date in date_range_list:
-            file_pattern = (
-                f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
-            )
+            file_pattern = f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
             file_paths = glob(file_pattern)
             if file_paths:
                 # Get the latest file based on modification time
@@ -485,9 +463,7 @@ class Preprocess(LazyNamespace):
         logger.debug("Downloading file from %s", file_url)
 
         base_path, filename = file_url.rsplit("/", 1)
-        full_explanations_path = (
-            pathlib.Path(self.explanations.root_dir) / self.explanations_folder
-        )
+        full_explanations_path = pathlib.Path(self.explanations.root_dir) / self.explanations_folder
         full_explanations_path.mkdir(parents=True, exist_ok=True)
         local_path = full_explanations_path / filename
 

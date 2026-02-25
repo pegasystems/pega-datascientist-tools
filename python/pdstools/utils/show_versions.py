@@ -110,10 +110,7 @@ def expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]:
             if nested_extra in extras:
                 result.update(
                     set().union(
-                        *(
-                            expand_dep(d, processed.copy())
-                            for d in extras[nested_extra]
-                        ),
+                        *(expand_dep(d, processed.copy()) for d in extras[nested_extra]),
                     ),
                 )
 
@@ -173,19 +170,10 @@ def _dependency_table(public_only: bool = False):
     if public_only:
         for private_dep_group in ("dev", "docs", "tests"):
             _ = dependencies.pop(private_dep_group)
-    deps = [
-        {"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()
-    ]
-    pivot = (
-        pl.DataFrame(deps)
-        .explode("deps")
-        .pivot(values="deps", index="group", on="deps")
-    )
+    deps = [{"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()]
+    pivot = pl.DataFrame(deps).explode("deps").pivot(values="deps", index="group", on="deps")
     pivotted = pivot.with_columns(
-        pl.when(pl.col(col).is_not_null())
-        .then(pl.lit("√"))
-        .otherwise(pl.lit("X"))
-        .alias(col)
+        pl.when(pl.col(col).is_not_null()).then(pl.lit("√")).otherwise(pl.lit("X")).alias(col)
         for col in pivot.columns
         if col != "group"
     )

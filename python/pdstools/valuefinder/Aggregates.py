@@ -58,11 +58,7 @@ class Aggregates:
 
     @cached_property
     def max_propensity_per_customer(self) -> pl.DataFrame:
-        return (
-            self.vf.df.group_by(["CustomerID", "Stage"])
-            .agg(pl.max("ModelPropensity"))
-            .collect()
-        )
+        return self.vf.df.group_by(["CustomerID", "Stage"]).agg(pl.max("ModelPropensity")).collect()
 
     @cache
     def get_threshold_from_quantile(self, quantile: float) -> float:

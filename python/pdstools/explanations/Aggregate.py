@@ -199,11 +199,7 @@ class Aggregate(LazyNamespace):
 
         context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
 
-        self.df_contextual = (
-            pl.scan_parquet(context_)
-            .select(selected_columns)
-            .sort(by=_COL.PREDICTOR_NAME.value)
-        )
+        self.df_contextual = pl.scan_parquet(context_).select(selected_columns).sort(by=_COL.PREDICTOR_NAME.value)
 
         self.df_overall = (
             pl.scan_parquet(f"{self.data_folderpath}/*_OVERALL.parquet")
@@ -277,8 +273,7 @@ class Aggregate(LazyNamespace):
                 aggregate_over=[_COL.PARTITON.value],
             )
             df_top_predictors = pl.concat(
-                df.select(sorted(df.collect_schema().names()))
-                for df in [df_remaining, df_top_predictors]
+                df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictors]
             )
 
         # Ensure all predictors are unique and sorted by contribution type
@@ -376,8 +371,7 @@ class Aggregate(LazyNamespace):
                 sort_by_column=contribution_type,
             )
             df_top_predictor_values = pl.concat(
-                df.select(sorted(df.collect_schema().names()))
-                for df in [df_remaining, df_top_predictor_values]
+                df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictor_values]
             )
 
         # Ensure all predictor values are unique and sorted according to predictor type
@@ -519,26 +513,18 @@ class Aggregate(LazyNamespace):
 
         aggregate_by_list = [
             pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
-            pl.col(_COL.CONTRIBUTION_ABS.value)
-            .mean()
-            .alias(_COL.CONTRIBUTION_ABS.value),
+            pl.col(_COL.CONTRIBUTION_ABS.value).mean().alias(_COL.CONTRIBUTION_ABS.value),
             (
                 (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
                 / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
             (
-                (
-                    pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)
-                ).mean()
+                (pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)).mean()
                 / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
             pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
-            pl.col(_COL.CONTRIBUTION_MIN.value)
-            .min()
-            .alias(_COL.CONTRIBUTION_MIN.value),
-            pl.col(_COL.CONTRIBUTION_MAX.value)
-            .max()
-            .alias(_COL.CONTRIBUTION_MAX.value),
+            pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
+            pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
         ]
 
         # Aggregate the remaining contributions
@@ -578,26 +564,18 @@ class Aggregate(LazyNamespace):
 
         aggregate_by_list = [
             pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
-            pl.col(_COL.CONTRIBUTION_ABS.value)
-            .mean()
-            .alias(_COL.CONTRIBUTION_ABS.value),
+            pl.col(_COL.CONTRIBUTION_ABS.value).mean().alias(_COL.CONTRIBUTION_ABS.value),
             (
                 (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
                 / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
             (
-                (
-                    pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)
-                ).mean()
+                (pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)).mean()
                 / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
             ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
             pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
-            pl.col(_COL.CONTRIBUTION_MIN.value)
-            .min()
-            .alias(_COL.CONTRIBUTION_MIN.value),
-            pl.col(_COL.CONTRIBUTION_MAX.value)
-            .max()
-            .alias(_COL.CONTRIBUTION_MAX.value),
+            pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
+            pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
         ]
 
         return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)

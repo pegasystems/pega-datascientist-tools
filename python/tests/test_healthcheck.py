@@ -75,19 +75,13 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
 
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
-    assert (
-        size_diff <= 0.10
-    ), f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
+    assert size_diff <= 0.10, f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
-    assert (
-        50 <= no_reduction_mb <= 150
-    ), f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
+    assert 50 <= no_reduction_mb <= 150, f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
-    assert (
-        strip_reduction >= 0.80
-    ), f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
+    assert strip_reduction >= 0.80, f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
 
     # TODO: test not always passing on GH
 
@@ -242,19 +236,13 @@ def test_ModelReport_size_reduction_methods(sample: ADMDatamart, tmp_path):
 
     # TODO: temporary default for DJS use cases
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
-    assert (
-        size_diff <= 0.10
-    ), f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
+    assert size_diff <= 0.10, f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
 
     no_reduction_mb = sizes["no_reduction"] / (1024 * 1024)
-    assert (
-        90 <= no_reduction_mb <= 150
-    ), f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
+    assert 90 <= no_reduction_mb <= 150, f"Embedded size should be large, got {no_reduction_mb:.1f} MB"
 
     strip_reduction = 1 - (sizes["stripped"] / sizes["no_reduction"])
-    assert (
-        strip_reduction >= 0.80
-    ), f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
+    assert strip_reduction >= 0.80, f"Strip should reduce by 80% or more, got {strip_reduction:.0%}"
 
     # TODO: test not always passing on GH
 

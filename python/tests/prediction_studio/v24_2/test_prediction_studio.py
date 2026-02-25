@@ -432,8 +432,7 @@ def test_upload_model(prediction_studio_client, mocker):
     assert result.repository_name == "AWSFalcons"
     assert result.file_path == "model-staging/test.model"
     assert (
-        str(result)
-        == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
+        str(result) == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
     )
 
 

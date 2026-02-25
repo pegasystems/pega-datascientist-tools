@@ -68,16 +68,14 @@ class Plots(LazyNamespace):
         )
 
         if self.explanations.filter.is_context_selected():
-            context_plot, overall_plot, predictor_plots = (
-                self.plot_contributions_by_context(
-                    context=self.explanations.filter.get_selected_context(),
-                    top_n=top_n,
-                    top_k=top_k,
-                    descending=descending,
-                    missing=missing,
-                    remaining=remaining,
-                    contribution_calculation=contribution_type.value,
-                )
+            context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
+                context=self.explanations.filter.get_selected_context(),
+                top_n=top_n,
+                top_k=top_k,
+                descending=descending,
+                missing=missing,
+                remaining=remaining,
+                contribution_calculation=contribution_type.value,
             )
 
             plots = [overall_plot] + predictor_plots
@@ -279,9 +277,7 @@ class Plots(LazyNamespace):
         for predictor in predictors:
             predictor_df = df.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
-            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[
-                0
-            ]
+            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[0]
             fig = go.Figure(
                 data=[
                     go.Bar(

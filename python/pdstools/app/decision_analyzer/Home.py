@@ -73,8 +73,7 @@ if raw_data is None:
     with st.spinner("Loading sample data"):
         raw_data = handle_sample_data()
     st.info(
-        "No file uploaded — using built-in sample data. "
-        "Upload your own data above to analyze it.",
+        "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
 
 if raw_data is not None:

@@ -120,9 +120,7 @@ class Aggregates(LazyNamespace):
         interactions = (
             cdh_utils._apply_query(source, query)
             .group_by(
-                (group_by_clause + ["InteractionID"])
-                if group_by_clause is not None
-                else ["InteractionID"],
+                (group_by_clause + ["InteractionID"]) if group_by_clause is not None else ["InteractionID"],
             )
             .agg(
                 # Take only one outcome per interaction. TODO should perhaps be the last one.
@@ -210,9 +208,7 @@ class Aggregates(LazyNamespace):
         by_pl_exprs = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            by_pl_exprs
-            + by_non_pl_exprs
-            + (["OutcomeTime"] if every is not None else []),
+            by_pl_exprs + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
         )
 
         summary = (
@@ -240,11 +236,7 @@ class Aggregates(LazyNamespace):
             .with_columns(
                 [
                     (
-                        pl.col(f"Positives_{metric}")
-                        / (
-                            pl.col(f"Positives_{metric}")
-                            + pl.col(f"Negatives_{metric}")
-                        )
+                        pl.col(f"Positives_{metric}") / (pl.col(f"Positives_{metric}") + pl.col(f"Negatives_{metric}"))
                     ).alias(f"SuccessRate_{metric}")
                     for metric in self.ih.positive_outcome_labels.keys()
                 ],
@@ -252,14 +244,8 @@ class Aggregates(LazyNamespace):
             .with_columns(
                 [
                     (
-                        (
-                            pl.col(f"SuccessRate_{metric}")
-                            * (1 - pl.col(f"SuccessRate_{metric}"))
-                        )
-                        / (
-                            pl.col(f"Positives_{metric}")
-                            + pl.col(f"Negatives_{metric}")
-                        )
+                        (pl.col(f"SuccessRate_{metric}") * (1 - pl.col(f"SuccessRate_{metric}")))
+                        / (pl.col(f"Positives_{metric}") + pl.col(f"Negatives_{metric}"))
                     )
                     .sqrt()
                     .alias(f"StdErr_{metric}")
@@ -325,16 +311,10 @@ class Aggregates(LazyNamespace):
         by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            ["Outcome"]
-            + by_non_pl_exprs
-            + (["OutcomeTime"] if every is not None else []),
+            ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
             by_pl_exprs,
         )
 
-        summary = (
-            cdh_utils._apply_query(source, query)
-            .group_by(group_by_clause)
-            .agg(Count=pl.len())
-        ).sort("Count")
+        summary = (cdh_utils._apply_query(source, query).group_by(group_by_clause).agg(Count=pl.len())).sort("Count")
 
         return summary

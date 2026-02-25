@@ -270,18 +270,14 @@ class TestAggregatePredictorValueContributions:
 
 def assert_df_has_top_n(df, top_n):
     """Assert that the DataFrame has at least top_n rows."""
-    assert (
-        df.shape[0] >= top_n
-    ), f"DataFrame should have at least {top_n} rows, but has {df.shape[0]} rows."
+    assert df.shape[0] >= top_n, f"DataFrame should have at least {top_n} rows, but has {df.shape[0]} rows."
 
 
 def assert_df_has_top_k(df, top_k):
     """Assert that the DataFrame has at least top_k rows."""
-    predictors_list = (
-        df.group_by(["predictor_name", "predictor_type"]).agg(pl.len()).to_dicts()
-    )
+    predictors_list = df.group_by(["predictor_name", "predictor_type"]).agg(pl.len()).to_dicts()
     for predictor in predictors_list:
         if predictor["predictor_type"] == "SYMBOLIC":
-            assert (
-                predictor["len"] >= top_k
-            ), f"Symbolic predictor {predictor['predictor_name']} should have at least {top_k} rows"
+            assert predictor["len"] >= top_k, (
+                f"Symbolic predictor {predictor['predictor_name']} should have at least {top_k} rows"
+            )

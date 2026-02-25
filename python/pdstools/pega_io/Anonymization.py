@@ -117,9 +117,7 @@ class Anonymization:
         if range[0]["min"] == range[0]["max"]:  # pragma: no cover
             print(f"Column {column_name} only contains one value, so returning 0")
             return pl.lit(0.0).alias(column_name)
-        return (pl.col(column_name) - pl.lit(range[0]["min"])) / (
-            pl.lit(range[0]["max"] - range[0]["min"])
-        )
+        return (pl.col(column_name) - pl.lit(range[0]["min"])) / (pl.lit(range[0]["max"] - range[0]["min"]))
 
     @staticmethod
     def _infer_types(df: pl.DataFrame):
@@ -287,19 +285,9 @@ class Anonymization:
         )
         schema = df.collect_schema()
 
-        symb_nonanonymised = [
-            key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))
-        ]
-        nums = [
-            key
-            for key, value in schema.items()
-            if (value.is_numeric() and key not in symb_nonanonymised)
-        ]
-        symb = [
-            key
-            for key in schema.names()
-            if (key not in nums and key not in symb_nonanonymised)
-        ]
+        symb_nonanonymised = [key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))]
+        nums = [key for key, value in schema.items() if (value.is_numeric() and key not in symb_nonanonymised)]
+        symb = [key for key in schema.names() if (key not in nums and key not in symb_nonanonymised)]
         if verbose:
             print(
                 "Context_* and Decision_* columns (not anonymized): ",

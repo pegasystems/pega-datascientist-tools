@@ -386,10 +386,7 @@ class TestAsyncPredictionStudio:
 class TestAsyncPrediction:
     @pytest.mark.asyncio
     async def test_init_attributes(self, async_prediction):
-        assert (
-            async_prediction.prediction_id
-            == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-        )
+        assert async_prediction.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
         assert async_prediction.label == "Predict Cards Acceptance"
         assert async_prediction.objective == "Accept"
         assert async_prediction.subject == "Customer"
@@ -404,10 +401,7 @@ class TestAsyncPrediction:
         async_client.get.assert_awaited_once_with(
             "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
         )
-        assert (
-            result["predictionId"]
-            == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-        )
+        assert result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
         assert result["label"] == "Predict Cards Acceptance"
         assert result["objective"] == "Accept"
         assert result["metrics"] == {
@@ -458,9 +452,7 @@ class TestAsyncPrediction:
         result = await async_prediction.get_staged_changes()
 
         assert len(result) == 1
-        assert (
-            result[0]["change"] == "Added conditional model for the category Retention"
-        )
+        assert result[0]["change"] == "Added conditional model for the category Retention"
 
     @pytest.mark.asyncio
     async def test_package_staged_changes(self, async_prediction, async_client):

@@ -53,18 +53,11 @@ class Plot:
             primary_scope = scope_options[0]
             all_stages_data = self._decision_data.getPreaggregatedRemainingView
             unique_values = (
-                all_stages_data.select(primary_scope)
-                .unique()
-                .collect()
-                .get_column(primary_scope)
-                .sort()
-                .to_list()
+                all_stages_data.select(primary_scope).unique().collect().get_column(primary_scope).sort().to_list()
             )
 
             # Create color mapping using imported Pega colorway
-            color_discrete_map = {
-                val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
-            }
+            color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
         fig = px.treemap(
             df.collect(),
@@ -88,12 +81,7 @@ class Plot:
         df = self._decision_data.get_sensitivity(win_rank, reference_group)
         if return_df:
             return df
-        n = (
-            df.filter(pl.col("Factor") == "Priority")
-            .select("Influence")
-            .collect()
-            .item()
-        )
+        n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
         plotData = df.with_columns(
             pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias(
                 "Relative",
@@ -145,19 +133,10 @@ class Plot:
         # Create consistent color mapping for the selected level
         # Get all unique values for the level across all stages to ensure consistency
         all_stages_data = self._decision_data.getPreaggregatedRemainingView
-        unique_values = (
-            all_stages_data.select(level)
-            .unique()
-            .collect()
-            .get_column(level)
-            .sort()
-            .to_list()
-        )
+        unique_values = all_stages_data.select(level).unique().collect().get_column(level).sort().to_list()
 
         # Create color mapping using imported Pega colorway
-        color_discrete_map = {
-            val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
-        }
+        color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
         fig = px.bar(
             df.collect(),
@@ -221,9 +200,7 @@ class Plot:
     def optionality_funnel(self, df):
         plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
         total_interactions = (
-            plot_data.filter(pl.col("StageGroup") == plot_data.row(0)[0])
-            .select(pl.sum("Interactions"))
-            .row(0)[0]
+            plot_data.filter(pl.col("StageGroup") == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
         )
         fig = go.Figure()
 
@@ -360,9 +337,7 @@ class Plot:
 
         unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
         colors = px.colors.qualitative.Light24
-        color_map = {
-            val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)
-        }
+        color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
         remaining_fig = (
             px.funnel(
                 remaining_df.sort(
@@ -416,9 +391,7 @@ class Plot:
         top_n_actions_dict = {}
         for stage in [x for x in stages if x != "Final"]:
             top_n_actions_dict[stage] = (
-                df.filter(pl.col(self._decision_data.level) == stage)
-                .get_column("Component Name")
-                .to_list()
+                df.filter(pl.col(self._decision_data.level) == stage).get_column("Component Name").to_list()
             )
 
         color_kwargs = {}
@@ -565,9 +538,7 @@ class Plot:
 
         for i, metric in enumerate(prio_factors, start=1):
             for _, segment in enumerate(["Selected Actions", "Others"]):
-                prio_factor_values = (
-                    segmented_df.filter(segment=segment).get_column(metric).to_list()
-                )
+                prio_factor_values = segmented_df.filter(segment=segment).get_column(metric).to_list()
                 fig.add_trace(
                     go.Box(
                         x=prio_factor_values,
@@ -668,12 +639,7 @@ class Plot:
         y_col = scope if scope in plot_df.columns else "Action"
         # Determine a color column (one level above scope in hierarchy)
         color_col = None
-        if (
-            scope == "Action"
-            and "Issue" in plot_df.columns
-            or scope == "Group"
-            and "Issue" in plot_df.columns
-        ):
+        if scope == "Action" and "Issue" in plot_df.columns or scope == "Group" and "Issue" in plot_df.columns:
             color_col = "Issue"
 
         scope_label = scope
@@ -862,12 +828,7 @@ def offer_quality_piecharts(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    all_frames = (
-        df.group_by(level)
-        .agg(pl.sum(value_finder_names))
-        .collect()
-        .partition_by(level, as_dict=True)
-    )
+    all_frames = df.group_by(level).agg(pl.sum(value_finder_names)).collect().partition_by(level, as_dict=True)
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
     df = {}
     AvailableNBADStages = AvailableNBADStages[:5]
@@ -925,12 +886,7 @@ def getTrendChart(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    df = (
-        df.filter(pl.col(level) == stage)
-        .group_by("day")
-        .agg(pl.sum(value_finder_names))
-        .collect()
-    ).sort("day")
+    df = (df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(value_finder_names)).collect()).sort("day")
     if return_df:
         return df.lazy()
     trend_melted = (
@@ -1085,17 +1041,13 @@ def create_win_distribution_plot(
     # Create hover template based on the level in hierarchy
     if scope_config["x_col"] == "Group" and "Issue" in plot_data.columns:
         # Show pyIssue in hover when level is pyGroup
-        hover_template = (
-            "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
-        )
+        hover_template = "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
         customdata = plot_data["Issue"]
-    elif (
-        scope_config["x_col"] == "Action"
-        and "Group" in plot_data.columns
-        and "Issue" in plot_data.columns
-    ):
+    elif scope_config["x_col"] == "Action" and "Group" in plot_data.columns and "Issue" in plot_data.columns:
         # Show both pyGroup and pyIssue in hover when level is pyName (Action)
-        hover_template = "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
+        hover_template = (
+            "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
+        )
         customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
     else:
         # Default hover template

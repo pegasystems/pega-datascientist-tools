@@ -14,8 +14,7 @@ def get(version: str) -> type[PredictionStudioBase] | None:
     if version == "24.2":
         return v24_2.PredictionStudio
     logger.info(
-        "Pega version '%s' is not explicitly supported; "
-        "falling back to the latest known API (24.2).",
+        "Pega version '%s' is not explicitly supported; falling back to the latest known API (24.2).",
         version,
     )
     return v24_2.PredictionStudio
@@ -29,8 +28,7 @@ def get_async(version: str) -> type[AsyncPredictionStudioBase] | None:
     if version == "24.2":
         return v24_2.AsyncPredictionStudio
     logger.info(
-        "Pega version '%s' is not explicitly supported; "
-        "falling back to the latest known API (24.2).",
+        "Pega version '%s' is not explicitly supported; falling back to the latest known API (24.2).",
         version,
     )
     return v24_2.AsyncPredictionStudio

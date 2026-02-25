@@ -101,9 +101,7 @@ def test_prediction_describe(prediction_client, mocker):
         "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
-    assert (
-        result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert result["label"] == "Predict Cards Acceptance"
     assert result["objective"] == "Accept"
     assert result["subject"] == "Customer"

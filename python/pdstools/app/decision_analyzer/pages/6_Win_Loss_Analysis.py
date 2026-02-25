@@ -112,12 +112,10 @@ def get_groupby_columns(scope_options, current_scope_key):
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
 
-    interactions_where_comparison_group_wins = (
-        st.session_state.decision_data.get_winning_or_losing_interactions(
-            win_rank=st.session_state.win_rank,
-            group_filter=st.session_state["local_filters"],
-            win=True,
-        )
+    interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
+        win_rank=st.session_state.win_rank,
+        group_filter=st.session_state["local_filters"],
+        win=True,
     )
     winning_from = st.session_state.decision_data.winning_from(
         interactions=interactions_where_comparison_group_wins,
@@ -125,12 +123,10 @@ if st.session_state.local_filters != []:
         groupby_cols=groupby_cols,
         top_k=top_k,
     )
-    interactions_where_comparison_group_loses = (
-        st.session_state.decision_data.get_winning_or_losing_interactions(
-            win_rank=st.session_state.win_rank,
-            group_filter=st.session_state["local_filters"],
-            win=False,
-        )
+    interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
+        win_rank=st.session_state.win_rank,
+        group_filter=st.session_state["local_filters"],
+        win=False,
     )
     losing_to = st.session_state.decision_data.losing_to(
         interactions=interactions_where_comparison_group_loses,

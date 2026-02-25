@@ -176,9 +176,7 @@ def test_prediction_describe(prediction_client, mocker):
         "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
-    assert (
-        result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert result["label"] == "Predict Cards Acceptance"
     assert result["objective"] == "Accept"
     assert result["subject"] == "Customer"
@@ -276,9 +274,7 @@ def test_prediction_get_cc(prediction_client, mocker):
         "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
-    assert (
-        result[0].prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert result[0].prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert len(result) == 3
 
 

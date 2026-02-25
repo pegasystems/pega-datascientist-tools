@@ -97,8 +97,7 @@ def show_version_header(check_latest: bool = True):
 
     """
     st.caption(
-        f"pdstools {pdstools_version} · "
-        "Keep up to date: `uv pip install --upgrade pdstools`",
+        f"pdstools {pdstools_version} · Keep up to date: `uv pip install --upgrade pdstools`",
     )
 
     if check_latest:
@@ -331,9 +330,7 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
     you can import the data simply by pointing the app to the directory
     where the original files are located, and we can find it automatically.""",
     )
-    placeholder = (
-        "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
-    )
+    placeholder = "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder=placeholder,
@@ -467,9 +464,7 @@ def filter_dataframe(
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
                 )
             if f"selected_{column}" not in st.session_state.keys():
-                st.session_state[f"selected_{column}"] = st.session_state[
-                    f"categories_{column}"
-                ]
+                st.session_state[f"selected_{column}"] = st.session_state[f"categories_{column}"]
             if len(st.session_state[f"categories_{column}"]) < 200:
                 options = st.session_state[f"categories_{column}"]
                 selected = right.multiselect(
@@ -479,9 +474,7 @@ def filter_dataframe(
                 )
                 if selected != st.session_state[f"categories_{column}"]:
                     queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"selected_{column}"]),
+                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"selected_{column}"]),
                     )
             else:
                 user_text_input = right.text_input(

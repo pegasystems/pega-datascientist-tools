@@ -10,7 +10,8 @@ See: https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html
 
 from dataclasses import dataclass
 from math import isnan
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import polars as pl
 
@@ -84,9 +85,7 @@ class NumberFormat:
         except (ValueError, TypeError):
             return str(value)
 
-        formatted = (
-            self._format_compact(num) if self.compact else self._format_standard(num)
-        )
+        formatted = self._format_compact(num) if self.compact else self._format_standard(num)
         return formatted + self.suffix
 
     def _format_standard(self, num: float) -> str:
@@ -94,9 +93,7 @@ class NumberFormat:
         formatted = f"{num:,.{self.decimals}f}"
         if self.locale == "de_DE":
             # German: swap comma/dot
-            formatted = (
-                formatted.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
-            )
+            formatted = formatted.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
         return formatted
 
     def _format_compact(self, num: float) -> str:
@@ -120,9 +117,7 @@ class NumberFormat:
 
         """
         # Use callable for complex formatting (compact, non-percentage suffix)
-        if self.compact or (
-            self.suffix and not (self.scale_by == 100 and self.suffix == "%")
-        ):
+        if self.compact or (self.suffix and not (self.scale_by == 100 and self.suffix == "%")):
             return self.format_value
 
         # Native pandas percentage formatting

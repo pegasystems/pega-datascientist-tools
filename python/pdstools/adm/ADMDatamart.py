@@ -8,7 +8,8 @@ import os
 from collections.abc import Iterable
 from functools import cached_property
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
@@ -147,11 +148,7 @@ class ADMDatamart:
     ) -> pl.LazyFrame | None:
         if df is None:
             return df
-        return (
-            df.group_by("Name")
-            .agg(ActionFirstSnapshotTime=pl.col("SnapshotTime").min())
-            .sort("Name")
-        )
+        return df.group_by("Name").agg(ActionFirstSnapshotTime=pl.col("SnapshotTime").min()).sort("Name")
 
     @classmethod
     def from_ds_export(
@@ -458,17 +455,11 @@ class ADMDatamart:
             SuccessRate=(pl.col("Positives") / pl.col("ResponseCount")).fill_nan(
                 pl.lit(0),
             ),
-            IsUpdated=(
-                (pl.col("ResponseCount").diff(1) != 0)
-                | (pl.col("Positives").diff(1) != 0)
-            )
+            IsUpdated=((pl.col("ResponseCount").diff(1) != 0) | (pl.col("Positives").diff(1) != 0))
             .fill_null(True)
             .over("ModelID"),
         ).with_columns(
-            LastUpdate=pl.when("IsUpdated")
-            .then("SnapshotTime")
-            .forward_fill()
-            .over("ModelID"),
+            LastUpdate=pl.when("IsUpdated").then("SnapshotTime").forward_fill().over("ModelID"),
         )
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
@@ -499,10 +490,7 @@ class ADMDatamart:
             )
         df = df.with_columns(
             BinPropensity=pl.col("BinPositives") / pl.col("BinResponseCount"),
-            BinAdjustedPropensity=(
-                (pl.col("BinPositives") + pl.lit(0.5))
-                / (pl.col("BinResponseCount") + pl.lit(1))
-            ),
+            BinAdjustedPropensity=((pl.col("BinPositives") + pl.lit(0.5)) / (pl.col("BinResponseCount") + pl.lit(1))),
         )
         if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
@@ -593,9 +581,7 @@ class ADMDatamart:
                     values = [values]
                 for value in values:
                     expr = expr.when(
-                        pl.col("PredictorName")
-                        .cast(pl.Utf8)
-                        .str.contains(value, literal=not use_regexp, strict=False),
+                        pl.col("PredictorName").cast(pl.Utf8).str.contains(value, literal=not use_regexp, strict=False),
                     ).then(pl.lit(key))
             return expr
 
@@ -707,9 +693,7 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent
         """
         return set(
-            self.model_data.select(pl.col("Channel").unique().sort()).collect()[
-                "Channel"
-            ],
+            self.model_data.select(pl.col("Channel").unique().sort()).collect()["Channel"],
         )
 
     @cached_property
@@ -719,9 +703,7 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent
         """
         return set(
-            self.model_data.select(pl.col("Configuration").unique())
-            .collect()["Configuration"]
-            .to_list(),
+            self.model_data.select(pl.col("Configuration").unique()).collect()["Configuration"].to_list(),
         )
 
     @cached_property
@@ -731,9 +713,7 @@ class ADMDatamart:
         """
         return set(
             self.model_data.select(
-                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
-                .unique()
-                .alias("ChannelDirection"),
+                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").unique().alias("ChannelDirection"),
             )
             .collect()["ChannelDirection"]
             .to_list(),
@@ -793,18 +773,14 @@ class ADMDatamart:
             minMaxScoresPerPredictor.group_by("ModelID", maintain_order=True)
             .agg(
                 nActivePredictors=(pl.col("EntryType") == "Active").sum(),
-                classifierLogOffset=(
-                    1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()
-                ).log()
+                classifierLogOffset=(1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()).log()
                 - (1.0 + pl.col.totalNeg.filter(EntryType="Classifier").first()).log(),
                 sumMinLogOdds=pl.col.logOddsMin.filter(EntryType="Active").sum(),
                 sumMaxLogOdds=pl.col.logOddsMax.filter(EntryType="Active").sum(),
             )
             .with_columns(
-                score_min=(pl.col.classifierLogOffset + pl.col.sumMinLogOdds)
-                / (1 + pl.col.nActivePredictors),
-                score_max=(pl.col.classifierLogOffset + pl.col.sumMaxLogOdds)
-                / (1 + pl.col.nActivePredictors),
+                score_min=(pl.col.classifierLogOffset + pl.col.sumMinLogOdds) / (1 + pl.col.nActivePredictors),
+                score_max=(pl.col.classifierLogOffset + pl.col.sumMaxLogOdds) / (1 + pl.col.nActivePredictors),
             )
         )
 
@@ -897,8 +873,7 @@ class ADMDatamart:
                     # TODO consider using the "last" function of the aggregates
                     # last("predictor_data") instead of this, but that currently
                     # doesn't do that per Model ID. Probably should.
-                    (pl.col("SnapshotTime").n_unique() == 1)
-                    | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+                    (pl.col("SnapshotTime").n_unique() == 1) | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
                 ).over("ModelID"),
             ),
             query,

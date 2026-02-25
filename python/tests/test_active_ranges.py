@@ -52,9 +52,7 @@ def test_active_ranges_basic(sample):
     assert all(n >= 0 for n in ar["nActivePredictors"])
     assert all(idx_min >= 0 for idx_min in ar["idx_min"])
     assert all(idx_max > 0 for idx_max in ar["idx_max"])
-    assert all(
-        idx_max >= idx_min for idx_min, idx_max in zip(ar["idx_min"], ar["idx_max"])
-    )
+    assert all(idx_max >= idx_min for idx_min, idx_max in zip(ar["idx_min"], ar["idx_max"]))
 
 
 def test_active_ranges_single_model(sample):

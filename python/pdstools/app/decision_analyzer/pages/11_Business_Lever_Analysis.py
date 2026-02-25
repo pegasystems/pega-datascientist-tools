@@ -72,31 +72,16 @@ if st.session_state.get("analysis_applied", False):
     relevant_interactions = st.session_state.decision_data.arbitration_stage.filter(
         lever_condition,
     )
-    interactions_survived_till_arbitration = (
-        relevant_interactions.select("Interaction ID").collect().n_unique()
-    )
+    interactions_survived_till_arbitration = relevant_interactions.select("Interaction ID").collect().n_unique()
     current_number_of_wins = (
-        relevant_interactions.filter(pl.col("pxRank") == 1)
-        .select("Interaction ID")
-        .collect()
-        .n_unique()
+        relevant_interactions.filter(pl.col("pxRank") == 1).select("Interaction ID").collect().n_unique()
     )
     # Calculate key metrics
-    funnel_loss = (
-        st.session_state.decision_data.sample_size
-        - interactions_survived_till_arbitration
-    )
+    funnel_loss = st.session_state.decision_data.sample_size - interactions_survived_till_arbitration
     funnel_loss_pct = (funnel_loss / st.session_state.decision_data.sample_size) * 100
-    current_win_rate = (
-        current_number_of_wins / st.session_state.decision_data.sample_size
-    ) * 100
-    max_possible_win_rate = (
-        interactions_survived_till_arbitration
-        / st.session_state.decision_data.sample_size
-    ) * 100
-    current_win_rate_at_arbitration = (
-        current_number_of_wins / interactions_survived_till_arbitration
-    ) * 100
+    current_win_rate = (current_number_of_wins / st.session_state.decision_data.sample_size) * 100
+    max_possible_win_rate = (interactions_survived_till_arbitration / st.session_state.decision_data.sample_size) * 100
+    current_win_rate_at_arbitration = (current_number_of_wins / interactions_survived_till_arbitration) * 100
     st.markdown("#### 📊 How Often Selected Actions Survive till Arbitration?")
     st.markdown(
         "Selected actions might get filtered out in the funnel before ever reaching to arbitration stage.",
@@ -184,9 +169,7 @@ if st.session_state.get("analysis_applied", False):
                     )
                     .join(relevant_interactions, on="Interaction ID", how="inner")
                     .with_columns(
-                        segment=pl.when(lever_condition)
-                        .then(pl.lit("Selected Actions"))
-                        .otherwise(pl.lit("Others")),
+                        segment=pl.when(lever_condition).then(pl.lit("Selected Actions")).otherwise(pl.lit("Others")),
                     )
                     .select(
                         ["Propensity", "Value", "Context Weight", "Levers", "segment"],
@@ -256,21 +239,13 @@ if st.session_state.get("analysis_applied", False):
         selected_data = new_plot_data.filter(
             pl.col(scope_config["x_col"]) == scope_config["selected_value"],
         )
-        selected_wins = (
-            selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
-        )
+        selected_wins = selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
 
         # Calculate deltas
         selected_wins_delta = selected_wins - current_number_of_wins
-        new_win_rate_at_arbitration = (
-            selected_wins / interactions_survived_till_arbitration
-        ) * 100
-        new_overall_win_rate = (
-            selected_wins / st.session_state.decision_data.sample_size
-        ) * 100
-        win_rate_delta_arbitration = (
-            new_win_rate_at_arbitration - current_win_rate_at_arbitration
-        )
+        new_win_rate_at_arbitration = (selected_wins / interactions_survived_till_arbitration) * 100
+        new_overall_win_rate = (selected_wins / st.session_state.decision_data.sample_size) * 100
+        win_rate_delta_arbitration = new_win_rate_at_arbitration - current_win_rate_at_arbitration
         win_rate_delta_overall = new_overall_win_rate - current_win_rate
 
         col1, col2, col3, col4 = st.columns(4)
@@ -311,13 +286,11 @@ if st.session_state.get("analysis_applied", False):
         if calculate_lever:
             with st.spinner("Calculating..."):
                 # TODO refactor this into the DecisionData class
-                lever_for_desired_ratio = (
-                    st.session_state.decision_data.find_lever_value(
-                        lever_condition=lever_condition,
-                        target_win_percentage=st.session_state.target_win_percentage,
-                        win_rank=st.session_state.win_rank,
-                        high=100,
-                    )
+                lever_for_desired_ratio = st.session_state.decision_data.find_lever_value(
+                    lever_condition=lever_condition,
+                    target_win_percentage=st.session_state.target_win_percentage,
+                    win_rank=st.session_state.win_rank,
+                    high=100,
                 )
                 if isinstance(lever_for_desired_ratio, float):
                     st.metric(

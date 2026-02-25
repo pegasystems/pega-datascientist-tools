@@ -4,7 +4,8 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Literal
+from collections.abc import Callable
 
 import polars as pl
 
@@ -108,11 +109,7 @@ class Reports(LazyNamespace):
         """
         if isinstance(model_ids, str):
             model_ids = [model_ids]
-        if (
-            not model_ids
-            or not isinstance(model_ids, list)
-            or not all(isinstance(i, str) for i in model_ids)
-        ):
+        if not model_ids or not isinstance(model_ids, list) or not all(isinstance(i, str) for i in model_ids):
             raise ValueError("No valid model IDs")
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
@@ -127,11 +124,8 @@ class Reports(LazyNamespace):
                 shutil.copy(qmd_file, temp_dir / qmd_filename)
 
             # Copy data to a temp dir only if the files are not passed in already
-            if (
-                (model_file_path is None) and (self.datamart.model_data is not None)
-            ) or (
-                (predictor_file_path is None)
-                and (self.datamart.predictor_data is not None)
+            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
+                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(
                     temp_dir,
@@ -301,11 +295,8 @@ class Reports(LazyNamespace):
             )
 
             # Copy data to a temp dir only if the files are not passed in already
-            if (
-                (model_file_path is None) and (self.datamart.model_data is not None)
-            ) or (
-                (predictor_file_path is None)
-                and (self.datamart.predictor_data is not None)
+            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
+                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
@@ -320,15 +311,9 @@ class Reports(LazyNamespace):
                 output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
-                    "model_file_path": str(model_file_path)
-                    if model_file_path is not None
-                    else "",
-                    "predictor_file_path": str(predictor_file_path)
-                    if predictor_file_path is not None
-                    else "",
-                    "prediction_file_path": str(prediction_file_path)
-                    if prediction_file_path is not None
-                    else "",
+                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
+                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
+                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
@@ -428,9 +413,7 @@ class Reports(LazyNamespace):
             tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_overview"] = (
-                self.datamart.aggregates.predictors_global_overview()
-            )
+            tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
 
         if predictor_binning and self.datamart.predictor_data is not None:
             columns = [
@@ -453,8 +436,7 @@ class Reports(LazyNamespace):
             subset_columns = [
                 col
                 for col in columns
-                if col.meta.output_name()
-                in self.datamart.predictor_data.collect_schema().names()
+                if col.meta.output_name() in self.datamart.predictor_data.collect_schema().names()
             ]
             tabs["predictor_binning"] = (
                 self.datamart.aggregates.last(table="predictor_data")
@@ -514,9 +496,7 @@ class Reports(LazyNamespace):
                         continue
                     data.write_excel(workbook=wb, worksheet=tab)
         except Exception as e:
-            warning_msg = (
-                f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
-            )
+            warning_msg = f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
             warning_messages.append(warning_msg)
             print(warning_msg)
             return None, warning_messages

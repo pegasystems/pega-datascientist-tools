@@ -3,7 +3,8 @@ import os
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union, overload
+from typing import Literal, Optional, Union, overload
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
@@ -160,12 +161,7 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: str
-        | Path
-        | os.PathLike
-        | list[str]
-        | list[Path]
-        | list[os.PathLike],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
         reader: Callable | None = None,
         query: QUERY | None = None,
@@ -178,12 +174,7 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: str
-        | Path
-        | os.PathLike
-        | list[str]
-        | list[Path]
-        | list[os.PathLike],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
         reader: Callable | None = None,
         query: QUERY | None = None,
@@ -196,12 +187,7 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: str
-        | Path
-        | os.PathLike
-        | list[str]
-        | list[Path]
-        | list[os.PathLike],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
         reader: Callable | None = None,
         query: QUERY | None = None,
@@ -210,12 +196,7 @@ class ImpactAnalyzer:
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: str
-        | Path
-        | os.PathLike
-        | list[str]
-        | list[Path]
-        | list[os.PathLike],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
         reader: Callable | None = None,
         query: QUERY | None = None,
@@ -386,9 +367,7 @@ class ImpactAnalyzer:
                 .sum()
                 .alias("Accepts"),
                 (
-                    pl.col("Value")
-                    .filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"]))
-                    .sum()
+                    pl.col("Value").filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"])).sum()
                     / (
                         pl.col("AggregateCount")
                         .filter(
@@ -877,12 +856,8 @@ class ImpactAnalyzer:
             pl.LazyFrame(
                 {
                     "Experiment": ImpactAnalyzer.default_ia_experiments.keys(),
-                    "Test": [
-                        v[1] for v in ImpactAnalyzer.default_ia_experiments.values()
-                    ],
-                    "Control": [
-                        v[0] for v in ImpactAnalyzer.default_ia_experiments.values()
-                    ],
+                    "Test": [v[1] for v in ImpactAnalyzer.default_ia_experiments.values()],
+                    "Control": [v[0] for v in ImpactAnalyzer.default_ia_experiments.values()],
                 },
             )
             .join(

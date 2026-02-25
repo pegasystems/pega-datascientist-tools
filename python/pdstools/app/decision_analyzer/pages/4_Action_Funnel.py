@@ -181,10 +181,7 @@ st.download_button(
 # ---------------------------------------------------------------------------
 # Component → Action Impact
 # ---------------------------------------------------------------------------
-has_components = (
-    "Component Name"
-    in st.session_state.decision_data.decision_data.collect_schema().names()
-)
+has_components = "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 if has_components:
     with st.container(border=True):
         "## Component → Action Impact"
@@ -202,11 +199,7 @@ if has_components:
         impact_fig = st.session_state.decision_data.plot.component_action_impact(
             top_n=impact_top_n,
             scope=st.session_state.scope,
-            additional_filters=(
-                st.session_state["local_filters"]
-                if st.session_state["local_filters"] != []
-                else None
-            ),
+            additional_filters=(st.session_state["local_filters"] if st.session_state["local_filters"] != [] else None),
         )
         st.plotly_chart(impact_fig, use_container_width=True)
 
@@ -248,9 +241,7 @@ if has_components:
                 component_name=selected_component,
                 sort_by=sort_by,
                 additional_filters=(
-                    st.session_state["local_filters"]
-                    if st.session_state["local_filters"] != []
-                    else None
+                    st.session_state["local_filters"] if st.session_state["local_filters"] != [] else None
                 ),
             )
             st.plotly_chart(drilldown_fig, use_container_width=True)
@@ -259,9 +250,7 @@ if has_components:
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(
                 component_name=selected_component,
                 additional_filters=(
-                    st.session_state["local_filters"]
-                    if st.session_state["local_filters"] != []
-                    else None
+                    st.session_state["local_filters"] if st.session_state["local_filters"] != [] else None
                 ),
             )
             st.dataframe(drilldown_df)

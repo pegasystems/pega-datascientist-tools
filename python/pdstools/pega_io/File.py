@@ -473,8 +473,7 @@ def cache_to_file(
     path: str | os.PathLike,
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
-    compression: pl._typing.ParquetCompression
-    | pl._typing.IpcCompression = "uncompressed",
+    compression: pl._typing.ParquetCompression | pl._typing.IpcCompression = "uncompressed",
 ) -> pathlib.Path:
     """Very simple convenience function to cache data.
     Caches in arrow format for very fast reading.
@@ -577,18 +576,9 @@ def read_dataflow_output(
         cache_file = Path(cache_directory) / f"{cache_file_name}.parquet"
         if has_cache():
             cached_data = pl.scan_parquet(cache_file)
-            files = (
-                pl.LazyFrame({"file": files})
-                .join(cached_data, on="file", how="anti")
-                .collect()["file"]
-                .to_list()
-            )
+            files = pl.LazyFrame({"file": files}).join(cached_data, on="file", how="anti").collect()["file"].to_list()
             if not files:
-                return (
-                    cached_data.filter(pl.col("file").is_in(original_files))
-                    .drop("file")
-                    .lazy()
-                )
+                return cached_data.filter(pl.col("file").is_in(original_files)).drop("file").lazy()
 
     if files:
         new_data = read_multi_zip(
@@ -607,6 +597,4 @@ def read_dataflow_output(
         return new_data.filter(pl.col("file").is_in(original_files)).lazy()
 
     combined_data.collect().write_parquet(cache_file)
-    return (
-        combined_data.filter(pl.col("file").is_in(original_files)).drop("file").lazy()
-    )
+    return combined_data.filter(pl.col("file").is_in(original_files)).drop("file").lazy()

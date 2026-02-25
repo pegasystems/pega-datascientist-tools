@@ -13,7 +13,8 @@ values in tables.
 import difflib
 import re
 from functools import lru_cache
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal, Optional
+from collections.abc import Callable
 
 import polars as pl
 
@@ -76,9 +77,7 @@ class MetricLimits:
             return all(v in (0.0, 1.0) for v in defined_values)
 
         return limits_df.with_columns(
-            pl.struct(_LIMIT_COLUMNS)
-            .map_elements(is_boolean_metric, return_dtype=pl.Boolean)
-            .alias("is_boolean"),
+            pl.struct(_LIMIT_COLUMNS).map_elements(is_boolean_metric, return_dtype=pl.Boolean).alias("is_boolean"),
         )
 
     @classmethod
@@ -268,9 +267,7 @@ POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS = [
     "OmniAdaptiveModel",
 ]
 
-ALL_NBAD_CONFIGURATIONS = (
-    SINGLE_CHANNEL_NBAD_CONFIGURATIONS + POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
-)
+ALL_NBAD_CONFIGURATIONS = SINGLE_CHANNEL_NBAD_CONFIGURATIONS + POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
 
 
 def _matches_NBAD_configuration(item: str, config_list: list) -> bool:
@@ -293,15 +290,9 @@ def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
         if not value:
             return False
         items = [v.strip() for v in value.split(",") if v.strip()]
-        return all(
-            _matches_NBAD_configuration(item, ALL_NBAD_CONFIGURATIONS) for item in items
-        )
+        return all(_matches_NBAD_configuration(item, ALL_NBAD_CONFIGURATIONS) for item in items)
 
-    return (
-        pl.col(field)
-        .cast(pl.String)
-        .map_elements(check_config, return_dtype=pl.Boolean)
-    )
+    return pl.col(field).cast(pl.String).map_elements(check_config, return_dtype=pl.Boolean)
 
 
 def standard_NBAD_configurations_rag(value: str) -> RAGValue | None:
@@ -414,27 +405,17 @@ def get_predictions_channel_mapping(
     """Get prediction to channel/direction mapping as a DataFrame."""
     custom_predictions = custom_predictions or []
     all_predictions = _NBAD_PREDICTION_DATA + [
-        p
-        for p in custom_predictions
-        if p[0].upper() not in {x[0].upper() for x in _NBAD_PREDICTION_DATA}
+        p for p in custom_predictions if p[0].upper() not in {x[0].upper() for x in _NBAD_PREDICTION_DATA}
     ]
 
-    df = (
-        pl.DataFrame(data=all_predictions, orient="row")
-        .with_columns(pl.col("column_0").str.to_uppercase())
-        .unique()
-    )
+    df = pl.DataFrame(data=all_predictions, orient="row").with_columns(pl.col("column_0").str.to_uppercase()).unique()
     df.columns = ["Prediction", "Channel", "Direction", "isMultiChannel"]
     return df
 
 
 def is_standard_NBAD_prediction(field: str = "Prediction") -> pl.Expr:
     """Polars expression to check if a prediction is a known NBAD prediction."""
-    return (
-        pl.col(field)
-        .cast(pl.String)
-        .str.contains_any(ALL_NBAD_PREDICTIONS, ascii_case_insensitive=True)
-    )
+    return pl.col(field).cast(pl.String).str.contains_any(ALL_NBAD_PREDICTIONS, ascii_case_insensitive=True)
 
 
 def standard_NBAD_predictions_rag(value: str) -> RAGValue | None:
@@ -564,9 +545,7 @@ def add_rag_columns(
                     n=1,
                     cutoff=0.6,
                 )
-                suggestion = (
-                    f" Did you mean '{close_matches[0]}'?" if close_matches else ""
-                )
+                suggestion = f" Did you mean '{close_matches[0]}'?" if close_matches else ""
                 raise ValueError(
                     f"Unknown metric ID '{metric_id}' for column '{col}'.{suggestion} "
                     f"If it is spelled correctly, add it to MetricLimits.csv or use a callable.",
@@ -575,9 +554,7 @@ def add_rag_columns(
     def build_rag_expr(col: str, spec: MetricSpec) -> pl.Expr:
         """Build a Polars expression for RAG evaluation."""
         if callable(spec):
-            return (
-                pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
-            )
+            return pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
         if isinstance(spec, tuple) and len(spec) == 2:
             # (metric_id, value_mapping)
             metric_id, value_mapping = spec
@@ -595,11 +572,7 @@ def add_rag_columns(
                         break
                 return MetricLimits.evaluate_metric_rag(metric_id, mapped_v)
 
-            return (
-                pl.col(col)
-                .map_elements(mapped_rag, return_dtype=pl.Utf8)
-                .alias(f"{col}_RAG")
-            )
+            return pl.col(col).map_elements(mapped_rag, return_dtype=pl.Utf8).alias(f"{col}_RAG")
         # Simple metric ID string
         return MetricLimits.get_metric_RAG_code(col, spec)
 

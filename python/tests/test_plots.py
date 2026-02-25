@@ -200,11 +200,7 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
     model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
 
     expected_predictor_count = (
-        sample.combined_data.filter(pl.col("ModelID") == model_id)
-        .select("PredictorName")
-        .unique()
-        .collect()
-        .shape[0]
+        sample.combined_data.filter(pl.col("ModelID") == model_id).select("PredictorName").unique().collect().shape[0]
     )
 
     plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
@@ -255,9 +251,7 @@ def test_predictor_contribution(sample: ADMDatamart):
     )
     assert (
         round(
-            df.filter(pl.col("PredictorCategory") == "Customer")
-            .select("Contribution")
-            .item(),
+            df.filter(pl.col("PredictorCategory") == "Customer").select("Contribution").item(),
             2,
         )
         == 39.02
@@ -272,10 +266,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     assert (
         round(
-            df.filter(Name="Customer.AnnualIncome")
-            .select("AutoUsed60Months")
-            .collect()
-            .item(),
+            df.filter(Name="Customer.AnnualIncome").select("AutoUsed60Months").collect().item(),
             5,
         )
         == 0.69054
@@ -324,9 +315,7 @@ def test_predictor_count(sample: ADMDatamart):
 
 def test_binning_lift(sample: ADMDatamart):
     # Get a random model_id and predictor_name
-    random_row = (
-        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
-    )
+    random_row = sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
     model_id = random_row["ModelID"][0]
     predictor_name = random_row["PredictorName"][0]
 

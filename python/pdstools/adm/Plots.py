@@ -7,16 +7,17 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     TypeVar,
     Union,
     overload,
 )
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
-from typing_extensions import Concatenate, ParamSpec
+from typing_extensions import ParamSpec
+from typing import Concatenate
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
@@ -76,11 +77,7 @@ def requires(
             if model_columns:
                 if self.datamart.model_data is None:
                     raise ValueError("Missing data: model_data")
-                missing = {
-                    c
-                    for c in model_columns
-                    if c not in self.datamart.model_data.collect_schema().names()
-                }
+                missing = {c for c in model_columns if c not in self.datamart.model_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required model columns:{missing}")
 
@@ -88,9 +85,7 @@ def requires(
                 if self.datamart.predictor_data is None:
                     raise ValueError("Missing data: predictor_data")
                 missing = {
-                    c
-                    for c in predictor_columns
-                    if c not in self.datamart.predictor_data.collect_schema().names()
+                    c for c in predictor_columns if c not in self.datamart.predictor_data.collect_schema().names()
                 }
                 if missing:
                     raise ValueError(f"Missing required predictor columns:{missing}")
@@ -98,11 +93,7 @@ def requires(
             if combined_columns:
                 if self.datamart.combined_data is None:
                     raise ValueError("Missing data: combined_data")
-                missing = {
-                    c
-                    for c in combined_columns
-                    if c not in self.datamart.combined_data.collect_schema().names()
-                }
+                missing = {c for c in combined_columns if c not in self.datamart.combined_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
@@ -157,8 +148,7 @@ def add_bottom_left_text_to_bubble_plot(
     def get_nonperforming_models(df: pl.LazyFrame):
         return (
             df.filter(
-                (pl.col("Performance") == 50)
-                & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0)),
+                (pl.col("Performance") == 50) & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0)),
             )
             .select(pl.first().count())
             .collect()
@@ -271,9 +261,7 @@ class Plots(LazyNamespace):
         if facet is not None:
             if isinstance(facet, pl.Expr):
                 facet_columns = facet.meta.root_names()
-                columns_to_select.extend(
-                    col for col in facet_columns if col not in columns_to_select
-                )
+                columns_to_select.extend(col for col in facet_columns if col not in columns_to_select)
                 facet_name = facet.meta.output_name()
             else:
                 if facet not in columns_to_select:
@@ -376,9 +364,7 @@ class Plots(LazyNamespace):
         metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
 
         df = (
-            cdh_utils._apply_query(self.datamart.model_data, query)
-            .sort("SnapshotTime")
-            .select(list(columns_to_select))
+            cdh_utils._apply_query(self.datamart.model_data, query).sort("SnapshotTime").select(list(columns_to_select))
         )
 
         grouping_columns = [by_col]
@@ -388,8 +374,7 @@ class Plots(LazyNamespace):
 
         agg_expr = [
             (
-                metric_scaling
-                * cdh_utils.weighted_average_polars(metric, "ResponseCount")
+                metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
                 if is_percentage
                 else pl.sum(metric)
             ).alias(metric),
@@ -586,9 +571,9 @@ class Plots(LazyNamespace):
             active_ranges = self.datamart.active_ranges(model_id).collect()
             if active_ranges.height > 0:
                 active_range_info = active_ranges.to_dicts()[0]
-                active_range_filter_expr = (
-                    pl.col("BinIndex") >= active_range_info["idx_min"]
-                ) & (pl.col("BinIndex") <= active_range_info["idx_max"])
+                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                    pl.col("BinIndex") <= active_range_info["idx_max"]
+                )
                 df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
@@ -845,9 +830,7 @@ class Plots(LazyNamespace):
             if cat in fixed_colors:
                 color_map[cat] = fixed_colors[cat]
             else:
-                color_map[cat] = template_colors[
-                    template_color_index % len(template_colors)
-                ]
+                color_map[cat] = template_colors[template_color_index % len(template_colors)]
                 template_color_index += 1
 
         # Track which categories have been added to legend
@@ -1095,8 +1078,7 @@ class Plots(LazyNamespace):
                 ),
             )
             .with_columns(
-                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by))
-                * 100,
+                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by)) * 100,
             )
             .sort("PredictorCategory")
         )
@@ -1233,11 +1215,7 @@ class Plots(LazyNamespace):
         """
         # TODO: clean up implementation a bit
 
-        group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by)]
-            if by != "ModelID"
-            else [by]
-        )
+        group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by)] if by != "ModelID" else [by]
         df = self.datamart.aggregates.model_summary(by=by, query=query).select(
             pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
             pl.col("count").alias("Model Count"),
@@ -1318,11 +1296,7 @@ class Plots(LazyNamespace):
             query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        df = (
-            df.group_by(["ModelID"] + by)
-            .agg(Count=pl.n_unique("PredictorName"))
-            .collect()
-        )
+        df = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
 
         if len(by) > 1:
             df = pl.concat(
@@ -1408,14 +1382,10 @@ class Plots(LazyNamespace):
 
         if "Lift" not in cols:
             df = df.with_columns(
-                (
-                    cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0
-                ).alias("Lift"),
+                (cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift"),
             )
 
-        shading_expr = (
-            pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
-        )
+        shading_expr = pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
 
         plot_df = df.with_columns(
             pl.when((pl.col("Lift") >= 0.0) & shading_expr.not_())
@@ -1533,10 +1503,7 @@ class Plots(LazyNamespace):
             group_col_name = group_col
 
         overlap_data = cdh_utils.overlap_matrix(
-            df.group_by(group_col_name)
-            .agg(pl.col(overlap_col).unique())
-            .sort(group_col_name)
-            .collect(),
+            df.group_by(group_col_name).agg(pl.col(overlap_col).unique()).sort(group_col_name).collect(),
             overlap_col,
             by=group_col_name,
             show_fraction=show_fraction,

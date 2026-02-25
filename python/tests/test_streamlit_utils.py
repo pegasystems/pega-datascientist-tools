@@ -63,10 +63,7 @@ class TestDataProcessingUtilities:
         # Should have Generate Report column
         assert "Generate Report" in result.columns
         # Should have all original columns
-        assert all(
-            col in result.columns
-            for col in ["ModelID", "Configuration", "Name", "Channel"]
-        )
+        assert all(col in result.columns for col in ["ModelID", "Configuration", "Name", "Channel"])
         # Generate Report should be False by default
         assert result["Generate Report"].to_list() == [False, False, False]
         # Should be sorted by Name
@@ -351,8 +348,7 @@ class TestFilterDataframe:
         # Create data with many unique categories
         df = pl.LazyFrame(
             {
-                "LargeText": ["A", "B", "C", "X10", "X20", "X100"]
-                + [f"X{i}" for i in range(200)],
+                "LargeText": ["A", "B", "C", "X10", "X20", "X100"] + [f"X{i}" for i in range(200)],
                 "Value": list(range(206)),
             },
         )
@@ -360,8 +356,7 @@ class TestFilterDataframe:
         with patch(
             "streamlit.session_state",
             {
-                "categories_LargeText": ["A", "B", "C", "X10", "X20", "X100"]
-                + [f"X{i}" for i in range(200)],
+                "categories_LargeText": ["A", "B", "C", "X10", "X20", "X100"] + [f"X{i}" for i in range(200)],
                 "selected_LargeText": ["A", "B"],
             },
         ):
@@ -411,9 +406,7 @@ class TestConfigurePredictorCategorization:
             assert mock_chart.called, "plotly_chart should have been called"
 
             # Verify weighted_average_polars was called
-            assert (
-                mock_weighted_avg.called
-            ), "weighted_average_polars should have been called"
+            assert mock_weighted_avg.called, "weighted_average_polars should have been called"
 
             # Get the figure that was passed to plotly_chart
             chart_call_args = mock_chart.call_args[0][0]

@@ -147,10 +147,7 @@ def test_active_range_Pega8():
 
 def _check_cat(dm, pred_name):
     return (
-        dm.predictor_data.filter(PredictorName=pred_name)
-        .select(pl.col("PredictorCategory").unique())
-        .collect()
-        .item()
+        dm.predictor_data.filter(PredictorName=pred_name).select(pl.col("PredictorCategory").unique()).collect().item()
     )
 
 
@@ -167,9 +164,7 @@ def test_predictor_categorization_default(sample):
     # print(sample.predictor_data.select("PredictorName", "PredictorCategory").unique().sort("PredictorName").collect().to_pandas())
 
     assert _check_cat(sample, "Customer.HealthMatter") == "Customer"
-    assert (
-        _check_cat(sample, "IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince") == "IH"
-    )
+    assert _check_cat(sample, "IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince") == "IH"
     assert _check_cat(sample, "Classifier") is None
 
 

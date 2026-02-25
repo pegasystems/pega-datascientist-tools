@@ -259,10 +259,7 @@ class TestEvaluateMetricRAG:
         # Test within best practice range is GREEN
         bp_min = limits["best_practice_min"]
         if bp_min is not None:
-            assert (
-                MetricLimits.evaluate_metric_rag("ModelPerformance", bp_min + 0.01)
-                == "GREEN"
-            )
+            assert MetricLimits.evaluate_metric_rag("ModelPerformance", bp_min + 0.01) == "GREEN"
 
 
 class TestCreateMetricGttable:

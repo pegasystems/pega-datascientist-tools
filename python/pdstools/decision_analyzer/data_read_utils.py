@@ -36,9 +36,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
                     if columns == []:
-                        columns = (
-                            df.columns
-                        )  # Ensures columns in each DataFrame have the same order.
+                        columns = df.columns  # Ensures columns in each DataFrame have the same order.
                     if df is not None:
                         dfs.append(df.select(columns))
 
@@ -108,13 +106,9 @@ def read_data(path):
     if original_path.is_dir():
         # It's a directory, so we assume it's partitioned
         # Find the depth of the directory structure by finding the maximum number of parts among all files
-        depth = max(
-            len(p.parts) for p in original_path.glob("**/*") if p.is_file()
-        ) - len(original_path.parts)
+        depth = max(len(p.parts) for p in original_path.glob("**/*") if p.is_file()) - len(original_path.parts)
         partition_structure = Path("/".join(["*"] * depth))
-        path = (
-            original_path / partition_structure
-        )  # now path points to the partition structure
+        path = original_path / partition_structure  # now path points to the partition structure
         # Assume the first file extension is the same for all files in the directory
         for dirpath, dirs, files in os.walk(
             str(original_path),

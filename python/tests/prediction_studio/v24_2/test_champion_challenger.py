@@ -256,10 +256,7 @@ def test_clone_model(
         predictor_mapping=predictor_mapping,
     )
 
-    assert (
-        champion_challenger_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_client.active_model
     assert champion_challenger_client.challenger_model
     assert champion_challenger_client.champion_percentage == 80
@@ -329,10 +326,7 @@ def test_add_model_model_object(
         predictor_mapping=predictor_mapping,
     )
 
-    assert (
-        champion_challenger_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_client.active_model
     assert champion_challenger_client.challenger_model
     assert champion_challenger_client.champion_percentage == 80
@@ -397,10 +391,7 @@ def test_add_model_uploaded_model(
         predictor_mapping=predictor_mapping,
     )
 
-    assert (
-        champion_challenger_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_client.active_model
     assert champion_challenger_client.challenger_model
     assert champion_challenger_client.champion_percentage == 80
@@ -462,10 +453,7 @@ def test_add_model_str(
         predictor_mapping=predictor_mapping,
     )
 
-    assert (
-        champion_challenger_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_client.active_model
     assert champion_challenger_client.challenger_model
     assert champion_challenger_client.champion_percentage == 80
@@ -505,10 +493,7 @@ def test_delete_challenger_model(
     )
     champion_challenger_delete_client.delete_challenger_model()
 
-    assert (
-        champion_challenger_delete_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_delete_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_delete_client.active_model
     assert champion_challenger_delete_client.champion_percentage == 100
 
@@ -547,10 +532,7 @@ def test_promote_challenger_model(
 
     assert repr(champion_challenger_delete_client)
     assert str(champion_challenger_delete_client)
-    assert (
-        champion_challenger_delete_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_delete_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_delete_client.active_model
     assert champion_challenger_delete_client.champion_percentage == 100
 
@@ -589,10 +571,7 @@ def test_update_distribution(
         new_challenger_response_share=0.2,
     )
 
-    assert (
-        champion_challenger_delete_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_delete_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_delete_client.active_model
     assert champion_challenger_delete_client.champion_percentage == 80
 
@@ -631,10 +610,7 @@ def test_update_shadow_to_cc(
         new_challenger_response_share=0.2,
     )
 
-    assert (
-        champion_challenger_shadow_client.prediction_id
-        == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert champion_challenger_shadow_client.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert champion_challenger_shadow_client.active_model
     assert champion_challenger_shadow_client.champion_percentage == 80
 

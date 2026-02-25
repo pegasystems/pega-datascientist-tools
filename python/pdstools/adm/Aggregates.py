@@ -120,15 +120,11 @@ class Aggregates:
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
-                (pl.col("EntryType") == "Active")
-                if active_only
-                else (pl.col("EntryType") != "Classifier"),
+                (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
         )
-        unique_predictors = df.select(pl.col("PredictorName").unique()).collect()[
-            "PredictorName"
-        ]
+        unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
         if isinstance(by, str):
             by_col = pl.col(by)
             by_name = by
@@ -166,11 +162,9 @@ class Aggregates:
             .with_columns(pl.all().exclude(by_name).list.max())
         ).sort(pl.mean_horizontal(pl.all().exclude(by_name)), descending=True)
 
-        column_order = (
-            q.select(pl.all().exclude(by_name).mean())
-            .collect()
-            .transpose(include_header=True)
-        ).sort("column_0", descending=True)["column"]
+        column_order = (q.select(pl.all().exclude(by_name).mean()).collect().transpose(include_header=True)).sort(
+            "column_0", descending=True
+        )["column"]
 
         if top_predictors:
             column_order = column_order.head(top_predictors)
@@ -212,11 +206,7 @@ class Aggregates:
         if by != "ModelID" and by not in self.datamart.context_keys:
             raise ValueError("The 'by' column specified should be a context key.")
 
-        group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by) + 1]
-            if by != "ModelID"
-            else by
-        )
+        group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by) + 1] if by != "ModelID" else by
 
         return (
             df.group_by(group_by)
@@ -233,9 +223,7 @@ class Aggregates:
                 ).fill_nan(0.0),
             )
             .with_columns(
-                Percentage_without_responses=(
-                    pl.col("Count_without_responses") / pl.col("count")
-                ).fill_nan(0.0),
+                Percentage_without_responses=(pl.col("Count_without_responses") / pl.col("count")).fill_nan(0.0),
             )
         )
 
@@ -274,9 +262,7 @@ class Aggregates:
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
                 .agg(
-                    pl.col("PredictorName")
-                    .sort_by(metric, descending=True)
-                    .head(top_n),
+                    pl.col("PredictorName").sort_by(metric, descending=True).head(top_n),
                 )
                 .explode("PredictorName"),
                 on=(*facets, "PredictorName"),
@@ -304,12 +290,7 @@ class Aggregates:
         custom_channels = custom_channels or {}
 
         def name_normalizer(x):
-            return (
-                pl.col(x)
-                .cast(pl.Utf8)
-                .str.replace_all(r"[ \-_]", "")
-                .str.to_uppercase()
-            )
+            return pl.col(x).cast(pl.Utf8).str.replace_all(r"[ \-_]", "").str.to_uppercase()
 
         if self.datamart.model_data is None:
             raise ValueError("Model summaries needs model data")
@@ -411,9 +392,7 @@ class Aggregates:
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
                 pl.col("Configuration").cast(pl.Utf8).unique().sort(),
-                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
-                .dt.total_seconds()
-                .alias("Duration"),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min()).dt.total_seconds().alias("Duration"),
             )
             .with_columns(
                 pl.when(pl.col("Duration") == 0)
@@ -471,8 +450,7 @@ class Aggregates:
             )
             .with_columns(
                 # applies to totals not delta
-                isValid=(pl.col("TotalPositives") >= 200)
-                & (pl.col("TotalResponseCount") >= 1000),
+                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
@@ -506,15 +484,10 @@ class Aggregates:
             )
             .group_by(grouping)
             .agg(
-                (
-                    pl.col("Issue").n_unique()
-                    if "Issue" in self.datamart.context_keys
-                    else pl.lit(0)
-                ).alias("Issues"),
+                (pl.col("Issue").n_unique() if "Issue" in self.datamart.context_keys else pl.lit(0)).alias("Issues"),
                 (
                     pl.concat_str(["Issue", "Group"], separator="/").n_unique()
-                    if "Issue" in self.datamart.context_keys
-                    and "Group" in self.datamart.context_keys
+                    if "Issue" in self.datamart.context_keys and "Group" in self.datamart.context_keys
                     else pl.lit(0)
                 ).alias("Groups"),
                 pl.col("Name").n_unique().alias("Actions"),
@@ -522,10 +495,7 @@ class Aggregates:
                 pl.col("Name")
                 .filter(
                     (pl.col("ActionFirstSnapshotTime") >= pl.col("SnapshotTime").min())
-                    & (
-                        pl.col("ActionFirstSnapshotTime")
-                        <= pl.col("SnapshotTime").max()
-                    ),
+                    & (pl.col("ActionFirstSnapshotTime") <= pl.col("SnapshotTime").max()),
                     # additional condition to drop first batch but keep it if there's only one batch
                     # this is complicated, when partitioning by time makes sense, but when doing by
                     # channel not so much
@@ -564,9 +534,7 @@ class Aggregates:
     ) -> pl.LazyFrame:
         result = model_data.group_by(grouping).agg(
             is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
-            (pl.col("ModelTechnique") == "GradientBoost")
-            .any(ignore_nulls=False)
-            .alias("usesAGB"),
+            (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
             # For debugging:
             pl.col("ModelTechnique").unique().sort(),
             pl.col("Configuration").unique().sort().alias("Configurations"),
@@ -715,12 +683,7 @@ class Aggregates:
                 ),
             )
             .drop(
-                []
-                if debug
-                else (
-                    ["TotalPositives", "TotalResponseCount"]
-                    + ([] if every is None else ["Period"])
-                ),
+                [] if debug else (["TotalPositives", "TotalResponseCount"] + ([] if every is None else ["Period"])),
             )
             .sort("Channel", "Direction", "DateRange Min")
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
@@ -774,29 +737,21 @@ class Aggregates:
                 pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)"),
             ]
 
-        group_by_cols = ["Configuration"] + [
-            c for c in ["Channel", "Direction"] if c in self.datamart.context_keys
-        ]
+        group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
             self.last(table="model_data")
             .group_by(group_by_cols)
             .agg(
-                is_standard_NBAD_configuration()
-                .any(ignore_nulls=False)
-                .alias("usesNBAD"),
-                (pl.col("ModelTechnique") == "GradientBoost")
-                .any(ignore_nulls=False)
-                .alias("usesAGB"),
+                is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
+                (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
                 pl.col("ModelID").n_unique(),
                 *action_dim_agg,
                 pl.sum(["ResponseCount", "Positives"]),
                 cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
             )
             .with_columns(
-                (pl.col("ModelID") / pl.col("Actions"))
-                .round(2)
-                .alias("ModelsPerAction"),
+                (pl.col("ModelID") / pl.col("Actions")).round(2).alias("ModelsPerAction"),
             )
             .sort(group_by_cols)
         )
@@ -837,10 +792,7 @@ class Aggregates:
                     # weighted performance
                     pl.min("ResponseCount").alias("Response Count Min"),
                     pl.max("ResponseCount").alias("Response Count Max"),
-                    pl.col("ModelID")
-                    .filter(EntryType="Active")
-                    .n_unique()
-                    .alias("Active in Models"),
+                    pl.col("ModelID").filter(EntryType="Active").n_unique().alias("Active in Models"),
                     (pl.min("Performance") * 100).alias("Min"),
                     (pl.mean("Performance") * 100).alias("Mean"),
                     (pl.median("Performance") * 100).alias("Median"),
@@ -917,18 +869,14 @@ class Aggregates:
                 pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
                 pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
                 (
-                    pl.col("BinResponseCount")
-                    .filter(pl.col("BinType") == "MISSING")
-                    .sum()
+                    pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum()
                     * 100
                     / pl.sum("BinResponseCount")
                 )
                 .cast(pl.Float64)
                 .alias("Missing %"),
                 (
-                    pl.col("BinResponseCount")
-                    .filter(pl.col("BinType") == "RESIDUAL")
-                    .sum()
+                    pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
                     * 100
                     / pl.sum("BinResponseCount")
                 )

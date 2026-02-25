@@ -67,10 +67,7 @@ def test_query(vf: ValueFinder):
         base_path=base_path / "data",
         query=pl.col("Stage") != "Arbitration",
     )
-    assert (
-        _vf.df.select(pl.first().len()).collect().item()
-        != vf.df.select(pl.first().len()).collect().item()
-    )
+    assert _vf.df.select(pl.first().len()).collect().item() != vf.df.select(pl.first().len()).collect().item()
 
 
 def test_empty_data_ds():
@@ -138,13 +135,7 @@ def test_get_counts_for_threshold(vf: ValueFinder):
 
 
 def test_plot_funnel_chart(vf: ValueFinder):
-    assert (
-        vf.plot.funnel_chart(return_df=True)
-        .select(pl.col("Count").top_k(1))
-        .collect()
-        .item()
-        == 2365
-    )
+    assert vf.plot.funnel_chart(return_df=True).select(pl.col("Count").top_k(1)).collect().item() == 2365
     vf.plot.funnel_chart()
 
 

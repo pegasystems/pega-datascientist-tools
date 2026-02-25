@@ -64,9 +64,7 @@ def _apply_query(df: F, query: QUERY | None = None, allow_empty: bool = False) -
             raise ValueError(
                 "If query is a list or tuple, all items need to be Expressions.",
             )
-        col_names = {
-            root_name for expr in query for root_name in expr.meta.root_names()
-        }
+        col_names = {root_name for expr in query for root_name in expr.meta.root_names()}
     elif isinstance(query, dict):
         if not query:  # Handle empty dict
             return df
@@ -184,11 +182,7 @@ def _extract_keys(
     # Checking for the 'empty df' of 'not containing JSON' case
     if (
         len(
-            df.lazy()
-            .select(key)
-            .filter(pl.col(key).str.starts_with("{"))
-            .head(1)
-            .collect(),
+            df.lazy().select(key).filter(pl.col(key).str.starts_with("{")).head(1).collect(),
         )
         == 0
     ):
@@ -233,10 +227,7 @@ def _extract_keys(
         # Overwrite values from columns that also appear in the decoded keys
         .with_columns(
             [
-                pl.when(pl.col(f"{c}_decoded").is_not_null())
-                .then(pl.col(f"{c}_decoded"))
-                .otherwise(pl.col(c))
-                .alias(c)
+                pl.when(pl.col(f"{c}_decoded").is_not_null()).then(pl.col(f"{c}_decoded")).otherwise(pl.col(c)).alias(c)
                 for c in overlap
             ],
         )
@@ -294,9 +285,7 @@ def parse_pega_date_time_formats(
             strict=False,
             ambiguous="null",
         ),
-        pl.col(timestamp_col)
-        .str.slice(0, 8)
-        .str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
+        pl.col(timestamp_col).str.slice(0, 8).str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
         pl.col(timestamp_col).str.strptime(
             timestamp_dtype,
             "%d-%b-%y",
@@ -782,9 +771,7 @@ def weighted_average_polars(
         weights = pl.col(weights)
 
     return (
-        (vals * weights)
-        .filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null())
-        .sum()
+        (vals * weights).filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()).sum()
     ) / weights.filter(
         vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null(),
     ).sum()
@@ -859,18 +846,11 @@ def overlap_matrix(
         set_i = set(list_col[i].to_list())
         if show_fraction:
             overlap_w_other_rows = [
-                (
-                    len(set_i & set(list_col[j].to_list()))
-                    / len(set(list_col[j].to_list()))
-                    if i != j
-                    else None
-                )
+                (len(set_i & set(list_col[j].to_list())) / len(set(list_col[j].to_list())) if i != j else None)
                 for j in range(nrows)
             ]
         else:
-            overlap_w_other_rows = [
-                len(set_i & set(list_col[j].to_list())) for j in range(nrows)
-            ]
+            overlap_w_other_rows = [len(set_i & set(list_col[j].to_list())) for j in range(nrows)]
         result.append(
             pl.Series(
                 name=f"Overlap_{list_col.name}_{df[by][i]}",
@@ -938,9 +918,7 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
     average_overlap = []
     for i in range(nrows):
         set_i = set(col[i].to_list())
-        overlap_w_other_rows = [
-            len(set_i & set(col[j].to_list())) for j in range(nrows) if i != j
-        ]
+        overlap_w_other_rows = [len(set_i & set(col[j].to_list())) for j in range(nrows) if i != j]
         if len(overlap_w_other_rows) > 0 and len(set_i) > 0:
             average_overlap += [
                 sum(overlap_w_other_rows) / len(overlap_w_other_rows) / len(set_i),
@@ -1052,8 +1030,7 @@ def bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]:
     sum_neg = sum(bin_neg)
     nbins = len(bin_pos)  # must be > 0
     return [
-        (math.log(pos + 1 / nbins) - math.log(sum_pos + 1))
-        - (math.log(neg + 1 / nbins) - math.log(sum_neg + 1))
+        (math.log(pos + 1 / nbins) - math.log(sum_pos + 1)) - (math.log(neg + 1 / nbins) - math.log(sum_neg + 1))
         for pos, neg in zip(bin_pos, bin_neg)
     ]
 
@@ -1136,10 +1113,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
                 if verbose:
                     warnings.warn(f"Warning: {col} column is Null data type.")
             elif original_type != new_type:
-                if (
-                    original_type == pl.Categorical
-                    and new_type in pl.selectors.numeric()
-                ):
+                if original_type == pl.Categorical and new_type in pl.selectors.numeric():
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
                 elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
@@ -1185,11 +1159,7 @@ def gains_table(df, value: str, index=None, by=None):
 
     """
     sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-    index_expr = (
-        (pl.int_range(1, pl.len() + 1) / pl.len())
-        if index is None
-        else (pl.cum_sum(index) / pl.sum(index))
-    )
+    index_expr = (pl.int_range(1, pl.len() + 1) / pl.len()) if index is None else (pl.cum_sum(index) / pl.sum(index))
 
     if by is None:
         gains_df = pl.concat(
@@ -1213,10 +1183,7 @@ def gains_table(df, value: str, index=None, by=None):
                 by_as_list
                 + [
                     index_expr.over(by).cast(pl.Float64).alias("cum_x"),
-                    (pl.cum_sum(value) / pl.sum(value))
-                    .over(by)
-                    .cast(pl.Float64)
-                    .alias("cum_y"),
+                    (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
                 ],
             )
         )
@@ -1246,11 +1213,7 @@ def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
         )
 
     func = partial(sample_it, n=n_rows)
-    return (
-        df.with_columns(pl.first().map_batches(func).alias("_sample"))
-        .filter(pl.col("_sample"))
-        .drop("_sample")
-    )
+    return df.with_columns(pl.first().map_batches(func).alias("_sample")).filter(pl.col("_sample")).drop("_sample")
 
 
 # TODO: perhaps the color / plot utils should move into a separate file
@@ -1407,11 +1370,7 @@ def safe_flatten_list(alist: list, extras: list = None) -> list:
     if alist is None:
         alist = []
     alist = list(filter(partial(is_not, None), alist))
-    alist = [
-        item
-        for sublist in [[item] if type(item) is not list else item for item in alist]
-        for item in sublist
-    ]
+    alist = [item for sublist in [[item] if type(item) is not list else item for item in alist] for item in sublist]
     alist = list(filter(partial(is_not, None), alist))
     seen = set()
     unique_alist = extras

@@ -35,15 +35,11 @@ with st.session_state["sidebar"]:
     if st.button("Apply Filters"):
         # Only filter and update the DataFrame when the button is clicked
         if st.session_state["local_filters"]:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample.filter(
-                    st.session_state["local_filters"],
-                )
+            st.session_state["local_optionality"] = st.session_state.decision_data.sample.filter(
+                st.session_state["local_filters"],
             )
         else:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample
-            )
+            st.session_state["local_optionality"] = st.session_state.decision_data.sample
 "### Optionality"
 
 with st.container(border=True):
@@ -54,13 +50,8 @@ with st.container(border=True):
     """
 
     stage_options = st.session_state.decision_data.getPossibleStageValues()
-    if (
-        "optionality_stage" not in st.session_state
-        or st.session_state.optionality_stage not in stage_options
-    ):
-        st.session_state.optionality_stage = (
-            "Arbitration" if "Arbitration" in stage_options else stage_options[0]
-        )
+    if "optionality_stage" not in st.session_state or st.session_state.optionality_stage not in stage_options:
+        st.session_state.optionality_stage = "Arbitration" if "Arbitration" in stage_options else stage_options[0]
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(

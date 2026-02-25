@@ -49,10 +49,7 @@ def create_parser():
         "--deploy-env",
         dest="deploy_env",
         default=None,
-        help=(
-            "Set the deployment environment (e.g. 'ec2'). "
-            "Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."
-        ),
+        help=("Set the deployment environment (e.g. 'ec2'). Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."),
     )
     return parser
 

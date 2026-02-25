@@ -251,10 +251,7 @@ class ContextOperations(LazyNamespace):
     def _get_filter_expression(context_infos):
         expressions = []
         for context_info in context_infos:
-            expr = [
-                pl.col(column_name) == column_value
-                for column_name, column_value in context_info.items()
-            ]
+            expr = [pl.col(column_name) == column_value for column_name, column_value in context_info.items()]
             expressions.append(expr)
         return expressions
 
