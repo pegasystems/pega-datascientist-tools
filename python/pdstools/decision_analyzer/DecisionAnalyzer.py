@@ -391,7 +391,7 @@ class DecisionAnalyzer:
         self.preaggregated_decision_data_filterview = (
             self.decision_data.group_by(
                 self.preaggregation_columns.union(
-                    {self.level, "StageOrder", "Record Type"},
+                    {self.level, "StageOrder", "Record type"},
                 ),
             )
             .agg(exprs)
@@ -460,7 +460,7 @@ class DecisionAnalyzer:
             "Context Weight",
             "Levers",
             "Subject ID",
-            "Record Type",
+            "Record type",
             "Action",
             "day",
             "is_mandatory",
@@ -556,7 +556,7 @@ class DecisionAnalyzer:
                 pl.when(pl.col("pxRank") == 1)
                 .then(pl.lit("OUTPUT"))
                 .otherwise(pl.lit("FILTERED_OUT"))
-                .alias("Record Type"),
+                .alias("Record type"),
             )
 
         preproc_df = (
@@ -624,7 +624,7 @@ class DecisionAnalyzer:
 
         # Compute filtered funnel view
         filtered_funnel = (
-            filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
+            filtered_df.filter(pl.col("Record type") == "FILTERED_OUT")
             .group_by([self.level, scope])
             .agg(count=pl.sum("Decisions"))
             .collect()
@@ -697,7 +697,7 @@ class DecisionAnalyzer:
 
         """
         filtered_data = apply_filter(self.decision_data, additional_filters).filter(
-            pl.col("Record Type") == "FILTERED_OUT",
+            pl.col("Record type") == "FILTERED_OUT",
         )
 
         # Build scope columns up to and including the requested level
@@ -760,7 +760,7 @@ class DecisionAnalyzer:
 
         # Filtered rows for this component
         filtered_rows = base.filter(
-            (pl.col("Record Type") == "FILTERED_OUT") & (pl.col("Component Name") == component_name),
+            (pl.col("Record type") == "FILTERED_OUT") & (pl.col("Component Name") == component_name),
         )
 
         group_cols = ["Issue", "Group", "Action"]
