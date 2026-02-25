@@ -30,6 +30,14 @@ what values you want to use in the Decision Analyzer.
 
 ensure_data()
 
+# Handle pending filter reset at the top — before any widgets render — so
+# session state is clean when get_data_filters() builds the filter UI.
+if st.session_state.pop("_needs_filter_reset", False):
+    reset_filter_state("global")
+    st.session_state["filters"] = []
+    st.session_state.decision_data.resetGlobalDataFilters()
+    st.cache_data.clear()
+
 ## Filtering UI
 expr_list = []
 with st.container(border=True):
@@ -77,10 +85,7 @@ if st.session_state["filters"] != []:
     show_filtered_counts(statsBeforeFilter, statsAfterFilter)
 
     if st.button("Reset all filters", type="secondary"):
-        reset_filter_state("global")
-        st.session_state["filters"] = []
-        st.session_state.decision_data.resetGlobalDataFilters()
-        st.cache_data.clear()
+        st.session_state["_needs_filter_reset"] = True
         st.rerun()
 else:
     st.session_state.decision_data.resetGlobalDataFilters()
