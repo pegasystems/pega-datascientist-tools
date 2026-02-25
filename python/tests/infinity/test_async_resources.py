@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import polars as pl
 import pytest
-import pytest_asyncio
 
 from pdstools.infinity.internal._pagination import AsyncPaginatedList
 from pdstools.infinity.resources.prediction_studio.v24_2.model import AsyncModel

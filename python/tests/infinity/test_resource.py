@@ -3,7 +3,6 @@ SyncAPIResource / AsyncAPIResource base classes."""
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 from unittest.mock import MagicMock
 

@@ -6,6 +6,7 @@ from .base import AsyncPredictionStudioBase, PredictionStudioBase
 
 logger = logging.getLogger(__name__)
 
+
 def get(version: str) -> Optional[Type[PredictionStudioBase]]:
     if not version:
         return None

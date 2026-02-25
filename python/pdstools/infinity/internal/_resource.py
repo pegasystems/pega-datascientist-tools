@@ -49,6 +49,7 @@ def api_method(func):
     func._api_method = True
     return func
 
+
 async def _maybe_await(result):
     """Await the result if it's awaitable, otherwise return it as-is.
 
@@ -73,7 +74,11 @@ class SyncAPIResource(ABC):
             for name, method in vars(klass).items():
                 if name in _seen:
                     continue
-                if callable(method) and getattr(method, "_api_method", False) and inspect.iscoroutinefunction(method):
+                if (
+                    callable(method)
+                    and getattr(method, "_api_method", False)
+                    and inspect.iscoroutinefunction(method)
+                ):
                     _seen.add(name)
                     original = method
 

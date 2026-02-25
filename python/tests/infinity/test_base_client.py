@@ -3,23 +3,19 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
 
 from pdstools.infinity.internal._base_client import (
-    AsyncAPIClient,
-    BaseClient,
     SyncAPIClient,
 )
 from pdstools.infinity.internal._exceptions import (
     APIConnectionError,
     APITimeoutError,
-    InvalidInputs,
     MultipleErrors,
     NoMonitoringInfo,
-    PegaException,
     handle_pega_exception,
 )
 
@@ -400,7 +396,7 @@ class TestSyncClientFactories:
             client_secret="test-secret",
         )
         assert isinstance(client, SyncAPIClient)
-        assert str(client._base_url).startswith("https://example.com")
+        assert str(client._base_url) == "https://example.com"
 
     def test_from_basic_auth(self):
         client = SyncAPIClient.from_basic_auth(

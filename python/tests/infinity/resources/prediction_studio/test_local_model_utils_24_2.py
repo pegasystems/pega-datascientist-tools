@@ -1,9 +1,11 @@
 import re
 
 import polars as pl
+
 # Compatibility patches
 import onnx
-if not hasattr(onnx, 'mapping') and hasattr(onnx, '_mapping'):
+
+if not hasattr(onnx, "mapping") and hasattr(onnx, "_mapping"):
     onnx.mapping = onnx._mapping
 
 import pytest

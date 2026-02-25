@@ -10,7 +10,7 @@ from .....utils import cdh_utils
 from ....internal._constants import METRIC
 from ....internal._exceptions import NoMonitoringInfo, PegaException, PegaMLopsError
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
-from ....internal._resource import api_method, _maybe_await
+from ....internal._resource import api_method
 from ..base import AsyncNotification, Notification
 from ..types import NotificationCategory
 from ..v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
@@ -404,7 +404,6 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             An object detailing the updated configuration with the newly
             added model.
         """
-        from .champion_challenger import ChampionChallenger
         from .model import Model
 
         if isinstance(new_model, Model):

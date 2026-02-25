@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import warnings
@@ -288,6 +287,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             return self.delete(endpoint=endpoint, **params)
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
+
     def get(
         self,
         endpoint: str,

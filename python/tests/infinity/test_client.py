@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 
 from pdstools.infinity import AsyncInfinity, Infinity
-from pdstools.infinity.client import instructions
 
 
 # ---------------------------------------------------------------------------

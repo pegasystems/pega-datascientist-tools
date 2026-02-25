@@ -17,7 +17,6 @@ from typing import (
 import polars as pl
 
 from ...internal._exceptions import IncompatiblePegaVersionError
-from ...internal._pagination import PaginatedList
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
 
 if TYPE_CHECKING:

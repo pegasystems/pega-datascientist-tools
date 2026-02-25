@@ -53,9 +53,9 @@ class PaginatedList(Generic[T]):
         elif isinstance(index, slice):
             return self._Slice(self, index)
         else:
-            assert (
-                "id" in self._content_class
-            ), "To pass a string as index for a paginated list, the content class needs an 'id' field."
+            assert "id" in self._content_class, (
+                "To pass a string as index for a paginated list, the content class needs an 'id' field."
+            )
             for element in self.__iter__():
                 if element["id"] == index:
                     return element
@@ -191,8 +191,6 @@ class PaginatedList(Generic[T]):
             )
 
 
-
-
 class AsyncPaginatedList(Generic[T]):
     """Async variant of :class:`PaginatedList`.
 
@@ -286,8 +284,7 @@ class AsyncPaginatedList(Generic[T]):
         if kwargs:
             async for element in self:
                 if all(
-                    getattr(element, name) == value
-                    for name, value in kwargs.items()
+                    getattr(element, name) == value for name, value in kwargs.items()
                 ):
                     return element
         if __key is not None:
