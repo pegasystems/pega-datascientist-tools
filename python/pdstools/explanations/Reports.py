@@ -4,9 +4,10 @@ import logging
 import os
 import shutil
 import subprocess
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (
@@ -97,7 +98,7 @@ class Reports(LazyNamespace):
 
         try:
             return_code = run_quarto(
-                temp_dir=self.report_folderpath,
+                temp_dir=Path(self.report_folderpath),
                 verbose=verbose,
                 output_type=None,
             )
@@ -134,7 +135,7 @@ class Reports(LazyNamespace):
         contribution_text: str = _CONTRIBUTION_TYPE.CONTRIBUTION.text,
         verbose: bool = False,
     ):
-        params = {}
+        params: dict[str, str | int | bool] = {}
         params["top_n"] = top_n
         params["top_k"] = top_k
         params["from_date"] = from_date

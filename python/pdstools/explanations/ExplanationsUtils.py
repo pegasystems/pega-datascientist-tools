@@ -219,10 +219,10 @@ class ContextOperations(LazyNamespace):
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
         self._load()
-        df = self._df if with_partition_col else self._get_clean_df(self._df)
+        df = self._df if with_partition_col else self._get_clean_df(self._df)  # type: ignore[arg-type]
 
         if context_infos is None or len(context_infos) == 0:
-            return df
+            return df  # type: ignore[return-value]
 
         return self._filter_df_by_context_infos(df, context_infos)
 

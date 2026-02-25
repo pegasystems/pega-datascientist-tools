@@ -109,8 +109,8 @@ class Aggregates(LazyNamespace):
             source = self.ih.data
 
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
@@ -204,8 +204,8 @@ class Aggregates(LazyNamespace):
 
         """
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str] = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]  # type: ignore[attr-defined]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_pl_exprs + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
@@ -307,8 +307,8 @@ class Aggregates(LazyNamespace):
             source = self.ih.data
 
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),

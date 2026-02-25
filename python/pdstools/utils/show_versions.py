@@ -184,7 +184,7 @@ def dependency_great_table(public_only: bool = True):
     import great_tables
 
     dependency_table = _dependency_table(public_only=public_only)
-    required_deps = list(grouped_dependencies().get("required"))
+    required_deps = list(grouped_dependencies().get("required") or [])
     optional_deps = list(set(dependency_table.collect_schema().names()))
     optional_deps = [n for n in optional_deps if n not in [*required_deps, "required"]]
     dependency_table = dependency_table.select(*required_deps, *optional_deps)

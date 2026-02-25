@@ -98,5 +98,5 @@ essential_keys = [
     "infer_schema_length",
 ]
 for key in list(st.session_state.keys()):
-    if key not in essential_keys and not key.startswith("_"):
+    if key not in essential_keys and not str(key).startswith("_"):
         del st.session_state[key]

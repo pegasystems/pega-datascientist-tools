@@ -156,7 +156,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         return pl.DataFrame([mod._public_dict for mod in pages])
 
-    @overload
+    @overload  # type: ignore[override]
     def list_predictions(
         self,
         return_df: Literal[False] = False,
@@ -228,7 +228,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             uniques["prediction_id"] = prediction_id
         if label:
             uniques["label"] = label
-        return self.list_predictions().get(**uniques)
+        return self.list_predictions().get(**uniques)  # type: ignore[call-overload]
 
     def get_model(
         self,
@@ -263,7 +263,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             uniques["model_id"] = model_id.upper()
         if label:
             uniques["label"] = label
-        return self.list_models().get(**uniques)
+        return self.list_models().get(**uniques)  # type: ignore[call-overload]
 
     def trigger_datamart_export(self) -> DatamartExport:
         """Initiates an export of model data to the Repository.
@@ -391,7 +391,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
             return pages
         return await pages.as_df()
 
-    async def list_predictions(
+    async def list_predictions(  # type: ignore[override]
         self,
         return_df: bool = False,
     ) -> AsyncPaginatedList[AsyncPrediction] | pl.DataFrame:
@@ -445,7 +445,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = await self.list_predictions()
-        return await pages.get(**uniques)
+        return await pages.get(**uniques)  # type: ignore[union-attr, return-value]
 
     async def get_model(
         self,
@@ -473,7 +473,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = await self.list_models()
-        return await pages.get(**uniques)
+        return await pages.get(**uniques)  # type: ignore[union-attr, return-value]
 
     async def trigger_datamart_export(self) -> AsyncDatamartExport:
         """Initiates an export of model data to the Repository.

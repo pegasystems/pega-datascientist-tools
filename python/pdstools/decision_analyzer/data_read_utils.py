@@ -35,8 +35,8 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
                 with zip_ref.open(file_name) as f:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
-                    if columns == []:
-                        columns = df.columns  # Ensures columns in each DataFrame have the same order.
+                    if df is not None and columns == []:
+                        columns = df.columns
                     if df is not None:
                         dfs.append(df.select(columns))
 
@@ -60,7 +60,7 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
     try:
         with gzip.open(data, "rb") as file:
             file_content = file.read()
-            return pl.read_ndjson(BytesIO(file_content)).lazy()
+            return pl.read_ndjson(BytesIO(file_content)).lazy()  # type: ignore[return-value]
     except Exception as e:
         print(f"Error reading gzipped data: {e}")
         return None
@@ -95,7 +95,7 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
                 df = pl.read_ndjson(BytesIO(file_content)).lazy()
                 if columns == []:
                     columns = df.columns
-                dfs.append(df.select(columns))
+                dfs.append(df.select(columns))  # type: ignore[arg-type]
 
     return pl.concat(dfs, rechunk=True)
 

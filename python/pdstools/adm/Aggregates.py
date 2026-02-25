@@ -257,7 +257,7 @@ class Aggregates:
             return df
         if facets:
             return df.join(
-                df.group_by(facets + ["PredictorName"])
+                df.group_by(facets + ["PredictorName"])  # type: ignore[arg-type]
                 .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
@@ -269,7 +269,7 @@ class Aggregates:
             )
 
         return df.join(
-            df.group_by("PredictorName")
+            df.group_by("PredictorName")  # type: ignore[arg-type]
             .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
             .filter(pl.col(metric).is_not_nan())
             .sort(metric, descending=True)
@@ -350,7 +350,7 @@ class Aggregates:
             )
             grouping += ["Channel", "Direction", "ChannelDirectionGroup"]
 
-        grouping = None if len(grouping) == 0 else grouping
+        grouping = None if len(grouping) == 0 else grouping  # type: ignore[assignment]
 
         return (
             self._summarize_meta_info(grouping, model_data, debug=debug)
@@ -474,7 +474,7 @@ class Aggregates:
 
         action_summary = (
             model_data.join(
-                self.datamart.first_action_dates,
+                self.datamart.first_action_dates,  # type: ignore[arg-type]
                 on="Name",
                 nulls_equal=True,
             )
@@ -618,7 +618,7 @@ class Aggregates:
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data,
+            self.datamart.model_data,  # type: ignore[arg-type]
             start_date,
             end_date,
             window,
@@ -627,7 +627,7 @@ class Aggregates:
         if query is None:
             query = pl.col("SnapshotTime").is_between(start_date, end_date)
         else:
-            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query
+            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query  # type: ignore[operator]
 
         summary_by_channel = (
             self._adm_model_summary(
@@ -747,7 +747,7 @@ class Aggregates:
                 (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
                 pl.col("ModelID").n_unique(),
                 *action_dim_agg,
-                pl.sum(["ResponseCount", "Positives"]),
+                pl.sum("ResponseCount", "Positives"),
                 cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
             )
             .with_columns(
@@ -965,7 +965,7 @@ class Aggregates:
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data,
+            self.datamart.model_data,  # type: ignore[arg-type]
             start_date,
             end_date,
             window,

@@ -116,7 +116,10 @@ class IH:
         >>> ih.data.collect_schema()
 
         """
-        data = read_ds_export(ih_filename).with_columns(
+        data_raw = read_ds_export(ih_filename)
+        if data_raw is None:
+            raise ValueError(f"Could not read file: {ih_filename}")
+        data = data_raw.with_columns(
             pxOutcomeTime=parse_pega_date_time_formats("pxOutcomeTime"),
         )
         if query is not None:
@@ -224,7 +227,7 @@ class IH:
                 ),
                 "pyName": random.choices(
                     range(1, 1 + n_actions),
-                    weights=reversed(range(1, 1 + n_actions)),
+                    weights=list(reversed(range(1, 1 + n_actions))),
                     k=n,
                 ),  # nr will be appended to group name to form action name
                 "pyTreatment": [random.randint(1, 2) for _ in range(n)],  # nr will be appended to group/channel
@@ -651,7 +654,7 @@ class IH:
 
         for seq, pmi_val in ngrams_pmi.items():
             if len(seq) > 2:
-                pmi_val = pmi_val["average_pmi"]
+                pmi_val = pmi_val["average_pmi"]  # type: ignore[index]
 
             count = freq_all.get(seq, 0)
 
@@ -665,7 +668,7 @@ class IH:
                     "Avg PMI": pmi_val,
                     "Frequency": count,
                     "Unique freq": count_sequences[3][seq],
-                    "Score": pmi_val * math.log(count),
+                    "Score": pmi_val * math.log(count),  # type: ignore[operator]
                 },
             )
 

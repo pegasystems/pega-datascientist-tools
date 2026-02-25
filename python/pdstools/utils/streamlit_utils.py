@@ -65,7 +65,7 @@ def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
     logo_path = _ASSETS_DIR / "pega-logo.svg"
     if logo_path.exists():
         kwargs.setdefault("page_icon", str(logo_path))
-    st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+    st.set_page_config(layout=layout, page_title=page_title, **kwargs)  # type: ignore[arg-type]
     _apply_sidebar_logo()
 
 
@@ -424,7 +424,7 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
         .unique()
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
-        .collect()
+        .collect()  # type: ignore[assignment]
     )
 
     return df
@@ -507,7 +507,7 @@ def filter_dataframe(
                     max_value=_max,
                     value=_max,
                 )
-                user_num_input = [user_min, user_max]
+                user_num_input = [user_min, user_max]  # type: ignore[assignment]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
         elif df.select(cs.temporal()).collect_schema().get(column) is not None:

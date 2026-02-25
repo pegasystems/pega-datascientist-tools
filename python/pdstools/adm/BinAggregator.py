@@ -156,7 +156,7 @@ class BinAggregator(LazyNamespace):
                     if is_numeric:
                         print(empty_numeric_binning)
                     else:
-                        print(f"Symbols: {', '.join(symbol_list)}")
+                        print(f"Symbols: {', '.join(symbol_list or [])}")
 
                 if aggregation is None:
                     ids = (
@@ -178,7 +178,7 @@ class BinAggregator(LazyNamespace):
                     cum_binning = self.accumulate_num_binnings(
                         predictor,
                         ids,
-                        empty_numeric_binning.clone(),
+                        empty_numeric_binning.clone(),  # type: ignore[union-attr]
                         verbose=verbose,
                     )
                 else:
@@ -560,7 +560,7 @@ class BinAggregator(LazyNamespace):
         if len(boundaries) == 1:
             boundaries = boundaries * 2
 
-        boundaries = np.array(boundaries, dtype=np.float64)  # just for casting
+        boundaries = np.array(boundaries, dtype=np.float64)  # type: ignore[assignment]
 
         target_binning = pl.DataFrame(
             {
@@ -924,7 +924,7 @@ class BinAggregator(LazyNamespace):
                 "BinResponses",
             ],
         )
-        fig.update_traces(
+        fig.update_traces(  # type: ignore[union-attr]
             hovertemplate="<br>".join(
                 [
                     "<b>%{customdata[0]}</b>",
@@ -947,7 +947,7 @@ class BinAggregator(LazyNamespace):
         else:
             title = f"Propensity lift in {n_models} models across {n_channels} channels"
 
-        fig.update_layout(
+        fig.update_layout(  # type: ignore[union-attr]
             title=title,
         )
 

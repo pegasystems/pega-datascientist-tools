@@ -3,7 +3,7 @@ import polars as pl
 
 @pl.api.register_lazyframe_namespace("pdstools")
 class Sample:
-    def __init__(self, ldf: pl.LazyFrame) -> pl.LazyFrame:
+    def __init__(self, ldf: pl.LazyFrame) -> None:
         self._ldf = ldf
 
     def sample(self, n):

@@ -113,7 +113,7 @@ class Plots(LazyNamespace):
         from plotly.subplots import make_subplots
 
         plot_data = self.ih.aggregates.summary_success_rates(
-            by=[condition, by],
+            by=[condition, by],  # type: ignore[list-item]
             query=query,
         )
 
@@ -123,11 +123,11 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Overall Rates"
 
-        plot_data = plot_data.collect()
+        df = plot_data.collect()
 
-        cols = plot_data[by].unique().shape[0]  # TODO can be None
+        cols = df[by].unique().shape[0]  # TODO can be None
         rows = (
-            plot_data[condition].unique().shape[0]
+            df[condition].unique().shape[0]  # type: ignore[index]
         )  # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
 
         fig = make_subplots(
@@ -142,7 +142,7 @@ class Plots(LazyNamespace):
             margin=dict(b=10, t=120, l=10, r=10),
         )
         index = 0
-        for row in plot_data.iter_rows(named=True):
+        for row in df.iter_rows(named=True):
             ref_value = reference_values.get(row[by], None) if reference_values else None
             gauge = {
                 "axis": {"tickformat": ",.2%"},
@@ -171,7 +171,7 @@ class Plots(LazyNamespace):
                 number={"valueformat": ",.2%"},
                 value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
-                title={"text": f"{row[by]}: {row[condition]}"},
+                title={"text": f"{row[by]}: {row[condition]}"},  # type: ignore[index]
                 gauge=gauge,
             )
             r, c = divmod(index, cols)
@@ -312,7 +312,7 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Rates for All Actions"
 
-        plot_data = (
+        plot_data_collected = (
             plot_data.collect()
             .with_columns(
                 CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
@@ -321,7 +321,7 @@ class Plots(LazyNamespace):
         )
 
         fig = px.treemap(
-            plot_data,
+            plot_data_collected,
             path=[px.Constant("ALL")] + by,
             values="CTR_DisplayValue",
             color="CTR_DisplayValue",
@@ -383,7 +383,7 @@ class Plots(LazyNamespace):
 
         """
         plot_data = self.ih.aggregates.summary_outcomes(
-            by=[by, color, facet],
+            by=[by, color, facet],  # type: ignore[list-item]
             query=query,
         )
 
@@ -645,7 +645,7 @@ class Plots(LazyNamespace):
             .agg(
                 pl.map_groups(
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
-                    function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
+                    function=lambda data: cdh_utils.auc_from_probs(data[0].to_list(), data[1].to_list()),
                     return_dtype=pl.Float64,
                     returns_scalar=True,
                 ).alias("Performance"),

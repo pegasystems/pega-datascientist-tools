@@ -21,7 +21,7 @@ class _DatamartExportV24_2Mixin:
             The name of the repository for the data mart export.
 
         """
-        super().__init__(client=client)
+        super().__init__(client=client)  # type: ignore[call-arg]
         self.reference_id = referenceId
         self.location = location
         self.repository_name = repositoryName

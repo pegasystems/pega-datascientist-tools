@@ -97,7 +97,7 @@ def _write_params_files(
     None
 
     """
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     params = params or {}
     analysis = analysis or {}
@@ -406,11 +406,12 @@ def _get_version_only(versionstr: str) -> str:
 def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Quarto executable path and version."""
     try:
-        executable = Path(shutil.which("quarto"))
-        if not executable:
+        quarto_path = shutil.which("quarto")
+        if not quarto_path:
             raise FileNotFoundError(
                 "Quarto executable not found. Please ensure Quarto is installed and in the system PATH.",
             )
+        executable = Path(quarto_path)
 
         version_string = _get_version_only(_get_cmd_output(["quarto", "--version"])[0])
         message = f"quarto version: {version_string}"
@@ -426,7 +427,12 @@ def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
 def get_pandoc_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Pandoc executable path and version."""
     try:
-        executable = Path(shutil.which("pandoc"))
+        pandoc_path = shutil.which("pandoc")
+        if not pandoc_path:
+            raise FileNotFoundError(
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
+            )
+        executable = Path(pandoc_path)
         if not executable:
             raise FileNotFoundError(
                 "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
@@ -663,7 +669,7 @@ def create_metric_itable(
     }
     default_kwargs.update(itable_kwargs)
 
-    return show(styled_df, **default_kwargs)
+    return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
 
 
 def create_metric_gttable(
@@ -774,7 +780,7 @@ def create_metric_gttable(
                 # Wrap column label in span with title attribute for tooltip
                 label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
         if label_kwargs:
-            gt = gt.cols_label(**label_kwargs)
+            gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]
 
     # Expand tuple keys to individual columns
     expanded_mapping = {}

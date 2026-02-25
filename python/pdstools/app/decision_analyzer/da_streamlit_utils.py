@@ -216,7 +216,7 @@ def get_data_filters(
                     max_value=_max,
                     value=default_max,
                 )
-                user_num_input = [user_min, user_max]
+                user_num_input = [user_min, user_max]  # type: ignore[assignment]
             st.session_state[f"{filter_type}selected_{column}"] = user_num_input
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
@@ -294,7 +294,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
         # If the zip contains .zip files, use the legacy gzipped-ndjson reader
         if ".zip" in inner_exts:
             file_buffer.seek(0)
-            return read_nested_zip_files(file_buffer)
+            return read_nested_zip_files(file_buffer)  # type: ignore[return-value]
 
         # Otherwise extract to a temp directory and use read_data
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
@@ -408,7 +408,7 @@ def load_decision_analyzer(
     return DecisionAnalyzer(_raw_data, level=level, sample_size=sample_size)
 
 
-@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)  # type: ignore[arg-type]
 def st_priority_component_distribution(
     value_data: pl.LazyFrame,
     component,

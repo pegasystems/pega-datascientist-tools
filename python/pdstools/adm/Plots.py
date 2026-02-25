@@ -51,7 +51,7 @@ def requires(
         func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
     ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
         @overload
-        def wrapper(
+        def wrapper(  # type: ignore[valid-type]
             self: T,
             *args: P.args,
             return_df: Literal[False] = ...,
@@ -59,7 +59,7 @@ def requires(
         ) -> Figure: ...
 
         @overload
-        def wrapper(
+        def wrapper(  # type: ignore[valid-type]
             self: T,
             *args: P.args,
             return_df: Literal[True],
@@ -67,7 +67,7 @@ def requires(
         ) -> pl.LazyFrame: ...
 
         @wraps(func)
-        def wrapper(
+        def wrapper(  # type: ignore[valid-type]
             self: T,
             *args: P.args,
             return_df: bool = False,
@@ -97,7 +97,7 @@ def requires(
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
-            return func(self, *args, return_df=return_df, **kwargs)
+            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]
 
         return wrapper
 
@@ -270,7 +270,7 @@ class Plots(LazyNamespace):
         else:
             facet_name = None
         df = (
-            (self.datamart.aggregates.last() if last else self.datamart.model_data)
+            (self.datamart.aggregates.last() if last else self.datamart.model_data)  # type: ignore[union-attr]
             .select(*columns_to_select)
             .with_columns((pl.col("Performance") * pl.lit(100)).round(rounding))
         )
@@ -1152,24 +1152,24 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
-        df = df.collect().transpose(
+        collected = df.collect().transpose(
             include_header=True,
             header_name=by_name,
             column_names=by_name,
         )
 
         if return_df:
-            return df.lazy()
+            return collected.lazy()
 
         title = "over all models"
         fig = px.imshow(
-            df.select(pl.all().exclude(by_name)),
+            collected.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df[by_name],
+            y=collected[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
@@ -1178,7 +1178,7 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def response_gain(): ...  # TODO: more generic plot_gains function?
+    def response_gain(self) -> None: ...  # TODO: more generic plot_gains function?
 
     def tree_map(
         self,
@@ -1296,25 +1296,25 @@ class Plots(LazyNamespace):
             query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        df = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
+        collected = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
 
         if len(by) > 1:
-            df = pl.concat(
+            collected = pl.concat(
                 [
-                    df,
-                    df.group_by(["ModelID"] + by[1:])
+                    collected,
+                    collected.group_by(["ModelID"] + by[1:])
                     .agg(pl.col("Count").sum())
                     .with_columns(pl.lit("Overall").alias(by[0])),
                 ],
                 how="diagonal_relaxed",
             )
-        df = df.sort(by)
+        collected = collected.sort(by)
 
         if return_df:
-            return df
+            return collected
 
         fig = px.box(
-            df.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
+            collected.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
             x="Count",
             y="_Type",
             color=by[0],
@@ -1487,7 +1487,7 @@ class Plots(LazyNamespace):
 
         """
         df = cdh_utils._apply_query(
-            (self.datamart.model_data),
+            (self.datamart.model_data),  # type: ignore[arg-type]
             query,
         )
 

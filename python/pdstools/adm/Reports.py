@@ -132,7 +132,7 @@ class Reports(LazyNamespace):
                     selected_model_ids=model_ids,
                 )
 
-            output_file_paths = []
+            output_file_paths: list[str | Path] = []
             for i, model_id in enumerate(model_ids):
                 output_filename = get_output_filename(
                     name,
@@ -402,7 +402,7 @@ class Reports(LazyNamespace):
                 + self.datamart.context_keys
                 + [
                     col
-                    for col in self.datamart.model_data.collect_schema().names()
+                    for col in self.datamart.model_data.collect_schema().names()  # type: ignore[union-attr]
                     if col != "ModelID" and col not in self.datamart.context_keys
                 ],
             )
@@ -410,7 +410,7 @@ class Reports(LazyNamespace):
         }
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
+            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()  # type: ignore[assignment]
 
         if self.datamart.predictor_data is not None:
             tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
@@ -465,14 +465,14 @@ class Reports(LazyNamespace):
 
                 for tab, data in tabs.items():
                     data = data.with_columns(
-                        pl.col(pl.list(pl.Categorical), pl.list(pl.Utf8))
+                        pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
                         .list.eval(pl.element().cast(pl.Utf8))
                         .list.join(", "),
                     )
-                    data = data.collect()
+                    collected_data = data.collect()
 
                     # Check data size (with a multiplication factor for Excel XML overhead)
-                    estimated_size_mb = data.estimated_size(unit="mb") * 2.5
+                    estimated_size_mb = collected_data.estimated_size(unit="mb") * 2.5
                     if estimated_size_mb > ZIP_SIZE_LIMIT_MB:
                         warning_msg = (
                             f"The data for sheet '{tab}' is too large (estimated {estimated_size_mb:.1f} MB). "
@@ -484,17 +484,17 @@ class Reports(LazyNamespace):
                         print(warning_msg)
                         continue
 
-                    if data.shape[0] > EXCEL_ROW_LIMIT:
+                    if collected_data.shape[0] > EXCEL_ROW_LIMIT:
                         warning_msg = (
                             f"The data for sheet '{tab}' exceeds Excel's row limit "
-                            f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                            f"({collected_data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
                             "This sheet will not be written to the Excel file. "
                             "Please filter your data before generating the Excel report."
                         )
                         warning_messages.append(warning_msg)
                         print(warning_msg)
                         continue
-                    data.write_excel(workbook=wb, worksheet=tab)
+                    collected_data.write_excel(workbook=wb, worksheet=tab)
         except Exception as e:
             warning_msg = f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
             warning_messages.append(warning_msg)

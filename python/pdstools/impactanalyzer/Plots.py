@@ -259,7 +259,7 @@ class Plots(LazyNamespace):
         if every is not None:
             grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
 
         plot_data = self.ia.summarize_control_groups(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
@@ -353,7 +353,7 @@ class Plots(LazyNamespace):
         if every is not None:
             grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
 
         plot_data = self.ia.summarize_experiments(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),

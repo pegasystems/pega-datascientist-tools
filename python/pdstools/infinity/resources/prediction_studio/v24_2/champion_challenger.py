@@ -78,7 +78,7 @@ class _ChampionChallengerV24_2Mixin:
         champion_percentage: float | None = None,
         model_objective: str | None = None,
     ):
-        super().__init__(client=client)
+        super().__init__(client=client)  # type: ignore[call-arg]
         self.prediction_id = prediction_id
         self.cc_id = cc_id
         self.context = context
@@ -89,13 +89,13 @@ class _ChampionChallengerV24_2Mixin:
         self.model_objective = model_objective
         self._removed = False
 
-    def describe(self) -> dict:
+    def describe(self) -> dict | str:
         """Describe the champion challenger object."""
         if self._removed:
             return "Champion challenger object has been removed."
 
         # Base dictionary
-        champion_challenger_dict = {
+        champion_challenger_dict: dict[str, Any] = {
             "prediction_id": self.prediction_id,
             "context": None if self.context == "NoContext" else self.context,
             "category": self.category,
@@ -131,7 +131,9 @@ class _ChampionChallengerV24_2Mixin:
                 if self.active_model.modeling_technique
                 else None,
                 "role": self.challenger_model.status,
-                "challenger_percentage": 100 - self.champion_percentage,
+                "challenger_percentage": 100 - self.champion_percentage
+                if self.champion_percentage is not None
+                else 100,
             }
 
         return champion_challenger_dict
@@ -194,7 +196,7 @@ class _ChampionChallengerV24_2Mixin:
         endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
         if self.active_model.model_type.upper() != "SCORECARD":
             if champion_response_share == 1:
-                deployment_mode = {"type": "Shadow"}
+                deployment_mode: dict[str, Any] = {"type": "Shadow"}
             else:
                 deployment_mode = {
                     "type": "ChampionChallenger",
@@ -560,7 +562,7 @@ class _ChampionChallengerV24_2Mixin:
         if not (0 <= challenger_response_share <= 1):
             raise ValueError("Percentage must be between 0 and 1.")
         endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
-        data = {}
+        data: dict[str, Any] = {}
         # Import here to avoid circular imports; use duck-typing for Model check
         if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
             new_model = new_model.model_id.split("!")[1]
@@ -589,7 +591,7 @@ class _ChampionChallengerV24_2Mixin:
 
             response = await self._check_then_update(
                 champion_response_share=champion_response_share,
-                learn_independently=learn_independently,
+                learn_independently=learn_independently,  # type: ignore[arg-type]
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
@@ -672,7 +674,7 @@ class _ChampionChallengerV24_2Mixin:
             champion_response_percentage = float(1 - challenger_response_share)
             response = await self._check_then_update(
                 champion_response_share=champion_response_percentage,
-                learn_independently=learn_independently,
+                learn_independently=learn_independently,  # type: ignore[arg-type]
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e

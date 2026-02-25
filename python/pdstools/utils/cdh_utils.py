@@ -6,7 +6,7 @@ import re
 import tempfile
 import warnings
 import zipfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from functools import partial
 from io import StringIO
 from operator import is_not
@@ -373,9 +373,9 @@ def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 
 
 def auc_from_bincounts(
-    pos: list[int] | pl.Series,
-    neg: list[int] | pl.Series,
-    probs: list[float] | pl.Series | None = None,
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -403,18 +403,18 @@ def auc_from_bincounts(
     """
     import numpy as np
 
-    pos = np.asarray(pos)
-    neg = np.asarray(neg)
+    pos_arr = np.asarray(pos)
+    neg_arr = np.asarray(neg)
 
-    if (np.sum(pos) == 0) or (np.sum(neg) == 0):
+    if (np.sum(pos_arr) == 0) or (np.sum(neg_arr) == 0):
         return 0.5
 
     if probs is None:
-        probs = pos / (pos + neg)
+        probs = pos_arr / (pos_arr + neg_arr)
 
     binorder = np.argsort(probs)[::-1]
-    FPR = np.cumsum(neg[binorder]) / np.sum(neg)
-    TPR = np.cumsum(pos[binorder]) / np.sum(pos)
+    FPR = np.cumsum(neg_arr[binorder]) / np.sum(neg_arr)
+    TPR = np.cumsum(pos_arr[binorder]) / np.sum(pos_arr)
 
     area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
     return safe_range_auc(np.sum(area))
@@ -465,9 +465,9 @@ def aucpr_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 
 
 def aucpr_from_bincounts(
-    pos: list[int] | pl.Series,
-    neg: list[int] | pl.Series,
-    probs: list[float] | pl.Series | None = None,
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -495,14 +495,14 @@ def aucpr_from_bincounts(
     """
     import numpy as np
 
-    pos = np.asarray(pos)
-    neg = np.asarray(neg)
+    pos_arr = np.asarray(pos)
+    neg_arr = np.asarray(neg)
     if probs is None:
-        o = np.argsort(-(pos / (pos + neg)))
+        o = np.argsort(-(pos_arr / (pos_arr + neg_arr)))
     else:
         o = np.argsort(-np.asarray(probs))
-    recall = np.cumsum(pos[o]) / np.sum(pos)
-    precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
+    recall = np.cumsum(pos_arr[o]) / np.sum(pos_arr)
+    precision = np.cumsum(pos_arr[o]) / np.cumsum(pos_arr[o] + neg_arr[o])
     prevrecall = np.insert(recall[0 : (len(recall) - 1)], 0, 0)
     prevprecision = np.insert(precision[0 : (len(precision) - 1)], 0, 0)
     area = (recall - prevrecall) * (precision + prevprecision) / 2
@@ -629,7 +629,7 @@ def _capitalize(
     ]
 
     if not isinstance(fields, list):
-        fields = [fields]
+        fields = [str(fields)]
     fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
     fields = list(
         map(lambda x: x.replace("configurationname", "configuration"), fields),
@@ -705,7 +705,7 @@ def from_prpc_date_time(
         >>> fromPRPCDateTime("20180316T184127.846", True)
 
     """
-    import pytz
+    import pytz  # type: ignore[import-untyped]
 
     timezonesplits = x.split(" ")
 
@@ -839,21 +839,25 @@ def overlap_matrix(
     └───────────────────┴───────────────┴───────────────┴─────────┘
 
     """
-    list_col = df[list_col]
-    nrows = list_col.len()
+    list_col_series = df[list_col]
+    nrows = list_col_series.len()
     result = []
     for i in range(nrows):
-        set_i = set(list_col[i].to_list())
+        set_i = set(list_col_series[i].to_list())
         if show_fraction:
             overlap_w_other_rows = [
-                (len(set_i & set(list_col[j].to_list())) / len(set(list_col[j].to_list())) if i != j else None)
+                (
+                    len(set_i & set(list_col_series[j].to_list())) / len(set(list_col_series[j].to_list()))
+                    if i != j
+                    else None
+                )
                 for j in range(nrows)
             ]
         else:
-            overlap_w_other_rows = [len(set_i & set(list_col[j].to_list())) for j in range(nrows)]
+            overlap_w_other_rows = [len(set_i & set(list_col_series[j].to_list())) for j in range(nrows)]
         result.append(
             pl.Series(
-                name=f"Overlap_{list_col.name}_{df[by][i]}",
+                name=f"Overlap_{list_col_series.name}_{df[by][i]}",
                 values=overlap_w_other_rows,
             ),
         )
@@ -980,7 +984,8 @@ def z_ratio(
             ).sqrt()
         ).alias("ZRatio")
 
-    return z_ratio_impl(*get_fracs(pos_col, neg_col), pos_col.sum(), neg_col.sum())
+    pos_frac, neg_frac = get_fracs(pos_col, neg_col)
+    return z_ratio_impl(pos_frac, neg_frac, pos_col.sum(), neg_col.sum())
 
 
 # TODO all these should perhaps be consistently named _polars
@@ -1113,7 +1118,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
                 if verbose:
                     warnings.warn(f"Warning: {col} column is Null data type.")
             elif original_type != new_type:
-                if original_type == pl.Categorical and new_type in pl.selectors.numeric():
+                if original_type == pl.Categorical and new_type in pl.selectors.numeric():  # type: ignore[operator]
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
                 elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
@@ -1175,7 +1180,7 @@ def gains_table(df, value: str, index=None, by=None):
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
-        sort_expr = by_as_list + [sort_expr]
+        sort_expr: list[str | pl.Expr] = by_as_list + [sort_expr]  # type: ignore[no-redef]
         gains_df = (
             df.lazy()
             .sort(sort_expr, descending=True)
@@ -1323,7 +1328,7 @@ def process_files_to_bytes(
 
 
 def get_latest_pdstools_version():
-    import requests
+    import requests  # type: ignore[import-untyped]
 
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json")
@@ -1378,7 +1383,7 @@ def safe_flatten_list(alist: list, extras: list | None = None) -> list:
         if item not in seen:
             unique_alist.append(item)
             seen.add(item)
-    return unique_alist if len(unique_alist) > 0 else None
+    return unique_alist if len(unique_alist) > 0 else None  # type: ignore[return-value]
 
 
 def _get_start_end_date_args(
@@ -1412,12 +1417,12 @@ def _get_start_end_date_args(
         if window is None or start_date is None:
             end_date = data_max_date
         elif start_date:
-            end_date = start_date + window - datetime.timedelta(days=1)
+            end_date = start_date + window - datetime.timedelta(days=1)  # type: ignore[operator]
     if not start_date:
         if window is None:
             start_date = data_min_date
         elif end_date:
-            start_date = end_date - window + datetime.timedelta(days=1)
+            start_date = end_date - window + datetime.timedelta(days=1)  # type: ignore[operator]
 
     # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
 

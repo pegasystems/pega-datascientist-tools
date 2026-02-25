@@ -377,7 +377,7 @@ def standard_NBAD_directions_rag(value: str) -> RAGValue | None:
 # NBAD Prediction Names and Channel Mapping
 # =============================================================================
 
-_NBAD_PREDICTION_DATA = [
+_NBAD_PREDICTION_DATA: list[list[str | bool]] = [
     ["PredictWebPropensity", "Web", "Inbound", False],
     ["PredictMobilePropensity", "Mobile", "Inbound", False],
     ["PredictOutboundEmailPropensity", "E-mail", "Outbound", False],
@@ -400,12 +400,12 @@ ALL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA]
 
 
 def get_predictions_channel_mapping(
-    custom_predictions: list | None = None,
+    custom_predictions: list[list[str | bool]] | None = None,
 ) -> pl.DataFrame:
     """Get prediction to channel/direction mapping as a DataFrame."""
     custom_predictions = custom_predictions or []
     all_predictions = _NBAD_PREDICTION_DATA + [
-        p for p in custom_predictions if p[0].upper() not in {x[0].upper() for x in _NBAD_PREDICTION_DATA}
+        p for p in custom_predictions if str(p[0]).upper() not in {str(x[0]).upper() for x in _NBAD_PREDICTION_DATA}
     ]
 
     df = pl.DataFrame(data=all_predictions, orient="row").with_columns(pl.col("column_0").str.to_uppercase()).unique()

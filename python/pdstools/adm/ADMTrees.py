@@ -272,7 +272,7 @@ class ADMTreesModel:
 
         def read_url(file):  # pragma: no cover
             logger.info("Trying to read from URL.")
-            import requests
+            import requests  # type: ignore[import-untyped]
 
             file = requests.get(file).content
             logger.info("Import from URL successful.")
@@ -527,11 +527,11 @@ class ADMTreesModel:
         """
         try:
             if operator == "in":
-                return str(value).strip("'") in comparison_set
+                return str(value).strip("'") in comparison_set  # type: ignore[operator]
             if operator == "<":
-                return float(str(value).strip("'")) < float(comparison_set)
+                return float(str(value).strip("'")) < float(comparison_set)  # type: ignore[arg-type]
             if operator == ">":
-                return float(str(value).strip("'")) > float(comparison_set)
+                return float(str(value).strip("'")) > float(comparison_set)  # type: ignore[arg-type]
             if operator == "==":
                 return str(value).strip("'") == str(comparison_set)
             raise ValueError(f"Unsupported operator: {operator}")
@@ -950,7 +950,7 @@ class ADMTreesModel:
 
         # --- Feature importance concentration ------------------------------
         if var_total_gain and sum_all_gain > 0:
-            top_var = max(var_total_gain, key=var_total_gain.get)
+            top_var = max(var_total_gain, key=var_total_gain.get)  # type: ignore[arg-type]
             m["top_predictor_by_gain"] = top_var
             m["top_predictor_gain_share"] = round(
                 var_total_gain[top_var] / sum_all_gain,
@@ -1128,7 +1128,7 @@ class ADMTreesModel:
         else:
             splitvalue = "".join(splitvalue[1:-1])
             splitvalue = set(splitvalue.split(","))
-        return variable, sign, splitvalue
+        return variable, sign, splitvalue  # type: ignore[return-value]
 
     @staticmethod
     def parse_split_values_with_spaces(
@@ -1623,7 +1623,7 @@ class ADMTreesModel:
                     "IPython not installed, please install it using `pip install IPython`.",
                 )
             try:
-                display(Image(graph.create_png()))  # pragma: no cover
+                display(Image(graph.create_png()))  # type: ignore[attr-defined]  # pragma: no cover
             except FileNotFoundError as e:
                 print(
                     "Dot/Graphviz not installed. Please install it to your machine.",

@@ -628,4 +628,4 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             return response
 
     def get_api_list(self):  # pragma: no cover
-        raise NotImplementedError
+        raise NotImplementedError()

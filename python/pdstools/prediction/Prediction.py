@@ -615,7 +615,7 @@ class Prediction:
                 Performance=pl.col("Performance") / 100.0,
             )
         schema = predictions_raw_data_prepped.collect_schema()
-        if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
+        if schema.get("pySnapShotTime") is not None and not schema.get("pySnapShotTime").is_temporal():  # type: ignore[union-attr]
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
                 SnapshotTime=cdh_utils.parse_pega_date_time_formats(
                     "pySnapShotTime",

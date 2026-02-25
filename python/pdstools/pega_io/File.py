@@ -97,7 +97,7 @@ def read_ds_export(
         file = os.path.join(path_str, filename_str)
     else:
         logger.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path_str, filename_str)
+        file = get_latest_file(path_str, filename_str)  # type: ignore[assignment]
 
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
@@ -107,7 +107,7 @@ def read_ds_export(
         logger.debug("Could not find file in directory, checking if URL")
 
         try:
-            import requests
+            import requests  # type: ignore[import-untyped]
 
             response = requests.get(f"{path_str}/{filename_str}")
             logger.info(f"Response: {response}")
@@ -219,7 +219,7 @@ def import_file(
             except Exception:
                 import json
 
-                with open(file) as f:
+                with open(file) as f:  # type: ignore[arg-type]
                     return pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
     if extension == ".parquet":
@@ -350,7 +350,7 @@ def get_latest_file(
     path: str | os.PathLike,
     target: str,
     verbose: bool = False,
-) -> str:
+) -> str | None:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
     Once it finds all matching files in the directory, it chooses the most recent one.
@@ -407,7 +407,10 @@ def get_latest_file(
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
     dates = pl.Series([f(i) for i in paths])
-    return paths[dates.arg_max()]
+    idx = dates.arg_max()
+    if idx is None:
+        return None
+    return paths[idx]
 
 
 def find_files(files_dir, target):
@@ -508,7 +511,7 @@ def cache_to_file(
         outpath = outpath.with_suffix(".arrow")
         # Cast categorical to string since Arrow IPC doesn't support dictionary replacement across batches
         df = df.with_columns(cs.categorical().cast(pl.Utf8))
-        df.write_ipc(outpath, compression=compression)
+        df.write_ipc(outpath, compression=compression)  # type: ignore[arg-type]
     if cache_type == "parquet":
         outpath = outpath.with_suffix(".parquet")
         df.write_parquet(outpath, compression=compression)

@@ -230,7 +230,7 @@ class DecisionAnalyzer:
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
         if not validation_result:
-            warnings.warn(validation_error, UserWarning)
+            warnings.warn(validation_error or "", UserWarning)
         # Bail out early if critical columns are missing — cleanup_raw_data
         # would crash with an opaque ColumnNotFoundError otherwise.
         # Check using display names; account for both raw keys and display
@@ -531,7 +531,7 @@ class DecisionAnalyzer:
             df = df.with_columns(day=pl.col("Decision Time").dt.date())
 
         # Build ranking columns - include StageOrder only if it exists
-        ranking_cols = ["is_mandatory", "Priority"]
+        ranking_cols: list[str | pl.Expr] = ["is_mandatory", "Priority"]
         if "StageOrder" in df.collect_schema().names():
             ranking_cols.append("StageOrder")
         ranking_cols.extend(
@@ -619,7 +619,7 @@ class DecisionAnalyzer:
         funnelData = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
-            aggregations=pl.sum("Decisions").alias("count"),
+            aggregations=[pl.sum("Decisions").alias("count")],
         ).filter(pl.col("count") > 0)
 
         # Compute filtered funnel view
@@ -636,7 +636,7 @@ class DecisionAnalyzer:
             (pl.col("count") / pl.lit(interaction_count)).alias("average_actions"),
         )
 
-        return funnelData.with_columns(
+        return funnelData.with_columns(  # type: ignore[return-value]
             average_actions_expr,
         ), filtered_funnel.with_columns(average_actions_expr)
 
@@ -1537,7 +1537,7 @@ class DecisionAnalyzer:
                 }
 
                 # Cast to match result schema
-                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)  # type: ignore[arg-type]
 
                 result = pl.concat([result, no_winner_row])
 
@@ -1593,7 +1593,7 @@ class DecisionAnalyzer:
             }
 
             # Cast to match result schema
-            no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+            no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)  # type: ignore[arg-type]
 
             result = pl.concat([result, no_winner_row])
 

@@ -749,7 +749,7 @@ class ImpactAnalyzer:
         elif isinstance(by, (list, tuple)):
             group_by = list(by)
         else:
-            group_by = [by]
+            group_by = [by]  # type: ignore[list-item]
 
         agg_exprs = [
             pl.sum("Impressions", "Accepts"),

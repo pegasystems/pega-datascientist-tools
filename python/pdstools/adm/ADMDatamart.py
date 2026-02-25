@@ -131,7 +131,9 @@ class ADMDatamart:
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
         self.first_action_dates = self._get_first_action_dates(model_data_validated)
 
-        self.model_data = cdh_utils._apply_query(model_data_validated, query)
+        self.model_data = (
+            cdh_utils._apply_query(model_data_validated, query) if model_data_validated is not None else None
+        )
 
         # TODO @stijn how do we ensure the model IDs intersect, also if there is a query argument?
         self.predictor_data = self._validate_predictor_data(predictor_df)
@@ -441,7 +443,8 @@ class ADMDatamart:
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
-        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+        snapshot_type = schema.get("SnapshotTime")
+        if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(
                 SnapshotTime=cdh_utils.parse_pega_date_time_formats(),
             ).sort("SnapshotTime", "ModelID")
@@ -492,7 +495,8 @@ class ADMDatamart:
             BinPropensity=pl.col("BinPositives") / pl.col("BinResponseCount"),
             BinAdjustedPropensity=((pl.col("BinPositives") + pl.lit(0.5)) / (pl.col("BinResponseCount") + pl.lit(1))),
         )
-        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+        snapshot_type = schema.get("SnapshotTime")
+        if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         if "PredictorCategory" not in schema.names():
@@ -585,7 +589,7 @@ class ADMDatamart:
                     ).then(pl.lit(key))
             return expr
 
-        categorization_expr: pl.Expr = None
+        categorization_expr: pl.Expr | None = None
         if isinstance(categorization, dict) and len(categorization) > 0:
             categorization_expr = categorization_dict_to_polars_expr(categorization)
         elif callable(categorization):
@@ -868,7 +872,7 @@ class ADMDatamart:
         # time is null, due to import/export woes. This is problematic
         # for model data but here we just test for it and assume one snapshot.
         most_recent_binning_data = cdh_utils._apply_query(
-            self.predictor_data.filter(
+            self.predictor_data.filter(  # type: ignore[union-attr]
                 (
                     # TODO consider using the "last" function of the aggregates
                     # last("predictor_data") instead of this, but that currently

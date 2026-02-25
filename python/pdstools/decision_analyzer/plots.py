@@ -517,7 +517,7 @@ class Plot:
         ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
         segmented_df = (
             df.with_columns(
-                segment=pl.when(reference)  # pl.col("Action").is_in(models)
+                segment=pl.when(reference)  # type: ignore[arg-type]  # pl.col("Action").is_in(models)
                 .then(pl.lit("Selected Actions"))
                 .otherwise(pl.lit("Others")),
             ).select(prio_factors + ["segment"])
@@ -828,14 +828,14 @@ def offer_quality_piecharts(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    all_frames = df.group_by(level).agg(pl.sum(value_finder_names)).collect().partition_by(level, as_dict=True)
+    all_frames = df.group_by(level).agg(pl.sum(*value_finder_names)).collect().partition_by(level, as_dict=True)
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
-    df = {}
+    frames_dict: dict[tuple[str, ...], pl.DataFrame] = {}
     AvailableNBADStages = AvailableNBADStages[:5]
     for stage in AvailableNBADStages[:5]:
-        df[(stage,)] = all_frames[(stage,)]
+        frames_dict[(stage,)] = all_frames[(stage,)]
     if return_df:
-        return df
+        return frames_dict
 
     fig = make_subplots(
         rows=1,
@@ -846,7 +846,7 @@ def offer_quality_piecharts(
     )
 
     for i, stage in enumerate(AvailableNBADStages):
-        plotdf = df[(stage,)].drop(level)
+        plotdf = frames_dict[(stage,)].drop(level)
         fig.add_trace(
             go.Pie(
                 values=list(plotdf.to_numpy())[0],
@@ -886,11 +886,13 @@ def getTrendChart(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    df = (df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(value_finder_names)).collect()).sort("day")
+    df_collected = (df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect()).sort(
+        "day"
+    )
     if return_df:
-        return df.lazy()
+        return df_collected.lazy()
     trend_melted = (
-        df.melt(
+        df_collected.melt(
             id_vars=["day"],
             value_vars=[
                 "has_no_offers",
@@ -1023,14 +1025,14 @@ def create_win_distribution_plot(
             # If we have "No Winner" data, we need to select only the columns that match aggregated_regular
             if no_winner_data.height > 0:
                 # Select only the columns that exist in aggregated_regular
-                columns_to_keep = scope_config["group_cols"] + [win_count_col]
+                columns_to_keep = scope_config["group_cols"] + [win_count_col]  # type: ignore[operator]
                 no_winner_data_selected = no_winner_data.select(columns_to_keep)
                 plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
             else:
                 plot_data = aggregated_regular
         # If no regular data, just use no_winner_data (select appropriate columns)
         elif no_winner_data.height > 0:
-            columns_to_keep = scope_config["group_cols"] + [win_count_col]
+            columns_to_keep = scope_config["group_cols"] + [win_count_col]  # type: ignore[operator]
             plot_data = no_winner_data.select(columns_to_keep)
         else:
             plot_data = pl.DataFrame()
@@ -1048,7 +1050,7 @@ def create_win_distribution_plot(
         hover_template = (
             "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
         )
-        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
+        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))  # type: ignore[assignment]
     else:
         # Default hover template
         hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"
@@ -1071,7 +1073,7 @@ def create_win_distribution_plot(
 
     # Highlight the selected item in red
     try:
-        selected_index = x_values.index(scope_config["selected_value"])
+        selected_index = x_values.index(scope_config["selected_value"])  # type: ignore[arg-type]
         colors[selected_index] = "#FF0000"
     except ValueError:
         # Selected value not found in the data
@@ -1079,7 +1081,7 @@ def create_win_distribution_plot(
 
     # Highlight "No Winner" in orange if present
     try:
-        no_winner_index = x_values.index("No Winner")
+        no_winner_index = x_values.index("No Winner")  # type: ignore[arg-type]
         colors[no_winner_index] = "#FFA500"  # Orange color for "No Winner"
     except ValueError:
         # "No Winner" not found in the data

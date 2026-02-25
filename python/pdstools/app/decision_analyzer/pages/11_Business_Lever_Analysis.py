@@ -52,9 +52,9 @@ with st.sidebar:
         st.session_state.get("selected_action"),
     )
 
-    st.selectbox("Select Issue", key="selected_issue", **selectors["issues"])
-    st.selectbox("Select Group", key="selected_group", **selectors["groups"])
-    st.selectbox("Select Action", key="selected_action", **selectors["actions"])
+    st.selectbox("Select Issue", key="selected_issue", **selectors["issues"])  # type: ignore[call-overload]
+    st.selectbox("Select Group", key="selected_group", **selectors["groups"])  # type: ignore[call-overload]
+    st.selectbox("Select Action", key="selected_action", **selectors["actions"])  # type: ignore[call-overload]
 
     # Apply button to run analysis
     if st.button("Apply Selection", type="primary"):
@@ -133,7 +133,7 @@ if st.session_state.get("analysis_applied", False):
     original_fig, original_plot_data = create_win_distribution_plot(
         original_distribution,
         "original_win_count",
-        scope_config,
+        scope_config,  # type: ignore[arg-type]
         "In Arbitration",
         "Current Win Count",
     )
@@ -228,7 +228,7 @@ if st.session_state.get("analysis_applied", False):
         new_fig, new_plot_data = create_win_distribution_plot(
             distribution,
             "new_win_count",
-            scope_config,
+            scope_config,  # type: ignore[arg-type]
             "After Lever Adjustment",
             "New Win Count",
         )
@@ -237,7 +237,7 @@ if st.session_state.get("analysis_applied", False):
         # Show summary statistics
         total_new_wins = new_plot_data["new_win_count"].sum()
         selected_data = new_plot_data.filter(
-            pl.col(scope_config["x_col"]) == scope_config["selected_value"],
+            pl.col(scope_config["x_col"]),  # type: ignore[arg-type]
         )
         selected_wins = selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
 

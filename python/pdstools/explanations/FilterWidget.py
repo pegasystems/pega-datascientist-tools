@@ -7,7 +7,7 @@ from IPython.display import display
 from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo
+from .ExplanationsUtils import ContextInfo, ContextOperations
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
@@ -34,8 +34,8 @@ class FilterWidget(LazyNamespace):
         self._combobox_widgets: dict[str, widgets.Combobox] = {}
         self._selector_widget = None
 
-        self._context_operations = None
-        self._selected_context_key = None
+        self._context_operations: ContextOperations | None = None
+        self._selected_context_key: dict[str, str] | None = None
 
         super().__init__()
 
@@ -94,6 +94,7 @@ class FilterWidget(LazyNamespace):
         return self._get_selected_context(with_any_option=False)
 
     def _init_selected_context(self):
+        assert self._context_operations is not None
         self._selected_context_key = dict.fromkeys(self._context_operations.get_context_keys(), self._ANY_CONTEXT)
 
     def _display_context_selector(self):
@@ -149,7 +150,11 @@ class FilterWidget(LazyNamespace):
         with_any_option: bool = True,
     ) -> ContextInfo | None:
         # return None if with_any_option is False and any context key value is set to ANY_CONTEXT
-        if not with_any_option and any(x == self._ANY_CONTEXT for x in self._selected_context_key.values()):
+        if (
+            not with_any_option
+            and self._selected_context_key is not None
+            and any(x == self._ANY_CONTEXT for x in self._selected_context_key.values())
+        ):
             return None
 
         return cast("ContextInfo", self._selected_context_key)
@@ -158,9 +163,9 @@ class FilterWidget(LazyNamespace):
         ctx_options = {
             ctx_key_name: [self._ANY_CONTEXT]
             + sorted(
-                set(context_info[ctx_key_name] for context_info in self._filtered_list),
+                set(context_info[ctx_key_name] for context_info in self._filtered_list),  # type: ignore[literal-required]
             )
-            for ctx_key_name in self._selected_context_key.keys()
+            for ctx_key_name in (self._selected_context_key or {}).keys()
         }
 
         widget_dict = OrderedDict()
@@ -187,7 +192,7 @@ class FilterWidget(LazyNamespace):
             description="Context Info",
             style={"description_width": "initial"},
             layout=widgets.Layout(width="auto"),
-            rows=len(self._selected_context_key.keys()) + 1,
+            rows=len((self._selected_context_key or {}).keys()) + 1,
         )
         widget.observe(self._on_selector_change, names="value")
 
@@ -257,7 +262,7 @@ class FilterWidget(LazyNamespace):
         options = [self._ANY_CONTEXT] if with_any_option else []
 
         options_list_sorted = sorted(
-            set(context_info[name] for context_info in self._filtered_list),
+            set(context_info[name] for context_info in self._filtered_list),  # type: ignore[literal-required]
         )
         options += cast("list[str]", options_list_sorted)
         return options
@@ -277,8 +282,8 @@ class FilterWidget(LazyNamespace):
         filtered_context_infos = []
         for context_info in self._raw_list:
             if all(
-                value == self._ANY_CONTEXT or context_info[key] == value
-                for key, value in self._selected_context_key.items()
+                value == self._ANY_CONTEXT or context_info[key] == value  # type: ignore[literal-required]
+                for key, value in (self._selected_context_key or {}).items()
             ):
                 filtered_context_infos.append(context_info)
         return filtered_context_infos
@@ -288,6 +293,8 @@ class FilterWidget(LazyNamespace):
         context_infos: list[ContextInfo],
     ) -> dict[str, ContextInfo]:
         return {
-            (self._context_operations.get_context_info_str(context_info, " - ")): context_info
+            (
+                self._context_operations.get_context_info_str(context_info, " - ") if self._context_operations else ""
+            ): context_info
             for context_info in context_infos
         }

@@ -30,7 +30,7 @@ with health_check:
     with st.expander("Health Check options"):
         name = st.text_input("Customer name")
         if name == "":
-            name = None
+            name = None  # type: ignore[assignment]
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
         keep_temp_files = st.checkbox("Keep temporary files", False)
@@ -99,7 +99,7 @@ with health_check:
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
-                    tables,
+                    tables,  # type: ignore[arg-type]
                     "rb",
                 )
                 for message in warning_messages:
@@ -136,7 +136,7 @@ if st.session_state["dm"].predictor_data is not None:
     with model_report:
         try:
             if "working_dir" not in locals():
-                working_dir = "healthCheckDir"
+                working_dir = "healthCheckDir"  # type: ignore[assignment]
             if "model_selection_df" not in st.session_state:
                 st.session_state["model_selection_df"] = model_selection_df(
                     df=_apply_query(

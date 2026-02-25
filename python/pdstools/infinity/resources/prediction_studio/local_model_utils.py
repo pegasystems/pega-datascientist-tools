@@ -148,7 +148,7 @@ class PMMLModel(LocalModel):
     file_path: str
 
     def __init__(self, file_path: str):
-        super().__init__(file_path=file_path)
+        super().__init__(file_path=file_path)  # type: ignore[call-arg]
 
     def get_file_path(self) -> str:
         return self.file_path
@@ -158,7 +158,7 @@ class H2OModel(LocalModel):
     file_path: str
 
     def __init__(self, file_path: str):
-        super().__init__(file_path=file_path)
+        super().__init__(file_path=file_path)  # type: ignore[call-arg]
 
     def get_file_path(self) -> str:
         return self.file_path
@@ -259,7 +259,7 @@ class ONNXModel(LocalModel):
         self._model.metadata_props.add(key=PEGA_METADATA, value=metadata.to_json())
         return self
 
-    def validate(self) -> bool:
+    def validate(self) -> bool:  # type: ignore[override]
         """Validates an ONNX model.
 
         Raises

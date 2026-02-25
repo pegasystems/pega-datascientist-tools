@@ -205,14 +205,14 @@ class Plots(LazyNamespace):
             contribution_calculation=contribution_type.value,
         )
 
-        header_fig = self._plot_context_table(context)
+        header_fig = self._plot_context_table(context)  # type: ignore[arg-type]
 
         overall_fig = self._plot_overall_contributions(
             df_context,
             x_col=contribution_type.value,
             y_col=_COL.PREDICTOR_NAME.value,
             x_title=contribution_type.alt,
-            context=context,
+            context=context,  # type: ignore[arg-type]
         )
 
         predictors_figs = self._plot_predictor_contributions(

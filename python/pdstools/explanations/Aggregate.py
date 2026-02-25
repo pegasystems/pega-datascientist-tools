@@ -41,7 +41,7 @@ class Aggregate(LazyNamespace):
     def get_df_contextual(self) -> pl.LazyFrame:
         """Get the contextual dataframe, loading it if not already loaded."""
         self._load_data()
-        return self.df_contextual
+        return self.df_contextual  # type: ignore[return-value]
 
     def get_predictor_contributions(
         self,
@@ -85,7 +85,7 @@ class Aggregate(LazyNamespace):
         self._load_data()
 
         return self._get_predictor_contributions(
-            contexts=[context] if context else None,
+            contexts=[context] if context else None,  # type: ignore[list-item]
             limit=top_n,
             descending=descending,
             missing=missing,
@@ -138,7 +138,7 @@ class Aggregate(LazyNamespace):
         self._load_data()
 
         return self._get_predictor_value_contributions(
-            contexts=[context] if context else None,
+            contexts=[context] if context else None,  # type: ignore[list-item]
             predictors=predictors,
             limit=top_k,
             descending=descending,
@@ -455,8 +455,8 @@ class Aggregate(LazyNamespace):
             self._load_data()
 
         if df_filtered_contexts is None:
-            return self.df_overall
-        return self.df_contextual.join(
+            return self.df_overall  # type: ignore[return-value]
+        return self.df_contextual.join(  # type: ignore[attr-defined]
             df_filtered_contexts.lazy(),
             on=_COL.PARTITON.value,
             how="inner",
