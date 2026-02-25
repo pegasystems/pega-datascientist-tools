@@ -680,7 +680,7 @@ class TestComponentDrilldown:
             pytest.skip("No pxComponentName in this dataset")
         # Pick the first available component
         components = (
-            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            da_v2.decision_data.filter(pl.col("Record type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
             .collect()
@@ -698,7 +698,7 @@ class TestComponentDrilldown:
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         components = (
-            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            da_v2.decision_data.filter(pl.col("Record type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
             .collect()
@@ -722,7 +722,7 @@ class TestComponentDrilldown:
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         components = (
-            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            da_v2.decision_data.filter(pl.col("Record type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
             .collect()
