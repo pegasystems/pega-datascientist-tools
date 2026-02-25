@@ -13,11 +13,11 @@ values in tables.
 import difflib
 import re
 from functools import lru_cache
-from typing import Any, Callable, Dict, Literal, Optional, Union
-from ..resources import get_metric_limits_path
+from typing import Any, Callable, Literal, Optional, Union
 
 import polars as pl
 
+from ..resources import get_metric_limits_path
 from .number_format import NumberFormat
 
 # Type alias for RAG status values
@@ -59,12 +59,12 @@ class MetricLimits:
         by checking if all defined limit values are either 0.0 or 1.0.
         """
         limits_df = pl.read_csv(source=get_metric_limits_path()).filter(
-            pl.col("MetricID").is_not_null() & (pl.col("MetricID") != "")
+            pl.col("MetricID").is_not_null() & (pl.col("MetricID") != ""),
         )
 
         # Cast limit columns to Float64 (they're already numeric in the CSV)
         limits_df = limits_df.with_columns(
-            [pl.col(col).cast(pl.Float64) for col in _LIMIT_COLUMNS]
+            [pl.col(col).cast(pl.Float64) for col in _LIMIT_COLUMNS],
         )
 
         # A metric is boolean if all its defined (non-null) limits are 0.0 or 1.0
@@ -78,7 +78,7 @@ class MetricLimits:
         return limits_df.with_columns(
             pl.struct(_LIMIT_COLUMNS)
             .map_elements(is_boolean_metric, return_dtype=pl.Boolean)
-            .alias("is_boolean")
+            .alias("is_boolean"),
         )
 
     @classmethod
@@ -106,7 +106,10 @@ class MetricLimits:
         if not limits:
             known_metrics = cls.get_limits()["MetricID"].to_list()
             close_matches = difflib.get_close_matches(
-                metric_id, known_metrics, n=1, cutoff=0.6
+                metric_id,
+                known_metrics,
+                n=1,
+                cutoff=0.6,
             )
             suggestion = f" Did you mean '{close_matches[0]}'?" if close_matches else ""
             raise KeyError(f"Unknown metric ID '{metric_id}'.{suggestion}")
@@ -170,6 +173,7 @@ class MetricLimits:
         For boolean metrics:
         - If TRUE is in Minimum or Maximum (hard limit): TRUE → GREEN, FALSE → RED
         - If TRUE is in Best Practice Min or Max (soft limit): TRUE → GREEN, FALSE → AMBER
+
         """
         if value is None:
             return None
@@ -203,7 +207,7 @@ class MetricLimits:
             raise TypeError(
                 f"Metric '{metric_id}' requires a numeric value, but received "
                 f"{type(value).__name__}: {value!r}. "
-                f"Check that the column contains numeric data, not strings. "
+                f"Check that the column contains numeric data, not strings. ",
             )
 
         # Check RED conditions (outside hard limits)
@@ -315,7 +319,8 @@ def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
 
     for item in items:
         if _matches_NBAD_configuration(
-            item, POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+            item,
+            POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS,
         ):
             return "AMBER"  # Multi-channel/default config
         if not _matches_NBAD_configuration(item, SINGLE_CHANNEL_NBAD_CONFIGURATIONS):
@@ -533,6 +538,7 @@ def add_rag_columns(
     ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
     ...     }
     ... )
+
     """
     # Expand tuple column keys to individual columns
     expanded_mapping: dict[str, MetricSpec] = {}
@@ -553,14 +559,17 @@ def add_rag_columns(
             if isinstance(metric_id, str) and metric_id not in known_metrics:
                 # Suggest close matches like git does
                 close_matches = difflib.get_close_matches(
-                    metric_id, known_metrics, n=1, cutoff=0.6
+                    metric_id,
+                    known_metrics,
+                    n=1,
+                    cutoff=0.6,
                 )
                 suggestion = (
                     f" Did you mean '{close_matches[0]}'?" if close_matches else ""
                 )
                 raise ValueError(
                     f"Unknown metric ID '{metric_id}' for column '{col}'.{suggestion} "
-                    f"If it is spelled correctly, add it to MetricLimits.csv or use a callable."
+                    f"If it is spelled correctly, add it to MetricLimits.csv or use a callable.",
                 )
 
     def build_rag_expr(col: str, spec: MetricSpec) -> pl.Expr:
@@ -569,7 +578,7 @@ def add_rag_columns(
             return (
                 pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
             )
-        elif isinstance(spec, tuple) and len(spec) == 2:
+        if isinstance(spec, tuple) and len(spec) == 2:
             # (metric_id, value_mapping)
             metric_id, value_mapping = spec
 
@@ -591,9 +600,8 @@ def add_rag_columns(
                 .map_elements(mapped_rag, return_dtype=pl.Utf8)
                 .alias(f"{col}_RAG")
             )
-        else:
-            # Simple metric ID string
-            return MetricLimits.get_metric_RAG_code(col, spec)
+        # Simple metric ID string
+        return MetricLimits.get_metric_RAG_code(col, spec)
 
     rag_expressions = []
     for col in df.columns:
@@ -621,9 +629,10 @@ class MetricFormats:
     >>> MetricFormats.has_format("CTR")
     True
     >>> MetricFormats.register("Custom", NumberFormat(decimals=4))
+
     """
 
-    _FORMATS: Dict[str, NumberFormat] = {
+    _FORMATS: dict[str, NumberFormat] = {
         "ModelPerformance": NumberFormat(decimals=2, scale_by=100),
         "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
         "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),
@@ -660,6 +669,6 @@ class MetricFormats:
         cls._FORMATS[metric_id] = format_spec
 
     @classmethod
-    def all_formats(cls) -> Dict[str, NumberFormat]:
+    def all_formats(cls) -> dict[str, NumberFormat]:
         """Get a copy of all defined metric formats."""
         return cls._FORMATS.copy()

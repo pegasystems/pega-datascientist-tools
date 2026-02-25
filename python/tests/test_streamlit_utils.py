@@ -1,12 +1,12 @@
-"""
-Tests for streamlit utility functions.
+"""Tests for streamlit utility functions.
 Focuses on testable utilities, not UI-heavy functions.
 """
 
 import datetime
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import polars as pl
+import pytest
 from pdstools.utils import streamlit_utils
 
 
@@ -25,7 +25,7 @@ class TestDataProcessingUtilities:
     def test_model_and_row_counts_dataframe(self):
         """Test counting with regular DataFrame."""
         df = pl.DataFrame(
-            {"ModelID": ["M1", "M1", "M2", "M2", "M3"], "Value": [1, 2, 3, 4, 5]}
+            {"ModelID": ["M1", "M1", "M2", "M2", "M3"], "Value": [1, 2, 3, 4, 5]},
         )
 
         unique_count, row_count = streamlit_utils.model_and_row_counts(df)
@@ -36,7 +36,7 @@ class TestDataProcessingUtilities:
     def test_model_and_row_counts_lazyframe(self):
         """Test counting with LazyFrame."""
         df = pl.LazyFrame(
-            {"ModelID": ["M1", "M2", "M3", "M1"], "Data": [10, 20, 30, 40]}
+            {"ModelID": ["M1", "M2", "M3", "M1"], "Data": [10, 20, 30, 40]},
         )
 
         unique_count, row_count = streamlit_utils.model_and_row_counts(df)
@@ -52,7 +52,7 @@ class TestDataProcessingUtilities:
                 "Configuration": ["C1", "C1", "C2"],
                 "Name": ["Action3", "Action1", "Action2"],
                 "Channel": ["Web", "Mobile", "Web"],
-            }
+            },
         )
         context_keys = ["Name", "Channel"]
 
@@ -108,7 +108,8 @@ class TestCachingFunctions:
         mock_load.return_value = mock_dm
 
         result = streamlit_utils.cached_datamart(
-            model_filename="test.zip", predictor_filename="test.zip"
+            model_filename="test.zip",
+            predictor_filename="test.zip",
         )
 
         assert result is not None
@@ -165,7 +166,7 @@ class TestCachingFunctions:
         mock_load.return_value = mock_pred
 
         result = streamlit_utils.cached_prediction_table(
-            predictions_filename="test.zip"
+            predictions_filename="test.zip",
         )
 
         assert result is not None
@@ -177,7 +178,10 @@ class TestCachingFunctions:
     @patch("streamlit.error")
     @patch("pdstools.utils.streamlit_utils.Prediction.from_ds_export")
     def test_cached_prediction_table_error_handling(
-        self, mock_load, mock_error, mock_spinner
+        self,
+        mock_load,
+        mock_error,
+        mock_spinner,
     ):
         """Test error handling in prediction table loading."""
         mock_spinner.return_value.__enter__ = MagicMock()
@@ -323,7 +327,7 @@ class TestFilterDataframe:
                     datetime.date(2023, 12, 31),
                 ],
                 "Event": ["A", "B", "C"],
-            }
+            },
         )
 
         with patch("streamlit.session_state", {}):
@@ -350,7 +354,7 @@ class TestFilterDataframe:
                 "LargeText": ["A", "B", "C", "X10", "X20", "X100"]
                 + [f"X{i}" for i in range(200)],
                 "Value": list(range(206)),
-            }
+            },
         )
 
         with patch(
@@ -380,7 +384,9 @@ class TestConfigurePredictorCategorization:
     @patch("streamlit.plotly_chart")
     @patch("pdstools.utils.cdh_utils.weighted_average_polars")
     def test_configure_predictor_categorization_with_data(
-        self, mock_weighted_avg, mock_chart
+        self,
+        mock_weighted_avg,
+        mock_chart,
     ):
         """Test predictor categorization with mocked data."""
         # Setup weighted average to return a reasonable aggregation
@@ -394,7 +400,7 @@ class TestConfigurePredictorCategorization:
                 "PredictorCategory": ["Cat1", "Cat2", "Cat1", "System"],
                 "PredictorPerformance": [0.6, 0.7, 0.55, 0.5],
                 "BinResponseCount": [100, 200, 150, 50],
-            }
+            },
         )
 
         with patch("streamlit.session_state", {"filters": [], "dm": mock_dm}):
@@ -405,9 +411,9 @@ class TestConfigurePredictorCategorization:
             assert mock_chart.called, "plotly_chart should have been called"
 
             # Verify weighted_average_polars was called
-            assert mock_weighted_avg.called, (
-                "weighted_average_polars should have been called"
-            )
+            assert (
+                mock_weighted_avg.called
+            ), "weighted_average_polars should have been called"
 
             # Get the figure that was passed to plotly_chart
             chart_call_args = mock_chart.call_args[0][0]

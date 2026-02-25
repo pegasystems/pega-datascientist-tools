@@ -7,8 +7,7 @@ class _DatamartExportV24_2Mixin:
     """v24.2 DatamartExport business logic — defined once."""
 
     def __init__(self, client, referenceId: str, location: str, repositoryName: str):
-        """
-        Initialize the DataMartExport class.
+        """Initialize the DataMartExport class.
 
         Parameters
         ----------
@@ -20,6 +19,7 @@ class _DatamartExportV24_2Mixin:
             The location of the data mart export.
         repository_name : str
             The name of the repository for the data mart export.
+
         """
         super().__init__(client=client)
         self.reference_id = referenceId
@@ -28,8 +28,7 @@ class _DatamartExportV24_2Mixin:
 
     @api_method
     async def get_export_status(self):
-        """
-        Fetches the current export status of a datamart.
+        """Fetches the current export status of a datamart.
 
         This method queries the export status of a datamart by its reference ID.
 
@@ -37,6 +36,7 @@ class _DatamartExportV24_2Mixin:
         -------
         dict
             The response from the server containing the export status of the datamart.
+
         """
         endpoint = f"/prweb/api/PredictionStudio/v1/datamart/export/{self.reference_id}"
         response = await self._a_get(endpoint)
@@ -46,12 +46,11 @@ class _DatamartExportV24_2Mixin:
                 "last_message": "",
                 "last_update_time": response["updateTimeStamp"],
             }
-        else:
-            return {
-                "status": response["status"],
-                "last_message": response["lastMessage"],
-                "last_update_time": response["updateTimeStamp"],
-            }
+        return {
+            "status": response["status"],
+            "last_message": response["lastMessage"],
+            "last_update_time": response["updateTimeStamp"],
+        }
 
 
 class DatamartExport(_DatamartExportV24_2Mixin, PreviousDatamartExport):

@@ -14,7 +14,7 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _DEFAULT, _CONTRIBUTION_TYPE
+from .ExplanationsUtils import _CONTRIBUTION_TYPE, _DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,8 @@ class Reports(LazyNamespace):
 
         self.report_foldername = "reports"
         self.report_folderpath = os.path.join(
-            self.explanations.root_dir, self.report_foldername
+            self.explanations.root_dir,
+            self.report_foldername,
         )
         self.report_output_dir = os.path.join(self.report_folderpath, "_site")
 
@@ -63,6 +64,7 @@ class Reports(LazyNamespace):
                 The filename will be used as the zip file name.
             verbose (bool):
                 Whether to print verbose output during report generation.
+
         """
         try:
             self.explanations.aggregate.validate_folder()
@@ -71,7 +73,7 @@ class Reports(LazyNamespace):
             raise
 
         contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
-            contribution_calculation
+            contribution_calculation,
         )
 
         self._validate_report_dir()
@@ -95,7 +97,9 @@ class Reports(LazyNamespace):
 
         try:
             return_code = run_quarto(
-                temp_dir=self.report_folderpath, verbose=verbose, output_type=None
+                temp_dir=self.report_folderpath,
+                verbose=verbose,
+                output_type=None,
             )
         except subprocess.CalledProcessError as e:
             logger.error("Quarto command failed: %s", e)

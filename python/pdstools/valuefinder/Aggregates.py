@@ -1,5 +1,5 @@
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Optional
 
 import polars as pl
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:  # pragma: no cover
 class Aggregates:
     def __init__(self, vf: "ValueFinder"):
         self.vf = vf
-        self._quantile_from_threshold: Dict[float, float] = {}
+        self._quantile_from_threshold: dict[float, float] = {}
 
     def get_customer_summary(
         self,
@@ -26,6 +26,7 @@ class Aggregates:
             If a customer has actions with propensity above this,
             the customer has at least one relevant action.
             If not given, will default to 5th quantile.
+
         """
         threshold = threshold or self.vf.threshold
         return (

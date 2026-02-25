@@ -19,6 +19,7 @@ def cdh_sample(query: Optional[QUERY] = None) -> ADMDatamart:
     -------
     ADMDatamart
         The ADM Datamart class populated with CDH Sample data
+
     """
     path = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
@@ -33,7 +34,7 @@ def cdh_sample(query: Optional[QUERY] = None) -> ADMDatamart:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
+                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             )
 
 
@@ -41,11 +42,11 @@ def sample_trees():
     with warnings.catch_warnings(record=True) as w:
         try:
             return ADMTrees(
-                "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt"
+                "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt",
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
+                f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             )
 
 
@@ -63,6 +64,7 @@ def sample_value_finder(threshold: Optional[float] = None) -> ValueFinder:
     -------
     ValueFinder
         The Value Finder class populated with the Value Finder simulation data
+
     """
     with warnings.catch_warnings(record=True) as w:
         try:
@@ -74,5 +76,5 @@ def sample_value_finder(threshold: Optional[float] = None) -> ValueFinder:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
+                f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             )

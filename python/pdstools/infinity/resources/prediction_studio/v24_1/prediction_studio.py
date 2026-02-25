@@ -12,14 +12,18 @@ class _PredictionStudioV24_1Mixin:
 
     @api_method
     async def upload_model(self, model, file_name):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
     def list_predictions(self) -> PaginatedList[Prediction]:
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
         return PaginatedList(
-            Prediction, self._client, "get", endpoint, _root="predictions"
+            Prediction,
+            self._client,
+            "get",
+            endpoint,
+            _root="predictions",
         )
 
     def repository(self) -> Repository:
@@ -32,7 +36,11 @@ class AsyncPredictionStudio(_PredictionStudioV24_1Mixin, AsyncPredictionStudioBa
     async def list_predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
         return AsyncPaginatedList(
-            AsyncPrediction, self._client, "get", endpoint, _root="predictions"
+            AsyncPrediction,
+            self._client,
+            "get",
+            endpoint,
+            _root="predictions",
         )
 
     async def repository(self) -> AsyncRepository:

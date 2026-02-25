@@ -36,7 +36,8 @@ class _PredictionV24_1Mixin:
                 )
                 .with_columns(
                     snapshotTime=cdh_utils.parse_pega_date_time_formats(
-                        "snapshotTime", "%Y-%m-%dT%H:%M:%S%.fZ"
+                        "snapshotTime",
+                        "%Y-%m-%dT%H:%M:%S%.fZ",
                     ),
                     value=pl.col("value").replace("", None).cast(pl.Float64),
                     category=pl.col("dataUsage"),
@@ -50,7 +51,7 @@ class _PredictionV24_1Mixin:
                     "value": pl.Float64,
                     "snapshotTime": pl.Datetime("ns"),
                     "category": pl.Utf8,
-                }
+                },
             )
             return data
 

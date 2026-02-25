@@ -7,7 +7,6 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
-
 from pdstools.infinity.internal._base_client import (
     SyncAPIClient,
 )
@@ -18,7 +17,6 @@ from pdstools.infinity.internal._exceptions import (
     NoMonitoringInfo,
     handle_pega_exception,
 )
-
 
 # ---------------------------------------------------------------------------
 # BaseClient
@@ -238,7 +236,7 @@ class TestSyncAPIClientRequest:
         mocker.patch.object(
             client._client,
             "send",
-            side_effect=IOError("generic IO error"),
+            side_effect=OSError("generic IO error"),
         )
         with pytest.raises(APIConnectionError):
             client.get("/api/test")
@@ -309,8 +307,8 @@ class TestHandlePegaException:
                     {
                         "message": "Error_NoMonitoringInfo",
                         "localizedValue": "No monitoring",
-                    }
-                ]
+                    },
+                ],
             },
         )
         with pytest.raises(NoMonitoringInfo):
@@ -323,7 +321,7 @@ class TestHandlePegaException:
                 "errorDetails": [
                     {"message": "error1", "localizedValue": "Error 1"},
                     {"message": "error2", "localizedValue": "Error 2"},
-                ]
+                ],
             },
         )
         with pytest.raises(MultipleErrors):
@@ -346,7 +344,8 @@ class TestHandlePegaException:
 
     def test_custom_exception_hook(self, mocker):
         """SyncAPIClient.handle_pega_exception should call custom_exception_hook
-        if one is installed."""
+        if one is installed.
+        """
         client = SyncAPIClient(
             base_url="https://example.com",
             auth=httpx.BasicAuth("user", "pass"),
@@ -355,7 +354,8 @@ class TestHandlePegaException:
         client.custom_exception_hook = MagicMock(return_value=custom_exc)
 
         resp = self._make_response(
-            400, {"errorDetails": [{"message": "test", "localizedValue": "test"}]}
+            400,
+            {"errorDetails": [{"message": "test", "localizedValue": "test"}]},
         )
         with pytest.raises(ValueError, match="custom error"):
             client.handle_pega_exception("/api/test", {}, resp)
@@ -375,8 +375,8 @@ class TestHandlePegaException:
                     {
                         "message": "Error_NoMonitoringInfo",
                         "localizedValue": "No monitoring",
-                    }
-                ]
+                    },
+                ],
             },
         )
         with pytest.raises(NoMonitoringInfo):
@@ -419,7 +419,7 @@ class TestSyncClientFactories:
             "Client ID\n"
             "test-id\n"
             "Client Secret\n"
-            "test-secret\n"
+            "test-secret\n",
         )
         client = SyncAPIClient.from_client_credentials(str(cred_file))
         assert isinstance(client, SyncAPIClient)

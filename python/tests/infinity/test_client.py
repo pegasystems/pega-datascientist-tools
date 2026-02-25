@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-
 import pytest
-
 from pdstools.infinity import AsyncInfinity, Infinity
-
 
 # ---------------------------------------------------------------------------
 # Infinity (sync)
@@ -32,7 +29,10 @@ class TestInfinity:
             side_effect=AssertionError("should not be called"),
         )
         client = Infinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret", pega_version="24.2"
+            "https://example.com",
+            "id",
+            "secret",
+            pega_version="24.2",
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
@@ -40,7 +40,9 @@ class TestInfinity:
     def test_init_inferred_version_24_1(self, mocker):
         mocker.patch.object(Infinity, "_infer_version", return_value="24.1")
         client = Infinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert client.version == "24.1"
         assert hasattr(client, "prediction_studio")
@@ -48,7 +50,9 @@ class TestInfinity:
     def test_init_inferred_version_24_2(self, mocker):
         mocker.patch.object(Infinity, "_infer_version", return_value="24.2")
         client = Infinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
@@ -56,7 +60,9 @@ class TestInfinity:
     def test_knowledge_buddy_always_available(self, mocker):
         mocker.patch.object(Infinity, "_infer_version", return_value=None)
         client = Infinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert hasattr(client, "knowledge_buddy")
 
@@ -76,7 +82,9 @@ class TestInfinity:
         """An unknown version (e.g. '25.1') should fall back to latest (24.2)."""
         mocker.patch.object(Infinity, "_infer_version", return_value="25.1")
         client = Infinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert client.version == "25.1"
         # Should still get prediction_studio (falls back to 24.2 dispatch)
@@ -100,7 +108,10 @@ class TestAsyncInfinity:
             side_effect=AssertionError("should not be called"),
         )
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret", pega_version="24.2"
+            "https://example.com",
+            "id",
+            "secret",
+            pega_version="24.2",
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
@@ -108,7 +119,9 @@ class TestAsyncInfinity:
     def test_init_without_version(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert client.version is None
         assert not hasattr(client, "prediction_studio")
@@ -116,7 +129,9 @@ class TestAsyncInfinity:
     def test_init_inferred_version_24_2(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value="24.2")
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
@@ -124,14 +139,18 @@ class TestAsyncInfinity:
     def test_knowledge_buddy_always_available(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         assert hasattr(client, "knowledge_buddy")
 
     def test_getattr_version_dependent_resource_raises(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         with pytest.raises(AttributeError, match="not available"):
             _ = client.prediction_studio
@@ -139,7 +158,9 @@ class TestAsyncInfinity:
     def test_getattr_unknown_attribute_raises(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         with pytest.raises(AttributeError, match="has no attribute"):
             _ = client.nonexistent_thing
@@ -147,7 +168,9 @@ class TestAsyncInfinity:
     def test_getattr_error_message_mentions_async(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com", "id", "secret"
+            "https://example.com",
+            "id",
+            "secret",
         )
         with pytest.raises(AttributeError, match="AsyncInfinity"):
             _ = client.prediction_studio

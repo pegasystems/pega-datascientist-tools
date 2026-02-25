@@ -33,7 +33,7 @@ To use the Decision Analyzer Tool, you need to install several Python components
 
 .. tabs::
    .. tab:: uv tool (recommended)
-      
+
       We have a strong preference for `uv <https://github.com/astral-sh/uv>`_ as it's fast, reliable, and handles Python versions automatically.
 
       **Step 1:** Install uv
@@ -145,7 +145,7 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
 .. tabs::
    .. tab:: uv tool (recommended)
-      
+
       .. code-block:: bash
 
          pdstools decision_analyzer
@@ -203,7 +203,7 @@ If you already had an older version of pdstools, make sure to upgrade to the lat
 
 .. tabs::
    .. tab:: uv + tool (recommended)
-      
+
       .. code-block:: bash
 
          uv tool update pdstools

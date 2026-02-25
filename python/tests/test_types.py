@@ -1,9 +1,8 @@
-"""
-Testing the functionality of the types module
-"""
+"""Testing the functionality of the types module"""
+
+from typing import Union
 
 import polars as pl
-from typing import Union
 from pdstools.utils.types import ANY_FRAME, QUERY
 
 

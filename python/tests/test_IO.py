@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the io functions
-"""
+"""Testing the functionality of the io functions"""
 
 import os
 import pathlib
@@ -75,7 +73,7 @@ def test_wrong_filename():
 def test_only_imports_zips():
     with pytest.raises(zipfile.BadZipFile):
         pega_io.read_zipped_file(
-            os.path.join(f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv")
+            os.path.join(f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv"),
         )
 
 
@@ -140,7 +138,7 @@ def test_polars_zip_from_url():
 
 
 def polars_checks(df):
-    "Very simple convienence function to check if it is a dataframe with rows."
+    """Very simple convienence function to check if it is a dataframe with rows."""
     if isinstance(df, pl.LazyFrame) and df.shape[0] > 0:
         return True
 
@@ -231,7 +229,7 @@ def test_cache_to_file():
         {
             "PredictorName": ["Customer.Variable", "Variable"],
             "date": ["2023-01-01", "2023-01-02"],
-        }
+        },
     )
 
     cached_path = pega_io.cache_to_file(input_df, path=os.getcwd(), name="cache_test")
@@ -240,13 +238,19 @@ def test_cache_to_file():
 
     # test for cache_type="ipc"
     cached_path_arrow = pega_io.cache_to_file(
-        input_df, path=os.getcwd(), name="cache_test", cache_type="ipc"
+        input_df,
+        path=os.getcwd(),
+        name="cache_test",
+        cache_type="ipc",
     )
 
     assert input_df.collect().equals(pl.read_ipc(cached_path_arrow))
     # test for cache_type="parquet"
     cached_path_parquet = pega_io.cache_to_file(
-        input_df, path=os.getcwd(), name="cache_test", cache_type="parquet"
+        input_df,
+        path=os.getcwd(),
+        name="cache_test",
+        cache_type="parquet",
     )
 
     assert input_df.collect().equals(pl.read_parquet(cached_path_parquet))
@@ -264,7 +268,9 @@ def test_infer_schema_length_csv():
     assert polars_checks(result)
 
     result_large = pega_io.read_ds_export(
-        path=path, filename=models, infer_schema_length=100000
+        path=path,
+        filename=models,
+        infer_schema_length=100000,
     )
     assert polars_checks(result_large)
 
@@ -278,7 +284,9 @@ def test_infer_schema_length_json():
     assert polars_checks(result)
 
     result_large = pega_io.read_ds_export(
-        path=path, filename=models, infer_schema_length=100000
+        path=path,
+        filename=models,
+        infer_schema_length=100000,
     )
     assert polars_checks(result_large)
 

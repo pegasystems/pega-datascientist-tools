@@ -1,4 +1,5 @@
-from typing import AsyncIterator, Generic, Iterator, TypeVar, Union, overload
+from collections.abc import AsyncIterator, Iterator
+from typing import Generic, TypeVar, Union, overload
 
 import polars as pl
 
@@ -50,15 +51,14 @@ class PaginatedList(Generic[T]):
                 raise IndexError("Cannot negative index a PaginatedList")
             self._get_up_to_index(index)
             return self._elements[index]
-        elif isinstance(index, slice):
+        if isinstance(index, slice):
             return self._Slice(self, index)
-        else:
-            assert "id" in self._content_class, (
-                "To pass a string as index for a paginated list, the content class needs an 'id' field."
-            )
-            for element in self.__iter__():
-                if element["id"] == index:
-                    return element
+        assert (
+            "id" in self._content_class
+        ), "To pass a string as index for a paginated list, the content class needs an 'id' field."
+        for element in self.__iter__():
+            if element["id"] == index:
+                return element
 
         raise IndexError(index)
 
@@ -90,6 +90,7 @@ class PaginatedList(Generic[T]):
         -------
         Any
             The element, or slice of elements. If not found, returns default
+
         """
         if kwargs:
             for element in self:
@@ -118,7 +119,9 @@ class PaginatedList(Generic[T]):
 
     def _get_next_page(self):
         response = self._client.request(
-            self._request_method, self._url, **self._next_params
+            self._request_method,
+            self._url,
+            **self._next_params,
         )
         self._next_token = response.pop("nextToken", None)
         if self._next_token is not None:
@@ -186,9 +189,7 @@ class PaginatedList(Generic[T]):
             return self._stop is not None and index >= self._stop
 
         def as_df(self):
-            return pl.DataFrame(
-                getattr(prediction, "_public_dict") for prediction in self
-            )
+            return pl.DataFrame(prediction._public_dict for prediction in self)
 
 
 class AsyncPaginatedList(Generic[T]):
@@ -232,7 +233,9 @@ class AsyncPaginatedList(Generic[T]):
 
     async def _get_next_page(self):
         response = await self._client.request(
-            self._request_method, self._url, **self._next_params
+            self._request_method,
+            self._url,
+            **self._next_params,
         )
         self._next_token = response.pop("nextToken", None)
         if self._next_token is not None:
@@ -292,7 +295,7 @@ class AsyncPaginatedList(Generic[T]):
                 items = await self.collect()
                 if isinstance(__key, int):
                     return items[__key]
-                elif isinstance(__key, str):
+                if isinstance(__key, str):
                     for el in items:
                         if getattr(el, "id", None) == __key:
                             return el
@@ -303,4 +306,4 @@ class AsyncPaginatedList(Generic[T]):
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""
         items = await self.collect()
-        return pl.DataFrame(getattr(item, "_public_dict") for item in items)
+        return pl.DataFrame(item._public_dict for item in items)

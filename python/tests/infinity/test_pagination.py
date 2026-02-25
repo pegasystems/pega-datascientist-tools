@@ -6,10 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, call
 
 import polars as pl
 import pytest
-
 from pdstools.infinity.internal._pagination import AsyncPaginatedList, PaginatedList
-from pdstools.infinity.internal._resource import SyncAPIResource, AsyncAPIResource
-
+from pdstools.infinity.internal._resource import AsyncAPIResource, SyncAPIResource
 
 # ---------------------------------------------------------------------------
 # Minimal content class for pagination tests.
@@ -55,7 +53,7 @@ def _single_page_client():
             {"id": "A", "name": "Alice"},
             {"id": "B", "name": "Bob"},
             {"id": "C", "name": "Charlie"},
-        ]
+        ],
     )
     return client
 
@@ -106,7 +104,8 @@ class TestPaginatedList:
 
     def test_getitem_by_string_id_requires_dict_content_class(self):
         """String indexing expects the content class to support `in` and dict-like
-        item access. With SyncAPIResource subclasses it raises TypeError."""
+        item access. With SyncAPIResource subclasses it raises TypeError.
+        """
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
         with pytest.raises(TypeError):
@@ -135,7 +134,8 @@ class TestPaginatedList:
 
     def test_get_by_string_returns_default_for_resource_classes(self):
         """get() by string falls back to default because __getitem__ for string
-        fails with resource classes that don't support dict-like 'in' checks."""
+        fails with resource classes that don't support dict-like 'in' checks.
+        """
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
         result = pl_.get("C", "not_found")
@@ -190,7 +190,8 @@ class TestPaginatedList:
 
     def test_extra_attribs_merged(self):
         """extra_attribs should be merged into each element dict before
-        constructing the content class."""
+        constructing the content class.
+        """
         client = MagicMock()
         client.request.return_value = {"items": [{"id": "X", "name": "Extra"}]}
 
@@ -256,7 +257,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         items = []
@@ -273,7 +274,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         items = await apl.collect()
@@ -290,7 +291,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         items = await apl.collect()
@@ -305,7 +306,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         item = await apl.get(1)
@@ -318,7 +319,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         item = await apl.get("B")
@@ -329,7 +330,7 @@ class TestAsyncPaginatedList:
         client = self._make_async_client(
             [
                 _make_page([{"id": "A", "name": "Alice"}]),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         result = await apl.get("Z", "fallback")
@@ -342,7 +343,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         item = await apl.get(name="Bob")
@@ -355,7 +356,7 @@ class TestAsyncPaginatedList:
                 _make_page(
                     [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
                 ),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         df = await apl.as_df()
@@ -389,7 +390,7 @@ class TestAsyncPaginatedList:
             [
                 _make_page([{"id": "A", "name": "Alice"}], next_token="tok"),
                 _make_page([{"id": "B", "name": "Bob"}]),
-            ]
+            ],
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         await apl.collect()

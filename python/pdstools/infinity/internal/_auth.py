@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Generator
+from collections.abc import Generator
 
 import httpx
 
@@ -36,7 +36,7 @@ class PegaOAuth(httpx.Auth):
         )
         if response.status_code != 200:
             raise ConnectionError(
-                f"Unable to get new token: {response.status_code}: {response.json()}"
+                f"Unable to get new token: {response.status_code}: {response.json()}",
             )
         new_token = response.json()
         self._token_expiry = time.time() + new_token.get("expires_in")
@@ -45,10 +45,11 @@ class PegaOAuth(httpx.Auth):
 
     @property
     def _auth_header(self):
-        return "Bearer {}".format(self.token)
+        return f"Bearer {self.token}"
 
     def auth_flow(
-        self, request: httpx.Request
+        self,
+        request: httpx.Request,
     ) -> Generator[httpx.Request, httpx.Response, None]:  # pragma: no cover
         request.headers["Authorization"] = self._auth_header
         yield request

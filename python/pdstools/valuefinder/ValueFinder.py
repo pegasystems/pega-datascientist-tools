@@ -1,8 +1,9 @@
 import os
+from collections.abc import Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Iterable, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import polars as pl
 
@@ -34,7 +35,7 @@ class ValueFinder:
         self.n_customers: int = n_customers or int(
             self.df.select(pl.col("CustomerID").n_unique().cast(pl.UInt32))
             .collect()
-            .item()
+            .item(),
         )
 
         self.nbad_stages = [
@@ -84,7 +85,10 @@ class ValueFinder:
         )
 
         return cls(
-            df=df, query=query, n_customers=n_customers, threshold=threshold
+            df=df,
+            query=query,
+            n_customers=n_customers,
+            threshold=threshold,
         )  # pragma: no cover
 
     def set_threshold(self, new_threshold: Optional[float] = None):
@@ -92,7 +96,7 @@ class ValueFinder:
             self._th = pl.LazyFrame({"th": new_threshold})
         else:
             self._th = self.df.filter(pl.col("Stage") == "Eligibility").select(
-                pl.quantile("ModelPropensity", 0.05).alias("th")
+                pl.quantile("ModelPropensity", 0.05).alias("th"),
             )
 
     @cached_property
@@ -111,9 +115,13 @@ class ValueFinder:
         -------
         (Optional[Path], Optional[Path]):
             The paths to the model and predictor data files
+
         """
         time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         cache_file = cache_to_file(
-            self.df, path, name=f"cached_value_finder_data_{time}", cache_type="parquet"
+            self.df,
+            path,
+            name=f"cached_value_finder_data_{time}",
+            cache_type="parquet",
         )
         return cache_file

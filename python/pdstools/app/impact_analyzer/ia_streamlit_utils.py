@@ -1,14 +1,14 @@
 # python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
 import tempfile
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Optional
 
 import streamlit as st
 
 from pdstools import ImpactAnalyzer
 from pdstools.utils.streamlit_utils import ensure_session_data
-
 
 SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
 
@@ -25,7 +25,7 @@ def _write_uploaded_file(uploaded_file) -> str:
         return tmp.name
 
 
-def _write_uploaded_files(uploaded_files: Iterable) -> List[str]:
+def _write_uploaded_files(uploaded_files: Iterable) -> list[str]:
     return [_write_uploaded_file(uploaded_file) for uploaded_file in uploaded_files]
 
 

@@ -6,16 +6,16 @@ from .prediction_studio import AsyncPredictionStudio, PredictionStudio
 from .repository import AsyncRepository, Repository
 
 __all__ = [
-    "PredictionStudio",
-    "AsyncPredictionStudio",
-    "Prediction",
-    "AsyncPrediction",
-    "Model",
-    "AsyncModel",
-    "ChampionChallenger",
     "AsyncChampionChallenger",
-    "DatamartExport",
     "AsyncDatamartExport",
-    "Repository",
+    "AsyncModel",
+    "AsyncPrediction",
+    "AsyncPredictionStudio",
     "AsyncRepository",
+    "ChampionChallenger",
+    "DatamartExport",
+    "Model",
+    "Prediction",
+    "PredictionStudio",
+    "Repository",
 ]

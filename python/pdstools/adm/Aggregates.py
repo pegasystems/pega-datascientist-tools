@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -41,6 +41,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             A LazyFrame containing only the rows from the most recent snapshot time
+
         """
         if data is None and not hasattr(self.datamart, table):
             raise ValueError(f"{table} not available in the datamart")
@@ -54,11 +55,13 @@ class Aggregates:
             # get written not in bulk but per model? Downside is that
             # very old model IDs that never got used anymore would still show up.
             pl.col("SnapshotTime").fill_null(strategy="zero")
-            == pl.col("SnapshotTime").fill_null(strategy="zero").max()
+            == pl.col("SnapshotTime").fill_null(strategy="zero").max(),
         )
 
     def _combine_data(
-        self, model_df: Optional[pl.LazyFrame], predictor_df: Optional[pl.LazyFrame]
+        self,
+        model_df: Optional[pl.LazyFrame],
+        predictor_df: Optional[pl.LazyFrame],
     ) -> Optional[pl.LazyFrame]:
         """Combines the model and predictor tables to the `combined_data` attribute
 
@@ -73,6 +76,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             The resulting data, joined on the ModelID column
+
         """
         if model_df is None or predictor_df is None:
             return None
@@ -112,12 +116,13 @@ class Aggregates:
         pl.LazyFrame
             A LazyFrame with a column for each predictor, and a row for each 'group'.
             The values represent the weighted performance for that predictor
+
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
                 (pl.col("EntryType") == "Active")
                 if active_only
-                else (pl.col("EntryType") != "Classifier")
+                else (pl.col("EntryType") != "Classifier"),
             ),
             query,
         )
@@ -141,8 +146,9 @@ class Aggregates:
                 .group_by(action_predictor)
                 .agg(
                     cdh_utils.weighted_average_polars(
-                        "PredictorPerformance", "ResponseCountBin"
-                    )
+                        "PredictorPerformance",
+                        "ResponseCountBin",
+                    ),
                 )
             )
             .group_by(by_col)
@@ -155,7 +161,7 @@ class Aggregates:
                         .alias(predictor)
                     )
                     for predictor in unique_predictors
-                ]
+                ],
             )
             .with_columns(pl.all().exclude(by_name).list.max())
         ).sort(pl.mean_horizontal(pl.all().exclude(by_name)), descending=True)
@@ -177,7 +183,9 @@ class Aggregates:
     # should it also have Performance?
 
     def model_summary(
-        self, by: str = "Name", query: Optional[QUERY] = None
+        self,
+        by: str = "Name",
+        query: Optional[QUERY] = None,
     ) -> pl.LazyFrame:
         """Generate a summary of statistic for each model (based on model ID)
 
@@ -196,6 +204,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             A LazyFrame, with one row for each context key combination
+
         """
         df = cdh_utils._apply_query(self.datamart.aggregates.last(), query)
         aggregate_columns = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
@@ -219,13 +228,14 @@ class Aggregates:
                 pl.col(aggregate_columns).mean().name.suffix("_mean"),
                 Weighted_performance=cdh_utils.weighted_performance_polars(),
                 Weighted_success_rate=cdh_utils.weighted_average_polars(
-                    "SuccessRate", "ResponseCount"
+                    "SuccessRate",
+                    "ResponseCount",
                 ).fill_nan(0.0),
             )
             .with_columns(
                 Percentage_without_responses=(
                     pl.col("Count_without_responses") / pl.col("count")
-                ).fill_nan(0.0)
+                ).fill_nan(0.0),
             )
         )
 
@@ -253,8 +263,8 @@ class Aggregates:
         -------
         pl.DataFrame
             Subsetted dataframe
-        """
 
+        """
         if top_n < 1:
             return df
         if facets:
@@ -264,7 +274,9 @@ class Aggregates:
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
                 .agg(
-                    pl.col("PredictorName").sort_by(metric, descending=True).head(top_n)
+                    pl.col("PredictorName")
+                    .sort_by(metric, descending=True)
+                    .head(top_n),
                 )
                 .explode("PredictorName"),
                 on=(*facets, "PredictorName"),
@@ -287,7 +299,7 @@ class Aggregates:
         every: Optional[str],
         by_channel: bool = False,
         debug: bool = False,
-        custom_channels: Optional[Dict[str, str]] = None,
+        custom_channels: Optional[dict[str, str]] = None,
     ) -> pl.LazyFrame:
         custom_channels = custom_channels or {}
 
@@ -303,13 +315,15 @@ class Aggregates:
             raise ValueError("Model summaries needs model data")
 
         model_data = cdh_utils._apply_query(
-            self.datamart.model_data, query=query, allow_empty=True
+            self.datamart.model_data,
+            query=query,
+            allow_empty=True,
         )
         grouping = []
 
         if every:
             model_data = model_data.with_columns(
-                pl.col("SnapshotTime").dt.truncate(every).alias("Period")
+                pl.col("SnapshotTime").dt.truncate(every).alias("Period"),
             )
             grouping += ["Period"]
 
@@ -322,13 +336,13 @@ class Aggregates:
                             {
                                 "Channel": standard_channels,
                                 "ChannelGroup": standard_channels,
-                            }
+                            },
                         ),
                         pl.DataFrame(
                             {
                                 "Channel": list(custom_channels.keys()),
                                 "ChannelGroup": list(custom_channels.values()),
-                            }
+                            },
                         ),
                     ],
                     how="diagonal",
@@ -347,7 +361,7 @@ class Aggregates:
                     ChannelDirectionGroup=pl.when(
                         pl.col("ChannelGroup").is_not_null()
                         & pl.col("Direction").is_not_null()
-                        & pl.col("ChannelGroup").is_in(["Other", "Unknown", ""]).not_()
+                        & pl.col("ChannelGroup").is_in(["Other", "Unknown", ""]).not_(),
                     )
                     .then(pl.concat_str(["ChannelGroup", "Direction"], separator="/"))
                     .otherwise(pl.lit("Other")),
@@ -386,7 +400,10 @@ class Aggregates:
         )
 
     def _summarize_meta_info(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: Optional[list[str]],
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(grouping)
@@ -408,7 +425,10 @@ class Aggregates:
         )
 
     def _summarize_model_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: Optional[list[str]],
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(([] if grouping is None else grouping) + ["ModelID"])
@@ -458,7 +478,10 @@ class Aggregates:
         )
 
     def _summarize_action_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: Optional[list[str]],
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
@@ -473,7 +496,9 @@ class Aggregates:
 
         action_summary = (
             model_data.join(
-                self.datamart.first_action_dates, on="Name", nulls_equal=True
+                self.datamart.first_action_dates,
+                on="Name",
+                nulls_equal=True,
             )
             .with_columns(
                 GlobalMinSnapshotTime=pl.col("SnapshotTime").min(),
@@ -500,7 +525,7 @@ class Aggregates:
                     & (
                         pl.col("ActionFirstSnapshotTime")
                         <= pl.col("SnapshotTime").max()
-                    )
+                    ),
                     # additional condition to drop first batch but keep it if there's only one batch
                     # this is complicated, when partitioning by time makes sense, but when doing by
                     # channel not so much
@@ -526,15 +551,14 @@ class Aggregates:
                 nulls_equal=True,
                 how="left",
             ).fill_null(0)
-        else:
-            return action_summary.with_columns(
-                pl.lit(0).alias("Treatments"),
-                pl.lit(0).alias("Used Treatments"),
-            ).fill_null(0)
+        return action_summary.with_columns(
+            pl.lit(0).alias("Treatments"),
+            pl.lit(0).alias("Used Treatments"),
+        ).fill_null(0)
 
     def _summarize_model_usage(
         self,
-        grouping: Optional[List[str]],
+        grouping: Optional[list[str]],
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
@@ -550,8 +574,7 @@ class Aggregates:
 
         if debug:
             return result
-        else:
-            return result.drop("ModelTechnique", "Configurations")
+        return result.drop("ModelTechnique", "Configurations")
 
     def summary_by_channel(
         self,
@@ -561,7 +584,7 @@ class Aggregates:
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
         every: Optional[str] = None,
-        custom_channels: Optional[Dict[str, str]] = None,
+        custom_channels: Optional[dict[str, str]] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
@@ -578,7 +601,7 @@ class Aggregates:
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        custom_channels : Dict[str, str], optional
+        custom_channels : dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
@@ -624,10 +647,13 @@ class Aggregates:
             Technology Usage Indicators:
             - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
-        """
 
+        """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window
+            self.datamart.model_data,
+            start_date,
+            end_date,
+            window,
         )
 
         if query is None:
@@ -685,7 +711,7 @@ class Aggregates:
             .with_columns(
                 cs.categorical().cast(pl.Utf8),
                 pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")).alias(
-                    "ChannelDirection"
+                    "ChannelDirection",
                 ),
             )
             .drop(
@@ -694,15 +720,14 @@ class Aggregates:
                 else (
                     ["TotalPositives", "TotalResponseCount"]
                     + ([] if every is None else ["Period"])
-                )
+                ),
             )
             .sort("Channel", "Direction", "DateRange Min")
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
 
     def summary_by_configuration(self) -> pl.LazyFrame:
-        """
-        Generates a summary of the ADM model configurations.
+        """Generates a summary of the ADM model configurations.
 
         This method provides an overview of model configurations, including information about
         the number of models, actions, treatments, and performance metrics.
@@ -736,18 +761,17 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
 
         """
-
         action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
         if "Treatment" in self.datamart.context_keys:
             action_dim_agg += [
-                pl.col("Treatment").n_unique().alias("Unique Treatments")
+                pl.col("Treatment").n_unique().alias("Unique Treatments"),
             ]
         else:
             action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
 
         if "Issue" in self.datamart.context_keys:
             action_dim_agg += [
-                pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)")
+                pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)"),
             ]
 
         group_by_cols = ["Configuration"] + [
@@ -778,7 +802,7 @@ class Aggregates:
         )
         if "Issue" in self.datamart.context_keys:
             configuration_summary = configuration_summary.with_columns(
-                pl.col("Used for (Issues)").list.unique().list.sort().list.join(", ")
+                pl.col("Used for (Issues)").list.unique().list.sort().list.join(", "),
             )
 
         return configuration_summary
@@ -786,8 +810,7 @@ class Aggregates:
     def predictors_global_overview(
         self,
     ) -> pl.LazyFrame:
-        """
-        Generate a global overview of all predictors across all models.
+        """Generate a global overview of all predictors across all models.
 
         This method provides a summary of predictor performance and characteristics
         across all models, including the number of responses, positives, and performance metrics.
@@ -801,8 +824,8 @@ class Aggregates:
             - Response Count Min/Max - The total number of responses for this predictor
             - Positives - The total number of positive responses for this predictor
             - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
-        """
 
+        """
         data = self.last(table="predictor_data")
 
         global_overview = (
@@ -822,7 +845,7 @@ class Aggregates:
                     (pl.mean("Performance") * 100).alias("Mean"),
                     (pl.median("Performance") * 100).alias("Median"),
                     (pl.max("Performance") * 100).alias("Max"),
-                ]
+                ],
             )
             .sort("PredictorName")
         )
@@ -833,8 +856,7 @@ class Aggregates:
         model_id: Optional[str] = None,
         additional_aggregations: Optional[list] = None,
     ) -> Optional[pl.LazyFrame]:
-        """
-        Generate a summary of the last snapshot of predictor data.
+        """Generate a summary of the last snapshot of predictor data.
 
         This method provides an overview of predictor performance and characteristics
         from the most recent snapshot, either for all models or for a specific model.
@@ -874,6 +896,7 @@ class Aggregates:
             - Residual % - The percentage of responses in the RESIDUAL bin
 
             Returns None if the required data is not available or an error is encountered.
+
         """
         try:
             data = self.last(table="predictor_data")
@@ -991,10 +1014,13 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
 
             Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
-        """
 
+        """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window
+            self.datamart.model_data,
+            start_date,
+            end_date,
+            window,
         )
 
         overall_summary = (
@@ -1056,20 +1082,19 @@ class Aggregates:
                 .drop([] if debug else ["TotalPositives", "TotalResponseCount"])
             )
 
-        else:
-            return (
-                overall_summary.join(
-                    best_worst_channel_summary,
-                    on="Period",
-                    nulls_equal=True,
-                    how="left",
-                )
-                .with_columns(
-                    cs.categorical().cast(pl.Utf8),
-                    pl.col("Number of Valid Channels").fill_null(0),
-                )
-                .sort("DateRange Min")
-                .drop(
-                    [] if debug else ["TotalPositives", "TotalResponseCount", "Period"]
-                )
+        return (
+            overall_summary.join(
+                best_worst_channel_summary,
+                on="Period",
+                nulls_equal=True,
+                how="left",
             )
+            .with_columns(
+                cs.categorical().cast(pl.Utf8),
+                pl.col("Number of Valid Channels").fill_null(0),
+            )
+            .sort("DateRange Min")
+            .drop(
+                [] if debug else ["TotalPositives", "TotalResponseCount", "Period"],
+            )
+        )

@@ -1,26 +1,18 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
 from datetime import datetime
 from typing import (
-    TYPE_CHECKING,
     Any,
-    Dict,
-    List,
     Literal,
-    Optional,
     TypedDict,
-    Union,
 )
 
 import polars as pl
+from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
-
-if TYPE_CHECKING:
-    pass
 
 DEPLOYMENT_MODE = Literal["shadow", "champion/challenger"]
 
@@ -42,9 +34,9 @@ class ModelAttributes(TypedDict):
     model_type: str
     modeling_technique: str
     source: str
-    targetLabels: List[Dict[Literal["label"], str]]
-    alternativeLabels: List[Dict[Literal["label"], str]]
-    metrics: Dict[str, Any]
+    targetLabels: list[dict[Literal["label"], str]]
+    alternativeLabels: list[dict[Literal["label"], str]]
+    metrics: dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -65,11 +57,11 @@ class _ModelMixin(ABC):
         label: str,
         modelType: str,
         status: str,
-        componentName: Union[str, None] = None,
-        source: Union[str, None] = None,
-        lastUpdateTime: Union[str, None] = None,
-        modelingTechnique: Union[str, None] = None,
-        updatedBy: Union[str, None] = None,
+        componentName: str | None = None,
+        source: str | None = None,
+        lastUpdateTime: str | None = None,
+        modelingTechnique: str | None = None,
+        updatedBy: str | None = None,
     ):
         super().__init__(client=client)
         self.model_id = modelId
@@ -82,7 +74,8 @@ class _ModelMixin(ABC):
             self.component_name = componentName
         if lastUpdateTime:
             self.last_update_time = datetime.strptime(
-                lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z"
+                lastUpdateTime,
+                "%Y%m%dT%H%M%S.%f %Z",
             )
         self.updated_by = updatedBy
 
@@ -99,8 +92,8 @@ class _PredictionMixin(ABC):
         label: str,
         status: str,
         lastUpdateTime: str,
-        objective: Optional[str] = None,
-        subject: Optional[str] = None,
+        objective: str | None = None,
+        subject: str | None = None,
     ):
         super().__init__(client=client)
         self.prediction_id = predictionId
@@ -135,8 +128,8 @@ class _NotificationMixin(ABC):
         context: str,
         impact: str,
         triggerTime: str,
-        modelID: Union[str, None] = None,
-        predictionID: Union[str, None] = None,
+        modelID: str | None = None,
+        predictionID: str | None = None,
     ):
         super().__init__(client=client)
         if modelID:
@@ -160,29 +153,25 @@ class UploadedModel(ABC): ...
 class ModelValidationError(Exception):
     """Exception for errors during model validation."""
 
-    pass
-
 
 class LocalModel(BaseModel):
     def validate(self) -> bool:
-        """
-        Validates a model.
+        """Validates a model.
 
         Raises
         ------
             ModelValidationError: If the model is invalid or if the validation process fails.
+
         """
-        pass
 
     def get_file_path(self) -> str:
-        """
-        Returns the file path of the model.
+        """Returns the file path of the model.
 
         Returns
         -------
             str: The file path of the model.
+
         """
-        pass
 
 
 class _RepositoryMixin(ABC):

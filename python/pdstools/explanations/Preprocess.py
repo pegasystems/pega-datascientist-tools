@@ -17,7 +17,6 @@ from .resources import queries as queries_data
 
 logger = logging.getLogger(__name__)
 
-
 if TYPE_CHECKING:
     from .Explanations import Explanations
 
@@ -37,7 +36,7 @@ class Preprocess(LazyNamespace):
         self.data_file = explanations.data_file
         self.data_foldername = "aggregated_data"
         self.data_folderpath = pathlib.Path(
-            os.path.join(self.explanations.root_dir, self.data_foldername)
+            os.path.join(self.explanations.root_dir, self.data_foldername),
         )
 
         self.from_date = explanations.from_date
@@ -94,7 +93,6 @@ class Preprocess(LazyNamespace):
 
         Each of the aggregates are written to parquet files to a temporary output dirtectory
         """
-
         if self._is_cached():
             logger.debug("Using cached data for preprocessing.")
             return
@@ -258,7 +256,9 @@ class Preprocess(LazyNamespace):
         )
 
     def _get_create_table_sql_formatted(
-        self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
+        self,
+        tbl_name: _TABLE_NAME,
+        predictor_type: _PREDICTOR_TYPE,
     ):
         sql = self._read_resource_file(
             package_name=queries_data,
@@ -319,7 +319,9 @@ class Preprocess(LazyNamespace):
 
         except Exception as e:
             logger.error(
-                "Failed batch for predictor type=%s, err=%s", predictor_type, e
+                "Failed batch for predictor type=%s, err=%s",
+                predictor_type,
+                e,
             )
             raise
 
@@ -341,7 +343,8 @@ class Preprocess(LazyNamespace):
             else _TABLE_NAME.SYMBOLIC_OVERALL
         )
         return self._read_resource_file(
-            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+            package_name=queries_data,
+            filename_w_ext=f"{sql_file.value}.sql",
         )
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
@@ -352,7 +355,8 @@ class Preprocess(LazyNamespace):
         )
 
         return self._read_resource_file(
-            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+            package_name=queries_data,
+            filename_w_ext=f"{sql_file.value}.sql",
         )
 
     def _read_resource_file(self, package_name, filename_w_ext):
@@ -396,7 +400,10 @@ class Preprocess(LazyNamespace):
         return self._clean_query(f_sql)
 
     def _get_batch_sql_formatted(
-        self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"
+        self,
+        sql,
+        tbl_name: _TABLE_NAME,
+        where_condition="TRUE",
     ):
         f_sql = f"""{
             sql.format(
@@ -433,12 +440,12 @@ class Preprocess(LazyNamespace):
     def _populate_selected_files_from_local(self):
         if self.from_date is None or self.to_date is None:
             raise ValueError(
-                "Either from_date or to_date must be passed before populating selected files."
+                "Either from_date or to_date must be passed before populating selected files.",
             )
 
         if not self._validate_explanations_folder():
             raise ValueError(
-                f"Explanations folder {self.explanations_folder} does not exist or is empty."
+                f"Explanations folder {self.explanations_folder} does not exist or is empty.",
             )
 
         # get list of dates in the range from `from_date` to `to_date`
@@ -463,7 +470,8 @@ class Preprocess(LazyNamespace):
                 # Get the latest file based on modification time
                 # incase of multiple runs on the same day, we want the latest file on the day
                 latest_file = max(
-                    file_paths, key=lambda x: pathlib.Path(x).stat().st_mtime
+                    file_paths,
+                    key=lambda x: pathlib.Path(x).stat().st_mtime,
                 )
                 if pathlib.Path(latest_file).exists():
                     files_.append(latest_file)

@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ValueFinder class
-"""
+"""Testing the functionality of the ValueFinder class"""
 
 import pathlib
 
@@ -110,14 +108,14 @@ def test_counts_per_stage(vf: ValueFinder):
     counts = vf.aggregates.get_counts_per_stage().collect()
     assert counts.shape == (len(vf.nbad_stages), 4)
     assert vf.aggregates.get_counts_per_stage().filter(
-        Stage="Eligibility"
+        Stage="Eligibility",
     ).collect().row(0) == ("Eligibility", 6901, 357, 66)
 
 
 def test_max_propensity_per_customer(vf: ValueFinder):
     assert (
         vf.aggregates.max_propensity_per_customer.filter(CustomerID="Customer-1").row(
-            0
+            0,
         )[2]
         == 0.2692307692307692
     )
@@ -135,7 +133,7 @@ def test_get_threshold_from_quantile(vf: ValueFinder):
 
 def test_get_counts_for_threshold(vf: ValueFinder):
     assert vf.aggregates.get_counts_for_threshold(0.05).filter(Stage="Arbitration").row(
-        0
+        0,
     ) == ("Arbitration", 5332, 1177, 815)
 
 

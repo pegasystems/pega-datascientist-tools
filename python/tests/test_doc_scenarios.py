@@ -1,6 +1,4 @@
-"""
-Testing that none of the docs examples produce errors.
-"""
+"""Testing that none of the docs examples produce errors."""
 
 import pathlib
 import platform
@@ -47,7 +45,7 @@ def test_notebook(relative_filepath):
         tb.inject(
             f"""
         import sys
-        sys.path.append('{pythonPath}')"""
+        sys.path.append('{pythonPath}')""",
         )
         tb.execute()
 

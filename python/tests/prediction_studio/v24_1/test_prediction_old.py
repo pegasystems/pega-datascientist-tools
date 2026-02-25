@@ -42,7 +42,7 @@ mock_prediction_describe = {
                     "performanceMeasure": "AUC",
                     "componentName": "Accept",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
             "categoryModels": [
                 {
@@ -54,9 +54,9 @@ mock_prediction_describe = {
                     "categoryName": "Retention",
                     "componentName": "testModel_falcons",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
-        }
+        },
     ],
     "supportingModels": [
         {
@@ -69,7 +69,7 @@ mock_prediction_describe = {
             "componentName": "RiskModel",
             "contextName": "NoContext",
             "modelingTechnique": "GBM and XGBoost",
-        }
+        },
     ],
     "metrics": {"lift": 0.0, "performance": 68.87, "performanceMeasure": "AUC"},
 }
@@ -84,19 +84,21 @@ mock_performance_metric = {
         {"value": "70.13", "snapshotTime": "2024-07-09T12:00:00.000Z"},
         {"value": "77.45", "snapshotTime": "2024-07-10T12:00:00.000Z"},
         {"value": "68.87", "snapshotTime": "2024-07-11T12:00:00.000Z"},
-    ]
+    ],
 }
 
 
 def test_prediction_describe(prediction_client, mocker):
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_prediction_describe
+        prediction_client._client,
+        "get",
+        return_value=mock_prediction_describe,
     )
 
     result = prediction_client.describe()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
     assert (
@@ -121,7 +123,9 @@ def test_prediction_describe(prediction_client, mocker):
 
 def test_prediction_get_metric(prediction_client, mocker):
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_performance_metric
+        prediction_client._client,
+        "get",
+        return_value=mock_performance_metric,
     )
     result = prediction_client.get_metric(metric="Performance", timeframe="7d")
 

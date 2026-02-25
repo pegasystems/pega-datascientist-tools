@@ -7,8 +7,8 @@ from da_streamlit_utils import (
     ensure_funnel,
     get_current_index,
     get_data_filters,
-    show_filtered_counts,
     polars_lazyframe_hashing,
+    show_filtered_counts,
 )
 
 from pdstools.decision_analyzer.utils import (
@@ -44,7 +44,9 @@ def decision_funnel(
     return_df=False,
 ):
     return st.session_state.decision_data.plot.decision_funnel(
-        scope=scope, additional_filters=additional_filters, return_df=return_df
+        scope=scope,
+        additional_filters=additional_filters,
+        return_df=return_df,
     )
 
 
@@ -75,7 +77,7 @@ with st.session_state["sidebar"]:
     st.session_state["local_filters"] = get_data_filters(
         st.session_state.decision_data.decision_data,
         columns=st.session_state.decision_data.getAvailableFieldsForFiltering(
-            categoricalOnly=True
+            categoricalOnly=True,
         ),
         queries=[],
         filter_type="local",
@@ -83,7 +85,7 @@ with st.session_state["sidebar"]:
 
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
-            st.session_state.decision_data.decision_data
+            st.session_state.decision_data.decision_data,
         )
         statsAfterExtraFilter = get_first_level_stats(
             st.session_state.decision_data.decision_data,
@@ -98,7 +100,6 @@ with st.session_state["sidebar"]:
     #     ["StageGroup", "Stage"],
     #     default="StageGroup"
     # )
-
 
 with st.container(border=True):
     remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
@@ -141,7 +142,7 @@ action got dropped in which stage and by what component.
 """
 
 data = st.session_state.decision_data.decision_data.filter(
-    pl.col("Record Type") == "FILTERED_OUT"
+    pl.col("Record Type") == "FILTERED_OUT",
 )
 if st.session_state["local_filters"] != []:
     data.filter(st.session_state["local_filters"])
@@ -154,7 +155,7 @@ data = (
                 "{}%",
                 ((pl.col("filter count") / pl.sum("filter count")) * 100).round(1),
             )
-        ).alias("percent of all filters")
+        ).alias("percent of all filters"),
     )
     .collect()
     .sort("filter count", descending=True)
@@ -222,7 +223,7 @@ if has_components:
         """
         component_names = (
             st.session_state.decision_data.decision_data.filter(
-                pl.col("Record Type") == "FILTERED_OUT"
+                pl.col("Record Type") == "FILTERED_OUT",
             )
             .select("Component Name")
             .unique()

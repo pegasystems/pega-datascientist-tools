@@ -5,7 +5,7 @@ import math
 import os
 import random
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -53,18 +53,19 @@ class IH:
     >>> ih = IH.from_ds_export("interaction_history.zip")
     >>> ih.aggregates.summary_by_channel().collect()
     >>> ih.plot.response_count_trend()
+
     """
 
     data: pl.LazyFrame
 
-    positive_outcome_labels: Dict[str, List[str]] = {
+    positive_outcome_labels: dict[str, list[str]] = {
         "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
         "Conversion": ["Conversion"],
         "OpenRate": ["Opened", "Open"],
     }
     """Mapping of metric types to positive outcome labels."""
 
-    negative_outcome_labels: Dict[str, List[str]] = {
+    negative_outcome_labels: dict[str, list[str]] = {
         "Engagement": ["Impression", "Impressed", "Pending", "NoResponse"],
         "Conversion": ["Impression", "Pending"],
         "OpenRate": ["Impression", "Pending"],
@@ -84,6 +85,7 @@ class IH:
         -----
         Use the class methods :meth:`from_ds_export` or :meth:`from_mock_data`
         to create instances from data sources.
+
         """
         self.data = _polars_capitalize(data)
         self.aggregates = Aggregates(ih=self)
@@ -113,9 +115,10 @@ class IH:
         --------
         >>> ih = IH.from_ds_export("Data-pxStrategyResult_pxInteractionHistory.zip")
         >>> ih.data.collect_schema()
+
         """
         data = read_ds_export(ih_filename).with_columns(
-            pxOutcomeTime=parse_pega_date_time_formats("pxOutcomeTime")
+            pxOutcomeTime=parse_pega_date_time_formats("pxOutcomeTime"),
         )
         if query is not None:
             data = _apply_query(data, query=query)
@@ -133,6 +136,7 @@ class IH:
         ------
         NotImplementedError
             This method is not yet implemented.
+
         """
         raise NotImplementedError("from_s3 is not yet implemented")
 
@@ -160,6 +164,7 @@ class IH:
         --------
         >>> ih = IH.from_mock_data(days=30, n=10000)
         >>> ih.data.select("pyChannel").collect().unique()
+
         """
         n = int(n)
 
@@ -201,10 +206,12 @@ class IH:
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
                 "pyChannel": random.choices(
-                    ["Web", "Email"], k=n
+                    ["Web", "Email"],
+                    k=n,
                 ),  # Direction will be derived from this later
                 "pyIssue": random.choices(
-                    ["Acquisition", "Retention", "Risk", "Service"], k=n
+                    ["Acquisition", "Retention", "Risk", "Service"],
+                    k=n,
                 ),
                 "pyGroup": random.choices(
                     [
@@ -254,7 +261,7 @@ class IH:
                     random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)
                 ],
                 "Temp.RandomUniform": [random.uniform(0, 1) for i in range(n)],
-            }
+            },
         ).with_columns(
             pyDirection=pl.when(pl.col("pyChannel") == "Web")
             .then(pl.lit("Inbound"))
@@ -284,7 +291,8 @@ class IH:
 
         ih_fake_impressions = (
             ih_fake_impressions.join(
-                action_basepropensities.select(["pyName", "Temp.Zipf"]), on=["pyName"]
+                action_basepropensities.select(["pyName", "Temp.Zipf"]),
+                on=["pyName"],
             )
             .with_columns(
                 pl.col("Temp.Zipf")
@@ -299,12 +307,13 @@ class IH:
             .with_columns(
                 BasePropensity=pl.col("Temp.Zipf")
                 * pl.col("Temp.ChannelBasePropensity")
-                / pl.col("Temp.ZipfMean")
+                / pl.col("Temp.ZipfMean"),
             )
             .with_columns(
                 pyPropensity=pl.col("BasePropensity").map_elements(
-                    thompson_sampler, pl.Float64
-                )
+                    thompson_sampler,
+                    pl.Float64,
+                ),
             )
         )
 
@@ -312,37 +321,38 @@ class IH:
         ih_fake_impressions = ih_fake_impressions.with_columns(
             pl.when(
                 (pl.col.pyModelTechnique == "NaiveBayes")
-                & (pl.col.pyDirection == "Inbound")
+                & (pl.col.pyDirection == "Inbound"),
             )
             .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_NaiveBayes)
             .when(
                 (pl.col.pyModelTechnique == "GradientBoost")
-                & (pl.col.pyDirection == "Inbound")
+                & (pl.col.pyDirection == "Inbound"),
             )
             .then(
-                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost
+                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost,
             )
             .when(
                 (pl.col.pyModelTechnique == "NaiveBayes")
-                & (pl.col.pyDirection == "Outbound")
+                & (pl.col.pyDirection == "Outbound"),
             )
             .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_NaiveBayes)
             .when(
                 (pl.col.pyModelTechnique == "GradientBoost")
-                & (pl.col.pyDirection == "Outbound")
+                & (pl.col.pyDirection == "Outbound"),
             )
             .then(
-                pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost
+                pl.col("Temp.ChannelBasePropensity")
+                * outbound_modelnoise_GradientBoost,
             )
             .otherwise(pl.lit(0.0))
-            .alias("Temp.ExtraModelNoise")
+            .alias("Temp.ExtraModelNoise"),
         )
 
         ih_fake_clicks = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
             .filter(
                 pl.col("Temp.RandomUniform")
-                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
             )
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
@@ -354,7 +364,7 @@ class IH:
             ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
             .filter(
                 pl.col("Temp.RandomUniform")
-                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
             )
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
@@ -400,7 +410,7 @@ class IH:
                         "Conversion-Control",
                         convert_over_accept_click_rate_control,
                     ),
-                ]
+                ],
             )
             .filter(pl.col("pxOutcomeTime") <= pl.lit(now))
             .drop(cs.starts_with("Temp."))
@@ -415,11 +425,11 @@ class IH:
         level: str,
         outcome_column: str,
         customerid_column: str,
-    ) -> Tuple[
-        List[Tuple[str, ...]],
-        List[Tuple[int, ...]],
-        List[defaultdict],
-        List[defaultdict],
+    ) -> tuple[
+        list[tuple[str, ...]],
+        list[tuple[int, ...]],
+        list[defaultdict],
+        list[defaultdict],
     ]:
         """Extract customer action sequences for PMI analysis.
 
@@ -440,15 +450,15 @@ class IH:
 
         Returns
         -------
-        customer_sequences : List[Tuple[str, ...]]
+        customer_sequences : list[tuple[str, ...]]
             Action sequences per customer.
-        customer_outcomes : List[Tuple[int, ...]]
+        customer_outcomes : list[tuple[int, ...]]
             Binary outcomes (1=positive, 0=other) per sequence position.
-        count_actions : List[defaultdict]
+        count_actions : list[defaultdict]
             Action frequency counts:
             - [0]: First element counts in bigrams
             - [1]: Second element counts in bigrams
-        count_sequences : List[defaultdict]
+        count_sequences : list[defaultdict]
             Sequence frequency counts:
             - [0]: All bigrams
             - [1]: ≥3-grams ending with positive outcome
@@ -459,6 +469,7 @@ class IH:
         --------
         calculate_pmi : Compute PMI scores from sequence counts.
         pmi_overview : Generate PMI analysis summary.
+
         """
         cols = [customerid_column, level, outcome_column]
 
@@ -522,7 +533,8 @@ class IH:
             return ngrams, bigrams, bigrams_all
 
         ngrams, bigrams, bigrams_all = ngrams_and_bigrams(
-            customer_sequences, customer_outcomes
+            customer_sequences,
+            customer_outcomes,
         )
 
         # Frequency tables
@@ -541,9 +553,9 @@ class IH:
 
     @staticmethod
     def calculate_pmi(
-        count_actions: List[defaultdict],
-        count_sequences: List[defaultdict],
-    ) -> Dict[Tuple[str, ...], Union[float, Dict[str, Union[float, Dict]]]]:
+        count_actions: list[defaultdict],
+        count_sequences: list[defaultdict],
+    ) -> dict[tuple[str, ...], Union[float, dict[str, Union[float, dict]]]]:
         """Compute PMI scores for action sequences.
 
         Calculates Pointwise Mutual Information scores for bigrams and
@@ -552,17 +564,17 @@ class IH:
 
         Parameters
         ----------
-        count_actions : List[defaultdict]
+        count_actions : list[defaultdict]
             Action frequency counts from :meth:`get_sequences`.
-        count_sequences : List[defaultdict]
+        count_sequences : list[defaultdict]
             Sequence frequency counts from :meth:`get_sequences`.
 
         Returns
         -------
-        Dict[Tuple[str, ...], Union[float, Dict]]
+        dict[tuple[str, ...], Union[float, dict]]
             PMI scores for sequences:
             - Bigrams: Direct PMI value (float)
-            - N-grams (n≥3): Dict with 'average_pmi' and 'links' (constituent bigram PMIs)
+            - N-grams (n≥3): dict with 'average_pmi' and 'links' (constituent bigram PMIs)
 
         See Also
         --------
@@ -578,6 +590,7 @@ class IH:
             PMI(a, b) = \\log_2 \\frac{P(a, b)}{P(a) \\cdot P(b)}
 
         N-gram PMI is the average of constituent bigram PMIs.
+
         """
         # corpus size (number of action tokens)
         corpus = sum(len(k) * v for k, v in count_sequences[1].items()) + sum(
@@ -593,7 +606,7 @@ class IH:
 
             pmi = math.log2(
                 (bigram_count / corpus)
-                / ((first_count / corpus) * (second_count / corpus))
+                / ((first_count / corpus) * (second_count / corpus)),
             )
 
             bigrams_pmi[bigram] = pmi
@@ -624,10 +637,10 @@ class IH:
 
     @staticmethod
     def pmi_overview(
-        ngrams_pmi: Dict[Tuple[str, ...], Union[float, Dict]],
-        count_sequences: List[defaultdict],
-        customer_sequences: List[Tuple[str, ...]],
-        customer_outcomes: List[Tuple[int, ...]],
+        ngrams_pmi: dict[tuple[str, ...], Union[float, dict]],
+        count_sequences: list[defaultdict],
+        customer_sequences: list[tuple[str, ...]],
+        customer_outcomes: list[tuple[int, ...]],
     ) -> pl.DataFrame:
         """Generate PMI analysis summary DataFrame.
 
@@ -636,13 +649,13 @@ class IH:
 
         Parameters
         ----------
-        ngrams_pmi : Dict[Tuple[str, ...], Union[float, Dict]]
+        ngrams_pmi : dict[tuple[str, ...], Union[float, dict]]
             PMI scores from :meth:`calculate_pmi`.
-        count_sequences : List[defaultdict]
+        count_sequences : list[defaultdict]
             Sequence frequency counts from :meth:`get_sequences`.
-        customer_sequences : List[Tuple[str, ...]]
+        customer_sequences : list[tuple[str, ...]]
             Customer action sequences from :meth:`get_sequences`.
-        customer_outcomes : List[Tuple[int, ...]]
+        customer_outcomes : list[tuple[int, ...]]
             Customer outcome sequences from :meth:`get_sequences`.
 
         Returns
@@ -669,6 +682,7 @@ class IH:
         ... )
         >>> pmi = IH.calculate_pmi(actions, counts)
         >>> IH.pmi_overview(pmi, counts, seqs, outs)
+
         """
         data: list[dict[str, object]] = []
         freq_all = count_sequences[1] | count_sequences[2]
@@ -690,7 +704,7 @@ class IH:
                     "Frequency": count,
                     "Unique freq": count_sequences[3][seq],
                     "Score": pmi_val * math.log(count),
-                }
+                },
             )
 
         return (

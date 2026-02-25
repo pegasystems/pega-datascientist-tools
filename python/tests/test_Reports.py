@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the adm Reports module
-"""
+"""Testing the functionality of the adm Reports module"""
 
 import pytest
 
@@ -10,6 +8,7 @@ def test_health_check_file_size_optimization():
     """Verify Health Check reports stay under 20MB limit."""
     import tempfile
     from pathlib import Path
+
     from pdstools import datasets
     from pdstools.adm.Reports import Reports
 
@@ -47,7 +46,7 @@ def test_health_check_file_size_optimization():
 
             if not isinstance(output_path, Path):
                 pytest.fail(
-                    f"Health check returned {type(output_path)} instead of Path"
+                    f"Health check returned {type(output_path)} instead of Path",
                 )
 
             if not output_path.exists():
@@ -134,6 +133,7 @@ def test_size_reduction_method_integration():
     import tempfile
     from pathlib import Path
     from typing import Literal
+
     from pdstools import datasets
     from pdstools.adm.Reports import Reports
 

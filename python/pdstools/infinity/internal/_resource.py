@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import time
 from abc import ABC
-from typing import TYPE_CHECKING, List, Union
-import inspect
+from typing import TYPE_CHECKING
 
 import anyio
 from anyio.from_thread import start_blocking_portal
@@ -122,7 +122,9 @@ class SyncAPIResource(ABC):
         return self._client.delete(endpoint, **kwargs)
 
     async def _sleep(self, seconds: float) -> None:
-        time.sleep(seconds)
+        time.sleep(
+            seconds
+        )  # Intentional: SyncAPIResource runs inside _run_sync's own event loop
 
     @property
     def _public_fields(self):
@@ -136,7 +138,7 @@ class SyncAPIResource(ABC):
             if not key.startswith("_")
         }
 
-    def __repr__(self, fields: Union[List[str], None] = None):
+    def __repr__(self, fields: list[str] | None = None):
         classname = self.__class__.__name__
 
         def format_field(field):
@@ -203,7 +205,7 @@ class AsyncAPIResource(ABC):
             if not key.startswith("_")
         }
 
-    def __repr__(self, fields: Union[List[str], None] = None):
+    def __repr__(self, fields: list[str] | None = None):
         classname = self.__class__.__name__
 
         def format_field(field):

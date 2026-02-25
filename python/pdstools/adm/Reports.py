@@ -4,19 +4,19 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Union
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
-from ..utils.types import QUERY
 from ..utils.report_utils import (
-    serialize_query,
-    run_quarto,
     copy_quarto_file,
     get_output_filename,
+    run_quarto,
+    serialize_query,
 )
+from ..utils.types import QUERY
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -33,7 +33,7 @@ class Reports(LazyNamespace):
 
     def model_reports(
         self,
-        model_ids: Union[str, List[str]],
+        model_ids: Union[str, list[str]],
         *,
         name: Optional[
             str
@@ -54,12 +54,11 @@ class Reports(LazyNamespace):
             Literal["strip", "cdn"]
         ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
-        """
-        Generates model reports for Naive Bayes ADM models.
+        """Generates model reports for Naive Bayes ADM models.
 
         Parameters
         ----------
-        model_ids : Union[str,List[str]]
+        model_ids : Union[str,list[str]]
             The model ID (or list of model IDs) to generate reports for.
         name : str, optional
             The (base) file name of the report.
@@ -107,8 +106,8 @@ class Reports(LazyNamespace):
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
-        """
 
+        """
         if isinstance(model_ids, str):
             model_ids = [model_ids]
         if (
@@ -137,13 +136,17 @@ class Reports(LazyNamespace):
                 and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(
-                    temp_dir, selected_model_ids=model_ids
+                    temp_dir,
+                    selected_model_ids=model_ids,
                 )
 
             output_file_paths = []
             for i, model_id in enumerate(model_ids):
                 output_filename = get_output_filename(
-                    name, "ModelReport", model_id, output_type
+                    name,
+                    "ModelReport",
+                    model_id,
+                    output_type,
                 )
                 run_quarto(
                     qmd_file=qmd_filename,
@@ -186,7 +189,8 @@ class Reports(LazyNamespace):
             # Is this just a difficult way to copy the file? Why not shutil.copy? Or
             # even pass in the output-dir property to the quarto project?
             file_data, file_name = cdh_utils.process_files_to_bytes(
-                output_file_paths, base_file_name=output_path
+                output_file_paths,
+                base_file_name=output_path,
             )
             output_path = output_dir.joinpath(file_name)
             with open(output_path, "wb") as f:
@@ -227,8 +231,7 @@ class Reports(LazyNamespace):
             Literal["strip", "cdn"]
         ] = "cdn",  # TODO: temporary default to support DJS use cases
     ) -> Path:
-        """
-        Generates Health Check report for ADM models, optionally including predictor and prediction sections.
+        """Generates Health Check report for ADM models, optionally including predictor and prediction sections.
 
         Parameters
         ----------
@@ -281,6 +284,7 @@ class Reports(LazyNamespace):
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
+
         """
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
@@ -294,7 +298,10 @@ class Reports(LazyNamespace):
                 shutil.copy(qmd_file, temp_dir / qmd_filename)
 
             output_filename = get_output_filename(
-                name, "HealthCheck", None, output_type
+                name,
+                "HealthCheck",
+                None,
+                output_type,
             )
 
             # Copy data to a temp dir only if the files are not passed in already
@@ -370,8 +377,7 @@ class Reports(LazyNamespace):
         name: Union[Path, str] = Path("Tables.xlsx"),
         predictor_binning: bool = False,
     ) -> tuple[Optional[Path], list[str]]:
-        """
-        Export raw data to an Excel file.
+        """Export raw data to an Excel file.
 
         This method exports the last snapshots of model_data, predictor summary,
         and optionally predictor_binning data to separate sheets in an Excel file.
@@ -395,6 +401,7 @@ class Reports(LazyNamespace):
             A tuple containing:
             - The path to the created Excel file if the export was successful, None if no data was available
             - A list of warning messages (empty if no warnings)
+
         """
         from xlsxwriter import Workbook
 
@@ -416,9 +423,9 @@ class Reports(LazyNamespace):
                     col
                     for col in self.datamart.model_data.collect_schema().names()
                     if col != "ModelID" and col not in self.datamart.context_keys
-                ]
+                ],
             )
-            .sort(self.datamart.context_keys)
+            .sort(self.datamart.context_keys),
         }
 
         if self.datamart.predictor_data is not None:
@@ -472,16 +479,17 @@ class Reports(LazyNamespace):
 
         try:
             with Workbook(
-                name, options={"nan_inf_to_errors": True, "remove_timezone": True}
+                name,
+                options={"nan_inf_to_errors": True, "remove_timezone": True},
             ) as wb:
                 # Enable ZIP64 extensions to handle large files
                 wb.use_zip64()
 
                 for tab, data in tabs.items():
                     data = data.with_columns(
-                        pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
+                        pl.col(pl.list(pl.Categorical), pl.list(pl.Utf8))
                         .list.eval(pl.element().cast(pl.Utf8))
-                        .list.join(", ")
+                        .list.join(", "),
                     )
                     data = data.collect()
 
@@ -508,11 +516,10 @@ class Reports(LazyNamespace):
                         warning_messages.append(warning_msg)
                         print(warning_msg)
                         continue
-                    else:
-                        data.write_excel(workbook=wb, worksheet=tab)
+                    data.write_excel(workbook=wb, worksheet=tab)
         except Exception as e:
             warning_msg = (
-                f"Error creating Excel file: {str(e)}. Try exporting to CSV instead."
+                f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
             )
             warning_messages.append(warning_msg)
             print(warning_msg)

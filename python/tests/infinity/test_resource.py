@@ -1,5 +1,6 @@
 """Tests for the @api_method decorator, _run_sync, __init_subclass__, and
-SyncAPIResource / AsyncAPIResource base classes."""
+SyncAPIResource / AsyncAPIResource base classes.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +8,6 @@ import inspect
 from unittest.mock import MagicMock
 
 import pytest
-
 from pdstools.infinity.internal._resource import (
     AsyncAPIResource,
     SyncAPIResource,
@@ -15,7 +15,6 @@ from pdstools.infinity.internal._resource import (
     _run_sync,
     api_method,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers — tiny resource classes used exclusively by these tests.
@@ -86,7 +85,6 @@ class TestApiMethodDecorator:
         @api_method
         async def my_func(self):
             """Docstring."""
-            pass
 
         assert my_func.__name__ == "my_func"
         assert my_func.__doc__ == "Docstring."
@@ -100,32 +98,35 @@ class TestApiMethodDecorator:
 class TestInitSubclass:
     def test_sync_subclass_wraps_api_methods(self):
         """@api_method async defs should be replaced with sync wrappers on
-        SyncAPIResource subclasses."""
-        greet_method = SyncGreet.__dict__.get("greet") or getattr(SyncGreet, "greet")
+        SyncAPIResource subclasses.
+        """
+        greet_method = SyncGreet.__dict__.get("greet") or SyncGreet.greet
         # The wrapper is a plain function, NOT a coroutine function.
         assert not inspect.iscoroutinefunction(greet_method)
 
     def test_sync_subclass_does_not_wrap_plain_helpers(self):
         """Plain async defs (without @api_method) should not be touched."""
-        helper = getattr(SyncGreet, "_internal_helper")
+        helper = SyncGreet._internal_helper
         assert inspect.iscoroutinefunction(helper)
 
     def test_async_subclass_leaves_api_methods_as_coroutines(self):
         """On AsyncAPIResource subclasses, @api_method methods stay as native
-        coroutines."""
-        greet_method = getattr(AsyncGreet, "greet")
+        coroutines.
+        """
+        greet_method = AsyncGreet.greet
         assert inspect.iscoroutinefunction(greet_method)
 
     def test_multiple_methods_wrapped(self):
         """All @api_method methods in the mixin MRO should be wrapped."""
-        alpha = getattr(SyncMulti, "alpha")
-        beta = getattr(SyncMulti, "beta")
+        alpha = SyncMulti.alpha
+        beta = SyncMulti.beta
         assert not inspect.iscoroutinefunction(alpha)
         assert not inspect.iscoroutinefunction(beta)
 
     def test_no_double_wrapping(self):
         """If two subclasses inherit from the same mixin, each gets its own
-        wrapping without interfering."""
+        wrapping without interfering.
+        """
 
         class SyncA(_GreetMixin, SyncAPIResource):
             pass
@@ -134,8 +135,8 @@ class TestInitSubclass:
             pass
 
         # Both should work independently.
-        assert not inspect.iscoroutinefunction(getattr(SyncA, "greet"))
-        assert not inspect.iscoroutinefunction(getattr(SyncB, "greet"))
+        assert not inspect.iscoroutinefunction(SyncA.greet)
+        assert not inspect.iscoroutinefunction(SyncB.greet)
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +223,8 @@ class TestSyncAPIResource:
 
     def test_sync_wrapped_method_calls_through(self):
         """A sync-wrapped @api_method should call the underlying async body,
-        which uses _a_get -> client.get."""
+        which uses _a_get -> client.get.
+        """
         client = self._make_client()
         resource = SyncGreet(client=client)
         result = resource.greet("World")
@@ -315,7 +317,8 @@ class TestAsyncAPIResource:
     @pytest.mark.asyncio
     async def test_async_api_method_works(self):
         """Calling an @api_method on AsyncAPIResource should return a coroutine
-        that, when awaited, gives the expected result."""
+        that, when awaited, gives the expected result.
+        """
         client = self._make_client()
         resource = AsyncGreet(client=client)
         result = await resource.greet("World")

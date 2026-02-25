@@ -18,9 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class BinAggregator(LazyNamespace):
-    """
-    A class to generate rolled up insights from ADM predictor binning.
-    """
+    """A class to generate rolled up insights from ADM predictor binning."""
 
     dependencies = ["plotly", "numpy"]
 
@@ -101,6 +99,7 @@ class BinAggregator(LazyNamespace):
             By default returns a nicely formatted plot. When 'return_df' is set
             to True, it returns the actual binning with the lift aggregated over
             all the models, optionally per predictor and per set of models.
+
         """
         if not isinstance(predictors, list):
             predictors = [predictors]
@@ -112,7 +111,7 @@ class BinAggregator(LazyNamespace):
                 if as_numeric is not None
                 else (
                     self.all_predictorbinning.filter(
-                        pl.col("PredictorName") == predictor
+                        pl.col("PredictorName") == predictor,
                     )
                     .select(pl.first("isNumeric"))
                     .collect()
@@ -170,7 +169,7 @@ class BinAggregator(LazyNamespace):
                 if aggregation is None:
                     ids = (
                         self.all_predictorbinning.select(
-                            pl.col("ModelID").unique().sort()
+                            pl.col("ModelID").unique().sort(),
                         )
                         .collect()["ModelID"]
                         .to_list()
@@ -200,7 +199,7 @@ class BinAggregator(LazyNamespace):
 
                 cum_binning = cum_binning.with_columns(
                     pl.lit(topic).alias(
-                        aggregation if aggregation is not None else "Topic"
+                        aggregation if aggregation is not None else "Topic",
                     ),
                 )
 
@@ -208,13 +207,16 @@ class BinAggregator(LazyNamespace):
 
         if return_df:
             return pl.concat(all_binnings, how="vertical_relaxed")
-        else:
-            return self.plot_lift_binning(
-                pl.concat(all_binnings, how="vertical_relaxed")
-            )
+        return self.plot_lift_binning(
+            pl.concat(all_binnings, how="vertical_relaxed"),
+        )
 
     def accumulate_num_binnings(
-        self, predictor, modelids, target_binning, verbose=False
+        self,
+        predictor,
+        modelids,
+        target_binning,
+        verbose=False,
     ) -> pl.DataFrame:
         for id in modelids:
             if verbose:
@@ -231,7 +233,9 @@ class BinAggregator(LazyNamespace):
                 # fig.show()
 
             target_binning = self.combine_two_numbinnings(
-                source_binning, target_binning, verbose=verbose
+                source_binning,
+                target_binning,
+                verbose=verbose,
             )
 
             if verbose:
@@ -280,8 +284,7 @@ class BinAggregator(LazyNamespace):
 
         if n_symbols is None:
             return musthave_symbols + ordered_symbols
-        else:
-            return (musthave_symbols + ordered_symbols)[slice(n_symbols)]
+        return (musthave_symbols + ordered_symbols)[slice(n_symbols)]
 
     def accumulate_sym_binnings(
         self,
@@ -301,7 +304,8 @@ class BinAggregator(LazyNamespace):
         # Get the lift of the residuals per model. This will be used for the symbols that did not appear in the model.
         # Assuming all symbolic bins have a residual bin - I believe they do.
         lift_residual_bins = symbins.filter(pl.col("BinType") == "RESIDUAL").select(
-            pl.col("ModelID"), pl.col("Lift").alias("Lift_RESIDUAL")
+            pl.col("ModelID"),
+            pl.col("Lift").alias("Lift_RESIDUAL"),
         )
 
         # Explode symbol list into separate rows
@@ -329,7 +333,7 @@ class BinAggregator(LazyNamespace):
                 pl.lit(0.0).alias(col)
                 for col in symbollist
                 if col not in set(symbins_pivot.columns)
-            ]
+            ],
         ).select(
             [pl.lit(predictor).alias("PredictorName")]
             +
@@ -341,7 +345,7 @@ class BinAggregator(LazyNamespace):
                 .otherwise(pl.col(col))
                 .alias(col)
                 for col in symbollist
-            ]
+            ],
         )
 
         if verbose:
@@ -350,7 +354,9 @@ class BinAggregator(LazyNamespace):
 
         # melt the pivot back to long form, but now all symbols are present for all models
         molten = symbins_pivot.unpivot(
-            index="PredictorName", variable_name="Symbol", value_name="Lift"
+            index="PredictorName",
+            variable_name="Symbol",
+            value_name="Lift",
         )
         if "Lift" not in molten.columns:
             molten = molten.with_columns(Lift=pl.lit(0.0))
@@ -377,10 +383,10 @@ class BinAggregator(LazyNamespace):
                 "PredictorName",
                 "BinIndex",
                 pl.lit(0.0).alias(
-                    "BinLowerBound"
+                    "BinLowerBound",
                 ),  # for consistency with the num binning
                 pl.lit(0.0).alias(
-                    "BinUpperBound"
+                    "BinUpperBound",
                 ),  # for consistency with the num binning
                 pl.col("Symbol").alias("BinSymbol"),
                 "Lift",
@@ -399,8 +405,7 @@ class BinAggregator(LazyNamespace):
         return aggregate_binning
 
     def normalize_all_binnings(self, combined_dm: pl.LazyFrame) -> pl.LazyFrame:
-        """
-        Prepare all predictor binning
+        """Prepare all predictor binning
 
         Fix up the boundaries for numeric bins and parse the bin labels
         into clean lists for symbolics.
@@ -423,16 +428,16 @@ class BinAggregator(LazyNamespace):
                         pl.col("Contents")
                         .cast(pl.Utf8)
                         .str.extract_all(number_regexp)
-                        .list.eval(pl.element().cast(pl.Float64))
+                        .list.eval(pl.element().cast(pl.Float64)),
                     )
                     .otherwise(pl.lit(None))
-                ).alias("NumBoundaries")
+                ).alias("NumBoundaries"),
             )
             .with_columns(
                 [
                     # Replacing the lowest and highest bounds with the min/max found in the contents field.
                     pl.when(
-                        pl.col("isNumeric") & (pl.col("BinSymbol") == "NON-MISSING")
+                        pl.col("isNumeric") & (pl.col("BinSymbol") == "NON-MISSING"),
                     )
                     .then(pl.col("NumBoundaries").list.get(0))
                     .when(
@@ -440,13 +445,13 @@ class BinAggregator(LazyNamespace):
                         & (
                             pl.col("BinLowerBound").cast(pl.Float64)
                             < pl.col("NumBoundaries").list.get(0)
-                        )
+                        ),
                     )
                     .then(pl.col("NumBoundaries").list.get(0))
                     .otherwise(pl.col("BinLowerBound"))
                     .alias("BinLowerBound"),
                     pl.when(
-                        pl.col("isNumeric") & (pl.col("BinSymbol") == "NON-MISSING")
+                        pl.col("isNumeric") & (pl.col("BinSymbol") == "NON-MISSING"),
                     )
                     .then(pl.col("NumBoundaries").list.get(1))
                     .when(
@@ -454,12 +459,12 @@ class BinAggregator(LazyNamespace):
                         & (
                             pl.col("BinUpperBound").cast(pl.Float64)
                             > pl.col("NumBoundaries").list.get(1)
-                        )
+                        ),
                     )
                     .then(pl.col("NumBoundaries").list.get(1))
                     .otherwise(pl.col("BinUpperBound"))
                     .alias("BinUpperBound"),
-                ]
+                ],
             )
             .with_columns(
                 pl.col("BinLowerBound").cast(pl.Float64),
@@ -469,15 +474,15 @@ class BinAggregator(LazyNamespace):
             .with_columns(
                 # Split concatenated bin symbols into list
                 pl.when(
-                    pl.col("isNumeric") | (pl.col("BinSymbol") == "Remaining symbols")
+                    pl.col("isNumeric") | (pl.col("BinSymbol") == "Remaining symbols"),
                 )
                 .then(pl.lit(None))
                 .otherwise(
                     pl.col("BinSymbol")
                     .str.split(by=",")
-                    .list.eval(pl.element().str.strip_chars())
+                    .list.eval(pl.element().str.strip_chars()),
                 )
-                .alias("Symbol")
+                .alias("Symbol"),
             )
             .with_columns(
                 # Number of different symbols in the list
@@ -485,17 +490,18 @@ class BinAggregator(LazyNamespace):
                 .then(pl.lit(None))
                 .otherwise(
                     pl.col("Symbol").map_elements(
-                        lambda x: len(x), return_dtype=pl.UInt32
-                    )
+                        lambda x: len(x),
+                        return_dtype=pl.UInt32,
+                    ),
                 )
-                .alias("NSymbols")
+                .alias("NSymbols"),
             )
             .with_columns(
                 # Bin response count per symbol
                 (
                     (pl.col("BinPositives") + pl.col("BinNegatives"))
                     / pl.col("NSymbols")
-                ).alias("BinResponses")
+                ).alias("BinResponses"),
             )
         ).sort(["ModelID", "PredictorName", "BinIndex"])
 
@@ -524,7 +530,7 @@ class BinAggregator(LazyNamespace):
                     pl.min("BinLowerBound").alias("Minimum"),
                     pl.max("BinUpperBound").alias("Maximum"),
                     # pl.max("BinIndex").alias("Bins"),
-                )
+                ),
             )
             .collect()
         )
@@ -536,19 +542,26 @@ class BinAggregator(LazyNamespace):
             boundaries = []
 
         def create_additional_intervals(
-            n: int, distribution: str, boundaries: list, minimum: float, maximum: float
+            n: int,
+            distribution: str,
+            boundaries: list,
+            minimum: float,
+            maximum: float,
         ):
             num_additional_intervals = n - len(boundaries) + 2
             if num_additional_intervals < 1:
                 return []
             if distribution == "lin":
                 return np.linspace(
-                    boundaries[-1], maximum, num=num_additional_intervals
+                    boundaries[-1],
+                    maximum,
+                    num=num_additional_intervals,
                 ).tolist()[1:]
-            elif distribution == "log":
+            if distribution == "log":
                 if boundaries[-1] < 0:
                     raise Exception(
-                        "Cant create log distribution with min < 0", boundaries[-1]
+                        "Cant create log distribution with min < 0",
+                        boundaries[-1],
                     )
                 if boundaries[-1] > 0.0:
                     return np.logspace(
@@ -564,7 +577,11 @@ class BinAggregator(LazyNamespace):
 
         if maximum > boundaries[-1]:
             boundaries = boundaries + create_additional_intervals(
-                n, distribution, boundaries, minimum, maximum
+                n,
+                distribution,
+                boundaries,
+                minimum,
+                maximum,
             )
 
         # Bit of a hack here but if minimum = maximum = 0 otherwise errors out with no binning
@@ -579,7 +596,7 @@ class BinAggregator(LazyNamespace):
                 "BinIndex": list(range(1, len(boundaries))),
                 "BinLowerBound": boundaries[:-1],
                 "BinUpperBound": boundaries[1:],
-            }
+            },
         ).with_columns(
             # Creating a simple representation of the intervals
             # TODO: the round(2) should be generalized
@@ -623,7 +640,10 @@ class BinAggregator(LazyNamespace):
         )
 
     def combine_two_numbinnings(
-        self, source: pl.DataFrame, target: pl.DataFrame, verbose=False
+        self,
+        source: pl.DataFrame,
+        target: pl.DataFrame,
+        verbose=False,
     ) -> pl.DataFrame:
         class Interval:
             def __init__(self, lo, hi):
@@ -665,16 +685,15 @@ class BinAggregator(LazyNamespace):
 
                 if verbose:
                     print(
-                        f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: lift attribution={target_attribution} response attribution={source_fraction}"
+                        f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: lift attribution={target_attribution} response attribution={source_fraction}",
                     )
                     # print(
                     #     f"(({target_total_attribution} * {target_lift}) + ({target_attribution} * {source_lift})) / ({target_total_attribution} + {target_attribution}) = {target[target_index, 'Lift']}"
                     # )
-            else:
-                if verbose:
-                    print(
-                        f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: None"
-                    )
+            elif verbose:
+                print(
+                    f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: None",
+                )
 
             if source_hi >= target_hi:
                 target_index = target_index + 1
@@ -692,12 +711,14 @@ class BinAggregator(LazyNamespace):
         return (
             # ok bizarre construct, I really just want to replace Models with an incremented value (same for all rows)
             target.drop("Models").with_columns(
-                pl.repeat(model_count, pl.len()).alias("Models")
+                pl.repeat(model_count, pl.len()).alias("Models"),
             )
         )
 
     def plot_binning_attribution(
-        self, source: pl.DataFrame, target: pl.DataFrame
+        self,
+        source: pl.DataFrame,
+        target: pl.DataFrame,
     ) -> Figure:
         import plotly.express as px
 
@@ -709,7 +730,7 @@ class BinAggregator(LazyNamespace):
                     "bin": source["BinIndex"],
                     "bound": "lower",
                     "binning": "source",
-                }
+                },
             )
             .vstack(
                 pl.DataFrame(
@@ -718,8 +739,8 @@ class BinAggregator(LazyNamespace):
                         "bin": source["BinIndex"],
                         "bound": "upper",
                         "binning": "source",
-                    }
-                )
+                    },
+                ),
             )
             .vstack(
                 pl.DataFrame(
@@ -728,8 +749,8 @@ class BinAggregator(LazyNamespace):
                         "bin": target["BinIndex"],
                         "bound": "lower",
                         "binning": "target",
-                    }
-                )
+                    },
+                ),
             )
             .vstack(
                 pl.DataFrame(
@@ -738,8 +759,8 @@ class BinAggregator(LazyNamespace):
                         "bin": target["BinIndex"],
                         "bound": "upper",
                         "binning": "target",
-                    }
-                )
+                    },
+                ),
             )
             .filter(pl.col("boundary").is_not_null())
         )
@@ -808,8 +829,8 @@ class BinAggregator(LazyNamespace):
         if "Lift" not in binning.collect_schema().names():
             binning = binning.with_columns(
                 (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias(
-                    "Lift"
-                )
+                    "Lift",
+                ),
             )
 
         # Optionally a shading expression
@@ -849,7 +870,7 @@ class BinAggregator(LazyNamespace):
                     (s[:25] + "...") if len(s) > 25 else s
                     for s in pm_plot_binning_table["BinSymbol"].to_list()
                 ],
-            )
+            ),
         )
 
         fig = px.bar(
@@ -872,8 +893,12 @@ class BinAggregator(LazyNamespace):
         )
         fig.update_traces(
             hovertemplate="<br>".join(
-                ["<b>%{customdata[0]}</b>", "%{customdata[1]}", "<b>Lift: %{x:.2%}</b>"]
-            )
+                [
+                    "<b>%{customdata[0]}</b>",
+                    "%{customdata[1]}",
+                    "<b>Lift: %{x:.2%}</b>",
+                ],
+            ),
         )
         fig.add_vline(x=0, line_color="black")
 
@@ -895,13 +920,12 @@ class BinAggregator(LazyNamespace):
             matches=None,  # allow independent y-labels if there are row facets
         )
         fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1])
+            lambda a: a.update(text=a.text.split("=")[-1]),
         )  # split plotly facet label, show only right side
 
         if return_df:
             return pm_plot_binning_table
-        else:
-            return fig
+        return fig
 
     def plot_lift_binning(self, binning: pl.DataFrame) -> Figure:
         if (
@@ -941,7 +965,7 @@ class BinAggregator(LazyNamespace):
 
         fig = self.plot_binning_lift(
             binning.with_columns(
-                (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage")
+                (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage"),
             ),
             col_facet=model_facet,
             row_facet=predictor_facet,
@@ -960,8 +984,8 @@ class BinAggregator(LazyNamespace):
                     "<b>Lift: %{x:.2%}</b>",
                     "Coverage: %{customdata[2]:.2%}",
                     "Attributed Responses: %{customdata[3]:.2f}",
-                ]
-            )
+                ],
+            ),
         )
 
         if predictor_facet is None:
@@ -970,13 +994,10 @@ class BinAggregator(LazyNamespace):
                 title = f"Propensity lift of <b>{pred}</b><br>in {n_models} models across {n_channels} channels"
             else:
                 title = f"Propensity lift of <b>{pred}</b> in {n_models} models across {n_channels} channels, split by <b>{topic}</b>"
+        elif model_facet is None:
+            title = f"Propensity lift in {n_models} models across {n_channels} channels, split by <b>{topic}</b>"
         else:
-            if model_facet is None:
-                title = f"Propensity lift in {n_models} models across {n_channels} channels, split by <b>{topic}</b>"
-            else:
-                title = (
-                    f"Propensity lift in {n_models} models across {n_channels} channels"
-                )
+            title = f"Propensity lift in {n_models} models across {n_channels} channels"
 
         fig.update_layout(
             title=title,

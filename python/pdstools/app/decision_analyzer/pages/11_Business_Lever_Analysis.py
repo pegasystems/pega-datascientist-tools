@@ -1,16 +1,16 @@
 import polars as pl
 import streamlit as st
-
 from da_streamlit_utils import (
     ensure_data,
+)
+
+from pdstools.decision_analyzer.plots import (
+    create_parameter_distribution_boxplots,
+    create_win_distribution_plot,
 )
 from pdstools.decision_analyzer.utils import (
     create_hierarchical_selectors,
     get_scope_config,
-)
-from pdstools.decision_analyzer.plots import (
-    create_win_distribution_plot,
-    create_parameter_distribution_boxplots,
 )
 
 # TODO not so sure what to do with this tool - maybe generalize to work across a selection not just a single action and figure out a multiplier
@@ -70,7 +70,7 @@ lever_condition = scope_config["lever_condition"]
 # Only run analysis when Apply button is clicked
 if st.session_state.get("analysis_applied", False):
     relevant_interactions = st.session_state.decision_data.arbitration_stage.filter(
-        lever_condition
+        lever_condition,
     )
     interactions_survived_till_arbitration = (
         relevant_interactions.select("Interaction ID").collect().n_unique()
@@ -99,10 +99,10 @@ if st.session_state.get("analysis_applied", False):
     ) * 100
     st.markdown("#### 📊 How Often Selected Actions Survive till Arbitration?")
     st.markdown(
-        "Selected actions might get filtered out in the funnel before ever reaching to arbitration stage."
+        "Selected actions might get filtered out in the funnel before ever reaching to arbitration stage.",
     )
     st.markdown(
-        "We can only increase the volume in the decisions where the selected actions reach to arbitration."
+        "We can only increase the volume in the decisions where the selected actions reach to arbitration.",
     )
 
     st.markdown(f"""
@@ -162,14 +162,14 @@ if st.session_state.get("analysis_applied", False):
     if show_distributions:
         if interactions_survived_till_arbitration == 0:
             st.warning(
-                "⚠️ Your selected actions never survive until arbitration. No head-to-head comparisons available."
+                "⚠️ Your selected actions never survive until arbitration. No head-to-head comparisons available.",
             )
         else:
             with st.spinner("Plotting arbitration components..."):
                 # Get the actual interaction IDs where selected actions survived
                 relevant_interactions = (
                     st.session_state.decision_data.arbitration_stage.filter(
-                        lever_condition
+                        lever_condition,
                     )
                     .select("Interaction ID")
                     .unique()
@@ -179,17 +179,17 @@ if st.session_state.get("analysis_applied", False):
                 segmented_df = (
                     st.session_state.decision_data.sample.filter(
                         pl.col("StageGroup").is_in(
-                            st.session_state.decision_data.stages_from_arbitration_down
-                        )
+                            st.session_state.decision_data.stages_from_arbitration_down,
+                        ),
                     )
                     .join(relevant_interactions, on="Interaction ID", how="inner")
                     .with_columns(
                         segment=pl.when(lever_condition)
                         .then(pl.lit("Selected Actions"))
-                        .otherwise(pl.lit("Others"))
+                        .otherwise(pl.lit("Others")),
                     )
                     .select(
-                        ["Propensity", "Value", "Context Weight", "Levers", "segment"]
+                        ["Propensity", "Value", "Context Weight", "Levers", "segment"],
                     )
                     .collect()
                 )
@@ -198,10 +198,10 @@ if st.session_state.get("analysis_applied", False):
                     st.warning("No data available for parameter distribution analysis.")
                 else:
                     st.markdown(
-                        "### 📊 Parameter Distributions in Head-to-Head Battles"
+                        "### 📊 Parameter Distributions in Head-to-Head Battles",
                     )
                     st.markdown(
-                        f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
+                        f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*",
                     )
 
                     fig = create_parameter_distribution_boxplots(segmented_df)
@@ -219,13 +219,18 @@ if st.session_state.get("analysis_applied", False):
 
         # Lever controls
         slider_max = st.selectbox(
-            "Slider Precision", options=[1.0, 10.0, 100, 1000], index=1
+            "Slider Precision",
+            options=[1.0, 10.0, 100, 1000],
+            index=1,
         )
         slider_min = 0 if isinstance(slider_max, int) else 0.0
         value = 1 if isinstance(slider_max, int) else 1.0
 
         lever = st.slider(
-            "Select Lever", min_value=slider_min, max_value=slider_max, value=value
+            "Select Lever",
+            min_value=slider_min,
+            max_value=slider_max,
+            value=value,
         )
 
         # Calculate new distribution with lever changes
@@ -249,7 +254,7 @@ if st.session_state.get("analysis_applied", False):
         # Show summary statistics
         total_new_wins = new_plot_data["new_win_count"].sum()
         selected_data = new_plot_data.filter(
-            pl.col(scope_config["x_col"]) == scope_config["selected_value"]
+            pl.col(scope_config["x_col"]) == scope_config["selected_value"],
         )
         selected_wins = (
             selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
@@ -297,7 +302,9 @@ if st.session_state.get("analysis_applied", False):
     with st.expander(":green[Lever Finder]:male-detective:", expanded=False):
         # Only show lever finder for specific action selection
         st.session_state.target_win_percentage = st.slider(
-            "Target Win Ratio", min_value=0, max_value=100
+            "Target Win Ratio",
+            min_value=0,
+            max_value=100,
         )
 
         calculate_lever = st.button("Calculate lever")

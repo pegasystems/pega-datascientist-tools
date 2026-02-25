@@ -1,6 +1,4 @@
-"""
-Testing the functionality of utils/show_versions functions
-"""
+"""Testing the functionality of utils/show_versions functions"""
 
 import pdstools
 

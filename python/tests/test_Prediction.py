@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the Prediction class
-"""
+"""Testing the functionality of the Prediction class"""
 
 import datetime
 import shutil
@@ -9,8 +7,8 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 from pdstools import Prediction
-from pdstools.utils import cdh_utils
 from pdstools.pega_io.File import read_ds_export
+from pdstools.utils import cdh_utils
 
 mock_prediction_data = pl.DataFrame(
     {
@@ -28,7 +26,7 @@ mock_prediction_data = pl.DataFrame(
         "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
         "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
         "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
-    }
+    },
 ).lazy()
 
 
@@ -45,19 +43,21 @@ def preds_fewdays():
             [
                 mock_prediction_data.with_columns(
                     pySnapShotTime=pl.lit(
-                        cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 1))[0:15]
-                    )
+                        cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 1))[
+                            0:15
+                        ],
+                    ),
                 ),
                 mock_prediction_data.with_columns(
                     pySnapShotTime=pl.lit(
                         cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 16))[
                             0:15
-                        ]
-                    )
+                        ],
+                    ),
                 ),
             ],
             how="vertical",
-        )
+        ),
     )
 
 
@@ -130,8 +130,8 @@ def test_summary_by_channel_ia(preds_singleday):
             | (
                 pl.col("pyModelId")
                 == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"
-            )
-        )
+            ),
+        ),
     )
     # only Web still has the NBA indicator
     assert preds_singleday.summary_by_channel().collect()[
@@ -167,7 +167,7 @@ def test_summary_by_channel_range(preds_fewdays):
     assert summary["Positives"].to_list() == [2000, 4000, 2000, 4000]
 
     summary = preds_fewdays.summary_by_channel(
-        start_date=datetime.date(2040, 5, 15)
+        start_date=datetime.date(2040, 5, 15),
     ).collect()
     assert summary["DateRange Min"].to_list() == [datetime.date(2040, 5, 16)] * 4
     assert summary["Positives"].to_list() == [1000, 2000, 1000, 2000]
@@ -218,7 +218,7 @@ def test_overall_summary_n_valid_channels(preds_singleday):
     pred_data = pl.DataFrame(
         {
             "pySnapShotTime": cdh_utils.to_prpc_date_time(
-                datetime.datetime(2040, 4, 1)
+                datetime.datetime(2040, 4, 1),
             )[0:15],  # Polars doesn't like time zones like GMT+0200
             "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
@@ -231,7 +231,7 @@ def test_overall_summary_n_valid_channels(preds_singleday):
             "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
             "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
             "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
-        }
+        },
     ).lazy()
     p = Prediction(df=pred_data)
     assert p.overall_summary().collect()["Number of Valid Channels"].item() == 1
@@ -239,7 +239,7 @@ def test_overall_summary_n_valid_channels(preds_singleday):
     pred_data = pl.DataFrame(
         {
             "pySnapShotTime": cdh_utils.to_prpc_date_time(
-                datetime.datetime(2040, 4, 1)
+                datetime.datetime(2040, 4, 1),
             )[0:15],  # Polars doesn't like time zones like GMT+0200
             "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
             + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
@@ -252,7 +252,7 @@ def test_overall_summary_n_valid_channels(preds_singleday):
             "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
             "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
             "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
-        }
+        },
     ).lazy()
     p = Prediction(df=pred_data)
     # BUG-956453 previously this gave an empty dataframe
@@ -308,7 +308,8 @@ def test_overall_summary_min_lift(preds_singleday):
 def test_overall_summary_controlpct(preds_singleday):
     assert (
         round(
-            preds_singleday.overall_summary().collect()["ControlPercentage"].item(), 5
+            preds_singleday.overall_summary().collect()["ControlPercentage"].item(),
+            5,
         )
         == 15.88235
     )
@@ -332,8 +333,8 @@ def test_overall_summary_ia(preds_singleday):
             | (
                 pl.col("pyModelId")
                 == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"
-            )
-        )
+            ),
+        ),
     )
     assert preds_singleday.overall_summary().collect()[
         "usesImpactAnalyzer"
@@ -376,7 +377,7 @@ def test_from_mock_data():
 
     # Verify the number of days in the data
     unique_dates = pred_custom.predictions.select(
-        pl.col("SnapshotTime").unique()
+        pl.col("SnapshotTime").unique(),
     ).collect()
     assert len(unique_dates) == 30
 
@@ -410,7 +411,7 @@ def test_from_pdc():
             "ADMModelType": [""] * 12,
             "TotalPositives": [0] * 12,
             "TotalResponses": [0] * 12,
-        }
+        },
     ).lazy()
 
     # We need to patch the _read_pdc function to avoid actual processing
@@ -432,7 +433,7 @@ def test_from_pdc():
             Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
             mock_init.assert_called_once()
             assert mock_init.call_args[1].get("query") == {
-                "ModelName": ["PREDICTWEBPROPENSITY"]
+                "ModelName": ["PREDICTWEBPROPENSITY"],
             }
 
 
@@ -440,7 +441,10 @@ def test_prediction_plots_internal_method(preds_singleday):
     """Test the internal _prediction_trend method of PredictionPlots."""
     # Call the internal method directly
     plt, plot_df = preds_singleday.plot._prediction_trend(
-        period="1d", query=None, metric="Performance", title="Test Plot"
+        period="1d",
+        query=None,
+        metric="Performance",
+        title="Test Plot",
     )
 
     # Verify the plot was created
@@ -478,7 +482,7 @@ def test_init_with_temporal_snapshot_time():
     """Test initialization with already parsed temporal snapshot time."""
     # Create data with datetime column
     data = mock_prediction_data.with_columns(
-        pySnapShotTime=pl.lit(datetime.datetime(2040, 4, 1)).cast(pl.Datetime)
+        pySnapShotTime=pl.lit(datetime.datetime(2040, 4, 1)).cast(pl.Datetime),
     )
 
     # Initialize prediction
@@ -561,7 +565,7 @@ def test_performance_normalization_from_pega_scale():
     pega_scale_data = pl.DataFrame(
         {
             "pySnapShotTime": cdh_utils.to_prpc_date_time(
-                datetime.datetime(2040, 4, 1)
+                datetime.datetime(2040, 4, 1),
             )[0:15],
             "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!TESTPREDICTION"] * 4,
             "pyModelType": "PREDICTION",
@@ -571,7 +575,7 @@ def test_performance_normalization_from_pega_scale():
             "pyNegatives": [1000, 2000, 3000, 6000],
             "pyCount": [1100, 2400, 3500, 7000],
             "pyValue": [65.0, 70.0, 75.0, 80.0],  # Pega scale (50-100)
-        }
+        },
     ).lazy()
 
     # Initialize Prediction (should auto-normalize)

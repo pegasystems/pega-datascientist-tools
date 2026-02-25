@@ -12,7 +12,7 @@ from pdstools.explanations import Explanations
 explanations = Explanations(root_dir="{ROOT_DIR}")
 explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
 overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
-    top_n={TOP_N}, 
+    top_n={TOP_N},
     top_k={TOP_K},
     contribution_calculation="{CONTRIBUTION_TYPE}"
 )
@@ -30,5 +30,5 @@ for plot in predictor_plots:
     title = plot.layout['title']['text']
     plot.layout['title']['text'] = ''
     display(Markdown(f'### {{title}}'), plot)
-    
+
 ```

@@ -21,7 +21,7 @@ health_check, model_report = st.tabs(
     [
         "Overall Health Check",
         "Individual Model Reports",
-    ]
+    ],
 )
 
 with health_check:
@@ -43,7 +43,7 @@ with health_check:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
             logger.info(
-                f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
+                f"Starting Health Check generation. Run ID: {st.session_state['runID']}",
             )
             with st.spinner("Generating Health Check..."):
                 outfile = st.session_state["dm"].generate.health_check(
@@ -70,13 +70,13 @@ with health_check:
                 label="Download Health Check",
                 data=st.session_state["run"][st.session_state["runID"]]["file"],
                 file_name=Path(
-                    st.session_state["run"][st.session_state["runID"]]["name"]
+                    st.session_state["run"][st.session_state["runID"]]["name"],
                 ).name,
                 key="HealthCheckDownload",
             )
         st.title("Create Excel Tables")
         st.write(
-            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format."
+            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format.",
         )
         include_binning = st.checkbox(
             "Include Binning",
@@ -99,7 +99,8 @@ with health_check:
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
-                    tables, "rb"
+                    tables,
+                    "rb",
                 )
                 for message in warning_messages:
                     st.warning(message)
@@ -175,7 +176,8 @@ if st.session_state["dm"].predictor_data is not None:
                         def update_progress(current, total):
                             progress = current / total
                             progress_bar.progress(
-                                progress, text=f"Generated {current} of {total}"
+                                progress,
+                                text=f"Generated {current} of {total}",
                             )
 
                         outfile = st.session_state["dm"].generate.model_reports(

@@ -1,13 +1,11 @@
-"""
-Testing the functionality of some end-to-end scenarios
-"""
+"""Testing the functionality of some end-to-end scenarios"""
 
 import pathlib
 
 import polars as pl
 import pytest
-from plotly.graph_objs._figure import Figure
 from pdstools import ADMDatamart
+from plotly.graph_objs._figure import Figure
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 

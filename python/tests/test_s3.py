@@ -1,8 +1,8 @@
 import os
 import shutil
-import pytest
 
 import aioboto3
+import pytest
 from pdstools.pega_io.S3 import S3Data
 
 

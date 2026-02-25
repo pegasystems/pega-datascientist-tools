@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the table_definitions module
-"""
+"""Testing the functionality of the table_definitions module"""
 
 import polars as pl
 from pdstools.utils.table_definitions import PegaDefaultTables
@@ -30,9 +28,9 @@ def test_adm_model_snapshot_schema():
         "pxObjClass",
     ]
     for field in categorical_fields:
-        assert getattr(schema, field) == pl.Categorical, (
-            f"Field {field} should be Categorical"
-        )
+        assert (
+            getattr(schema, field) == pl.Categorical
+        ), f"Field {field} should be Categorical"
 
     # Check datetime fields
     datetime_fields = [
@@ -42,9 +40,9 @@ def test_adm_model_snapshot_schema():
         "pyFactoryUpdatetime",
     ]
     for field in datetime_fields:
-        assert getattr(schema, field) == pl.Datetime, (
-            f"Field {field} should be Datetime"
-        )
+        assert (
+            getattr(schema, field) == pl.Datetime
+        ), f"Field {field} should be Datetime"
 
 
 def test_adm_predictor_binning_snapshot_schema():
@@ -69,16 +67,16 @@ def test_adm_predictor_binning_snapshot_schema():
         "pyEntryType",
     ]
     for field in categorical_fields:
-        assert getattr(schema, field) == pl.Categorical, (
-            f"Field {field} should be Categorical"
-        )
+        assert (
+            getattr(schema, field) == pl.Categorical
+        ), f"Field {field} should be Categorical"
 
     # Check datetime fields
     datetime_fields = ["pxCommitDateTime", "pxSaveDateTime", "pySnapshotTime"]
     for field in datetime_fields:
-        assert getattr(schema, field) == pl.Datetime, (
-            f"Field {field} should be Datetime"
-        )
+        assert (
+            getattr(schema, field) == pl.Datetime
+        ), f"Field {field} should be Datetime"
 
 
 def test_py_value_finder_schema():

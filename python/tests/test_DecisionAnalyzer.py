@@ -1,6 +1,5 @@
 # python/tests/test_DecisionAnalyzer.py
-"""
-Tests for the DecisionAnalyzer core functionality.
+"""Tests for the DecisionAnalyzer core functionality.
 
 Covers both data source formats:
 - v1: Explainability Extract (sample_explainability_extract.parquet)
@@ -14,7 +13,6 @@ import pathlib
 
 import polars as pl
 import pytest
-
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.decision_analyzer.utils import (
     ColumnResolver,
@@ -358,7 +356,7 @@ class TestGlobalFilters:
         # Apply a filter that reduces data
         da.applyGlobalDataFilters(
             pl.col("Issue")
-            == da.decision_data.select(pl.col("Issue").first()).collect().item()
+            == da.decision_data.select(pl.col("Issue").first()).collect().item(),
         )
         filtered_count = da.decision_data.collect().height
         assert filtered_count <= original_count
@@ -377,7 +375,8 @@ class TestGlobalFilters:
 class TestDistributionData:
     def test_v1_distribution_by_name(self, da_v1):
         df = da_v1.getDistributionData(
-            stage="Arbitration", grouping_levels="Action"
+            stage="Arbitration",
+            grouping_levels="Action",
         ).collect()
         assert df.height > 0
         assert "Action" in df.columns
@@ -385,13 +384,15 @@ class TestDistributionData:
 
     def test_v2_distribution_by_name(self, da_v2):
         df = da_v2.getDistributionData(
-            stage="Arbitration", grouping_levels="Action"
+            stage="Arbitration",
+            grouping_levels="Action",
         ).collect()
         assert df.height > 0
 
     def test_distribution_sorted_descending(self, da_v1):
         df = da_v1.getDistributionData(
-            stage="Arbitration", grouping_levels="Action"
+            stage="Arbitration",
+            grouping_levels="Action",
         ).collect()
         decisions = df["Decisions"].to_list()
         assert decisions == sorted(decisions, reverse=True)
@@ -562,8 +563,8 @@ class TestReRank:
     def test_rerank_with_filters(self, da_v1):
         df = da_v1.reRank(
             additional_filters=pl.col("StageGroup").is_in(
-                da_v1.stages_from_arbitration_down
-            )
+                da_v1.stages_from_arbitration_down,
+            ),
         ).collect()
         assert df.height > 0
 
@@ -590,7 +591,8 @@ class TestWinDistribution:
             == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         result = da_v1.get_win_distribution_data(
-            lever_condition=lever_cond, lever_value=2.0
+            lever_condition=lever_cond,
+            lever_value=2.0,
         )
         assert "new_win_count" in result.columns
 
@@ -600,7 +602,8 @@ class TestWinDistribution:
             == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         )
         result = da_v1.get_win_distribution_data(
-            lever_condition=lever_cond, all_interactions=1000
+            lever_condition=lever_cond,
+            all_interactions=1000,
         )
         assert "No Winner" in result["Action"].to_list()
 
@@ -753,7 +756,7 @@ class TestComponentDrilldown:
         # At least one avg_* column should be present if scoring data exists
         avg_cols = [c for c in df.columns if c.startswith("avg_")]
         available_scores = {"Priority", "Value", "Propensity"}.intersection(
-            da_v2.decision_data.collect_schema().names()
+            da_v2.decision_data.collect_schema().names(),
         )
         if available_scores:
             assert len(avg_cols) > 0
@@ -811,7 +814,7 @@ class TestUtilities:
 class TestColumnResolver:
     def test_basic_rename(self):
         table_def = {
-            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}
+            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8},
         }
         resolver = ColumnResolver(table_definition=table_def, raw_columns={"raw_col"})
         assert resolver.rename_mapping == {"raw_col": "target_col"}
@@ -819,7 +822,7 @@ class TestColumnResolver:
 
     def test_column_already_named_correctly(self):
         table_def = {
-            "my_col": {"display_name": "my_col", "default": True, "type": pl.Utf8}
+            "my_col": {"display_name": "my_col", "default": True, "type": pl.Utf8},
         }
         resolver = ColumnResolver(table_definition=table_def, raw_columns={"my_col"})
         assert resolver.rename_mapping == {}
@@ -828,7 +831,7 @@ class TestColumnResolver:
     def test_conflict_prefers_target(self):
         """When both raw and target columns exist, target wins and raw is dropped."""
         table_def = {
-            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}
+            "raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8},
         }
         resolver = ColumnResolver(
             table_definition=table_def,
@@ -843,7 +846,7 @@ class TestColumnResolver:
                 "display_name": "required_col",
                 "default": True,
                 "type": pl.Utf8,
-            }
+            },
         }
         resolver = ColumnResolver(table_definition=table_def, raw_columns=set())
         missing = resolver.get_missing_columns()
@@ -855,7 +858,7 @@ class TestColumnResolver:
                 "display_name": "optional_col",
                 "default": False,
                 "type": pl.Utf8,
-            }
+            },
         }
         resolver = ColumnResolver(table_definition=table_def, raw_columns=set())
         assert resolver.get_missing_columns() == []

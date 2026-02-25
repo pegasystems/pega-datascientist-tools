@@ -124,7 +124,7 @@ def mock_champion_challenger_clone_model(mocker):
                 modelingTechnique="Adaptive model - Gradient Boosting",
                 status="CHALLENGER",
             ),
-        )
+        ),
     ]
 
 
@@ -147,7 +147,7 @@ def mock_champion_challenger_promote_model(mocker):
                 modelingTechnique="Adaptive model - Gradient Boosting",
                 status="ACTIVE",
             ),
-        )
+        ),
     ]
 
 
@@ -170,7 +170,7 @@ def mock_champion_challenger_delete_model(mocker):
                 modelingTechnique="Adaptive model - Bayesian",
                 status="CHAMPION",
             ),
-        )
+        ),
     ]
 
 
@@ -196,17 +196,19 @@ mock_response_model = {
             "lastUpdateTime": "20240718T104417.891 GMT",
             "updatedBy": "Somnath Paul",
         },
-    ]
+    ],
 }
 
 
 def test_clone_model(
-    champion_challenger_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_post = {"referenceID": "M-2042"}
     mock_response_get = {"ModelUpdateStatus": "Ready for review"}
     mock_response_patch = {
-        "message": "referenceID M-2042 ,is Approved. New status Approved"
+        "message": "referenceID M-2042 ,is Approved. New status Approved",
     }
     predictor_mapping = [
         {"predictor": "Gender", "property": ".Gender"},
@@ -223,13 +225,19 @@ def test_clone_model(
         lastUpdateTime="20240718T120557.925 GMT",
     )
     mocker.patch.object(
-        champion_challenger_client._client, "_post", return_value=mock_response_post
+        champion_challenger_client._client,
+        "_post",
+        return_value=mock_response_post,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "get", return_value=mock_response_get
+        champion_challenger_client._client,
+        "get",
+        return_value=mock_response_get,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "patch", return_value=mock_response_patch
+        champion_challenger_client._client,
+        "patch",
+        return_value=mock_response_patch,
     )
     mocker.patch.object(
         champion_challenger_client._client.prediction_studio,
@@ -258,12 +266,14 @@ def test_clone_model(
 
 
 def test_add_model_model_object(
-    champion_challenger_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_post = {"referenceID": "M-2042"}
     mock_response_get = {"ModelUpdateStatus": "Ready for review"}
     mock_response_patch = {
-        "message": "referenceID M-6002 ,is Approved. New status Approved"
+        "message": "referenceID M-6002 ,is Approved. New status Approved",
     }
     new_model = Model(
         client=mocker.MagicMock(),
@@ -289,13 +299,19 @@ def test_add_model_model_object(
         lastUpdateTime="20240718T120557.925 GMT",
     )
     mocker.patch.object(
-        champion_challenger_client._client, "_post", return_value=mock_response_post
+        champion_challenger_client._client,
+        "_post",
+        return_value=mock_response_post,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "get", return_value=mock_response_get
+        champion_challenger_client._client,
+        "get",
+        return_value=mock_response_get,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "patch", return_value=mock_response_patch
+        champion_challenger_client._client,
+        "patch",
+        return_value=mock_response_patch,
     )
     mocker.patch.object(
         champion_challenger_client._client.prediction_studio,
@@ -323,12 +339,14 @@ def test_add_model_model_object(
 
 
 def test_add_model_uploaded_model(
-    champion_challenger_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_post = {"referenceID": "M-2042"}
     mock_response_get = {"ModelUpdateStatus": "Ready for review"}
     mock_response_patch = {
-        "message": "referenceID M-6002 ,is Approved. New status Approved"
+        "message": "referenceID M-6002 ,is Approved. New status Approved",
     }
     new_model = UploadedModel(
         repository_name="AWSFalcons",
@@ -349,13 +367,19 @@ def test_add_model_uploaded_model(
         lastUpdateTime="20240718T120557.925 GMT",
     )
     mocker.patch.object(
-        champion_challenger_client._client, "_post", return_value=mock_response_post
+        champion_challenger_client._client,
+        "_post",
+        return_value=mock_response_post,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "get", return_value=mock_response_get
+        champion_challenger_client._client,
+        "get",
+        return_value=mock_response_get,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "patch", return_value=mock_response_patch
+        champion_challenger_client._client,
+        "patch",
+        return_value=mock_response_patch,
     )
     mocker.patch.object(
         champion_challenger_client._client.prediction_studio,
@@ -383,12 +407,14 @@ def test_add_model_uploaded_model(
 
 
 def test_add_model_str(
-    champion_challenger_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_post = {"referenceID": "M-2042"}
     mock_response_get = {"ModelUpdateStatus": "Ready for review"}
     mock_response_patch = {
-        "message": "referenceID M-6002 ,is Approved. New status Approved"
+        "message": "referenceID M-6002 ,is Approved. New status Approved",
     }
     new_model = "testModel_falcons_copy_HBB"
     predictor_mapping = [
@@ -406,13 +432,19 @@ def test_add_model_str(
         lastUpdateTime="20240718T120557.925 GMT",
     )
     mocker.patch.object(
-        champion_challenger_client._client, "_post", return_value=mock_response_post
+        champion_challenger_client._client,
+        "_post",
+        return_value=mock_response_post,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "get", return_value=mock_response_get
+        champion_challenger_client._client,
+        "get",
+        return_value=mock_response_get,
     )
     mocker.patch.object(
-        champion_challenger_client._client, "patch", return_value=mock_response_patch
+        champion_challenger_client._client,
+        "patch",
+        return_value=mock_response_patch,
     )
     mocker.patch.object(
         champion_challenger_client._client.prediction_studio,
@@ -442,7 +474,9 @@ def test_add_model_str(
 
 
 def test_delete_challenger_model(
-    champion_challenger_delete_client, mock_champion_challenger_delete_model, mocker
+    champion_challenger_delete_client,
+    mock_champion_challenger_delete_model,
+    mocker,
 ):
     mock_response_patch = {"message": "Model is successfully deleted"}
     mock_prediction = Prediction(
@@ -480,7 +514,9 @@ def test_delete_challenger_model(
 
 
 def test_promote_challenger_model(
-    champion_challenger_delete_client, mock_champion_challenger_promote_model, mocker
+    champion_challenger_delete_client,
+    mock_champion_challenger_promote_model,
+    mocker,
 ):
     mock_response_patch = {"message": "Model is successfully deleted"}
     mock_prediction = Prediction(
@@ -520,7 +556,9 @@ def test_promote_challenger_model(
 
 
 def test_update_distribution(
-    champion_challenger_delete_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_delete_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_patch = {"message": "Model is successfully deleted"}
     mock_prediction = Prediction(
@@ -548,7 +586,7 @@ def test_update_distribution(
         return_value=mock_champion_challenger_clone_model,
     )
     champion_challenger_delete_client.update_challenger_response_share(
-        new_challenger_response_share=0.2
+        new_challenger_response_share=0.2,
     )
 
     assert (
@@ -560,7 +598,9 @@ def test_update_distribution(
 
 
 def test_update_shadow_to_cc(
-    champion_challenger_shadow_client, mock_champion_challenger_clone_model, mocker
+    champion_challenger_shadow_client,
+    mock_champion_challenger_clone_model,
+    mocker,
 ):
     mock_response_patch = {"message": "Model is successfully deleted"}
     mock_prediction = Prediction(
@@ -588,7 +628,7 @@ def test_update_shadow_to_cc(
         return_value=mock_champion_challenger_clone_model,
     )
     champion_challenger_shadow_client.update_challenger_response_share(
-        new_challenger_response_share=0.2
+        new_challenger_response_share=0.2,
     )
 
     assert (
@@ -632,10 +672,14 @@ def test_remove_predictor(champion_challenger_delete_client, mocker):
         return_value=mock_response_patch,
     )
     champion_challenger_delete_client.remove_predictor(
-        is_active_model=True, name="Income4", parameterized=True
+        is_active_model=True,
+        name="Income4",
+        parameterized=True,
     )
     champion_challenger_delete_client.remove_predictor(
-        is_active_model=False, name="Income4", parameterized=True
+        is_active_model=False,
+        name="Income4",
+        parameterized=True,
     )
 
 
@@ -672,10 +716,12 @@ def test_list_available_models(
 ):
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        champion_challenger_client._client, method_to_patch, return_value=mock_response
+        champion_challenger_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     result = champion_challenger_client.list_available_models_to_add(
-        return_df=return_df
+        return_df=return_df,
     )
 
     assert isinstance(result, expected_type)

@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import polars as pl
 import pytest
-
 from pdstools.infinity.internal._pagination import AsyncPaginatedList
 from pdstools.infinity.resources.prediction_studio.v24_2.model import AsyncModel
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import (
@@ -21,7 +20,6 @@ from pdstools.infinity.resources.prediction_studio.v24_2.prediction import (
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio import (
     AsyncPredictionStudio,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers — build a mock async client
@@ -75,7 +73,7 @@ mock_response_model = {
             "lastUpdateTime": "20240718T104417.891 GMT",
             "updatedBy": "Somnath Paul",
         },
-    ]
+    ],
 }
 
 mock_response_predictions = {
@@ -95,7 +93,7 @@ mock_response_predictions = {
             "status": "Completed",
             "lastUpdateTime": "20231129T113556.481 GMT",
         },
-    ]
+    ],
 }
 
 mock_response_notifications = {
@@ -124,14 +122,14 @@ mock_response_notifications = {
             "impact": "High",
             "triggerTime": "20240720T050556.826 GMT",
         },
-    ]
+    ],
 }
 
 mock_model_categories = {
     "categories": [
         {"categoryLabel": "Retention", "categoryName": "Retention"},
         {"categoryLabel": "Acquisition", "categoryName": "Acquisition"},
-    ]
+    ],
 }
 
 mock_prediction_describe = {
@@ -159,7 +157,7 @@ mock_prediction_describe = {
                     "performanceMeasure": "AUC",
                     "componentName": "Accept",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
             "categoryModels": [
                 {
@@ -171,9 +169,9 @@ mock_prediction_describe = {
                     "categoryName": "Retention",
                     "componentName": "testModel_falcons",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
-        }
+        },
     ],
     "supportingModels": [
         {
@@ -186,7 +184,7 @@ mock_prediction_describe = {
             "componentName": "RiskModel",
             "contextName": "NoContext",
             "modelingTechnique": "GBM and XGBoost",
-        }
+        },
     ],
     "metrics": {"lift": 0.0, "performance": 68.87, "performanceMeasure": "AUC"},
 }
@@ -270,7 +268,7 @@ class TestAsyncPredictionStudio:
         repo = await async_ps.repository()
 
         async_client.get.assert_awaited_once_with(
-            "/prweb/api/PredictionStudio/v3/predictions/repository"
+            "/prweb/api/PredictionStudio/v3/predictions/repository",
         )
         assert repo.name == "TestRepo"
         assert repo.type == "S3"
@@ -304,7 +302,9 @@ class TestAsyncPredictionStudio:
 
     @pytest.mark.asyncio
     async def test_list_predictions_returns_paginated_list(
-        self, async_ps, async_client
+        self,
+        async_ps,
+        async_client,
     ):
         async_client.get.return_value = mock_response_predictions
         result = await async_ps.list_predictions(return_df=False)
@@ -333,14 +333,16 @@ class TestAsyncPredictionStudio:
         result = await async_ps.get_model_categories()
 
         async_client.get.assert_awaited_once_with(
-            "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+            "/prweb/api/PredictionStudio/v3/predictions/modelCategories",
         )
         assert len(result) == 2
         assert result[0] == {"categoryLabel": "Retention", "categoryName": "Retention"}
 
     @pytest.mark.asyncio
     async def test_get_notifications_returns_paginated_list(
-        self, async_ps, async_client
+        self,
+        async_ps,
+        async_client,
     ):
         async_client.get.return_value = mock_response_notifications
         result = await async_ps.get_notifications(return_df=False)
@@ -365,7 +367,7 @@ class TestAsyncPredictionStudio:
         result = await async_ps.trigger_datamart_export()
 
         async_client.post.assert_awaited_once_with(
-            "/prweb/api/PredictionStudio/v1/datamart/export"
+            "/prweb/api/PredictionStudio/v1/datamart/export",
         )
         assert result.reference_id == "W-4002"
         assert result.location == "/AWSFalcons/datamart/"
@@ -400,7 +402,7 @@ class TestAsyncPrediction:
         result = await async_prediction.describe()
 
         async_client.get.assert_awaited_once_with(
-            "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+            "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
         )
         assert (
             result["predictionId"]
@@ -431,7 +433,9 @@ class TestAsyncPrediction:
 
     @pytest.mark.asyncio
     async def test_get_notifications_returns_paginated_list(
-        self, async_prediction, async_client
+        self,
+        async_prediction,
+        async_client,
     ):
         async_client.get.return_value = mock_response_notifications
         result = await async_prediction.get_notifications(return_df=False)
@@ -447,8 +451,8 @@ class TestAsyncPrediction:
                     "ruleName": "testModel_falcons",
                     "caseID": "M-2042",
                     "updateDateTime": "20240718T120558.474 GMT",
-                }
-            ]
+                },
+            ],
         }
         async_client.get.return_value = mock_response
         result = await async_prediction.get_staged_changes()
@@ -492,7 +496,7 @@ class TestAsyncModel:
         result = await async_model.describe()
 
         async_client.get.assert_awaited_once_with(
-            "/prweb/api/PredictionStudio/v1/models/@BASECLASS!TESTMODEL_FALCONS"
+            "/prweb/api/PredictionStudio/v1/models/@BASECLASS!TESTMODEL_FALCONS",
         )
         assert result["modelId"] == "@BASECLASS!TESTMODEL_FALCONS"
         assert result["status"] == "Completed"
@@ -505,7 +509,9 @@ class TestAsyncModel:
 
     @pytest.mark.asyncio
     async def test_get_notifications_returns_paginated_list(
-        self, async_model, async_client
+        self,
+        async_model,
+        async_client,
     ):
         mock_notif = {
             "notifications": [
@@ -519,7 +525,7 @@ class TestAsyncModel:
                     "impact": "High",
                     "triggerTime": "20240720T050406.219 GMT",
                 },
-            ]
+            ],
         }
         async_client.get.return_value = mock_notif
         result = await async_model.get_notifications(return_df=False)
@@ -539,7 +545,8 @@ class TestAsyncModel:
 
 class TestAsyncMixinIntegration:
     """Verify that @api_method methods on mixins are native coroutines
-    when accessed through async concrete classes."""
+    when accessed through async concrete classes.
+    """
 
     def test_get_model_categories_is_coroutinefunction(self):
         import asyncio

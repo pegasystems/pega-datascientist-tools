@@ -1,12 +1,10 @@
 import logging
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    List,
     Literal,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -35,7 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from .ValueFinder import ValueFinder
 
-COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+COLORSCALE_TYPES = Union[list[tuple[float, str]], list[str]]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -67,7 +65,10 @@ class Plots(LazyNamespace):
     ) -> pl.LazyFrame: ...
 
     def funnel_chart(
-        self, by: str = "Group", query: Optional[QUERY] = None, return_df: bool = False
+        self,
+        by: str = "Group",
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
     ):
         df = _apply_query(self.vf.df, query)
         df = (
@@ -115,7 +116,7 @@ class Plots(LazyNamespace):
                 show_hist=False,
             )
             tempdf = pl.DataFrame(
-                {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]}
+                {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
             fig = go.Scatter(
                 x=tempdf["x"],
@@ -126,7 +127,10 @@ class Plots(LazyNamespace):
             )
             # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
             boxy = go.Box(
-                x=sample["ModelPropensity"], name=stage, y0=0, boxpoints="outliers"
+                x=sample["ModelPropensity"],
+                name=stage,
+                y0=0,
+                boxpoints="outliers",
             )
             figs.add_trace(fig, row=i + 1, col=1)
             figs.add_trace(boxy, row=i + 1, col=1)
@@ -142,7 +146,9 @@ class Plots(LazyNamespace):
         return figs
 
     def propensity_threshold(
-        self, sample_size: int = 10_000, stage="Eligibility"
+        self,
+        sample_size: int = 10_000,
+        stage="Eligibility",
     ) -> Figure:
         import plotly.figure_factory as ff
 
@@ -159,10 +165,13 @@ class Plots(LazyNamespace):
         for ptype in propensities:
             plotdf = data[ptype].to_list()
             temp = ff.create_distplot(
-                [plotdf], ["value"], show_rug=False, show_hist=False
+                [plotdf],
+                ["value"],
+                show_rug=False,
+                show_hist=False,
             )
             tempdf = pl.DataFrame(
-                {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]}
+                {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
             figs.add_trace(
                 go.Scatter(
@@ -199,7 +208,11 @@ class Plots(LazyNamespace):
             )
             i += 1
         figs.update_xaxes(
-            title_text="Propensity", ticks="outside", showticklabels=True, row=3, col=1
+            title_text="Propensity",
+            ticks="outside",
+            showticklabels=True,
+            row=3,
+            col=1,
         )
         figs.update_yaxes(title_text="density", row=2, col=1)
         figs.update_layout(
@@ -218,13 +231,13 @@ class Plots(LazyNamespace):
     ) -> Iterable[float]:
         if thresholds is not None and quantiles is not None:
             raise ValueError("Please only supply thresholds OR quantiles, not both.")
-        elif thresholds is None and quantiles is None:
+        if thresholds is None and quantiles is None:
             return default or [self.vf.threshold]
-        elif thresholds is not None:
+        if thresholds is not None:
             return thresholds
-        elif quantiles is not None:
+        if quantiles is not None:
             return map(self.vf.aggregates.get_threshold_from_quantile, quantiles)
-        raise ValueError()  # pragma: no cover
+        raise ValueError  # pragma: no cover
 
     def pie_charts(
         self,
@@ -237,10 +250,10 @@ class Plots(LazyNamespace):
         df = pl.concat(
             [
                 self.vf.aggregates.get_counts_for_threshold(th).with_columns(
-                    Threshold=pl.lit(th).round(rounding)
+                    Threshold=pl.lit(th).round(rounding),
                 )
                 for th in thresholds
-            ]
+            ],
         )
         colors = ["#219e3f", "#fca52e", "#cd001f"]
         fig = make_subplots(
@@ -253,9 +266,9 @@ class Plots(LazyNamespace):
         last_threshold = 0.0
         default_n: Optional[int] = None
         for i, ((stage, threshold), _df) in enumerate(
-            df.group_by("Stage", "Threshold", maintain_order=True)
+            df.group_by("Stage", "Threshold", maintain_order=True),
         ):
-            stage, threshold = cast(str, stage), cast(float, threshold)
+            stage, threshold = cast("str", stage), cast("float", threshold)
             n = i // len(self.vf.nbad_stages)
             default_n = n if threshold == self.vf.threshold else default_n
             visible = [False] * len(df)  # Initialize visibility for all traces
@@ -273,10 +286,10 @@ class Plots(LazyNamespace):
                                 "RelevantActions": "At least one relevant action",
                                 "IrrelevantActions": "Only irrelevant actions",
                                 "NoActions": "Without actions",
-                            }
+                            },
                         )
                         .drop("Threshold", "Stage")
-                        .columns
+                        .columns,
                     ),
                     name=stage,
                     visible=default_n is not None and default_n == n,
@@ -294,7 +307,7 @@ class Plots(LazyNamespace):
                     args=[
                         {"visible": visible},
                         {
-                            "title": f"Distribution of customers per stage at propensity threshold {round(threshold, rounding):.{rounding-2}%}"
+                            "title": f"Distribution of customers per stage at propensity threshold {round(threshold, rounding):.{rounding - 2}%}",
                         },
                     ],
                 )
@@ -308,7 +321,7 @@ class Plots(LazyNamespace):
                 currentvalue={"prefix": "Propensity threshold: "},
                 pad={"t": 50},
                 steps=steps,
-            )
+            ),
         ]
 
         fig.update_layout(
@@ -316,13 +329,13 @@ class Plots(LazyNamespace):
             title_text=f"Distribution of customers per stage at propensity threshold {round(self.vf.threshold, rounding):.1%}",
         )
         if not default_n:
-            for i in range(0, 4):
+            for i in range(4):
                 fig.data[i].visible = True
 
         for i in range(len(fig.layout.sliders[0].steps)):
             fig.layout.sliders[0].steps[
                 i
-            ].label = f"{float(fig.layout.sliders[0].steps[i].label):.{rounding-2}%}"
+            ].label = f"{float(fig.layout.sliders[0].steps[i].label):.{rounding - 2}%}"
 
         return fig
 
@@ -334,12 +347,14 @@ class Plots(LazyNamespace):
         rounding: int = 3,
     ):
         thresholds = self._get_thresholds(
-            thresholds, quantiles, ((x + 1) * 0.05 for x in range(20))
+            thresholds,
+            quantiles,
+            ((x + 1) * 0.05 for x in range(20)),
         )
 
         df = [
             self.vf.aggregates.get_counts_for_threshold(th).with_columns(
-                Threshold=pl.lit(th).round(rounding)
+                Threshold=pl.lit(th).round(rounding),
             )
             for th in thresholds
         ]
@@ -362,7 +377,7 @@ class Plots(LazyNamespace):
                         "Applicability",
                         "Suitability",
                         "Arbitration",
-                    ]
+                    ],
                 },
                 labels={"value": "Number of people", "index": "Threshold"},
                 title="Distribution of offers per stage",

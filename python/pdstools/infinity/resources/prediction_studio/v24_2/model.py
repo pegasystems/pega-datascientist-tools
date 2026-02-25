@@ -15,13 +15,13 @@ class _ModelV24_2Mixin:
 
     @api_method
     async def describe(self) -> ModelAttributes:
-        """
-        Fetches details about a model, including target labels, alternate labels, monitoring information, predictor information etc.
+        """Fetches details about a model, including target labels, alternate labels, monitoring information, predictor information etc.
 
         Returns
         -------
         ModelAttributes
             An object containing information about the model.
+
         """
         endpoint = f"/prweb/api/PredictionStudio/v1/models/{self.model_id}"
         return await self._a_get(endpoint)
@@ -47,8 +47,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
     ) -> Union[PaginatedList[Notification], pl.DataFrame]:
-        """
-        Fetches a list of notifications for a specific model.
+        """Fetches a list of notifications for a specific model.
 
         This function retrieves notifications related to a model. You can filter these notifications by their category.
         Optionally, the notifications can be returned as a DataFrame for easier analysis and visualization.
@@ -64,6 +63,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
         -------
         PaginatedList[Notification] or polars.DataFrame
             A list of notifications or a DataFrame containing the notifications, depending on the value of `return_df`.
+
         """
         endpoint = f"prweb/api/PredictionStudio/v1/models/{self.model_id}/notifications"
         if category is None:
@@ -71,14 +71,18 @@ class Model(_ModelV24_2Mixin, PreviousModel):
 
         endpoint = f"{endpoint}?category={category}"
         notifications = PaginatedList(
-            Notification, self._client, "get", endpoint, _root="notifications"
+            Notification,
+            self._client,
+            "get",
+            endpoint,
+            _root="notifications",
         )
         if return_df:
             return pl.DataFrame(
                 [
                     getattr(notification, "_public_dict", {})
                     for notification in notifications
-                ]
+                ],
             )
         return notifications
 
@@ -89,8 +93,7 @@ class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
     ) -> Union[AsyncPaginatedList[AsyncNotification], pl.DataFrame]:
-        """
-        Fetches a list of notifications for a specific model.
+        """Fetches a list of notifications for a specific model.
 
         Parameters
         ----------
@@ -103,6 +106,7 @@ class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
         -------
         AsyncPaginatedList[AsyncNotification] or polars.DataFrame
             A list of notifications or a DataFrame containing the notifications.
+
         """
         endpoint = f"prweb/api/PredictionStudio/v1/models/{self.model_id}/notifications"
         if category is None:
@@ -110,7 +114,11 @@ class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
 
         endpoint = f"{endpoint}?category={category}"
         notifications = AsyncPaginatedList(
-            AsyncNotification, self._client, "get", endpoint, _root="notifications"
+            AsyncNotification,
+            self._client,
+            "get",
+            endpoint,
+            _root="notifications",
         )
         if return_df:
             return await notifications.as_df()

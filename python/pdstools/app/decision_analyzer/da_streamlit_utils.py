@@ -1,7 +1,7 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import polars as pl
 import streamlit as st
@@ -10,20 +10,19 @@ from pdstools.decision_analyzer.data_read_utils import (
     read_data,
     read_nested_zip_files,
 )
-from pdstools.pega_io.File import read_ds_export
-
 from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+from pdstools.pega_io.File import read_ds_export
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
-    get_current_index,  # noqa: F401 — re-exported for backward compat
     is_managed_deployment,
 )
 
 # Default sample data path for EC2 deployments. Override with
 # PDSTOOLS_SAMPLE_DATA_PATH env var if needed.
 _EC2_SAMPLE_PATH = os.environ.get(
-    "PDSTOOLS_SAMPLE_DATA_PATH", "/s3-files/anonymized/anonymized"
+    "PDSTOOLS_SAMPLE_DATA_PATH",
+    "/s3-files/anonymized/anonymized",
 )
 
 
@@ -38,7 +37,7 @@ def ensure_funnel():
         st.warning(
             "This page requires **Action Analysis (v2)** data with full stage "
             "pipeline information. Explainability Extract (v1) data only contains "
-            "the arbitration stage and cannot show the decision funnel."
+            "the arbitration stage and cannot show the decision funnel.",
         )
         st.stop()
 
@@ -93,21 +92,26 @@ def _clean_unselected_filters(to_filter_columns, filter_type):
 
 
 def get_data_filters(
-    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
-) -> List[
+    df: pl.LazyFrame,
+    columns=None,
+    queries=None,
+    filter_type="local",
+) -> list[
     pl.Expr
 ]:  # this one is way too complex, should be split up into probably 5 functions
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
+    """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
     ----------
     df : pl.DataFrame
         Original dataframe
+
     """
 
     def _save_selected(
-        filter_type, column, regex=""
+        filter_type,
+        column,
+        regex="",
     ):  ## see the issue on why we need to save a different session.state variable https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
         st.session_state[f"{filter_type}{regex}selected_{column}"] = st.session_state[
             f"{filter_type}{regex}_selected_{column}"
@@ -170,7 +174,7 @@ def get_data_filters(
                     queries.append(
                         pl.col(column)
                         .cast(pl.Utf8)
-                        .is_in(st.session_state[f"{filter_type}selected_{column}"])
+                        .is_in(st.session_state[f"{filter_type}selected_{column}"]),
                     )
 
             else:
@@ -253,7 +257,7 @@ def get_data_filters(
     return queries
 
 
-def get_options() -> List[str]:
+def get_options() -> list[str]:
     """Data source options.
 
     'File path' is only shown in managed deployments where users need to
@@ -298,7 +302,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
             raise ValueError(
                 f"The uploaded archive does not contain recognizable data files. "
                 f"Found: {', '.join(sorted(inner_exts))}. "
-                f"Expected raw decision data in csv, parquet, json, or arrow format."
+                f"Expected raw decision data in csv, parquet, json, or arrow format.",
             )
 
         # If the zip contains .zip files, use the legacy gzipped-ndjson reader
@@ -424,6 +428,8 @@ def load_decision_analyzer(
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
 def st_priority_component_distribution(
-    value_data: pl.LazyFrame, component, granularity
+    value_data: pl.LazyFrame,
+    component,
+    granularity,
 ):
     return plot_priority_component_distribution(value_data, component, granularity)

@@ -1,21 +1,20 @@
 # python/pdstools/decision_analyzer/table_definition.py
-from typing import Dict, List, Type, TypedDict
-
-from typing_extensions import NotRequired
+from typing import TypedDict
 
 import polars as pl
+from typing_extensions import NotRequired
 
 
 class TableConfig(TypedDict):
     display_name: str
     default: bool
-    type: Type[pl.DataType]
-    aliases: NotRequired[List[str]]
+    type: type[pl.DataType]
+    aliases: NotRequired[list[str]]
 
 
-DecisionAnalyzer: Dict[str, TableConfig] = {
+DecisionAnalyzer: dict[str, TableConfig] = {
     "pxRecordType": {
-        "display_name": "Record Type",
+        "display_name": "Record type",
         "default": False,
         "type": pl.Categorical,
     },
@@ -26,10 +25,10 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "aliases": ["Subject ID", "SubjectID", "pySubjectID"],
     },
     "Primary_pySubjectType": {
-        "display_name": "Subject Type",
+        "display_name": "Subject type",
         "default": False,
         "type": pl.Categorical,
-        "aliases": ["Subject Type", "SubjectType", "pySubjectType"],
+        "aliases": ["Subject type", "SubjectType", "pySubjectType"],
     },
     "pxInteractionID": {
         "display_name": "Interaction ID",
@@ -68,7 +67,7 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "aliases": ["Treatment"],
     },
     "PlacementType": {
-        "display_name": "Placement Type",
+        "display_name": "Placement type",
         "default": False,
         "type": pl.Categorical,
     },
@@ -112,10 +111,10 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "aliases": ["Component Name"],
     },
     "pxComponentType": {
-        "display_name": "Component Type",
+        "display_name": "Component type",
         "default": True,
         "type": pl.Utf8,
-        "aliases": ["Component Type"],
+        "aliases": ["Component type"],
     },
     "Value": {
         "display_name": "Value",
@@ -156,8 +155,7 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
     },
 }
 
-
-ExplainabilityExtract: Dict[str, TableConfig] = {
+ExplainabilityExtract: dict[str, TableConfig] = {
     "pySubjectID": {
         "display_name": "Subject ID",
         "default": True,
@@ -240,7 +238,6 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "aliases": ["ModelControl"],
     },
 }
-
 
 audit_tag_mapping = {
     "AvailableActions": ["ActionAvailability"],

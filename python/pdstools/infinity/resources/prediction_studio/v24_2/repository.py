@@ -1,5 +1,5 @@
-from ..v24_1.repository import AsyncRepository as AsyncRepositoryPrevious
 from ..v24_1 import Repository as RepositoryPrevious
+from ..v24_1.repository import AsyncRepository as AsyncRepositoryPrevious
 
 
 class _RepositoryV24_2Mixin:

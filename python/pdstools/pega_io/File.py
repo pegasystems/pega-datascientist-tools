@@ -4,11 +4,12 @@ import pathlib
 import re
 import warnings
 import zipfile
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
+from typing import Literal, Optional, Union, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -144,7 +145,9 @@ def read_ds_export(
 
 
 def import_file(
-    file: Union[str, BytesIO], extension: str, **reading_opts
+    file: Union[str, BytesIO],
+    extension: str,
+    **reading_opts,
 ) -> pl.LazyFrame:
     """Imports a file using Polars
 
@@ -159,6 +162,7 @@ def import_file(
     -------
     pl.LazyFrame
         The (imported) lazy dataframe
+
     """
     if extension == ".zip":
         logger.debug("Zip file found, extracting data.json to BytesIO.")
@@ -192,8 +196,7 @@ def import_file(
                 file,
                 **csv_opts,
             ).lazy()
-        else:
-            return pl.scan_csv(file, **csv_opts)
+        return pl.scan_csv(file, **csv_opts)
 
     if extension == ".json":
         try:
@@ -234,8 +237,9 @@ def import_file(
 
 
 def read_zipped_file(
-    file: Union[str, BytesIO], verbose: bool = False
-) -> Tuple[BytesIO, str]:
+    file: Union[str, BytesIO],
+    verbose: bool = False,
+) -> tuple[BytesIO, str]:
     """Read a zipped NDJSON file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file. It reads the file,
@@ -252,18 +256,18 @@ def read_zipped_file(
     -------
     os.BytesIO
         The raw bytes object to pass through to Polars
+
     """
 
-    def get_valid_files(files: List[str]):
+    def get_valid_files(files: list[str]):
         logger.debug(f"Files found: {files}")
         if "data.json" in files:
             return "data.json"
-        else:  # pragma: no cover
-            file = [file for file in files if file.endswith("/data.json")]
-            if 0 < len(file) > 1:
-                return None
-            else:
-                return file[0]
+        # pragma: no cover
+        file = [file for file in files if file.endswith("/data.json")]
+        if 0 < len(file) > 1:
+            return None
+        return file[0]
 
     with zipfile.ZipFile(file, mode="r") as z:
         logger.debug("Opened zip file.")
@@ -277,7 +281,7 @@ def read_zipped_file(
                         "Zipped json file found. For faster reading, we recommend",
                         "parsing the files to a format such as arrow or parquet. ",
                         "See example in docs #TODO",
-                    )
+                    ),
                 )
             with z.open(zfile) as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
@@ -301,6 +305,7 @@ def read_multi_zip(
         At this point, only 'gzip' is supported
     verbose : bool, default = True
         Whether to print out the progress of the import
+
     """
     import gzip
 
@@ -314,7 +319,10 @@ def read_multi_zip(
         from tqdm import tqdm
 
         files_iterator = tqdm(
-            files, desc="Reading files...", disable=not verbose, total=total_files
+            files,
+            desc="Reading files...",
+            disable=not verbose,
+            total=total_files,
         )
     except ImportError:
         if verbose:
@@ -339,7 +347,9 @@ def read_multi_zip(
 
 
 def get_latest_file(
-    path: Union[str, os.PathLike], target: str, verbose: bool = False
+    path: Union[str, os.PathLike],
+    target: str,
+    verbose: bool = False,
 ) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
@@ -361,6 +371,7 @@ def get_latest_file(
     -------
     str
         The most recent file given the file name criteria.
+
     """
     if target not in {
         "model_data",
@@ -381,7 +392,7 @@ def get_latest_file(
     if len(matches) == 0:  # pragma: no cover
         if verbose:
             print(
-                f"Unable to find data for {target}. Please check if the data is available."
+                f"Unable to find data for {target}. Please check if the data is available.",
             )
         return None
 
@@ -390,7 +401,7 @@ def get_latest_file(
     def f(x):
         try:
             return from_prpc_date_time(
-                re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " ")
+                re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " "),
             )
         except Exception:
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
@@ -463,7 +474,8 @@ def cache_to_file(
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: Union[
-        pl._typing.ParquetCompression, pl._typing.IpcCompression
+        pl._typing.ParquetCompression,
+        pl._typing.IpcCompression,
     ] = "uncompressed",
 ) -> pathlib.Path:
     """Very simple convenience function to cache data.
@@ -487,8 +499,8 @@ def cache_to_file(
     -------
     os.PathLike:
         The filepath to the cached file
-    """
 
+    """
     outpath = pathlib.Path(path).joinpath(pathlib.Path(name))
     if not os.path.exists(path):
         os.mkdir(path)
@@ -554,6 +566,7 @@ def read_dataflow_output(
     -----
     >>> from glob import glob
     >>> read_dataflow_output(files=glob("model_snapshots_*.json"))
+
     """
     if isinstance(files, str):
         files = glob(files)

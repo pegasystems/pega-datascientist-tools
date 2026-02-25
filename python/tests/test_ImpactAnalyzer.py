@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ImpactAnalyzer class
-"""
+"""Testing the functionality of the ImpactAnalyzer class"""
 
 import pathlib
 
@@ -97,13 +95,13 @@ def test_from_pdc():
 
     # Verify the lift numbers for all channels aggregated
     assert analyzer.summarize_experiments().select(
-        pl.col("CTR_Lift").round(6)
+        pl.col("CTR_Lift").round(6),
     ).collect()["CTR_Lift"].to_list() == [0.009563, 0.002653, None, 0.003784, 0.002215]
 
     # Value lift isn't exactly the same overall because we can't recalculate it from the current PDC data
     # and the weighted average is perhaps not the same
     assert analyzer.summarize_experiments().select(
-        pl.col("Value_Lift").round(1)
+        pl.col("Value_Lift").round(1),
     ).collect()["Value_Lift"].to_list() == [
         round(x, 1) if x is not None else x
         for x in [1.032273, 0.002653, None, 0.018921, 0.911865]
@@ -111,7 +109,7 @@ def test_from_pdc():
 
     # However for a specific channel the Value Lift should be exactly the same, as this is just copied from the data
     assert analyzer.summarize_experiments("Channel").filter(Channel="SMS").select(
-        pl.col("Value_Lift").round(6)
+        pl.col("Value_Lift").round(6),
     ).collect()["Value_Lift"].to_list() == [
         1.312399,
         0.012333,
@@ -129,7 +127,7 @@ def test_from_pdc_with_custom_reader():
 
     def custom_reader(file_path):
         """Custom reader function for testing"""
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return json.load(f)
 
     # Test with custom reader
@@ -234,7 +232,8 @@ def test_plot_with_query(simple_ia):
     # Test that plots still render with query
     overview_fig = simple_ia.plot.overview(query=query)
     trend_fig = simple_ia.plot.trend(
-        facet="Channel", query=pl.col("Channel") == "Email"
+        facet="Channel",
+        query=pl.col("Channel") == "Email",
     )
 
     assert overview_fig is not None
@@ -294,7 +293,6 @@ def test_plot_with_facet_parameter(simple_ia):
 
 def test_plot_facet_edge_cases(simple_ia):
     """Test edge cases for facet parameter handling"""
-
     # Test with facet provided (overview)
     overview_data = simple_ia.plot.overview(facet="Channel", return_df=True).collect()
     assert "Channel" in overview_data.columns
@@ -306,13 +304,15 @@ def test_plot_facet_edge_cases(simple_ia):
 
     # Test with facet provided (control_groups_trend)
     control_groups_data = simple_ia.plot.control_groups_trend(
-        facet="Channel", return_df=True
+        facet="Channel",
+        return_df=True,
     ).collect()
     assert "Channel" in control_groups_data.columns
 
     # Test with facet=None (should work normally)
     overview_no_facet_data = simple_ia.plot.overview(
-        facet=None, return_df=True
+        facet=None,
+        return_df=True,
     ).collect()
     assert "Experiment" in overview_no_facet_data.columns
 
@@ -340,20 +340,25 @@ def test_plot_with_every_parameter(simple_ia):
     assert isinstance(trend_facet_and_every, Figure)
 
     control_groups_facet_and_every = simple_ia.plot.control_groups_trend(
-        facet="Channel", every="1w"
+        facet="Channel",
+        every="1w",
     )
     assert isinstance(control_groups_facet_and_every, Figure)
 
     # Test return_df functionality with facet + every combination
     trend_data = simple_ia.plot.trend(
-        facet="Channel", every="1mo", return_df=True
+        facet="Channel",
+        every="1mo",
+        return_df=True,
     ).collect()
     assert "Channel" in trend_data.columns
     assert "SnapshotTime" in trend_data.columns
     assert "Experiment" in trend_data.columns
 
     control_groups_data = simple_ia.plot.control_groups_trend(
-        facet="Channel", every="1w", return_df=True
+        facet="Channel",
+        every="1w",
+        return_df=True,
     ).collect()
     assert "Channel" in control_groups_data.columns
     assert "SnapshotTime" in control_groups_data.columns
@@ -363,6 +368,7 @@ def test_plot_with_every_parameter(simple_ia):
 def test_from_vbd():
     """Test from_vbd constructor and methods"""
     import tempfile
+
     from plotly.graph_objs import Figure
 
     vbd_data = pl.DataFrame(
@@ -410,7 +416,7 @@ def test_from_vbd():
             ],
             "pxAggregateCount": [100, 50, 5, 200, 150, 250],
             "pyValue": [0.0, 0.0, 25.0, 0.0, 0.0, 0.0],
-        }
+        },
     )
 
     with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:

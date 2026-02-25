@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 from openpyxl import load_workbook
-from pdstools import ADMDatamart, datasets, read_ds_export, Prediction
+from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -46,19 +46,25 @@ def test_HealthCheck_size_reduction_methods(sample: ADMDatamart, tmp_path):
 
     print("Generating no_reduction (None)...")
     no_reduction = sample.generate.health_check(
-        output_dir=tmp_path, name="no_reduction", size_reduction_method=None
+        output_dir=tmp_path,
+        name="no_reduction",
+        size_reduction_method=None,
     )
     sizes["no_reduction"] = no_reduction.stat().st_size
 
     print("Generating stripped...")
     stripped = sample.generate.health_check(
-        output_dir=tmp_path, name="stripped", size_reduction_method="strip"
+        output_dir=tmp_path,
+        name="stripped",
+        size_reduction_method="strip",
     )
     sizes["stripped"] = stripped.stat().st_size
 
     print("Generating cdn...")
     cdn = sample.generate.health_check(
-        output_dir=tmp_path, name="cdn", size_reduction_method="cdn"
+        output_dir=tmp_path,
+        name="cdn",
+        size_reduction_method="cdn",
     )
     sizes["cdn"] = cdn.stat().st_size
 
@@ -150,7 +156,8 @@ def test_GenerateHealthCheck_PredictionData(
     sample_prediction_data: Prediction,
 ):
     hc = sample.generate.health_check(
-        prediction=sample_prediction_data, name="WithPredictions"
+        prediction=sample_prediction_data,
+        name="WithPredictions",
     )
     assert hc == pathlib.Path("./HealthCheck_WithPredictions.html").resolve()
     assert pathlib.Path(hc).exists()
@@ -160,7 +167,8 @@ def test_GenerateHealthCheck_PredictionData(
 
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart):
     excel, warning_messages = sample_without_predictor_binning.generate.excel_report(
-        name="ModelTables.xlsx", predictor_binning=True
+        name="ModelTables.xlsx",
+        predictor_binning=True,
     )
     assert excel == pathlib.Path("ModelTables.xlsx")
     assert pathlib.Path(excel).exists()
@@ -180,7 +188,7 @@ def test_GenerateModelReport(sample: ADMDatamart):
         only_active_predictors=True,
     )
     expected_path = pathlib.Path(
-        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
+        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
     ).resolve()
     assert report == expected_path
     assert pathlib.Path(report).exists()
@@ -195,7 +203,9 @@ def test_ModelReport_size_reduction_methods(sample: ADMDatamart, tmp_path):
     sizes = {}
 
     default = sample.generate.model_reports(
-        model_ids=[model_id], output_dir=tmp_path, name="default"
+        model_ids=[model_id],
+        output_dir=tmp_path,
+        name="default",
     )
     sizes["default"] = default.stat().st_size
 
@@ -317,7 +327,7 @@ Model ID: {{< meta params.model_id >}}
         qmd_file=custom_qmd,
     )
     expected_path = pathlib.Path(
-        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
+        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
     ).resolve()
     assert report == expected_path
     assert pathlib.Path(report).exists()

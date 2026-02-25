@@ -2,7 +2,6 @@
 
 import polars as pl
 import pytest
-
 from pdstools.utils.metric_limits import (
     MetricLimits,
     add_rag_columns,
@@ -218,7 +217,7 @@ class TestAddRagColumns:
         result = add_rag_columns(
             df,
             column_to_metric={
-                "AGB": ("UsingAGB", {"Yes": True, "No": False, "?": False})
+                "AGB": ("UsingAGB", {"Yes": True, "No": False, "?": False}),
             },
             strict_metric_validation=True,
         )
@@ -230,7 +229,7 @@ class TestAddRagColumns:
         result = add_rag_columns(
             df,
             column_to_metric={
-                "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False})
+                "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
             },
             strict_metric_validation=True,
         )

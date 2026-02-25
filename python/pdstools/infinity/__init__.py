@@ -1,9 +1,7 @@
-"""
-Infinity API client for Pega Decision Management.
-"""
+"""Infinity API client for Pega Decision Management."""
 
 from importlib.util import find_spec
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from ..utils.namespaces import MissingDependenciesException
 
@@ -12,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class DependencyNotFound:
-    def __init__(self, dependencies: List[str]):
+    def __init__(self, dependencies: list[str]):
         self.dependencies = dependencies
         self.namespace = "the DX API Client"
         self.deps_group = "api"
@@ -22,13 +20,15 @@ class DependencyNotFound:
 
     def __call__(self):
         raise MissingDependenciesException(
-            self.dependencies, namespace=self.namespace, deps_group=self.deps_group
+            self.dependencies,
+            namespace=self.namespace,
+            deps_group=self.deps_group,
         )
 
 
-def _check_dependencies() -> List[str]:
+def _check_dependencies() -> list[str]:
     """Return list of missing dependencies for the Infinity client."""
-    missing: List[str] = []
+    missing: list[str] = []
     if not find_spec("pydantic"):
         missing.append("pydantic")
     if not find_spec("httpx"):

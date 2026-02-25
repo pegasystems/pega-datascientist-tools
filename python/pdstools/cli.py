@@ -29,13 +29,13 @@ APPS = {
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        description="Command line utility to run pdstools apps."
+        description="Command line utility to run pdstools apps.",
     )
 
     # Create help text with display names
     app_choices = list(APPS.keys())
     help_text = "The app to run: " + " | ".join(
-        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices]
+        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices],
     )
 
     parser.add_argument(
@@ -72,7 +72,7 @@ def run(args, unknown):
     except ImportError:
         print(
             "Error: streamlit is not installed. Try installing the optionall dependency group 'app'.\n"
-            "If you are using uvx, try running uvx 'pdstools[app]' instead."
+            "If you are using uvx, try running uvx 'pdstools[app]' instead.",
         )
         sys.exit(1)
 
@@ -87,7 +87,7 @@ def run(args, unknown):
         while True:
             try:
                 choice = input(
-                    f"\nPlease select an app to run (1-{len(app_list)}): "
+                    f"\nPlease select an app to run (1-{len(app_list)}): ",
                 ).strip()
 
                 # Check if it's a number
@@ -96,31 +96,30 @@ def run(args, unknown):
                     break
 
                 # Check if it's an internal app name
-                elif choice.lower() in APPS:
+                if choice.lower() in APPS:
                     args.app = choice.lower()
                     break
 
                 # Check if it's a display name (case insensitive)
-                else:
-                    found = False
-                    for app_key, app_info in APPS.items():
-                        if choice.lower() == app_info["display_name"].lower():
-                            args.app = app_key
-                            found = True
-                            break
-                    if found:
+                found = False
+                for app_key, app_info in APPS.items():
+                    if choice.lower() == app_info["display_name"].lower():
+                        args.app = app_key
+                        found = True
                         break
+                if found:
+                    break
 
-                    # If we get here, invalid input
-                    valid_options = []
-                    valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
-                    valid_options.extend(APPS.keys())
-                    valid_options.extend(
-                        [app_info["display_name"] for app_info in APPS.values()]
-                    )
-                    print(
-                        f"Invalid choice. Please enter: {', '.join(valid_options[:4])}..."
-                    )
+                # If we get here, invalid input
+                valid_options = []
+                valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
+                valid_options.extend(APPS.keys())
+                valid_options.extend(
+                    [app_info["display_name"] for app_info in APPS.values()],
+                )
+                print(
+                    f"Invalid choice. Please enter: {', '.join(valid_options[:4])}...",
+                )
 
             except (KeyboardInterrupt, EOFError):
                 print("\nExiting...")

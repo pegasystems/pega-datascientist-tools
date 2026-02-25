@@ -1,28 +1,24 @@
 import datetime
 import itertools
+import logging
 import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
     Optional,
-    Tuple,
     Union,
 )
 
 import polars as pl
-import logging
 
-from ..utils.types import QUERY
-from ..utils.namespaces import LazyNamespace
-
+from ..pega_io.File import read_ds_export
 from ..utils import cdh_utils
 from ..utils.metric_limits import (
-    is_standard_NBAD_prediction,
     get_predictions_channel_mapping,
+    is_standard_NBAD_prediction,
 )
-from ..pega_io.File import read_ds_export
-
+from ..utils.namespaces import LazyNamespace
+from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 try:
@@ -36,7 +32,7 @@ except ImportError as e:  # pragma: no cover
 if TYPE_CHECKING:  # pragma: no cover
     import plotly.graph_objects as go
 
-COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+COLORSCALE_TYPES = Union[list[tuple[float, str]], list[str]]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -45,8 +41,7 @@ Figure = Union[Any, "go.Figure"]
 
 
 class PredictionPlots(LazyNamespace):
-    """
-    Plots for visualizing Prediction Studio data.
+    """Plots for visualizing Prediction Studio data.
 
     This class provides various plotting methods to visualize prediction performance,
     lift, CTR, and response counts over time.
@@ -59,7 +54,12 @@ class PredictionPlots(LazyNamespace):
         super().__init__()
 
     def _prediction_trend(
-        self, period: str, query: Optional[QUERY], metric: str, title: str, **kwargs
+        self,
+        period: str,
+        query: Optional[QUERY],
+        metric: str,
+        title: str,
+        **kwargs,
     ):
         """Internal method to create trend plots for various metrics.
 
@@ -81,6 +81,7 @@ class PredictionPlots(LazyNamespace):
         -------
         tuple
             (plotly figure, dataframe with plot data)
+
         """
         # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
         # where multiple lazy queries from the same LazyFrame can cause crashes
@@ -91,7 +92,7 @@ class PredictionPlots(LazyNamespace):
                     "period: {} to {}",
                     pl.col("SnapshotTime").min().dt.to_string("%v"),
                     pl.col("SnapshotTime").max().dt.to_string("%v"),
-                )
+                ),
             )
             .collect()
             .item()
@@ -108,7 +109,7 @@ class PredictionPlots(LazyNamespace):
                 Period=pl.format(
                     "{} days",
                     ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
-                )
+                ),
             )
             .rename({"DateRange Min": "Date"})
             .collect()
@@ -145,7 +146,7 @@ class PredictionPlots(LazyNamespace):
         )
 
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
-            legend_title_text="Channel"
+            legend_title_text="Channel",
         )
 
         # Update axis titles if faceting is used
@@ -200,6 +201,7 @@ class PredictionPlots(LazyNamespace):
 
         >>> # Get underlying data for custom analysis
         >>> data = pred.plot.performance_trend(return_df=True)
+
         """
         # Default hover data for performance plots
         hover_data = {
@@ -284,6 +286,7 @@ class PredictionPlots(LazyNamespace):
 
         >>> # Get underlying data
         >>> data = pred.plot.lift_trend(return_df=True)
+
         """
         # Default hover data for lift plots
         hover_data = {
@@ -371,6 +374,7 @@ class PredictionPlots(LazyNamespace):
 
         >>> # Get underlying data
         >>> data = pred.plot.ctr_trend(return_df=True)
+
         """
         # Default hover data for CTR plots
         hover_data = {
@@ -461,6 +465,7 @@ class PredictionPlots(LazyNamespace):
 
         >>> # Get underlying data for analysis
         >>> data = pred.plot.responsecount_trend(return_df=True)
+
         """
         # Default hover data for response count plots
         hover_data = {
@@ -506,8 +511,7 @@ class PredictionPlots(LazyNamespace):
 
 
 class Prediction:
-    """
-    Monitor and analyze Pega Prediction Studio Predictions.
+    """Monitor and analyze Pega Prediction Studio Predictions.
 
     To initialize this class, either
     1. Initialize directly with the df polars LazyFrame
@@ -543,6 +547,7 @@ class Prediction:
     --------
     pdstools.prediction.PredictionPlots : The out of the box plots on the Prediction data
     pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
     """
 
     predictions: pl.LazyFrame
@@ -582,6 +587,7 @@ class Prediction:
         query : QUERY, optional
             An optional query to apply to the input data.
             For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
+
         """
         self.plot = PredictionPlots(prediction=self)
 
@@ -596,7 +602,7 @@ class Prediction:
                         "pyPositives": "Positives",
                         "pyNegatives": "Negatives",
                         "pyCount": "ResponseCount",
-                    }
+                    },
                 )
             )
             # collect/lazy hopefully helps to zoom in into issues
@@ -617,12 +623,13 @@ class Prediction:
         if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
                 SnapshotTime=cdh_utils.parse_pega_date_time_formats(
-                    "pySnapShotTime", timestamp_dtype=pl.Date
-                )
+                    "pySnapShotTime",
+                    timestamp_dtype=pl.Date,
+                ),
             )
         else:
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
-                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date)
+                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date),
             )
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
@@ -630,19 +637,19 @@ class Prediction:
         # TODO we may want to assert that this results in exactly one record for
         # every combination of model ID and snapshot time.
         counts_control = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Control"
+            pl.col.pyDataUsage == "Control",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
         counts_test = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Test"
+            pl.col.pyDataUsage == "Test",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
         counts_NBA = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "NBA"
+            pl.col.pyDataUsage == "NBA",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
 
         self.predictions = (
@@ -658,12 +665,15 @@ class Prediction:
                     "Negatives",
                     "ResponseCount",
                     "Performance",
-                ]
+                ],
             )
             .join(counts_test, on=["pyModelId", "SnapshotTime"], suffix="_Test")
             .join(counts_control, on=["pyModelId", "SnapshotTime"], suffix="_Control")
             .join(
-                counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA", how="left"
+                counts_NBA,
+                on=["pyModelId", "SnapshotTime"],
+                suffix="_NBA",
+                how="left",
             )
             .with_columns(
                 Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
@@ -738,14 +748,17 @@ class Prediction:
         --------
         pdstools.pega_io.File.read_ds_export : More information on file compatibility
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
         """
         predictions_raw_data = read_ds_export(
-            predictions_filename, base_path, infer_schema_length=infer_schema_length
+            predictions_filename,
+            base_path,
+            infer_schema_length=infer_schema_length,
         )
         if predictions_raw_data is None:
             raise ValueError(
                 f"Unable to read prediction data from {predictions_filename}. "
-                "Please check if the file exists and is in a supported format."
+                "Please check if the file exists and is in a supported format.",
             )
         return cls(predictions_raw_data, query=query)
 
@@ -757,8 +770,8 @@ class Prediction:
         -------
         Prediction
             The properly initialized Prediction class
+
         """
-        ...
 
     @classmethod
     def from_dataflow_export(cls):
@@ -768,8 +781,8 @@ class Prediction:
         -------
         Prediction
             The properly initialized Prediction class
+
         """
-        ...
 
     @classmethod
     def from_pdc(
@@ -799,6 +812,7 @@ class Prediction:
         --------
         pdstools.utils.cdh_utils._read_pdc : More information on PDC data processing
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
         """
         pdc_data = cdh_utils._read_pdc(df)
 
@@ -822,14 +836,14 @@ class Prediction:
                     "ResponseCount": "pyCount",
                     "Name": "pyName",
                     "Performance": "pyValue",
-                }
+                },
             )
             .cast(
                 {
                     "pyNegatives": pl.Float64,
                     "pyPositives": pl.Float64,
                     "pyCount": pl.Float64,
-                }
+                },
             )
             .drop(
                 [
@@ -852,7 +866,7 @@ class Prediction:
                         "Group",
                     ]
                     if c in pdc_data.collect_schema().names()
-                ]
+                ],
             )
         )
 
@@ -873,8 +887,10 @@ class Prediction:
         -------
         Optional[os.PathLike]
             The path to the cached prediction data file, or None if no data available
+
         """
         from pathlib import Path
+
         from .. import pega_io
 
         abs_path = Path(path).resolve()
@@ -882,7 +898,9 @@ class Prediction:
 
         if self.predictions is not None:
             predictions_cache = pega_io.cache_to_file(
-                self.predictions, abs_path, name=f"cached_prediction_data_{time}"
+                self.predictions,
+                abs_path,
+                name=f"cached_prediction_data_{time}",
             )
             return predictions_cache
 
@@ -912,6 +930,7 @@ class Prediction:
         >>> # Load from a cached file
         >>> cached_data = pl.scan_parquet('cached_predictions.parquet')
         >>> pred = Prediction.from_processed_data(cached_data)
+
         """
         instance = cls.__new__(cls)
         instance.plot = PredictionPlots(prediction=instance)
@@ -937,6 +956,7 @@ class Prediction:
         >>> from pdstools import Prediction
         >>> pred = Prediction.from_mock_data(days=30)
         >>> pred.plot.performance_trend()
+
         """
         n_conditions = 4  # can't change this
         n_predictions = 3  # tied to the data below
@@ -951,16 +971,16 @@ class Prediction:
                     "pySnapShotTime": sorted(
                         [
                             cdh_utils.to_prpc_date_time(
-                                now - datetime.timedelta(days=i)
+                                now - datetime.timedelta(days=i),
                             )[0:15]  # Polars doesn't like time zones like GMT+0200
                             for i in range(days)
                         ]
                         * n_conditions
-                        * n_predictions
+                        * n_predictions,
                     ),
                     "pyModelId": (
                         [
-                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity"
+                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity",
                         ]
                         * n_conditions
                         + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"]
@@ -1001,9 +1021,9 @@ class Prediction:
                                     _interpolate(1520, 1520, p, days),
                                     None,
                                 ]
-                                for p in range(0, days)
-                            ]
-                        )
+                                for p in range(days)
+                            ],
+                        ),
                     ),
                     "pyNegatives": (
                         [10000] * n_conditions
@@ -1017,11 +1037,11 @@ class Prediction:
                                 [_interpolate(60.0, 65.0, p, days)] * n_conditions
                                 + [_interpolate(70.0, 73.0, p, days)] * n_conditions
                                 + [_interpolate(66.0, 68.0, p, days)] * n_conditions
-                                for p in range(0, days)
-                            ]
-                        )
+                                for p in range(days)
+                            ],
+                        ),
                     ),
-                }
+                },
             )
             .sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
             # .with_columns(
@@ -1041,6 +1061,7 @@ class Prediction:
         -------
         bool
             True if prediction data is available, False otherwise
+
         """
         return len(self.predictions.head(1).collect()) > 0
 
@@ -1055,6 +1076,7 @@ class Prediction:
         -------
         bool
             True if prediction data is valid, False otherwise
+
         """
         return (
             self.is_available
@@ -1066,7 +1088,7 @@ class Prediction:
 
     def summary_by_channel(
         self,
-        custom_predictions: Optional[List[List]] = None,
+        custom_predictions: Optional[list[list]] = None,
         *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
@@ -1078,7 +1100,7 @@ class Prediction:
 
         Parameters
         ----------
-        custom_predictions : Optional[List[List]], optional
+        custom_predictions : Optional[list[list]], optional
             Optional list with custom prediction name to channel mappings.
             Each item should be [PredictionName, Channel, Direction, isMultiChannel].
             Defaults to None.
@@ -1131,22 +1153,28 @@ class Prediction:
 
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
+
         """
         if not custom_predictions:
             custom_predictions = []
 
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.predictions, start_date, end_date, window
+            self.predictions,
+            start_date,
+            end_date,
+            window,
         )
 
         query = pl.col("SnapshotTime").is_between(start_date, end_date)
         prediction_data = cdh_utils._apply_query(
-            self.predictions, query=query, allow_empty=True
+            self.predictions,
+            query=query,
+            allow_empty=True,
         )
 
         if every is not None:
             period_expr = [
-                pl.col("SnapshotTime").dt.truncate(every).cast(pl.Date).alias("Period")
+                pl.col("SnapshotTime").dt.truncate(every).cast(pl.Date).alias("Period"),
             ]
         else:
             period_expr = []
@@ -1176,7 +1204,7 @@ class Prediction:
                     .otherwise(pl.col("isMultiChannel"))
                     .alias("isMultiChannel"),
                 ]
-                + period_expr
+                + period_expr,
             )
             .group_by(
                 [
@@ -1186,7 +1214,7 @@ class Prediction:
                     "usesNBAD",
                     "isMultiChannel",
                 ]
-                + (["Period"] if every is not None else [])
+                + (["Period"] if every is not None else []),
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
@@ -1240,7 +1268,7 @@ class Prediction:
                     & pl.col("Direction").is_not_null()
                     & pl.col("Channel").is_in(["Other", "Unknown", ""]).not_()
                     & pl.col("Direction").is_in(["Other", "Unknown", ""]).not_()
-                    & pl.col("isMultiChannel").not_()
+                    & pl.col("isMultiChannel").not_(),
                 )
                 .then(pl.concat_str(["Channel", "Direction"], separator="/"))
                 .otherwise(pl.lit("Other")),
@@ -1258,7 +1286,7 @@ class Prediction:
     # then use those. If there are valid non-multi-channel predictions then only use those.
     def overall_summary(
         self,
-        custom_predictions: Optional[List[List]] = None,
+        custom_predictions: Optional[list[list]] = None,
         *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
@@ -1270,7 +1298,7 @@ class Prediction:
 
         Parameters
         ----------
-        custom_predictions : Optional[List[List]], optional
+        custom_predictions : Optional[list[list]], optional
             Optional list with custom prediction name to channel mappings.
             Each item should be [PredictionName, Channel, Direction, isMultiChannel].
             Defaults to None.
@@ -1313,8 +1341,8 @@ class Prediction:
 
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if any channel uses Impact Analyzer
-        """
 
+        """
         # start_date, end_date = cdh_utils.get_start_end_date_args(
         #     self.datamart.model_data, start_date, end_date, window
         # )
@@ -1331,7 +1359,7 @@ class Prediction:
         if (
             # any non-multi-channel valid predictions?
             channel_summary.select(
-                (pl.col("isMultiChannel").not_() & pl.col("isValid")).any()
+                (pl.col("isMultiChannel").not_() & pl.col("isValid")).any(),
             )
             .collect()
             .item()
@@ -1384,7 +1412,7 @@ class Prediction:
                         pl.col("Lift").filter(validity_filter_expr)
                         == pl.col("Lift").filter(validity_filter_expr).min()
                     )
-                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()
                 .alias("Channel with Minimum Negative Lift"),
@@ -1395,7 +1423,7 @@ class Prediction:
                         pl.col("Lift").filter(validity_filter_expr)
                         == pl.col("Lift").filter(validity_filter_expr).min()
                     )
-                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()
                 .alias("Minimum Negative Lift"),

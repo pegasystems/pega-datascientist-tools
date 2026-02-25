@@ -1,7 +1,6 @@
 import plotly.express as px
 import polars as pl
 import streamlit as st
-
 from da_streamlit_utils import ensure_data
 
 # TODO Interactive Thresholding isn't working properly yet. Also show the total numbers.
@@ -24,7 +23,6 @@ the actions.
 """
 ensure_data()
 
-
 st.session_state["sidebar"] = st.sidebar
 thresholding_mapping = {
     # TODO generalize, move to one of the utils
@@ -40,11 +38,14 @@ with st.session_state["sidebar"]:
         horizontal=True,
     )
     value_range = st.session_state.decision_data.getThresholdingData(
-        thresholding_on, quantile_range=[0, 100]
+        thresholding_on,
+        quantile_range=[0, 100],
     )["Threshold"].to_list()
 
     current_threshold = st.slider(
-        "Threshold :sunglasses:", value_range[0], value_range[1]
+        "Threshold :sunglasses:",
+        value_range[0],
+        value_range[1],
     )
 
 col1, col2 = st.columns(2)
@@ -74,13 +75,14 @@ with col2:
     )
 
 threshold_deciles_data = st.session_state.decision_data.getThresholdingData(
-    thresholding_on
+    thresholding_on,
 )
 # st.dataframe(plotData)
 
 st.plotly_chart(
     st.session_state.decision_data.plot.threshold_deciles(
-        thresholding_on, thresholding_mapping[thresholding_on]
+        thresholding_on,
+        thresholding_mapping[thresholding_on],
     ),
     use_container_width=True,
 )
@@ -104,5 +106,5 @@ st.write(
         scope="Issue",
         breakdown="Group",
         horizontal=True,
-    )
+    ),
 )

@@ -40,7 +40,7 @@ if not (pandoc_available and quarto_available):
     st.error(
         f"⚠️ The following required tools are not available on your system:\n"
         f"    - {missing_deps_list}\n"
-        "The app will not function without these tools. Please install them before proceeding."
+        "The app will not function without these tools. Please install them before proceeding.",
     )
 
 # --- Data Import (previously a separate page) ---

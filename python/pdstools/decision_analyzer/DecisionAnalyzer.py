@@ -1,18 +1,21 @@
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
-from bisect import bisect_left
-from functools import cached_property
-from typing import List, Literal, Optional, Union, Dict
 import logging
 import os
 import warnings
+from bisect import bisect_left
+from functools import cached_property
+from typing import Literal, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
 
+from ..pega_io.File import read_ds_export
 from .data_read_utils import validate_columns
 from .plots import Plot
 from .table_definition import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
+)
+from .table_definition import (
     ExplainabilityExtract as ExplainabilityExtract_TD,
 )
 from .utils import (
@@ -24,7 +27,6 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_ds_export
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,7 @@ class DecisionAnalyzer:
     >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
     >>> da.get_overview_stats
     >>> da.plot.sensitivity()
+
     """
 
     @classmethod
@@ -89,6 +92,7 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+
         """
         raw_data = read_ds_export(str(source))
         if raw_data is None:
@@ -118,6 +122,7 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+
         """
         raw_data = read_ds_export(str(source))
         if raw_data is None:
@@ -144,7 +149,7 @@ class DecisionAnalyzer:
         level="StageGroup",
         sample_size=DEFAULT_SAMPLE_SIZE,
         mandatory_expr: Optional[pl.Expr] = None,
-        additional_columns: Optional[Dict[str, pl.DataType]] = None,
+        additional_columns: Optional[dict[str, pl.DataType]] = None,
     ):
         """Initialize DecisionAnalyzer with raw decision data.
 
@@ -177,7 +182,7 @@ class DecisionAnalyzer:
             Other examples:
             - `(pl.col("Group") == "Credit") & (pl.col("Priority") > 0.8)`
             - `pl.col("Action").is_in(["CriticalAction1", "CriticalAction2"])`
-        additional_columns : Dict[str, pl.DataType], optional
+        additional_columns : dict[str, pl.DataType], optional
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
 
@@ -199,13 +204,16 @@ class DecisionAnalyzer:
         Make retention actions mandatory:
         >>> mandatory = pl.col("Issue") == "Retention"
         >>> decision_analyzer = DecisionAnalyzer(raw_data, mandatory_expr=mandatory)
+
         """
         self.plot = Plot(self)
         self.level = level  # Stage or StageGroup
         self.sample_size = sample_size
         # Normalize alternative column names (e.g. "Issue" → "Issue")
         raw_data = resolve_aliases(
-            raw_data, DecisionAnalyzer_TD, ExplainabilityExtract_TD
+            raw_data,
+            DecisionAnalyzer_TD,
+            ExplainabilityExtract_TD,
         )
         # pxEngagement Stage present?
         self.extract_type = determine_extract_type(raw_data)
@@ -238,12 +246,12 @@ class DecisionAnalyzer:
         if missing_critical:
             raise ValueError(
                 f"Cannot construct DecisionAnalyzer: critical columns missing "
-                f"from the data: {', '.join(sorted(missing_critical))}"
+                f"from the data: {', '.join(sorted(missing_critical))}",
             )
 
         # cast datatypes
         raw_data = rename_and_cast_types(df=raw_data, table_definition=table_def).sort(
-            "Interaction ID"
+            "Interaction ID",
         )
         if mandatory_expr is not None:
             raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
@@ -254,7 +262,7 @@ class DecisionAnalyzer:
         # TODO subset against available fields in the data
         # TODO maybe we'll also need some aggregates per customer ID. Not certain, lets postpone, current dataset is not very representative.
         available_columns = set(
-            self.unfiltered_raw_decision_data.collect_schema().names()
+            self.unfiltered_raw_decision_data.collect_schema().names(),
         )
         self.preaggregation_columns = {
             "Issue",
@@ -268,7 +276,7 @@ class DecisionAnalyzer:
             "day",
         }
         self.preaggregation_columns = self.preaggregation_columns.intersection(
-            available_columns
+            available_columns,
         )
 
         self.max_win_rank = 5
@@ -299,8 +307,7 @@ class DecisionAnalyzer:
 
     @cached_property
     def stages_from_arbitration_down(self):
-        """
-        All stages in the filter view starting at Arbitration. This initially
+        """All stages in the filter view starting at Arbitration. This initially
         will just be [Arbitration, Final] but as we get more stages in there
         may be more here.
         """
@@ -309,13 +316,12 @@ class DecisionAnalyzer:
     @cached_property
     def arbitration_stage(self):
         return self.sample.filter(
-            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+            pl.col(self.level).is_in(self.stages_from_arbitration_down),
         )
 
     @property
     def num_sample_interactions(self):
-        """
-        Number of unique interactions in the sample.
+        """Number of unique interactions in the sample.
         Automatically triggers sampling if not yet calculated.
         """
         if not hasattr(self, "_num_sample_interactions"):
@@ -339,15 +345,15 @@ class DecisionAnalyzer:
             delattr(self, "_num_sample_interactions")
 
     def applyGlobalDataFilters(
-        self, filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self,
+        filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ):
-        """
-        Apply a global set of filters
-        """
+        """Apply a global set of filters"""
         self._invalidate_cached_properties()
         if filters is not None:
             self.decision_data = apply_filter(
-                self.unfiltered_raw_decision_data, filters
+                self.unfiltered_raw_decision_data,
+                filters,
             )
 
     def resetGlobalDataFilters(self):
@@ -382,7 +388,9 @@ class DecisionAnalyzer:
             pl.min(stats_cols).name.suffix("_min"),
             pl.max(stats_cols).name.suffix("_max"),
             pl.col("Propensity", "Priority").sample(
-                n=num_samples, with_replacement=True, shuffle=True
+                n=num_samples,
+                with_replacement=True,
+                shuffle=True,
             ),
             pl.len().alias("Decisions"),
         ]
@@ -390,8 +398,8 @@ class DecisionAnalyzer:
         self.preaggregated_decision_data_filterview = (
             self.decision_data.group_by(
                 self.preaggregation_columns.union(
-                    {self.level, "StageOrder", "Record Type"}
-                )
+                    {self.level, "StageOrder", "Record Type"},
+                ),
             )
             .agg(exprs)
             .collect()
@@ -488,9 +496,9 @@ class DecisionAnalyzer:
             .with_columns(
                 [
                     (pl.col("Interaction ID").hash() % 1000 < 1000 * sample_rate).alias(
-                        "_sample"
-                    )
-                ]
+                        "_sample",
+                    ),
+                ],
             )
             .filter(pl.col("_sample"))
             .drop("_sample")
@@ -530,7 +538,6 @@ class DecisionAnalyzer:
         potentially changing back some of the temporary column names that have
         been added to generate more data.
         """
-
         if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("Decision Time").dt.date())
 
@@ -543,13 +550,13 @@ class DecisionAnalyzer:
                 pl.col("Issue").rank() * -1,
                 pl.col("Group").rank() * -1,
                 pl.col("Action").rank() * -1,
-            ]
+            ],
         )
 
         df = df.with_columns(
             pxRank=pl.struct(ranking_cols)
             .rank(descending=True, method="ordinal", seed=1)
-            .over("Interaction ID")
+            .over("Interaction ID"),
         )
 
         if self.extract_type == "explainability_extract":
@@ -574,7 +581,7 @@ class DecisionAnalyzer:
                 pl.col(self.level).cast(pl.Categorical),
             )
             .filter(
-                pl.col("Action").is_not_null()
+                pl.col("Action").is_not_null(),
             )  # Why do we have null pyName values? this takes too much processing time
         )
         return preproc_df
@@ -596,8 +603,8 @@ class DecisionAnalyzer:
     def getDistributionData(
         self,
         stage: str,
-        grouping_levels: Union[str, List[str]],
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        grouping_levels: Union[str, list[str]],
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ) -> pl.LazyFrame:
         distribution_data = (
             apply_filter(self.getPreaggregatedRemainingView, additional_filters)
@@ -613,7 +620,9 @@ class DecisionAnalyzer:
     # import streamlit as st
     # @st.cache_data
     def getFunnelData(
-        self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self,
+        scope,
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
@@ -647,11 +656,13 @@ class DecisionAnalyzer:
         )
 
         return funnelData.with_columns(
-            average_actions_expr
+            average_actions_expr,
         ), filtered_funnel.with_columns(average_actions_expr)
 
     def getFilterComponentData(
-        self, top_n, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self,
+        top_n,
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]
         available = set(self.getPreaggregatedFilterView.collect_schema().names())
@@ -672,8 +683,8 @@ class DecisionAnalyzer:
                     .top_k(top_n, by="Filtered Decisions")
                     .sort("Filtered Decisions", descending=False)
                     for x in stages_actions_df.partition_by(self.level)
-                ]
-            )
+                ],
+            ),
         ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
 
         return result
@@ -682,7 +693,7 @@ class DecisionAnalyzer:
         self,
         top_n: int = 10,
         scope: str = "Action",
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ) -> pl.DataFrame:
         """Per-component breakdown of which items are filtered and how many.
 
@@ -704,9 +715,10 @@ class DecisionAnalyzer:
         pl.DataFrame
             Columns include pxComponentName, StageGroup, scope columns, and
             Filtered Decisions. Sorted by component then descending count.
+
         """
         filtered_data = apply_filter(self.decision_data, additional_filters).filter(
-            pl.col("Record Type") == "FILTERED_OUT"
+            pl.col("Record Type") == "FILTERED_OUT",
         )
 
         # Build scope columns up to and including the requested level
@@ -732,18 +744,19 @@ class DecisionAnalyzer:
                     .top_k(top_n, by="Filtered Decisions")
                     .sort("Filtered Decisions", descending=True)
                     for part in impact_df.partition_by("Component Name")
-                ]
-            )
+                ],
+            ),
         ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
 
         return result.sort(
-            ["Component Name", "Filtered Decisions"], descending=[False, True]
+            ["Component Name", "Filtered Decisions"],
+            descending=[False, True],
         )
 
     def getComponentDrilldown(
         self,
         component_name: str,
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
         their potential value.
@@ -767,6 +780,7 @@ class DecisionAnalyzer:
             Columns: pyIssue, pyGroup, pyName, Filtered Decisions,
             avg_Priority, avg_Value, avg_Propensity, pxComponentType (if
             available). Sorted by Filtered Decisions descending.
+
         """
         base = apply_filter(self.decision_data, additional_filters)
         available = set(base.collect_schema().names())
@@ -774,7 +788,7 @@ class DecisionAnalyzer:
         # Filtered rows for this component
         filtered_rows = base.filter(
             (pl.col("Record Type") == "FILTERED_OUT")
-            & (pl.col("Component Name") == component_name)
+            & (pl.col("Component Name") == component_name),
         )
 
         group_cols = ["Issue", "Group", "Action"]
@@ -805,17 +819,16 @@ class DecisionAnalyzer:
             result = filtered_agg
 
         return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(
-            "Filtered Decisions", descending=True
+            "Filtered Decisions",
+            descending=True,
         )
 
     def reRank(
         self,
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
-        overrides: List[pl.Expr] = [],
+        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        overrides: list[pl.Expr] = [],
     ) -> pl.LazyFrame:
-        """
-        Calculates prio and rank for all PVCL combinations
-        """
+        """Calculates prio and rank for all PVCL combinations"""
         rank_exprs = [
             pl.struct(
                 [
@@ -825,7 +838,7 @@ class DecisionAnalyzer:
                     pl.col("Issue").rank() * -1,
                     pl.col("Group").rank() * -1,
                     pl.col("Action").rank() * -1,
-                ]
+                ],
             )
             .rank(descending=True, method="ordinal", seed=1)
             .over(["Interaction ID"])
@@ -886,7 +899,7 @@ class DecisionAnalyzer:
         win_col = f"Win_at_rank{win_rank}"
         group_level_win_losses = (
             self.getPreaggregatedRemainingView.filter(
-                pl.col(self.level) == "Arbitration"
+                pl.col(self.level) == "Arbitration",
             )
             .group_by(level)
             .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
@@ -907,8 +920,7 @@ class DecisionAnalyzer:
         return group_level_win_losses
 
     def get_optionality_data(self, df):
-        """
-        Finding the average number of actions per stage without trend analysis.
+        """Finding the average number of actions per stage without trend analysis.
         We have to go back to the interaction level data, no way to
         use pre-aggregations unfortunately.
         """
@@ -935,7 +947,7 @@ class DecisionAnalyzer:
             .agg(interaction_count=pl.sum("Interactions"))
             .with_columns(
                 Interactions=(total_interactions - pl.col("interaction_count")).cast(
-                    schema["Interactions"]
+                    schema["Interactions"],
                 ),
                 AverageBestPropensity=pl.lit(0.0).cast(schema["AverageBestPropensity"]),
                 nOffers=pl.lit(0).cast(schema["nOffers"]),
@@ -946,15 +958,14 @@ class DecisionAnalyzer:
             [
                 per_offer_count_and_stage,
                 zero_actions.select(per_offer_count_and_stage.collect_schema().names()),
-            ]
+            ],
         ).sort("nOffers", descending=True)
 
         return optionality_data
 
     # @cached_property
     def get_optionality_data_with_trend(self, df=None):
-        """
-        Finding the average number of actions per stage with trend analysis.
+        """Finding the average number of actions per stage with trend analysis.
         We have to go back to the interaction level data, no way to
         use pre-aggregations unfortunately.
         """
@@ -989,11 +1000,11 @@ class DecisionAnalyzer:
                 pl.when(pl.col("nOffers") >= 7)
                 .then(pl.lit("7+"))
                 .otherwise(pl.col("nOffers").cast(str))
-                .alias("available_actions")
+                .alias("available_actions"),
             )
             .with_columns(
                 pl.col("available_actions").cast(
-                    pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"])
+                    pl.Enum(["0", "1", "2", "3", "4", "5", "6", "7+"]),
                 ),
             )
             .group_by(["StageGroup", "available_actions"])
@@ -1014,7 +1025,7 @@ class DecisionAnalyzer:
                         "cumDecisions": 0,
                         "DecisionsFraction": 0.0,
                         "ActionsFraction": 0.0,
-                    }
+                    },
                 ).with_columns(
                     pl.col("ActionIndex").cast(pl.UInt32),
                     pl.col("Decisions").cast(pl.UInt32),
@@ -1039,7 +1050,7 @@ class DecisionAnalyzer:
                     Decisions=pl.col("Decisions").cast(pl.UInt32),
                     cumDecisions=pl.col("cumDecisions").cast(pl.UInt32),
                 ),
-            ]
+            ],
         )
         return data.lazy()
 
@@ -1048,7 +1059,7 @@ class DecisionAnalyzer:
         tbl = (
             self.getPreaggregatedRemainingView.group_by(
                 # TODO: we should include all the IA properties but they're not populated currently
-                [self.level, "ModelControlGroup"]
+                [self.level, "ModelControlGroup"],
             )
             .agg(pl.count())
             .collect()
@@ -1060,8 +1071,8 @@ class DecisionAnalyzer:
             )
             .with_columns(
                 (pl.col("Control") / (pl.col("Test") + pl.col("Control"))).alias(
-                    "Control Percentage"
-                )
+                    "Control Percentage",
+                ),
             )
             .sort("Test", descending=True)
         )
@@ -1069,12 +1080,14 @@ class DecisionAnalyzer:
 
     # TODO, how to use cached functions with parameters, how can we cache this
     def getThresholdingData(
-        self, fld, quantile_range=range(10, 100, 10)
+        self,
+        fld,
+        quantile_range=range(10, 100, 10),
     ):  # this is a very complicated function.
         thresholds_wide = (
             # Note: runs on pre-aggregated data - maybe should be using _min/_max for filtering instead
             self.getPreaggregatedFilterView.filter(
-                pl.col(self.level).is_in(self.stages_from_arbitration_down)
+                pl.col(self.level).is_in(self.stages_from_arbitration_down),
             )
             .select(
                 # TODO can probably code this up more efficiently
@@ -1091,7 +1104,7 @@ class DecisionAnalyzer:
                     .alias(f"n{q}")
                     for q in quantile_range
                 ]
-                + [pl.lit("Arbitration").alias(self.level)]
+                + [pl.lit("Arbitration").alias(self.level)],
             )
             .collect()
         )
@@ -1106,7 +1119,7 @@ class DecisionAnalyzer:
             .with_columns(pl.col("Decile").str.replace("n", "p"))
             .join(
                 thresholds_wide.select(
-                    [self.level] + [f"p{q}" for q in quantile_range]
+                    [self.level] + [f"p{q}" for q in quantile_range],
                 ).melt(
                     id_vars=self.level,
                     value_vars=cs.numeric(),
@@ -1128,10 +1141,12 @@ class DecisionAnalyzer:
         return distribution_data
 
     def aggregate_remaining_per_stage(
-        self, df: pl.LazyFrame, group_by_columns: List[str], aggregations: List = []
+        self,
+        df: pl.LazyFrame,
+        group_by_columns: list[str],
+        aggregations: list = [],
     ) -> pl.LazyFrame:
-        """
-        Workhorse function to convert the raw Decision Analyzer data (filter view) to
+        """Workhorse function to convert the raw Decision Analyzer data (filter view) to
         the aggregates remaining per stage, ensuring all stages are represented.
         """
         stage_orders = (
@@ -1141,8 +1156,8 @@ class DecisionAnalyzer:
                 pl.col(self.level)
                 .cast(pl.Utf8)
                 .cast(
-                    pl.Enum(self.AvailableNBADStages)
-                )  # weird polars behaviour(version: 1.29), try removing in later patches
+                    pl.Enum(self.AvailableNBADStages),
+                ),  # weird polars behaviour(version: 1.29), try removing in later patches
             )
         )
 
@@ -1156,14 +1171,16 @@ class DecisionAnalyzer:
 
         aggs = {
             stage: aggregate_over_remaining_stages(
-                df, stage, self.AvailableNBADStages[i:]
+                df,
+                stage,
+                self.AvailableNBADStages[i:],
             )
             for (i, stage) in enumerate(self.AvailableNBADStages)
         }
         remaining_view = (
             pl.concat(aggs.values())
             .with_columns(
-                pl.col(self.level).cast(stage_orders.collect_schema()[self.level])
+                pl.col(self.level).cast(stage_orders.collect_schema()[self.level]),
             )
             .join(stage_orders, on=self.level, how="left")
         )
@@ -1192,6 +1209,7 @@ class DecisionAnalyzer:
         pl.LazyFrame
             Aggregated action counts per group, with quality buckets when
             both thresholds are provided.
+
         """
         df = self.sample
         additional_cols = ["Action", "Propensity"]
@@ -1212,7 +1230,7 @@ class DecisionAnalyzer:
             .alias("new_models"),
             pl.col("Action")
             .where(
-                (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5)
+                (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5),
             )
             .count()
             .alias("poor_propensity_offers"),
@@ -1224,18 +1242,18 @@ class DecisionAnalyzer:
             .where(
                 (pl.col("Propensity") >= propensityTH)
                 & (pl.col("Propensity") != 0.5)
-                & (pl.col("Priority") >= priorityTH)
+                & (pl.col("Priority") >= priorityTH),
             )
             .count()
             .alias("good_offers"),
         ]
         return df.group_by(groupby_cols).agg(
-            no_of_offers=pl.count("Action"), *propensity_classifying_expr
+            no_of_offers=pl.count("Action"),
+            *propensity_classifying_expr,
         )
 
     def get_offer_quality(self, df, group_by):
-        """
-        Given a dataframe with filtered action counts at stages.
+        """Given a dataframe with filtered action counts at stages.
         Flips it to usual VF view by doing a rolling sum over stages.
 
         Parameters
@@ -1249,6 +1267,7 @@ class DecisionAnalyzer:
         -------
         pl.LazyFrame
             Value Finder style, available action counts per group_by category
+
         """
         dfs = []
         for i, stage in enumerate(self.AvailableNBADStages):
@@ -1263,7 +1282,7 @@ class DecisionAnalyzer:
                         "poor_propensity_offers",
                         "poor_priority_offers",
                         "good_offers",
-                    )
+                    ),
                 )
                 .with_columns(pl.lit(stage).alias(self.level))
             )
@@ -1285,7 +1304,6 @@ class DecisionAnalyzer:
     @cached_property
     def get_overview_stats(self):
         """Creates an overview from sampled data"""
-
         nOffersPerStage = (
             self.get_optionality_data(self.sample)
             .group_by(self.level)
@@ -1331,15 +1349,15 @@ class DecisionAnalyzer:
                         else pl.n_unique("Interaction ID")
                     ).alias("Customers"),
                     pl.n_unique("Interaction ID").alias("Decisions"),
-                ).collect()
+                ).collect(),
             )
             .hstack(
                 pl.DataFrame(
                     {
                         "avgOffersAtArbitration": _offer_counts("Arbitration"),
                         "avgAvailable": _offer_counts("AvailableActions"),
-                    }
-                )
+                    },
+                ),
             )
         )
 
@@ -1347,20 +1365,20 @@ class DecisionAnalyzer:
 
     # TODO think about caching
     def get_sensitivity(self, win_rank=1, filters=None):
-        """
-        Global Sensitivity: Number of decisions where original rank-1 changes.
+        """Global Sensitivity: Number of decisions where original rank-1 changes.
         Local Sensitivity: Number of times the selected offer(s) are in the rank-1 when dropping one of the prioritization factors.
 
         Parameters
         ----------
         win_rank: Int
             Maximum rank to be considered a winner.
-        filters: List[pl.Expr]
+        filters: list[pl.Expr]
             Selected offers, only used in local sensitivity analysis.
 
         Returns
         -------
         pl.LazyFrame
+
         """
         is_global_sensitivity = False
         if filters is None:
@@ -1369,7 +1387,8 @@ class DecisionAnalyzer:
 
         sensitivity = (
             apply_filter(
-                self.reRank(), filters
+                self.reRank(),
+                filters,
             )  # don't put filters in rerank function, we need to filter after reranking!
             # .filter(pl.col("rank_PVCL") <= win_rank)
             .select(
@@ -1378,10 +1397,10 @@ class DecisionAnalyzer:
                     .filter(pl.col(x) <= win_rank)
                     .n_unique()
                     .cast(
-                        pl.Int32
+                        pl.Int32,
                     )  # thinks they are unsigned int, 33-34 returns big number
                     .alias(
-                        (f"{x.split('_')[1]}_win_count")
+                        f"{x.split('_')[1]}_win_count",
                     )  # calculating win_counts of different combinations
                     for x in [
                         "rank_PVCL",
@@ -1390,7 +1409,7 @@ class DecisionAnalyzer:
                         "rank_PVL",
                         "rank_PVC",
                     ]
-                ]
+                ],
             )
             .with_columns(
                 [
@@ -1401,7 +1420,7 @@ class DecisionAnalyzer:
                         "PVL_win_count",
                         "PVC_win_count",
                     ]
-                ]
+                ],
             )
             .rename(
                 {
@@ -1410,7 +1429,7 @@ class DecisionAnalyzer:
                     "PCL_win_count": "Value",
                     "PVL_win_count": "Context Weights",
                     "PVC_win_count": "Levers",
-                }
+                },
             )
             .unpivot(variable_name="Factor", value_name="Influence")
         )
@@ -1431,7 +1450,7 @@ class DecisionAnalyzer:
             "gini": 1.0
             - gini_coefficient(
                 offer_variability_data.select(
-                    ["ActionsFraction", "DecisionsFraction"]
+                    ["ActionsFraction", "DecisionsFraction"],
                 ).collect(),
                 "ActionsFraction",
                 "DecisionsFraction",
@@ -1447,7 +1466,7 @@ class DecisionAnalyzer:
             apply_filter(self.sample, group_filter)
             .filter(
                 rank_filter
-                & (pl.col(self.level).is_in(self.stages_from_arbitration_down))
+                & (pl.col(self.level).is_in(self.stages_from_arbitration_down)),
             )
             .select(pl.col("Interaction ID").unique())
         )
@@ -1455,7 +1474,7 @@ class DecisionAnalyzer:
     def winning_from(self, interactions, win_rank, groupby_cols, top_k):
         winning_from = (
             self.sample.filter(
-                pl.col("pxRank") > win_rank
+                pl.col("pxRank") > win_rank,
             )  # TODO generalize this to any stage from Arbitration up but excluding Final
             .join(
                 interactions,
@@ -1491,8 +1510,7 @@ class DecisionAnalyzer:
         lever_value: Optional[float] = None,
         all_interactions: Optional[int] = None,
     ) -> pl.DataFrame:
-        """
-        Calculate win distribution data for business lever analysis.
+        """Calculate win distribution data for business lever analysis.
 
         This method generates distribution data showing how actions perform in
         arbitration decisions, both in baseline conditions and optionally with
@@ -1545,12 +1563,13 @@ class DecisionAnalyzer:
         Get distribution with no winner count:
         >>> total_interactions = 10000
         >>> with_no_winner = decision_analyzer.get_win_distribution_data(lever_cond, 2.0, total_interactions)
+
         """
         if lever_value is None:
             # Return baseline distribution only
             original_winners = self.reRank(
                 additional_filters=pl.col("StageGroup").is_in(
-                    self.stages_from_arbitration_down
+                    self.stages_from_arbitration_down,
                 ),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "pxRank"])
 
@@ -1561,13 +1580,13 @@ class DecisionAnalyzer:
                     .filter(pl.col("pxRank") == 1)
                     .len(),
                     n_decisions_survived_to_arbitration=pl.col(
-                        "Interaction ID"
+                        "Interaction ID",
                     ).n_unique(),
                 )
                 .with_columns(
                     selected_action=pl.when(lever_condition)
                     .then(pl.lit("Selected"))
-                    .otherwise(pl.lit("Rest"))
+                    .otherwise(pl.lit("Rest")),
                 )
                 .collect()
                 .sort("original_win_count", descending=True)
@@ -1579,7 +1598,8 @@ class DecisionAnalyzer:
                     original_winners.select("Interaction ID").collect().n_unique()
                 )
                 no_winner_count = max(
-                    0, all_interactions - interactions_with_winners
+                    0,
+                    all_interactions - interactions_with_winners,
                 )  # Ensure non-negative
 
                 # Create a row with the same data types as the result
@@ -1598,75 +1618,73 @@ class DecisionAnalyzer:
                 result = pl.concat([result, no_winner_row])
 
             return result
-        else:
-            # Return both baseline and lever-adjusted distribution
-            recalculated_winners = self.reRank(
-                overrides=[
-                    (
-                        pl.when(lever_condition)
-                        .then(pl.lit(lever_value))
-                        .otherwise(pl.col("Levers"))
-                    ).alias("Levers")
-                ],
-                additional_filters=pl.col("StageGroup").is_in(
-                    self.stages_from_arbitration_down
-                ),
-            ).select(
-                ["Issue", "Group", "Action"] + ["Interaction ID", "pxRank", "rank_PVCL"]
-            )
+        # Return both baseline and lever-adjusted distribution
+        recalculated_winners = self.reRank(
+            overrides=[
+                (
+                    pl.when(lever_condition)
+                    .then(pl.lit(lever_value))
+                    .otherwise(pl.col("Levers"))
+                ).alias("Levers"),
+            ],
+            additional_filters=pl.col("StageGroup").is_in(
+                self.stages_from_arbitration_down,
+            ),
+        ).select(
+            ["Issue", "Group", "Action"] + ["Interaction ID", "pxRank", "rank_PVCL"],
+        )
 
-            result = (
-                recalculated_winners.group_by(["Issue", "Group", "Action"])
-                .agg(
-                    original_win_count=pl.col("pxRank")
-                    .filter(pl.col("pxRank") == 1)
-                    .len(),
-                    new_win_count=pl.col("rank_PVCL")
-                    .filter(pl.col("rank_PVCL") == 1)
-                    .len(),
-                    n_decisions_survived_to_arbitration=pl.col(
-                        "Interaction ID"
-                    ).n_unique(),
-                )
-                .with_columns(
-                    selected_action=pl.when(lever_condition)
-                    .then(pl.lit("Selected"))
-                    .otherwise(pl.lit("Rest"))
-                )
+        result = (
+            recalculated_winners.group_by(["Issue", "Group", "Action"])
+            .agg(
+                original_win_count=pl.col("pxRank").filter(pl.col("pxRank") == 1).len(),
+                new_win_count=pl.col("rank_PVCL")
+                .filter(pl.col("rank_PVCL") == 1)
+                .len(),
+                n_decisions_survived_to_arbitration=pl.col(
+                    "Interaction ID",
+                ).n_unique(),
+            )
+            .with_columns(
+                selected_action=pl.when(lever_condition)
+                .then(pl.lit("Selected"))
+                .otherwise(pl.lit("Rest")),
+            )
+            .collect()
+            .sort("new_win_count", descending=True)
+        )
+
+        # Add no winner count if all_interactions is provided
+        if all_interactions is not None:
+            # Calculate no winner count based on new ranking
+            interactions_with_new_winners = (
+                recalculated_winners.filter(pl.col("rank_PVCL") == 1)
+                .select("Interaction ID")
                 .collect()
-                .sort("new_win_count", descending=True)
+                .n_unique()
             )
+            no_winner_count = max(
+                0,
+                all_interactions - interactions_with_new_winners,
+            )  # Ensure non-negative
 
-            # Add no winner count if all_interactions is provided
-            if all_interactions is not None:
-                # Calculate no winner count based on new ranking
-                interactions_with_new_winners = (
-                    recalculated_winners.filter(pl.col("rank_PVCL") == 1)
-                    .select("Interaction ID")
-                    .collect()
-                    .n_unique()
-                )
-                no_winner_count = max(
-                    0, all_interactions - interactions_with_new_winners
-                )  # Ensure non-negative
+            # Create a row with the same data types as the result
+            no_winner_data = {
+                "Issue": ["No Winner"],
+                "Group": ["No Winner"],
+                "Action": ["No Winner"],
+                "original_win_count": [0],  # No winner has no original wins
+                "new_win_count": [no_winner_count],
+                "n_decisions_survived_to_arbitration": [0],
+                "selected_action": ["No Winner"],
+            }
 
-                # Create a row with the same data types as the result
-                no_winner_data = {
-                    "Issue": ["No Winner"],
-                    "Group": ["No Winner"],
-                    "Action": ["No Winner"],
-                    "original_win_count": [0],  # No winner has no original wins
-                    "new_win_count": [no_winner_count],
-                    "n_decisions_survived_to_arbitration": [0],
-                    "selected_action": ["No Winner"],
-                }
+            # Cast to match result schema
+            no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
 
-                # Cast to match result schema
-                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+            result = pl.concat([result, no_winner_row])
 
-                result = pl.concat([result, no_winner_row])
-
-            return result
+        return result
 
     def get_trend_data(
         self,
@@ -1693,10 +1711,9 @@ class DecisionAnalyzer:
         low: float = 0,
         high: float = 100,
         precision: float = 0.01,
-        ranking_stages: List[str] = None,
+        ranking_stages: list[str] = None,
     ) -> float:
-        """
-        Binary search algorithm to find lever value needed to achieve a desired win percentage.
+        """Binary search algorithm to find lever value needed to achieve a desired win percentage.
 
         Parameters
         ----------
@@ -1712,8 +1729,8 @@ class DecisionAnalyzer:
             Upper bound for lever search range
         precision : float, default 0.01
             Search precision - smaller values give more accurate results
-        ranking_stages : List[str], optional
-            List of stages to include in analysis. Defaults to ["Arbitration"]
+        ranking_stages : list[str], optional
+            list of stages to include in analysis. Defaults to ["Arbitration"]
 
         Returns
         -------
@@ -1724,6 +1741,7 @@ class DecisionAnalyzer:
         ------
         ValueError
             If the target win percentage cannot be achieved within the search range
+
         """
         if ranking_stages is None:
             ranking_stages = ["Arbitration"]
@@ -1736,10 +1754,10 @@ class DecisionAnalyzer:
                         pl.when(lever_condition)
                         .then(pl.lit(lever))
                         .otherwise(pl.col("Levers"))
-                    ).alias("Levers")
+                    ).alias("Levers"),
                 ],
                 additional_filters=pl.col(self.level).is_in(
-                    self.stages_from_arbitration_down
+                    self.stages_from_arbitration_down,
                 ),
             ).filter(pl.col("rank_PVCL") <= win_rank)
 
@@ -1763,12 +1781,12 @@ class DecisionAnalyzer:
         if target_win_percentage < low_percentage:
             raise ValueError(
                 f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, your actions win in {low_percentage:.1f}% of interactions at arbitration."
-                "You might have interactions where only your selected actions survive until arbitration. So they will win no matter what."
+                "You might have interactions where only your selected actions survive until arbitration. So they will win no matter what.",
             )
-        elif target_win_percentage > high_percentage:
+        if target_win_percentage > high_percentage:
             raise ValueError(
                 f"Target {target_win_percentage}% is too high. Even at lever {beginning_high}, you only get {high_percentage:.1f}%. "
-                f"You can increase the search range."
+                f"You can increase the search range.",
             )
 
         while high - low > precision:

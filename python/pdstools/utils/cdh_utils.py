@@ -6,6 +6,7 @@ import re
 import tempfile
 import warnings
 import zipfile
+from collections.abc import Iterable
 from functools import partial
 from io import StringIO
 from operator import is_not
@@ -14,11 +15,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Iterable,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     overload,
@@ -41,13 +38,17 @@ if TYPE_CHECKING:  # pragma: no cover
 
 @overload
 def _apply_query(
-    df: pl.LazyFrame, query: Optional[QUERY] = None, allow_empty: bool = False
+    df: pl.LazyFrame,
+    query: Optional[QUERY] = None,
+    allow_empty: bool = False,
 ) -> pl.LazyFrame: ...
 
 
 @overload
 def _apply_query(
-    df: pl.DataFrame, query: Optional[QUERY] = None, allow_empty: bool = False
+    df: pl.DataFrame,
+    query: Optional[QUERY] = None,
+    allow_empty: bool = False,
 ) -> pl.DataFrame: ...
 
 
@@ -63,7 +64,7 @@ def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False
             return df
         if not all(isinstance(expr, pl.Expr) for expr in query):
             raise ValueError(
-                "If query is a list or tuple, all items need to be Expressions."
+                "If query is a list or tuple, all items need to be Expressions.",
             )
         col_names = {
             root_name for expr in query for root_name in expr.meta.root_names()
@@ -95,14 +96,13 @@ def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False
 def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
     if isinstance(existing_query, pl.Expr):
         return existing_query & new_query
-    elif isinstance(existing_query, List):
+    if isinstance(existing_query, list):
         return existing_query + [new_query]
-    elif isinstance(existing_query, Dict):
+    if isinstance(existing_query, dict):
         # Convert the dictionary to a list of expressions
         existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
         return existing_exprs + [new_query]
-    else:
-        raise ValueError("Unsupported query type")
+    raise ValueError("Unsupported query type")
 
 
 def default_predictor_categorization(
@@ -177,6 +177,7 @@ def _extract_keys(
     capitalize: bool
         If True (default) normalizes the names of the embedded columns
         otherwise keeps the names as-is.
+
     """
     # Checking for the 'column is None/Null' case
     if df.collect_schema()[key] != pl.Utf8:
@@ -189,7 +190,7 @@ def _extract_keys(
             .select(key)
             .filter(pl.col(key).str.starts_with("{"))
             .head(1)
-            .collect()
+            .collect(),
         )
         == 0
     ):
@@ -209,7 +210,8 @@ def _extract_keys(
         .lazy()
         .collect()
         .map_columns(
-            ["__keys"], lambda s: s.str.json_decode(infer_schema_length=1_000_000_000)
+            ["__keys"],
+            lambda s: s.str.json_decode(infer_schema_length=1_000_000_000),
         )
         .unnest("__keys")
         .lazy()
@@ -219,7 +221,7 @@ def _extract_keys(
         keys_decoded = _polars_capitalize(keys_decoded)
 
     overlap = set(df.collect_schema().names()).intersection(
-        keys_decoded.collect_schema().names()
+        keys_decoded.collect_schema().names(),
     )
     return (
         df.join(
@@ -238,7 +240,7 @@ def _extract_keys(
                 .otherwise(pl.col(c))
                 .alias(c)
                 for c in overlap
-            ]
+            ],
         )
         .drop([f"{c}_decoded" for c in overlap])
     )
@@ -273,26 +275,41 @@ def parse_pega_date_time_formats(
         An optional format to use rather than the default formats
     timestamp_dtype: PolarsTemporalType, default = pl.Datetime
         The data type to convert into. Can be either Date, Datetime, or Time.
-    """
 
+    """
     result = pl.coalesce(
         pl.col(timestamp_col).str.strptime(
-            timestamp_dtype, "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
+            timestamp_dtype,
+            "%Y-%m-%d %H:%M:%S",
+            strict=False,
+            ambiguous="null",
         ),
         pl.col(timestamp_col).str.strptime(
-            timestamp_dtype, "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+            timestamp_dtype,
+            "%Y%m%dT%H%M%S.%3f %Z",
+            strict=False,
+            ambiguous="null",
         ),
         pl.col(timestamp_col).str.strptime(
-            timestamp_dtype, "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
+            timestamp_dtype,
+            "%d%b%Y:%H:%M:%S",
+            strict=False,
+            ambiguous="null",
         ),
         pl.col(timestamp_col)
         .str.slice(0, 8)
         .str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
         pl.col(timestamp_col).str.strptime(
-            timestamp_dtype, "%d-%b-%y", strict=False, ambiguous="null"
+            timestamp_dtype,
+            "%d-%b-%y",
+            strict=False,
+            ambiguous="null",
         ),
         pl.col(timestamp_col).str.strptime(
-            timestamp_dtype, timestamp_fmt or "%Y", strict=False, ambiguous="null"
+            timestamp_dtype,
+            timestamp_fmt or "%Y",
+            strict=False,
+            ambiguous="null",
         ),
     )
 
@@ -314,16 +331,16 @@ def safe_range_auc(auc: float) -> float:
     -------
     float
         'Safe' AUC score, between 0.5 and 1.0
+
     """
     import numpy as np
 
     if np.isnan(auc):
         return 0.5
-    else:
-        return 0.5 + np.abs(0.5 - auc)
+    return 0.5 + np.abs(0.5 - auc)
 
 
-def auc_from_probs(groundtruth: List[int], probs: List[float]) -> float:
+def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
@@ -331,17 +348,19 @@ def auc_from_probs(groundtruth: List[int], probs: List[float]) -> float:
 
     Parameters
     ----------
-    groundtruth : List[int]
+    groundtruth : list[int]
         The 'true' values, Positive values must be represented as
         True or 1. Negative values must be represented as False or 0.
-    probs : List[float]
+    probs : list[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
     Returns : float
         The AUC as a value between 0.5 and 1.
 
-    Examples:
+    Examples
+    --------
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+
     """
     import numpy as np
 
@@ -356,18 +375,20 @@ def auc_from_probs(groundtruth: List[int], probs: List[float]) -> float:
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
-        ]
+        ],
     )
 
     return auc_from_bincounts(
-        binned.get_column("pos"), binned.get_column("neg"), binned.get_column("probs")
+        binned.get_column("pos"),
+        binned.get_column("neg"),
+        binned.get_column("probs"),
     )
 
 
 def auc_from_bincounts(
-    pos: Union[List[int], pl.Series],
-    neg: Union[List[int], pl.Series],
-    probs: Optional[Union[List[float], pl.Series]] = None,
+    pos: Union[list[int], pl.Series],
+    neg: Union[list[int], pl.Series],
+    probs: Optional[Union[list[float], pl.Series]] = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -376,11 +397,11 @@ def auc_from_bincounts(
 
     Parameters
     ----------
-    pos : List[int]
+    pos : list[int]
         Vector with counts of the positive responses
-    neg: List[int]
+    neg: list[int]
         Vector with counts of the negative responses
-    probs: List[float]
+    probs: list[float]
         Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
 
     Returns
@@ -388,8 +409,10 @@ def auc_from_bincounts(
     float
         The AUC as a value between 0.5 and 1.
 
-    Examples:
+    Examples
+    --------
         >>> auc_from_bincounts([3,1,0], [2,0,1])
+
     """
     import numpy as np
 
@@ -410,24 +433,26 @@ def auc_from_bincounts(
     return safe_range_auc(np.sum(area))
 
 
-def aucpr_from_probs(groundtruth: List[int], probs: List[float]) -> float:
+def aucpr_from_probs(groundtruth: list[int], probs: list[float]) -> float:
     """Calculates PR AUC (precision-recall) from an array of truth values and predictions.
     Calculates the area under the PR curve from an array of truth values and
     predictions. Returns 0.0 when there is just one groundtruth label.
 
     Parameters
     ----------
-    groundtruth : List[int]
+    groundtruth : list[int]
         The 'true' values, Positive values must be represented as
         True or 1. Negative values must be represented as False or 0.
-    probs : List[float]
+    probs : list[float]
         The predictions, as a numeric vector of the same length as groundtruth
 
     Returns : float
         The AUC as a value between 0.5 and 1.
 
-    Examples:
+    Examples
+    --------
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+
     """
     import numpy as np
 
@@ -442,18 +467,20 @@ def aucpr_from_probs(groundtruth: List[int], probs: List[float]) -> float:
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
-        ]
+        ],
     )
 
     return aucpr_from_bincounts(
-        binned.get_column("pos"), binned.get_column("neg"), binned.get_column("probs")
+        binned.get_column("pos"),
+        binned.get_column("neg"),
+        binned.get_column("probs"),
     )
 
 
 def aucpr_from_bincounts(
-    pos: Union[List[int], pl.Series],
-    neg: Union[List[int], pl.Series],
-    probs: Optional[Union[List[float], pl.Series]] = None,
+    pos: Union[list[int], pl.Series],
+    neg: Union[list[int], pl.Series],
+    probs: Optional[Union[list[float], pl.Series]] = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -462,11 +489,11 @@ def aucpr_from_bincounts(
 
     Parameters
     ----------
-    pos : List[int]
+    pos : list[int]
         Vector with counts of the positive responses
-    neg: List[int]
+    neg: list[int]
         Vector with counts of the negative responses
-    probs: List[float]
+    probs: list[float]
         Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
 
     Returns
@@ -474,8 +501,10 @@ def aucpr_from_bincounts(
     float
         The PR AUC as a value between 0.0 and 1.
 
-    Examples:
+    Examples
+    --------
         >>> aucpr_from_bincounts([3,1,0], [2,0,1])
+
     """
     import numpy as np
 
@@ -494,8 +523,7 @@ def aucpr_from_bincounts(
 
 
 def auc_to_gini(auc: float) -> float:
-    """
-    Convert AUC performance metric to GINI
+    """Convert AUC performance metric to GINI
 
     Parameters
     ----------
@@ -507,15 +535,18 @@ def auc_to_gini(auc: float) -> float:
     float
         GINI metric, a number between 0 and 1
 
-    Examples:
+    Examples
+    --------
         >>> auc2GINI(0.8232)
+
     """
     return 2 * safe_range_auc(auc) - 1
 
 
 def _capitalize(
-    fields: Union[str, Iterable[str]], extra_endwords: Optional[Iterable[str]] = None
-) -> List[str]:
+    fields: Union[str, Iterable[str]],
+    extra_endwords: Optional[Iterable[str]] = None,
+) -> list[str]:
     """Applies automatic capitalization, aligned with the R counterpart.
 
     Parameters
@@ -534,6 +565,7 @@ def _capitalize(
     found in Pega field names. Compound words (like "ResponseCount") don't need
     to be listed separately because the algorithm processes words by length,
     allowing shorter components ("Response", "Count") to handle them.
+
     """
     capitalize_endwords = [
         "Active",
@@ -613,14 +645,14 @@ def _capitalize(
         fields = [fields]
     fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
     fields = list(
-        map(lambda x: x.replace("configurationname", "configuration"), fields)
+        map(lambda x: x.replace("configurationname", "configuration"), fields),
     )
     # Sort by length ascending so longer words are processed last and can
     # "fix" any incorrect replacements made by shorter substring matches.
     # E.g., "Ratio" might corrupt "configuration" to "configuRation", but
     # processing "Configuration" after will correct it back.
     for word in sorted(capitalize_endwords, key=len):
-        fields = [re.sub(word, word, field, flags=re.I) for field in fields]
+        fields = [re.sub(word, word, field, flags=re.IGNORECASE) for field in fields]
     fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
 
@@ -629,9 +661,9 @@ def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) ->
     cols = df.collect_schema().names()
     renamed_cols = _capitalize(cols, extra_endwords)
 
-    def deduplicate(columns: List[str]):
-        seen: Dict[str, int] = {}
-        new_columns: List[str] = []
+    def deduplicate(columns: list[str]):
+        seen: dict[str, int] = {}
+        new_columns: list[str] = []
         for column in columns:
             if column not in seen:
                 seen[column] = 1
@@ -653,13 +685,15 @@ def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) ->
             zip(
                 cols,
                 renamed_cols,
-            )
-        )
+            ),
+        ),
     )
 
 
 def from_prpc_date_time(
-    x: str, return_string: bool = False, use_timezones: bool = True
+    x: str,
+    return_string: bool = False,
+    use_timezones: bool = True,
 ) -> Union[datetime.datetime, str]:
     """Convert from a Pega date-time string.
 
@@ -676,11 +710,13 @@ def from_prpc_date_time(
     Union[datetime.datetime, str]
         The converted date in datetime format or string.
 
-    Examples:
+    Examples
+    --------
         >>> fromPRPCDateTime("20180316T134127.847 GMT")
         >>> fromPRPCDateTime("20180316T134127.847 GMT", True)
         >>> fromPRPCDateTime("20180316T184127.846")
         >>> fromPRPCDateTime("20180316T184127.846", True)
+
     """
     import pytz
 
@@ -695,7 +731,7 @@ def from_prpc_date_time(
         if len(frac_sec) > 3:
             frac_sec = frac_sec[:3]
         elif len(frac_sec) < 3:
-            frac_sec = "{:<03d}".format(int(frac_sec))
+            frac_sec = f"{int(frac_sec):<03d}"
     else:
         date_no_frac = x
 
@@ -709,8 +745,7 @@ def from_prpc_date_time(
 
     if return_string:
         return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-    else:
-        return dt
+    return dt
 
 
 # TODO: Polars doesn't like time zones like GMT+0200
@@ -729,8 +764,10 @@ def to_prpc_date_time(dt: datetime.datetime) -> str:
     str
         A string representation in the format used by Pega
 
-    Examples:
+    Examples
+    --------
         >>> toPRPCDateTime(datetime.datetime.now())
+
     """
     if dt.tzinfo is None:
         dt = dt.astimezone()
@@ -738,7 +775,8 @@ def to_prpc_date_time(dt: datetime.datetime) -> str:
 
 
 def weighted_average_polars(
-    vals: Union[str, pl.Expr], weights: Union[str, pl.Expr]
+    vals: Union[str, pl.Expr],
+    weights: Union[str, pl.Expr],
 ) -> pl.Expr:
     if isinstance(vals, str):
         vals = pl.col(vals)
@@ -750,7 +788,7 @@ def weighted_average_polars(
         .filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null())
         .sum()
     ) / weights.filter(
-        vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()
+        vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null(),
     ).sum()
 
 
@@ -763,7 +801,10 @@ def weighted_performance_polars(
 
 
 def overlap_matrix(
-    df: pl.DataFrame, list_col: str, by: str, show_fraction: bool = True
+    df: pl.DataFrame,
+    list_col: str,
+    by: str,
+    show_fraction: bool = True,
 ) -> pl.DataFrame:
     """Calculate the overlap of a list element with all other list elements returning a full matrix.
 
@@ -811,6 +852,7 @@ def overlap_matrix(
     │ 0.5               │ 1.0           │ 0.25          │ Web     │
     │ 0.25              │ 0.25          │ 1.0           │ Email   │
     └───────────────────┴───────────────┴───────────────┴─────────┘
+
     """
     list_col = df[list_col]
     nrows = list_col.len()
@@ -833,8 +875,9 @@ def overlap_matrix(
             ]
         result.append(
             pl.Series(
-                name=f"Overlap_{list_col.name}_{df[by][i]}", values=overlap_w_other_rows
-            )
+                name=f"Overlap_{list_col.name}_{df[by][i]}",
+                values=overlap_w_other_rows,
+            ),
         )
     return pl.DataFrame(result).with_columns(pl.Series(df[by]))
 
@@ -891,6 +934,7 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
     │ Web     │ 0.375   │
     │ Email   │ 0.25    │
     └─────────┴─────────┘
+
     """
     nrows = col.len()
     average_overlap = []
@@ -901,12 +945,12 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
         ]
         if len(overlap_w_other_rows) > 0 and len(set_i) > 0:
             average_overlap += [
-                sum(overlap_w_other_rows) / len(overlap_w_other_rows) / len(set_i)
+                sum(overlap_w_other_rows) / len(overlap_w_other_rows) / len(set_i),
             ]
         else:
             average_overlap += [0.0]
 
-    return pl.Series(average_overlap)  # ,dtype=pl.List(inner=pl.Float64))
+    return pl.Series(average_overlap)  # ,dtype=pl.list(inner=pl.Float64))
 
 
 # TODO all these should perhaps be consistently named _polars
@@ -936,8 +980,8 @@ def z_ratio(
     Examples
     --------
     >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
-    """
 
+    """
     if isinstance(pos_col, str):
         pos_col = pl.col(pos_col)
     if isinstance(neg_col, str):
@@ -986,8 +1030,8 @@ def lift(
     Examples
     --------
     >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
-    """
 
+    """
     if isinstance(pos_col, str):
         pos_col = pl.col(pos_col)
     if isinstance(neg_col, str):
@@ -1005,7 +1049,7 @@ def lift(
 
 
 # log odds contribution of the bins, including Laplace smoothing
-def bin_log_odds(bin_pos: List[float], bin_neg: List[float]) -> List[float]:
+def bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]:
     sum_pos = sum(bin_pos)
     sum_neg = sum(bin_neg)
     nbins = len(bin_pos)  # must be > 0
@@ -1041,7 +1085,8 @@ def log_odds_polars(
 def feature_importance(over=["PredictorName", "ModelID"]):
     var_imp = weighted_average_polars(
         log_odds_polars(
-            pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
+            pl.col("BinPositives"),
+            pl.col("BinResponseCount") - pl.col("BinPositives"),
         ),
         "BinResponseCount",
     ).alias("FeatureImportance")
@@ -1051,8 +1096,7 @@ def feature_importance(over=["PredictorName", "ModelID"]):
 
 
 def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F:
-    """
-    This function is used to convert the data types of columns in a DataFrame to a desired types.
+    """This function is used to convert the data types of columns in a DataFrame to a desired types.
     The desired types are defined in a `PegaDefaultTables` class.
 
     Parameters
@@ -1068,20 +1112,21 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
 
     Returns
     -------
-    List
+    list
         A list with polars expressions for casting data types.
+
     """
 
     def get_mapping(columns, reverse=False):
         if not reverse:
             return dict(zip(columns, _capitalize(columns)))
-        else:
-            return dict(zip(_capitalize(columns), columns))
+        return dict(zip(_capitalize(columns), columns))
 
     schema = df.collect_schema()
     named = get_mapping(schema.names())
     typed = get_mapping(
-        [col for col in dir(definition) if not col.startswith("__")], reverse=True
+        [col for col in dir(definition) if not col.startswith("__")],
+        reverse=True,
     )
 
     types = []
@@ -1105,7 +1150,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
         except Exception:
             if verbose:  # pragma: no cover
                 warnings.warn(
-                    f"Column {col} not in default table schema, can't set type."
+                    f"Column {col} not in default table schema, can't set type.",
                 )
     return df.with_columns(types)
 
@@ -1139,8 +1184,8 @@ def gains_table(df, value: str, index=None, by=None):
     Examples
     --------
     >>> gains_data = gains_table(df, 'ResponseCount', by=['Channel','Direction])
-    """
 
+    """
     sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
     index_expr = (
         (pl.int_range(1, pl.len() + 1) / pl.len())
@@ -1158,7 +1203,7 @@ def gains_table(df, value: str, index=None, by=None):
                     index_expr.cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
                 ),
-            ]
+            ],
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
@@ -1174,12 +1219,12 @@ def gains_table(df, value: str, index=None, by=None):
                     .over(by)
                     .cast(pl.Float64)
                     .alias("cum_y"),
-                ]
+                ],
             )
         )
         # Add entry for the (0,0) point
         gains_df = pl.concat(
-            [gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]
+            [gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df],
         ).sort(by_as_list + ["cum_x"])
 
     return gains_df.collect()
@@ -1197,11 +1242,10 @@ def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
         s_len = s.len()
         if s_len < n:
             return pl.Series(values=[True] * s_len, dtype=pl.Boolean)
-        else:
-            return pl.Series(
-                values=np.random.binomial(1, n / s_len, s_len),
-                dtype=pl.Boolean,
-            )
+        return pl.Series(
+            values=np.random.binomial(1, n / s_len, s_len),
+            dtype=pl.Boolean,
+        )
 
     func = partial(sample_it, n=n_rows)
     return (
@@ -1214,8 +1258,8 @@ def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
 # TODO: perhaps the color / plot utils should move into a separate file
 def legend_color_order(fig):
     """Orders legend colors alphabetically in order to provide pega color
-    consistency among different categories"""
-
+    consistency among different categories
+    """
     colorway = [
         "#001F5F",  # dark blue
         "#10A5AC",
@@ -1255,10 +1299,10 @@ def legend_color_order(fig):
 
 
 def process_files_to_bytes(
-    file_paths: List[Union[str, Path]], base_file_name: Union[str, Path]
-) -> Tuple[bytes, str]:
-    """
-    Processes a list of file paths, returning file content as bytes and a corresponding file name.
+    file_paths: list[Union[str, Path]],
+    base_file_name: Union[str, Path],
+) -> tuple[bytes, str]:
+    """Processes a list of file paths, returning file content as bytes and a corresponding file name.
     Useful for zipping muliple model reports and the byte object is used for downloading files in
     Streamlit app.
 
@@ -1270,7 +1314,7 @@ def process_files_to_bytes(
 
     Parameters
     ----------
-    file_paths : List[Union[str, Path]]
+    file_paths : list[Union[str, Path]]
         A list of file paths to process. Can be empty, contain a single path, or multiple paths.
     base_file_name : Union[str, Path]
         The base name to use for the output file. For a single file, this name is returned as is.
@@ -1278,12 +1322,13 @@ def process_files_to_bytes(
 
     Returns
     -------
-    Tuple[bytes, str]
+    tuple[bytes, str]
         A tuple containing:
         - bytes: The content of the single file or the created zip file, or empty bytes if no files.
         - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
+
     """
-    path_list: List[Path] = [Path(fp) for fp in file_paths]
+    path_list: list[Path] = [Path(fp) for fp in file_paths]
     base_file_name = Path(base_file_name)
 
     if not path_list:
@@ -1293,7 +1338,7 @@ def process_files_to_bytes(
         try:
             with path_list[0].open("rb") as file:
                 return file.read(), base_file_name.name
-        except IOError as e:
+        except OSError as e:
             print(f"Error reading file {path_list[0]}: {e}")
             return b"", ""
 
@@ -1307,7 +1352,7 @@ def process_files_to_bytes(
                     file_path.name,
                     compress_type=zipfile.ZIP_DEFLATED,
                 )
-            except IOError as e:
+            except OSError as e:
                 print(f"Error adding file {file_path} to zip: {e}")
 
     time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -1344,7 +1389,7 @@ def setup_logger():
 def create_working_and_temp_dir(
     name: Optional[str] = None,
     working_dir: Optional[PathLike] = None,
-) -> Tuple[Path, Path]:
+) -> tuple[Path, Path]:
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir
     working_dir = Path(working_dir) if working_dir else Path.cwd()
@@ -1358,7 +1403,7 @@ def create_working_and_temp_dir(
 
 
 # Safe flattening of nested lists, removing None elements, and not splitting strings
-def safe_flatten_list(alist: List, extras: List = None) -> List:
+def safe_flatten_list(alist: list, extras: list = None) -> list:
     if extras is None:
         extras = []
     if alist is None:
@@ -1404,26 +1449,24 @@ def _get_start_end_date_args(
 
     if start_date and end_date and window:
         raise ValueError(
-            "Only max two of 'start_date', 'end_date' or 'window_days' can be set"
+            "Only max two of 'start_date', 'end_date' or 'window_days' can be set",
         )
     if not end_date:
         if window is None or start_date is None:
             end_date = data_max_date
-        else:
-            if start_date:
-                end_date = start_date + window - datetime.timedelta(days=1)
+        elif start_date:
+            end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
         if window is None:
             start_date = data_min_date
-        else:
-            if end_date:
-                start_date = end_date - window + datetime.timedelta(days=1)
+        elif end_date:
+            start_date = end_date - window + datetime.timedelta(days=1)
 
     # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
 
     if start_date and end_date and start_date > end_date:
         raise ValueError(
-            f"The start date {start_date} should be before the end date {end_date}"
+            f"The start date {start_date} should be before the end date {end_date}",
         )
 
     return start_date, end_date
@@ -1445,7 +1488,7 @@ def _read_pdc(pdc_data: pl.LazyFrame):
             "ResponseCount",
             "TotalPositives",
             "TotalResponses",
-        ]
+        ],
     )
     optional_cols = set(
         [
@@ -1455,13 +1498,13 @@ def _read_pdc(pdc_data: pl.LazyFrame):
             "Group",
             "Issue",
             "ADMModelType",  # introduced later see US-648869
-        ]
+        ],
     )
 
     df_cols = set(pdc_data.collect_schema().names())
     if not required_cols.issubset(df_cols):
         raise ValueError(
-            f"Required columns missing: {required_cols.difference(df_cols)}"
+            f"Required columns missing: {required_cols.difference(df_cols)}",
         )
     pdc_data = pdc_data.select(required_cols.union(optional_cols.intersection(df_cols)))
     if "ADMModelType" not in df_cols:

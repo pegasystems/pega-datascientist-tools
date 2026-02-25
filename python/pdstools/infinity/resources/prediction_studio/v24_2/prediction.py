@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Dict, List, Literal, Optional, Union, overload
+from typing import Literal, overload
 
 import polars as pl
 from pydantic import validate_call
@@ -20,9 +20,8 @@ from ..v24_1.prediction import Prediction as PredictionPrevious
 class _PredictionV24_2Mixin:
     """v24.2 Prediction business logic — shared parts."""
 
-    async def _get_models(self) -> List[Dict[str, str]]:
-        """
-        Internal function to fetch models linked to a specific prediction.
+    async def _get_models(self) -> list[dict[str, str]]:
+        """Internal function to fetch models linked to a specific prediction.
 
         This function gathers all models that are connected to a particular
         prediction.  It organizes these models into three groups: default
@@ -33,6 +32,7 @@ class _PredictionV24_2Mixin:
         -------
         list of dict
             A collection of model dicts associated with the prediction.
+
         """
         models_list = []
         endpoint = f"/prweb/api/PredictionStudio/v3/predictions/{self.prediction_id}"
@@ -64,12 +64,11 @@ class _PredictionV24_2Mixin:
         self,
         *,
         metric: METRIC,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
         frequency: Literal["Daily", "Weekly", "Monthly"] = "Daily",
     ) -> pl.DataFrame:
-        """
-        Fetches and returns metric data for a prediction within a specified
+        """Fetches and returns metric data for a prediction within a specified
         date range, using datetime objects for dates.
 
         This method retrieves metric data, such as performance or usage
@@ -98,6 +97,7 @@ class _PredictionV24_2Mixin:
         ------
         NoMonitoringInfo
             If no monitoring data is available for the given parameters.
+
         """
         start_date_str = (
             start_date.strftime("%d/%m/%Y")
@@ -125,7 +125,8 @@ class _PredictionV24_2Mixin:
                 )
                 .with_columns(
                     snapshotTime=cdh_utils.parse_pega_date_time_formats(
-                        "snapshotTime", "%Y-%m-%dT%H:%M:%S%.fZ"
+                        "snapshotTime",
+                        "%Y-%m-%dT%H:%M:%S%.fZ",
                     ),
                     value=pl.col("value").replace("", None).cast(pl.Float64),
                     category=pl.col("dataUsage"),
@@ -139,14 +140,13 @@ class _PredictionV24_2Mixin:
                     "value": pl.Float64,
                     "snapshotTime": pl.Datetime("ns"),
                     "category": pl.Utf8,
-                }
+                },
             )
             return data
 
     @api_method
-    async def package_staged_changes(self, message: Optional[str] = None):
-        """
-        Initiates the deployment of pending changes for a prediction model
+    async def package_staged_changes(self, message: str | None = None):
+        """Initiates the deployment of pending changes for a prediction model
         into the production setting.
 
         This function initiates a Change Request (CR) to either deploy pending
@@ -165,6 +165,7 @@ class _PredictionV24_2Mixin:
         -------
         dict
             Details the result of the deployment process.
+
         """
         endpoint = (
             f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
@@ -176,14 +177,13 @@ class _PredictionV24_2Mixin:
             response = await self._a_post(endpoint, data=data)
         except PegaException as e:
             raise ValueError(
-                "Error when Deploying Prediction changes: " + str(e)
+                "Error when Deploying Prediction changes: " + str(e),
             ) from e
         return response
 
     @api_method
     async def get_staged_changes(self):
-        """
-        Retrieves a list of changes for a specific prediction.
+        """Retrieves a list of changes for a specific prediction.
 
         This method is used to fetch the list of changes that have been made
         to a prediction but not yet deployed to the production environment.
@@ -194,6 +194,7 @@ class _PredictionV24_2Mixin:
         list
             A list of changes staged for the prediction, detailing each
             modification pending deployment.
+
         """
         endpoint = (
             f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
@@ -206,8 +207,7 @@ class _PredictionV24_2Mixin:
 
 
 class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
-    """
-    The ``Prediction`` class provide functionality including retrieving
+    """The ``Prediction`` class provide functionality including retrieving
     notifications, models, adding conditional models, getting champion
     challengers, metrics, and plotting metrics.
     """
@@ -215,24 +215,23 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[False] = False,
     ) -> PaginatedList[Notification]: ...
 
     @overload
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: Literal[True] = True,
     ) -> pl.DataFrame: ...
 
     def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
-    ) -> Union[PaginatedList[Notification], pl.DataFrame]:
-        """
-        Fetches a list of notifications for a specific prediction.
+    ) -> PaginatedList[Notification] | pl.DataFrame:
+        """Fetches a list of notifications for a specific prediction.
 
         This function retrieves notifications related to a prediction. You
         can filter these notifications by their category.  Optionally, the
@@ -253,6 +252,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         PaginatedList[Notification] or polars.DataFrame
             A list of notifications or a DataFrame containing the
             notifications, depending on the value of ``return_df``.
+
         """
         endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
         if category is None:
@@ -260,21 +260,20 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         endpoint = f"{endpoint}?category={category}"
 
         notifications = PaginatedList(
-            Notification, self._client, "get", endpoint, _root="notifications"
+            Notification,
+            self._client,
+            "get",
+            endpoint,
+            _root="notifications",
         )
         if return_df:
             return pl.DataFrame(
-                [
-                    getattr(notification, "_public_dict")
-                    for notification in notifications
-                ]
+                [notification._public_dict for notification in notifications],
             )
-        else:
-            return notifications
+        return notifications
 
     def get_champion_challengers(self):
-        """
-        Fetches list of ChampionChallenger objects linked to the prediction.
+        """Fetches list of ChampionChallenger objects linked to the prediction.
 
         This function fetches Champion-challenger pairs from a prediction.
         In cases where a challenger model is absent, it returns a
@@ -285,6 +284,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         list of ChampionChallenger
             A list of entries, each pairing a primary model with its
             challenger across various segments of the prediction.
+
         """
         from .champion_challenger import ChampionChallenger
         from .model import Model
@@ -332,23 +332,21 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                     active_model=[
                         Model(
                             client=self._client,
-                            **{
-                                "modelId": mod["id"],
-                                "label": mod["label"],
-                                "modelType": mod["type"],
-                                "status": mod["role"],
-                                "componentName": mod["componentName"],
-                                "modelingTechnique": mod["modelingTechnique"]
-                                if mod.get("modelingTechnique") is not None
-                                else None,
-                            },
+                            modelId=mod["id"],
+                            label=mod["label"],
+                            modelType=mod["type"],
+                            status=mod["role"],
+                            componentName=mod["componentName"],
+                            modelingTechnique=mod["modelingTechnique"]
+                            if mod.get("modelingTechnique") is not None
+                            else None,
                         )
                         for mod in models
                         if model["activeModel"] is not None
                         and mod["id"] == model["activeModel"]
                         and mod["contextName"] == model["contextName"]
                     ][0],
-                )
+                ),
             )
 
         for model in only_active:
@@ -373,7 +371,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                     else None,
                     challenger_model=None,
                     active_model=Model(client=self._client, **active_model_temp),
-                )
+                ),
             )
 
         return ccs
@@ -382,10 +380,9 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         self,
         new_model,
         category: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ):
-        """
-        Incorporates a new model into a prediction for a specified category
+        """Incorporates a new model into a prediction for a specified category
         and context.
 
         Parameters
@@ -403,6 +400,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         ChampionChallenger
             An object detailing the updated configuration with the newly
             added model.
+
         """
         from .model import Model
 
@@ -418,7 +416,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             response = self._post(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError(
-                "Error when adding Conditional model: " + str(e)
+                "Error when adding Conditional model: " + str(e),
             ) from e
         if not response:
             raise PegaMLopsError("Add conditional model failed")
@@ -441,11 +439,10 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
 
     async def get_notifications(
         self,
-        category: Optional[NotificationCategory] = None,
+        category: NotificationCategory | None = None,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList[AsyncNotification], pl.DataFrame]:
-        """
-        Fetches a list of notifications for a specific prediction.
+    ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
+        """Fetches a list of notifications for a specific prediction.
 
         Parameters
         ----------
@@ -458,6 +455,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         -------
         AsyncPaginatedList[AsyncNotification] or polars.DataFrame
             A list of notifications or a DataFrame.
+
         """
         endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
         if category is None:
@@ -465,20 +463,24 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         endpoint = f"{endpoint}?category={category}"
 
         notifications = AsyncPaginatedList(
-            AsyncNotification, self._client, "get", endpoint, _root="notifications"
+            AsyncNotification,
+            self._client,
+            "get",
+            endpoint,
+            _root="notifications",
         )
         if return_df:
             return await notifications.as_df()
         return notifications
 
     async def get_champion_challengers(self):
-        """
-        Fetches list of ChampionChallenger objects linked to the prediction.
+        """Fetches list of ChampionChallenger objects linked to the prediction.
 
         Returns
         -------
         list of AsyncChampionChallenger
             Champion-challenger pairs from a prediction.
+
         """
         from .champion_challenger import AsyncChampionChallenger
         from .model import AsyncModel
@@ -512,7 +514,8 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     prediction_id=self.prediction_id,
                     champion_percentage=100 - model["challengerPercentage"],
                     challenger_model=AsyncModel(
-                        client=self._client, **active_model_temp
+                        client=self._client,
+                        **active_model_temp,
                     ),
                     context=model["contextName"],
                     category=model["categoryName"]
@@ -522,23 +525,21 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     active_model=[
                         AsyncModel(
                             client=self._client,
-                            **{
-                                "modelId": mod["id"],
-                                "label": mod["label"],
-                                "modelType": mod["type"],
-                                "status": mod["role"],
-                                "componentName": mod["componentName"],
-                                "modelingTechnique": mod["modelingTechnique"]
-                                if mod.get("modelingTechnique") is not None
-                                else None,
-                            },
+                            modelId=mod["id"],
+                            label=mod["label"],
+                            modelType=mod["type"],
+                            status=mod["role"],
+                            componentName=mod["componentName"],
+                            modelingTechnique=mod["modelingTechnique"]
+                            if mod.get("modelingTechnique") is not None
+                            else None,
                         )
                         for mod in models
                         if model["activeModel"] is not None
                         and mod["id"] == model["activeModel"]
                         and mod["contextName"] == model["contextName"]
                     ][0],
-                )
+                ),
             )
 
         for model in only_active:
@@ -563,7 +564,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     else None,
                     challenger_model=None,
                     active_model=AsyncModel(client=self._client, **active_model_temp),
-                )
+                ),
             )
 
         return ccs
@@ -572,10 +573,9 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         self,
         new_model,
         category: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ):
-        """
-        Incorporates a new model into a prediction for a specified category
+        """Incorporates a new model into a prediction for a specified category
         and context.
 
         Parameters
@@ -591,6 +591,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         -------
         AsyncChampionChallenger
             An object detailing the updated configuration.
+
         """
         from .model import AsyncModel
 
@@ -606,7 +607,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             response = await self._a_post(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError(
-                "Error when adding Conditional model: " + str(e)
+                "Error when adding Conditional model: " + str(e),
             ) from e
         if not response:
             raise PegaMLopsError("Add conditional model failed")

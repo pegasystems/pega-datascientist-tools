@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the IH class
-"""
+"""Testing the functionality of the IH class"""
 
 import math
 from datetime import timedelta
@@ -44,14 +42,14 @@ def test_summarize_by_interaction_with_by(ih):
 
     # Test with list parameter
     result_multi = ih.aggregates.summarize_by_interaction(
-        by=["Channel", "Direction"]
+        by=["Channel", "Direction"],
     ).collect()
     assert "Channel" in result_multi.columns
     assert "Direction" in result_multi.columns
 
     # Test with Polars expression
     result_expr = ih.aggregates.summarize_by_interaction(
-        by=pl.col("Channel").alias("ChannelRenamed")
+        by=pl.col("Channel").alias("ChannelRenamed"),
     ).collect()
     assert "ChannelRenamed" in result_expr.columns
 
@@ -64,7 +62,7 @@ def test_summarize_by_interaction_with_every(ih):
 
     # Test with timedelta
     result_td = ih.aggregates.summarize_by_interaction(
-        every=timedelta(days=1)
+        every=timedelta(days=1),
     ).collect()
     assert "OutcomeTime" in result_td.columns
 
@@ -73,13 +71,13 @@ def test_summarize_by_interaction_with_query(ih):
     """Test summarize_by_interaction with 'query' parameter"""
     # Test with simple query
     result_web = ih.aggregates.summarize_by_interaction(
-        query=pl.col("Channel") == "Web"
+        query=pl.col("Channel") == "Web",
     ).collect()
     assert result_web.height < 100000  # Should be filtered
 
     # Test with complex query
     result_complex = ih.aggregates.summarize_by_interaction(
-        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound")
+        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
     # In the mock data, all Web channel interactions have Direction as "Inbound"
     # So we just verify that the complex query still returns results
@@ -127,7 +125,7 @@ def test_summary_success_rates_with_by(ih):
 
     # Test with list parameter
     result_multi = ih.aggregates.summary_success_rates(
-        by=["Channel", "Direction"]
+        by=["Channel", "Direction"],
     ).collect()
     assert "Channel" in result_multi.columns
     assert "Direction" in result_multi.columns
@@ -135,7 +133,7 @@ def test_summary_success_rates_with_by(ih):
 
     # Test with Polars expression
     result_expr = ih.aggregates.summary_success_rates(
-        by=pl.col("Channel").alias("ChannelRenamed")
+        by=pl.col("Channel").alias("ChannelRenamed"),
     ).collect()
     assert "ChannelRenamed" in result_expr.columns
     assert result_expr.height > 0
@@ -158,13 +156,13 @@ def test_summary_success_rates_with_query(ih):
     """Test summary_success_rates with 'query' parameter"""
     # Test with simple query
     result_web = ih.aggregates.summary_success_rates(
-        query=pl.col("Channel") == "Web"
+        query=pl.col("Channel") == "Web",
     ).collect()
     assert result_web.height > 0
 
     # Test with complex query
     result_complex = ih.aggregates.summary_success_rates(
-        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound")
+        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
     assert result_complex.height > 0
     assert result_complex.height <= result_web.height
@@ -263,13 +261,13 @@ def test_summary_outcomes_with_query(ih):
     """Test summary_outcomes with 'query' parameter"""
     # Test with simple query
     result_web = ih.aggregates.summary_outcomes(
-        query=pl.col("Channel") == "Web"
+        query=pl.col("Channel") == "Web",
     ).collect()
     assert result_web.height > 0
 
     # Test with complex query
     result_complex = ih.aggregates.summary_outcomes(
-        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound")
+        query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
     assert result_complex.height > 0
 
@@ -284,7 +282,9 @@ def test_summary_outcomes_with_query(ih):
 def test_summary_outcomes_complex(ih):
     """Test summary_outcomes with multiple parameters"""
     result = ih.aggregates.summary_outcomes(
-        by=["Channel", "Direction"], every="1w", query=pl.col("Channel").is_not_null()
+        by=["Channel", "Direction"],
+        every="1w",
+        query=pl.col("Channel").is_not_null(),
     ).collect()
 
     assert "Channel" in result.columns
