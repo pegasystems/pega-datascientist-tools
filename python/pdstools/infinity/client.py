@@ -48,6 +48,18 @@ class Infinity(SyncAPIClient):
                 client=self
             )
 
+    _VERSION_DEPENDENT_RESOURCES = frozenset({"prediction_studio"})
+
+    def __getattr__(self, name: str):
+        if name in self._VERSION_DEPENDENT_RESOURCES:
+            raise AttributeError(
+                f"'{name}' is not available because the Pega version could "
+                "not be determined. Pass 'pega_version' explicitly when "
+                "constructing the client, e.g.:\n"
+                "  Infinity.from_client_id_and_secret(..., pega_version='24.2')"
+            )
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
 
 class AsyncInfinity(AsyncAPIClient):  # pragma: no cover
     version: str
