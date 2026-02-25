@@ -33,19 +33,19 @@ class BinAggregator(LazyNamespace):
 
     def roll_up(  # TODO: overload this
         self,
-        predictors: Union[str, list],
+        predictors: str | list,
         *,
         n: int = 10,
         distribution: Literal["lin", "log"] = "lin",
-        boundaries: Optional[Union[float, list]] = None,
-        symbols: Optional[Union[str, list]] = None,
+        boundaries: Optional[float | list] = None,
+        symbols: Optional[str | list] = None,
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
         aggregation: Optional[str] = None,
         as_numeric: Optional[bool] = None,
         return_df: bool = False,
         verbose: bool = False,
-    ) -> Union[pl.DataFrame, Figure]:
+    ) -> pl.DataFrame | Figure:
         """Roll up a predictor across all the models defined when creating the class.
 
         Predictors can be both numeric and symbolic (also called 'categorical'). You
@@ -819,7 +819,7 @@ class BinAggregator(LazyNamespace):
         row_facet=None,
         custom_data=["PredictorName", "BinSymbol"],
         return_df=False,
-    ) -> Union[pl.DataFrame, Figure]:
+    ) -> pl.DataFrame | Figure:
         import plotly.express as px
 
         if not isinstance(binning, pl.LazyFrame):

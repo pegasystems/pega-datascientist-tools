@@ -1,6 +1,6 @@
 """Plot utilities for pdstools visualizations."""
 
-from typing import Any, Union
+from typing import Any
 
 # Colorscales for metric visualizations in Plotly charts
 # These define continuous color gradients based on metric values
@@ -26,7 +26,7 @@ COLORSCALES: dict[str, Any] = {
 def get_colorscale(
     metric: str,
     default: str = "other",
-) -> Union[list[tuple[float, str]], list[str]]:
+) -> list[tuple[float, str]] | list[str]:
     """Get the colorscale for a metric.
 
     Parameters

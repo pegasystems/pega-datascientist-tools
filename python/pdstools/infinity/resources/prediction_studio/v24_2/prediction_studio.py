@@ -1,5 +1,5 @@
 import base64
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 import anyio
 import polars as pl
@@ -129,7 +129,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
     def list_models(
         self,
         return_df: bool = False,
-    ) -> Union[PaginatedList[Model], pl.DataFrame]:
+    ) -> PaginatedList[Model] | pl.DataFrame:
         """Fetches a list of all models from Prediction Studio.
 
         Parameters
@@ -162,7 +162,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
     def list_predictions(
         self,
         return_df: bool = False,
-    ) -> Union[PaginatedList[Prediction], pl.DataFrame]:
+    ) -> PaginatedList[Prediction] | pl.DataFrame:
         """Fetches a list of all predictions from Prediction Studio.
 
         Parameters
@@ -295,7 +295,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
         self,
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
-    ) -> Union[PaginatedList[Notification], pl.DataFrame]:
+    ) -> PaginatedList[Notification] | pl.DataFrame:
         """Fetches a list of notifications from Prediction Studio.
 
         Parameters
@@ -360,7 +360,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
     async def list_models(
         self,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList[AsyncModel], pl.DataFrame]:
+    ) -> AsyncPaginatedList[AsyncModel] | pl.DataFrame:
         """Fetches a list of all models from Prediction Studio.
 
         Parameters
@@ -388,7 +388,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
     async def list_predictions(
         self,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList[AsyncPrediction], pl.DataFrame]:
+    ) -> AsyncPaginatedList[AsyncPrediction] | pl.DataFrame:
         """Fetches a list of all predictions from Prediction Studio.
 
         Parameters
@@ -491,7 +491,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
         self,
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList[AsyncNotification], pl.DataFrame]:
+    ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
         """Fetches a list of notifications from Prediction Studio.
 
         Parameters

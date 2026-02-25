@@ -1,6 +1,6 @@
 # python/pdstools/decision_analyzer/utils.py
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Optional
 
 import polars as pl
 
@@ -141,7 +141,7 @@ SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 
 def apply_filter(
     df: pl.LazyFrame,
-    filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+    filters: Optional[pl.Expr | list[pl.Expr]] = None,
 ):
     """Apply a global set of filters. Kept outside of the DecisionData class as
     this is really more of a utility function, not bound to that class at all.
@@ -375,7 +375,7 @@ def create_hierarchical_selectors(
     selected_issue: Optional[str] = None,
     selected_group: Optional[str] = None,
     selected_action: Optional[str] = None,
-) -> dict[str, dict[str, Union[list[str], int]]]:
+) -> dict[str, dict[str, list[str] | int]]:
     """Create hierarchical filter options and calculate indices for selectbox widgets.
 
     Args:
@@ -454,7 +454,7 @@ def get_scope_config(
     selected_issue: str,
     selected_group: str,
     selected_action: str,
-) -> dict[str, Union[str, pl.Expr, list[str]]]:
+) -> dict[str, str | pl.Expr | list[str]]:
     """Generate scope configuration for lever application and plotting based on user selections.
 
     Parameters

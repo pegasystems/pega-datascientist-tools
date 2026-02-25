@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from httpx import URL, Response
 
@@ -97,7 +97,7 @@ class IncompatiblePegaVersionError(PegaException):  # pragma: no cover
     def __init__(
         self,
         minimum_supported_version: str,
-        functionality_description: Union[str, None] = None,
+        functionality_description: str | None = None,
     ):
         self.minimum_supported_version = minimum_supported_version
         self.functionality_description = functionality_description
@@ -116,11 +116,11 @@ error_map = {
 
 
 def handle_pega_exception(
-    base_url: Union[URL, str],
+    base_url: URL | str,
     endpoint: str,
     params: dict,
     response: Response,
-) -> Union[PegaException, Exception]:
+) -> PegaException | Exception:
     try:
         content = response.json()
     except Exception:

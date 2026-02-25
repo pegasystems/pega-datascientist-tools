@@ -68,7 +68,7 @@ class Plots(LazyNamespace):
 
     def overall_gauges(
         self,
-        condition: Union[str, pl.Expr],
+        condition: str | pl.Expr,
         *,
         metric: str = "Engagement",
         by: str = "Channel",
@@ -457,7 +457,7 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
@@ -529,7 +529,7 @@ class Plots(LazyNamespace):
     def response_count(
         self,
         *,
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         title: str = "Responses",
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
@@ -594,7 +594,7 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         by: Optional[str] = None,
         title: str = "Model Performance over Time",
         query: Optional[QUERY] = None,

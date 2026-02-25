@@ -33,7 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from .ValueFinder import ValueFinder
 
-COLORSCALE_TYPES = Union[list[tuple[float, str]], list[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 

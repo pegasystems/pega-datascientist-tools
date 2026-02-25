@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def read_ds_export(
-    filename: Union[str, os.PathLike, BytesIO],
-    path: Union[str, os.PathLike] = ".",
+    filename: str | os.PathLike | BytesIO,
+    path: str | os.PathLike = ".",
     verbose: bool = False,
     **reading_opts,
 ) -> Optional[pl.LazyFrame]:
@@ -74,7 +74,7 @@ def read_ds_export(
     >>> df = read_ds_export(filename='large_export.csv', infer_schema_length=200000)
 
     """
-    file: Union[str, BytesIO]
+    file: str | BytesIO
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, then we can simply return the object
     # as is, while extracting the extension as well.
@@ -145,7 +145,7 @@ def read_ds_export(
 
 
 def import_file(
-    file: Union[str, BytesIO],
+    file: str | BytesIO,
     extension: str,
     **reading_opts,
 ) -> pl.LazyFrame:
@@ -237,7 +237,7 @@ def import_file(
 
 
 def read_zipped_file(
-    file: Union[str, BytesIO],
+    file: str | BytesIO,
     verbose: bool = False,
 ) -> tuple[BytesIO, str]:
     """Read a zipped NDJSON file.
@@ -347,7 +347,7 @@ def read_multi_zip(
 
 
 def get_latest_file(
-    path: Union[str, os.PathLike],
+    path: str | os.PathLike,
     target: str,
     verbose: bool = False,
 ) -> str:
@@ -450,8 +450,8 @@ def find_files(files_dir, target):
 
 @overload
 def cache_to_file(
-    df: Union[pl.DataFrame, pl.LazyFrame],
-    path: Union[str, os.PathLike],
+    df: pl.DataFrame | pl.LazyFrame,
+    path: str | os.PathLike,
     name: str,
     cache_type: Literal["parquet"] = "parquet",
     compression: pl._typing.ParquetCompression = "uncompressed",
@@ -460,8 +460,8 @@ def cache_to_file(
 
 @overload
 def cache_to_file(
-    df: Union[pl.DataFrame, pl.LazyFrame],
-    path: Union[str, os.PathLike],
+    df: pl.DataFrame | pl.LazyFrame,
+    path: str | os.PathLike,
     name: str,
     cache_type: Literal["ipc"] = "ipc",
     compression: pl._typing.IpcCompression = "uncompressed",
@@ -469,14 +469,12 @@ def cache_to_file(
 
 
 def cache_to_file(
-    df: Union[pl.DataFrame, pl.LazyFrame],
-    path: Union[str, os.PathLike],
+    df: pl.DataFrame | pl.LazyFrame,
+    path: str | os.PathLike,
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
-    compression: Union[
-        pl._typing.ParquetCompression,
-        pl._typing.IpcCompression,
-    ] = "uncompressed",
+    compression: pl._typing.ParquetCompression
+    | pl._typing.IpcCompression = "uncompressed",
 ) -> pathlib.Path:
     """Very simple convenience function to cache data.
     Caches in arrow format for very fast reading.
@@ -519,12 +517,12 @@ def cache_to_file(
 
 
 def read_dataflow_output(
-    files: Union[Iterable[str], str],
+    files: Iterable[str] | str,
     cache_file_name: Optional[str] = None,
     *,
     extension: Literal["json"] = "json",
     compression: Literal["gzip"] = "gzip",
-    cache_directory: Union[str, os.PathLike] = "cache",
+    cache_directory: str | os.PathLike = "cache",
 ):
     """Reads the file output of a dataflow run.
 

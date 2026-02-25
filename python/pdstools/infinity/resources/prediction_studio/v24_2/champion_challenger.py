@@ -1,7 +1,7 @@
 import logging
 import random
 import string
-from typing import Optional, Union
+from typing import Optional
 
 import polars as pl
 from pydantic import validate_call
@@ -506,7 +506,7 @@ class _ChampionChallengerV24_2Mixin:
         self,
         new_model,
         challenger_response_share: float,
-        predictor_mapping: Optional[list[dict[str, Union[str, int]]]] = None,
+        predictor_mapping: Optional[list[dict[str, str | int]]] = None,
         model_label: Optional[str] = None,
         learn_independently: Optional[bool] = True,
     ):
@@ -598,10 +598,10 @@ class _ChampionChallengerV24_2Mixin:
     async def clone_model(
         self,
         challenger_response_share: float,
-        adm_model_type: Union[AdmModelType, str],
+        adm_model_type: AdmModelType | str,
         model_label: Optional[str] = None,
-        predictor_mapping: Union[list[dict], None] = None,
-        learn_independently: Union[bool, None] = True,
+        predictor_mapping: list[dict] | None = None,
+        learn_independently: bool | None = True,
     ):
         """Clones the current active model to create a challenger with specific
         settings.
@@ -684,7 +684,7 @@ class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
     def list_available_models_to_add(
         self,
         return_df: bool = False,
-    ) -> Union[PaginatedList, pl.DataFrame]:
+    ) -> PaginatedList | pl.DataFrame:
         """Fetches a list of models eligible to be challengers.
 
         Queries for models that can be added as challengers to the current
@@ -720,7 +720,7 @@ class AsyncChampionChallenger(
     async def list_available_models_to_add(
         self,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList, pl.DataFrame]:
+    ) -> AsyncPaginatedList | pl.DataFrame:
         """Fetches a list of models eligible to be challengers.
 
         Parameters

@@ -1,7 +1,7 @@
 """Aggregation methods for Interaction History analysis."""
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 import polars as pl
 
@@ -57,8 +57,8 @@ class Aggregates(LazyNamespace):
 
     def summarize_by_interaction(
         self,
-        by: Optional[Union[str, list[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
+        by: Optional[str | list[str] | pl.Expr] = None,
+        every: Optional[str | timedelta] = None,
         query: Optional[QUERY] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
@@ -152,8 +152,8 @@ class Aggregates(LazyNamespace):
 
     def summary_success_rates(
         self,
-        by: Optional[Union[str, list[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
+        by: Optional[str | list[str] | pl.Expr] = None,
+        every: Optional[str | timedelta] = None,
         query: Optional[QUERY] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
@@ -278,8 +278,8 @@ class Aggregates(LazyNamespace):
 
     def summary_outcomes(
         self,
-        by: Optional[Union[str, list[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
+        by: Optional[str | list[str] | pl.Expr] = None,
+        every: Optional[str | timedelta] = None,
         query: Optional[QUERY] = None,
     ) -> pl.LazyFrame:
         """Count outcomes by type.

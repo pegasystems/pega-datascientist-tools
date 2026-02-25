@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 import polars as pl
 
@@ -51,7 +51,7 @@ class ValueFinder:
     def from_ds_export(
         cls,
         filename: Optional[str] = None,
-        base_path: Union[os.PathLike, str] = ".",
+        base_path: os.PathLike | str = ".",
         *,
         query: Optional[QUERY] = None,
         n_customers: Optional[int] = None,
@@ -66,7 +66,7 @@ class ValueFinder:
     @classmethod
     def from_dataflow_export(
         cls,
-        files: Union[Iterable[str], str],
+        files: Iterable[str] | str,
         *,
         query: Optional[QUERY] = None,
         n_customers: Optional[int] = None,
@@ -74,7 +74,7 @@ class ValueFinder:
         cache_file_prefix: str = "",
         extension: Literal["json"] = "json",
         compression: Literal["gzip"] = "gzip",
-        cache_directory: Union[os.PathLike, str] = "cache",
+        cache_directory: os.PathLike | str = "cache",
     ):
         df = read_dataflow_output(
             files,
@@ -103,7 +103,7 @@ class ValueFinder:
     def threshold(self):
         return self._th.collect().item()
 
-    def save_data(self, path: Union[os.PathLike, str] = ".") -> Optional[Path]:
+    def save_data(self, path: os.PathLike | str = ".") -> Optional[Path]:
         """Cache the pyValueFinder dataset to a Parquet file
 
         Parameters

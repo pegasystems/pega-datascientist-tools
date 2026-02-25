@@ -4,7 +4,7 @@ import os
 import warnings
 from bisect import bisect_left
 from functools import cached_property
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 import polars as pl
 import polars.selectors as cs
@@ -72,7 +72,7 @@ class DecisionAnalyzer:
     @classmethod
     def from_explainability_extract(
         cls,
-        source: Union[str, os.PathLike],
+        source: str | os.PathLike,
         **kwargs,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
@@ -102,7 +102,7 @@ class DecisionAnalyzer:
     @classmethod
     def from_decision_analyzer(
         cls,
-        source: Union[str, os.PathLike],
+        source: str | os.PathLike,
         **kwargs,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
@@ -346,7 +346,7 @@ class DecisionAnalyzer:
 
     def applyGlobalDataFilters(
         self,
-        filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ):
         """Apply a global set of filters"""
         self._invalidate_cached_properties()
@@ -603,8 +603,8 @@ class DecisionAnalyzer:
     def getDistributionData(
         self,
         stage: str,
-        grouping_levels: Union[str, list[str]],
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        grouping_levels: str | list[str],
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ) -> pl.LazyFrame:
         distribution_data = (
             apply_filter(self.getPreaggregatedRemainingView, additional_filters)
@@ -622,7 +622,7 @@ class DecisionAnalyzer:
     def getFunnelData(
         self,
         scope,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ) -> pl.LazyFrame:
         # Apply filtering once to the pre-aggregated view
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
@@ -662,7 +662,7 @@ class DecisionAnalyzer:
     def getFilterComponentData(
         self,
         top_n,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]
         available = set(self.getPreaggregatedFilterView.collect_schema().names())
@@ -693,7 +693,7 @@ class DecisionAnalyzer:
         self,
         top_n: int = 10,
         scope: str = "Action",
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ) -> pl.DataFrame:
         """Per-component breakdown of which items are filtered and how many.
 
@@ -756,7 +756,7 @@ class DecisionAnalyzer:
     def getComponentDrilldown(
         self,
         component_name: str,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
         their potential value.
@@ -825,7 +825,7 @@ class DecisionAnalyzer:
 
     def reRank(
         self,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
         overrides: list[pl.Expr] = [],
     ) -> pl.LazyFrame:
         """Calculates prio and rank for all PVCL combinations"""
@@ -1689,7 +1689,7 @@ class DecisionAnalyzer:
     def get_trend_data(
         self,
         stage: str = "AvailableActions",
-        scope: Union[Literal["Group", "Issue", "Action"], None] = "Group",
+        scope: Literal["Group", "Issue", "Action"] | None = "Group",
     ) -> pl.DataFrame:
         stages = self.AvailableNBADStages[self.AvailableNBADStages.index(stage) :]
         group_by = ["day"] if scope is None else ["day", scope]

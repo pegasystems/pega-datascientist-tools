@@ -1,4 +1,4 @@
-from typing import Literal, Optional, TypedDict, Union
+from typing import Literal, Optional, TypedDict
 
 import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
@@ -37,7 +37,7 @@ class SearchResultValue(BaseModel):
 
 class SearchResult(BaseModel):
     name: str
-    value: Union[Json[SearchResultValue], SearchResultValue, str]
+    value: Json[SearchResultValue] | SearchResultValue | str
 
 
 class BuddyResponse(BaseModel):
@@ -162,11 +162,11 @@ class _KnowledgeBuddyMixin:
 
     @staticmethod
     def _custom_exception_hook(
-        base_url: Union[httpx.URL, str],
+        base_url: httpx.URL | str,
         endpoint: str,
         params: dict,
         response: httpx.Response,
-    ) -> Union[None, Exception]:
+    ) -> None | Exception:
         if "Buddy is not available to ask questions." in response.text:
             return UnavailableBuddyError(base_url, endpoint, params, response)
         if response.status_code == 401 or response.status_code == 403:

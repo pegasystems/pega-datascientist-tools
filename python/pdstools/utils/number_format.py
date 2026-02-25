@@ -10,7 +10,7 @@ See: https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html
 
 from dataclasses import dataclass
 from math import isnan
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional
 
 import polars as pl
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 __all__ = ["NumberFormat"]
 
 # Type alias for format value input
-NumericValue = Union[int, float, None]
+NumericValue = int | float | None
 
 
 @dataclass(frozen=True)
@@ -110,7 +110,7 @@ class NumberFormat:
                 return f"{num / threshold:,.{self.decimals}f}{suffix}"
         return f"{num:,.{self.decimals}f}"
 
-    def to_pandas_format(self) -> Union[str, Callable[[NumericValue], str]]:
+    def to_pandas_format(self) -> str | Callable[[NumericValue], str]:
         """Convert to pandas Styler format specification.
 
         Returns

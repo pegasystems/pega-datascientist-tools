@@ -13,7 +13,7 @@ values in tables.
 import difflib
 import re
 from functools import lru_cache
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional
 
 import polars as pl
 
@@ -25,11 +25,11 @@ RAGValue = Literal["RED", "AMBER", "YELLOW", "GREEN"]
 
 # Type alias for value mappings: maps column values to metric values
 # e.g., {"Yes": True, "No": False} or {("Yes", "yes"): True, "No": False}
-ValueMapping = dict[Union[str, tuple], Any]
+ValueMapping = dict[str | tuple, Any]
 
 # Type for metric specification with optional value mapping
 # Can be: "MetricID" or ("MetricID", ValueMapping) or callable
-MetricSpec = Union[str, tuple[str, ValueMapping], Callable]
+MetricSpec = str | tuple[str, ValueMapping] | Callable
 
 # Columns containing limit values in MetricLimits.csv
 _LIMIT_COLUMNS = ["Minimum", "Best Practice Min", "Best Practice Max", "Maximum"]
@@ -132,7 +132,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("maximum")
 
     @classmethod
-    def best_practice_min(cls, metric_id: str) -> Optional[Union[float, bool]]:
+    def best_practice_min(cls, metric_id: str) -> Optional[float | bool]:
         """Get the best practice minimum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -140,7 +140,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_min")
 
     @classmethod
-    def best_practice_max(cls, metric_id: str) -> Optional[Union[float, bool]]:
+    def best_practice_max(cls, metric_id: str) -> Optional[float | bool]:
         """Get the best practice maximum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.

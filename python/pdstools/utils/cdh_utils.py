@@ -17,7 +17,6 @@ from typing import (
     Any,
     Optional,
     TypeVar,
-    Union,
     overload,
 )
 
@@ -29,11 +28,11 @@ from .types import QUERY
 F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
 if TYPE_CHECKING:  # pragma: no cover
     try:
-        import plotly.express as px
+        import plotly.express as px  # noqa: F401
 
-        Figure = Union["px.Figure", Any]
+        Figure = "px.Figure" | Any
     except ImportError:
-        Figure = Union[Any]
+        Figure = Any
 
 
 @overload
@@ -106,7 +105,7 @@ def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
 
 
 def default_predictor_categorization(
-    x: Union[str, pl.Expr] = pl.col("PredictorName"),
+    x: str | pl.Expr = pl.col("PredictorName"),
 ) -> pl.Expr:
     """Function to determine the 'category' of a predictor.
 
@@ -386,9 +385,9 @@ def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 
 
 def auc_from_bincounts(
-    pos: Union[list[int], pl.Series],
-    neg: Union[list[int], pl.Series],
-    probs: Optional[Union[list[float], pl.Series]] = None,
+    pos: list[int] | pl.Series,
+    neg: list[int] | pl.Series,
+    probs: Optional[list[float] | pl.Series] = None,
 ) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
@@ -478,9 +477,9 @@ def aucpr_from_probs(groundtruth: list[int], probs: list[float]) -> float:
 
 
 def aucpr_from_bincounts(
-    pos: Union[list[int], pl.Series],
-    neg: Union[list[int], pl.Series],
-    probs: Optional[Union[list[float], pl.Series]] = None,
+    pos: list[int] | pl.Series,
+    neg: list[int] | pl.Series,
+    probs: Optional[list[float] | pl.Series] = None,
 ) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
@@ -544,7 +543,7 @@ def auc_to_gini(auc: float) -> float:
 
 
 def _capitalize(
-    fields: Union[str, Iterable[str]],
+    fields: str | Iterable[str],
     extra_endwords: Optional[Iterable[str]] = None,
 ) -> list[str]:
     """Applies automatic capitalization, aligned with the R counterpart.
@@ -694,7 +693,7 @@ def from_prpc_date_time(
     x: str,
     return_string: bool = False,
     use_timezones: bool = True,
-) -> Union[datetime.datetime, str]:
+) -> datetime.datetime | str:
     """Convert from a Pega date-time string.
 
     Parameters
@@ -775,8 +774,8 @@ def to_prpc_date_time(dt: datetime.datetime) -> str:
 
 
 def weighted_average_polars(
-    vals: Union[str, pl.Expr],
-    weights: Union[str, pl.Expr],
+    vals: str | pl.Expr,
+    weights: str | pl.Expr,
 ) -> pl.Expr:
     if isinstance(vals, str):
         vals = pl.col(vals)
@@ -793,8 +792,8 @@ def weighted_average_polars(
 
 
 def weighted_performance_polars(
-    vals: Union[str, pl.Expr] = "Performance",
-    weights: Union[str, pl.Expr] = "ResponseCount",
+    vals: str | pl.Expr = "Performance",
+    weights: str | pl.Expr = "ResponseCount",
 ) -> pl.Expr:
     """Polars function to return a weighted performance"""
     return weighted_average_polars(vals, weights).fill_nan(0.5)
@@ -957,8 +956,8 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
 
 
 def z_ratio(
-    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"),
-    neg_col: Union[str, pl.Expr] = pl.col("BinNegatives"),
+    pos_col: str | pl.Expr = pl.col("BinPositives"),
+    neg_col: str | pl.Expr = pl.col("BinNegatives"),
 ) -> pl.Expr:
     """Calculates the Z-Ratio for predictor bins.
 
@@ -1011,8 +1010,8 @@ def z_ratio(
 
 
 def lift(
-    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"),
-    neg_col: Union[str, pl.Expr] = pl.col("BinNegatives"),
+    pos_col: str | pl.Expr = pl.col("BinPositives"),
+    neg_col: str | pl.Expr = pl.col("BinNegatives"),
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
@@ -1061,8 +1060,8 @@ def bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]:
 
 
 def log_odds_polars(
-    positives: Union[pl.Expr, str] = pl.col("Positives"),
-    negatives: Union[pl.Expr, str] = pl.col("ResponseCount") - pl.col("Positives"),
+    positives: pl.Expr | str = pl.col("Positives"),
+    negatives: pl.Expr | str = pl.col("ResponseCount") - pl.col("Positives"),
 ):
     if isinstance(positives, str):
         positives = pl.col(positives)
@@ -1299,8 +1298,8 @@ def legend_color_order(fig):
 
 
 def process_files_to_bytes(
-    file_paths: list[Union[str, Path]],
-    base_file_name: Union[str, Path],
+    file_paths: list[str | Path],
+    base_file_name: str | Path,
 ) -> tuple[bytes, str]:
     """Processes a list of file paths, returning file content as bytes and a corresponding file name.
     Useful for zipping muliple model reports and the byte object is used for downloading files in
@@ -1425,10 +1424,10 @@ def safe_flatten_list(alist: list, extras: list = None) -> list:
 
 
 def _get_start_end_date_args(
-    data: Union[pl.Series, pl.LazyFrame, pl.DataFrame],
+    data: pl.Series | pl.LazyFrame | pl.DataFrame,
     start_date: Optional[datetime.datetime] = None,
     end_date: Optional[datetime.datetime] = None,
-    window: Optional[Union[int, datetime.timedelta]] = None,
+    window: Optional[int | datetime.timedelta] = None,
     datetime_field="SnapshotTime",
 ):
     if isinstance(data, pl.DataFrame):

@@ -34,7 +34,7 @@ except ImportError as e:  # pragma: no cover
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
-COLORSCALE_TYPES = Union[list[tuple[float, str]], list[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -48,8 +48,8 @@ def requires(
     combined_columns: Optional[Iterable[str]] = None,
 ):
     def decorator(
-        func: Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]],
-    ) -> Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]]:
+        func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
+    ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
         @overload
         def wrapper(
             self: T,
@@ -72,7 +72,7 @@ def requires(
             *args: P.args,
             return_df: bool = False,
             **kwargs: P.kwargs,
-        ) -> Union[Figure, pl.LazyFrame]:
+        ) -> Figure | pl.LazyFrame:
             # Validation logic (unchanged)
             if model_columns:
                 if self.datamart.model_data is None:
@@ -233,7 +233,7 @@ class Plots(LazyNamespace):
         last: bool = True,
         rounding: int = 5,
         query: Optional[QUERY] = None,
-        facet: Optional[Union[str, pl.Expr]] = None,
+        facet: Optional[str | pl.Expr] = None,
         color: Optional[str] = "Performance",
         return_df: bool = False,
     ):
@@ -325,9 +325,9 @@ class Plots(LazyNamespace):
     def over_time(
         self,
         metric: str = "Performance",
-        by: Union[pl.Expr, str] = "ModelID",
+        by: pl.Expr | str = "ModelID",
         *,
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         cumulative: bool = True,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
@@ -1290,7 +1290,7 @@ class Plots(LazyNamespace):
     def predictor_count(
         self,
         *,
-        by: Union[str, list[str]] = ["EntryType", "Type"],
+        by: str | list[str] = ["EntryType", "Type"],
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
@@ -1489,7 +1489,7 @@ class Plots(LazyNamespace):
 
     def action_overlap(
         self,
-        group_col: Union[str, list[str], pl.Expr] = "Channel",
+        group_col: str | list[str] | pl.Expr = "Channel",
         overlap_col="Name",
         *,
         show_fraction=True,

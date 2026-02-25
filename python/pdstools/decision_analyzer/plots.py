@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -350,7 +350,7 @@ class Plot:
     def decision_funnel(
         self,
         scope: str,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
         return_df=False,
     ):
         remaining_df, filter_df = self._decision_data.getFunnelData(
@@ -409,7 +409,7 @@ class Plot:
         stages: list[str],
         top_n,
         AvailableNBADStages,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
         return_df=False,
     ):
         df = self._decision_data.getFilterComponentData(top_n, additional_filters)
@@ -534,7 +534,7 @@ class Plot:
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def prio_factor_boxplots(
         self,
-        reference: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        reference: Optional[pl.Expr | list[pl.Expr]] = None,
         return_df=False,
     ) -> tuple[go.Figure, Optional[str]]:
         df = self._decision_data.arbitration_stage
@@ -595,7 +595,7 @@ class Plot:
 
     def rank_boxplot(
         self,
-        reference: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        reference: Optional[pl.Expr | list[pl.Expr]] = None,
         return_df=False,
     ):
         df = self._decision_data.sample
@@ -619,7 +619,7 @@ class Plot:
         self,
         top_n: int = 10,
         scope: str = "Action",
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
         return_df=False,
     ):
         """Horizontal bar chart showing which items each component filters most.
@@ -704,7 +704,7 @@ class Plot:
     def component_drilldown(
         self,
         component_name: str,
-        additional_filters: Optional[Union[pl.Expr, list[pl.Expr]]] = None,
+        additional_filters: Optional[pl.Expr | list[pl.Expr]] = None,
         sort_by: str = "Filtered Decisions",
         return_df=False,
     ):
@@ -996,7 +996,7 @@ def plot_priority_component_distribution(
 def create_win_distribution_plot(
     data: pl.DataFrame,
     win_count_col: str,
-    scope_config: dict[str, Union[str, list[str]]],
+    scope_config: dict[str, str | list[str]],
     title_suffix: str,
     y_axis_title: str,
 ) -> tuple[go.Figure, pl.DataFrame]:

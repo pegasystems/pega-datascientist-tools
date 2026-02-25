@@ -10,7 +10,6 @@ from typing import (
     Literal,
     Optional,
     TypeVar,
-    Union,
 )
 
 import httpx
@@ -23,19 +22,12 @@ from anyio import (
 from ._auth import PegaOAuth, _read_client_credential_file
 from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
 
-_HttpxClientT = TypeVar("_HttpxClientT", bound=Union[httpx.Client, httpx.AsyncClient])
+_HttpxClientT = TypeVar("_HttpxClientT", bound=httpx.Client | httpx.AsyncClient)
 logger = logging.getLogger(__name__)
 
 ResponseT = TypeVar(
     "ResponseT",
-    bound=Union[
-        object,
-        str,
-        None,
-        list[Any],
-        dict[str, Any],
-        httpx.Response,
-    ],
+    bound=object | str | None | list[Any] | dict[str, Any] | httpx.Response,
 )
 
 
@@ -68,11 +60,11 @@ class BaseClient(Generic[_HttpxClientT]):
     def __init__(
         self,
         *,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
         application_name: Optional[str] = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
@@ -91,8 +83,8 @@ class BaseClient(Generic[_HttpxClientT]):
         self,
         method,
         endpoint: str,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
-        data: Union[httpx._types.RequestData, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        data: httpx._types.RequestData | None = None,
         **params,
     ) -> httpx.Request:
         return httpx.Request(
@@ -146,7 +138,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         file_path: str,
         verify: bool = False,
         application_name: Optional[str] = None,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         creds = _read_client_credential_file(file_path)
@@ -171,7 +163,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         *,
         verify: bool = True,
         application_name: Optional[str] = None,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: int = 90,
     ):
         base_url = base_url or os.environ.get("PEGA_BASE_URL")
@@ -203,11 +195,11 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
     def __init__(
         self,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
         application_name: Optional[str] = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         super().__init__(
@@ -244,8 +236,8 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         *,
         method,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         # cast_to: Type[ResponseT], #TODO(someday): implement casting of responses
         **params,
     ) -> httpx.Response:
@@ -295,7 +287,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def get(
         self,
         endpoint: str,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint, params))
@@ -314,8 +306,8 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def post(
         self,
         endpoint: str,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -337,8 +329,8 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def patch(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -356,8 +348,8 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def put(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -375,7 +367,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def delete(
         self,
         endpoint,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -428,11 +420,11 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
 
     def __init__(
         self,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
         application_name: Optional[str] = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         super().__init__(
@@ -451,7 +443,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
 
     def _collect_awaitable_blocking(
         self,
-        coros: Union[list[Coroutine], Coroutine],
+        coros: list[Coroutine] | Coroutine,
     ) -> Any:
         if not isinstance(coros, list):
             coros = [coros]
@@ -490,8 +482,8 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         *,
         method,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ) -> httpx.Response:
         request = self._build_request(
@@ -541,7 +533,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     async def get(
         self,
         endpoint: str,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint, params))
@@ -560,8 +552,8 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     async def post(
         self,
         endpoint: str,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -583,8 +575,8 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     async def patch(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -602,8 +594,8 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     async def put(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
@@ -621,7 +613,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     async def delete(
         self,
         endpoint,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))

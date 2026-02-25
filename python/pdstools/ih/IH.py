@@ -5,7 +5,7 @@ import math
 import os
 import random
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Optional
 
 import polars as pl
 import polars.selectors as cs
@@ -94,7 +94,7 @@ class IH:
     @classmethod
     def from_ds_export(
         cls,
-        ih_filename: Union[os.PathLike, str],
+        ih_filename: os.PathLike | str,
         query: Optional[QUERY] = None,
     ) -> "IH":
         """Create an IH instance from a Pega Dataset Export.
@@ -555,7 +555,7 @@ class IH:
     def calculate_pmi(
         count_actions: list[defaultdict],
         count_sequences: list[defaultdict],
-    ) -> dict[tuple[str, ...], Union[float, dict[str, Union[float, dict]]]]:
+    ) -> dict[tuple[str, ...], float | dict[str, float | dict]]:
         """Compute PMI scores for action sequences.
 
         Calculates Pointwise Mutual Information scores for bigrams and
@@ -637,7 +637,7 @@ class IH:
 
     @staticmethod
     def pmi_overview(
-        ngrams_pmi: dict[tuple[str, ...], Union[float, dict]],
+        ngrams_pmi: dict[tuple[str, ...], float | dict],
         count_sequences: list[defaultdict],
         customer_sequences: list[tuple[str, ...]],
         customer_outcomes: list[tuple[int, ...]],

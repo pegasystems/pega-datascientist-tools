@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, overload
 
 import polars as pl
 
@@ -46,7 +46,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
         self,
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
-    ) -> Union[PaginatedList[Notification], pl.DataFrame]:
+    ) -> PaginatedList[Notification] | pl.DataFrame:
         """Fetches a list of notifications for a specific model.
 
         This function retrieves notifications related to a model. You can filter these notifications by their category.
@@ -92,7 +92,7 @@ class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
         self,
         category: Optional[NotificationCategory] = None,
         return_df: bool = False,
-    ) -> Union[AsyncPaginatedList[AsyncNotification], pl.DataFrame]:
+    ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
         """Fetches a list of notifications for a specific model.
 
         Parameters

@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional
 
 import polars as pl
 import polars.selectors as cs
@@ -241,7 +241,7 @@ class Aggregates:
 
     @staticmethod
     def _top_n(
-        df: Union[pl.LazyFrame, pl.DataFrame],
+        df: pl.LazyFrame | pl.DataFrame,
         top_n: int,
         metric: str = "PredictorPerformance",
         facets: Optional[list] = None,
@@ -582,7 +582,7 @@ class Aggregates:
         query: Optional[QUERY] = None,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
+        window: Optional[int | datetime.timedelta] = None,
         every: Optional[str] = None,
         custom_channels: Optional[dict[str, str]] = None,
         debug: bool = False,
@@ -955,7 +955,7 @@ class Aggregates:
         *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
+        window: Optional[int | datetime.timedelta] = None,
         every: Optional[str] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:

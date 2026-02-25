@@ -4,7 +4,7 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Union
+from typing import TYPE_CHECKING, Callable, Literal, Optional
 
 import polars as pl
 
@@ -33,7 +33,7 @@ class Reports(LazyNamespace):
 
     def model_reports(
         self,
-        model_ids: Union[str, list[str]],
+        model_ids: str | list[str],
         *,
         name: Optional[
             str
@@ -374,7 +374,7 @@ class Reports(LazyNamespace):
 
     def excel_report(
         self,
-        name: Union[Path, str] = Path("Tables.xlsx"),
+        name: Path | str = Path("Tables.xlsx"),
         predictor_binning: bool = False,
     ) -> tuple[Optional[Path], list[str]]:
         """Export raw data to an Excel file.

@@ -23,16 +23,16 @@ from ..utils.types import QUERY
 logger = logging.getLogger(__name__)
 try:
     import plotly.express as px
-    import plotly.graph_objects as go
+    import plotly.graph_objects as go  # noqa: F401
 
     from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
+    pass
 
-COLORSCALE_TYPES = Union[list[tuple[float, str]], list[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -699,8 +699,8 @@ class Prediction:
     @classmethod
     def from_ds_export(
         cls,
-        predictions_filename: Union[os.PathLike, str],
-        base_path: Union[os.PathLike, str] = ".",
+        predictions_filename: os.PathLike | str,
+        base_path: os.PathLike | str = ".",
         *,
         query: Optional[QUERY] = None,
         infer_schema_length: int = 10000,
@@ -875,7 +875,7 @@ class Prediction:
 
         return cls(prediction_data, query=query)
 
-    def save_data(self, path: Union[os.PathLike, str] = ".") -> Optional[os.PathLike]:
+    def save_data(self, path: os.PathLike | str = ".") -> Optional[os.PathLike]:
         """Cache predictions to a file.
 
         Parameters
@@ -1092,7 +1092,7 @@ class Prediction:
         *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
+        window: Optional[int | datetime.timedelta] = None,
         every: Optional[str] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
@@ -1290,7 +1290,7 @@ class Prediction:
         *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
+        window: Optional[int | datetime.timedelta] = None,
         every: Optional[str] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:

@@ -39,12 +39,12 @@ class PaginatedList(Generic[T]):
         self._root = _root
 
     @overload
-    def __getitem__(self, key: Union[str, int]) -> T: ...
+    def __getitem__(self, key: str | int) -> T: ...
 
     @overload
     def __getitem__(self, index: slice) -> "_Slice[T]": ...
 
-    def __getitem__(self, index: Union[int, slice, str]) -> Union[T, "_Slice[T]"]:
+    def __getitem__(self, index: int | slice | str) -> Union[T, "_Slice[T]"]:
         assert isinstance(index, (int, slice, str))
         if isinstance(index, int):
             if index < 0:
@@ -63,15 +63,15 @@ class PaginatedList(Generic[T]):
         raise IndexError(index)
 
     @overload
-    def get(self, __key: Union[int, str], __default: Union[str, None]) -> T: ...
+    def get(self, __key: int | str, __default: str | None) -> T: ...
 
     @overload
-    def get(self, __key: slice, __default: Union[str, None]) -> "_Slice[T]": ...
+    def get(self, __key: slice, __default: str | None) -> "_Slice[T]": ...
 
     def get(
         self,
-        __key: Union[int, slice, str, None] = None,
-        __default: Union[str, None] = None,
+        __key: int | slice | str | None = None,
+        __default: str | None = None,
         **kwargs,
     ) -> Union[T, "_Slice[T]"]:
         """Returns the specified key or default.
@@ -279,10 +279,10 @@ class AsyncPaginatedList(Generic[T]):
 
     async def get(
         self,
-        __key: Union[int, slice, str, None] = None,
-        __default: Union[str, None] = None,
+        __key: int | slice | str | None = None,
+        __default: str | None = None,
         **kwargs,
-    ) -> Union[T, None]:
+    ) -> T | None:
         """Async version of PaginatedList.get()."""
         if kwargs:
             async for element in self:

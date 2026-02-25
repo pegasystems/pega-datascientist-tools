@@ -1,6 +1,6 @@
 """Testing the functionality of the types module"""
 
-from typing import Union
+import types
 
 import polars as pl
 from pdstools.utils.types import ANY_FRAME, QUERY
@@ -13,7 +13,7 @@ def test_any_frame_type_alias():
     ldf = pl.DataFrame({"A": [1, 2, 3]}).lazy()
 
     # Check that the type alias is a Union of DataFrame and LazyFrame
-    assert ANY_FRAME.__origin__ is Union
+    assert isinstance(ANY_FRAME, types.UnionType)
     assert pl.DataFrame in ANY_FRAME.__args__
     assert pl.LazyFrame in ANY_FRAME.__args__
 
@@ -30,7 +30,7 @@ def test_query_type_alias():
     dict_query = {"column": ["value1", "value2"]}
 
     # Check that the type alias is a Union of the expected types
-    assert QUERY.__origin__ is Union
+    assert isinstance(QUERY, types.UnionType)
     assert pl.Expr in QUERY.__args__
 
     # Check that the instances are of the expected types

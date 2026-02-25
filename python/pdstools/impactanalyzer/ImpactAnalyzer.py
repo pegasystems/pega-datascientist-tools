@@ -160,14 +160,12 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str,
-            Path,
-            os.PathLike,
-            list[str],
-            list[Path],
-            list[os.PathLike],
-        ],
+        pdc_source: str
+        | Path
+        | os.PathLike
+        | list[str]
+        | list[Path]
+        | list[os.PathLike],
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
@@ -180,14 +178,12 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str,
-            Path,
-            os.PathLike,
-            list[str],
-            list[Path],
-            list[os.PathLike],
-        ],
+        pdc_source: str
+        | Path
+        | os.PathLike
+        | list[str]
+        | list[Path]
+        | list[os.PathLike],
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
@@ -200,14 +196,12 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str,
-            Path,
-            os.PathLike,
-            list[str],
-            list[Path],
-            list[os.PathLike],
-        ],
+        pdc_source: str
+        | Path
+        | os.PathLike
+        | list[str]
+        | list[Path]
+        | list[os.PathLike],
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
@@ -216,14 +210,12 @@ class ImpactAnalyzer:
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str,
-            Path,
-            os.PathLike,
-            list[str],
-            list[Path],
-            list[os.PathLike],
-        ],
+        pdc_source: str
+        | Path
+        | os.PathLike
+        | list[str]
+        | list[Path]
+        | list[os.PathLike],
         *,
         reader: Optional[Callable] = None,
         query: Optional[QUERY] = None,
@@ -307,7 +299,7 @@ class ImpactAnalyzer:
     @overload
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
         *,
         return_df: Literal[True],
     ) -> Optional[pl.LazyFrame]: ...
@@ -317,13 +309,13 @@ class ImpactAnalyzer:
     @overload
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
     ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
         *,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
@@ -433,7 +425,7 @@ class ImpactAnalyzer:
     @overload
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
         *,
         return_df: Literal[True],
     ) -> Optional[pl.LazyFrame]: ...
@@ -443,13 +435,13 @@ class ImpactAnalyzer:
     @overload
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
     ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
         *,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
@@ -744,7 +736,7 @@ class ImpactAnalyzer:
 
     def summarize_control_groups(
         self,
-        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
+        by: Optional[Sequence[str | pl.Expr] | str | pl.Expr] = None,
         drop_internal_cols: bool = True,
     ) -> pl.LazyFrame:
         """Aggregate metrics by control group.
@@ -774,7 +766,7 @@ class ImpactAnalyzer:
 
         """
         if by is None:
-            group_by: list[Union[str, pl.Expr]] = []
+            group_by: list[str | pl.Expr] = []
         elif isinstance(by, (list, tuple)):
             group_by = list(by)
         else:
@@ -805,7 +797,7 @@ class ImpactAnalyzer:
 
     def summarize_experiments(
         self,
-        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
+        by: Optional[Sequence[str | pl.Expr] | str | pl.Expr] = None,
     ) -> pl.LazyFrame:
         """Summarize experiment metrics comparing test vs control groups.
 
@@ -851,7 +843,7 @@ class ImpactAnalyzer:
         """
         # Normalize 'by' parameter to a sequence
         if by is None:
-            by_list: Sequence[Union[str, pl.Expr]] = []
+            by_list: Sequence[str | pl.Expr] = []
         elif isinstance(by, (str, pl.Expr)):
             by_list = [by]
         else:
@@ -862,7 +854,7 @@ class ImpactAnalyzer:
             return (pl.col(test) - pl.col(control)) / pl.col(control)
 
         # Extract column names from expressions for use with pl.exclude()
-        def _get_column_names(items: Sequence[Union[str, pl.Expr]]) -> list[str]:
+        def _get_column_names(items: Sequence[str | pl.Expr]) -> list[str]:
             column_names: list[str] = []
             for item in items:
                 if isinstance(item, pl.Expr):
