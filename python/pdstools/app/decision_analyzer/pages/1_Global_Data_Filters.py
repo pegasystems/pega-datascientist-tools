@@ -4,14 +4,18 @@ import json
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import get_data_filters, show_filtered_counts, ensure_data
+from da_streamlit_utils import (
+    get_data_filters,
+    reset_filter_state,
+    show_filtered_counts,
+    ensure_data,
+)
 from pdstools.decision_analyzer.utils import get_first_level_stats
 
 # TODO Customize the filter dropdown, instead of using the one from PDS tools, so to focus on the more logical filter fields
 # TODO Audience selection would be a meaningful filter, but there is no such thing in the data NOTE: What is audience? A subset of customers?
 # TODO Lets see if we can make re-applying the filters more easy, do that by default, including configurations like the reference set NOTE: I didn't understand this comment, what reference set?
 # TODO Anonymization should perhaps be a check box?  Yusuf: You can now upload your own data. Sample data is the anonymized version
-# TODO Summarize the current filtering even if not re-applying it. Add possibility to reset the filter in the Global Filter page.
 # TODO Make rest of code robust against heavy filtering, e.g. dropping stages etc
 
 """# Global Data Filters"""
@@ -71,6 +75,13 @@ if st.session_state["filters"] != []:
     statsAfterFilter = get_first_level_stats(st.session_state.decision_data.sample)
     st.cache_data.clear()
     show_filtered_counts(statsBeforeFilter, statsAfterFilter)
+
+    if st.button("Reset all filters", type="secondary"):
+        reset_filter_state("global")
+        st.session_state["filters"] = []
+        st.session_state.decision_data.resetGlobalDataFilters()
+        st.cache_data.clear()
+        st.rerun()
 else:
     st.session_state.decision_data.resetGlobalDataFilters()
     st.cache_data.clear()

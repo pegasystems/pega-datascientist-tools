@@ -9,7 +9,7 @@ Tracked on branch: `refactor/decision-analyzer`
 ### High Priority
 
 - [ ] **Fix `num_samples > 1`** — Pre-aggregation sampling locked at 1 because >1 breaks `.explode()` in thresholding. Either fix thresholding or document limitation.
-- [ ] **Validate `fields_for_data_filtering`** — Subset against actual available columns instead of hardcoded list.
+- [x] **Validate `fields_for_data_filtering`** — Subset against actual available columns instead of hardcoded list.
 - [ ] **Human-friendly stage names** — Map internal names to display names (e.g. "Final" → "Presented"). May need a config dict. *(See also: `DecisionAnalyzer.py` TODO)*
 - [ ] **Graceful degradation for minimal data** — Exports with only context keys (no scoring columns) crash with `ColumnNotFoundError`. Show a clear message about missing columns; ideally support a reduced analysis mode (action distribution only).
 
@@ -17,7 +17,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win rank flexibility** — `get_win_loss_distribution_data` has a fixed rank parameter. Return all ranks, let UI filter. Make `max_value` data-driven (not hardcoded 10).
-- [ ] **Caching for expensive methods** — `getThresholdingData` and `get_sensitivity` are expensive but uncached. Consider `lru_cache` or polars caching.
+- [x] **Caching for expensive methods** — `getThresholdingData` and `get_sensitivity` are expensive but uncached. Consider `lru_cache` or polars caching. *(Dict-based caching keyed by arguments; cleared on filter/level changes.)*
 - [ ] **Distinct propensity display names** — `column_schema.py` has model propensity and propensity sharing the same display name. Give them distinct names (e.g. "Model Propensity" vs "Propensity") and update PVCL code.
 - [x] **Level selection** — User can switch between "Stage Group" and "Stage" granularity from page sidebars (pages 3, 4, 7, 8). V1 data only exposes "Stage Group".
 
@@ -47,7 +47,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### 1 — Global Data Filters
 - [ ] Customize filter dropdown (focus on logical filter fields)
-- [ ] Add reset button for filters
+- [x] Add reset button for filters
 - [ ] Robustness against heavy filtering (e.g. dropping stages)
 - [ ] Apply filters by default when set
 

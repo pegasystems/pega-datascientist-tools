@@ -60,13 +60,15 @@ with st.session_state["sidebar"]:
 
     # TODO too much kept in session state here, not necessary
 
-    propensityTH = st.slider(
-        "Propensity threshold",
-        propensity_th[0],
-        propensity_th[2],
-        propensity_th[1],
-        # step=(propensity_th[2]-propensity_th[0])/10,
-        format="%.4f",
+    propensityTH = (
+        st.slider(
+            "Propensity threshold",
+            propensity_th[0] * 100,
+            propensity_th[2] * 100,
+            propensity_th[1] * 100,
+            format="%.2f%%",
+        )
+        / 100
     )
     priorityTH = st.slider(
         "Priority threshold",

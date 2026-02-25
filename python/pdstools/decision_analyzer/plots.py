@@ -573,6 +573,8 @@ class Plot:
                 fig.update_yaxes(
                     autorange="reversed", row=i, col=1
                 )  # for correct legend ordering
+                if metric == "Propensity":
+                    fig.update_xaxes(tickformat=",.0%", row=i, col=1)
 
         fig.update_layout(height=800, width=600, showlegend=False)
         fig.update_yaxes(automargin=True)
@@ -842,12 +844,12 @@ def offer_quality_piecharts(
     ]
     all_frames = (
         df.group_by(level)
-        .agg(pl.sum(value_finder_names))
-        .collect()
+        .agg(pl.sum(*value_finder_names))
+        .collect()  # type: ignore[union-attribute]
         .partition_by(level, as_dict=True)
     )
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
-    df = {}
+    df = {}  # type: ignore[assignment]
     AvailableNBADStages = AvailableNBADStages[:5]
     for stage in AvailableNBADStages[:5]:
         df[(stage,)] = all_frames[(stage,)]
@@ -900,18 +902,19 @@ def getTrendChart(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    df = (
+    trend_df = (
         df.filter(pl.col(level) == stage)
         .group_by("day")
-        .agg(pl.sum(value_finder_names))
+        .agg(pl.sum(*value_finder_names))
         .collect()
-    ).sort("day")
+        .sort("day")  # type: ignore[union-attribute]
+    )
     if return_df:
-        return df.lazy()
+        return trend_df.lazy()
     trend_melted = (
-        df.melt(
-            id_vars=["day"],
-            value_vars=[
+        trend_df.unpivot(
+            index=["day"],
+            on=[
                 "has_no_offers",
                 "atleast_one_relevant_action",
                 "only_irrelevant_actions",
@@ -960,6 +963,8 @@ def plot_priority_component_distribution(
         xaxis_title=component,
         legend_title_text=granularity,
     )
+    if component == "Propensity":
+        violin_fig.update_xaxes(tickformat=",.0%")
 
     ecdf_fig = px.ecdf(
         collected,
@@ -972,6 +977,8 @@ def plot_priority_component_distribution(
         xaxis_title=component,
         legend_title_text=granularity,
     )
+    if component == "Propensity":
+        ecdf_fig.update_xaxes(tickformat=",.0%")
 
     stats_df = (
         value_data.group_by(granularity)
@@ -1013,7 +1020,7 @@ def plot_component_overview(
         fig.add_annotation(text="No component columns available", showarrow=False)
         return fig
 
-    collected = value_data.select([granularity] + components).collect()
+    collected: pl.DataFrame = value_data.select([granularity] + components).collect()  # type: ignore[assignment]
     melted = collected.unpivot(
         on=components, index=granularity, variable_name="Component", value_name="Value"
     )
@@ -1041,6 +1048,13 @@ def plot_component_overview(
         height=max(350, 200 * ((len(components) + 2) // 3)),
         showlegend=False,
     )
+    # Format Propensity facet axis as percentage
+    for ann in fig.layout.annotations:
+        if ann.text == "Propensity":
+            # Facet annotations use "xN" anchors matching "xaxisN"
+            axis_key = ann.xref.replace("x", "xaxis") if ann.xref != "x" else "xaxis"
+            if axis_key in fig.layout.to_plotly_json():
+                fig.layout[axis_key]["tickformat"] = ",.0%"
     return fig
 
 
@@ -1120,7 +1134,8 @@ def create_win_distribution_plot(
             # If we have "No Winner" data, we need to select only the columns that match aggregated_regular
             if no_winner_data.height > 0:
                 # Select only the columns that exist in aggregated_regular
-                columns_to_keep = scope_config["group_cols"] + [win_count_col]
+                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                columns_to_keep = group_cols + [win_count_col]
                 no_winner_data_selected = no_winner_data.select(columns_to_keep)
                 plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
             else:
@@ -1128,7 +1143,8 @@ def create_win_distribution_plot(
         else:
             # If no regular data, just use no_winner_data (select appropriate columns)
             if no_winner_data.height > 0:
-                columns_to_keep = scope_config["group_cols"] + [win_count_col]
+                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                columns_to_keep = group_cols + [win_count_col]
                 plot_data = no_winner_data.select(columns_to_keep)
             else:
                 plot_data = pl.DataFrame()
@@ -1250,6 +1266,8 @@ def create_parameter_distribution_boxplots(
                     row=i,
                     col=1,
                 )
+        if metric == "Propensity":
+            fig.update_yaxes(tickformat=",.0%", row=i, col=1)
 
     fig.update_layout(
         height=800,

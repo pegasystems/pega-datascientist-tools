@@ -160,6 +160,17 @@ def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
     st.session_state[dst] = st.session_state[src]
 
 
+def reset_filter_state(filter_type: str):
+    """Remove all session-state keys for the given filter type prefix."""
+    keys_to_remove = [
+        k
+        for k in st.session_state.keys()
+        if k.startswith(filter_type) and k != "filters"
+    ]
+    for k in keys_to_remove:
+        del st.session_state[k]
+
+
 def _clean_unselected_filters(to_filter_columns: List[str], filter_type: str):
     """Remove session-state keys for columns no longer in the filter list."""
     keys_to_remove = []

@@ -1,7 +1,7 @@
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
 from bisect import bisect_left
 from functools import cached_property
-from typing import List, Literal, Optional, Union, Dict
+from typing import List, Literal, Optional, Tuple, Union, Dict
 import logging
 import os
 import warnings
@@ -124,15 +124,16 @@ class DecisionAnalyzer:
             raise ValueError(f"Could not read data from {source}")
         return cls(raw_data, **kwargs)
 
-    # Superset of all fields available for data filtering in various places.
-    fields_for_data_filtering = [
+    # Preferred fields for data filtering, in display order.
+    # Subsetting to actual available columns happens in __init__.
+    _default_filter_fields = [
         "Decision Time",
         "Channel",
         "Direction",
         "Issue",
         "Group",
         "Action",
-        "Treatment",  # or Treatment?
+        "Treatment",
         "Stage",
         "ModelPositives",
         "ModelEvidence",
@@ -203,6 +204,8 @@ class DecisionAnalyzer:
         self.plot = Plot(self)
         self.level = level
         self.sample_size = sample_size
+        self._thresholding_cache: Dict[Tuple[str, Tuple[int, ...]], pl.DataFrame] = {}
+        self._sensitivity_cache: Dict[int, pl.LazyFrame] = {}
         # Normalize alternative column names (e.g. "Issue" → "Issue")
         raw_data = resolve_aliases(
             raw_data, DecisionAnalyzer_TD, ExplainabilityExtract_TD
@@ -221,7 +224,7 @@ class DecisionAnalyzer:
         # all columns are present?
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
-        if not validation_result:
+        if not validation_result and validation_error is not None:
             warnings.warn(validation_error, UserWarning)
         # Bail out early if critical columns are missing — cleanup_raw_data
         # would crash with an opaque ColumnNotFoundError otherwise.
@@ -251,11 +254,12 @@ class DecisionAnalyzer:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
         self.resetGlobalDataFilters()
-        # TODO subset against available fields in the data
-        # TODO maybe we'll also need some aggregates per customer ID. Not certain, lets postpone, current dataset is not very representative.
         available_columns = set(
             self.unfiltered_raw_decision_data.collect_schema().names()
         )
+        self.fields_for_data_filtering = [
+            f for f in self._default_filter_fields if f in available_columns
+        ]
         self.preaggregation_columns = {
             "Issue",
             "Group",
@@ -379,7 +383,7 @@ class DecisionAnalyzer:
         )
 
     @property
-    def num_sample_interactions(self):
+    def num_sample_interactions(self) -> int:
         """
         Number of unique interactions in the sample.
         Automatically triggers sampling if not yet calculated.
@@ -387,7 +391,7 @@ class DecisionAnalyzer:
         if not hasattr(self, "_num_sample_interactions"):
             # Trigger sample calculation to set _num_sample_interactions
             _ = self.sample
-        return self._num_sample_interactions
+        return self._num_sample_interactions  # type: ignore[attr-defined]
 
     def _invalidate_cached_properties(self):
         """Resets the properties of the class. Needed for global filters."""
@@ -403,6 +407,8 @@ class DecisionAnalyzer:
         # Also reset num_sample_interactions so it gets recalculated with new filters
         if hasattr(self, "_num_sample_interactions"):
             delattr(self, "_num_sample_interactions")
+        self._thresholding_cache.clear()
+        self._sensitivity_cache.clear()
 
     def applyGlobalDataFilters(
         self, filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
@@ -445,8 +451,8 @@ class DecisionAnalyzer:
             .alias(f"Win_at_rank{i}")
             for i in range(1, self.max_win_rank + 1)
         ] + [
-            pl.min(stats_cols).name.suffix("_min"),
-            pl.max(stats_cols).name.suffix("_max"),
+            pl.min(*stats_cols).name.suffix("_min"),
+            pl.max(*stats_cols).name.suffix("_max"),
             pl.col("Propensity", "Priority").sample(
                 n=num_samples, with_replacement=True, shuffle=True
             ),
@@ -460,8 +466,8 @@ class DecisionAnalyzer:
                 )
             )
             .agg(exprs)
-            .collect()
-            .lazy()
+            .collect()  # materialize to cache the expensive aggregation
+            .lazy()  # re-wrap so downstream consumers stay lazy
         )
         return self.preaggregated_decision_data_filterview
 
@@ -475,7 +481,7 @@ class DecisionAnalyzer:
         self.preaggregated_decision_data_remainingview = (
             self.aggregate_remaining_per_stage(
                 self.getPreaggregatedFilterView,
-                self.preaggregation_columns,
+                list(self.preaggregation_columns),
                 [
                     pl.sum("Decisions"),
                     pl.min("Decision Time_min"),
@@ -497,8 +503,8 @@ class DecisionAnalyzer:
                 ]
                 + [pl.sum(f"Win_at_rank{i}") for i in range(1, self.max_win_rank + 1)],
             )
-            .collect()
-            .lazy()
+            .collect()  # type: ignore[union-attribute]  # materialize to cache
+            .lazy()  # re-wrap so downstream consumers stay lazy
         )
         return self.preaggregated_decision_data_remainingview
 
@@ -564,32 +570,22 @@ class DecisionAnalyzer:
             .filter(pl.col("_sample"))
             .drop("_sample")
             .collect()
-            .shrink_to_fit()
-            .lazy()
+            .shrink_to_fit()  # reclaim unused memory (DataFrame-only method)
+            .lazy()  # re-wrap so downstream consumers stay lazy
         )
 
         return df
 
     def getAvailableFieldsForFiltering(self, categoricalOnly=False):
-        available_fields = []
+        if not categoricalOnly:
+            return list(self.fields_for_data_filtering)
 
-        if categoricalOnly:
-            schema_keys = (
-                self.decision_data.select(cs.string(include_categorical=True))
-                .collect_schema()
-                .keys()
-            )
-
-            for field in self.fields_for_data_filtering:
-                if field in schema_keys:
-                    available_fields.append(field)
-        else:
-            all_columns = self.decision_data.collect_schema().names()
-
-            for field in self.fields_for_data_filtering:
-                if field in all_columns:
-                    available_fields.append(field)
-        return available_fields
+        string_cols = set(
+            self.decision_data.select(cs.string(include_categorical=True))
+            .collect_schema()
+            .keys()
+        )
+        return [f for f in self.fields_for_data_filtering if f in string_cols]
 
     def cleanup_raw_data(self, df: pl.LazyFrame):
         """This method cleans up the raw data we read from parquet/S3/whatever.
@@ -707,7 +703,7 @@ class DecisionAnalyzer:
     # @st.cache_data
     def getFunnelData(
         self, scope, additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
-    ) -> pl.LazyFrame:
+    ) -> Tuple[pl.LazyFrame, pl.DataFrame]:
         # Apply filtering once to the pre-aggregated view
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
@@ -722,7 +718,7 @@ class DecisionAnalyzer:
         funnelData = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
-            aggregations=pl.sum("Decisions").alias("count"),
+            aggregations=[pl.sum("Decisions").alias("count")],
         ).filter(pl.col("count") > 0)
 
         # Compute filtered funnel view
@@ -1124,7 +1120,7 @@ class DecisionAnalyzer:
                     DecisionsFraction=(pl.col("cumDecisions") / pl.sum("Decisions")),
                     Decisions=pl.col("Decisions").cast(pl.Int32),
                 )
-                .collect()
+                .collect()  # type: ignore[union-attribute]
                 .with_row_index("ActionIndex", 1)
                 .with_columns(
                     ActionsFraction=pl.col("ActionIndex") / pl.len(),
@@ -1160,10 +1156,11 @@ class DecisionAnalyzer:
         )
         return tbl
 
-    # TODO, how to use cached functions with parameters, how can we cache this
-    def getThresholdingData(
-        self, fld, quantile_range=range(10, 100, 10)
-    ):  # this is a very complicated function.
+    def getThresholdingData(self, fld, quantile_range=range(10, 100, 10)):
+        cache_key = (fld, tuple(quantile_range))
+        if cache_key in self._thresholding_cache:
+            return self._thresholding_cache[cache_key]
+
         thresholds_wide = (
             # Note: runs on pre-aggregated data - maybe should be using _min/_max for filtering instead
             self.getPreaggregatedFilterView.filter(
@@ -1210,6 +1207,7 @@ class DecisionAnalyzer:
             )
             .sort([self.level, "Threshold"])
         ).filter(pl.col(self.level) == "Arbitration")
+        self._thresholding_cache[cache_key] = thresholds_long
         return thresholds_long
 
     def priority_component_distribution(self, component, granularity, stage=None):
@@ -1343,21 +1341,21 @@ class DecisionAnalyzer:
 
         propensity_classifying_expr = [
             pl.col("Action")
-            .where((pl.col("Propensity") == 0.5) & (pl.col("Stage Group") != "Output"))
+            .filter((pl.col("Propensity") == 0.5) & (pl.col("Stage Group") != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .where(
+            .filter(
                 (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5)
             )
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .where((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .filter((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
-            .where(
+            .filter(
                 (pl.col("Propensity") >= propensityTH)
                 & (pl.col("Propensity") != 0.5)
                 & (pl.col("Priority") >= priorityTH)
@@ -1481,26 +1479,25 @@ class DecisionAnalyzer:
 
         return {k: kpis[k].item() for k in kpis.columns}
 
-    # TODO think about caching
     def get_sensitivity(self, win_rank=1, filters=None):
-        """
-        Global Sensitivity: Number of decisions where original rank-1 changes.
-        Local Sensitivity: Number of times the selected offer(s) are in the rank-1 when dropping one of the prioritization factors.
+        """Global or local sensitivity of the prioritization factors.
 
         Parameters
         ----------
-        win_rank: Int
+        win_rank : int
             Maximum rank to be considered a winner.
-        filters: List[pl.Expr]
+        filters : pl.Expr, optional
             Selected offers, only used in local sensitivity analysis.
+            When ``None`` (global), results are cached by ``win_rank``.
 
         Returns
         -------
         pl.LazyFrame
         """
-        is_global_sensitivity = False
-        if filters is None:
-            is_global_sensitivity = True
+        is_global_sensitivity = filters is None
+        if is_global_sensitivity:
+            if win_rank in self._sensitivity_cache:
+                return self._sensitivity_cache[win_rank]
             filters = pl.col("Rank") <= win_rank
 
         sensitivity = (
@@ -1552,6 +1549,7 @@ class DecisionAnalyzer:
         )
         if is_global_sensitivity:
             sensitivity = sensitivity.with_columns(Influence=pl.col("Influence").abs())
+            self._sensitivity_cache[win_rank] = sensitivity
         return sensitivity
 
     def get_offer_variability_stats(self, stage):
@@ -1690,7 +1688,7 @@ class DecisionAnalyzer:
                 ),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
 
-            result = (
+            result: pl.DataFrame = (  # type: ignore[assignment]
                 original_winners.group_by(["Issue", "Group", "Action"])
                 .agg(
                     original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
@@ -1709,9 +1707,10 @@ class DecisionAnalyzer:
 
             # Add no winner count if all_interactions is provided
             if all_interactions is not None:
-                interactions_with_winners = (
-                    original_winners.select("Interaction ID").collect().n_unique()
-                )
+                winner_df: pl.DataFrame = original_winners.select(
+                    "Interaction ID"
+                ).collect()  # type: ignore[assignment]
+                interactions_with_winners = winner_df.n_unique()
                 no_winner_count = max(
                     0, all_interactions - interactions_with_winners
                 )  # Ensure non-negative
@@ -1727,7 +1726,9 @@ class DecisionAnalyzer:
                 }
 
                 # Cast to match result schema
-                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+                no_winner_row = pl.DataFrame(no_winner_data).cast(
+                    {k: v for k, v in result.schema.items()}
+                )
 
                 result = pl.concat([result, no_winner_row])
 
@@ -1749,7 +1750,7 @@ class DecisionAnalyzer:
                 ["Issue", "Group", "Action"] + ["Interaction ID", "Rank", "rank_PVCL"]
             )
 
-            result = (
+            result_lf = (
                 recalculated_winners.group_by(["Issue", "Group", "Action"])
                 .agg(
                     original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
@@ -1765,19 +1766,20 @@ class DecisionAnalyzer:
                     .then(pl.lit("Selected"))
                     .otherwise(pl.lit("Rest"))
                 )
-                .collect()
-                .sort("new_win_count", descending=True)
             )
+            result: pl.DataFrame = result_lf.collect().sort(
+                "new_win_count", descending=True
+            )  # type: ignore[assignment]
 
             # Add no winner count if all_interactions is provided
             if all_interactions is not None:
                 # Calculate no winner count based on new ranking
-                interactions_with_new_winners = (
+                new_winner_df: pl.DataFrame = (  # type: ignore[assignment]
                     recalculated_winners.filter(pl.col("rank_PVCL") == 1)
                     .select("Interaction ID")
                     .collect()
-                    .n_unique()
                 )
+                interactions_with_new_winners = new_winner_df.n_unique()
                 no_winner_count = max(
                     0, all_interactions - interactions_with_new_winners
                 )  # Ensure non-negative
@@ -1794,7 +1796,9 @@ class DecisionAnalyzer:
                 }
 
                 # Cast to match result schema
-                no_winner_row = pl.DataFrame(no_winner_data).cast(result.schema)
+                no_winner_row = pl.DataFrame(no_winner_data).cast(
+                    {k: v for k, v in result.schema.items()}
+                )
 
                 result = pl.concat([result, no_winner_row])
 
@@ -1825,7 +1829,7 @@ class DecisionAnalyzer:
         low: float = 0,
         high: float = 100,
         precision: float = 0.01,
-        ranking_stages: List[str] = None,
+        ranking_stages: Optional[List[str]] = None,
     ) -> float:
         """
         Binary search algorithm to find lever value needed to achieve a desired win percentage.
@@ -1875,13 +1879,14 @@ class DecisionAnalyzer:
                 ),
             ).filter(pl.col("rank_PVCL") <= win_rank)
 
-            selected_wins = (
-                ranked_df.filter(lever_condition)
-                .select("Interaction ID")
-                .collect()
-                .height
+            selected_wins_df: pl.DataFrame = (  # type: ignore[assignment]
+                ranked_df.filter(lever_condition).select("Interaction ID").collect()
             )
-            selected_total = ranked_df.select("Interaction ID").collect().height
+            selected_wins = selected_wins_df.height
+            selected_total_df: pl.DataFrame = ranked_df.select(
+                "Interaction ID"
+            ).collect()  # type: ignore[assignment]  # noqa: E501
+            selected_total = selected_total_df.height
             percentage = (selected_wins / selected_total) * 100
             return percentage
 

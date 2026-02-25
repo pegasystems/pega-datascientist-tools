@@ -23,6 +23,14 @@ col1, col2 = st.columns(2)
 with col1:
     "## :green[Source Data]"
 
+    extract_type = st.session_state.decision_data.extract_type
+    format_label = (
+        "Explainability Extract (v1) — arbitration stage only"
+        if extract_type == "explainability_extract"
+        else "Action Analysis / EEV2 (v2) — full pipeline"
+    )
+    st.caption(f"Data format: **{format_label}**")
+
     overview = st.session_state.decision_data.get_overview_stats
 
     f"""

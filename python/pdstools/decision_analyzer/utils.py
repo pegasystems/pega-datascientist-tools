@@ -195,7 +195,7 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
 
 
 def get_first_level_stats(
-    interaction_data: pl.LazyFrame, filters: List[pl.Expr] = None
+    interaction_data: pl.LazyFrame, filters: Optional[List[pl.Expr]] = None
 ):
     """Returns first-level stats of a dataframe for the filter summary.
 
@@ -395,9 +395,8 @@ def create_hierarchical_selectors(
     """
 
     # Step 1: Get all available issues
-    available_issues = (
-        data.select("Issue").unique().collect().get_column("Issue").to_list()
-    )
+    issues_df: pl.DataFrame = data.select("Issue").unique().collect()  # type: ignore[assignment]
+    available_issues = issues_df.get_column("Issue").to_list()
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
         issue_index = available_issues.index(selected_issue)
@@ -409,13 +408,10 @@ def create_hierarchical_selectors(
 
     # Step 2: Get groups for current issue
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
-    available_groups = (
-        filtered_by_issue.select("Group")
-        .unique()
-        .collect()
-        .get_column("Group")
-        .to_list()
+    groups_df: pl.DataFrame = (
+        filtered_by_issue.select("Group").unique().collect()  # type: ignore[assignment]
     )
+    available_groups = groups_df.get_column("Group").to_list()
     group_options = ["All"] + available_groups
     group_index = 0  # Default to "All"
     if selected_group and selected_group in group_options:
@@ -432,13 +428,10 @@ def create_hierarchical_selectors(
             pl.col("Group") == current_group
         )
 
-    available_actions = (
-        filtered_by_issue_group.select("Action")
-        .unique()
-        .collect()
-        .get_column("Action")
-        .to_list()
+    actions_df: pl.DataFrame = (
+        filtered_by_issue_group.select("Action").unique().collect()  # type: ignore[assignment]
     )
+    available_actions = actions_df.get_column("Action").to_list()
     action_options = ["All"] + available_actions
     action_index = 0  # Default to "All"
     if selected_action and selected_action in action_options:
@@ -585,7 +578,7 @@ def sample_interactions(
             raise ValueError(f"fraction must be in (0, 1], got {fraction}")
         threshold = int(fraction * 10_000)
     else:
-        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
         if total <= n:
             logger.info(
                 "Data has %d interactions (≤ requested %d), skipping sampling.",
@@ -635,7 +628,7 @@ def sample_and_save(
 
     # Check whether sampling would actually reduce the data.
     if n is not None:
-        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
         if total <= n:
             logger.info(
                 "Data has %d interactions (≤ requested %d), skipping sampling.",
@@ -651,7 +644,7 @@ def sample_and_save(
     out_path = dest / "decision_analyzer_sample.parquet"
 
     logger.info("Writing sampled data to %s", out_path)
-    sampled.collect().write_parquet(out_path)
+    sampled.collect().write_parquet(out_path)  # type: ignore[union-attribute]
 
     return pl.scan_parquet(out_path)
 

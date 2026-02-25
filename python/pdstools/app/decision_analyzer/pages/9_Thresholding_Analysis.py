@@ -54,23 +54,33 @@ with st.session_state["sidebar"]:
 
     value_range = [v if v is not None else 0.0 for v in value_range]
 
-    current_threshold = st.slider(
-        "Threshold :sunglasses:", value_range[0], value_range[1]
-    )
+    if thresholding_on == "Propensity":
+        current_threshold = (
+            st.slider(
+                "Threshold :sunglasses:",
+                value_range[0] * 100,
+                value_range[1] * 100,
+                format="%.2f%%",
+            )
+            / 100
+        )
+    else:
+        current_threshold = st.slider(
+            "Threshold :sunglasses:", value_range[0], value_range[1]
+        )
 
 col1, col2 = st.columns(2)
 with col1:
-    st.plotly_chart(
-        px.histogram(
-            # Note this is not overly expensive as we have sampled the values into the pre-agg views
-            st.session_state.decision_data.getPreaggregatedFilterView
-            # TODO this breaks when the list is size > 1, figure out how to solve elegantly
-            .select(pl.col("Propensity").explode(), pl.col("Decisions")).collect(),
-            x="Propensity",
-            y="Decisions",
-        ),
-        use_container_width=True,
+    propensity_hist = px.histogram(
+        # Note this is not overly expensive as we have sampled the values into the pre-agg views
+        st.session_state.decision_data.getPreaggregatedFilterView
+        # TODO this breaks when the list is size > 1, figure out how to solve elegantly
+        .select(pl.col("Propensity").explode(), pl.col("Decisions")).collect(),
+        x="Propensity",
+        y="Decisions",
     )
+    propensity_hist.update_xaxes(tickformat=",.0%")
+    st.plotly_chart(propensity_hist, use_container_width=True)
 with col2:
     st.plotly_chart(
         px.histogram(
