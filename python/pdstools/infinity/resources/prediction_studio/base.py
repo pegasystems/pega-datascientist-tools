@@ -63,7 +63,7 @@ class _ModelMixin(ABC):
         modelingTechnique: str | None = None,
         updatedBy: str | None = None,
     ):
-        super().__init__(client=client)
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
         self.model_id = modelId
         self.label = label
         self.model_type = modelType
@@ -95,7 +95,7 @@ class _PredictionMixin(ABC):
         objective: str | None = None,
         subject: str | None = None,
     ):
-        super().__init__(client=client)
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
         self.prediction_id = predictionId
         self.label = label
         self.objective = objective
@@ -131,7 +131,7 @@ class _NotificationMixin(ABC):
         modelID: str | None = None,
         predictionID: str | None = None,
     ):
-        super().__init__(client=client)
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
         if modelID:
             self.model_id = modelID
         if predictionID:
@@ -155,7 +155,7 @@ class ModelValidationError(Exception):
 
 
 class LocalModel(BaseModel):
-    def validate(self) -> bool:
+    def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
         """Validates a model.
 
         Raises
@@ -163,6 +163,7 @@ class LocalModel(BaseModel):
             ModelValidationError: If the model is invalid or if the validation process fails.
 
         """
+        return True
 
     def get_file_path(self) -> str:
         """Returns the file path of the model.
@@ -172,6 +173,7 @@ class LocalModel(BaseModel):
             str: The file path of the model.
 
         """
+        raise NotImplementedError
 
 
 class _RepositoryMixin(ABC):

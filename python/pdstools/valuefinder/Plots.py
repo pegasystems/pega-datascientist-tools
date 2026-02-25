@@ -19,9 +19,9 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 try:
-    import plotly.express as px  # type: ignore[import-untyped]
-    import plotly.graph_objects as go  # type: ignore[import-untyped]
-    from plotly.subplots import make_subplots  # type: ignore[import-untyped]
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
     from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
@@ -95,7 +95,7 @@ class Plots(LazyNamespace):
         return fig
 
     def propensity_distribution(self, sample_size: int = 10_000) -> Figure:
-        import plotly.figure_factory as ff  # type: ignore[import-untyped]
+        import plotly.figure_factory as ff
 
         i = 0
         figs = make_subplots(

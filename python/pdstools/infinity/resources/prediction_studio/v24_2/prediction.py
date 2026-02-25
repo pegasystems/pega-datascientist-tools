@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
+from collections.abc import Callable
 
 import polars as pl
 from pydantic import validate_call
@@ -19,6 +20,12 @@ from ..v24_1.prediction import Prediction as PredictionPrevious
 
 class _PredictionV24_2Mixin:
     """v24.2 Prediction business logic — shared parts."""
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        prediction_id: str
+        _a_get: Callable[..., Any]
+        _a_post: Callable[..., Any]
 
     async def _get_models(self) -> list[dict[str, str]]:
         """Internal function to fetch models linked to a specific prediction.
@@ -253,7 +260,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             category = "All"
         endpoint = f"{endpoint}?category={category}"
 
-        notifications = PaginatedList(
+        notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
             self._client,
             "get",
@@ -446,7 +453,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             category = "All"
         endpoint = f"{endpoint}?category={category}"
 
-        notifications = AsyncPaginatedList(
+        notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
             self._client,
             "get",

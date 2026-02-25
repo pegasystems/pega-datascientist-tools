@@ -1,4 +1,5 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Callable
 
 import polars as pl
 from pydantic import validate_call
@@ -13,6 +14,11 @@ from ..base import Prediction as PredictionBase
 
 class _PredictionV24_1Mixin:
     """v24.1 Prediction business logic — defined once."""
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        prediction_id: str
+        _a_get: Callable[..., Any]
 
     @api_method
     @validate_call

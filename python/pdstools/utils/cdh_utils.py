@@ -1364,7 +1364,7 @@ def create_working_and_temp_dir(
 
 
 # Safe flattening of nested lists, removing None elements, and not splitting strings
-def safe_flatten_list(alist: list, extras: list = None) -> list:
+def safe_flatten_list(alist: list, extras: list | None = None) -> list:
     if extras is None:
         extras = []
     if alist is None:

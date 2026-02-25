@@ -28,7 +28,7 @@ from ..utils.namespaces import MissingDependenciesException
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:  # pragma: no cover
-    import pydot  # type: ignore[import-untyped]
+    import pydot
 
     from .ADMDatamart import ADMDatamart
 
@@ -1361,8 +1361,8 @@ class ADMTreesModel:
 
         """
         try:
-            import plotly.graph_objects as go  # type: ignore[import-untyped]
-            from plotly.subplots import make_subplots  # type: ignore[import-untyped]
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")
         figlist = []
@@ -1714,7 +1714,7 @@ class ADMTreesModel:
     def plot_contribution_per_tree(self, x: dict, show=True):
         """Plots the contribution of each tree towards the final propensity."""
         try:
-            import plotly.express as px  # type: ignore[import-untyped]
+            import plotly.express as px
             import plotly.graph_objects as go
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")

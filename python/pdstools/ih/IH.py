@@ -443,8 +443,8 @@ class IH:
 
         df = self.data.select(cols).sort([customerid_column]).collect()
 
-        count_actions = [defaultdict(int), defaultdict(int)]
-        count_sequences = [
+        count_actions: list[defaultdict[tuple[str, ...], int]] = [defaultdict(int), defaultdict(int)]
+        count_sequences: list[defaultdict[tuple[str, ...], int]] = [
             defaultdict(int),
             defaultdict(int),
             defaultdict(int),

@@ -2,7 +2,7 @@ import datetime
 
 import polars as pl
 import pytest
-from pdstools.infinity.internal._pagination import PaginatedList
+from pdstools.infinity.internal._pagination import PaginatedList, _Slice
 from pdstools.infinity.resources.prediction_studio.local_model_utils import (
     PMMLModel,
 )
@@ -279,7 +279,7 @@ def test_list_predictions(
 @pytest.mark.parametrize(
     "return_df, expected_type",
     [
-        (False, PaginatedList._Slice),
+        (False, _Slice),
     ],
 )
 def test_list_predictions_token(

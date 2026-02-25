@@ -187,7 +187,7 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
 
 def get_first_level_stats(
     interaction_data: pl.LazyFrame,
-    filters: list[pl.Expr] = None,
+    filters: list[pl.Expr] | None = None,
 ):
     """Returns first-level stats of a dataframe for the filter summary.
 
@@ -245,7 +245,7 @@ def resolve_aliases(
 
     # Collect all raw keys across all table definitions so we never rename
     # a column that is itself a canonical raw key in another definition.
-    all_raw_keys = set()
+    all_raw_keys: set[str] = set()
     for table_def in table_definitions:
         all_raw_keys.update(table_def.keys())
 

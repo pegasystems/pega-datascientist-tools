@@ -1,5 +1,6 @@
 import base64
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
+from collections.abc import Callable
 
 import anyio
 import polars as pl
@@ -21,6 +22,11 @@ from .repository import AsyncRepository, Repository
 
 class _PredictionStudioV24_2Mixin:
     """v24.2 PredictionStudio business logic — shared parts."""
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        _a_post: Callable[..., Any]
+        _a_get: Callable[..., Any]
 
     version: str = "24.2"
 
@@ -144,7 +150,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         """
         endpoint = "/prweb/api/PredictionStudio/v1/models"
-        pages = PaginatedList(Model, self._client, "get", endpoint, _root="models")
+        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
         if not return_df:
             return pages
 
@@ -177,7 +183,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         """
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
-        pages = PaginatedList(
+        pages: PaginatedList[Prediction] = PaginatedList(
             Prediction,
             self._client,
             "get",
@@ -317,7 +323,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         endpoint = f"{endpoint}?category={category}"
 
-        notifications = PaginatedList(
+        notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
             self._client,
             "get",
@@ -374,7 +380,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
         """
         endpoint = "/prweb/api/PredictionStudio/v1/models"
-        pages = AsyncPaginatedList(
+        pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
             AsyncModel,
             self._client,
             "get",
@@ -402,7 +408,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
         """
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
-        pages = AsyncPaginatedList(
+        pages: AsyncPaginatedList[AsyncPrediction] = AsyncPaginatedList(
             AsyncPrediction,
             self._client,
             "get",
@@ -512,7 +518,7 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
 
         endpoint = f"{endpoint}?category={category}"
 
-        notifications = AsyncPaginatedList(
+        notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
             self._client,
             "get",

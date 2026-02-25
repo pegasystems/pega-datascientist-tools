@@ -1,4 +1,5 @@
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
+from collections.abc import Callable
 
 import polars as pl
 
@@ -12,6 +13,11 @@ from ..types import NotificationCategory
 
 class _ModelV24_2Mixin:
     """v24.2 Model business logic — defined once."""
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        model_id: str
+        _a_get: Callable[..., Any]
 
     @api_method
     async def describe(self) -> ModelAttributes:
@@ -70,7 +76,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
             category = "All"
 
         endpoint = f"{endpoint}?category={category}"
-        notifications = PaginatedList(
+        notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
             self._client,
             "get",
@@ -110,7 +116,7 @@ class AsyncModel(_ModelV24_2Mixin, AsyncPreviousModel):
             category = "All"
 
         endpoint = f"{endpoint}?category={category}"
-        notifications = AsyncPaginatedList(
+        notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
             self._client,
             "get",

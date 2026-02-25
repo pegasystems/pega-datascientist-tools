@@ -1,4 +1,5 @@
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from collections.abc import Callable
 
 import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
@@ -66,6 +67,12 @@ class NoAPIAccessError(PegaException):
 
 class _KnowledgeBuddyMixin:
     """Knowledge Buddy business logic — defined once."""
+
+    # Declared for mypy — provided by SyncAPIResource / AsyncAPIResource at runtime
+    if TYPE_CHECKING:
+        _a_post: Callable[..., Any]
+        _a_put: Callable[..., Any]
+        custom_exception_hook: Callable[..., Exception | None] | None
 
     def _install_exception_hook(self):
         self.custom_exception_hook = self._custom_exception_hook
@@ -168,13 +175,13 @@ class _KnowledgeBuddyMixin:
         response: httpx.Response,
     ) -> None | Exception:
         if "Buddy is not available to ask questions." in response.text:
-            return UnavailableBuddyError(base_url, endpoint, params, response)
+            return UnavailableBuddyError(str(base_url), endpoint, params, response)
         if response.status_code == 401 or response.status_code == 403:
-            return NoAPIAccessError(base_url, endpoint, params, response)
+            return NoAPIAccessError(str(base_url), endpoint, params, response)
         if response.status_code == 400:
-            return InvalidInputs(base_url, endpoint, params, response)
+            return InvalidInputs(str(base_url), endpoint, params, response)
         if response.status_code == 500:
-            return InternalServerError(base_url, endpoint, params, response)
+            return InternalServerError(str(base_url), endpoint, params, response)
         return Exception(response.text)
 
 

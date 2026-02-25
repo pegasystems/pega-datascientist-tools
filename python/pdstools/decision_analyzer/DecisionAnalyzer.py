@@ -1624,7 +1624,7 @@ class DecisionAnalyzer:
         low: float = 0,
         high: float = 100,
         precision: float = 0.01,
-        ranking_stages: list[str] = None,
+        ranking_stages: list[str] | None = None,
     ) -> float:
         """Binary search algorithm to find lever value needed to achieve a desired win percentage.
 

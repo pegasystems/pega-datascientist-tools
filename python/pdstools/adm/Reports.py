@@ -389,7 +389,7 @@ class Reports(LazyNamespace):
         EXCEL_ROW_LIMIT = 1048576
         # Standard ZIP format limit is 4gb but 3gb would already crash most laptops
         ZIP_SIZE_LIMIT_MB = 3000
-        warning_messages = []
+        warning_messages: list[str] = []
 
         name = Path(name)
         tabs = {

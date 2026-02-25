@@ -1,6 +1,8 @@
 import logging
 import random
 import string
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import polars as pl
 from pydantic import validate_call
@@ -40,20 +42,29 @@ class _ChampionChallengerV24_2Mixin:
         The ID of the prediction.
     active_model : Model
         The active model in the prediction.
-    cc_id : Union[str, None]
+    cc_id : str | None
         The ID of the champion challenger.
-    context : Union[str, None]
+    context : str | None
         The context of the prediction.
-    category : Union[str, None]
+    category : str | None
         The category of the prediction.
-    challenger_model : Union[Model, None]
+    challenger_model : Model | None
         The challenger model.
-    champion_percentage : Union[float, None]
+    champion_percentage : float | None
         The percentage of responses attributed to the champion model.
-    model_objective : Union[str, None]
+    model_objective : str | None
         The objective of the model.
 
     """
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        prediction_id: str
+        _a_patch: Callable[..., Any]
+        _a_post: Callable[..., Any]
+        _a_get: Callable[..., Any]
+        _sleep: Callable[..., Any]
+        _client: Any
 
     def __init__(
         self,
@@ -703,7 +714,7 @@ class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
         from .model import Model
 
         endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages = PaginatedList(Model, self._client, "get", endpoint, _root="models")
+        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
         if not return_df:
             return pages
         return pl.DataFrame([mod._public_dict for mod in pages])
@@ -734,7 +745,7 @@ class AsyncChampionChallenger(
         from .model import AsyncModel
 
         endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages = AsyncPaginatedList(
+        pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
             AsyncModel,
             self._client,
             "get",

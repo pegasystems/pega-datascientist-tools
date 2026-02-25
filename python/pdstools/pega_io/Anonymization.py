@@ -232,7 +232,7 @@ class Anonymization:
         length = math.ceil(len(files) / self.batch_size)
 
         try:
-            from tqdm.auto import tqdm  # type: ignore[import-untyped]
+            from tqdm.auto import tqdm
 
             iterable = tqdm(
                 self.chunker(files, self.batch_size),
@@ -279,7 +279,7 @@ class Anonymization:
                 "Polars-hash not installed. Please install using pip install polars-hash",
             )
 
-        df: pl.LazyFrame = pl.concat(  # type: ignore[assignment]
+        df: pl.LazyFrame = pl.concat(
             [pl.scan_parquet(f) for f in chunked_files],
             how="diagonal_relaxed",
         )
