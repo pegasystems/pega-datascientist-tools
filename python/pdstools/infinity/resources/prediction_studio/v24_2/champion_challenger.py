@@ -1,25 +1,27 @@
 import logging
 import random
 import string
-import time
 from typing import Dict, List, Optional, Union
 
 import polars as pl
 from pydantic import validate_call
 
 from ....internal._exceptions import PegaException, PegaMLopsError
-from ....internal._pagination import PaginatedList
-from ..base import ChampionChallenger as ChampionChallengerBase
+from ....internal._pagination import AsyncPaginatedList, PaginatedList
+from ....internal._resource import api_method, _maybe_await
+from ..base import (
+    AsyncChampionChallenger as AsyncChampionChallengerBase,
+    ChampionChallenger as ChampionChallengerBase,
+)
 from ..types import AdmModelType
-from .model import Model
 from .model_upload import UploadedModel
 
 logger = logging.getLogger(__name__)
 
 
-class ChampionChallenger(ChampionChallengerBase):
+class _ChampionChallengerV24_2Mixin:
     """
-    The `ChampionChallenger` class manages champion and challenger models
+    The ``ChampionChallenger`` class manages champion and challenger models
     within a prediction context. It provides functionalities for:
 
     - Refreshing champion challenger data
@@ -56,11 +58,11 @@ class ChampionChallenger(ChampionChallengerBase):
         self,
         client,
         prediction_id: str,
-        active_model: Model,
+        active_model,
         cc_id: Optional[str] = None,
         context: Optional[str] = None,
         category: Optional[str] = None,
-        challenger_model: Optional[Model] = None,
+        challenger_model=None,
         champion_percentage: Optional[float] = None,
         model_objective: Optional[str] = None,
     ):
@@ -126,17 +128,25 @@ class ChampionChallenger(ChampionChallengerBase):
 
         return champion_challenger_dict
 
-    def _refresh_champion_challenger(self):
+    # -- Internal helpers (plain async def, NOT @api_method) ------------------
+    # These are called from within @api_method public methods, so they run
+    # inside the outer _run_sync event loop on the sync path.  Decorating
+    # them with @api_method would cause nested _run_sync → crash.
+
+    async def _refresh_champion_challenger(self):
         """
         Updates the champion and challenger models for a specific prediction.
 
-        This function fetches the latest prediction details and refreshes the champion and challenger models accordingly.
-        If there's no challenger model linked, it sets the challenger attribute to None.
+        This function fetches the latest prediction details and refreshes the
+        champion and challenger models accordingly.  If there's no challenger
+        model linked, it sets the challenger attribute to None.
         """
-        prediction = self._client.prediction_studio.get_prediction(
-            prediction_id=self.prediction_id
+        prediction = await _maybe_await(
+            self._client.prediction_studio.get_prediction(
+                prediction_id=self.prediction_id
+            )
         )
-        champion_challengers = prediction.get_champion_challengers()
+        champion_challengers = await _maybe_await(prediction.get_champion_challengers())
         for champion_challenger in champion_challengers:
             if (
                 champion_challenger.active_model.component_name
@@ -151,12 +161,107 @@ class ChampionChallenger(ChampionChallengerBase):
                     self.challenger_model = None
                 break
 
-    def delete_challenger_model(self):
+    async def _status(self):
+        """
+        Checks the update status of the champion challenger configuration.
+
+        Determines if an update to the champion challenger setup is currently
+        in progress by examining the ``cc_id``.  If no update is underway,
+        it indicates the current setup is active.
+
+        Returns
+        -------
+        str
+            The current status of the update process, or "Active" if no
+            updates are pending.
+        """
+        if not self.cc_id:
+            return "Active"
+        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        return await self._a_get(endpoint)
+
+    async def _introduce_model(
+        self, champion_response_share: float, learn_independently: bool = True
+    ):
+        if not self.cc_id:
+            return "Model already introduced."
+        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        if self.active_model.model_type.upper() != "SCORECARD":
+            if champion_response_share == 1:
+                deployment_mode = {"type": "Shadow"}
+            else:
+                deployment_mode = {
+                    "type": "ChampionChallenger",
+                    "championPercentage": champion_response_share * 100,
+                    "learnIndependently": learn_independently,
+                }
+
+            data = {
+                "action": "Approve",
+                "reviewNote": "Approving initial model update from API",
+                "deploymentMode": deployment_mode,
+            }
+        else:
+            data = {
+                "action": "Approve",
+                "reviewNote": "Approving initial model update from API",
+                "deploymentMode": {
+                    "type": "Replace",
+                },
+            }
+        return await self._a_patch(endpoint=endpoint, data=data)
+
+    async def _check_then_update(
+        self, champion_response_share: float, learn_independently: bool = True
+    ):
+        if not self.cc_id:
+            return "Model already introduced."
+
+        status_order = [
+            "Not started",
+            "Configuration in progress",
+            "Validation in progress",
+            "Ready for review",
+            "Approved",
+        ]
+        from tqdm import tqdm  # TODO: make this fail gracefully when tqdm not installed
+
+        pbar = tqdm(total=len(status_order))
+        model_status = None
+        while model_status != "Ready for review":
+            await self._sleep(1)
+            status = await self._status()
+
+            model_status = status["ModelUpdateStatus"]
+
+            if model_status.strip() not in status_order:
+                raise PegaMLopsError(
+                    f"Error when adding model: {status['ModelUpdateStatus']}"
+                )
+            pbar.set_description(f"Status: {model_status}")
+            pbar.n = status_order.index(model_status) + 1
+            pbar.refresh()
+
+        pbar.set_description("Introducing model...")
+
+        # Should only get here if status == 'Ready for review'
+        response = await self._introduce_model(
+            champion_response_share, learn_independently
+        )
+        pbar.set_description("Model approved succesfully")
+        pbar.update()
+        return response
+
+    # -- Public API methods (@api_method) ------------------------------------
+
+    @api_method
+    async def delete_challenger_model(self):
         """
         Removes the challenger model linked to the current prediction.
 
-        This function checks for a challenger model's existence, constructs a request to delete it using the prediction and model IDs,
-        and updates the prediction's data accordingly.
+        This function checks for a challenger model's existence, constructs a
+        request to delete it using the prediction and model IDs, and updates
+        the prediction's data accordingly.
 
         Raises
         ------
@@ -168,20 +273,22 @@ class ChampionChallenger(ChampionChallengerBase):
         endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Remove"
         data = {"contextName": self.context}
         try:
-            response = self._client.patch(endpoint, data=data)
+            response = await self._a_patch(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError(
                 "Error when deleting challenger model: " + str(e)
             ) from e
-        self._refresh_champion_challenger()
+        await self._refresh_champion_challenger()
         logging.info("Deleted challenger model: %s", response)
 
-    def promote_challenger_model(self):
+    @api_method
+    async def promote_challenger_model(self):
         """
         Switches the challenger model to be the new champion for a prediction.
 
-        Checks for an existing challenger model and sends a request to make it the new champion model.
-        Updates the prediction's model data afterwards.
+        Checks for an existing challenger model and sends a request to make
+        it the new champion model.  Updates the prediction's model data
+        afterwards.
 
         Raises
         ------
@@ -192,16 +299,19 @@ class ChampionChallenger(ChampionChallengerBase):
             raise PegaMLopsError("Challenger model is not set.")
         endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Promote"
         data = {"contextName": self.context}
-        response = self._client.patch(endpoint, data=data)
+        response = await self._a_patch(endpoint, data=data)
         try:
-            self._refresh_champion_challenger()
+            await self._refresh_champion_challenger()
         except PegaException as e:
             raise PegaMLopsError(
                 "Error when promoting challenger model: " + str(e)
             ) from e
         logging.info("Promoted challenger model: %s", response)
 
-    def update_challenger_response_share(self, new_challenger_response_share: float):
+    @api_method
+    async def update_challenger_response_share(
+        self, new_challenger_response_share: float
+    ):
         """
         Adjusts traffic distribution between champion and challenger models.
 
@@ -244,291 +354,16 @@ class ChampionChallenger(ChampionChallengerBase):
                 "championPercentage": float(1 - new_challenger_response_share) * 100,
             }
         try:
-            response = self._client.patch(endpoint, data)
+            response = await self._a_patch(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError(
                 "Error when updating challenger model percentage: " + str(e)
             ) from e
-        self._refresh_champion_challenger()
+        await self._refresh_champion_challenger()
         logger.info("Updated challenger response percentage: %s", response)
 
-    def _status(self):
-        """
-        Checks the update status of the champion challenger configuration.
-
-        Determines if an update to the champion challenger setup is currently in progress by examining the `cc_id`.
-        If no update is underway, it indicates the current setup is active.
-
-        Returns
-        -------
-        str
-            The current status of the update process, or "Active" if no updates are pending.
-        """
-        if not self.cc_id:
-            return "Active"
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
-        return self._client.get(endpoint)
-
-    def _introduce_model(
-        self, champion_response_share: float, learn_independently: bool = True
-    ):
-        if not self.cc_id:
-            return "Model already introduced."
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
-        if self.active_model.model_type.upper() != "SCORECARD":
-            if champion_response_share == 1:
-                deployment_mode = {"type": "Shadow"}
-            else:
-                deployment_mode = {
-                    "type": "ChampionChallenger",
-                    "championPercentage": champion_response_share * 100,
-                    "learnIndependently": learn_independently,
-                }
-
-            data = {
-                "action": "Approve",
-                "reviewNote": "Approving initial model update from API",
-                "deploymentMode": deployment_mode,
-            }
-        else:
-            data = {
-                "action": "Approve",
-                "reviewNote": "Approving initial model update from API",
-                "deploymentMode": {
-                    "type": "Replace",
-                },
-            }
-        return self._client.patch(endpoint=endpoint, data=data)
-
-    def _check_then_update(
-        self, champion_response_share: float, learn_independently: bool = True
-    ):
-        if not self.cc_id:
-            return "Model already introduced."
-
-        status_order = [
-            "Not started",
-            "Configuration in progress",
-            "Validation in progress",
-            "Ready for review",
-            "Approved",
-        ]
-        from tqdm import tqdm  # TODO: make this fail gracefully when tqdm not installed
-
-        pbar = tqdm(total=len(status_order))
-        model_status = None
-        while model_status != "Ready for review":
-            time.sleep(1)
-            status = self._status()
-
-            model_status = status["ModelUpdateStatus"]
-
-            if model_status.strip() not in status_order:
-                raise PegaMLopsError(
-                    f"Error when adding model: {status['ModelUpdateStatus']}"
-                )
-            pbar.set_description(f"Status: {model_status}")
-            pbar.n = status_order.index(model_status) + 1
-            pbar.refresh()
-
-        pbar.set_description("Introducing model...")
-
-        # Should only get here if status == 'Ready for review'
-        response = self._introduce_model(champion_response_share, learn_independently)
-        pbar.set_description("Model approved succesfully")
-        pbar.update()
-        return response
-
-    def list_available_models_to_add(
-        self, return_df: bool = False
-    ) -> Union[PaginatedList[Model], pl.DataFrame]:
-        """
-        Fetches a list of models eligible to be challengers.
-
-        Queries for models that can be added as challengers to the current
-        prediction for the current active model. Offers the option to return
-        the results in a DataFrame format for easier data handling.
-
-        Parameters
-        ----------
-        return_df : bool, optional
-            Determines the format of the returned data: a DataFrame if True,
-            otherwise a list of model instances. Defaults to False.
-
-        Returns
-        -------
-        PaginatedList[Model] or pl.DataFrame
-            A list of model instances or a DataFrame of models, based on the
-            `return_df` parameter choice.
-        """
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages = PaginatedList(Model, self._client, "get", endpoint, _root="models")
-        if not return_df:
-            return pages
-        else:
-            return pl.DataFrame([getattr(mod, "_public_dict") for mod in pages])
-
-    def add_model(
-        self,
-        new_model: Union[Model, UploadedModel],
-        challenger_response_share: float,
-        predictor_mapping: Optional[List[Dict[str, Union[str, int]]]] = None,
-        model_label: Optional[str] = None,
-        learn_independently: Optional[bool] = True,
-    ):
-        """
-        Add a new model as a challenger in the prediction setup.
-
-        Enables the addition of a new model as a challenger, accepting various model types.
-        It configures the challenger's traffic share, allows for custom predictor to property mappings,
-        and supports labeling the model.
-        If the active model is a scorecard, the function will replace the active model with the new challenger.
-
-        Parameters
-        ----------
-        new_model : Model, UploadedModel
-            The model to be added as a challenger. Can be a pre-existing model, an uploaded file, or a model identifier.
-        challenger_response_share : int
-            Defines what percentage of traffic should be directed to the challenger model.
-        predictor_mapping : list of dict, optional
-            Custom mappings for predictors to properties, with each mapping as a dictionary.
-        model_label : str, optional
-            A label for the new challenger model.
-        learn_independently: bool, optional
-            If True, the challenger model will learn independently. Defaults to True.
-
-        Raises
-        ------
-        NotImplementedError
-            If attempting to add a model instance directly, which is not supported.
-        ValueError
-            If the response_percentage for the challenger is outside the 0-1 range.
-        PegaMLopsError
-            If there's an error when adding the challenger model.
-        """
-        objective = None
-        # if self.challenger_model:
-        #     raise ValueError("Challenger model already exists. Please delete/promote the existing challenger model before creating a new one.")
-        if not (0 <= challenger_response_share <= 1):
-            raise ValueError("Percentage must be between 0 and 1.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
-        data = {}
-        if isinstance(new_model, Model):
-            new_model = new_model.model_id.split("!")[1]
-        elif isinstance(new_model, UploadedModel):
-            data["sourceType"] = "Uploaded Model"
-            if model_label is None:
-                model_label = new_model.file_path.split("/")[-1].split(".")[0]
-                new_model = new_model.file_path.split("/")[-1]
-            objective = self.model_objective
-            data["objective"] = objective
-            data["modelLabel"] = model_label
-        else:
-            data["sourceType"] = "Existing Model"
-
-        data["modelSource"] = new_model
-
-        if predictor_mapping:
-            override_mappings = [
-                {"predictor": key["predictor"], "property": key["property"]}
-                for key in predictor_mapping
-            ]
-            data["overrideMappings"] = override_mappings
-        try:
-            response = self._post(endpoint, data=data)
-            self.cc_id = response["referenceID"]
-            champion_response_share = float(1 - challenger_response_share)
-
-            response = self._check_then_update(
-                champion_response_share=champion_response_share,
-                learn_independently=learn_independently,
-            )
-        except PegaException as e:
-            raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
-
-        if "Approved" not in response["message"]:
-            raise PegaMLopsError("Error when adding model")
-        logging.info("Add model: Refreshing Champion challenger configuration: ")
-        time.sleep(1)
-        self._refresh_champion_challenger()
-        logging.info("Add model: %s", response)
-
-    @validate_call
-    def clone_model(
-        self,
-        challenger_response_share: float,
-        adm_model_type: Union[AdmModelType, str],
-        model_label: Optional[str] = None,
-        predictor_mapping: Union[List[Dict], None] = None,
-        learn_independently: Union[bool, None] = True,
-    ):
-        """
-        Clones the current active model to create a challenger with specific settings.
-
-        This function duplicates the active model, setting it as a challenger in the prediction setup.
-        It allows choosing the model type, adjusting traffic share, and customizing labels and predictor mappings.
-
-        Parameters
-        ----------
-        challenger_response_share : float
-            Defines the traffic percentage for the challenger model.
-        adm_model_type : {'Gradient boosting', 'Naive bayes'}
-            Specifies the type of the cloned model.
-        model_label : str, optional
-            A custom label for the cloned model. Defaults to a generated unique label if not provided.
-        predictor_mapping : list of dict, optional
-            Custom mappings of predictors to properties for the cloned model.
-        learn_independently: bool, optional
-            If True, the challenger model will learn independently. Defaults to True.
-
-        Raises
-        ------
-        PegaMLopsError
-            If the challenger_response_percentage is not within the 0-1 range or adm_model_type is invalid.
-              Or if there's an error when adding the challenger model.
-        """
-        if isinstance(adm_model_type, AdmModelType):
-            adm_model_type = adm_model_type.value
-        valid_adm_model_types = [
-            AdmModelType.GRADIENT_BOOSTING.value,
-            AdmModelType.NAIVE_BAYES.value,
-        ]
-        if adm_model_type not in valid_adm_model_types:
-            raise PegaMLopsError(
-                "Invalid adm model type. It should be 'Gradient boosting' or 'Naive bayes'"
-            )
-        if not (0 <= challenger_response_share <= 1):
-            raise PegaMLopsError("Percentage must be between 0 and 1.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}/clone"
-        if model_label is None:
-            unique_suffix = "".join(random.choices(string.ascii_uppercase, k=3))
-            model_label = self.active_model.component_name + "_copy_" + unique_suffix
-
-        data = {
-            "modelLabel": model_label,
-            "admModelType": adm_model_type,
-        }
-        if predictor_mapping is not None:
-            data["overrideMmappings"] = [
-                {"predictor": key["predictor"], "property": key["property"]}
-                for key in predictor_mapping
-            ]
-        try:
-            response = self._post(endpoint, data=data)
-            self.cc_id = response["referenceID"]
-            champion_response_percentage = float(1 - challenger_response_share)
-            response = self._check_then_update(
-                champion_response_share=champion_response_percentage,
-                learn_independently=learn_independently,
-            )
-        except PegaException as e:
-            raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
-        if "Approved" not in response["message"]:
-            raise PegaMLopsError("Error when adding model")
-        self._refresh_champion_challenger()
-        logging.info("Clone model: %s", response)
-
-    def add_predictor(
+    @api_method
+    async def add_predictor(
         self,
         name: str,
         predictor_type: str,
@@ -540,8 +375,9 @@ class ChampionChallenger(ChampionChallengerBase):
         """
         Adds a new predictor to a specific model in a prediction setup.
 
-        This function introduces a new predictor to a model tied to a prediction.
-        It differentiates between parameterized and static predictors based on a flag.
+        This function introduces a new predictor to a model tied to a
+        prediction.  It differentiates between parameterized and static
+        predictors based on a flag.
 
         Parameters
         ----------
@@ -554,19 +390,21 @@ class ChampionChallenger(ChampionChallengerBase):
         data_type : str
             Data type of the predictor's value.
         is_active_model: bool
-            Indicates if the predictor should be added to the active model or the challenger model.
+            Indicates if the predictor should be added to the active model
+            or the challenger model.
         parameterized : bool, optional
             Indicates if the predictor is parameterized, default is True.
 
         Returns
         -------
-        Response
+        dict
             Outcome of the addition operation as received from the API.
 
         Raises
         ------
         PegaMLopsError
-            If the challenger model is not set or if an error occurs when adding the predictor.
+            If the challenger model is not set or if an error occurs when
+            adding the predictor.
         """
         if is_active_model:
             model = self.active_model
@@ -597,12 +435,13 @@ class ChampionChallenger(ChampionChallengerBase):
         if value:
             data["paramPredictorValue"] = value
         try:
-            response = self._client.patch(endpoint, data=data)
+            response = await self._a_patch(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError("Error when Adding predictor: " + str(e)) from e
         return response
 
-    def remove_predictor(
+    @api_method
+    async def remove_predictor(
         self,
         name: str,
         parameterized: Optional[bool] = False,
@@ -611,24 +450,30 @@ class ChampionChallenger(ChampionChallengerBase):
         """
         Removes a predictor from a model in a prediction setup.
 
-        This function deletes a predictor, identified by its name, from a model linked to a prediction.
+        This function deletes a predictor, identified by its name, from a
+        model linked to a prediction.
 
         Parameters
         ----------
         name : str
             The name of the predictor to remove.
         parameterized : bool, optional
-            True if the predictor is parameterized, False if it's static. Defaults to False.
+            True if the predictor is parameterized, False if it's static.
+            Defaults to False.
+        is_active_model : bool, optional
+            If True, removes from the active model; otherwise from the
+            challenger. Defaults to True.
 
         Returns
         -------
-        Response
+        dict
             The result of the deletion request.
 
         Raises
         ------
         PegaMLopsError
-            If the challenger model is not set or if an error occurs when removing the predictor.
+            If the challenger model is not set or if an error occurs when
+            removing the predictor.
         """
         if is_active_model:
             model = self.active_model
@@ -648,6 +493,249 @@ class ChampionChallenger(ChampionChallengerBase):
             "contextName": self.context,
         }
         try:
-            return self._client.patch(endpoint, data=data)
+            return await self._a_patch(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError("Error when removing predictor: " + str(e)) from e
+
+    @api_method
+    async def add_model(
+        self,
+        new_model,
+        challenger_response_share: float,
+        predictor_mapping: Optional[List[Dict[str, Union[str, int]]]] = None,
+        model_label: Optional[str] = None,
+        learn_independently: Optional[bool] = True,
+    ):
+        """
+        Add a new model as a challenger in the prediction setup.
+
+        Enables the addition of a new model as a challenger, accepting
+        various model types.  It configures the challenger's traffic share,
+        allows for custom predictor to property mappings, and supports
+        labeling the model.  If the active model is a scorecard, the function
+        will replace the active model with the new challenger.
+
+        Parameters
+        ----------
+        new_model : Model, UploadedModel
+            The model to be added as a challenger. Can be a pre-existing
+            model, an uploaded file, or a model identifier.
+        challenger_response_share : int
+            Defines what percentage of traffic should be directed to the
+            challenger model.
+        predictor_mapping : list of dict, optional
+            Custom mappings for predictors to properties, with each mapping
+            as a dictionary.
+        model_label : str, optional
+            A label for the new challenger model.
+        learn_independently: bool, optional
+            If True, the challenger model will learn independently.
+            Defaults to True.
+
+        Raises
+        ------
+        NotImplementedError
+            If attempting to add a model instance directly, which is not
+            supported.
+        ValueError
+            If the response_percentage for the challenger is outside the
+            0-1 range.
+        PegaMLopsError
+            If there's an error when adding the challenger model.
+        """
+        objective = None
+        if not (0 <= challenger_response_share <= 1):
+            raise ValueError("Percentage must be between 0 and 1.")
+        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
+        data = {}
+        # Import here to avoid circular imports; use duck-typing for Model check
+        if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
+            new_model = new_model.model_id.split("!")[1]
+        elif isinstance(new_model, UploadedModel):
+            data["sourceType"] = "Uploaded Model"
+            if model_label is None:
+                model_label = new_model.file_path.split("/")[-1].split(".")[0]
+                new_model = new_model.file_path.split("/")[-1]
+            objective = self.model_objective
+            data["objective"] = objective
+            data["modelLabel"] = model_label
+        else:
+            data["sourceType"] = "Existing Model"
+
+        data["modelSource"] = new_model
+
+        if predictor_mapping:
+            override_mappings = [
+                {"predictor": key["predictor"], "property": key["property"]}
+                for key in predictor_mapping
+            ]
+            data["overrideMappings"] = override_mappings
+        try:
+            response = await self._a_post(endpoint, data=data)
+            self.cc_id = response["referenceID"]
+            champion_response_share = float(1 - challenger_response_share)
+
+            response = await self._check_then_update(
+                champion_response_share=champion_response_share,
+                learn_independently=learn_independently,
+            )
+        except PegaException as e:
+            raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
+
+        if "Approved" not in response["message"]:
+            raise PegaMLopsError("Error when adding model")
+        logging.info("Add model: Refreshing Champion challenger configuration: ")
+        await self._sleep(1)
+        await self._refresh_champion_challenger()
+        logging.info("Add model: %s", response)
+
+    @api_method
+    @validate_call
+    async def clone_model(
+        self,
+        challenger_response_share: float,
+        adm_model_type: Union[AdmModelType, str],
+        model_label: Optional[str] = None,
+        predictor_mapping: Union[List[Dict], None] = None,
+        learn_independently: Union[bool, None] = True,
+    ):
+        """
+        Clones the current active model to create a challenger with specific
+        settings.
+
+        This function duplicates the active model, setting it as a challenger
+        in the prediction setup.  It allows choosing the model type, adjusting
+        traffic share, and customizing labels and predictor mappings.
+
+        Parameters
+        ----------
+        challenger_response_share : float
+            Defines the traffic percentage for the challenger model.
+        adm_model_type : {'Gradient boosting', 'Naive bayes'}
+            Specifies the type of the cloned model.
+        model_label : str, optional
+            A custom label for the cloned model. Defaults to a generated
+            unique label if not provided.
+        predictor_mapping : list of dict, optional
+            Custom mappings of predictors to properties for the cloned model.
+        learn_independently: bool, optional
+            If True, the challenger model will learn independently.
+            Defaults to True.
+
+        Raises
+        ------
+        PegaMLopsError
+            If the challenger_response_percentage is not within the 0-1 range
+            or adm_model_type is invalid.  Or if there's an error when adding
+            the challenger model.
+        """
+        if isinstance(adm_model_type, AdmModelType):
+            adm_model_type = adm_model_type.value
+        valid_adm_model_types = [
+            AdmModelType.GRADIENT_BOOSTING.value,
+            AdmModelType.NAIVE_BAYES.value,
+        ]
+        if adm_model_type not in valid_adm_model_types:
+            raise PegaMLopsError(
+                "Invalid adm model type. It should be 'Gradient boosting' or 'Naive bayes'"
+            )
+        if not (0 <= challenger_response_share <= 1):
+            raise PegaMLopsError("Percentage must be between 0 and 1.")
+        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}/clone"
+        if model_label is None:
+            unique_suffix = "".join(random.choices(string.ascii_uppercase, k=3))
+            model_label = self.active_model.component_name + "_copy_" + unique_suffix
+
+        data = {
+            "modelLabel": model_label,
+            "admModelType": adm_model_type,
+        }
+        if predictor_mapping is not None:
+            data["overrideMmappings"] = [
+                {"predictor": key["predictor"], "property": key["property"]}
+                for key in predictor_mapping
+            ]
+        try:
+            response = await self._a_post(endpoint, data=data)
+            self.cc_id = response["referenceID"]
+            champion_response_percentage = float(1 - challenger_response_share)
+            response = await self._check_then_update(
+                champion_response_share=champion_response_percentage,
+                learn_independently=learn_independently,
+            )
+        except PegaException as e:
+            raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
+        if "Approved" not in response["message"]:
+            raise PegaMLopsError("Error when adding model")
+        await self._refresh_champion_challenger()
+        logging.info("Clone model: %s", response)
+
+
+# -- Concrete classes --------------------------------------------------------
+# list_available_models_to_add returns PaginatedList / AsyncPaginatedList,
+# so it must be defined separately on sync and async classes.
+
+
+class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
+    def list_available_models_to_add(
+        self, return_df: bool = False
+    ) -> Union[PaginatedList, pl.DataFrame]:
+        """
+        Fetches a list of models eligible to be challengers.
+
+        Queries for models that can be added as challengers to the current
+        prediction for the current active model. Offers the option to return
+        the results in a DataFrame format for easier data handling.
+
+        Parameters
+        ----------
+        return_df : bool, optional
+            Determines the format of the returned data: a DataFrame if True,
+            otherwise a list of model instances. Defaults to False.
+
+        Returns
+        -------
+        PaginatedList[Model] or pl.DataFrame
+            A list of model instances or a DataFrame of models, based on the
+            ``return_df`` parameter choice.
+        """
+        from .model import Model
+
+        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        pages = PaginatedList(Model, self._client, "get", endpoint, _root="models")
+        if not return_df:
+            return pages
+        else:
+            return pl.DataFrame([getattr(mod, "_public_dict") for mod in pages])
+
+
+class AsyncChampionChallenger(
+    _ChampionChallengerV24_2Mixin, AsyncChampionChallengerBase
+):
+    async def list_available_models_to_add(
+        self, return_df: bool = False
+    ) -> Union[AsyncPaginatedList, pl.DataFrame]:
+        """
+        Fetches a list of models eligible to be challengers.
+
+        Parameters
+        ----------
+        return_df : bool, optional
+            Determines the format of the returned data: a DataFrame if True,
+            otherwise an async list of model instances. Defaults to False.
+
+        Returns
+        -------
+        AsyncPaginatedList[AsyncModel] or pl.DataFrame
+            An async list of model instances or a DataFrame of models.
+        """
+        from .model import AsyncModel
+
+        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        pages = AsyncPaginatedList(
+            AsyncModel, self._client, "get", endpoint, _root="models"
+        )
+        if not return_df:
+            return pages
+        else:
+            return await pages.as_df()

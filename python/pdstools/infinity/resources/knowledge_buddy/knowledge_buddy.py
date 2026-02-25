@@ -4,7 +4,7 @@ import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
 
 from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
-from ...internal._resource import SyncAPIResource
+from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
 
 class TextInput(TypedDict):
@@ -57,12 +57,20 @@ class NoAPIAccessError(PegaException):
     """You do not have access to the API. Contact the administrator."""
 
 
-class KnowledgeBuddy(SyncAPIResource):
-    def __init__(self, client):
-        super().__init__(client)
-        self.custom_exception_hook = self.custom_exception_hook
+# ---------------------------------------------------------------------------
+# Write-once mixin: business logic defined as async, works for both
+# sync (via @api_method auto-wrapping) and async (native coroutine).
+# ---------------------------------------------------------------------------
 
-    def question(
+
+class _KnowledgeBuddyMixin:
+    """Knowledge Buddy business logic — defined once."""
+
+    def _install_exception_hook(self):
+        self.custom_exception_hook = self._custom_exception_hook
+
+    @api_method
+    async def question(
         self,
         question: str,
         buddy: str,
@@ -105,7 +113,7 @@ class KnowledgeBuddy(SyncAPIResource):
             Database indexes can be used further to enhance the search.
         """
 
-        response = self._post(
+        response = await self._a_post(
             "/prweb/api/knowledgebuddy/v1/question",
             data=dict(
                 question=question,
@@ -121,7 +129,8 @@ class KnowledgeBuddy(SyncAPIResource):
         )
         return BuddyResponse(**response)
 
-    def feedback(
+    @api_method
+    async def feedback(
         self,
         question_id: str,
         helpful: Literal["Yes", "No", "Unsure"] = "Unsure",
@@ -140,7 +149,7 @@ class KnowledgeBuddy(SyncAPIResource):
             Text of the comment.
         """
 
-        response = self._put(
+        response = await self._a_put(
             "/prweb/api/knowledgebuddy/v1/question/feedback",
             data=dict(
                 questionID=question_id,
@@ -150,8 +159,8 @@ class KnowledgeBuddy(SyncAPIResource):
         )
         return response
 
-    def custom_exception_hook(
-        self,
+    @staticmethod
+    def _custom_exception_hook(
         base_url: Union[httpx.URL, str],
         endpoint: str,
         params: Dict,
@@ -167,3 +176,15 @@ class KnowledgeBuddy(SyncAPIResource):
             return InternalServerError(base_url, endpoint, params, response)
         else:
             return Exception(response.text)
+
+
+class KnowledgeBuddy(_KnowledgeBuddyMixin, SyncAPIResource):
+    def __init__(self, client):
+        super().__init__(client)
+        self._install_exception_hook()
+
+
+class AsyncKnowledgeBuddy(_KnowledgeBuddyMixin, AsyncAPIResource):
+    def __init__(self, client):
+        super().__init__(client)
+        self._install_exception_hook()

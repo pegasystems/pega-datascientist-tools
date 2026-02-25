@@ -1,12 +1,21 @@
-from ....internal._pagination import PaginatedList
+from ....internal._pagination import AsyncPaginatedList, PaginatedList
+from ....internal._resource import api_method
 from ..base import AsyncPredictionStudioBase, PredictionStudioBase
-from .prediction import Prediction
-from .repository import Repository
+from .prediction import AsyncPrediction, Prediction
+from .repository import AsyncRepository, Repository
 
 
-class PredictionStudio(PredictionStudioBase):
+class _PredictionStudioV24_1Mixin:
+    """v24.1 PredictionStudio business logic — shared parts."""
+
     version: str = "24.1"
 
+    @api_method
+    async def upload_model(self, model, file_name):
+        raise NotImplementedError()
+
+
+class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
     def list_predictions(self) -> PaginatedList[Prediction]:
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
         return PaginatedList(
@@ -18,9 +27,15 @@ class PredictionStudio(PredictionStudioBase):
         response = self._client.get(endpoint)
         return Repository(client=self._client, **response)
 
-    def upload_model(self, model, file_name):
-        raise NotImplementedError()
 
+class AsyncPredictionStudio(_PredictionStudioV24_1Mixin, AsyncPredictionStudioBase):
+    async def list_predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+        endpoint = "/prweb/api/PredictionStudio/V2/predictions"
+        return AsyncPaginatedList(
+            AsyncPrediction, self._client, "get", endpoint, _root="predictions"
+        )
 
-class AsyncPredictionStudio(AsyncPredictionStudioBase):
-    version: str = "24.1"
+    async def repository(self) -> AsyncRepository:
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions/repository"
+        response = await self._a_get(endpoint)
+        return AsyncRepository(client=self._client, **response)

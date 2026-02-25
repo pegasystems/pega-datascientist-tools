@@ -21,7 +21,7 @@ from ...internal._pagination import PaginatedList
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
 
 if TYPE_CHECKING:
-    from ...client import SyncAPIClient
+    pass
 
 DEPLOYMENT_MODE = Literal["shadow", "champion/challenger"]
 
@@ -48,10 +48,19 @@ class ModelAttributes(TypedDict):
     metrics: Dict[str, Any]
 
 
-class Model(SyncAPIResource, ABC):
+# ---------------------------------------------------------------------------
+# Mixins — data initialisation + abstract contracts.
+#
+# These do NOT inherit from Sync/AsyncAPIResource.  They use cooperative
+# ``super().__init__()`` so that when combined with a resource base the
+# MRO correctly delegates to the right ``__init__``.
+# ---------------------------------------------------------------------------
+
+
+class _ModelMixin(ABC):
     def __init__(
         self,
-        client: SyncAPIClient,
+        client,
         *,
         modelId: str,
         label: str,
@@ -82,10 +91,10 @@ class Model(SyncAPIResource, ABC):
     def describe(self) -> ModelAttributes: ...
 
 
-class Prediction(SyncAPIResource, ABC):
+class _PredictionMixin(ABC):
     def __init__(
         self,
-        client: SyncAPIClient,
+        client,
         *,
         predictionId: str,
         label: str,
@@ -114,10 +123,10 @@ class Prediction(SyncAPIResource, ABC):
     def describe(self): ...
 
 
-class Notification(SyncAPIResource, ABC):
+class _NotificationMixin(ABC):
     def __init__(
         self,
-        client: SyncAPIClient,
+        client,
         *,
         description: str,
         modelType: str,
@@ -177,7 +186,7 @@ class LocalModel(BaseModel):
         pass
 
 
-class Repository(SyncAPIResource, ABC):
+class _RepositoryMixin(ABC):
     name: str
 
     @property
@@ -185,7 +194,7 @@ class Repository(SyncAPIResource, ABC):
         raise IncompatiblePegaVersionError("24.2", "Retrieving the S3 URL directly")
 
 
-class DataMartExport(SyncAPIResource, ABC):
+class _DataMartExportMixin(ABC):
     def __init__(self, client, **kwargs):
         super().__init__(client=client)
         self.referenceId = kwargs.get("referenceId")
@@ -193,27 +202,17 @@ class DataMartExport(SyncAPIResource, ABC):
         self.repositoryName = kwargs.get("repositoryName")
 
 
-class PredictionStudioBase(SyncAPIResource, ABC):
+class _PredictionStudioBaseMixin(ABC):
     version: str
 
     @abstractmethod
-    def list_predictions(self) -> PaginatedList[Prediction]: ...
+    def list_predictions(self): ...
 
     @abstractmethod
-    def repository(self) -> Repository: ...
+    def repository(self): ...
 
 
-class AsyncPredictionStudioBase(AsyncAPIResource, ABC):
-    version: str
-
-    @abstractmethod
-    async def list_predictions(self) -> PaginatedList[Prediction]: ...
-
-    @abstractmethod
-    async def repository(self) -> Repository: ...
-
-
-class ChampionChallenger(SyncAPIResource, ABC):
+class _ChampionChallengerMixin(ABC):
     @abstractmethod
     def _status(self): ...
 
@@ -222,3 +221,65 @@ class ChampionChallenger(SyncAPIResource, ABC):
 
     @abstractmethod
     def _check_then_update(self, champion_response_percentage: float): ...
+
+
+# ---------------------------------------------------------------------------
+# Concrete base classes — combine mixin + resource base.
+# These are what version-specific subclasses inherit from.
+# ---------------------------------------------------------------------------
+
+
+class Model(_ModelMixin, SyncAPIResource):
+    pass
+
+
+class AsyncModel(_ModelMixin, AsyncAPIResource):
+    pass
+
+
+class Prediction(_PredictionMixin, SyncAPIResource):
+    pass
+
+
+class AsyncPrediction(_PredictionMixin, AsyncAPIResource):
+    pass
+
+
+class Notification(_NotificationMixin, SyncAPIResource):
+    pass
+
+
+class AsyncNotification(_NotificationMixin, AsyncAPIResource):
+    pass
+
+
+class Repository(_RepositoryMixin, SyncAPIResource):
+    pass
+
+
+class AsyncRepository(_RepositoryMixin, AsyncAPIResource):
+    pass
+
+
+class DataMartExport(_DataMartExportMixin, SyncAPIResource):
+    pass
+
+
+class AsyncDataMartExport(_DataMartExportMixin, AsyncAPIResource):
+    pass
+
+
+class PredictionStudioBase(_PredictionStudioBaseMixin, SyncAPIResource):
+    pass
+
+
+class AsyncPredictionStudioBase(_PredictionStudioBaseMixin, AsyncAPIResource):
+    pass
+
+
+class ChampionChallenger(_ChampionChallengerMixin, SyncAPIResource):
+    pass
+
+
+class AsyncChampionChallenger(_ChampionChallengerMixin, AsyncAPIResource):
+    pass

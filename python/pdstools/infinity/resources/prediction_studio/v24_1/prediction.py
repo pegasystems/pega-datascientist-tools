@@ -1,17 +1,22 @@
 from typing import Literal
 
 import polars as pl
-from .....utils import cdh_utils
 from pydantic import validate_call
 
+from .....utils import cdh_utils
 from ....internal._constants import METRIC
 from ....internal._exceptions import NoMonitoringInfo
+from ....internal._resource import api_method
+from ..base import AsyncPrediction as AsyncPredictionBase
 from ..base import Prediction as PredictionBase
 
 
-class Prediction(PredictionBase):
+class _PredictionV24_1Mixin:
+    """v24.1 Prediction business logic — defined once."""
+
+    @api_method
     @validate_call
-    def get_metric(
+    async def get_metric(
         self,
         *,
         metric: METRIC,
@@ -19,7 +24,7 @@ class Prediction(PredictionBase):
     ) -> pl.DataFrame:
         endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/metric/{metric}"
         try:
-            info = self._client.get(endpoint, time_frame=timeframe)
+            info = await self._a_get(endpoint, time_frame=timeframe)
             data = (
                 pl.DataFrame(
                     info["monitoringData"],
@@ -49,6 +54,15 @@ class Prediction(PredictionBase):
             )
             return data
 
-    def describe(self):
+    @api_method
+    async def describe(self):
         endpoint = f"/prweb/api/PredictionStudio/v3/predictions/{self.prediction_id}"
-        return self._client.get(endpoint)
+        return await self._a_get(endpoint)
+
+
+class Prediction(_PredictionV24_1Mixin, PredictionBase):
+    pass
+
+
+class AsyncPrediction(_PredictionV24_1Mixin, AsyncPredictionBase):
+    pass

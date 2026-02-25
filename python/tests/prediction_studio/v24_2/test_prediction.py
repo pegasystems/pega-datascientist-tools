@@ -242,7 +242,9 @@ def test_prediction_get_models(prediction_client, mocker):
     mock_get = mocker.patch.object(
         prediction_client._client, "get", return_value=mock_response
     )
-    result = prediction_client._get_models()
+    from pdstools.infinity.internal._resource import _run_sync
+
+    result = _run_sync(prediction_client._get_models)
 
     mock_get.assert_called_once_with(
         "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"

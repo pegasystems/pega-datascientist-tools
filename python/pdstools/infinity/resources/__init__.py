@@ -1,4 +1,4 @@
 from . import prediction_studio
-from .knowledge_buddy import KnowledgeBuddy
+from .knowledge_buddy import AsyncKnowledgeBuddy, KnowledgeBuddy
 
-__all__ = ["KnowledgeBuddy", "prediction_studio"]
+__all__ = ["AsyncKnowledgeBuddy", "KnowledgeBuddy", "prediction_studio"]

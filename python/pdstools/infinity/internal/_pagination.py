@@ -1,4 +1,4 @@
-from typing import Generic, Iterator, TypeVar, Union, overload
+from typing import AsyncIterator, Generic, Iterator, TypeVar, Union, overload
 
 import polars as pl
 
@@ -189,3 +189,121 @@ class PaginatedList(Generic[T]):
             return pl.DataFrame(
                 getattr(prediction, "_public_dict") for prediction in self
             )
+
+
+
+
+class AsyncPaginatedList(Generic[T]):
+    """Async variant of :class:`PaginatedList`.
+
+    Same constructor interface.  Uses ``await client.request(...)`` and
+    exposes ``async for`` iteration via ``__aiter__``.
+    """
+
+    def __init__(
+        self,
+        content_class,
+        client,
+        request_method,
+        url,
+        extra_attribs=None,
+        _root=None,
+        **kwargs,
+    ):
+        self._elements: list = []
+        self._client = client
+        self._content_class = content_class
+        self._url = url
+        self._first_params = kwargs or {}
+        self._next_token = True
+        self._next_params = kwargs or {}
+        self._extra_attribs = extra_attribs or {}
+        self._request_method = request_method
+        self._root = _root
+
+    async def __aiter__(self) -> AsyncIterator[T]:
+        for element in self._elements:
+            yield element
+        while self._has_next():
+            new_elements = await self._grow()
+            for element in new_elements:
+                yield element
+
+    def __repr__(self):
+        return f"<AsyncPaginatedList of type {self._content_class.__name__}>"
+
+    async def _get_next_page(self):
+        response = await self._client.request(
+            self._request_method, self._url, **self._next_params
+        )
+        self._next_token = response.pop("nextToken", None)
+        if self._next_token is not None:
+            self._next_params = {"pageToken": self._next_token}
+
+        content = []
+        if self._root:
+            try:
+                response = response[self._root]
+            except KeyError as e:
+                raise ValueError(f"Json format unexpected, {self._root} not found.{e}")
+
+        for element in response:
+            if element is not None:
+                element.update(self._extra_attribs)
+                content.append(self._content_class(client=self._client, **element))
+
+        return content
+
+    async def _get_up_to_index(self, index):
+        while len(self._elements) <= index and self._has_next():
+            await self._grow()
+
+    async def _grow(self):
+        new_elements = await self._get_next_page()
+        self._elements += new_elements
+        return new_elements
+
+    def _has_next(self):
+        return self._next_token is not None
+
+    def _is_larger_than(self, index):
+        return len(self._elements) > index or self._has_next()
+
+    async def collect(self) -> list[T]:
+        """Eagerly fetch all pages and return as a plain list."""
+        items = []
+        async for item in self:
+            items.append(item)
+        return items
+
+    async def get(
+        self,
+        __key: Union[int, slice, str, None] = None,
+        __default: Union[str, None] = None,
+        **kwargs,
+    ) -> Union[T, None]:
+        """Async version of PaginatedList.get()."""
+        if kwargs:
+            async for element in self:
+                if all(
+                    getattr(element, name) == value
+                    for name, value in kwargs.items()
+                ):
+                    return element
+        if __key is not None:
+            try:
+                items = await self.collect()
+                if isinstance(__key, int):
+                    return items[__key]
+                elif isinstance(__key, str):
+                    for el in items:
+                        if getattr(el, "id", None) == __key:
+                            return el
+            except Exception:
+                pass
+        return __default
+
+    async def as_df(self) -> pl.DataFrame:
+        """Collect all pages into a polars DataFrame."""
+        items = await self.collect()
+        return pl.DataFrame(getattr(item, "_public_dict") for item in items)

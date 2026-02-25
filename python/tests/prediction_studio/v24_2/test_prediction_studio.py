@@ -442,14 +442,16 @@ def test_model_categories(prediction_studio_client, mocker):
                 == [
                     "model_id",
                     "prediction_id",
+                    "context",
                     "notification_type",
                     "notification_id",
-                    "notification_name" "description",
+                    "notification_mnemonic",
+                    "description",
                     "model_type",
                     "impact",
                     "trigger_time",
                 ],
-                df.shape == (2, 8),
+                df.shape == (2, 10),
             ),
         ),
     ],
@@ -462,4 +464,9 @@ def test_get_notifications(
     mocker.patch.object(
         prediction_studio_client._client, method_to_patch, return_value=mock_response
     )
-    prediction_studio_client.get_notifications(return_df=return_df)
+    result = prediction_studio_client.get_notifications(return_df=return_df)
+
+    assert isinstance(result, expected_type)
+    if additional_checks is not None:
+        checks = additional_checks(result)
+        assert all(checks)

@@ -9,7 +9,7 @@ from polars import enable_string_cache
 from .adm.ADMDatamart import ADMDatamart
 from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
-from .infinity import Infinity
+from .infinity import AsyncInfinity, Infinity
 from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
 from .utils import datasets
@@ -37,4 +37,5 @@ __all__ = [
     "show_versions",
     "ValueFinder",
     "Infinity",
+    "AsyncInfinity",
 ]

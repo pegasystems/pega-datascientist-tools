@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, List
 from ..utils.namespaces import MissingDependenciesException
 
 if TYPE_CHECKING:
-    from .client import Infinity
+    from .client import AsyncInfinity, Infinity
 
 
 class DependencyNotFound:
@@ -26,23 +26,31 @@ class DependencyNotFound:
         )
 
 
+def _check_dependencies() -> List[str]:
+    """Return list of missing dependencies for the Infinity client."""
+    missing: List[str] = []
+    if not find_spec("pydantic"):
+        missing.append("pydantic")
+    if not find_spec("httpx"):
+        missing.append("httpx")
+    return missing
+
+
 def __getattr__(name: str):
     """Lazy import to avoid loading httpx until needed."""
-    if name == "Infinity":
-        missing_dependencies: List[str] = []
-        if not find_spec("pydantic"):
-            missing_dependencies.append("pydantic")
-        if not find_spec("httpx"):
-            missing_dependencies.append("httpx")
+    if name in ("Infinity", "AsyncInfinity"):
+        missing_dependencies = _check_dependencies()
 
         if missing_dependencies:
             return DependencyNotFound(missing_dependencies)
 
-        from .client import Infinity
+        from .client import AsyncInfinity, Infinity
 
-        return Infinity
+        if name == "Infinity":
+            return Infinity
+        return AsyncInfinity
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-__all__ = ["Infinity"]
+__all__ = ["AsyncInfinity", "Infinity"]
