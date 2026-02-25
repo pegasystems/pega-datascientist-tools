@@ -99,9 +99,9 @@ class BaseClient(Generic[_HttpxClientT]):
         return httpx.Request(
             method,
             url=self._base_url.join(endpoint),
-            content=json.dumps(data) if data else None,
+            json=data,
             headers=headers,
-            params=params,
+            params=params if params else None,
         )
 
     def _get_version(self, repo):
@@ -229,7 +229,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         try:
             response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
-        except APIConnectionError as e:
+        except Exception as e:
             if on_error == "warn":
                 print(
                     "Could not validate connection to the Infinity system. "
