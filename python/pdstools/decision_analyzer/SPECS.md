@@ -86,7 +86,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] Handle many channels gracefully
 - [ ] Generalize rank usage across pages
 
-### 7 — Personalization Analysis
+### 7 — Optionality Analysis
 - [x] Stage level selector — *(Completed: uses stage_selectbox helper with stage-group-aware formatting)*
 - [ ] Overlay propensity + priority on optionality plot
 - [ ] Consistent stage color scheme across all plots

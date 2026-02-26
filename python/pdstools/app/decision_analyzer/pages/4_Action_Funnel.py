@@ -14,7 +14,6 @@ from da_streamlit_utils import (
 # TODO Have a toggle to look at it both from a Passing and Filtered perspective like in Dennis' designs
 # TODO Later, the concept of stages should be generalized - there are many more and we should not be restrictive - can we pick up from the data?
 # TODO coloring of the component filtering can be used better, now a little boring - but perhaps there will be a type, now only prop filters but there may be when rules as well
-# TODO the control for the number of filter components should move to that section, not be in the side bar
 # TODO the coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO be ready for the many stages - see Dennis' designs
 
@@ -46,15 +45,15 @@ with st.session_state["sidebar"]:
     stage_level_selector()
 
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
 
-    # TODO bring this to the chart? limiting long lists is useful across many pages
-    st.session_state.top_k = st.number_input(
-        "How many filter components to show:",
-        min_value=1,
-        max_value=30,
-        value=10,
-        help="Maximum number of rows in box plots",
+    if "scope" not in st.session_state:
+        st.session_state.scope = scope_options[0]
+    scope_index = get_current_index(scope_options, "scope")
+    st.selectbox(
+        "Granularity:",
+        options=scope_options,
+        index=scope_index,
+        key="scope",
     )
 
 
@@ -67,8 +66,6 @@ with st.container(border=True):
         The **Granularity** defines the breakdown of the chart. You can for example look at
         Groups, Issues, individual Actions or, if available, Treatments.
         """)
-        if "scope" not in st.session_state:
-            st.session_state.scope = scope_options[0]
         remanining_funnel, filtered_funnel = decision_funnel(
             scope=st.session_state.scope,
             level=st.session_state.decision_data.level,
@@ -77,20 +74,12 @@ with st.container(border=True):
             remanining_funnel,
             use_container_width=True,
         )
-        scope_index = get_current_index(scope_options, "scope")
 
     with filtered_tab:
         st.plotly_chart(
             filtered_funnel,
             use_container_width=True,
         )
-    st.selectbox(
-        "Granularity:",
-        options=scope_options,
-        # column names are already friendly
-        index=scope_index,
-        key="scope",
-    )
 
 """
 Decision Analyzer offers a unique perspective with all the details of what

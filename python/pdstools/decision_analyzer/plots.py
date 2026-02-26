@@ -164,31 +164,45 @@ class Plot:
         plotData = plotData.collect()
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Bar(x=plotData["nOffers"], y=plotData["Interactions"], name="Optionality"))
+        bar_colors = ["#cd001f" if n == 0 else colorway[0] for n in plotData["nOffers"]]
         fig.add_trace(
-            go.Scatter(
+            go.Bar(
                 x=plotData["nOffers"],
-                y=plotData["AverageBestPropensity"],
-                yaxis="y2",
-                name="Propensity",
-                mode="markers+lines",
-            ),
-            secondary_y=True,
+                y=plotData["Interactions"],
+                name="Optionality",
+                marker_color=bar_colors,
+            )
         )
+        has_propensity = (
+            "AverageBestPropensity" in plotData.columns and (plotData["AverageBestPropensity"].drop_nulls() > 0).any()
+        )
+        if has_propensity:
+            fig.add_trace(
+                go.Scatter(
+                    x=plotData["nOffers"],
+                    y=plotData["AverageBestPropensity"],
+                    yaxis="y2",
+                    name="Propensity",
+                    mode="markers+lines",
+                ),
+                secondary_y=True,
+            )
         fig.update_layout(
             template="pega",
             xaxis_title="Number of Actions per Customer",
             yaxis_title="Decisions",
         )
-        fig.update_yaxes(title_text="Propensity", secondary_y=True)
-        fig.layout.yaxis2.tickformat = ",.2%"
-        fig.layout.yaxis2.showgrid = False
+        if has_propensity:
+            fig.update_yaxes(title_text="Propensity", secondary_y=True)
+            fig.layout.yaxis2.tickformat = ",.2%"
+            fig.layout.yaxis2.showgrid = False
         return fig
 
     def optionality_funnel(self, df):
+        level = self._decision_data.level
         plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
         total_interactions = (
-            plot_data.filter(pl.col("Stage Group") == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
+            plot_data.filter(pl.col(level) == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
         )
         fig = go.Figure()
 
@@ -210,7 +224,7 @@ class Plot:
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_with_percent["Stage Group"],
+                    x=df_with_percent[level],
                     y=df_with_percent["percentage"],
                     mode="lines",
                     stackgroup="one",
@@ -276,28 +290,19 @@ class Plot:
         if return_df:
             return df.lazy()
 
-        if df.select(pl.col("day").n_unique()).get_column("day")[0] > 1:
-            fig = px.area(
-                data_frame=df,
-                x="day",
-                y="Decisions",
-                color=scope,
-                template="pega",
-            )
-            warning_message = None
-        else:
+        warning_message = None
+        if df.select(pl.col("day").n_unique()).get_column("day")[0] <= 1:
             warning_message = (
                 "Insufficient data: Trend analysis requires data from multiple days. "
-                "Currently, the dataset contains information for only one day. Hence, a trend can't be detected. "
-                "A scatter plot will be displayed instead for the available data."
+                "Currently, the dataset contains information for only one day."
             )
-            fig = px.scatter(
-                data_frame=df,
-                x="day",
-                y="Decisions",
-                color=scope,
-                template="pega",
-            )
+        fig = px.area(
+            data_frame=df,
+            x="day",
+            y="Decisions",
+            color=scope,
+            template="pega",
+        )
 
         fig.update_layout(xaxis_title="")
 
@@ -344,7 +349,7 @@ class Plot:
             color=scope,
             hover_data=["count", "average_actions"],
             color_discrete_map=color_map,
-            category_orders={"Stage Group": self._decision_data.AvailableNBADStages},
+            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
         ).update_layout(
             template="plotly_white",
             xaxis_title="Filtered Actions per Decision",
@@ -741,26 +746,18 @@ class Plot:
             return collected_df.lazy()
         unique_days = collected_df.select(pl.col("day").unique()).height
         warning = None
-        if unique_days == 1:
-            warning = "Insufficient data: Trend analysis requires data from multiple days. Currently, the dataset contains information for only one day. Hence, a trend can't be detected. "
-
-            # Create a scatter plot instead of a line plot
-            fig = px.scatter(
-                collected_df,
-                x="day",
-                y="nOffers",
-                color=self._decision_data.level,
-                template="pega",
+        if unique_days <= 1:
+            warning = (
+                "Insufficient data: Trend analysis requires data from multiple days. "
+                "Currently, the dataset contains information for only one day."
             )
-        else:
-            # Create the line plot as usual
-            fig = px.line(
-                collected_df,
-                x="day",
-                y="nOffers",
-                color=self._decision_data.level,
-                template="pega",
-            )
+        fig = px.line(
+            collected_df,
+            x="day",
+            y="nOffers",
+            color=self._decision_data.level,
+            template="pega",
+        )
 
         fig.update_xaxes(title="")
         fig.update_yaxes(title="Number of Unique Offers")

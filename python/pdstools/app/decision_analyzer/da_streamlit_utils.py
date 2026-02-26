@@ -67,6 +67,7 @@ def stage_selectbox(
     label: str = "Select Stage",
     key: str = "stage",
     default: str | None = None,
+    options: list[str] | None = None,
     **kwargs,
 ):
     """Render a stage selectbox that groups stages by their Stage Group.
@@ -85,11 +86,14 @@ def stage_selectbox(
     default : str, optional
         Preferred default value (e.g. ``"Arbitration"``).  Falls back to
         the first option when the default is not available.
+    options : list[str], optional
+        Explicit list of stage values to show. When provided, overrides
+        ``da.getPossibleStageValues()``.
     **kwargs
         Extra keyword arguments forwarded to ``st.selectbox``.
     """
     da = st.session_state.decision_data
-    stage_options = da.getPossibleStageValues()
+    stage_options = options if options is not None else da.getPossibleStageValues()
     mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
 
     if mapping:
@@ -97,20 +101,31 @@ def stage_selectbox(
     else:
         format_func = str
 
-    # Determine index
-    if default and key not in st.session_state and default in stage_options:
-        index = stage_options.index(default)
-    else:
-        index = get_current_index(stage_options, key)
+    # If the stored value is no longer valid (e.g. after a level switch),
+    # reset to the default so upstream code reading session state gets a
+    # valid stage before the widget re-renders.
+    if key in st.session_state and st.session_state[key] not in stage_options:
+        if default and default in stage_options:
+            st.session_state[key] = default
+        else:
+            st.session_state[key] = stage_options[0]
 
-    st.selectbox(
-        label,
+    # Only pass index when the key is not yet in session state;
+    # Streamlit does not allow both a session-state value and an index.
+    selectbox_kwargs: dict = dict(
+        label=label,
         options=stage_options,
-        index=index,
         key=key,
         format_func=format_func,
         **kwargs,
     )
+    if key not in st.session_state:
+        if default and default in stage_options:
+            selectbox_kwargs["index"] = stage_options.index(default)
+        else:
+            selectbox_kwargs["index"] = 0
+
+    st.selectbox(**selectbox_kwargs)
 
 
 def ensure_funnel():

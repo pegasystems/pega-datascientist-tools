@@ -343,12 +343,25 @@ class DecisionAnalyzer:
 
     @cached_property
     def stages_from_arbitration_down(self):
+        """All stages from Arbitration onward, respecting the current level.
+
+        At "Stage Group" level this slices from the literal "Arbitration"
+        entry.  At "Stage" level it finds stages whose Stage Order is >=
+        the Arbitration group order (3800) using the stage_to_group_mapping.
         """
-        All stages in the filter view starting at Arbitration. This initially
-        will just be [Arbitration, Final] but as we get more stages in there
-        may be more here.
-        """
-        return self.AvailableNBADStages[self.AvailableNBADStages.index("Arbitration") :]
+        stages = self.AvailableNBADStages
+        if "Arbitration" in stages:
+            return stages[stages.index("Arbitration") :]
+        # At "Stage" level: use the group mapping to find stages in or
+        # after the Arbitration group.
+        mapping = self.stage_to_group_mapping
+        if mapping:
+            arb_stages = {s for s, g in mapping.items() if g == "Arbitration"}
+            for i, s in enumerate(stages):
+                if s in arb_stages:
+                    return stages[i:]
+        # Fallback: return all stages
+        return stages
 
     @cached_property
     def arbitration_stage(self):
@@ -1211,7 +1224,7 @@ class DecisionAnalyzer:
 
         propensity_classifying_expr = [
             pl.col("Action")
-            .filter((pl.col("Propensity") == 0.5) & (pl.col("Stage Group") != "Output"))
+            .filter((pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
@@ -1526,7 +1539,7 @@ class DecisionAnalyzer:
         if lever_value is None:
             # Return baseline distribution only
             original_winners = self.reRank(
-                additional_filters=pl.col("Stage Group").is_in(self.stages_from_arbitration_down),
+                additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
 
             result: pl.DataFrame = (  # type: ignore[assignment]
@@ -1570,7 +1583,7 @@ class DecisionAnalyzer:
                 overrides=[
                     (pl.when(lever_condition).then(pl.lit(lever_value)).otherwise(pl.col("Levers"))).alias("Levers")
                 ],
-                additional_filters=pl.col("Stage Group").is_in(self.stages_from_arbitration_down),
+                additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank", "rank_PVCL"])
 
             result_lf = (

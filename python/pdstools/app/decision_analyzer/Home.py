@@ -59,7 +59,7 @@ sample_size = st.number_input(
     step=1000,
     help=(
         "Maximum number of interactions sampled for resource-intensive pages "
-        "(Global Data Filters, Win/Loss Analysis, Personalization Analysis, "
+        "(Global Data Filters, Win/Loss Analysis, Optionality Analysis, "
         "Business Lever Analysis). Other pages use the full dataset. "
         "This is *not* the same as the `--sample` CLI flag, which reduces "
         "the data before ingestion. "

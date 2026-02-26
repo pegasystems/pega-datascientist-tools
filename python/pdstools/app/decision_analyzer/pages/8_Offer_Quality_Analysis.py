@@ -101,6 +101,7 @@ st.plotly_chart(
         vf,
         propensityTH=propensityTH,
         AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
+        level=st.session_state.decision_data.level,
     ),
     use_container_width=True,
 )
@@ -110,6 +111,6 @@ st.plotly_chart(
 vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
 st.plotly_chart(
-    getTrendChart(vf, stage=st.session_state.stage),
+    getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
     use_container_width=True,
 )
