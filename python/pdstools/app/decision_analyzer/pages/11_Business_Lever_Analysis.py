@@ -69,41 +69,20 @@ lever_condition = scope_config["lever_condition"]
 
 # Only run analysis when Apply button is clicked
 if st.session_state.get("analysis_applied", False):
-    relevant_interactions = st.session_state.decision_data.arbitration_stage.filter(
-        lever_condition
-    )
-    interactions_survived_till_arbitration = (
-        relevant_interactions.select("Interaction ID").collect().n_unique()
-    )
+    relevant_interactions = st.session_state.decision_data.arbitration_stage.filter(lever_condition)
+    interactions_survived_till_arbitration = relevant_interactions.select("Interaction ID").collect().n_unique()
     current_number_of_wins = (
-        relevant_interactions.filter(pl.col("Rank") == 1)
-        .select("Interaction ID")
-        .collect()
-        .n_unique()
+        relevant_interactions.filter(pl.col("Rank") == 1).select("Interaction ID").collect().n_unique()
     )
     # Calculate key metrics
-    funnel_loss = (
-        st.session_state.decision_data.sample_size
-        - interactions_survived_till_arbitration
-    )
+    funnel_loss = st.session_state.decision_data.sample_size - interactions_survived_till_arbitration
     funnel_loss_pct = (funnel_loss / st.session_state.decision_data.sample_size) * 100
-    current_win_rate = (
-        current_number_of_wins / st.session_state.decision_data.sample_size
-    ) * 100
-    max_possible_win_rate = (
-        interactions_survived_till_arbitration
-        / st.session_state.decision_data.sample_size
-    ) * 100
-    current_win_rate_at_arbitration = (
-        current_number_of_wins / interactions_survived_till_arbitration
-    ) * 100
+    current_win_rate = (current_number_of_wins / st.session_state.decision_data.sample_size) * 100
+    max_possible_win_rate = (interactions_survived_till_arbitration / st.session_state.decision_data.sample_size) * 100
+    current_win_rate_at_arbitration = (current_number_of_wins / interactions_survived_till_arbitration) * 100
     st.markdown("#### 📊 How Often Selected Actions Survive till Arbitration?")
-    st.markdown(
-        "Selected actions might get filtered out in the funnel before ever reaching to arbitration stage."
-    )
-    st.markdown(
-        "We can only increase the volume in the decisions where the selected actions reach to arbitration."
-    )
+    st.markdown("Selected actions might get filtered out in the funnel before ever reaching to arbitration stage.")
+    st.markdown("We can only increase the volume in the decisions where the selected actions reach to arbitration.")
 
     st.markdown(f"""
     **Your selected actions' journey:**
@@ -168,9 +147,7 @@ if st.session_state.get("analysis_applied", False):
             with st.spinner("Plotting arbitration components..."):
                 # Get the actual interaction IDs where selected actions survived
                 relevant_interactions = (
-                    st.session_state.decision_data.arbitration_stage.filter(
-                        lever_condition
-                    )
+                    st.session_state.decision_data.arbitration_stage.filter(lever_condition)
                     .select("Interaction ID")
                     .unique()
                 )
@@ -184,22 +161,16 @@ if st.session_state.get("analysis_applied", False):
                     )
                     .join(relevant_interactions, on="Interaction ID", how="inner")
                     .with_columns(
-                        segment=pl.when(lever_condition)
-                        .then(pl.lit("Selected Actions"))
-                        .otherwise(pl.lit("Others"))
+                        segment=pl.when(lever_condition).then(pl.lit("Selected Actions")).otherwise(pl.lit("Others"))
                     )
-                    .select(
-                        ["Propensity", "Value", "Context Weight", "Levers", "segment"]
-                    )
+                    .select(["Propensity", "Value", "Context Weight", "Levers", "segment"])
                     .collect()
                 )
 
                 if segmented_df.height == 0:
                     st.warning("No data available for parameter distribution analysis.")
                 else:
-                    st.markdown(
-                        "### 📊 Parameter Distributions in Head-to-Head Battles"
-                    )
+                    st.markdown("### 📊 Parameter Distributions in Head-to-Head Battles")
                     st.markdown(
                         f"*Comparing your selected actions vs competitors in {interactions_survived_till_arbitration:,} interactions where your actions survived to arbitration*"
                     )
@@ -218,15 +189,11 @@ if st.session_state.get("analysis_applied", False):
         """)
 
         # Lever controls
-        slider_max = st.selectbox(
-            "Slider Precision", options=[1.0, 10.0, 100, 1000], index=1
-        )
+        slider_max = st.selectbox("Slider Precision", options=[1.0, 10.0, 100, 1000], index=1)
         slider_min = 0 if isinstance(slider_max, int) else 0.0
         value = 1 if isinstance(slider_max, int) else 1.0
 
-        lever = st.slider(
-            "Select Lever", min_value=slider_min, max_value=slider_max, value=value
-        )
+        lever = st.slider("Select Lever", min_value=slider_min, max_value=slider_max, value=value)
 
         # Calculate new distribution with lever changes
         distribution = st.session_state.decision_data.get_win_distribution_data(
@@ -248,24 +215,14 @@ if st.session_state.get("analysis_applied", False):
 
         # Show summary statistics
         total_new_wins = new_plot_data["new_win_count"].sum()
-        selected_data = new_plot_data.filter(
-            pl.col(scope_config["x_col"]) == scope_config["selected_value"]
-        )
-        selected_wins = (
-            selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
-        )
+        selected_data = new_plot_data.filter(pl.col(scope_config["x_col"]) == scope_config["selected_value"])
+        selected_wins = selected_data["new_win_count"].sum() if selected_data.shape[0] > 0 else 0
 
         # Calculate deltas
         selected_wins_delta = selected_wins - current_number_of_wins
-        new_win_rate_at_arbitration = (
-            selected_wins / interactions_survived_till_arbitration
-        ) * 100
-        new_overall_win_rate = (
-            selected_wins / st.session_state.decision_data.sample_size
-        ) * 100
-        win_rate_delta_arbitration = (
-            new_win_rate_at_arbitration - current_win_rate_at_arbitration
-        )
+        new_win_rate_at_arbitration = (selected_wins / interactions_survived_till_arbitration) * 100
+        new_overall_win_rate = (selected_wins / st.session_state.decision_data.sample_size) * 100
+        win_rate_delta_arbitration = new_win_rate_at_arbitration - current_win_rate_at_arbitration
         win_rate_delta_overall = new_overall_win_rate - current_win_rate
 
         col1, col2, col3, col4 = st.columns(4)
@@ -296,21 +253,17 @@ if st.session_state.get("analysis_applied", False):
 
     with st.expander(":green[Lever Finder]:male-detective:", expanded=False):
         # Only show lever finder for specific action selection
-        st.session_state.target_win_percentage = st.slider(
-            "Target Win Ratio", min_value=0, max_value=100
-        )
+        st.session_state.target_win_percentage = st.slider("Target Win Ratio", min_value=0, max_value=100)
 
         calculate_lever = st.button("Calculate lever")
         if calculate_lever:
             with st.spinner("Calculating..."):
                 # TODO refactor this into the DecisionData class
-                lever_for_desired_ratio = (
-                    st.session_state.decision_data.find_lever_value(
-                        lever_condition=lever_condition,
-                        target_win_percentage=st.session_state.target_win_percentage,
-                        win_rank=st.session_state.win_rank,
-                        high=100,
-                    )
+                lever_for_desired_ratio = st.session_state.decision_data.find_lever_value(
+                    lever_condition=lever_condition,
+                    target_win_percentage=st.session_state.target_win_percentage,
+                    win_rank=st.session_state.win_rank,
+                    high=100,
                 )
                 if isinstance(lever_for_desired_ratio, float):
                     st.metric(

@@ -1,17 +1,28 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Callable
 
 import polars as pl
-from .....utils import cdh_utils
 from pydantic import validate_call
 
+from .....utils import cdh_utils
 from ....internal._constants import METRIC
 from ....internal._exceptions import NoMonitoringInfo
+from ....internal._resource import api_method
+from ..base import AsyncPrediction as AsyncPredictionBase
 from ..base import Prediction as PredictionBase
 
 
-class Prediction(PredictionBase):
+class _PredictionV24_1Mixin:
+    """v24.1 Prediction business logic — defined once."""
+
+    # Declared for mypy — provided by concrete base classes at runtime
+    if TYPE_CHECKING:
+        prediction_id: str
+        _a_get: Callable[..., Any]
+
+    @api_method
     @validate_call
-    def get_metric(
+    async def get_metric(
         self,
         *,
         metric: METRIC,
@@ -19,7 +30,7 @@ class Prediction(PredictionBase):
     ) -> pl.DataFrame:
         endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/metric/{metric}"
         try:
-            info = self._client.get(endpoint, time_frame=timeframe)
+            info = await self._a_get(endpoint, time_frame=timeframe)
             data = (
                 pl.DataFrame(
                     info["monitoringData"],
@@ -31,7 +42,8 @@ class Prediction(PredictionBase):
                 )
                 .with_columns(
                     snapshotTime=cdh_utils.parse_pega_date_time_formats(
-                        "snapshotTime", "%Y-%m-%dT%H:%M:%S%.fZ"
+                        "snapshotTime",
+                        "%Y-%m-%dT%H:%M:%S%.fZ",
                     ),
                     value=pl.col("value").replace("", None).cast(pl.Float64),
                     category=pl.col("dataUsage"),
@@ -45,10 +57,19 @@ class Prediction(PredictionBase):
                     "value": pl.Float64,
                     "snapshotTime": pl.Datetime("ns"),
                     "category": pl.Utf8,
-                }
+                },
             )
             return data
 
-    def describe(self):
+    @api_method
+    async def describe(self):
         endpoint = f"/prweb/api/PredictionStudio/v3/predictions/{self.prediction_id}"
-        return self._client.get(endpoint)
+        return await self._a_get(endpoint)
+
+
+class Prediction(_PredictionV24_1Mixin, PredictionBase):
+    pass
+
+
+class AsyncPrediction(_PredictionV24_1Mixin, AsyncPredictionBase):
+    pass

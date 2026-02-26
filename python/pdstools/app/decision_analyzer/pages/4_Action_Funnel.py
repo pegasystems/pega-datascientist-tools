@@ -38,9 +38,7 @@ def decision_funnel(
     level=None,
     return_df=False,
 ):
-    return st.session_state.decision_data.plot.decision_funnel(
-        scope=scope, return_df=return_df
-    )
+    return st.session_state.decision_data.plot.decision_funnel(scope=scope, return_df=return_df)
 
 
 st.session_state["sidebar"] = st.sidebar
@@ -101,9 +99,7 @@ action got dropped in which stage and by what component.
 """
 
 data = (
-    st.session_state.decision_data.decision_data.filter(
-        pl.col("Record Type") == "FILTERED_OUT"
-    )
+    st.session_state.decision_data.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
     .group_by(["Stage Order", "Stage Group", "Stage", "Component Name"])
     .agg(pl.len().alias("filter count"))
     .with_columns(
@@ -138,10 +134,7 @@ st.download_button(
 # ---------------------------------------------------------------------------
 # Component → Action Impact
 # ---------------------------------------------------------------------------
-has_components = (
-    "Component Name"
-    in st.session_state.decision_data.decision_data.collect_schema().names()
-)
+has_components = "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 if has_components:
     with st.container(border=True):
         "## Component → Action Impact"
@@ -174,9 +167,7 @@ if has_components:
         being removed.
         """
         component_names = (
-            st.session_state.decision_data.decision_data.filter(
-                pl.col("Record Type") == "FILTERED_OUT"
-            )
+            st.session_state.decision_data.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
             .collect()

@@ -1,14 +1,13 @@
 # python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
 import tempfile
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 import streamlit as st
 
 from pdstools import ImpactAnalyzer
 from pdstools.utils.streamlit_utils import ensure_session_data
-
 
 SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
 
@@ -25,17 +24,12 @@ def _write_uploaded_file(uploaded_file) -> str:
         return tmp.name
 
 
-def _write_uploaded_files(uploaded_files: Iterable) -> List[str]:
+def _write_uploaded_files(uploaded_files: Iterable) -> list[str]:
     return [_write_uploaded_file(uploaded_file) for uploaded_file in uploaded_files]
 
 
 def _resolve_sample_pdc_path() -> Path:
-    local_path = (
-        Path(__file__).resolve().parents[4]
-        / "data"
-        / "ia"
-        / "CDH_Metrics_ImpactAnalyzer.json"
-    )
+    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
     if local_path.exists():
         return local_path
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp:
@@ -64,10 +58,10 @@ def load_pdc_from_uploads(uploaded_files: Iterable) -> ImpactAnalyzer:
 
 
 @st.cache_resource
-def load_vbd_from_path(path: str) -> Optional[ImpactAnalyzer]:
+def load_vbd_from_path(path: str) -> ImpactAnalyzer | None:
     return ImpactAnalyzer.from_vbd(path)
 
 
-def load_vbd_from_upload(uploaded_file) -> Optional[ImpactAnalyzer]:
+def load_vbd_from_upload(uploaded_file) -> ImpactAnalyzer | None:
     path = _write_uploaded_file(uploaded_file)
     return load_vbd_from_path(path)

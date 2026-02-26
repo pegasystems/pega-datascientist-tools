@@ -1,11 +1,11 @@
 """Plot utilities for pdstools visualizations."""
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 # Colorscales for metric visualizations in Plotly charts
 # These define continuous color gradients based on metric values
 
-COLORSCALES: Dict[str, Any] = {
+COLORSCALES: dict[str, Any] = {
     "Performance": [
         (0, "#d91c29"),  # Red - poor performance
         (0.01, "#F76923"),  # Orange - below threshold
@@ -24,8 +24,9 @@ COLORSCALES: Dict[str, Any] = {
 
 
 def get_colorscale(
-    metric: str, default: str = "other"
-) -> Union[List[Tuple[float, str]], List[str]]:
+    metric: str,
+    default: str = "other",
+) -> list[tuple[float, str]] | list[str]:
     """Get the colorscale for a metric.
 
     Parameters
@@ -37,7 +38,7 @@ def get_colorscale(
 
     Returns
     -------
-    Union[List[Tuple[float, str]], List[str]]
+    Union[list[tuple[float, str]], list[str]]
         A Plotly-compatible colorscale (list of (position, color) tuples or list of colors).
 
     Examples
@@ -46,5 +47,6 @@ def get_colorscale(
     [(0, '#d91c29'), (0.01, '#F76923'), (0.3, '#20aa50'), (0.8, '#20aa50'), (1, '#0000FF')]
     >>> get_colorscale("UnknownMetric")
     ['#d91c29', '#F76923', '#20aa50']
+
     """
     return COLORSCALES.get(metric, COLORSCALES.get(default, COLORSCALES["other"]))

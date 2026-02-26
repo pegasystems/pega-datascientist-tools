@@ -83,9 +83,7 @@ Report generation initialized with the following parameters:
             self.contribution_type = CONTRIBUTION_TYPE_DEFAULT
             self.contribution_text = CONTRIBUTION_TEXT_DEFAULT
 
-            logger.info(
-                "Parameters file %s does not exist. Using defaults.", params_file
-            )
+            logger.info("Parameters file %s does not exist. Using defaults.", params_file)
 
         else:
             with open(params_file, "r", encoding=ENCODING) as file:
@@ -96,18 +94,12 @@ Report generation initialized with the following parameters:
                 self.data_folder = params.get("data_folder", DATA_FOLDER)
                 self.from_date = params.get("from_date", FROM_DATE_DEFAULT)
                 self.to_date = params.get("to_date", TO_DATE_DEFAULT)
-                self.contribution_type = params.get(
-                    "contribution_type", CONTRIBUTION_TYPE_DEFAULT
-                )
-                self.contribution_text = params.get(
-                    "contribution_text", CONTRIBUTION_TEXT_DEFAULT
-                )
+                self.contribution_type = params.get("contribution_type", CONTRIBUTION_TYPE_DEFAULT)
+                self.contribution_text = params.get("contribution_text", CONTRIBUTION_TEXT_DEFAULT)
 
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
 
-        self.data_folder = os.path.abspath(
-            os.path.join(self.report_folder, "..", self.data_folder)
-        )
+        self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
         logger.info("Using data folder: %s", self.data_folder)
 
         if self.verbose:
@@ -118,19 +110,12 @@ Report generation initialized with the following parameters:
         return json.loads(context_info)["partition"]
 
     def _get_context_string(self, context_info: str) -> str:
-        return "-".join(
-            [
-                v.replace(" ", "")
-                for _, v in self._get_context_dict(context_info).items()
-            ]
-        )
+        return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
 
     @staticmethod
     def _read_template(template_filename: str) -> str:
         """Read a template file and return its content."""
-        with open(
-            f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING
-        ) as fr:
+        with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING) as fr:
             return fr.read()
 
     def _write_single_context_file(
@@ -208,9 +193,7 @@ Report generation initialized with the following parameters:
         contexts = self._get_unique_contexts()
 
         for file_batch_nb, context_batches in contexts.items():
-            plots_for_batch_filepath = (
-                f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
-            )
+            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
 
             # write header
             self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
@@ -240,9 +223,7 @@ Report generation initialized with the following parameters:
                     )
 
     def _generate_overview_qmd(self):
-        with open(
-            f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING
-        ) as fr:
+        with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -261,9 +242,7 @@ Report generation initialized with the following parameters:
             f.write(f_template)
 
     def _generate_introduction_qmd(self):
-        with open(
-            f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING
-        ) as fr:
+        with open(f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         if self.from_date == self.to_date:

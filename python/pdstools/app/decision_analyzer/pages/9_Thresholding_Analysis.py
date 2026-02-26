@@ -40,9 +40,9 @@ with st.session_state["sidebar"]:
         format_func=lambda option: thresholding_mapping[option],
         horizontal=True,
     )
-    value_range = st.session_state.decision_data.getThresholdingData(
-        thresholding_on, quantile_range=[0, 100]
-    )["Threshold"].to_list()
+    value_range = st.session_state.decision_data.getThresholdingData(thresholding_on, quantile_range=[0, 100])[
+        "Threshold"
+    ].to_list()
 
     if all(v is None for v in value_range):
         st.warning(
@@ -65,9 +65,7 @@ with st.session_state["sidebar"]:
             / 100
         )
     else:
-        current_threshold = st.slider(
-            "Threshold :sunglasses:", value_range[0], value_range[1]
-        )
+        current_threshold = st.slider("Threshold :sunglasses:", value_range[0], value_range[1])
 
 col1, col2 = st.columns(2)
 with col1:
@@ -94,15 +92,11 @@ with col2:
         use_container_width=True,
     )
 
-threshold_deciles_data = st.session_state.decision_data.getThresholdingData(
-    thresholding_on
-)
+threshold_deciles_data = st.session_state.decision_data.getThresholdingData(thresholding_on)
 # st.dataframe(plotData)
 
 st.plotly_chart(
-    st.session_state.decision_data.plot.threshold_deciles(
-        thresholding_on, thresholding_mapping[thresholding_on]
-    ),
+    st.session_state.decision_data.plot.threshold_deciles(thresholding_on, thresholding_mapping[thresholding_on]),
     use_container_width=True,
 )
 
@@ -114,9 +108,7 @@ st.plotly_chart(
 xxx = st.session_state.decision_data.getDistributionData(
     "Output",
     ["Issue", "Group"],
-    additional_filters=(
-        pl.col(f"{thresholding_on}_min") > current_threshold
-    ),  # Hmm, probalby not the right way
+    additional_filters=(pl.col(f"{thresholding_on}_min") > current_threshold),  # Hmm, probalby not the right way
     # additional_filters=((pl.col(thresholding_on).list.eval(pl.element() > current_threshold)).list.any()),
 )
 st.write(

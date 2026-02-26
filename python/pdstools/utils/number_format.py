@@ -10,7 +10,8 @@ See: https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html
 
 from dataclasses import dataclass
 from math import isnan
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import polars as pl
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 __all__ = ["NumberFormat"]
 
 # Type alias for format value input
-NumericValue = Union[int, float, None]
+NumericValue = int | float | None
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,7 @@ class NumberFormat:
 
     >>> NumberFormat(compact=True).format_value(1234567)
     '1M'
+
     """
 
     decimals: int = 0
@@ -73,6 +75,7 @@ class NumberFormat:
         -------
         str
             Formatted string representation.
+
         """
         if value is None or (isinstance(value, float) and isnan(value)):
             return ""
@@ -82,9 +85,7 @@ class NumberFormat:
         except (ValueError, TypeError):
             return str(value)
 
-        formatted = (
-            self._format_compact(num) if self.compact else self._format_standard(num)
-        )
+        formatted = self._format_compact(num) if self.compact else self._format_standard(num)
         return formatted + self.suffix
 
     def _format_standard(self, num: float) -> str:
@@ -92,9 +93,7 @@ class NumberFormat:
         formatted = f"{num:,.{self.decimals}f}"
         if self.locale == "de_DE":
             # German: swap comma/dot
-            formatted = (
-                formatted.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
-            )
+            formatted = formatted.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
         return formatted
 
     def _format_compact(self, num: float) -> str:
@@ -108,18 +107,17 @@ class NumberFormat:
                 return f"{num / threshold:,.{self.decimals}f}{suffix}"
         return f"{num:,.{self.decimals}f}"
 
-    def to_pandas_format(self) -> Union[str, Callable[[NumericValue], str]]:
+    def to_pandas_format(self) -> str | Callable[[NumericValue], str]:
         """Convert to pandas Styler format specification.
 
         Returns
         -------
         str or callable
             Format string or callable for `pandas.Styler.format()`.
+
         """
         # Use callable for complex formatting (compact, non-percentage suffix)
-        if self.compact or (
-            self.suffix and not (self.scale_by == 100 and self.suffix == "%")
-        ):
+        if self.compact or (self.suffix and not (self.scale_by == 100 and self.suffix == "%")):
             return self.format_value
 
         # Native pandas percentage formatting
@@ -142,6 +140,7 @@ class NumberFormat:
         -------
         GT
             The GT object with formatting applied.
+
         """
         if self.scale_by == 100 and self.suffix == "%":
             return gt.fmt_percent(decimals=self.decimals, columns=columns)
@@ -149,7 +148,9 @@ class NumberFormat:
             return gt.fmt_number(decimals=self.decimals, compact=True, columns=columns)
         if self.scale_by != 1.0:
             return gt.fmt_number(
-                decimals=self.decimals, scale_by=self.scale_by, columns=columns
+                decimals=self.decimals,
+                scale_by=self.scale_by,
+                columns=columns,
             )
         return gt.fmt_number(decimals=self.decimals, columns=columns)
 
@@ -165,11 +166,15 @@ class NumberFormat:
         -------
         pl.Expr
             Expression producing formatted string values.
+
         """
         return pl.col(column).map_elements(self.format_value, return_dtype=pl.Utf8)
 
     def format_polars_column(
-        self, df: pl.DataFrame, column: str, output_column: Optional[str] = None
+        self,
+        df: pl.DataFrame,
+        column: str,
+        output_column: str | None = None,
     ) -> pl.DataFrame:
         """Add a formatted string column to a DataFrame.
 
@@ -186,6 +191,7 @@ class NumberFormat:
         -------
         pl.DataFrame
             DataFrame with the formatted column added.
+
         """
         output_column = output_column or f"{column}_formatted"
         return df.with_columns(self.to_polars_expr(column).alias(output_column))

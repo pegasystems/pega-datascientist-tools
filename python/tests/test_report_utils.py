@@ -2,7 +2,6 @@
 
 import polars as pl
 import pytest
-
 from pdstools.utils import report_utils
 
 
@@ -70,28 +69,22 @@ def test_get_output_filename():
         report_utils.get_output_filename("test_report", "ModelReport", "model1", "html")
         == "ModelReport_test_report_model1.html"
     )
+    assert report_utils.get_output_filename(None, "ModelReport", "model1", "html") == "ModelReport_model1.html"
     assert (
-        report_utils.get_output_filename(None, "ModelReport", "model1", "html")
-        == "ModelReport_model1.html"
+        report_utils.get_output_filename("test_report", "HealthCheck", None, "html") == "HealthCheck_test_report.html"
     )
+    assert report_utils.get_output_filename(None, "HealthCheck", None, "html") == "HealthCheck.html"
     assert (
-        report_utils.get_output_filename("test_report", "HealthCheck", None, "html")
-        == "HealthCheck_test_report.html"
-    )
-    assert (
-        report_utils.get_output_filename(None, "HealthCheck", None, "html")
-        == "HealthCheck.html"
-    )
-    assert (
-        report_utils.get_output_filename("test report", "HealthCheck", None, "html")
-        == "HealthCheck_test_report.html"
+        report_utils.get_output_filename("test report", "HealthCheck", None, "html") == "HealthCheck_test_report.html"
     )
 
 
 def test_set_command_options():
     """Test the _set_command_options function."""
     options = report_utils._set_command_options(
-        output_type="html", output_filename="test.html", execute_params=True
+        output_type="html",
+        output_filename="test.html",
+        execute_params=True,
     )
     assert "--to" in options
     assert "html" in options
@@ -116,7 +109,7 @@ def test_create_metric_gttable_column_descriptions():
             "Model": ["A", "B", "C"],
             "Performance": [0.72, 0.58, 0.85],
             "Channel": ["Web", "Email", "Mobile"],
-        }
+        },
     )
 
     column_descriptions = {
@@ -145,7 +138,7 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
             "Model": ["A", "B", "C"],
             "Performance": [0.72, 0.58, 0.85],
             "Channel": ["Web", "Email", "Mobile"],
-        }
+        },
     )
 
     column_descriptions = {
@@ -160,7 +153,6 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
         nonlocal captured_df
         # The styled_df is a pandas Styler, get the underlying DataFrame
         captured_df = styled_df.data
-        return None
 
     import itables
 
@@ -193,7 +185,7 @@ def test_create_metric_gttable_without_column_descriptions():
         {
             "Model": ["A", "B"],
             "Value": [1.0, 2.0],
-        }
+        },
     )
 
     gt = report_utils.create_metric_gttable(
@@ -212,7 +204,9 @@ def test_write_params_files_size_reduction_method(tmp_path):
 
     # Default (None) - embed plotly
     report_utils._write_params_files(
-        tmp_path, params={"test": "value"}, size_reduction_method=None
+        tmp_path,
+        params={"test": "value"},
+        size_reduction_method=None,
     )
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
@@ -221,7 +215,9 @@ def test_write_params_files_size_reduction_method(tmp_path):
 
     # "strip" - embed plotly
     report_utils._write_params_files(
-        tmp_path, params={"test": "value"}, size_reduction_method="strip"
+        tmp_path,
+        params={"test": "value"},
+        size_reduction_method="strip",
     )
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
@@ -229,7 +225,9 @@ def test_write_params_files_size_reduction_method(tmp_path):
 
     # "cdn" - load plotly from CDN
     report_utils._write_params_files(
-        tmp_path, params={"test": "value"}, size_reduction_method="cdn"
+        tmp_path,
+        params={"test": "value"},
+        size_reduction_method="cdn",
     )
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
@@ -251,7 +249,7 @@ def test_create_metric_gttable_callable_rag_with_metric_format():
         {
             "Channel": ["Web", "Mobile", "Email"],
             "CTR": [0.023456, 0.00123, 0.1],  # Small decimal values like real CTR
-        }
+        },
     )
 
     gt = report_utils.create_metric_gttable(
@@ -283,7 +281,7 @@ def test_create_metric_gttable_callable_rag_without_format():
         {
             "Channel": ["Web", "Mobile"],
             "CustomMetric": [12345.678, 99999.123],  # No format defined for this
-        }
+        },
     )
 
     def custom_rag(value):

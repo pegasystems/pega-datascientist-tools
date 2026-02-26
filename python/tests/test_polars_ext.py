@@ -1,9 +1,9 @@
-"""
-Testing the functionality of the polars_ext module
-"""
+"""Testing the functionality of the polars_ext module"""
 
 import polars as pl
-from pdstools.utils import polars_ext  # noqa: F401  # side-effect import: registers .pdstools namespace
+from pdstools.utils import (
+    polars_ext,  # noqa: F401 - side-effect import: registers .pdstools namespace
+)
 
 
 def test_sample_method():

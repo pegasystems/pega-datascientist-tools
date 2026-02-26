@@ -37,7 +37,7 @@ def sample2():
             "ResponseCount": [100, 150, 120, 160, 110, 170],
             "Positives": [100, 150, 120, 160, 110, 170],
             "Group": ["A", "B", "A", "B", "A", "B"],
-        }
+        },
     ).lazy()
     return ADMDatamart(model_df=data)
 
@@ -48,7 +48,7 @@ def test_bubble_chart(sample: ADMDatamart):
     assert df.select(pl.col("Performance").top_k(1)).collect().item() == 77.4901
     assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.28
     assert df.select(
-        pl.col("ResponseCount").top_k(1)
+        pl.col("ResponseCount").top_k(1),
     ).collect().item() == pytest.approx(8174, abs=1e-6)
     plot = sample.plot.bubble_chart()
     assert plot is not None
@@ -78,12 +78,15 @@ def test_over_time(sample2: ADMDatamart):
     assert responses_over_time == [100.0, 150.0, 120.0, 160.0, 110.0, 170.0]
 
     fig_faceted = sample2.plot.over_time(
-        metric="Performance", by="ModelID", facet="Group"
+        metric="Performance",
+        by="ModelID",
+        facet="Group",
     )
     assert fig_faceted is not None
 
     with pytest.raises(
-        ValueError, match="The given query resulted in an empty dataframe"
+        ValueError,
+        match="The given query resulted in an empty dataframe",
     ):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
@@ -113,7 +116,8 @@ def test_score_distribution(sample: ADMDatamart):
     assert bin_indices == sorted(bin_indices)
 
     with pytest.raises(
-        ValueError, match="There is no data for the provided modelid 'invalid_id'"
+        ValueError,
+        match="There is no data for the provided modelid 'invalid_id'",
     ):
         sample.plot.score_distribution(model_id="invalid_id")
 
@@ -155,7 +159,9 @@ def test_predictor_binning(sample: ADMDatamart):
     predictor_name = first_row[1]
 
     df = sample.plot.predictor_binning(
-        model_id=model_id, predictor_name=predictor_name, return_df=True
+        model_id=model_id,
+        predictor_name=predictor_name,
+        return_df=True,
     )
 
     assert not df.collect().is_empty()
@@ -170,15 +176,18 @@ def test_predictor_binning(sample: ADMDatamart):
     # Test error handling for invalid inputs
     with pytest.raises(ValueError):
         sample.plot.predictor_binning(
-            model_id="non_existent_id", predictor_name=predictor_name
+            model_id="non_existent_id",
+            predictor_name=predictor_name,
         )
     with pytest.raises(ValueError):
         sample.plot.predictor_binning(
-            model_id=model_id, predictor_name="non_existent_predictor"
+            model_id=model_id,
+            predictor_name="non_existent_predictor",
         )
 
     plot = sample.plot.predictor_binning(
-        model_id=model_id, predictor_name=predictor_name
+        model_id=model_id,
+        predictor_name=predictor_name,
     )
     assert isinstance(plot, Figure)
 
@@ -191,11 +200,7 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
     model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
 
     expected_predictor_count = (
-        sample.combined_data.filter(pl.col("ModelID") == model_id)
-        .select("PredictorName")
-        .unique()
-        .collect()
-        .shape[0]
+        sample.combined_data.filter(pl.col("ModelID") == model_id).select("PredictorName").unique().collect().shape[0]
     )
 
     plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
@@ -218,10 +223,7 @@ def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
     assert "median" in df.collect_schema().names()
-    assert (
-        round(df.select(pl.col("median").top_k(1)).item(), 2)
-        == 65.17
-    )
+    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 65.17
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
@@ -244,13 +246,12 @@ def test_predictor_contribution(sample: ADMDatamart):
     assert "PredictorCategory" in df.columns
     assert "Contribution" in df.columns
     assert df.select(pl.col("Contribution").sum()).item() == pytest.approx(
-        100, rel=1e-2
+        100,
+        rel=1e-2,
     )
     assert (
         round(
-            df.filter(pl.col("PredictorCategory") == "Customer")
-            .select("Contribution")
-            .item(),
+            df.filter(pl.col("PredictorCategory") == "Customer").select("Contribution").item(),
             2,
         )
         == 39.02
@@ -265,10 +266,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     assert (
         round(
-            df.filter(Name="Customer.AnnualIncome")
-            .select("AutoUsed60Months")
-            .collect()
-            .item(),
+            df.filter(Name="Customer.AnnualIncome").select("AutoUsed60Months").collect().item(),
             5,
         )
         == 0.69054
@@ -282,7 +280,10 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     df = sample.plot.predictor_performance_heatmap(
         by=pl.concat_str(
-            pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
+            pl.col("Issue"),
+            pl.col("Group"),
+            pl.col("Name"),
+            separator="/",
         ),
         return_df=True,
     )
@@ -290,6 +291,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
+
 
 def test_tree_map(sample: ADMDatamart):
     df = sample.plot.tree_map(return_df=True).collect()
@@ -313,9 +315,7 @@ def test_predictor_count(sample: ADMDatamart):
 
 def test_binning_lift(sample: ADMDatamart):
     # Get a random model_id and predictor_name
-    random_row = (
-        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
-    )
+    random_row = sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
     model_id = random_row["ModelID"][0]
     predictor_name = random_row["PredictorName"][0]
 
@@ -343,7 +343,7 @@ def test_partitioned_plot(sample: ADMDatamart):
     def dummy_plot_func(*args, **kwargs):
         return px.scatter(x=[1, 2, 3], y=[1, 2, 3])
 
-    facets = [{"Aspect":"A"}, {"Aspect":"B"}]
+    facets = [{"Aspect": "A"}, {"Aspect": "B"}]
     plots = sample.plot.partitioned_plot(dummy_plot_func, facets, show_plots=False)
     assert isinstance(plots, list)
     assert len(plots) == len(facets)

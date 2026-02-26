@@ -1,5 +1,5 @@
 # python/pdstools/decision_analyzer/column_schema.py
-from typing import Dict, List, Type, TypedDict
+from typing import TypedDict
 
 from typing_extensions import NotRequired
 
@@ -9,11 +9,11 @@ import polars as pl
 class TableConfig(TypedDict):
     display_name: str
     default: bool
-    type: Type[pl.DataType]
-    aliases: NotRequired[List[str]]
+    type: type[pl.DataType]
+    aliases: NotRequired[list[str]]
 
 
-DecisionAnalyzer: Dict[str, TableConfig] = {
+DecisionAnalyzer: dict[str, TableConfig] = {
     "pxRecordType": {
         "display_name": "Record Type",
         "default": False,
@@ -159,7 +159,7 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
 }
 
 
-ExplainabilityExtract: Dict[str, TableConfig] = {
+ExplainabilityExtract: dict[str, TableConfig] = {
     "pySubjectID": {
         "display_name": "Subject ID",
         "default": True,

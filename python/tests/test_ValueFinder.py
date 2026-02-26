@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ValueFinder class
-"""
+"""Testing the functionality of the ValueFinder class"""
 
 import pathlib
 
@@ -69,10 +67,7 @@ def test_query(vf: ValueFinder):
         base_path=base_path / "data",
         query=pl.col("Stage") != "Arbitration",
     )
-    assert (
-        _vf.df.select(pl.first().len()).collect().item()
-        != vf.df.select(pl.first().len()).collect().item()
-    )
+    assert _vf.df.select(pl.first().len()).collect().item() != vf.df.select(pl.first().len()).collect().item()
 
 
 def test_empty_data_ds():
@@ -110,14 +105,14 @@ def test_counts_per_stage(vf: ValueFinder):
     counts = vf.aggregates.get_counts_per_stage().collect()
     assert counts.shape == (len(vf.nbad_stages), 4)
     assert vf.aggregates.get_counts_per_stage().filter(
-        Stage="Eligibility"
+        Stage="Eligibility",
     ).collect().row(0) == ("Eligibility", 6901, 357, 66)
 
 
 def test_max_propensity_per_customer(vf: ValueFinder):
     assert (
         vf.aggregates.max_propensity_per_customer.filter(CustomerID="Customer-1").row(
-            0
+            0,
         )[2]
         == 0.2692307692307692
     )
@@ -135,18 +130,12 @@ def test_get_threshold_from_quantile(vf: ValueFinder):
 
 def test_get_counts_for_threshold(vf: ValueFinder):
     assert vf.aggregates.get_counts_for_threshold(0.05).filter(Stage="Arbitration").row(
-        0
+        0,
     ) == ("Arbitration", 5332, 1177, 815)
 
 
 def test_plot_funnel_chart(vf: ValueFinder):
-    assert (
-        vf.plot.funnel_chart(return_df=True)
-        .select(pl.col("Count").top_k(1))
-        .collect()
-        .item()
-        == 2365
-    )
+    assert vf.plot.funnel_chart(return_df=True).select(pl.col("Count").top_k(1)).collect().item() == 2365
     vf.plot.funnel_chart()
 
 

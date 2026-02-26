@@ -1,6 +1,4 @@
-"""
-Additional tests for the Plots module to increase test coverage
-"""
+"""Additional tests for the Plots module to increase test coverage"""
 
 import plotly.express as px
 import polars as pl
@@ -15,7 +13,9 @@ def sample_datamart(monkeypatch):
     # Mock the _validate_predictor_data method to bypass schema validation
     monkeypatch.setattr(ADMDatamart, "_validate_predictor_data", lambda self, df: df)
     monkeypatch.setattr(
-        ADMDatamart, "_validate_model_data", lambda self, df, **kwargs: df
+        ADMDatamart,
+        "_validate_model_data",
+        lambda self, df, **kwargs: df,
     )
 
     model_data = pl.DataFrame(
@@ -29,7 +29,7 @@ def sample_datamart(monkeypatch):
             "ResponseCount": [1000, 1200, 800, 500],
             "Positives": [250, 360, 176, 90],
             "SnapshotTime": ["2023-01-01", "2023-01-01", "2023-01-02", "2023-01-02"],
-        }
+        },
     ).lazy()
 
     predictor_data = pl.DataFrame(
@@ -46,7 +46,7 @@ def sample_datamart(monkeypatch):
             "Type": ["Numeric", "Numeric", "Numeric", "Numeric"],
             "Performance": [0.7, 0.65, 0.72, 0.68],
             "SnapshotTime": ["2023-01-01", "2023-01-01", "2023-01-01", "2023-01-01"],
-        }
+        },
     ).lazy()
 
     # Create a datamart with the test data
@@ -54,7 +54,8 @@ def sample_datamart(monkeypatch):
 
     # Mock the combined_data property
     combined_data = predictor_data.with_columns(
-        pl.lit("Classifier").alias("PredictorName"), pl.lit(0.5).alias("BinPropensity")
+        pl.lit("Classifier").alias("PredictorName"),
+        pl.lit(0.5).alias("BinPropensity"),
     )
     dm.combined_data = combined_data
 
@@ -86,7 +87,7 @@ def test_action_overlap(sample_datamart):
 
     # Test with expression
     fig = sample_datamart.plot.action_overlap(
-        group_col=pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
+        group_col=pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/"),
     )
     assert isinstance(fig, Figure)
 
@@ -104,7 +105,9 @@ def test_partitioned_plot(sample_datamart):
     # Test with a set of facets
     facets = [{"Channel": "Web"}, {"Channel": "Mobile"}, {"Channel": "Email"}]
     plots = sample_datamart.plot.partitioned_plot(
-        dummy_plot_func, facets, show_plots=False
+        dummy_plot_func,
+        facets,
+        show_plots=False,
     )
 
     # Check that we got the expected number of plots
@@ -141,7 +144,9 @@ def test_binning_lift_enhanced(sample_datamart):
 
     # Test with query
     fig = sample_datamart.plot.binning_lift(
-        model_id, predictor_name, query=pl.col("BinIndex") == 1
+        model_id,
+        predictor_name,
+        query=pl.col("BinIndex") == 1,
     )
     assert isinstance(fig, Figure)
 
@@ -153,7 +158,9 @@ def test_requires_decorator(monkeypatch):
     # Mock the _validate_predictor_data method to bypass schema validation
     monkeypatch.setattr(ADMDatamart, "_validate_predictor_data", lambda self, df: df)
     monkeypatch.setattr(
-        ADMDatamart, "_validate_model_data", lambda self, df, **kwargs: df
+        ADMDatamart,
+        "_validate_model_data",
+        lambda self, df, **kwargs: df,
     )
 
     # Create a datamart with missing data

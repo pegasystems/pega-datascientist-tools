@@ -13,11 +13,12 @@ values in tables.
 import difflib
 import re
 from functools import lru_cache
-from typing import Any, Callable, Dict, Literal, Optional, Union
-from ..resources import get_metric_limits_path
+from typing import Any, Literal, Optional
+from collections.abc import Callable
 
 import polars as pl
 
+from ..resources import get_metric_limits_path
 from .number_format import NumberFormat
 
 # Type alias for RAG status values
@@ -25,11 +26,11 @@ RAGValue = Literal["RED", "AMBER", "YELLOW", "GREEN"]
 
 # Type alias for value mappings: maps column values to metric values
 # e.g., {"Yes": True, "No": False} or {("Yes", "yes"): True, "No": False}
-ValueMapping = dict[Union[str, tuple], Any]
+ValueMapping = dict[str | tuple, Any]
 
 # Type for metric specification with optional value mapping
 # Can be: "MetricID" or ("MetricID", ValueMapping) or callable
-MetricSpec = Union[str, tuple[str, ValueMapping], Callable]
+MetricSpec = str | tuple[str, ValueMapping] | Callable
 
 # Columns containing limit values in MetricLimits.csv
 _LIMIT_COLUMNS = ["Minimum", "Best Practice Min", "Best Practice Max", "Maximum"]
@@ -59,12 +60,12 @@ class MetricLimits:
         by checking if all defined limit values are either 0.0 or 1.0.
         """
         limits_df = pl.read_csv(source=get_metric_limits_path()).filter(
-            pl.col("MetricID").is_not_null() & (pl.col("MetricID") != "")
+            pl.col("MetricID").is_not_null() & (pl.col("MetricID") != ""),
         )
 
         # Cast limit columns to Float64 (they're already numeric in the CSV)
         limits_df = limits_df.with_columns(
-            [pl.col(col).cast(pl.Float64) for col in _LIMIT_COLUMNS]
+            [pl.col(col).cast(pl.Float64) for col in _LIMIT_COLUMNS],
         )
 
         # A metric is boolean if all its defined (non-null) limits are 0.0 or 1.0
@@ -76,9 +77,7 @@ class MetricLimits:
             return all(v in (0.0, 1.0) for v in defined_values)
 
         return limits_df.with_columns(
-            pl.struct(_LIMIT_COLUMNS)
-            .map_elements(is_boolean_metric, return_dtype=pl.Boolean)
-            .alias("is_boolean")
+            pl.struct(_LIMIT_COLUMNS).map_elements(is_boolean_metric, return_dtype=pl.Boolean).alias("is_boolean"),
         )
 
     @classmethod
@@ -106,14 +105,17 @@ class MetricLimits:
         if not limits:
             known_metrics = cls.get_limits()["MetricID"].to_list()
             close_matches = difflib.get_close_matches(
-                metric_id, known_metrics, n=1, cutoff=0.6
+                metric_id,
+                known_metrics,
+                n=1,
+                cutoff=0.6,
             )
             suggestion = f" Did you mean '{close_matches[0]}'?" if close_matches else ""
             raise KeyError(f"Unknown metric ID '{metric_id}'.{suggestion}")
         return limits
 
     @classmethod
-    def minimum(cls, metric_id: str) -> Optional[float]:
+    def minimum(cls, metric_id: str) -> float | None:
         """Get the minimum (hard limit) for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -121,7 +123,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("minimum")
 
     @classmethod
-    def maximum(cls, metric_id: str) -> Optional[float]:
+    def maximum(cls, metric_id: str) -> float | None:
         """Get the maximum (hard limit) for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -129,7 +131,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("maximum")
 
     @classmethod
-    def best_practice_min(cls, metric_id: str) -> Optional[Union[float, bool]]:
+    def best_practice_min(cls, metric_id: str) -> float | bool | None:
         """Get the best practice minimum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -137,7 +139,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_min")
 
     @classmethod
-    def best_practice_max(cls, metric_id: str) -> Optional[Union[float, bool]]:
+    def best_practice_max(cls, metric_id: str) -> float | bool | None:
         """Get the best practice maximum for a metric.
 
         Raises KeyError if metric_id is not found in MetricLimits.csv.
@@ -145,7 +147,7 @@ class MetricLimits:
         return cls._get_limit_or_raise(metric_id).get("best_practice_max")
 
     @classmethod
-    def evaluate_metric_rag(cls, metric_id: str, value) -> Optional[RAGValue]:
+    def evaluate_metric_rag(cls, metric_id: str, value) -> RAGValue | None:
         """Evaluate RAG status for a metric value.
 
         Parameters
@@ -170,6 +172,7 @@ class MetricLimits:
         For boolean metrics:
         - If TRUE is in Minimum or Maximum (hard limit): TRUE → GREEN, FALSE → RED
         - If TRUE is in Best Practice Min or Max (soft limit): TRUE → GREEN, FALSE → AMBER
+
         """
         if value is None:
             return None
@@ -203,7 +206,7 @@ class MetricLimits:
             raise TypeError(
                 f"Metric '{metric_id}' requires a numeric value, but received "
                 f"{type(value).__name__}: {value!r}. "
-                f"Check that the column contains numeric data, not strings. "
+                f"Check that the column contains numeric data, not strings. ",
             )
 
         # Check RED conditions (outside hard limits)
@@ -264,9 +267,7 @@ POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS = [
     "OmniAdaptiveModel",
 ]
 
-ALL_NBAD_CONFIGURATIONS = (
-    SINGLE_CHANNEL_NBAD_CONFIGURATIONS + POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
-)
+ALL_NBAD_CONFIGURATIONS = SINGLE_CHANNEL_NBAD_CONFIGURATIONS + POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
 
 
 def _matches_NBAD_configuration(item: str, config_list: list) -> bool:
@@ -289,18 +290,12 @@ def is_standard_NBAD_configuration(field: str = "Configuration") -> pl.Expr:
         if not value:
             return False
         items = [v.strip() for v in value.split(",") if v.strip()]
-        return all(
-            _matches_NBAD_configuration(item, ALL_NBAD_CONFIGURATIONS) for item in items
-        )
+        return all(_matches_NBAD_configuration(item, ALL_NBAD_CONFIGURATIONS) for item in items)
 
-    return (
-        pl.col(field)
-        .cast(pl.String)
-        .map_elements(check_config, return_dtype=pl.Boolean)
-    )
+    return pl.col(field).cast(pl.String).map_elements(check_config, return_dtype=pl.Boolean)
 
 
-def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_configurations_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD configuration names.
 
     Returns AMBER if any is a default/other/multi-channel or a non-standard configuration,
@@ -315,7 +310,8 @@ def standard_NBAD_configurations_rag(value: str) -> Optional[RAGValue]:
 
     for item in items:
         if _matches_NBAD_configuration(
-            item, POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+            item,
+            POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS,
         ):
             return "AMBER"  # Multi-channel/default config
         if not _matches_NBAD_configuration(item, SINGLE_CHANNEL_NBAD_CONFIGURATIONS):
@@ -345,7 +341,7 @@ def get_standard_NBAD_channels() -> list[str]:
     return STANDARD_NBAD_CHANNELS.copy()
 
 
-def standard_NBAD_channels_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_channels_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD channel names.
 
     Returns GREEN for standard channels, YELLOW for Other, AMBER for multi-channel/unknown.
@@ -366,7 +362,7 @@ def standard_NBAD_channels_rag(value: str) -> Optional[RAGValue]:
     return "AMBER"
 
 
-def standard_NBAD_directions_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_directions_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise."""
     if not value:
         return None
@@ -381,7 +377,7 @@ def standard_NBAD_directions_rag(value: str) -> Optional[RAGValue]:
 # NBAD Prediction Names and Channel Mapping
 # =============================================================================
 
-_NBAD_PREDICTION_DATA = [
+_NBAD_PREDICTION_DATA: list[list[str | bool]] = [
     ["PredictWebPropensity", "Web", "Inbound", False],
     ["PredictMobilePropensity", "Mobile", "Inbound", False],
     ["PredictOutboundEmailPropensity", "E-mail", "Outbound", False],
@@ -404,35 +400,25 @@ ALL_NBAD_PREDICTIONS = [p[0] for p in _NBAD_PREDICTION_DATA]
 
 
 def get_predictions_channel_mapping(
-    custom_predictions: Optional[list] = None,
+    custom_predictions: list[list[str | bool]] | None = None,
 ) -> pl.DataFrame:
     """Get prediction to channel/direction mapping as a DataFrame."""
     custom_predictions = custom_predictions or []
     all_predictions = _NBAD_PREDICTION_DATA + [
-        p
-        for p in custom_predictions
-        if p[0].upper() not in {x[0].upper() for x in _NBAD_PREDICTION_DATA}
+        p for p in custom_predictions if str(p[0]).upper() not in {str(x[0]).upper() for x in _NBAD_PREDICTION_DATA}
     ]
 
-    df = (
-        pl.DataFrame(data=all_predictions, orient="row")
-        .with_columns(pl.col("column_0").str.to_uppercase())
-        .unique()
-    )
+    df = pl.DataFrame(data=all_predictions, orient="row").with_columns(pl.col("column_0").str.to_uppercase()).unique()
     df.columns = ["Prediction", "Channel", "Direction", "isMultiChannel"]
     return df
 
 
 def is_standard_NBAD_prediction(field: str = "Prediction") -> pl.Expr:
     """Polars expression to check if a prediction is a known NBAD prediction."""
-    return (
-        pl.col(field)
-        .cast(pl.String)
-        .str.contains_any(ALL_NBAD_PREDICTIONS, ascii_case_insensitive=True)
-    )
+    return pl.col(field).cast(pl.String).str.contains_any(ALL_NBAD_PREDICTIONS, ascii_case_insensitive=True)
 
 
-def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
+def standard_NBAD_predictions_rag(value: str) -> RAGValue | None:
     """RAG status for NBAD prediction names.
 
     Returns GREEN for single-channel, YELLOW for multi-channel, AMBER for unknown.
@@ -467,20 +453,20 @@ def standard_NBAD_predictions_rag(value: str) -> Optional[RAGValue]:
 # =============================================================================
 
 
-def exclusive_0_1_range_rag(value: float) -> Optional[RAGValue]:
+def exclusive_0_1_range_rag(value: float) -> RAGValue | None:
     """RAG for percentage values. GREEN if 0 < value < 1, RED otherwise."""
     if value is None:
         return None
     return "GREEN" if 0 < value < 1 else "RED"
 
 
-def positive_values(value: float) -> Optional[RAGValue]:
+def positive_values(value: float) -> RAGValue | None:
     if value is None:
         return None
     return "GREEN" if value >= 0 else "RED"
 
 
-def strict_positive_values(value: float) -> Optional[RAGValue]:
+def strict_positive_values(value: float) -> RAGValue | None:
     if value is None:
         return None
     return "GREEN" if value > 0 else "RED"
@@ -493,7 +479,7 @@ def strict_positive_values(value: float) -> Optional[RAGValue]:
 
 def add_rag_columns(
     df: pl.DataFrame,
-    column_to_metric: Optional[dict[str, MetricSpec]] = None,
+    column_to_metric: dict[str, MetricSpec] | None = None,
     strict_metric_validation: bool = True,
 ) -> pl.DataFrame:
     """Add RAG status columns to a DataFrame.
@@ -533,6 +519,7 @@ def add_rag_columns(
     ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
     ...     }
     ... )
+
     """
     # Expand tuple column keys to individual columns
     expanded_mapping: dict[str, MetricSpec] = {}
@@ -553,23 +540,22 @@ def add_rag_columns(
             if isinstance(metric_id, str) and metric_id not in known_metrics:
                 # Suggest close matches like git does
                 close_matches = difflib.get_close_matches(
-                    metric_id, known_metrics, n=1, cutoff=0.6
+                    metric_id,
+                    known_metrics,
+                    n=1,
+                    cutoff=0.6,
                 )
-                suggestion = (
-                    f" Did you mean '{close_matches[0]}'?" if close_matches else ""
-                )
+                suggestion = f" Did you mean '{close_matches[0]}'?" if close_matches else ""
                 raise ValueError(
                     f"Unknown metric ID '{metric_id}' for column '{col}'.{suggestion} "
-                    f"If it is spelled correctly, add it to MetricLimits.csv or use a callable."
+                    f"If it is spelled correctly, add it to MetricLimits.csv or use a callable.",
                 )
 
     def build_rag_expr(col: str, spec: MetricSpec) -> pl.Expr:
         """Build a Polars expression for RAG evaluation."""
         if callable(spec):
-            return (
-                pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
-            )
-        elif isinstance(spec, tuple) and len(spec) == 2:
+            return pl.col(col).map_elements(spec, return_dtype=pl.Utf8).alias(f"{col}_RAG")
+        if isinstance(spec, tuple) and len(spec) == 2:
             # (metric_id, value_mapping)
             metric_id, value_mapping = spec
 
@@ -586,14 +572,9 @@ def add_rag_columns(
                         break
                 return MetricLimits.evaluate_metric_rag(metric_id, mapped_v)
 
-            return (
-                pl.col(col)
-                .map_elements(mapped_rag, return_dtype=pl.Utf8)
-                .alias(f"{col}_RAG")
-            )
-        else:
-            # Simple metric ID string
-            return MetricLimits.get_metric_RAG_code(col, spec)
+            return pl.col(col).map_elements(mapped_rag, return_dtype=pl.Utf8).alias(f"{col}_RAG")
+        # Simple metric ID string
+        return MetricLimits.get_metric_RAG_code(col, spec)
 
     rag_expressions = []
     for col in df.columns:
@@ -621,9 +602,10 @@ class MetricFormats:
     >>> MetricFormats.has_format("CTR")
     True
     >>> MetricFormats.register("Custom", NumberFormat(decimals=4))
+
     """
 
-    _FORMATS: Dict[str, NumberFormat] = {
+    _FORMATS: dict[str, NumberFormat] = {
         "ModelPerformance": NumberFormat(decimals=2, scale_by=100),
         "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
         "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),
@@ -635,7 +617,7 @@ class MetricFormats:
     DEFAULT_FORMAT = NumberFormat(decimals=0, compact=True)
 
     @classmethod
-    def get(cls, metric_id: str) -> Optional[NumberFormat]:
+    def get(cls, metric_id: str) -> NumberFormat | None:
         """Get format for a metric, or None if not defined."""
         return cls._FORMATS.get(metric_id)
 
@@ -660,6 +642,6 @@ class MetricFormats:
         cls._FORMATS[metric_id] = format_spec
 
     @classmethod
-    def all_formats(cls) -> Dict[str, NumberFormat]:
+    def all_formats(cls) -> dict[str, NumberFormat]:
         """Get a copy of all defined metric formats."""
         return cls._FORMATS.copy()

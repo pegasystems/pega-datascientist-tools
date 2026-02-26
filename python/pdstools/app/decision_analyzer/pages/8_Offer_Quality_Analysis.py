@@ -38,12 +38,8 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(
-    st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100])
-)
-priority_th = _safe_thresholds(
-    st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100])
-)
+propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100]))
+priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100]))
 
 if propensity_th is None or priority_th is None:
     st.warning(
@@ -90,17 +86,14 @@ with st.session_state["sidebar"]:
     stage_selectbox()
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
-    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"]
-    + [st.session_state.scope],
+    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"] + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )
 
 # Pie Chart
 
-vf = st.session_state.decision_data.get_offer_quality(
-    action_counts, group_by="Interaction ID"
-)
+vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
 # st.write(vf.head().collect())
 
 st.plotly_chart(
@@ -114,9 +107,7 @@ st.plotly_chart(
 
 ## Trend Chart
 
-vf = st.session_state.decision_data.get_offer_quality(
-    action_counts, group_by=["Interaction ID", "day"]
-)
+vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
 st.plotly_chart(
     getTrendChart(vf, stage=st.session_state.stage),

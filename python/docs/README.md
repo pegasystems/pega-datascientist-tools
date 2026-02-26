@@ -22,7 +22,3 @@ To generate a new version of the docs, simply navigate to the top-level folder a
 
 1. Copy the notebooks/articles by editing the Makefile
 2. Include the new article via the index.rst file in the docs/source folder
-
-
-
-

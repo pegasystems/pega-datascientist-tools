@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple, Dict
+from __future__ import annotations
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -43,9 +43,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def distribution_as_treemap(
-        self, df: pl.LazyFrame, stage: str, scope_options: List[str]
-    ):
+    def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: list[str]):
         # Create consistent color mapping for the primary scope level
         color_discrete_map = None
         if scope_options:
@@ -53,18 +51,11 @@ class Plot:
             primary_scope = scope_options[0]
             all_stages_data = self._decision_data.getPreaggregatedRemainingView
             unique_values = (
-                all_stages_data.select(primary_scope)
-                .unique()
-                .collect()
-                .get_column(primary_scope)
-                .sort()
-                .to_list()
+                all_stages_data.select(primary_scope).unique().collect().get_column(primary_scope).sort().to_list()
             )
 
             # Create color mapping using imported Pega colorway
-            color_discrete_map = {
-                val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
-            }
+            color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
         fig = px.treemap(
             df.collect(),
@@ -91,17 +82,8 @@ class Plot:
         df = self._decision_data.get_sensitivity(win_rank, reference_group)
         if return_df:
             return df
-        n = (
-            df.filter(pl.col("Factor") == "Priority")
-            .select("Influence")
-            .collect()
-            .item()
-        )
-        plotData = df.with_columns(
-            pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias(
-                "Relative"
-            )
-        )
+        n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
+        plotData = df.with_columns(pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias("Relative"))
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
@@ -148,19 +130,10 @@ class Plot:
         # Create consistent color mapping for the selected level
         # Get all unique values for the level across all stages to ensure consistency
         all_stages_data = self._decision_data.getPreaggregatedRemainingView
-        unique_values = (
-            all_stages_data.select(level)
-            .unique()
-            .collect()
-            .get_column(level)
-            .sort()
-            .to_list()
-        )
+        unique_values = all_stages_data.select(level).unique().collect().get_column(level).sort().to_list()
 
         # Create color mapping using imported Pega colorway
-        color_discrete_map = {
-            val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)
-        }
+        color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
         fig = px.bar(
             df.collect(),
@@ -186,19 +159,13 @@ class Plot:
     def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
         if df is None:
             df = self._decision_data.sample
-        plotData = self._decision_data.get_optionality_data(df).filter(
-            pl.col(self._decision_data.level) == stage
-        )
+        plotData = self._decision_data.get_optionality_data(df).filter(pl.col(self._decision_data.level) == stage)
         if return_df:
             return plotData
         plotData = plotData.collect()
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(
-            go.Bar(
-                x=plotData["nOffers"], y=plotData["Interactions"], name="Optionality"
-            )
-        )
+        fig.add_trace(go.Bar(x=plotData["nOffers"], y=plotData["Interactions"], name="Optionality"))
         fig.add_trace(
             go.Scatter(
                 x=plotData["nOffers"],
@@ -222,9 +189,7 @@ class Plot:
     def optionality_funnel(self, df):
         plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
         total_interactions = (
-            plot_data.filter(pl.col("Stage Group") == plot_data.row(0)[0])
-            .select(pl.sum("Interactions"))
-            .row(0)[0]
+            plot_data.filter(pl.col("Stage Group") == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
         )
         fig = go.Figure()
 
@@ -241,9 +206,7 @@ class Plot:
         for i, action_count in enumerate(["0", "1", "2", "3", "4", "5", "6", "7+"]):
             df_filtered = plot_data.filter(pl.col("available_actions") == action_count)
             df_with_percent = df_filtered.with_columns(
-                ((pl.col("Interactions") / total_interactions) * 100).alias(
-                    "percentage"
-                )
+                ((pl.col("Interactions") / total_interactions) * 100).alias("percentage")
             )
 
             fig.add_trace(
@@ -308,9 +271,7 @@ class Plot:
             .update_layout(width=500, height=500)
         )
 
-    def trend_chart(
-        self, stage: str, scope: str, return_df=False
-    ) -> Tuple[go.Figure, Optional[str]]:
+    def trend_chart(self, stage: str, scope: str, return_df=False) -> tuple[go.Figure, str | None]:
         df = self._decision_data.get_trend_data(stage, scope).collect()
 
         if return_df:
@@ -346,25 +307,19 @@ class Plot:
     def decision_funnel(
         self,
         scope: str,
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        remaining_df, filter_df = self._decision_data.getFunnelData(
-            scope, additional_filters
-        )
+        remaining_df, filter_df = self._decision_data.getFunnelData(scope, additional_filters)
         if return_df:
             return remaining_df, filter_df
 
         unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
         colors = px.colors.qualitative.Light24
-        color_map = {
-            val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)
-        }
+        color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
         remaining_fig = (
             px.funnel(
-                remaining_df.sort(
-                    [self._decision_data.level, "count", scope]
-                ).collect(),
+                remaining_df.sort([self._decision_data.level, "count", scope]).collect(),
                 y="average_actions",
                 x=self._decision_data.level,
                 color=scope,
@@ -400,10 +355,10 @@ class Plot:
 
     def filtering_components(
         self,
-        stages: List[str],
+        stages: list[str],
         top_n,
         AvailableNBADStages,
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
         df = self._decision_data.getFilterComponentData(top_n, additional_filters)
@@ -412,9 +367,7 @@ class Plot:
         top_n_actions_dict = {}
         for stage in [x for x in stages if x != "Final"]:
             top_n_actions_dict[stage] = (
-                df.filter(pl.col(self._decision_data.level) == stage)
-                .get_column("Component Name")
-                .to_list()
+                df.filter(pl.col(self._decision_data.level) == stage).get_column("Component Name").to_list()
             )
 
         color_kwargs = {}
@@ -511,9 +464,7 @@ class Plot:
             fig = (
                 fig.update_xaxes(automargin=True, title=metric)
                 .update_yaxes(title="")
-                .update_layout(
-                    yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count"
-                )
+                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count")
             )
         else:
             fig = (
@@ -527,9 +478,9 @@ class Plot:
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def prio_factor_boxplots(
         self,
-        reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
-    ) -> Tuple[go.Figure, Optional[str]]:
+    ) -> tuple[go.Figure, str | None]:
         df = self._decision_data.arbitration_stage
         prio_factors = PRIO_FACTORS
         segmented_df = (
@@ -555,9 +506,7 @@ class Plot:
 
         for i, metric in enumerate(prio_factors, start=1):
             for _, segment in enumerate(["Selected Actions", "Others"]):
-                prio_factor_values = (
-                    segmented_df.filter(segment=segment).get_column(metric).to_list()
-                )
+                prio_factor_values = segmented_df.filter(segment=segment).get_column(metric).to_list()
                 fig.add_trace(
                     go.Box(
                         x=prio_factor_values,
@@ -570,9 +519,7 @@ class Plot:
                     row=i,
                     col=1,
                 )
-                fig.update_yaxes(
-                    autorange="reversed", row=i, col=1
-                )  # for correct legend ordering
+                fig.update_yaxes(autorange="reversed", row=i, col=1)  # for correct legend ordering
                 if metric == "Propensity":
                     fig.update_xaxes(tickformat=",.0%", row=i, col=1)
 
@@ -583,7 +530,7 @@ class Plot:
 
     def rank_boxplot(
         self,
-        reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
         df = self._decision_data.sample
@@ -591,11 +538,7 @@ class Plot:
             return df
         ranks = (
             apply_filter(df, reference)
-            .filter(
-                pl.col(self._decision_data.level).is_in(
-                    self._decision_data.stages_from_arbitration_down
-                )
-            )
+            .filter(pl.col(self._decision_data.level).is_in(self._decision_data.stages_from_arbitration_down))
             .select("Rank")
             .collect()
         )
@@ -607,7 +550,7 @@ class Plot:
         self,
         top_n: int = 10,
         scope: str = "Action",
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
         """Horizontal bar chart showing which items each component filters most.
@@ -685,7 +628,7 @@ class Plot:
     def component_drilldown(
         self,
         component_name: str,
-        additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         sort_by: str = "Filtered Decisions",
         return_df=False,
     ):
@@ -719,9 +662,7 @@ class Plot:
 
         if df.height == 0:
             fig = go.Figure()
-            fig.add_annotation(
-                text=f"No actions filtered by '{component_name}'", showarrow=False
-            )
+            fig.add_annotation(text=f"No actions filtered by '{component_name}'", showarrow=False)
             return fig
 
         if sort_by in df.columns:
@@ -737,9 +678,7 @@ class Plot:
                 orientation="h",
                 name="Filtered Decisions",
                 marker_color="#cd001f",
-                hovertemplate=(
-                    "<b>%{y}</b><br>" "Filtered: %{x}<br>" "<extra></extra>"
-                ),
+                hovertemplate=("<b>%{y}</b><br>Filtered: %{x}<br><extra></extra>"),
             ),
             secondary_y=False,
         )
@@ -894,20 +833,14 @@ def offer_quality_piecharts(
     return fig
 
 
-def getTrendChart(
-    df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"
-):
+def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
     value_finder_names = [
         "atleast_one_relevant_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
     trend_df = (
-        df.filter(pl.col(level) == stage)
-        .group_by("day")
-        .agg(pl.sum(*value_finder_names))
-        .collect()
-        .sort("day")  # type: ignore[union-attribute]
+        df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect().sort("day")  # type: ignore[union-attribute]
     )
     if return_df:
         return trend_df.lazy()
@@ -939,9 +872,7 @@ def getTrendChart(
 _ECDF_MAX_ROWS = 50_000
 
 
-def plot_priority_component_distribution(
-    value_data: pl.LazyFrame, component: str, granularity: str
-):
+def plot_priority_component_distribution(value_data: pl.LazyFrame, component: str, granularity: str):
     """Violin + ECDF + summary statistics for a single prioritization component.
 
     Returns
@@ -1001,9 +932,7 @@ def plot_priority_component_distribution(
     return violin_fig, ecdf_fig, stats_df
 
 
-def plot_component_overview(
-    value_data: pl.LazyFrame, components: List[str], granularity: str
-) -> go.Figure:
+def plot_component_overview(value_data: pl.LazyFrame, components: list[str], granularity: str) -> go.Figure:
     """Small-multiples violin panel showing all components side by side.
 
     Each component is a separate facet so their different scales don't
@@ -1021,9 +950,7 @@ def plot_component_overview(
         return fig
 
     collected: pl.DataFrame = value_data.select([granularity] + components).collect()  # type: ignore[assignment]
-    melted = collected.unpivot(
-        on=components, index=granularity, variable_name="Component", value_name="Value"
-    )
+    melted = collected.unpivot(on=components, index=granularity, variable_name="Component", value_name="Value")
 
     fig = px.violin(
         melted,
@@ -1061,10 +988,10 @@ def plot_component_overview(
 def create_win_distribution_plot(
     data: pl.DataFrame,
     win_count_col: str,
-    scope_config: Dict[str, Union[str, List[str]]],
+    scope_config: dict[str, str | list[str]],
     title_suffix: str,
     y_axis_title: str,
-) -> Tuple[go.Figure, pl.DataFrame]:
+) -> tuple[go.Figure, pl.DataFrame]:
     """
     Create a win distribution bar chart with highlighted selected items.
 
@@ -1078,7 +1005,7 @@ def create_win_distribution_plot(
         DataFrame containing win distribution data with action identifiers and win counts
     win_count_col : str
         Column name containing win counts to plot (e.g., "original_win_count", "new_win_count")
-    scope_config : Dict[str, Union[str, List[str]]]
+    scope_config : dict[str, str | list[str]]
         Configuration dictionary from get_scope_config() containing:
         - level: "Action", "Group", or "Issue"
         - group_cols: List of columns for grouping
@@ -1092,7 +1019,7 @@ def create_win_distribution_plot(
 
     Returns
     -------
-    Tuple[go.Figure, pl.DataFrame]
+    tuple[go.Figure, pl.DataFrame]
         - Plotly figure with bar chart
         - Processed plot data (aggregated if needed)
 
@@ -1155,17 +1082,13 @@ def create_win_distribution_plot(
     # Create hover template based on the level in hierarchy
     if scope_config["x_col"] == "Group" and "Issue" in plot_data.columns:
         # Show pyIssue in hover when level is pyGroup
-        hover_template = (
-            "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
-        )
+        hover_template = "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
         customdata = plot_data["Issue"]
-    elif (
-        scope_config["x_col"] == "Action"
-        and "Group" in plot_data.columns
-        and "Issue" in plot_data.columns
-    ):
+    elif scope_config["x_col"] == "Action" and "Group" in plot_data.columns and "Issue" in plot_data.columns:
         # Show both pyGroup and pyIssue in hover when level is pyName (Action)
-        hover_template = "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
+        hover_template = (
+            "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
+        )
         customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
     else:
         # Default hover template
@@ -1221,7 +1144,7 @@ def create_win_distribution_plot(
 
 def create_parameter_distribution_boxplots(
     segmented_df: pl.DataFrame,
-    parameters: Optional[List[str]] = None,
+    parameters: list[str] | None = None,
     title: str = "Parameter Distributions: Selected Actions vs Competitors",
 ) -> go.Figure:
     """
@@ -1232,7 +1155,7 @@ def create_parameter_distribution_boxplots(
     segmented_df : pl.DataFrame
         DataFrame with columns for parameters and a 'segment' column
         containing "Selected Actions" or "Others"
-    parameters : List[str], optional
+    parameters : list[str], optional
         List of parameter column names to plot
     title : str, optional
         Title for the plot

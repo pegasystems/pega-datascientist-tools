@@ -21,7 +21,7 @@
   }
   a,.sidebar nav[role=doc-toc] ul>li>a.nav-link.active{
     color: rgb(58, 83, 233) !important;
-    
+
   }
   .sidebar nav[role=doc-toc] ul>li>a.nav-link.active{
     border-left-color: rgb(58, 83, 233) !important;

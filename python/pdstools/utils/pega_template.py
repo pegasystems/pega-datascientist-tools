@@ -1,7 +1,6 @@
 import plotly.graph_objects as go
 import plotly.io as pio
 
-
 colorway = [
     "#001F5F",  # dark blue
     "#10A5AC",

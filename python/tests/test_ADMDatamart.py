@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ADMDatamart functions
-"""
+"""Testing the functionality of the ADMDatamart functions"""
 
 import os
 import pathlib
@@ -65,7 +63,8 @@ def test_active_range_Pega7():
     test_data_mdls = f"{basePath}/data/active_range/dmModels.csv.gz"
     test_data_preds = f"{basePath}/data/active_range/dmPredictors.csv.gz"
     dm = ADMDatamart(
-        model_df=pl.scan_csv(test_data_mdls), predictor_df=pl.scan_csv(test_data_preds)
+        model_df=pl.scan_csv(test_data_mdls),
+        predictor_df=pl.scan_csv(test_data_preds),
     )
 
     # These tests are identical to the tests in the old R version
@@ -92,7 +91,8 @@ def test_active_range_newer_single():
     test_data_mdls = f"{basePath}/data/active_range/all_1_mdls.csv"
     test_data_preds = f"{basePath}/data/active_range/all_1_preds.csv"
     dm = ADMDatamart(
-        model_df=pl.scan_csv(test_data_mdls), predictor_df=pl.scan_csv(test_data_preds)
+        model_df=pl.scan_csv(test_data_mdls),
+        predictor_df=pl.scan_csv(test_data_preds),
     )
 
     ar = dm.active_ranges().collect()
@@ -105,7 +105,7 @@ def test_active_range_newer_single():
 
 def test_active_range_Pega8():
     dm = ADMDatamart.from_ds_export(
-        base_path=f"{basePath}/data/active_range/CDHSample-Pega8"
+        base_path=f"{basePath}/data/active_range/CDHSample-Pega8",
     )
 
     ar = dm.active_ranges().collect()
@@ -144,13 +144,12 @@ def test_active_range_Pega8():
         -0.425495,
     ]
 
+
 def _check_cat(dm, pred_name):
     return (
-        dm.predictor_data.filter(PredictorName=pred_name)
-        .select(pl.col("PredictorCategory").unique())
-        .collect()
-        .item()
+        dm.predictor_data.filter(PredictorName=pred_name).select(pl.col("PredictorCategory").unique()).collect().item()
     )
+
 
 def test_predictor_categorization_default(sample):
     default_cats = (
@@ -171,7 +170,7 @@ def test_predictor_categorization_default(sample):
 
 def test_predictor_categorization_custom_expression(sample):
     categorization = pl.when(
-        pl.col("PredictorName").cast(pl.Utf8).str.contains("Score")
+        pl.col("PredictorName").cast(pl.Utf8).str.contains("Score"),
     ).then(pl.lit("External Model"))
 
     sample.apply_predictor_categorization(categorization)
@@ -192,8 +191,9 @@ def test_predictor_categorization_custom_expression(sample):
     assert cats == ["Customer", "External Model", "IH", "Param"]
     assert _check_cat(sample, "Customer.RiskScore") == "External Model"
 
+
 def test_predictor_categorization_dictionary(sample):
-    categorization = {"XGBoost Model" : "Score"}
+    categorization = {"XGBoost Model": "Score"}
 
     sample.apply_predictor_categorization(categorization)
 
@@ -213,10 +213,10 @@ def test_predictor_categorization_dictionary(sample):
     assert cats == ["Customer", "IH", "Param", "XGBoost Model"]
     assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
 
-def test_predictor_categorization_dictionary_regexps(sample):
 
+def test_predictor_categorization_dictionary_regexps(sample):
     # Using a reg exp w/o setting the flag should not match anything
-    categorization = {"XGBoost Model" : "Score$"}
+    categorization = {"XGBoost Model": "Score$"}
     sample.apply_predictor_categorization(categorization)
 
     cats = (
@@ -229,7 +229,7 @@ def test_predictor_categorization_dictionary_regexps(sample):
     assert "XGBoost Model" not in cats
 
     # But with the flag we should get some more results
-    categorization = {"XGBoost Model" : "Score$"}
+    categorization = {"XGBoost Model": "Score$"}
     sample.apply_predictor_categorization(categorization, use_regexp=True)
 
     cats = (

@@ -56,7 +56,7 @@ WITH
             {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
-            , CASE 
+            , CASE
                 WHEN {RIGHT_PREFIX}.min_interval IS NULL AND {RIGHT_PREFIX}.max_interval IS NOT NULL
                     THEN '<=' || CAST(CAST(({LEFT_PREFIX}.maximum + {RIGHT_PREFIX}.max_interval) / 2.0 AS DECIMAL) AS VARCHAR)
                 WHEN {RIGHT_PREFIX}.max_interval IS NULL AND {RIGHT_PREFIX}.min_interval IS NOT NULL
@@ -71,7 +71,7 @@ WITH
             , {LEFT_PREFIX}.contribution_min
             , {LEFT_PREFIX}.contribution_max
             , {LEFT_PREFIX}.frequency
-            
+
         FROM re_grouped_data AS {LEFT_PREFIX}
         JOIN intervals AS {RIGHT_PREFIX}
         ON {LEFT_PREFIX}.predictor_name={RIGHT_PREFIX}.predictor_name AND {LEFT_PREFIX}.decile={RIGHT_PREFIX}.decile AND {LEFT_PREFIX}.partition = {RIGHT_PREFIX}.partition
@@ -96,6 +96,5 @@ SELECT
 FROM result
 UNION
 SELECT DISTINCT
-    * 
+    *
 FROM result_missing
-

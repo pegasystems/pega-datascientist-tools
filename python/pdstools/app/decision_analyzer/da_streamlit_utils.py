@@ -1,6 +1,6 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
+from __future__ import annotations
 from pathlib import Path
-from typing import List, Optional
 
 import polars as pl
 import streamlit as st
@@ -66,7 +66,7 @@ def stage_level_selector():
 def stage_selectbox(
     label: str = "Select Stage",
     key: str = "stage",
-    default: Optional[str] = None,
+    default: str | None = None,
     **kwargs,
 ):
     """Render a stage selectbox that groups stages by their Stage Group.
@@ -124,10 +124,7 @@ def ensure_funnel():
 
 
 def ensure_getFilterComponentData():
-    return (
-        "Component Name"
-        in st.session_state.decision_data.decision_data.collect_schema().names()
-    )
+    return "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 
 
 # st.elements.utils._shown_default_value_warning = (
@@ -162,16 +159,12 @@ def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
 
 def reset_filter_state(filter_type: str):
     """Remove all session-state keys for the given filter type prefix."""
-    keys_to_remove = [
-        k
-        for k in st.session_state.keys()
-        if k.startswith(filter_type) and k != "filters"
-    ]
+    keys_to_remove = [k for k in st.session_state.keys() if k.startswith(filter_type) and k != "filters"]
     for k in keys_to_remove:
         del st.session_state[k]
 
 
-def _clean_unselected_filters(to_filter_columns: List[str], filter_type: str):
+def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
     """Remove session-state keys for columns no longer in the filter list."""
     keys_to_remove = []
     for key in st.session_state.keys():
@@ -191,19 +184,13 @@ def _clean_unselected_filters(to_filter_columns: List[str], filter_type: str):
                 del st.session_state[key]
 
 
-def _render_column_selector(
-    df: pl.LazyFrame, columns: List[str], filter_type: str
-) -> List[str]:
+def _render_column_selector(df: pl.LazyFrame, columns: list[str], filter_type: str) -> list[str]:
     """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
-        st.session_state[f"{filter_type}multiselect"] = st.session_state[
-            f"{filter_type}_multiselect"
-        ]
+        st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
-    st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(
-        f"{filter_type}multiselect", []
-    )
+    st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(f"{filter_type}multiselect", [])
     return st.multiselect(
         "Filter data on",
         columns,
@@ -217,7 +204,7 @@ def _render_categorical_filter(
     column: str,
     container,
     filter_type: str,
-    queries: List[pl.Expr],
+    queries: list[pl.Expr],
 ):
     """Render filter UI for a categorical/string column.
 
@@ -226,16 +213,12 @@ def _render_categorical_filter(
     """
     categories_key = f"{filter_type}categories_{column}"
     if categories_key not in st.session_state:
-        st.session_state[categories_key] = (
-            df.select(pl.col(column).unique()).collect().to_series().to_list()
-        )
+        st.session_state[categories_key] = df.select(pl.col(column).unique()).collect().to_series().to_list()
 
     widget_key = f"{filter_type}_selected_{column}"
     persisted_key = f"{filter_type}selected_{column}"
     if widget_key not in st.session_state:
-        st.session_state[widget_key] = st.session_state.get(
-            persisted_key, st.session_state[categories_key]
-        )
+        st.session_state[widget_key] = st.session_state.get(persisted_key, st.session_state[categories_key])
 
     categories = st.session_state[categories_key]
 
@@ -250,9 +233,7 @@ def _render_categorical_filter(
             kwargs={"filter_type": filter_type, "column": column},
         )
         if selected != categories:
-            queries.append(
-                pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key])
-            )
+            queries.append(pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key]))
     else:
         # Too many unique values — use regex input instead
         if widget_key in st.session_state:
@@ -279,7 +260,7 @@ def _render_numeric_filter(
     column: str,
     container,
     filter_type: str,
-    queries: List[pl.Expr],
+    queries: list[pl.Expr],
 ):
     """Render filter UI for a numeric column (slider or dual number inputs)."""
     min_col, max_col = container.columns((1, 1))
@@ -324,7 +305,7 @@ def _render_temporal_filter(
     column: str,
     container,
     filter_type: str,
-    queries: List[pl.Expr],
+    queries: list[pl.Expr],
 ):
     """Render filter UI for a temporal (date/datetime) column."""
     value = (
@@ -346,9 +327,7 @@ def _render_temporal_filter(
         queries.append(pl.col(column).is_between(*user_date_input))
 
 
-def get_data_filters(
-    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
-) -> List[pl.Expr]:
+def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="local") -> list[pl.Expr]:
     """Build filter expressions via interactive Streamlit widgets.
 
     Parameters
@@ -386,7 +365,7 @@ def get_data_filters(
     return queries
 
 
-def get_options() -> List[str]:
+def get_options() -> list[str]:
     """Data source options.
 
     'File path' is only shown in managed deployments where users need to
@@ -399,7 +378,7 @@ def get_options() -> List[str]:
     return options
 
 
-def handle_sample_data() -> Optional[pl.LazyFrame]:
+def handle_sample_data() -> pl.LazyFrame | None:
     """Load built-in sample data for demo purposes."""
     # Prefer local file when available (e.g. during development), fall back
     # to downloading from GitHub for installed-package users.
@@ -413,7 +392,7 @@ def handle_sample_data() -> Optional[pl.LazyFrame]:
     )
 
 
-def handle_data_path() -> Optional[pl.LazyFrame]:
+def handle_data_path() -> pl.LazyFrame | None:
     """Load data from the ``--data-path`` CLI flag, if configured.
 
     Supports the same formats as the file upload: parquet, csv, json, arrow,
@@ -482,7 +461,7 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> Optional[pl.LazyFrame]:
+def handle_file_upload() -> pl.LazyFrame | None:
     """Show file uploader accepting one or more files and return a LazyFrame, or None."""
     import tempfile
 
@@ -504,11 +483,7 @@ def handle_file_upload() -> Optional[pl.LazyFrame]:
                 frames.append(pl.scan_parquet(tmp.name))
         elif suffix == ".zip":
             frames.append(_read_uploaded_zip(f))
-        elif (
-            name_lower.endswith(".tar.gz")
-            or name_lower.endswith(".tgz")
-            or suffix == ".tar"
-        ):
+        elif name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz") or suffix == ".tar":
             frames.append(_read_uploaded_tar(f))
         elif suffix in {".json", ".ndjson"}:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -537,7 +512,7 @@ def handle_file_upload() -> Optional[pl.LazyFrame]:
     return pl.concat(frames, how="diagonal", rechunk=True)
 
 
-def handle_file_path() -> Optional[pl.LazyFrame]:
+def handle_file_path() -> pl.LazyFrame | None:
     """Show text input for a file/folder path and return a LazyFrame, or None."""
     st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
     path = st.text_input(
@@ -581,9 +556,7 @@ def load_decision_analyzer(
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-def st_priority_component_distribution(
-    value_data: pl.LazyFrame, component, granularity
-):
+def st_priority_component_distribution(value_data: pl.LazyFrame, component, granularity):
     return plot_priority_component_distribution(value_data, component, granularity)
 
 

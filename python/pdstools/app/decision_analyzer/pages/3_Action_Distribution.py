@@ -38,9 +38,7 @@ with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
 
     stage_selectbox()
-distribution_data = st.session_state.decision_data.getDistributionData(
-    st.session_state.stage, scope_options
-)
+distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
 st.plotly_chart(
     st.session_state.decision_data.plot.distribution_as_treemap(
         df=distribution_data,

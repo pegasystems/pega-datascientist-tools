@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the cdh_utils functions
-"""
+"""Testing the functionality of the cdh_utils functions"""
 
 import datetime
 
@@ -55,7 +53,7 @@ def test_auc_from_probs():
                     0.875,
                 ],
             )
-            - 0.7637363
+            - 0.7637363,
         )
         < 1e-6
     )
@@ -69,9 +67,7 @@ def test_auc_from_bincounts():
 
 
 def test_aucpr_from_probs():
-    assert (
-        abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
-    )
+    assert abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
     assert cdh_utils.aucpr_from_probs([1, 1, 1], [0.6, 0.2, 0.2]) == 0.0
     # assert abs(cdh_utils.aucpr_from_probs([1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
     #    [0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.333333333333333, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.666666666666667, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875, 0.875]) - 0.8610687) < 1e-6
@@ -85,7 +81,7 @@ def test_aucpr_from_bincounts():
                 [50, 70, 75, 80, 85, 90, 110, 130, 150, 160],
                 [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450],
             )
-            - 0.1489611
+            - 0.1489611,
         )
         < 1e-6
     )
@@ -96,45 +92,40 @@ def test_auc2gini():
 
 
 def test_fromPRPCDateTime():
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True)
-        == "2018-03-16 13:41:27 GMT"
-    )
+    assert cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True) == "2018-03-16 13:41:27 GMT"
     assert cdh_utils.from_prpc_date_time(
-        "20180316T134127.847 GMT", False
+        "20180316T134127.847 GMT",
+        False,
     ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.847345", True)
-        == "2018-03-16 13:41:27 "
-    )
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127.8", True)
-        == "2018-03-16 13:41:27 "
-    )
-    assert (
-        cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
-    )
+    assert cdh_utils.from_prpc_date_time("20180316T134127.847345", True) == "2018-03-16 13:41:27 "
+    assert cdh_utils.from_prpc_date_time("20180316T134127.8", True) == "2018-03-16 13:41:27 "
+    assert cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
 
 
 def test_toPRPCDateTime():
     assert (
         cdh_utils.to_prpc_date_time(
-            datetime.datetime(2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("GMT"))
+            datetime.datetime(2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("GMT")),
         )
         == "20180316T134127.847 GMT+0000"
     )
     assert (
         cdh_utils.to_prpc_date_time(
             datetime.datetime(
-                2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("US/Eastern")
-            )
+                2018,
+                3,
+                16,
+                13,
+                41,
+                27,
+                847000,
+                tzinfo=timezone("US/Eastern"),
+            ),
         )
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
-            :-3
-        ]
+        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]
         == "20180316T134127.847 GMT+0000"[:-3]
     )
 
@@ -145,20 +136,20 @@ def test_weighted_average_polars():
             "SuccessRate": [1, 3, 10, 40],
             "Channel": ["SMS", "SMS", "Web", "Web"],
             "ResponseCount": [3, 1, 10, 5],
-        }
+        },
     )
     output = (
         input.group_by("Channel")
         .agg(
             cdh_utils.weighted_average_polars("SuccessRate", "ResponseCount").alias(
-                "SuccessRate_weighted"
+                "SuccessRate_weighted",
             ),
         )
         .sort("Channel")
     )
 
     expected_output = pl.DataFrame(
-        {"Channel": ["SMS", "Web"], "SuccessRate_weighted": [1.5, 20]}
+        {"Channel": ["SMS", "Web"], "SuccessRate_weighted": [1.5, 20]},
     ).sort("Channel")
 
     assert output.equals(expected_output)
@@ -167,8 +158,9 @@ def test_weighted_average_polars():
         input.filter(pl.col("Channel") == "SMS")
         .with_columns(
             cdh_utils.weighted_average_polars(
-                vals="SuccessRate", weights="ResponseCount"
-            ).alias("weighted_average")
+                vals="SuccessRate",
+                weights="ResponseCount",
+            ).alias("weighted_average"),
         )
         .sort("SuccessRate")
     )
@@ -179,7 +171,7 @@ def test_weighted_average_polars():
             "Channel": ["SMS", "SMS"],
             "ResponseCount": [3, 1],
             "weighted_average": [1.5, 1.5],
-        }
+        },
     ).sort("SuccessRate")
 
     assert output.equals(expected_output)
@@ -190,7 +182,10 @@ def test_overlap_matrix():
     df = pl.DataFrame({"Channel": ["Mobile", "Web", "Email"], "Actions": input})
 
     assert cdh_utils.overlap_matrix(
-        df, "Actions", "Channel", show_fraction=False
+        df,
+        "Actions",
+        "Channel",
+        show_fraction=False,
     ).equals(
         pl.DataFrame(
             {
@@ -198,12 +193,15 @@ def test_overlap_matrix():
                 "Overlap_Actions_Web": [2, 4, 1],
                 "Overlap_Actions_Email": [1, 1, 4],
                 "Channel": ["Mobile", "Web", "Email"],
-            }
-        )
+            },
+        ),
     )
 
     assert cdh_utils.overlap_matrix(
-        df, "Actions", "Channel", show_fraction=True
+        df,
+        "Actions",
+        "Channel",
+        show_fraction=True,
     ).equals(
         pl.DataFrame(
             {
@@ -211,8 +209,8 @@ def test_overlap_matrix():
                 "Overlap_Actions_Web": [2.0 / 3, None, 0.25],
                 "Overlap_Actions_Email": [1.0 / 3, 0.25, None],
                 "Channel": ["Mobile", "Web", "Email"],
-            }
-        )
+            },
+        ),
     )
 
 
@@ -223,11 +221,11 @@ def test_overlap_lists_polars_simple():
     df = pl.DataFrame({"Channel": ["Mobile", "Web", "Email"], "Actions": input})
 
     assert df.with_columns(
-        pl.col("Actions").map_batches(cdh_utils.overlap_lists_polars)
+        pl.col("Actions").map_batches(cdh_utils.overlap_lists_polars),
     ).equals(
         pl.DataFrame(
-            {"Channel": ["Mobile", "Web", "Email"], "Actions": [0.5, 0.375, 0.25]}
-        )
+            {"Channel": ["Mobile", "Web", "Email"], "Actions": [0.5, 0.375, 0.25]},
+        ),
     )
 
     input = pl.DataFrame({"Actions": [["a", "b"], ["a", "c", "d"]]})
@@ -241,7 +239,7 @@ def test_overlap_lists_polars_more():
     input = pl.DataFrame(
         {
             "Actions": [["a", "b"], ["b"], ["a"], ["a", "c", "d"]],
-        }
+        },
     )
 
     assert cdh_utils.overlap_lists_polars(input["Actions"]).to_list() == [
@@ -262,7 +260,7 @@ def test_overlap_lists_polars_overall_summary():
                 ["a", "b"],
                 ["a", "b", "c", "d"],
             ],
-        }
+        },
     )
 
     assert cdh_utils.overlap_lists_polars(df["Actions"]).to_list() == [
@@ -281,10 +279,10 @@ def test_overlap_lists_polars_overall_summary():
                 pl.col("Actions")
                 .filter(pl.col("isValid"))
                 .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
-                .mean()
+                .mean(),
             )
             .otherwise(pl.lit(0.0))
-            .alias("Overlap")
+            .alias("Overlap"),
         )
         .drop("literal")
         # .explode(["Channel", "Overlap"])
@@ -311,7 +309,7 @@ def test_overlap_lists_polars_overall_period_summaries():
                 ["a", "b", "c", "d"],
                 ["a", "b", "c", "d"],
             ],
-        }
+        },
     )
 
     # overlap of actions regardless channel/period
@@ -330,10 +328,10 @@ def test_overlap_lists_polars_overall_period_summaries():
                 pl.col("Actions")
                 .filter(pl.col("isValid"))
                 .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
-                .mean()
+                .mean(),
             )
             .otherwise(pl.lit(0.0))
-            .alias("Overlap")
+            .alias("Overlap"),
         )
         .sort("Period")
     )
@@ -353,17 +351,13 @@ def test_weighted_performance_polars():
             "Performance": [0.5, 0.8, 0.75, 0.5],  # 0.6, 0.6
             "Channel": ["SMS", "SMS", "Web", "Web"],
             "ResponseCount": [2, 1, 2, 3],
-        }
+        },
     )
 
-    output = (
-        input.group_by("Channel")
-        .agg(cdh_utils.weighted_performance_polars())
-        .sort("Channel")
-    )
+    output = input.group_by("Channel").agg(cdh_utils.weighted_performance_polars()).sort("Channel")
 
     expected_output = pl.DataFrame(
-        {"Channel": ["SMS", "Web"], "Performance": [0.6, 0.6]}
+        {"Channel": ["SMS", "Web"], "Performance": [0.6, 0.6]},
     ).sort("Channel")
 
     assert output.equals(expected_output)
@@ -381,18 +375,14 @@ def test_zRatio():
             ],
             "BinPositives": [0, 7, 11, 12, 6],
             "BinNegatives": [5, 2208, 1919, 1082, 352],
-        }
+        },
     )
 
-    output = (
-        input.with_columns(cdh_utils.z_ratio())
-        .with_columns(pl.col("ZRatio").round(2))
-        .sort("Predictor_range")
-    )
+    output = input.with_columns(cdh_utils.z_ratio()).with_columns(pl.col("ZRatio").round(2)).sort("Predictor_range")
 
     Zratios = [-3.05, 1.66, -2.24, 1.76, -0.51]
     expected_output = input.sort("Predictor_range").with_columns(
-        pl.Series(name="ZRatio", values=Zratios)
+        pl.Series(name="ZRatio", values=Zratios),
     )
 
     assert output.equals(expected_output)
@@ -410,7 +400,7 @@ def test_lift():
 
     vals = [0, 0.4917733, 0.8869027, 1.7068860, 2.6080074]
     expected_output = input.with_columns(
-        pl.Series(name="Lift", values=vals, strict=False)
+        pl.Series(name="Lift", values=vals, strict=False),
     )
 
     assert output.equals(expected_output)
@@ -428,7 +418,7 @@ def test_log_odds():
             ],
             "Positives": [0, 7, 11, 12, 6],
             "ResponseCount": [5, 2215, 1930, 1094, 358],
-        }
+        },
     )
 
     output_polars_native = input.with_columns(cdh_utils.log_odds_polars().round(5))
@@ -439,15 +429,13 @@ def test_log_odds():
     log_odds_results = cdh_utils.bin_log_odds(positives_list, negatives_list)
 
     output_polars_python = input.with_columns(
-        LogOdds=pl.Series(log_odds_results).round(5)
+        LogOdds=pl.Series(log_odds_results).round(5),
     )
 
-    log_odds_expected_results = [
-        round(x, 5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]
-    ]
+    log_odds_expected_results = [round(x, 5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]]
 
     expected_output = input.with_columns(
-        pl.Series(name="LogOdds", values=log_odds_expected_results)
+        pl.Series(name="LogOdds", values=log_odds_expected_results),
     )
 
     assert output_polars_native.equals(expected_output)
@@ -461,15 +449,15 @@ def test_featureImportance():
             "PredictorName": ["Age", "Age", "CreditScore", "CreditScore"],
             "BinResponseCount": [20, 30, 12, 10],
             "BinPositives": [2, 7, 11, 6],
-        }
+        },
     )
 
     output = input.with_columns(cdh_utils.feature_importance().round(5)).sort(
-        "BinPositives"
+        "BinPositives",
     )
     importance_list = [-0.05077, 0.17956, -0.05077, 0.17956]
     expected_output = input.sort("BinPositives").with_columns(
-        pl.Series(name="FeatureImportance", values=importance_list)
+        pl.Series(name="FeatureImportance", values=importance_list),
     )
 
     assert output.equals(expected_output)
@@ -515,7 +503,7 @@ def test_PredictorCategorization():
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
 
     assert cdh_utils.default_predictor_categorization().meta.eq(
-        cdh_utils.default_predictor_categorization("PredictorName")
+        cdh_utils.default_predictor_categorization("PredictorName"),
     )
 
 
@@ -602,7 +590,7 @@ def test_gains_table():
                 0.999000015258789,
                 1.0,
             ],
-        }
+        },
     )
     # without responses, x should increase by 1/13 and order is order of positives
     gains = cdh_utils.gains_table(df, "Positives")
@@ -645,12 +633,8 @@ def test_gains_table():
 
     # with responses, the order should be the same as in the classifier data
     gains = cdh_utils.gains_table(df, "Positives", index="Responses")
-    assert gains.get_column("cum_x").round(4).to_list() == [0] + [
-        round(e, 4) for e in df["CumTotal"].to_list()
-    ]
-    assert gains.get_column("cum_y").round(4).to_list() == [0] + [
-        round(e, 4) for e in df["CumPos"].to_list()
-    ]
+    assert gains.get_column("cum_x").round(4).to_list() == [0] + [round(e, 4) for e in df["CumTotal"].to_list()]
+    assert gains.get_column("cum_y").round(4).to_list() == [0] + [round(e, 4) for e in df["CumPos"].to_list()]
 
     # With a grouping field
 
@@ -658,7 +642,7 @@ def test_gains_table():
         {
             "Positives": [100, 10, 20, 500, 5000, 30, 10000, 15000, 20],
             "Dimension": ["A", "B", "B", "A", "A", "B", "A", "A", "B"],
-        }
+        },
     )
     gains = cdh_utils.gains_table(df, "Positives", by="Dimension")
     assert gains.get_column("cum_x").round(5).to_list() == [
@@ -701,17 +685,11 @@ def test_apply_query():
 
     assert df.equals(cdh_utils._apply_query(df))
 
-    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")["categories"].unique().to_list() == ["C"]
 
-    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])["categories"].unique().to_list() == ["C"]
 
-    assert cdh_utils._apply_query(df, query={"categories": ["C"]})[
-        "categories"
-    ].unique().to_list() == ["C"]
+    assert cdh_utils._apply_query(df, query={"categories": ["C"]})["categories"].unique().to_list() == ["C"]
 
     with pytest.raises(ValueError):  # should raise; lists need to be expressions
         cdh_utils._apply_query(df, query=[{"categories": ["C"]}])
@@ -764,7 +742,7 @@ def test_extract_keys():
                 "GoldCard",
             ],
             "Treatment": ["a", "b", "c", "d", "e", "f"],
-        }
+        },
     )
     assert cdh_utils._extract_keys(df, capitalize=True).columns == [
         "Name",
@@ -833,15 +811,16 @@ def test_parse_pega_date_time_formats():
                 "20180316T134127",
                 "20241201",
                 # "09MAY2025:06:00:05" # Polars panics. Invariant when calling StrpTimeState.parse was not upheld. https://github.com/pola-rs/polars/issues/22495
-            ]
-        }
+            ],
+        },
     ).with_columns(
         cdh_utils.parse_pega_date_time_formats("Snappy").alias("SnapshotTime"),
         cdh_utils.parse_pega_date_time_formats("Snappy", timestamp_dtype=pl.Date).alias(
-            "SnapshotDate"
+            "SnapshotDate",
         ),
         cdh_utils.parse_pega_date_time_formats(
-            "Snappy", timestamp_fmt="%d%m%Y:%H:%M:%S"
+            "Snappy",
+            timestamp_fmt="%d%m%Y:%H:%M:%S",
         ).alias("SnapshotTime2"),
     )
 

@@ -2,7 +2,7 @@ import datetime
 
 import polars as pl
 import pytest
-from pdstools.infinity.internal._pagination import PaginatedList
+from pdstools.infinity.internal._pagination import PaginatedList, _Slice
 from pdstools.infinity.resources.prediction_studio.local_model_utils import (
     PMMLModel,
 )
@@ -49,7 +49,7 @@ mock_response_model = {
             "lastUpdateTime": "20240718T104417.891 GMT",
             "updatedBy": "Somnath Paul",
         },
-    ]
+    ],
 }
 
 mock_response_predictions = {
@@ -69,7 +69,7 @@ mock_response_predictions = {
             "status": "Completed",
             "lastUpdateTime": "20231129T113556.481 GMT",
         },
-    ]
+    ],
 }
 
 mock_response_predictions_token = {
@@ -119,7 +119,7 @@ mock_response_notifications = {
             "impact": "High",
             "triggerTime": "20240720T050556.826 GMT",
         },
-    ]
+    ],
 }
 
 
@@ -127,12 +127,14 @@ def test_repository(prediction_studio_client, mocker):
     mock_response = mock_response_repository
 
     mock_get = mocker.patch.object(
-        prediction_studio_client._client, "get", return_value=mock_response
+        prediction_studio_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_studio_client.repository()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/repository"
+        "/prweb/api/PredictionStudio/v3/predictions/repository",
     )
 
     # Assertions to verify the Repository object's attributes
@@ -179,7 +181,9 @@ def test_list_models(
 ):
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        prediction_studio_client._client, method_to_patch, return_value=mock_response
+        prediction_studio_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     result = prediction_studio_client.list_models(return_df=return_df)
 
@@ -196,7 +200,13 @@ def test_list_models(
         assert result[0]["source"][0] == "Pega"
         assert result[0]["status"][0] == "Completed"
         assert result[0]["last_update_time"][0] == datetime.datetime(
-            2024, 7, 18, 12, 5, 52, 671000
+            2024,
+            7,
+            18,
+            12,
+            5,
+            52,
+            671000,
         )
 
 
@@ -211,7 +221,9 @@ def test_list_models(
 def test_get_model(prediction_studio_client, mocker, fetch_type, fetch_value):
     mock_response = mock_response_model
     mocker.patch.object(
-        prediction_studio_client._client, "request", return_value=mock_response
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response,
     )
     if fetch_type == "id":
         result = prediction_studio_client.get_model(model_id=fetch_value)
@@ -251,7 +263,9 @@ def test_list_predictions(
     mock_response = mock_response_predictions
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        prediction_studio_client._client, method_to_patch, return_value=mock_response
+        prediction_studio_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     result = prediction_studio_client.list_predictions(return_df=return_df)
 
@@ -265,16 +279,21 @@ def test_list_predictions(
 @pytest.mark.parametrize(
     "return_df, expected_type",
     [
-        (False, PaginatedList._Slice),
+        (False, _Slice),
     ],
 )
 def test_list_predictions_token(
-    prediction_studio_client, mocker, return_df, expected_type
+    prediction_studio_client,
+    mocker,
+    return_df,
+    expected_type,
 ):
     mock_response = mock_response_predictions_token
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        prediction_studio_client._client, method_to_patch, return_value=mock_response
+        prediction_studio_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     test = prediction_studio_client.list_predictions(return_df=return_df)[0:3]
     assert isinstance(test, expected_type)
@@ -288,11 +307,16 @@ def test_list_predictions_token(
     ],
 )
 def test_get_predictions(
-    prediction_studio_client, mocker, identifier_type, identifier_value
+    prediction_studio_client,
+    mocker,
+    identifier_type,
+    identifier_value,
 ):
     mock_response = mock_response_predictions
     mock_request = mocker.patch.object(
-        prediction_studio_client._client, "request", return_value=mock_response
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response,
     )
     if identifier_type == "id":
         result = prediction_studio_client.get_prediction(prediction_id=identifier_value)
@@ -311,7 +335,9 @@ def test_trigger_datamart(prediction_studio_client, mocker):
     }
 
     mock_get = mocker.patch.object(
-        prediction_studio_client._client, "post", return_value=mock_response
+        prediction_studio_client._client,
+        "post",
+        return_value=mock_response,
     )
     result = prediction_studio_client.trigger_datamart_export()
 
@@ -362,10 +388,14 @@ def test_trigger_datamart_export_status(
         "repositoryName": "AWSFalcons",
     }
     mocker.patch.object(
-        prediction_studio_client._client, "post", return_value=mock_response_export
+        prediction_studio_client._client,
+        "post",
+        return_value=mock_response_export,
     )
     mocker.patch.object(
-        prediction_studio_client._client, "get", return_value=mock_response
+        prediction_studio_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_studio_client.trigger_datamart_export().get_export_status()
     assert result["status"] == expected_status
@@ -381,7 +411,9 @@ def test_upload_model(prediction_studio_client, mocker):
     }
 
     mock_get = mocker.patch.object(
-        prediction_studio_client._client, "post", return_value=mock_response
+        prediction_studio_client._client,
+        "post",
+        return_value=mock_response,
     )
     result = prediction_studio_client.upload_model(
         PMMLModel("python/tests/prediction_studio/v24_2/artifacts/test.model"),
@@ -400,8 +432,7 @@ def test_upload_model(prediction_studio_client, mocker):
     assert result.repository_name == "AWSFalcons"
     assert result.file_path == "model-staging/test.model"
     assert (
-        str(result)
-        == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
+        str(result) == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
     )
 
 
@@ -410,16 +441,18 @@ def test_model_categories(prediction_studio_client, mocker):
         "categories": [
             {"categoryLabel": "Retention", "categoryName": "Retention"},
             {"categoryLabel": "Acquisition", "categoryName": "Acquisition"},
-        ]
+        ],
     }
 
     mock_get = mocker.patch.object(
-        prediction_studio_client._client, "get", return_value=mock_response
+        prediction_studio_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_studio_client.get_model_categories()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+        "/prweb/api/PredictionStudio/v3/predictions/modelCategories",
     )
 
     assert result[0] == {"categoryLabel": "Retention", "categoryName": "Retention"}
@@ -442,24 +475,37 @@ def test_model_categories(prediction_studio_client, mocker):
                 == [
                     "model_id",
                     "prediction_id",
+                    "context",
                     "notification_type",
                     "notification_id",
-                    "notification_name" "description",
+                    "notification_mnemonic",
+                    "description",
                     "model_type",
                     "impact",
                     "trigger_time",
                 ],
-                df.shape == (2, 8),
+                df.shape == (2, 10),
             ),
         ),
     ],
 )
 def test_get_notifications(
-    prediction_studio_client, mocker, return_df, expected_type, additional_checks
+    prediction_studio_client,
+    mocker,
+    return_df,
+    expected_type,
+    additional_checks,
 ):
     mock_response = mock_response_notifications
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        prediction_studio_client._client, method_to_patch, return_value=mock_response
+        prediction_studio_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
-    prediction_studio_client.get_notifications(return_df=return_df)
+    result = prediction_studio_client.get_notifications(return_df=return_df)
+
+    assert isinstance(result, expected_type)
+    if additional_checks is not None:
+        checks = additional_checks(result)
+        assert all(checks)

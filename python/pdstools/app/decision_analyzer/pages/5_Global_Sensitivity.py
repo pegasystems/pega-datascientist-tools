@@ -1,6 +1,5 @@
 import streamlit as st
-from da_streamlit_utils import get_current_index, ensure_data
-
+from da_streamlit_utils import ensure_data, get_current_index
 
 # TODO The coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO Infer the top-X by channel from the data (max rank per channel for Final records)
@@ -28,7 +27,6 @@ with st.session_state["sidebar"]:
         value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
         key="win_rank",
     )
-
 
 # How often would it still be rank 1 under different prioritization schemes
 with st.container(border=True):

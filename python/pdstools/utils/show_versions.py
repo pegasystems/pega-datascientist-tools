@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import re
 import sys
-import logging
-from typing import Dict, Literal, Set, Union, overload
+from typing import Literal, overload
 
 from .. import __version__
 
@@ -20,9 +20,11 @@ def show_versions(print_output: Literal[True] = True) -> None: ...
 def show_versions(print_output: Literal[False] = False) -> str: ...
 
 
-def show_versions(print_output: bool = True, include_dependencies:bool = True) -> Union[None, str]:
-    """
-    Get a list of currently installed versions of pdstools and its dependencies.
+def show_versions(
+    print_output: bool = True,
+    include_dependencies: bool = True,
+) -> None | str:
+    """Get a list of currently installed versions of pdstools and its dependencies.
 
     Parameters
     ----------
@@ -59,8 +61,8 @@ def show_versions(print_output: bool = True, include_dependencies:bool = True) -
     --- Dependency group: api ---
     pydantic: 2.9.2
     httpx: 0.27.2
-    """
 
+    """
     # note: we import 'platform' here as a micro-optimisation for initial import
     import platform
 
@@ -89,12 +91,11 @@ def show_versions(print_output: bool = True, include_dependencies:bool = True) -
     if print_output:
         print(version_info)
         return None
-    else:
-        return version_info
+    return version_info
 
 
-def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
-    def expand_dep(dep: str, processed: Set[str]) -> Set[str]:
+def expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]:
+    def expand_dep(dep: str, processed: set[str]) -> set[str]:
         if not dep.startswith(f"{package_name}["):
             return {dep}
 
@@ -109,8 +110,8 @@ def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
             if nested_extra in extras:
                 result.update(
                     set().union(
-                        *(expand_dep(d, processed.copy()) for d in extras[nested_extra])
-                    )
+                        *(expand_dep(d, processed.copy()) for d in extras[nested_extra]),
+                    ),
                 )
 
         return result if result else {dep}
@@ -122,8 +123,8 @@ def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
     return expanded
 
 
-def grouped_dependencies() -> Dict[str, Set[str]]:
-    extras: Dict[str, Set[str]] = {"required": set()}
+def grouped_dependencies() -> dict[str, set[str]]:
+    extras: dict[str, set[str]] = {"required": set()}
     requires = importlib.metadata.distribution(package_name).requires
     if not requires:  # pragma: no cover
         return {}
@@ -167,21 +168,12 @@ def _dependency_table(public_only: bool = False):
     dependencies = grouped_dependencies()
     required = dependencies.pop("required")
     if public_only:
-        for private_dep_group in {"dev", "docs", "tests"}:
+        for private_dep_group in ("dev", "docs", "tests"):
             _ = dependencies.pop(private_dep_group)
-    deps = [
-        {"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()
-    ]
-    pivot = (
-        pl.DataFrame(deps)
-        .explode("deps")
-        .pivot(values="deps", index="group", on="deps")
-    )
+    deps = [{"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()]
+    pivot = pl.DataFrame(deps).explode("deps").pivot(values="deps", index="group", on="deps")
     pivotted = pivot.with_columns(
-        pl.when(pl.col(col).is_not_null())
-        .then(pl.lit("√"))
-        .otherwise(pl.lit("X"))
-        .alias(col)
+        pl.when(pl.col(col).is_not_null()).then(pl.lit("√")).otherwise(pl.lit("X")).alias(col)
         for col in pivot.columns
         if col != "group"
     )
@@ -192,7 +184,7 @@ def dependency_great_table(public_only: bool = True):
     import great_tables
 
     dependency_table = _dependency_table(public_only=public_only)
-    required_deps = list(grouped_dependencies().get("required"))
+    required_deps = list(grouped_dependencies().get("required") or [])
     optional_deps = list(set(dependency_table.collect_schema().names()))
     optional_deps = [n for n in optional_deps if n not in [*required_deps, "required"]]
     dependency_table = dependency_table.select(*required_deps, *optional_deps)

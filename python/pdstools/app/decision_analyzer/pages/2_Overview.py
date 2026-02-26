@@ -36,7 +36,7 @@ with col1:
     f"""
     In total, there are **{overview["Actions"]} actions** available in **{overview["Channels"]} channels**. The data
     was recorded over **{overview["Duration"].days} days** from **{overview["StartDate"]}** where **{overview["Decisions"]} decisions**
-    (**{round(overview["Decisions"]/overview["Duration"].days)}** decisions per day) were made for
+    (**{round(overview["Decisions"] / overview["Duration"].days)}** decisions per day) were made for
     in total **{overview["Customers"]} different customers**.
 
     """
@@ -49,15 +49,14 @@ with col1:
         there are more actions available, generally the success rates increase (and thus propensities).
         """
         st.plotly_chart(
-            st.session_state.decision_data.plot.propensity_vs_optionality(
-                "Arbitration"
-            ).update_layout(showlegend=False, height=300),
+            st.session_state.decision_data.plot.propensity_vs_optionality("Arbitration").update_layout(
+                showlegend=False, height=300
+            ),
             use_container_width=True,
         )
     else:
         st.warning(
-            "No actions survive to the arbitration stage in this data set. "
-            "Optionality analysis is not available."
+            "No actions survive to the arbitration stage in this data set. Optionality analysis is not available."
         )
 
 with col2:
@@ -81,6 +80,5 @@ with col2:
         )
     else:
         st.warning(
-            "No actions survive to the arbitration stage in this data set. "
-            "Sensitivity analysis is not available."
+            "No actions survive to the arbitration stage in this data set. Sensitivity analysis is not available."
         )

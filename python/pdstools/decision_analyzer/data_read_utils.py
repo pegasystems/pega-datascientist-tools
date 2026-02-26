@@ -3,7 +3,7 @@ import os
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Optional, List, Tuple
+
 import polars as pl
 
 from .column_schema import TableConfig
@@ -11,8 +11,7 @@ from .utils import ColumnResolver
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
-    """
-    Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
+    """Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
     which are in fact gzipped ndjson files. Extracts, reads, and concatenates
     them into a single Polars DataFrame.
 
@@ -25,9 +24,10 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
     -------
     pl.DataFrame
         A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+
     """
-    dfs: List[pl.DataFrame] = []
-    columns: List[str] = []
+    dfs: list[pl.DataFrame] = []
+    columns: list[str] = []
 
     with zipfile.ZipFile(file_buffer, "r") as zip_ref:
         for file_name in zip_ref.namelist():
@@ -35,19 +35,16 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
                 with zip_ref.open(file_name) as f:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
-                    if columns == []:
-                        columns = (
-                            df.columns
-                        )  # Ensures columns in each DataFrame have the same order.
+                    if df is not None and columns == []:
+                        columns = df.columns
                     if df is not None:
                         dfs.append(df.select(columns))
 
     return pl.concat(dfs, rechunk=True)
 
 
-def read_gzipped_data(data: BytesIO) -> Optional[pl.DataFrame]:
-    """
-    Reads gzipped ndjson data from a BytesIO object and returns a Polars DataFrame.
+def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
+    """Reads gzipped ndjson data from a BytesIO object and returns a Polars DataFrame.
 
     Parameters
     ----------
@@ -58,19 +55,19 @@ def read_gzipped_data(data: BytesIO) -> Optional[pl.DataFrame]:
     -------
     Optional[pl.DataFrame]
         The Polars DataFrame containing the data, or None if reading fails.
+
     """
     try:
         with gzip.open(data, "rb") as file:
             file_content = file.read()
-            return pl.read_ndjson(BytesIO(file_content)).lazy()
+            return pl.read_ndjson(BytesIO(file_content)).lazy()  # type: ignore[return-value]
     except Exception as e:
         print(f"Error reading gzipped data: {e}")
         return None
 
 
 def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
-    """
-    Iterates over all files with a .zip extension in the given directory, treats them
+    """Iterates over all files with a .zip extension in the given directory, treats them
     as gzipped ndjson files, reads, and concatenates them into a single Polars DataFrame.
 
     Parameters
@@ -82,9 +79,10 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     -------
     pl.DataFrame
         A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+
     """
-    dfs: List[pl.DataFrame] = []
-    columns: List[str] = []
+    dfs: list[pl.DataFrame] = []
+    columns: list[str] = []
 
     # Iterate over all files in the directory
     for filename in os.listdir(path):
@@ -97,7 +95,7 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
                 df = pl.read_ndjson(BytesIO(file_content)).lazy()
                 if columns == []:
                     columns = df.columns
-                dfs.append(df.select(columns))
+                dfs.append(df.select(columns))  # type: ignore[arg-type]
 
     return pl.concat(dfs, rechunk=True)
 
@@ -108,16 +106,12 @@ def read_data(path):
     if original_path.is_dir():
         # It's a directory, so we assume it's partitioned
         # Find the depth of the directory structure by finding the maximum number of parts among all files
-        depth = max(
-            len(p.parts) for p in original_path.glob("**/*") if p.is_file()
-        ) - len(original_path.parts)
+        depth = max(len(p.parts) for p in original_path.glob("**/*") if p.is_file()) - len(original_path.parts)
         partition_structure = Path("/".join(["*"] * depth))
-        path = (
-            original_path / partition_structure
-        )  # now path points to the partition structure
+        path = original_path / partition_structure  # now path points to the partition structure
         # Assume the first file extension is the same for all files in the directory
         for dirpath, dirs, files in os.walk(
-            str(original_path)
+            str(original_path),
         ):  # walk through the original directory
             for file in files:
                 extension = Path(file).suffix
@@ -147,10 +141,10 @@ def read_data(path):
 
 
 def validate_columns(
-    df: pl.LazyFrame, extract_type: Dict[str, TableConfig]
-) -> Tuple[bool, Optional[str]]:
-    """
-    Validate that default columns from table definition exist in the dataframe.
+    df: pl.LazyFrame,
+    extract_type: dict[str, TableConfig],
+) -> tuple[bool, str | None]:
+    """Validate that default columns from table definition exist in the dataframe.
 
     This function checks if required columns exist in the data, accounting for
     the fact that columns may be present under either their source name or
@@ -161,7 +155,8 @@ def validate_columns(
         extract_type: Table configuration mapping column names to their properties
 
     Returns:
-        Tuple containing validation success (bool) and error message (str or None)
+        tuple containing validation success (bool) and error message (str or None)
+
     """
     resolver = ColumnResolver(
         table_definition=extract_type,

@@ -1,4 +1,4 @@
-name: Python linter
+name: Python linter & formatter
 permissions:
   contents: read
 
@@ -19,11 +19,16 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Run ruff linter
-        uses: astral-sh/ruff-action@v3.5.1
+        uses: astral-sh/ruff-action@v3.6.1
         with:
+          src: "./python"
+
+      - name: Run ruff formatter
+        uses: astral-sh/ruff-action@v3.6.1
+        with:
+          args: "format --check"
           src: "./python"

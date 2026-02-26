@@ -13,14 +13,18 @@ def mock_auth(httpx_mock: HTTPXMock):
     httpx_mock.add_response(json={"access_token": "ABC", "expires_in": 30})
 
     return _auth.PegaOAuth(
-        "https://pega.com", client_id="test_id", client_secret="test_secret"
+        "https://pega.com",
+        client_id="test_id",
+        client_secret="test_secret",
     )
 
 
 def test_token(httpx_mock: HTTPXMock):
     httpx_mock.add_response(json={"access_token": "ABC", "expires_in": 30})
     PegaAuth = _auth.PegaOAuth(
-        "https://TEST.com", client_id="TEST", client_secret="TEST"
+        "https://TEST.com",
+        client_id="TEST",
+        client_secret="TEST",
     )
 
     assert PegaAuth.token == "ABC"
@@ -38,7 +42,9 @@ def test_token(httpx_mock: HTTPXMock):
 def test_connection_eror(httpx_mock: HTTPXMock):
     httpx_mock.add_response(status_code=201, json={"Error": "Invalid."})
     PegaAuth = _auth.PegaOAuth(
-        "https://TEST.com", client_id="TEST", client_secret="TEST"
+        "https://TEST.com",
+        client_id="TEST",
+        client_secret="TEST",
     )
     with pytest.raises(ConnectionError):
         PegaAuth.token
@@ -59,7 +65,9 @@ def test_base_client(httpx_mock: HTTPXMock, monkeypatch):
         _base_client.BaseClient.from_basic_auth()
 
     client = _base_client.BaseClient.from_basic_auth(
-        base_url="https://PEGA.com/prweb/TEST", user_name="USER", password="PASSWORD"
+        base_url="https://PEGA.com/prweb/TEST",
+        user_name="USER",
+        password="PASSWORD",
     )
     assert client._base_url == "https://pega.com"
     assert isinstance(client.auth, httpx.BasicAuth)
@@ -74,7 +82,9 @@ def test_base_client(httpx_mock: HTTPXMock, monkeypatch):
         }
 
     monkeypatch.setattr(
-        _base_client, "_read_client_credential_file", mocked_client_credential_read
+        _base_client,
+        "_read_client_credential_file",
+        mocked_client_credential_read,
     )
     client = _base_client.BaseClient.from_client_credentials(file_path="TEST")
 
@@ -87,7 +97,8 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
     assert client.auth.token == "ABC"
 
     httpx_mock.add_response(
-        url=re.compile(".*/repository"), json={"repository_name": "Repo"}
+        url=re.compile(".*/repository"),
+        json={"repository_name": "Repo"},
     )
     assert client._infer_version() == "24.1"
     httpx_mock.add_exception(
@@ -122,7 +133,9 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
         client.get("/test")
 
     httpx_mock.add_response(
-        url=re.compile(".*/test"), status_code=200, json={"status": "Success"}
+        url=re.compile(".*/test"),
+        status_code=200,
+        json={"status": "Success"},
     )
     assert client.post("/test") == {"status": "Success"}
 
@@ -131,7 +144,9 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
         client.post("/test")
 
     httpx_mock.add_response(
-        url=re.compile(".*/test"), status_code=200, json={"status": "Success"}
+        url=re.compile(".*/test"),
+        status_code=200,
+        json={"status": "Success"},
     )
     assert client.patch("/test") == {"status": "Success"}
 
@@ -140,7 +155,9 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
         client.patch("/test")
 
     httpx_mock.add_response(
-        url=re.compile(".*/test"), status_code=200, json={"status": "Success"}
+        url=re.compile(".*/test"),
+        status_code=200,
+        json={"status": "Success"},
     )
     assert client.put("/test") == {"status": "Success"}
 
@@ -154,7 +171,8 @@ def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
         Infinity()
 
     httpx_mock.add_response(
-        url=re.compile(".*/repository"), json={"repository_name": "Repo"}
+        url=re.compile(".*/repository"),
+        json={"repository_name": "Repo"},
     )
 
     def mocked_client_credential_read(path):
@@ -165,7 +183,9 @@ def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
         }
 
     monkeypatch.setattr(
-        _base_client, "_read_client_credential_file", mocked_client_credential_read
+        _base_client,
+        "_read_client_credential_file",
+        mocked_client_credential_read,
     )
     client = Infinity.from_client_credentials(file_path="TEST")
 
@@ -174,7 +194,8 @@ def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
 
 def test_error_handling(httpx_mock: HTTPXMock, mock_auth):
     httpx_mock.add_response(
-        url=re.compile(".*/repository"), json={"repository_name": "Repo"}
+        url=re.compile(".*/repository"),
+        json={"repository_name": "Repo"},
     )
     client = Infinity(base_url="https://pega.com", auth=mock_auth)
 
@@ -195,7 +216,8 @@ def test_error_handling(httpx_mock: HTTPXMock, mock_auth):
     #     client.post("/test")
 
     httpx_mock.add_response(
-        status_code=205, json={"errorDetails": [{"message": "Error_NoMonitoringInfo"}]}
+        status_code=205,
+        json={"errorDetails": [{"message": "Error_NoMonitoringInfo"}]},
     )
     with pytest.raises(_exceptions.NoMonitoringInfo):
         client.post("/test")

@@ -1,7 +1,7 @@
 """Plotting utilities for Impact Analyzer visualization."""
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import polars as pl
 
@@ -49,6 +49,7 @@ class Plots(LazyNamespace):
     >>> ia = ImpactAnalyzer.from_pdc("export.json")
     >>> ia.plot.overview()
     >>> ia.plot.trend(metric="Value_Lift", facet="Channel")
+
     """
 
     def __init__(self, ia: "ImpactAnalyzer_Class"):
@@ -58,18 +59,20 @@ class Plots(LazyNamespace):
         ----------
         ia : ImpactAnalyzer
             The parent ImpactAnalyzer instance providing the data.
+
         """
         super().__init__()
         self.ia = ia
 
     @staticmethod
-    def _get_experiment_color_map() -> List[str]:
+    def _get_experiment_color_map() -> list[str]:
         """Get ordered list of experiment names for consistent coloring.
 
         Returns
         -------
-        List[str]
+        list[str]
             Alphabetically ordered list of default experiment names.
+
         """
         default_experiments = [
             "Adaptive Models vs Random Propensity",
@@ -81,7 +84,7 @@ class Plots(LazyNamespace):
         return default_experiments
 
     @staticmethod
-    def _get_facet_config(data: pl.DataFrame, facet: Optional[str]) -> dict:
+    def _get_facet_config(data: pl.DataFrame, facet: str | None) -> dict:
         """Determine optimal faceting configuration.
 
         Automatically selects column wrapping based on the number of
@@ -98,6 +101,7 @@ class Plots(LazyNamespace):
         -------
         dict
             Configuration with keys 'facet_col' and 'facet_col_wrap'.
+
         """
         if facet is None:
             return {"facet_col": None, "facet_col_wrap": None}
@@ -109,18 +113,17 @@ class Plots(LazyNamespace):
 
         if distinct_values <= 3:
             return {"facet_col": facet, "facet_col_wrap": None}
-        elif distinct_values == 4:
+        if distinct_values == 4:
             return {"facet_col": facet, "facet_col_wrap": 2}
-        else:
-            return {"facet_col": facet, "facet_col_wrap": 3}
+        return {"facet_col": facet, "facet_col_wrap": 3}
 
     def overview(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR_Lift",
-        facet: Optional[str] = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart comparing experiment performance.
@@ -156,13 +159,14 @@ class Plots(LazyNamespace):
         >>> ia.plot.overview()
         >>> ia.plot.overview(metric="Value_Lift", facet="Channel")
         >>> df = ia.plot.overview(return_df=True)
+
         """
         grouping_columns = [facet] if facet is not None else []
         plot_data = self.ia.summarize_experiments(by=grouping_columns)
 
         # Filter out rows with invalid metric values (NaN, Infinity)
         plot_data = plot_data.filter(
-            pl.col(metric).is_not_null() & pl.col(metric).is_finite()
+            pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
         )
 
         if query is not None:
@@ -207,11 +211,11 @@ class Plots(LazyNamespace):
     def control_groups_trend(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR",
-        facet: Optional[str] = None,
-        every: Optional[str] = None,
+        facet: str | None = None,
+        every: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of control group metrics over time.
@@ -250,16 +254,15 @@ class Plots(LazyNamespace):
         >>> ia.plot.control_groups_trend()
         >>> ia.plot.control_groups_trend(metric="ValuePerImpression", every="1w")
         >>> ia.plot.control_groups_trend(facet="Channel", every="1mo")
+
         """
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
-                [facet] if facet is not None else []
-            )
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
 
         plot_data = self.ia.summarize_control_groups(by=grouping_columns).filter(
-            pl.col(metric).is_not_null() & pl.col(metric).is_finite()
+            pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
         )
 
         if query is not None:
@@ -303,11 +306,11 @@ class Plots(LazyNamespace):
     def trend(
         self,
         *,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         metric: str = "CTR_Lift",
-        facet: Optional[str] = None,
-        every: Optional[str] = None,
+        facet: str | None = None,
+        every: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of experiment lift metrics over time.
@@ -345,16 +348,15 @@ class Plots(LazyNamespace):
         >>> ia.plot.trend()
         >>> ia.plot.trend(metric="Value_Lift", every="1w")
         >>> ia.plot.trend(facet="Channel", every="1mo")
+
         """
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + (
-                [facet] if facet is not None else []
-            )
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
 
         plot_data = self.ia.summarize_experiments(by=grouping_columns).filter(
-            pl.col(metric).is_not_null() & pl.col(metric).is_finite()
+            pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
         )
 
         if query is not None:

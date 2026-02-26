@@ -1,26 +1,27 @@
-from pathlib import Path
-import os
-from typing import Callable, Dict, List, Optional, Sequence, Union, overload, Literal
-from datetime import datetime
 import json
+import os
+from collections.abc import Sequence
+from datetime import datetime
+from pathlib import Path
+from typing import Literal, Optional, Union, overload
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
 
-from .Plots import Plots
+from ..pega_io.File import read_ds_export
 from ..utils.cdh_utils import (
     _apply_query,
-    weighted_average_polars,
     _polars_capitalize,
     parse_pega_date_time_formats,
+    weighted_average_polars,
 )
-from ..pega_io.File import read_ds_export
 from ..utils.types import QUERY
+from .Plots import Plots
 
 
 class ImpactAnalyzer:
-    """
-    Analyze and visualize Impact Analyzer experiment results from Pega CDH.
+    """Analyze and visualize Impact Analyzer experiment results from Pega CDH.
 
     The ImpactAnalyzer class provides analysis and visualization capabilities
     for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment
@@ -65,6 +66,7 @@ class ImpactAnalyzer:
     >>> ia = ImpactAnalyzer.from_pdc("impact_analyzer_export.json")
     >>> ia.overall_summary().collect()
     >>> ia.plot.overview()
+
     """
 
     ia_data: pl.LazyFrame
@@ -136,6 +138,7 @@ class ImpactAnalyzer:
         -----
         Use the class methods :meth:`from_pdc`, :meth:`from_vbd`, or :meth:`from_ih`
         to create instances from raw data exports.
+
         """
         self.plot = Plots(ia=self)
 
@@ -158,12 +161,10 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
-        ],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: Literal[True],
         return_df: bool = ...,
     ) -> pl.LazyFrame: ...
@@ -173,12 +174,10 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
-        ],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: Literal[False] = ...,
         return_df: Literal[True],
     ) -> pl.LazyFrame: ...
@@ -188,23 +187,19 @@ class ImpactAnalyzer:
     @overload
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
-        ],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
     ) -> "ImpactAnalyzer": ...
 
     @classmethod
     def from_pdc(
         cls,
-        pdc_source: Union[
-            str, Path, os.PathLike, List[str], List[Path], List[os.PathLike]
-        ],
+        pdc_source: str | Path | os.PathLike | list[str] | list[Path] | list[os.PathLike],
         *,
-        reader: Optional[Callable] = None,
-        query: Optional[QUERY] = None,
+        reader: Callable | None = None,
+        query: QUERY | None = None,
         return_wide_df: bool = False,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
@@ -215,7 +210,7 @@ class ImpactAnalyzer:
 
         Parameters
         ----------
-        pdc_source : Union[Path, str, os.PathLike, List[Union[Path, str, os.PathLike]]]
+        pdc_source : Union[Path, str, os.PathLike, list[Union[Path, str, os.PathLike]]]
             Path to PDC JSON file, or a list of paths to concatenate.
         reader : Optional[Callable], optional
             Custom function to read source data into a dict. If None, uses
@@ -244,6 +239,7 @@ class ImpactAnalyzer:
         --------
         >>> ia = ImpactAnalyzer.from_pdc("CDH_Metrics_ImpactAnalyzer.json")
         >>> ia.overall_summary().collect()
+
         """
 
         def default_reader(f):
@@ -284,23 +280,23 @@ class ImpactAnalyzer:
     @overload
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
         *,
         return_df: Literal[True],
-    ) -> Optional[pl.LazyFrame]: ...
+    ) -> pl.LazyFrame | None: ...
 
     # Default case: when return_df is not provided or False, returns ImpactAnalyzer
     @classmethod
     @overload
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
     ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_vbd(
         cls,
-        vbd_source: Union[os.PathLike, str],
+        vbd_source: os.PathLike | str,
         *,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
@@ -331,8 +327,8 @@ class ImpactAnalyzer:
         --------
         >>> ia = ImpactAnalyzer.from_vbd("ScenarioPlannerActuals.zip")
         >>> ia.summary_by_channel().collect()
-        """
 
+        """
         vbd_data = read_ds_export(str(Path(vbd_source).absolute()))
         if vbd_data is None:
             return None
@@ -341,10 +337,13 @@ class ImpactAnalyzer:
             _polars_capitalize(vbd_data)
             .with_columns(
                 SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
-                    "1d"
+                    "1d",
                 ),
                 Channel=pl.concat_str(
-                    "Channel", "Direction", separator="/", ignore_nulls=True
+                    "Channel",
+                    "Direction",
+                    separator="/",
+                    ignore_nulls=True,
                 ),
             )
             .group_by(
@@ -368,13 +367,11 @@ class ImpactAnalyzer:
                 .sum()
                 .alias("Accepts"),
                 (
-                    pl.col("Value")
-                    .filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"]))
-                    .sum()
+                    pl.col("Value").filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"])).sum()
                     / (
                         pl.col("AggregateCount")
                         .filter(
-                            pl.col("Outcome").is_in(cls.outcome_labels["Impressions"])
+                            pl.col("Outcome").is_in(cls.outcome_labels["Impressions"]),
                         )
                         .sum()
                     )
@@ -385,7 +382,7 @@ class ImpactAnalyzer:
             .filter(pl.col("Accepts") <= pl.col("Impressions"))
             .rename({"MktValue": "ControlGroup"})
             .with_columns(
-                pl.col("ControlGroup").str.strip_prefix("NBAHealth_").fill_null("NBA")
+                pl.col("ControlGroup").str.strip_prefix("NBAHealth_").fill_null("NBA"),
             )
             .sort(
                 "SnapshotTime",
@@ -407,23 +404,23 @@ class ImpactAnalyzer:
     @overload
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
         *,
         return_df: Literal[True],
-    ) -> Optional[pl.LazyFrame]: ...
+    ) -> pl.LazyFrame | None: ...
 
     # Default case: when return_df is not provided or False, returns ImpactAnalyzer
     @classmethod
     @overload
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
     ) -> Optional["ImpactAnalyzer"]: ...
 
     @classmethod
     def from_ih(
         cls,
-        ih_source: Union[os.PathLike, str],
+        ih_source: os.PathLike | str,
         *,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
@@ -453,6 +450,7 @@ class ImpactAnalyzer:
         ------
         NotImplementedError
             This method is not yet implemented.
+
         """
         raise NotImplementedError("from_ih is not yet implemented")
 
@@ -461,7 +459,7 @@ class ImpactAnalyzer:
         cls,
         json_data: dict,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_wide_df: bool = False,
     ) -> pl.LazyFrame:
         """Transform PDC Impact Analyzer JSON into normalized long format.
@@ -484,14 +482,16 @@ class ImpactAnalyzer:
         pl.LazyFrame
             Normalized data with columns: SnapshotTime, Channel, ControlGroup,
             Impressions, Accepts, ValuePerImpression, Pega_ValueLift.
+
         """
         if len(json_data["pxResults"]) != 1:
             raise ValueError("Expected exactly one result under pxResults.")
 
         date = datetime.strptime(
-            json_data["pxResults"][0]["SnapshotTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            json_data["pxResults"][0]["SnapshotTime"],
+            "%Y-%m-%dT%H:%M:%S.%fZ",
         )
-        actual_ia_data: Dict = json_data["pxResults"][0]["pxResults"]
+        actual_ia_data: dict = json_data["pxResults"][0]["pxResults"]
         if len(actual_ia_data) < 1:
             # No data
             return pl.LazyFrame()
@@ -544,7 +544,7 @@ class ImpactAnalyzer:
                     "EngagementLiftInterval",
                     "ValueLiftInterval",
                     "IsSignificant",
-                ]
+                ],
             )
             # We're only using the most granular data, we will aggregate up ourselves
             .filter(AggregationFrequency="Daily")
@@ -554,7 +554,7 @@ class ImpactAnalyzer:
                 pl.when(LastDataReceived="Yesterday")
                 .then(pl.col("SnapshotTime") - pl.duration(days=1))
                 .otherwise(pl.col("SnapshotTime"))
-                .alias("SnapshotTime")
+                .alias("SnapshotTime"),
             )
             .drop(["LastDataReceived", "AggregationFrequency"])
             .rename({"ChannelName": "Channel"})
@@ -616,7 +616,7 @@ class ImpactAnalyzer:
                 {
                     "ExperimentName": "ControlGroup",
                     "ActionValuePerImp": "ValuePerImpression",
-                }
+                },
             )
             .with_columns(
                 ValuePerImpression=pl.lit(None).cast(pl.Float64),
@@ -660,8 +660,8 @@ class ImpactAnalyzer:
         Examples
         --------
         >>> ia.summary_by_channel().collect()
-        """
 
+        """
         return (
             self.summarize_experiments(by="Channel")
             .with_columns(Dummy=pl.lit(None))
@@ -697,6 +697,7 @@ class ImpactAnalyzer:
         Examples
         --------
         >>> ia.overall_summary().collect()
+
         """
         return (
             self.summarize_experiments()
@@ -714,7 +715,7 @@ class ImpactAnalyzer:
 
     def summarize_control_groups(
         self,
-        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
+        by: Sequence[str | pl.Expr] | str | pl.Expr | None = None,
         drop_internal_cols: bool = True,
     ) -> pl.LazyFrame:
         """Aggregate metrics by control group.
@@ -724,7 +725,7 @@ class ImpactAnalyzer:
 
         Parameters
         ----------
-        by : Optional[Union[List[str], List[pl.Expr], str, pl.Expr]], optional
+        by : Optional[Union[list[str], list[pl.Expr], str, pl.Expr]], optional
             Column name(s) or expression(s) to group by in addition to
             ControlGroup. Default is None (aggregate all data).
         drop_internal_cols : bool, optional
@@ -741,19 +742,20 @@ class ImpactAnalyzer:
         --------
         >>> ia.summarize_control_groups().collect()
         >>> ia.summarize_control_groups(by="Channel").collect()
+
         """
         if by is None:
-            group_by: List[Union[str, pl.Expr]] = []
+            group_by: list[str | pl.Expr] = []
         elif isinstance(by, (list, tuple)):
             group_by = list(by)
         else:
-            group_by = [by]
+            group_by = [by]  # type: ignore[list-item]
 
         agg_exprs = [
             pl.sum("Impressions", "Accepts"),
             (pl.sum("Accepts") / pl.sum("Impressions")).alias("CTR"),
             weighted_average_polars("ValuePerImpression", "Impressions").alias(
-                "ValuePerImpression"
+                "ValuePerImpression",
             ),
         ]
 
@@ -761,8 +763,8 @@ class ImpactAnalyzer:
         if "Pega_ValueLift" in self.ia_data.collect_schema().names():
             agg_exprs.append(
                 weighted_average_polars("Pega_ValueLift", "Impressions").alias(
-                    "Pega_ValueLift"
-                )
+                    "Pega_ValueLift",
+                ),
             )
 
         return (
@@ -774,7 +776,7 @@ class ImpactAnalyzer:
 
     def summarize_experiments(
         self,
-        by: Optional[Union[Sequence[Union[str, pl.Expr]], str, pl.Expr]] = None,
+        by: Sequence[str | pl.Expr] | str | pl.Expr | None = None,
     ) -> pl.LazyFrame:
         """Summarize experiment metrics comparing test vs control groups.
 
@@ -788,7 +790,7 @@ class ImpactAnalyzer:
 
         Parameters
         ----------
-        by : Optional[Union[List[str], List[pl.Expr], str, pl.Expr]], optional
+        by : Optional[Union[list[str], list[pl.Expr], str, pl.Expr]], optional
             Column name(s) or expression(s) to group by. Default is None
             (aggregate all data).
 
@@ -816,10 +818,11 @@ class ImpactAnalyzer:
         --------
         >>> ia.summarize_experiments().collect()
         >>> ia.summarize_experiments(by="Channel").collect()
+
         """
         # Normalize 'by' parameter to a sequence
         if by is None:
-            by_list: Sequence[Union[str, pl.Expr]] = []
+            by_list: Sequence[str | pl.Expr] = []
         elif isinstance(by, (str, pl.Expr)):
             by_list = [by]
         else:
@@ -830,8 +833,8 @@ class ImpactAnalyzer:
             return (pl.col(test) - pl.col(control)) / pl.col(control)
 
         # Extract column names from expressions for use with pl.exclude()
-        def _get_column_names(items: Sequence[Union[str, pl.Expr]]) -> List[str]:
-            column_names: List[str] = []
+        def _get_column_names(items: Sequence[str | pl.Expr]) -> list[str]:
+            column_names: list[str] = []
             for item in items:
                 if isinstance(item, pl.Expr):
                     # Extract the root column name from the expression
@@ -840,10 +843,11 @@ class ImpactAnalyzer:
                     column_names.append(item)
             return column_names
 
-        by_column_names: List[str] = _get_column_names(by_list)
+        by_column_names: list[str] = _get_column_names(by_list)
 
         control_groups_summary = self.summarize_control_groups(
-            by_list if by_list else None, drop_internal_cols=False
+            by_list if by_list else None,
+            drop_internal_cols=False,
         )
 
         has_pega_value_lift = "Pega_ValueLift" in self.ia_data.collect_schema().names()
@@ -852,17 +856,14 @@ class ImpactAnalyzer:
             pl.LazyFrame(
                 {
                     "Experiment": ImpactAnalyzer.default_ia_experiments.keys(),
-                    "Test": [
-                        v[1] for v in ImpactAnalyzer.default_ia_experiments.values()
-                    ],
-                    "Control": [
-                        v[0] for v in ImpactAnalyzer.default_ia_experiments.values()
-                    ],
-                }
+                    "Test": [v[1] for v in ImpactAnalyzer.default_ia_experiments.values()],
+                    "Control": [v[0] for v in ImpactAnalyzer.default_ia_experiments.values()],
+                },
             )
             .join(
                 control_groups_summary.select(
-                    *by_list, pl.exclude(by_column_names).name.suffix("_Test")
+                    *by_list,
+                    pl.exclude(by_column_names).name.suffix("_Test"),
                 ),
                 how="left",
                 left_on="Test",
@@ -870,7 +871,8 @@ class ImpactAnalyzer:
             )
             .join(
                 control_groups_summary.select(
-                    *by_list, pl.exclude(by_column_names).name.suffix("_Control")
+                    *by_list,
+                    pl.exclude(by_column_names).name.suffix("_Control"),
                 ),
                 how="left",
                 left_on=["Control"] + by_column_names,
@@ -890,10 +892,11 @@ class ImpactAnalyzer:
             # For VBD data, calculate Value_Lift from ValuePerImpression
             result = result.with_columns(
                 Value_Lift=_lift_pl(
-                    "ValuePerImpression_Test", "ValuePerImpression_Control"
-                )
+                    "ValuePerImpression_Test",
+                    "ValuePerImpression_Control",
+                ),
             )
 
         return result.drop(cs.starts_with("Pega_")).sort(
-            ["Experiment"] + by_column_names
+            ["Experiment"] + by_column_names,
         )

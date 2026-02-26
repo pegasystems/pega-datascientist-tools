@@ -43,7 +43,6 @@ source = st.selectbox("Select data source", options=data_sources, index=0)
 
 impact_analyzer = None
 
-
 VBD_REQUIRED_COLS = {
     "OutcomeTime",
     "Channel",
@@ -76,18 +75,18 @@ def _load_with_warning(loader, label: str, *, expected_input_cols=None):
         missing = sorted(required_cols.difference(schema_names))
         if missing:
             st.warning(
-                f"{label} data is missing required columns: {', '.join(missing)}."
+                f"{label} data is missing required columns: {', '.join(missing)}.",
             )
         return ia
     except Exception as exc:
         message = str(exc)
         if "Missing required columns" in message:
             st.warning(
-                f"{label} data is missing required columns: {', '.join(sorted(required_cols))}. {message}"
+                f"{label} data is missing required columns: {', '.join(sorted(required_cols))}. {message}",
             )
         elif "unable to find column" in message and expected_input_cols:
             st.warning(
-                f"{label} data is missing expected input columns: {', '.join(sorted(expected_input_cols))}. {message}"
+                f"{label} data is missing expected input columns: {', '.join(sorted(expected_input_cols))}. {message}",
             )
         else:
             st.warning(f"Unable to load {label} data. {message}")
@@ -104,13 +103,12 @@ elif source == "File upload":
         accept_multiple_files=True,
     )
     if uploaded_files:
-        suffixes = {
-            Path(uploaded_file.name).suffix.lower() for uploaded_file in uploaded_files
-        }
+        suffixes = {Path(uploaded_file.name).suffix.lower() for uploaded_file in uploaded_files}
         if suffixes.issubset({".json", ".ndjson"}):
             with st.spinner("Loading PDC data"):
                 impact_analyzer = _load_with_warning(
-                    lambda: load_pdc_from_uploads(uploaded_files), "PDC"
+                    lambda: load_pdc_from_uploads(uploaded_files),
+                    "PDC",
                 )
         elif suffixes.intersection({".parquet", ".csv"}):
             st.info("Parquet/CSV uploads are not supported yet.")
@@ -130,7 +128,8 @@ elif source == "File path":
         if path.suffix.lower() in {".json", ".ndjson"}:
             with st.spinner("Loading PDC data"):
                 impact_analyzer = _load_with_warning(
-                    lambda: load_pdc_from_paths((str(path),)), "PDC"
+                    lambda: load_pdc_from_paths((str(path),)),
+                    "PDC",
                 )
         elif path.suffix.lower() == ".zip":
             with st.spinner("Loading VBD data"):

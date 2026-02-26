@@ -1,58 +1,50 @@
-import html
-import os
 import datetime
+import html
 import io
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
 import traceback
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Literal
 
 import polars as pl
 
 from ..utils.types import QUERY
 
 # Re-export RAG functions from metric_limits for convenience in Quarto reports.
-# noqa: F401 prevents ruff from removing these "unused" imports during pre-commit.
 from .metric_limits import (  # noqa: F401
+    MetricFormats,
+    MetricLimits,
     exclusive_0_1_range_rag,
     positive_values,
-    strict_positive_values,
     standard_NBAD_channels_rag,
     standard_NBAD_configurations_rag,
     standard_NBAD_directions_rag,
     standard_NBAD_predictions_rag,
+    strict_positive_values,
 )
 
 # Re-export NumberFormat, MetricFormats, and MetricLimits for external use
 from .number_format import NumberFormat  # noqa: F401
-from .metric_limits import MetricFormats, MetricLimits  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 
 def get_output_filename(
-    name: Optional[str],  # going to be the full file name
+    name: str | None,  # going to be the full file name
     report_type: str,
-    model_id: Optional[str] = None,
+    model_id: str | None = None,
     output_type: str = "html",
 ) -> str:
     """Generate the output filename based on the report parameters."""
     name = name.replace(" ", "_") if name else None
     if report_type == "ModelReport":
-        return (
-            f"{report_type}_{name}_{model_id}.{output_type}"
-            if name
-            else f"{report_type}_{model_id}.{output_type}"
-        )
-    return (
-        f"{report_type}_{name}.{output_type}"
-        if name
-        else f"{report_type}.{output_type}"
-    )
+        return f"{report_type}_{name}_{model_id}.{output_type}" if name else f"{report_type}_{model_id}.{output_type}"
+    return f"{report_type}_{name}.{output_type}" if name else f"{report_type}.{output_type}"
 
 
 def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
@@ -68,6 +60,7 @@ def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
     Returns
     -------
     None
+
     """
     from pdstools import __reports__
 
@@ -77,10 +70,10 @@ def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
 
 def _write_params_files(
     temp_dir: Path,
-    params: Optional[Dict] = None,
-    project: Dict = {"type": "default"},
-    analysis: Optional[Dict] = None,
-    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
+    params: dict | None = None,
+    project: dict = {"type": "default"},
+    analysis: dict | None = None,
+    size_reduction_method: Literal["strip", "cdn"] | None = None,
 ) -> None:
     """Write parameters to YAML files for Quarto processing.
 
@@ -102,8 +95,9 @@ def _write_params_files(
     Returns
     -------
     None
+
     """
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     params = params or {}
     analysis = analysis or {}
@@ -118,12 +112,12 @@ def _write_params_files(
     # Always embed resources for standalone HTML
     # plotly-connected: false = load Plotly from CDN (smaller file ~8MB)
     # plotly-connected: true = embed Plotly (larger file ~110MB)
-    html_format: Dict = {
+    html_format: dict = {
         "embed-resources": True,
         "plotly-connected": size_reduction_method != "cdn",
     }
 
-    quarto_config: Dict = {
+    quarto_config: dict = {
         "project": project,
         "analysis": analysis,
         "format": {
@@ -136,16 +130,16 @@ def _write_params_files(
 
 
 def run_quarto(
-    qmd_file: Optional[str] = None,
-    output_filename: Optional[str] = None,
-    output_type: Optional[str] = "html",
-    params: Optional[Dict] = None,
-    project: Dict = {"type": "default"},
-    analysis: Optional[Dict] = None,
-    temp_dir: Path = Path("."),
+    qmd_file: str | None = None,
+    output_filename: str | None = None,
+    output_type: str | None = "html",
+    params: dict | None = None,
+    project: dict = {"type": "default"},
+    analysis: dict | None = None,
+    temp_dir: Path = Path(),
     verbose: bool = False,
     *,
-    size_reduction_method: Optional[Literal["strip", "cdn"]] = None,
+    size_reduction_method: Literal["strip", "cdn"] | None = None,
 ) -> int:
     """Run the Quarto command to generate the report.
 
@@ -185,9 +179,10 @@ def run_quarto(
         If the Quarto command fails to execute
     FileNotFoundError
         If required files are not found
+
     """
 
-    def get_command() -> List[str]:
+    def get_command() -> list[str]:
         quarto_exec, _ = get_quarto_with_version(verbose)
         _command = [str(quarto_exec), "render"]
 
@@ -238,7 +233,7 @@ def run_quarto(
     )
 
     # Capture all output for potential error reporting
-    output_lines: List[str] = []
+    output_lines: list[str] = []
     if process.stdout is not None:
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
@@ -257,23 +252,18 @@ def run_quarto(
     if return_code != 0:
         captured_output = "\n".join(output_lines)
         raise RuntimeError(
-            f"Quarto rendering failed with return code {return_code}.\n"
-            f"Output:\n{captured_output}"
+            f"Quarto rendering failed with return code {return_code}.\nOutput:\n{captured_output}",
         )
 
     # Post-process HTML files to deduplicate JavaScript libraries
-    if (
-        return_code == 0
-        and output_type == "html"
-        and size_reduction_method == "strip"
-        and output_filename is not None
-    ):
+    if return_code == 0 and output_type == "html" and size_reduction_method == "strip" and output_filename is not None:
         try:
             html_file_path = temp_dir / output_filename
             if html_file_path.exists():
                 html_content = html_file_path.read_text(encoding="utf-8")
                 deduplicated_content = remove_duplicate_html_scripts(
-                    html_content, verbose
+                    html_content,
+                    verbose,
                 )
                 html_file_path.write_text(deduplicated_content, encoding="utf-8")
         except Exception as e:
@@ -283,10 +273,10 @@ def run_quarto(
 
 
 def _set_command_options(
-    output_type: Optional[str] = None,
-    output_filename: Optional[str] = None,
+    output_type: str | None = None,
+    output_filename: str | None = None,
     execute_params: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Set the options for the Quarto command.
 
     Parameters
@@ -300,10 +290,10 @@ def _set_command_options(
 
     Returns
     -------
-    List[str]
-        List of command line options for Quarto
-    """
+    list[str]
+        list of command line options for Quarto
 
+    """
     options = []
     if output_type is not None:
         options.append("--to")
@@ -323,11 +313,12 @@ def copy_report_resources(resource_dict: list[tuple[str, str]]):
     Parameters
     ----------
     resource_dict : list[tuple[str, str]]
-        List of tuples containing (source_path, destination_path) pairs
+        list of tuples containing (source_path, destination_path) pairs
 
     Returns
     -------
     None
+
     """
     from pdstools import __reports__
 
@@ -371,6 +362,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     --------
     >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
     >>> generate_zipped_report("report_2023", "/tmp/report_output")
+
     """
     if not os.path.isdir(folder_to_zip):
         logger.error(f"The output path {folder_to_zip} is not a directory.")
@@ -378,7 +370,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
 
     if not os.path.exists(folder_to_zip):
         logger.warning(
-            f"The {folder_to_zip} directory does not exist. Skipping zip creation."
+            f"The {folder_to_zip} directory does not exist. Skipping zip creation.",
         )
         return
 
@@ -387,17 +379,21 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     logger.info(f"created zip file...{zippy}")
 
 
-def _get_cmd_output(args: List[str]) -> List[str]:
+def _get_cmd_output(args: list[str]) -> list[str]:
     """Get command output in an OS-agnostic way."""
     try:
         result = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
         )
         return result.stdout.split("\n")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to run command {' '.join(args)}: {e}")
         raise FileNotFoundError(
-            f"Command failed. Make sure {args[0]} is installed and in the system PATH."
+            f"Command failed. Make sure {args[0]} is installed and in the system PATH.",
         )
 
 
@@ -407,14 +403,15 @@ def _get_version_only(versionstr: str) -> str:
     return match.group(1) if match else ""
 
 
-def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
+def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Quarto executable path and version."""
     try:
-        executable = Path(shutil.which("quarto"))
-        if not executable:
+        quarto_path = shutil.which("quarto")
+        if not quarto_path:
             raise FileNotFoundError(
-                "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
+                "Quarto executable not found. Please ensure Quarto is installed and in the system PATH.",
             )
+        executable = Path(quarto_path)
 
         version_string = _get_version_only(_get_cmd_output(["quarto", "--version"])[0])
         message = f"quarto version: {version_string}"
@@ -427,13 +424,18 @@ def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
         raise
 
 
-def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
+def get_pandoc_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Pandoc executable path and version."""
     try:
-        executable = Path(shutil.which("pandoc"))
+        pandoc_path = shutil.which("pandoc")
+        if not pandoc_path:
+            raise FileNotFoundError(
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
+            )
+        executable = Path(pandoc_path)
         if not executable:
             raise FileNotFoundError(
-                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH."
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
             )
 
         version_string = _get_version_only(_get_cmd_output(["pandoc", "--version"])[0])
@@ -460,7 +462,7 @@ def quarto_callout_info(info):
 %s
 :::
 """
-        % info
+        % info,
     )
 
 
@@ -471,7 +473,7 @@ def quarto_callout_important(info):
 %s
 :::
 """
-        % info
+        % info,
     )
 
 
@@ -484,7 +486,7 @@ def quarto_plot_exception(plot_name: str, e: Exception):
 %s
 :::
 """
-        % (plot_name, e, traceback.format_exc())
+        % (plot_name, e, traceback.format_exc()),
     )
 
 
@@ -506,8 +508,8 @@ def polars_subset_to_existing_cols(all_columns, cols):
 
 def create_metric_itable(
     source_table: pl.DataFrame,
-    column_to_metric: Optional[Dict] = None,
-    column_descriptions: Optional[Dict[str, str]] = None,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
@@ -574,6 +576,7 @@ def create_metric_itable(
     ...     },
     ...     paging=False
     ... )
+
     """
     from itables import show
 
@@ -666,15 +669,15 @@ def create_metric_itable(
     }
     default_kwargs.update(itable_kwargs)
 
-    return show(styled_df, **default_kwargs)
+    return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
 
 
 def create_metric_gttable(
     source_table: pl.DataFrame,
-    title: Optional[str] = None,
-    subtitle: Optional[str] = None,
-    column_to_metric: Optional[Dict] = None,
-    column_descriptions: Optional[Dict[str, str]] = None,
+    title: str | None = None,
+    subtitle: str | None = None,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
     color_background: bool = True,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = True,
@@ -746,9 +749,12 @@ def create_metric_gttable(
     ...     },
     ...     rowname_col="Name",
     ... )
+
     """
     import html as html_module
-    from great_tables import GT, loc, style, html
+
+    from great_tables import GT, html, loc, style
+
     from .metric_limits import add_rag_columns
 
     RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
@@ -774,7 +780,7 @@ def create_metric_gttable(
                 # Wrap column label in span with title attribute for tooltip
                 label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
         if label_kwargs:
-            gt = gt.cols_label(**label_kwargs)
+            gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]
 
     # Expand tuple keys to individual columns
     expanded_mapping = {}
@@ -832,11 +838,7 @@ def create_metric_gttable(
             continue
 
         for rag_value, color in RAG_COLORS.items():
-            row_indices = (
-                df_with_rag.with_row_index()
-                .filter(pl.col(rag_col) == rag_value)["index"]
-                .to_list()
-            )
+            row_indices = df_with_rag.with_row_index().filter(pl.col(rag_col) == rag_value)["index"].to_list()
             if row_indices:
                 if color_background:
                     gt = gt.tab_style(
@@ -909,7 +911,7 @@ def sample_values(dm, all_dm_cols, fld, n=6):
         return "-"
     return (
         dm.model_data.select(
-            pl.concat_str(fld, separator="/").alias("__SampleValues__")
+            pl.concat_str(fld, separator="/").alias("__SampleValues__"),
         )
         .drop_nulls()
         .collect()
@@ -936,11 +938,11 @@ def show_credits(quarto_source: str):
     Quarto runtime: {quarto_version}
     Pandoc: {pandoc_version}
 
-    """
+    """,
     )
 
 
-def serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
+def serialize_query(query: QUERY | None) -> dict | None:
     if query is None:
         return None
 
@@ -955,24 +957,25 @@ def serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
             serialized_exprs[str(i)] = json.loads(expr.meta.serialize(format="json"))
         return {"type": "expr_list", "expressions": serialized_exprs}
 
-    elif isinstance(query, dict):
+    if isinstance(query, dict):
         return {"type": "dict", "data": query}
 
     raise ValueError(f"Unsupported query type: {type(query)}")
 
 
-def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
+def deserialize_query(serialized_query: dict | None) -> QUERY | None:
     """Deserialize a query that was previously serialized with serialize_query.
 
     Parameters
     ----------
-    serialized_query : Optional[Dict]
+    serialized_query : Optional[dict]
         A serialized query dictionary created by serialize_query
 
     Returns
     -------
     Optional[QUERY]
         The deserialized query
+
     """
     if serialized_query is None:
         return None
@@ -985,7 +988,7 @@ def deserialize_query(serialized_query: Optional[Dict]) -> Optional[QUERY]:
             expr_list.append(pl.Expr.deserialize(str_io, format="json"))
         return expr_list
 
-    elif serialized_query["type"] == "dict":
+    if serialized_query["type"] == "dict":
         return serialized_query["data"]
 
     raise ValueError(f"Unknown query type: {serialized_query['type']}")
@@ -1022,14 +1025,12 @@ def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> s
         result = html_content
         for match in reversed(to_remove):
             start, end = match.span()
-            result = (
-                result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
-            )
+            result = result[:start] + "<!-- Duplicate script removed -->\n" + result[end:]
 
         if verbose and to_remove:
             size_reduction = 1 - len(result) / len(html_content)
             logger.info(
-                f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)"
+                f"Removed {len(to_remove)} duplicate scripts ({size_reduction:.1%} reduction)",
             )
 
         return result

@@ -4,8 +4,10 @@ import json
 import logging
 import re
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, Field, field_validator
+
 from .base import LocalModel, ModelValidationError
 
 if TYPE_CHECKING:
@@ -24,15 +26,15 @@ class OutcomeType(Enum):
 
 
 class Predictor(BaseModel):
-    name: Optional[str] = Field(default=None, validate_default=True)
-    index: Optional[int] = Field(default=None, validate_default=True)
-    input_name: Optional[str] = Field(default=None, validate_default=True)
+    name: str | None = Field(default=None, validate_default=True)
+    index: int | None = Field(default=None, validate_default=True)
+    input_name: str | None = Field(default=None, validate_default=True)
 
     @field_validator("input_name", mode="before")
     def validate_input_name(cls, v):
         if v is None:
             raise ValueError(
-                "The 'input_name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors."
+                "The 'input_name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors.",
             )
         return v
 
@@ -40,7 +42,7 @@ class Predictor(BaseModel):
     def validate_name(cls, v):
         if v is None:
             raise ValueError(
-                "The 'name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors."
+                "The 'name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors.",
             )
         return v
 
@@ -48,33 +50,33 @@ class Predictor(BaseModel):
     def validate_index(cls, v):
         if v is None or v < 1:
             raise ValueError(
-                "The 'index' for a predictor is absent/invalid in the ONNX metadata. Ensure it is populated for all predictors."
+                "The 'index' for a predictor is absent/invalid in the ONNX metadata. Ensure it is populated for all predictors.",
             )
         return v
 
 
 class Output(BaseModel):
-    possible_values: List[Union[str, int, float]] = Field(default_factory=list)
-    label_name: Optional[str] = Field(default=None, validate_default=True)
-    score_name: Optional[str] = Field(default=None)
-    min_value: Optional[float] = Field(default=None)
-    max_value: Optional[float] = Field(default=None)
+    possible_values: list[str | int | float] = Field(default_factory=list)
+    label_name: str | None = Field(default=None, validate_default=True)
+    score_name: str | None = Field(default=None)
+    min_value: float | None = Field(default=None)
+    max_value: float | None = Field(default=None)
 
     @field_validator("label_name", mode="before")
     def validate_label_name(cls, v):
         if v is None:
             raise ValueError(
-                "The 'labelName' is required but missing or empty in the 'output' object of ONNX model metadata. Ensure it is populated"
+                "The 'labelName' is required but missing or empty in the 'output' object of ONNX model metadata. Ensure it is populated",
             )
         return v
 
 
 class Metadata(BaseModel):
-    predictor_list: List[Predictor] = Field(default_factory=list)
-    modeling_technique: Optional[str] = Field(default=None)
-    internal: Optional[bool] = Field(default=False)
-    type: Optional[OutcomeType] = Field(default=None, validate_default=True)
-    output: Optional[Output] = Field(default=None, validate_default=True)
+    predictor_list: list[Predictor] = Field(default_factory=list)
+    modeling_technique: str | None = Field(default=None)
+    internal: bool | None = Field(default=False)
+    type: OutcomeType | None = Field(default=None, validate_default=True)
+    output: Output | None = Field(default=None, validate_default=True)
 
     @field_validator("type", mode="before")
     def validate_type(cls, v, values):
@@ -84,7 +86,7 @@ class Metadata(BaseModel):
                 v = v.value
             if v is None or v not in supported_types:
                 raise ValueError(
-                    f"The 'type' in ONNX model metadata has invalid value '{v}'. Ensure it is populated with one of the following supported types: {supported_types}"
+                    f"The 'type' in ONNX model metadata has invalid value '{v}'. Ensure it is populated with one of the following supported types: {supported_types}",
                 )
         return v
 
@@ -92,7 +94,7 @@ class Metadata(BaseModel):
     def validate_output(cls, v, values):
         if not values.data.get("internal") and v is None:
             raise ValueError(
-                "The 'output' is required but missing in the ONNX model metadata. Ensure it is populated"
+                "The 'output' is required but missing in the ONNX model metadata. Ensure it is populated",
             )
         return v
 
@@ -108,14 +110,10 @@ class Metadata(BaseModel):
     @staticmethod
     def _convert_keys(data: dict, conversion_func) -> dict:
         if isinstance(data, dict):
-            return {
-                conversion_func(k): Metadata._convert_keys(v, conversion_func)
-                for k, v in data.items()
-            }
-        elif isinstance(data, list):
+            return {conversion_func(k): Metadata._convert_keys(v, conversion_func) for k, v in data.items()}
+        if isinstance(data, list):
             return [Metadata._convert_keys(i, conversion_func) for i in data]
-        else:
-            return data
+        return data
 
     @staticmethod
     def _to_snake_case(string: str) -> str:
@@ -132,7 +130,8 @@ class Metadata(BaseModel):
                 return o.value
             if isinstance(o, BaseModel):
                 return Metadata._convert_keys(
-                    o.model_dump(exclude_defaults=True), Metadata._to_camel_case
+                    o.model_dump(exclude_defaults=True),
+                    Metadata._to_camel_case,
                 )
             return super().default(o)
 
@@ -140,20 +139,16 @@ class Metadata(BaseModel):
 class ONNXModelCreationError(Exception):
     """Exception for errors during ONNX conversion and save."""
 
-    pass
-
 
 class ONNXModelValidationError(ModelValidationError):
     """Exception for errors during ONNX validation."""
-
-    pass
 
 
 class PMMLModel(LocalModel):
     file_path: str
 
     def __init__(self, file_path: str):
-        super().__init__(file_path=file_path)
+        super().__init__(file_path=file_path)  # type: ignore[call-arg]
 
     def get_file_path(self) -> str:
         return self.file_path
@@ -163,7 +158,7 @@ class H2OModel(LocalModel):
     file_path: str
 
     def __init__(self, file_path: str):
-        super().__init__(file_path=file_path)
+        super().__init__(file_path=file_path)  # type: ignore[call-arg]
 
     def get_file_path(self) -> str:
         return self.file_path
@@ -184,8 +179,7 @@ class ONNXModel(LocalModel):
 
     @classmethod
     def from_onnx_proto(cls, model: ModelProto) -> ONNXModel:
-        """
-        Creates an ONNXModel object.
+        """Creates an ONNXModel object.
 
         Parameters
         ----------
@@ -203,13 +197,13 @@ class ONNXModel(LocalModel):
             If the optional dependencies for ONNX Conversion are not installed.
         ONNXModelCreationError
             If the ONNXModel object cannot be created.
+
         """
         return cls(model=model)
 
     @classmethod
     def from_sklearn_pipeline(cls, model: Pipeline, initial_types: list) -> ONNXModel:
-        """
-        Creates an ONNXModel object.
+        """Creates an ONNXModel object.
 
         Parameters
         ----------
@@ -230,6 +224,7 @@ class ONNXModel(LocalModel):
             If the optional dependencies for ONNX Conversion are not installed.
         ONNXModelCreationError
             If the ONNXModel object cannot be created.
+
         """
         from skl2onnx import convert_sklearn
         from sklearn.pipeline import Pipeline
@@ -241,8 +236,7 @@ class ONNXModel(LocalModel):
         raise ONNXModelCreationError("Model must be a sklearn Pipeline object.")
 
     def add_metadata(self, metadata: Metadata) -> ONNXModel:
-        """
-        Adds metadata to the ONNX model.
+        """Adds metadata to the ONNX model.
 
         Parameters
         ----------
@@ -258,20 +252,21 @@ class ONNXModel(LocalModel):
         ------
         ImportError
             If the optional dependencies for ONNX Metadata addition are not installed.
+
         """
         if PEGA_METADATA in self._model.metadata_props:
             self._model.metadata_props.remove(PEGA_METADATA)
         self._model.metadata_props.add(key=PEGA_METADATA, value=metadata.to_json())
         return self
 
-    def validate(self) -> bool:
-        """
-        Validates an ONNX model.
+    def validate(self) -> bool:  # type: ignore[override]
+        """Validates an ONNX model.
 
         Raises
         ------
             ImportError: If the optional dependencies for ONNX Validation are not installed.
             ONNXModelValidationError: If the model is invalid or if the validation process fails.
+
         """
         session = None
         from io import StringIO
@@ -285,7 +280,7 @@ class ONNXModel(LocalModel):
             session = InferenceSession(self._model.SerializeToString())
         except Exception as e:
             raise ONNXModelValidationError(
-                f"Unable to create inference session: {str(e)}"
+                f"Unable to create inference session: {e!s}",
             )
         metadata = session.get_modelmeta().custom_metadata_map
 
@@ -294,34 +289,34 @@ class ONNXModel(LocalModel):
                 "The 'pegaMetadata' key is absent in the ONNX model's metadata. "
                 "Ensure the metadata includes a 'pegaMetadata' key "
                 "with a JSON object value as described in pega documentation."
-                "Adhering to this structure is crucial for accurate model execution."
+                "Adhering to this structure is crucial for accurate model execution.",
             )
 
         metadata_str = metadata[PEGA_METADATA]
         metadata = Metadata.from_json(metadata_str)
 
         valid_input = self.__check_for_valid_input_node_structure(
-            error_stream, session, metadata
+            error_stream,
+            session,
+            metadata,
         )
-        valid_output = (
-            metadata.internal
-            or self.__check_for_valid_output_node_structure(
-                error_stream, session, metadata
-            )
+        valid_output = metadata.internal or self.__check_for_valid_output_node_structure(
+            error_stream,
+            session,
+            metadata,
         )
         if not (valid_input and valid_output):
             raise ONNXModelValidationError(
-                f"Validation failed: {error_stream.getvalue()}"
+                f"Validation failed: {error_stream.getvalue()}",
             )
         del session
         logger.info(
-            "ONNX model input/output structure and metadata validation is successful."
+            "ONNX model input/output structure and metadata validation is successful.",
         )
         return True
 
     def run(self, test_data: dict):
-        """
-        Run the prediction using the provided test data.
+        """Run the prediction using the provided test data.
 
         Parameters
         ----------
@@ -338,6 +333,7 @@ class ONNXModel(LocalModel):
         -------
         Any
             The prediction result.
+
         """
         session = None
         from onnxruntime import InferenceSession
@@ -348,8 +344,7 @@ class ONNXModel(LocalModel):
         return result
 
     def save(self, onnx_file_path: str):
-        """
-        Saves the ONNX model to the specified file path.
+        """Saves the ONNX model to the specified file path.
 
         Parameters
         ----------
@@ -359,16 +354,19 @@ class ONNXModel(LocalModel):
         Raises
         ------
             ImportError: If the optional dependencies for ONNX Conversion are not installed.
+
         """
         import onnx
 
         onnx.save_model(self._model, onnx_file_path)
 
     def __check_for_valid_input_node_structure(
-        self, error_stream, session, metadata
+        self,
+        error_stream,
+        session,
+        metadata,
     ) -> bool:
-        """
-        Checks if the output node structure of the ONNX model is valid.
+        """Checks if the output node structure of the ONNX model is valid.
 
         Parameters
         ----------
@@ -383,19 +381,21 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the output node structure is valid, False otherwise.
+
         """
         model_input_info = {i.name: i for i in session.get_inputs()}
         return (
             self.__validate_input_nodes(error_stream, model_input_info, metadata)
             and self.__validate_predictor_mappings(
-                error_stream, model_input_info, metadata
+                error_stream,
+                model_input_info,
+                metadata,
             )
             and self.__validate_predictor_index_mappings(error_stream, metadata)
         )
 
     def __validate_input_nodes(self, error_stream, model_input_info, metadata) -> bool:
-        """
-        Validates the input nodes of the ONNX model.
+        """Validates the input nodes of the ONNX model.
 
         Parameters
         ----------
@@ -410,20 +410,25 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the input nodes are valid, False otherwise.
+
         """
         return (
             self.__validate_input_node_shapes(error_stream, model_input_info)
             and self.__validate_input_node_dimensions(error_stream, model_input_info)
             and self.__validate_input_node_sizes(
-                error_stream, model_input_info, metadata
+                error_stream,
+                model_input_info,
+                metadata,
             )
         )
 
     def __check_for_valid_output_node_structure(
-        self, error_stream, session, metadata
+        self,
+        error_stream,
+        session,
+        metadata,
     ) -> bool:
-        """
-        Checks if the output node structure of the ONNX model is valid.
+        """Checks if the output node structure of the ONNX model is valid.
 
         Parameters
         ----------
@@ -438,10 +443,13 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the output node structure is valid, False otherwise.
+
         """
         model_output_info = {o.name: o for o in session.get_outputs()}
         return self.__validate_label_output_node_exist(
-            error_stream, model_output_info, metadata
+            error_stream,
+            model_output_info,
+            metadata,
         ) and self.__validate_tensor_output_node_structure(
             error_stream,
             metadata.output.label_name,
@@ -449,10 +457,12 @@ class ONNXModel(LocalModel):
         )
 
     def __validate_tensor_output_node_structure(
-        self, error_stream, node_name, value_info
+        self,
+        error_stream,
+        node_name,
+        value_info,
     ) -> bool:
-        """
-        Validates the tensor output node structure of the ONNX model.
+        """Validates the tensor output node structure of the ONNX model.
 
         Parameters
         ----------
@@ -467,10 +477,11 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the output node is of type Tensor, False otherwise.
+
         """
         if "tensor" not in value_info.type.lower():
             error_stream.write(
-                f"Expected the ONNX model's output node '{node_name}' to be of data type Tensor, but found a Map or Sequence instead."
+                f"Expected the ONNX model's output node '{node_name}' to be of data type Tensor, but found a Map or Sequence instead.",
             )
             return False
 
@@ -478,15 +489,17 @@ class ONNXModel(LocalModel):
         is_valid_dimension = tensor_length in [1, 2]
         if not is_valid_dimension:
             error_stream.write(
-                f"The shape of the ONNX model's output node '{node_name}' does not comply to the expected 1 or 2 dimensions."
+                f"The shape of the ONNX model's output node '{node_name}' does not comply to the expected 1 or 2 dimensions.",
             )
         return is_valid_dimension
 
     def __validate_label_output_node_exist(
-        self, error_stream, model_output_info, metadata
+        self,
+        error_stream,
+        model_output_info,
+        metadata,
     ) -> bool:
-        """
-        Validates the existence of the label output node in the ONNX model.
+        """Validates the existence of the label output node in the ONNX model.
 
         Parameters
         ----------
@@ -501,18 +514,18 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the label output node exists, False otherwise.
+
         """
         if metadata.output.label_name not in model_output_info:
             error_stream.write(
                 f"The ONNX model does not contain the expected output node for labels, identified by: {metadata.output.label_name}. "
-                "Ensure the model's metadata correctly maps the label output node."
+                "Ensure the model's metadata correctly maps the label output node.",
             )
             return False
         return True
 
     def __validate_input_node_dimensions(self, error_stream, model_input_info) -> bool:
-        """
-        Validates the dimensions of the input nodes in the ONNX model.
+        """Validates the dimensions of the input nodes in the ONNX model.
 
         Parameters
         ----------
@@ -525,26 +538,24 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if all input nodes have valid dimensions, False otherwise.
+
         """
         predictor_with_dynamic_size = [
             f"{name}({value_info.shape})"
             for name, value_info in model_input_info.items()
-            if any(
-                dim is not None and not isinstance(dim, int) for dim in value_info.shape
-            )
+            if any(dim is not None and not isinstance(dim, int) for dim in value_info.shape)
         ]
         if predictor_with_dynamic_size:
             error_stream.write(
                 "The ONNX model's input nodes are dynamically sized, but fixed array sizes were expected for: "
                 + ", ".join(predictor_with_dynamic_size)
-                + ". Ensure all input nodes have predefined fixed sizes."
+                + ". Ensure all input nodes have predefined fixed sizes.",
             )
             return False
         return True
 
     def __validate_input_node_shapes(self, error_stream, model_input_info) -> bool:
-        """
-        Validates the dimensions of the input nodes in the ONNX model.
+        """Validates the dimensions of the input nodes in the ONNX model.
 
         Parameters
         ----------
@@ -557,26 +568,27 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if all input nodes have valid dimensions, False otherwise.
+
         """
         predictor_with_invalid_shape = [
-            f"{name}({info.shape})"
-            for name, info in model_input_info.items()
-            if len(info.shape) != 2
+            f"{name}({info.shape})" for name, info in model_input_info.items() if len(info.shape) != 2
         ]
         if predictor_with_invalid_shape:
             error_stream.write(
                 "The ONNX model's input nodes does not comply to the expected 2-dimensional input shape for: "
                 + ", ".join(predictor_with_invalid_shape)
-                + ". Verify that all input nodes are correctly shaped with 2 dimensions."
+                + ". Verify that all input nodes are correctly shaped with 2 dimensions.",
             )
             return False
         return True
 
     def __validate_predictor_mappings(
-        self, error_stream, model_input_info, metadata
+        self,
+        error_stream,
+        model_input_info,
+        metadata,
     ) -> bool:
-        """
-        Validates the predictor mappings in the ONNX model.
+        """Validates the predictor mappings in the ONNX model.
 
         Parameters
         ----------
@@ -591,36 +603,35 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if all predictor mappings are valid, False otherwise.
+
         """
         missing_predictors = ""
 
         if not metadata.predictor_list:
-            any_array_predictor_input = any(
-                info.shape[1] != 1 for info in model_input_info.values()
-            )
+            any_array_predictor_input = any(info.shape[1] != 1 for info in model_input_info.values())
             if any_array_predictor_input:
                 missing_predictors = self.__get_missing_predictors(model_input_info, [])
         else:
             predictor_input_names = list(
-                set(p.input_name for p in metadata.predictor_list)
+                set(p.input_name for p in metadata.predictor_list),
             )
             missing_predictors = self.__get_missing_predictors(
-                model_input_info, predictor_input_names
+                model_input_info,
+                predictor_input_names,
             )
 
         if missing_predictors:
             error_stream.write(
                 "Predictor mappings for the following input nodes are missing: "
                 + missing_predictors
-                + ". Ensure all required input nodes are correctly mapped in the ONNX model's metadata."
+                + ". Ensure all required input nodes are correctly mapped in the ONNX model's metadata.",
             )
             return False
 
         return True
 
     def __validate_predictor_index_mappings(self, error_stream, metadata) -> bool:
-        """
-        Validates the predictor index mappings in the ONNX model's metadata.
+        """Validates the predictor index mappings in the ONNX model's metadata.
 
         Parameters
         ----------
@@ -633,6 +644,7 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if the predictor index mappings are valid, False otherwise.
+
         """
         if metadata.predictor_list is not None:
             predictor_map = self.__create_predictor_map(metadata)
@@ -645,14 +657,13 @@ class ONNXModel(LocalModel):
                 error_stream.write(
                     "Detected a mismatch between the ONNX input node size and the number of predictors specified in the metadata for: "
                     + ", ".join(duplicate_index_mapped_input)
-                    + ". Ensure the size of each input node matches the corresponding number of predictors defined in the metadata."
+                    + ". Ensure the size of each input node matches the corresponding number of predictors defined in the metadata.",
                 )
                 return False
         return True
 
     def __create_predictor_map(self, metadata):
-        """
-        Creates a mapping of input names to their corresponding predictors.
+        """Creates a mapping of input names to their corresponding predictors.
 
         Parameters
         ----------
@@ -663,6 +674,7 @@ class ONNXModel(LocalModel):
         -------
         dict
             A dictionary where the keys are input names and the values are lists of predictors.
+
         """
         predictor_map = {}
         for predictor in metadata.predictor_list:
@@ -673,10 +685,12 @@ class ONNXModel(LocalModel):
         return predictor_map
 
     def __validate_input_node_sizes(
-        self, error_stream, model_input_info, metadata
+        self,
+        error_stream,
+        model_input_info,
+        metadata,
     ) -> bool:
-        """
-        Validates the sizes of the input nodes in the ONNX model.
+        """Validates the sizes of the input nodes in the ONNX model.
 
         Parameters
         ----------
@@ -691,11 +705,10 @@ class ONNXModel(LocalModel):
         -------
         bool
             True if all input nodes have valid sizes, False otherwise.
+
         """
         if metadata.predictor_list is not None:
-            model_input_info_map = {
-                name: info.shape[1] for name, info in model_input_info.items()
-            }
+            model_input_info_map = {name: info.shape[1] for name, info in model_input_info.items()}
             predictor_map = self.__create_predictor_map(metadata)
             predictor_with_invalid_size = [
                 f"{name}{model_input_info[name].shape}"
@@ -704,9 +717,7 @@ class ONNXModel(LocalModel):
                 and (
                     len(predictors) != model_input_info_map[name]
                     or any(
-                        p.index < 1 or p.index > model_input_info_map[name]
-                        if p.index is not None
-                        else True
+                        p.index < 1 or p.index > model_input_info_map[name] if p.index is not None else True
                         for p in predictors
                     )
                 )
@@ -715,14 +726,13 @@ class ONNXModel(LocalModel):
                 error_stream.write(
                     "Discrepancy detected in ONNX model metadata predictor index mappings versus model's input dimensions for: "
                     + ", ".join(predictor_with_invalid_size)
-                    + ". Verify and align the predictor and index mappings with the model's input dimensions."
+                    + ". Verify and align the predictor and index mappings with the model's input dimensions.",
                 )
                 return False
         return True
 
     def __get_missing_predictors(self, model_input_info, predictor_input_names) -> str:
-        """
-        Identifies the missing predictors in the ONNX model's input nodes.
+        """Identifies the missing predictors in the ONNX model's input nodes.
 
         Parameters
         ----------
@@ -735,9 +745,6 @@ class ONNXModel(LocalModel):
         -------
         str
             A comma-separated string of missing predictor names.
+
         """
-        return ", ".join(
-            name
-            for name in model_input_info.keys()
-            if name not in predictor_input_names
-        )
+        return ", ".join(name for name in model_input_info.keys() if name not in predictor_input_names)

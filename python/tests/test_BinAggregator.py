@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the BinAggregator
-"""
+"""Testing the functionality of the BinAggregator"""
 
 import polars as pl
 import pytest
@@ -12,7 +10,7 @@ from plotly.graph_objects import Figure
 @pytest.fixture
 def cdhsample_binaggregator():
     sample = datasets.cdh_sample(
-        query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound"))
+        query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound")),
     )
 
     return sample.bin_aggregator
@@ -21,7 +19,8 @@ def cdhsample_binaggregator():
 def test_overall_num_rollup(cdhsample_binaggregator):
     assert isinstance(cdhsample_binaggregator.roll_up("Customer.AnnualIncome"), Figure)
     rolled_up_binning = cdhsample_binaggregator.roll_up(
-        "Customer.AnnualIncome", return_df=True
+        "Customer.AnnualIncome",
+        return_df=True,
     )
     assert rolled_up_binning.columns == [
         "PredictorName",
@@ -37,7 +36,8 @@ def test_overall_num_rollup(cdhsample_binaggregator):
     ]
     assert rolled_up_binning["Models"].to_list() == [4] * 10
     assert rolled_up_binning["BinCoverage"].to_list() == pytest.approx(
-        [3.994431] + [4] * 7 + [3.900718, 2.204945], 1e-5
+        [3.994431] + [4] * 7 + [3.900718, 2.204945],
+        1e-5,
     )
     assert rolled_up_binning["Lift"].to_list() == pytest.approx(
         [
@@ -73,7 +73,9 @@ def test_overall_num_rollup(cdhsample_binaggregator):
 
 def test_overall_sym_rollup(cdhsample_binaggregator):
     rolled_up_binning = cdhsample_binaggregator.roll_up(
-        "Customer.MaritalStatus", symbols="Not Known", return_df=True
+        "Customer.MaritalStatus",
+        symbols="Not Known",
+        return_df=True,
     )
     assert isinstance(rolled_up_binning, pl.DataFrame)
     assert rolled_up_binning.columns == [
@@ -121,7 +123,10 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
 
 def test_create_empty_numbinning(cdhsample_binaggregator):
     target = cdhsample_binaggregator.create_empty_numbinning(
-        predictor="Dummy", n=5, minimum=0, maximum=100
+        predictor="Dummy",
+        n=5,
+        minimum=0,
+        maximum=100,
     )
     assert target.shape[0] == 5
     assert target["BinLowerBound"].to_list() == [0.0, 20.0, 40.0, 60.0, 80.0]
@@ -130,18 +135,23 @@ def test_create_empty_numbinning(cdhsample_binaggregator):
 
 def test_create_symbol_list(cdhsample_binaggregator):
     symbols = cdhsample_binaggregator.create_symbol_list(
-        predictor="Customer.RiskCode", n_symbols=None, musthave_symbols=["Hello"]
+        predictor="Customer.RiskCode",
+        n_symbols=None,
+        musthave_symbols=["Hello"],
     )
     assert symbols == ["Hello", "R1", "R2", "R3", "R4"]
     symbols = cdhsample_binaggregator.create_symbol_list(
-        predictor="Customer.RiskCode", n_symbols=3, musthave_symbols=["Hello"]
+        predictor="Customer.RiskCode",
+        n_symbols=3,
+        musthave_symbols=["Hello"],
     )
     assert symbols == ["Hello", "R1", "R2"]
 
 
 def test_get_source_numbinning(cdhsample_binaggregator):
     binning = cdhsample_binaggregator.get_source_numbinning(
-        "Customer.Age", "08ca1302-9fc0-57bf-9031-d4179d400493"
+        "Customer.Age",
+        "08ca1302-9fc0-57bf-9031-d4179d400493",
     )
     assert isinstance(binning, pl.DataFrame)
     assert binning.shape[0] == 11
@@ -150,7 +160,10 @@ def test_get_source_numbinning(cdhsample_binaggregator):
 
 def test_combine_two_numbinnings(cdhsample_binaggregator):
     target = cdhsample_binaggregator.create_empty_numbinning(
-        "Customer.Age", 4, minimum=20, maximum=80
+        "Customer.Age",
+        4,
+        minimum=20,
+        maximum=80,
     )
     source = pl.DataFrame(
         {
@@ -161,7 +174,7 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
             "BinUpperBound": [25.0, 50.0, 75.0],
             "Lift": [0.4, -0.1, 2.0],
             "BinResponses": [100, 1000, 400],
-        }
+        },
     )
     combined = cdhsample_binaggregator.combine_two_numbinnings(source, target)
     assert combined.shape[0] == 4
@@ -170,7 +183,7 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
 
 
 @pytest.mark.skip(
-    reason="query argument to binaggregator currently no longer supported"
+    reason="query argument to binaggregator currently no longer supported",
 )
 def test_subsetting():
     dm = datasets.cdh_sample()
@@ -206,7 +219,10 @@ def test_log(cdhsample_binaggregator):
 
 def test_plot_binning_attribution(cdhsample_binaggregator):
     target = cdhsample_binaggregator.create_empty_numbinning(
-        "Customer.Age", 4, minimum=20, maximum=80
+        "Customer.Age",
+        4,
+        minimum=20,
+        maximum=80,
     )
     source = pl.DataFrame(
         {
@@ -218,7 +234,7 @@ def test_plot_binning_attribution(cdhsample_binaggregator):
             # "BinSymbol" : ["20-25", "25-50", "50-75"],
             "Lift": [0.4, -0.1, 2.0],
             "BinResponses": [100, 1000, 400],
-        }
+        },
     )
 
     fig = cdhsample_binaggregator.plot_binning_attribution(source, target)
@@ -231,8 +247,11 @@ def test_plot_binning_lift(cdhsample_binaggregator):
     assert isinstance(
         cdhsample_binaggregator.plot_lift_binning(
             cdhsample_binaggregator.create_empty_numbinning(
-                "Customer.Age", 4, minimum=20, maximum=80
-            )
+                "Customer.Age",
+                4,
+                minimum=20,
+                maximum=80,
+            ),
         ),
         Figure,
     )
@@ -241,7 +260,10 @@ def test_plot_binning_lift(cdhsample_binaggregator):
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_verbose_mode(cdhsample_binaggregator: BinAggregator, capsys):
     cdhsample_binaggregator.roll_up(
-        ["Customer.Prefix", "Customer.Age"], n=6, aggregation="Group", verbose=True
+        ["Customer.Prefix", "Customer.Age"],
+        n=6,
+        aggregation="Group",
+        verbose=True,
     )
     captured = capsys.readouterr()
     assert "Pivot table:" in captured

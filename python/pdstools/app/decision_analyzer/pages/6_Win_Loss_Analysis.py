@@ -1,12 +1,11 @@
 import streamlit as st
-
-
 from da_streamlit_utils import (
+    ensure_data,
     get_current_index,
     get_data_filters,
     show_filtered_counts,
-    ensure_data,
 )
+
 from pdstools.decision_analyzer.utils import (
     get_first_level_stats,
 )
@@ -74,7 +73,7 @@ with st.session_state["sidebar"]:
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
-            st.session_state.decision_data.sample
+            st.session_state.decision_data.sample,
         )
         statsAfterExtraFilter = get_first_level_stats(
             st.session_state.decision_data.sample,
@@ -95,8 +94,7 @@ with st.session_state["sidebar"]:
 
 
 def get_groupby_columns(scope_options, current_scope_key):
-    """
-    Get the columns to group by for win/loss analysis.
+    """Get the columns to group by for win/loss analysis.
     Returns [current_scope] + [next_scope_level] if next level exists.
     This creates the y-axis (current scope) and color grouping (next scope level).
     """
@@ -114,12 +112,10 @@ def get_groupby_columns(scope_options, current_scope_key):
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
 
-    interactions_where_comparison_group_wins = (
-        st.session_state.decision_data.get_winning_or_losing_interactions(
-            win_rank=st.session_state.win_rank,
-            group_filter=st.session_state["local_filters"],
-            win=True,
-        )
+    interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
+        win_rank=st.session_state.win_rank,
+        group_filter=st.session_state["local_filters"],
+        win=True,
     )
     winning_from = st.session_state.decision_data.winning_from(
         interactions=interactions_where_comparison_group_wins,
@@ -127,12 +123,10 @@ if st.session_state.local_filters != []:
         groupby_cols=groupby_cols,
         top_k=top_k,
     )
-    interactions_where_comparison_group_loses = (
-        st.session_state.decision_data.get_winning_or_losing_interactions(
-            win_rank=st.session_state.win_rank,
-            group_filter=st.session_state["local_filters"],
-            win=False,
-        )
+    interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
+        win_rank=st.session_state.win_rank,
+        group_filter=st.session_state["local_filters"],
+        win=False,
     )
     losing_to = st.session_state.decision_data.losing_to(
         interactions=interactions_where_comparison_group_loses,
@@ -148,7 +142,7 @@ if st.session_state.local_filters != []:
 
         st.info(
             # TODO these numbers may not be correct
-            f"The action(s) in the comparison group win {win_count} times"
+            f"The action(s) in the comparison group win {win_count} times",
         )
         f"""Distribution of the {st.session_state.scope}s that the comparison group wins from in Arbitration"""
 
@@ -168,7 +162,7 @@ if st.session_state.local_filters != []:
     with col2:
         """## Loss Analysis"""
         st.info(
-            f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times"
+            f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
         )
         f"""Distribution of the {st.session_state.scope}s that the comparison group loses to in Arbitration"""
 

@@ -118,7 +118,7 @@ To use the stand-alone health check application, you need to install several Pyt
 
       **Remember:** Always activate your virtual environment before working with the application:
 
-      - ``source .venv/bin/activate`` (macOS/Linux) 
+      - ``source .venv/bin/activate`` (macOS/Linux)
       - ``.venv\Scripts\activate`` (Windows)
 
    .. group-tab:: pip (global)
@@ -189,7 +189,7 @@ In the app, navigate to the Health Check tab (in the left pane). This shows inst
 
 Click the "Data Import" tab in the main screen to load your data. You have several options:
 
-.. note:: 
+.. note::
    If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://docs.pega.com/bundle/platform/page/platform/decision-management/enabling-monitoring-database-export.html>`_ for instructions.
 
 - **Direct file path**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``). The tool will automatically find the relevant files in that directory.

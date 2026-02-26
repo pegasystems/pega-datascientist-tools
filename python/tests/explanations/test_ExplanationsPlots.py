@@ -12,8 +12,9 @@ from pdstools.explanations.Plots import Plots
 
 basePath = Path(__file__).parent.parent.parent.parent
 
+
 def clean_up(root_dir):
-    _root_dir = Path(f'{basePath}/{root_dir}')
+    _root_dir = Path(f"{basePath}/{root_dir}")
     if _root_dir.exists():
         for file in _root_dir.iterdir():
             if file.is_file():
@@ -23,12 +24,12 @@ def clean_up(root_dir):
                 shutil.rmtree(file)
         _root_dir.rmdir()
 
+
 @pytest.fixture(scope="module")
 def plots():
     """Fixture to serve as class to call functions from."""
-
     explanations = Explanations(
-        data_folder=f'{basePath}/data/explanations',
+        data_folder=f"{basePath}/data/explanations",
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
         to_date=datetime(2025, 3, 28),
@@ -41,7 +42,6 @@ def plots():
 
 def test_plot_context_table():
     """Test the _plot_context_table method."""
-
     mock_context_info = {"key1": "value1", "key2": "value2"}
     fig = Plots._plot_context_table(mock_context_info)
     # Check that the returned object is a plotly Figure
@@ -56,7 +56,6 @@ def test_plot_context_table():
 
 def test_plot_contributions_for_overall_default_params(plots):
     """Test the plot_contributions_for_overall method with default parameters."""
-
     overall_fig, predictors_figs = plots.plot_contributions_for_overall()
 
     # Assertions
@@ -65,13 +64,16 @@ def test_plot_contributions_for_overall_default_params(plots):
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
     # +1 for the remaining bar
-    _assert_fig_bar_data_overall(overall_fig, _DEFAULT.TOP_N.value + 1, check_condition="le")
+    _assert_fig_bar_data_overall(
+        overall_fig,
+        _DEFAULT.TOP_N.value + 1,
+        check_condition="le",
+    )
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
 
 
 def test_plot_contributions_for_overall_custom_params(plots):
     """Test the plot_contributions_for_overall method with custom parameters."""
-
     top_n = 2
     top_k = 3
 
@@ -94,37 +96,49 @@ def test_plot_contributions_for_overall_custom_params(plots):
 def test_plot_contributions_for_overall_with_missing_for_age(plots):
     _, predictors_figs = plots.plot_contributions_for_overall()
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "Age", check_missing=True, exists=True
+        predictors_figs,
+        "Age",
+        check_missing=True,
+        exists=True,
     )
 
 
 def test_plot_contributions_for_overall_without_missing_for_age(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(missing=False)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "Age", check_missing=True, exists=False
+        predictors_figs,
+        "Age",
+        check_missing=True,
+        exists=False,
     )
 
 
 def test_plot_contributions_for_overall_with_remaining_for_eyecolor(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(top_k=2, remaining=True)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "EyeColor", check_remaining=True, exists=True
+        predictors_figs,
+        "EyeColor",
+        check_remaining=True,
+        exists=True,
     )
 
 
 def test_plot_contributions_for_overall_without_remaining_for_eyecolor(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(top_k=2, remaining=False)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "EyeColor", check_remaining=True, exists=False
+        predictors_figs,
+        "EyeColor",
+        check_remaining=True,
+        exists=False,
     )
+
 
 def test_plot_contributions_for_overall_with_invalid_contribution_type(plots):
     """Test the plot_contributions_for_overall method with an invalid contribution type."""
-
     # Call the method with an invalid contribution type
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_for_overall(
-            contribution_calculation="invalid"
+            contribution_calculation="invalid",
         )
 
 
@@ -138,7 +152,7 @@ def test_plot_contributions_by_context_default_params(plots):
     }
     # Call the method
     header_fig, overall_fig, predictors_figs = plots.plot_contributions_by_context(
-        context=selected_context
+        context=selected_context,
     )
 
     # Assertions
@@ -175,8 +189,9 @@ def test_plot_contributions_by_context_limit_top(plots):
     assert isinstance(predictors_figs, list)
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
-    _assert_fig_bar_data_overall(overall_fig, 1 , check_condition="gt")
+    _assert_fig_bar_data_overall(overall_fig, 1, check_condition="gt")
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
+
 
 def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     """Test the plot_contributions_by_context method with an invalid contribution."""
@@ -191,7 +206,7 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_by_context(
             context=selected_context,
-            contribution_calculation="invalid"
+            contribution_calculation="invalid",
         )
 
 
@@ -219,7 +234,10 @@ def _assert_fig_bar_data_predictors_special_bins(
 
 
 def _assert_fig_bar_data_predictors(
-    figs, top_k, check_condition="eq", check_remaining=False
+    figs,
+    top_k,
+    check_condition="eq",
+    check_remaining=False,
 ):
     for fig in figs:
         if _get_predictor_type_from_fig(fig) == "SYMBOLIC":
@@ -232,7 +250,11 @@ def _assert_fig_bar_data_predictors(
 
 
 def _assert_fig_bar_data_overall(
-    fig, y_len, check_condition="eq", check_remaining=False, check_missing=False
+    fig,
+    y_len,
+    check_condition="eq",
+    check_remaining=False,
+    check_missing=False,
 ):
     bar_data = _get_bar_data_from_fig(fig)
 

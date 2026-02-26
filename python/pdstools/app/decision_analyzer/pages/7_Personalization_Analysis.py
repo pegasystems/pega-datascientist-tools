@@ -53,9 +53,7 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
         "Distribution of Available action by Stage"
         if st.session_state.decision_data.extract_type == "decision_analyzer":
             st.plotly_chart(
-                st.session_state.decision_data.plot.optionality_funnel(
-                    df=st.session_state.decision_data.sample
-                ),
+                st.session_state.decision_data.plot.optionality_funnel(df=st.session_state.decision_data.sample),
                 use_container_width=True,
             )
 
@@ -69,9 +67,7 @@ changes in the number of available actions
 
 
 optionality_data_with_trend_per_stage = (
-    st.session_state.decision_data.get_optionality_data_with_trend(
-        df=st.session_state.decision_data.sample
-    )
+    st.session_state.decision_data.get_optionality_data_with_trend(df=st.session_state.decision_data.sample)
     .group_by(["day", st.session_state.decision_data.level])
     .agg(nOffers=pl.col("nOffers").max())
     .sort("day")
@@ -99,9 +95,7 @@ st.plotly_chart(
     st.session_state.decision_data.plot.action_variation(stage="Output"),
     use_container_width=True,
 )
-action_variability_stats = st.session_state.decision_data.get_offer_variability_stats(
-    "Output"
-)
+action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
 f"""
-{action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"],3)}**.
+{action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"], 3)}**.
 """

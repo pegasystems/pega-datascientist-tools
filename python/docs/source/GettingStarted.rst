@@ -14,7 +14,7 @@ Installation
 
 **Instructions**
 
-Pega Data Scientist Tools (pdstools) is a public Python library and it is `published on pypi <https://pypi.org/project/pdstools/>`_. As such, you can install it just like any other Python library; using your package manager of choice. 
+Pega Data Scientist Tools (pdstools) is a public Python library and it is `published on pypi <https://pypi.org/project/pdstools/>`_. As such, you can install it just like any other Python library; using your package manager of choice.
 
 Choose your preferred installation method:
 
@@ -110,7 +110,7 @@ Choose your preferred installation method:
 
       **Remember:** Always activate your virtual environment before working with pdstools:
 
-      - ``source .venv/bin/activate`` (macOS/Linux) 
+      - ``source .venv/bin/activate`` (macOS/Linux)
       - ``.venv\Scripts\activate`` (Windows)
 
    .. group-tab:: pip (global)
@@ -146,7 +146,7 @@ Choose your preferred installation method:
 Optional dependencies
 ---------------------
 
-We intentionally limit the number of big and heavy core dependencies. This means that while initial installation is very fast, you may at some points run into import errors and will be required to install additional dependency groups. 
+We intentionally limit the number of big and heavy core dependencies. This means that while initial installation is very fast, you may at some points run into import errors and will be required to install additional dependency groups.
 
 To install extra dependencies, you can put them in square brackets after a package name. For example, to install the optional dependencies required for using the API features of pdstools:
 

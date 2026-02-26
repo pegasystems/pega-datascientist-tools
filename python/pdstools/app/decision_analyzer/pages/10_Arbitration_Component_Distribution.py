@@ -71,9 +71,7 @@ with st.container(border=True):
         st.session_state.scope,
         stage=st.session_state.stage,
     )
-    overview_fig = st_component_overview(
-        overview_data, component_options, st.session_state.scope
-    )
+    overview_fig = st_component_overview(overview_data, component_options, st.session_state.scope)
     st.plotly_chart(overview_fig)
 
 # ---------------------------------------------------------------------------
@@ -94,9 +92,7 @@ with st.container(border=True):
         granularity=st.session_state.scope,
     )
 
-    violin_tab, ecdf_tab, stats_tab = st.tabs(
-        ["Violin Plot", "Cumulative Distribution", "Summary Statistics"]
-    )
+    violin_tab, ecdf_tab, stats_tab = st.tabs(["Violin Plot", "Cumulative Distribution", "Summary Statistics"])
 
     with violin_tab:
         """

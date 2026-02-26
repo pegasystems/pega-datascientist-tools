@@ -1,12 +1,14 @@
-import streamlit as st
 import json
+
 import polars as pl
+import streamlit as st
+
+from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     filter_dataframe,
     model_and_row_counts,
 )
-from pdstools.utils.cdh_utils import _apply_query
 
 _apply_sidebar_logo()
 
@@ -21,7 +23,8 @@ what values you want to keep in the Health Check.
 if "dm" in st.session_state:
     expr_list = []
     uploaded_file = st.file_uploader(
-        "Upload Filters You Downloaded Earlier", type=["json"]
+        "Upload Filters You Downloaded Earlier",
+        type=["json"],
     )
     if uploaded_file:
         import io
@@ -34,15 +37,16 @@ if "dm" in st.session_state:
             expr_list.append(pl.Expr.deserialize(str_io, format="json"))
 
     st.session_state["filters"] = filter_dataframe(
-        st.session_state["dm"].model_data, queries=expr_list
+        st.session_state["dm"].model_data,
+        queries=expr_list,
     )
     if "unfiltered_counts" not in st.session_state.keys():
         st.session_state["unfiltered_counts"] = model_and_row_counts(
-            st.session_state["dm"].model_data
+            st.session_state["dm"].model_data,
         )
     if st.session_state["filters"] != []:
         filtered_modelid_count, filtered_row_count = model_and_row_counts(
-            _apply_query(st.session_state["dm"].model_data, st.session_state["filters"])
+            _apply_query(st.session_state["dm"].model_data, st.session_state["filters"]),
         )
         serialized_exprs = {}
         for i, expr in enumerate(st.session_state["filters"]):

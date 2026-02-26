@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the adm Reports module
-"""
+"""Testing the functionality of the adm Reports module"""
 
 import pytest
 
@@ -10,6 +8,7 @@ def test_health_check_file_size_optimization():
     """Verify Health Check reports stay under 20MB limit."""
     import tempfile
     from pathlib import Path
+
     from pdstools import datasets
     from pdstools.adm.Reports import Reports
 
@@ -47,7 +46,7 @@ def test_health_check_file_size_optimization():
 
             if not isinstance(output_path, Path):
                 pytest.fail(
-                    f"Health check returned {type(output_path)} instead of Path"
+                    f"Health check returned {type(output_path)} instead of Path",
                 )
 
             if not output_path.exists():
@@ -60,17 +59,13 @@ def test_health_check_file_size_optimization():
                 pytest.fail(f"Could not get file size for {output_path}: {e}")
 
             assert file_size_mb <= 20, f"Report too large: {file_size_mb:.1f}MB > 20MB"
-            assert (
-                file_size_mb >= 0.5
-            ), f"Report suspiciously small: {file_size_mb:.1f}MB"
+            assert file_size_mb >= 0.5, f"Report suspiciously small: {file_size_mb:.1f}MB"
 
             # Content validation
             try:
                 html_content = output_path.read_text(encoding="utf-8")
                 assert "<html" in html_content, "Generated file is not valid HTML"
-                assert (
-                    "ADM Models across all Channels" in html_content
-                ), "Report content missing expected text"
+                assert "ADM Models across all Channels" in html_content, "Report content missing expected text"
             except UnicodeDecodeError as e:
                 pytest.fail(f"Could not read generated HTML file: {e}")
 
@@ -100,9 +95,7 @@ def test_html_deduplication():
 
     # Edge cases
     assert remove_duplicate_html_scripts("") == ""
-    assert (
-        remove_duplicate_html_scripts("<html><script>broken") == "<html><script>broken"
-    )
+    assert remove_duplicate_html_scripts("<html><script>broken") == "<html><script>broken"
 
 
 def test_remove_duplicate_html_scripts_size_threshold():
@@ -134,6 +127,7 @@ def test_size_reduction_method_integration():
     import tempfile
     from pathlib import Path
     from typing import Literal
+
     from pdstools import datasets
     from pdstools.adm.Reports import Reports
 
@@ -179,26 +173,16 @@ def test_size_reduction_method_integration():
         # Verify all reports are valid HTML with plots
         for method_name, data in results.items():
             assert "<html" in data["content"], f"{method_name}: Not valid HTML"
-            assert (
-                data["content"].count("Plotly.newPlot") > 0
-            ), f"{method_name}: Missing plots"
+            assert data["content"].count("Plotly.newPlot") > 0, f"{method_name}: Missing plots"
 
         # CDN should be smallest (no embedded resources)
-        assert (
-            results["cdn"]["size"] < results["embedded"]["size"]
-        ), "CDN should be smaller than embedded"
+        assert results["cdn"]["size"] < results["embedded"]["size"], "CDN should be smaller than embedded"
 
         # Strip should also be smaller than embedded
-        assert (
-            results["strip"]["size"] < results["embedded"]["size"]
-        ), "Strip should be smaller than embedded"
+        assert results["strip"]["size"] < results["embedded"]["size"], "Strip should be smaller than embedded"
 
         # Strip should have deduplication markers
-        assert (
-            "Duplicate script removed" in results["strip"]["content"]
-        ), "Strip should have deduplication markers"
+        assert "Duplicate script removed" in results["strip"]["content"], "Strip should have deduplication markers"
 
         # Embedded should NOT have deduplication markers
-        assert (
-            "Duplicate script removed" not in results["embedded"]["content"]
-        ), "Embedded should not have markers"
+        assert "Duplicate script removed" not in results["embedded"]["content"], "Embedded should not have markers"

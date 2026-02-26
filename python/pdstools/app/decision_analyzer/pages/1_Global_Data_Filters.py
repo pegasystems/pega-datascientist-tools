@@ -44,9 +44,7 @@ with st.container(border=True):
     """
     You can (optionally) save and re-apply filters you defined earlier:
     """
-    uploaded_file = st.file_uploader(
-        "Use the same data filters you used in previous sessions:", type=["json"]
-    )
+    uploaded_file = st.file_uploader("Use the same data filters you used in previous sessions:", type=["json"])
     if uploaded_file:
         imported_filters = json.load(uploaded_file)
         for key, val in imported_filters.items():
