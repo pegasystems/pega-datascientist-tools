@@ -108,6 +108,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [x] Add component overview — *(Completed: new plot_component_overview for multi-component summary view)*
 - [x] Stage level selector — *(Completed: dynamic stage-level selector with improved layout)*
 - [x] Dynamic component detection — *(Completed: via PRIO_COMPONENTS)*
+- [ ] **EE v1: include all propensity-like properties** — Explainability Extract (v1) has multiple propensity flavors (e.g. model propensity, adjusted propensity) whereas v2 only has one. The component overview and detail views should surface all propensity-like columns for v1 data.
 - [ ] Finish proposition distribution side-by-side view
 
 ### 11 — Business Lever Analysis

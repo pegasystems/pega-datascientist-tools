@@ -933,8 +933,8 @@ def plot_priority_component_distribution(value_data: pl.LazyFrame, component: st
 def plot_component_overview(value_data: pl.LazyFrame, components: list[str], granularity: str) -> go.Figure:
     """Small-multiples violin panel showing all components side by side.
 
-    Each component is a separate facet so their different scales don't
-    interfere. The violins are colored by *granularity* (e.g. Issue).
+    Each component gets its own subplot with a fully independent x-axis
+    so their different scales are always visible.
 
     Returns
     -------
@@ -948,38 +948,55 @@ def plot_component_overview(value_data: pl.LazyFrame, components: list[str], gra
         return fig
 
     collected: pl.DataFrame = value_data.select([granularity] + components).collect()  # type: ignore[assignment]
-    melted = collected.unpivot(on=components, index=granularity, variable_name="Component", value_name="Value")
+    groups = collected.get_column(granularity).unique().sort().to_list()
 
-    fig = px.violin(
-        melted,
-        x="Value",
-        y=granularity,
-        color=granularity,
-        facet_col="Component",
-        facet_col_wrap=3,
-        template="pega",
-        box=True,
-        points=False,
+    n_cols = min(3, len(components))
+    n_rows = (len(components) + n_cols - 1) // n_cols
+
+    fig = make_subplots(
+        rows=n_rows,
+        cols=n_cols,
+        subplot_titles=components,
+        horizontal_spacing=0.08,
+        vertical_spacing=0.15,
     )
-    # Break all axis sharing so each facet scales independently.
-    fig.update_xaxes(matches=None, title="")
-    fig.update_yaxes(matches=None, title="")
-    for axis_name in list(fig.layout.to_plotly_json()):
-        if axis_name.startswith("xaxis"):
-            fig.layout[axis_name]["matches"] = None
-            fig.layout[axis_name]["autorange"] = True
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+    for idx, component in enumerate(components):
+        row = idx // n_cols + 1
+        col = idx % n_cols + 1
+        for group in groups:
+            vals = collected.filter(pl.col(granularity) == group).get_column(component).drop_nulls().to_list()
+            if not vals:
+                continue
+            fig.add_trace(
+                go.Violin(
+                    x=vals,
+                    name=str(group),
+                    legendgroup=str(group),
+                    showlegend=(idx == 0),
+                    box_visible=True,
+                    meanline_visible=False,
+                    scalemode="width",
+                    side="positive",
+                ),
+                row=row,
+                col=col,
+            )
+
+        tick_fmt = ",.0%" if component == "Propensity" else None
+        fig.update_xaxes(
+            row=row,
+            col=col,
+            showticklabels=True,
+            tickformat=tick_fmt,
+        )
+        fig.update_yaxes(row=row, col=col, showticklabels=False)
+
     fig.update_layout(
-        height=max(350, 200 * ((len(components) + 2) // 3)),
+        height=max(350, 250 * n_rows),
         showlegend=False,
+        template="pega",
     )
-    # Format Propensity facet axis as percentage
-    for ann in fig.layout.annotations:
-        if ann.text == "Propensity":
-            # Facet annotations use "xN" anchors matching "xaxisN"
-            axis_key = ann.xref.replace("x", "xaxis") if ann.xref != "x" else "xaxis"
-            if axis_key in fig.layout.to_plotly_json():
-                fig.layout[axis_key]["tickformat"] = ",.0%"
     return fig
 
 
