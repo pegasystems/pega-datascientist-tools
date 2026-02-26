@@ -513,7 +513,7 @@ def create_metric_itable(
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
-    rag_source: Optional[pl.DataFrame] = None,
+    rag_source: pl.DataFrame | None = None,
     **itable_kwargs,
 ):
     """Create an interactive table with RAG coloring for metric columns.
