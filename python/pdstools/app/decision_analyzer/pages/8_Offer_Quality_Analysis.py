@@ -3,7 +3,6 @@ import streamlit as st
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
-    get_current_index,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
@@ -52,10 +51,6 @@ if propensity_th is None or priority_th is None:
 with st.session_state["sidebar"]:
     stage_level_selector()
 
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
-
-    # TODO too much kept in session state here, not necessary
-
     propensityTH = (
         st.slider(
             "Propensity threshold",
@@ -75,42 +70,36 @@ with st.session_state["sidebar"]:
         format="%.4f",
     )
 
-    scope_index = get_current_index(scope_options, "scope")
-    st.selectbox(
-        "Scope",
-        options=scope_options,
-        # column names are already friendly
-        index=scope_index,
-        key="scope",
-    )
-    stage_selectbox()
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
-    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"] + [st.session_state.scope],
+    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )
 
-# Pie Chart
+with st.container(border=True):
+    "## Distribution of Customers per Stage"
 
-vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
-# st.write(vf.head().collect())
+    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
 
-st.plotly_chart(
-    offer_quality_piecharts(
-        vf,
-        propensityTH=propensityTH,
-        AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
-        level=st.session_state.decision_data.level,
-    ),
-    use_container_width=True,
-)
+    st.plotly_chart(
+        offer_quality_piecharts(
+            vf,
+            propensityTH=propensityTH,
+            AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
+            level=st.session_state.decision_data.level,
+        ),
+        use_container_width=True,
+    )
 
-## Trend Chart
+with st.container(border=True):
+    "## Interactions in Trouble"
 
-vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+    stage_selectbox()
 
-st.plotly_chart(
-    getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
-    use_container_width=True,
-)
+    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+
+    st.plotly_chart(
+        getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
+        use_container_width=True,
+    )

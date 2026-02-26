@@ -145,7 +145,6 @@ class Plot:
         )
 
         fig.update_layout(
-            title=f"Wins and Losses of {level}s in Arbitration",
             font_size=12,
             polar_angularaxis_rotation=90,
             xaxis_title="",
@@ -434,10 +433,9 @@ class Plot:
             text="Component Name",
         )
         fig.update_layout(
-            title=f"Top {top_n} filter components",
             font_size=12,
             polar_angularaxis_rotation=90,
-            showlegend=False,  # TODO still showing...
+            showlegend=False,
         )
         fig.for_each_annotation(
             lambda a: a.update(text=a.text.split("=")[-1])
@@ -607,8 +605,6 @@ class Plot:
         elif scope == "Group" and "Issue" in plot_df.columns:
             color_col = "Issue"
 
-        scope_label = scope
-
         fig = px.bar(
             plot_df,
             x="Filtered Decisions",
@@ -623,7 +619,6 @@ class Plot:
         fig.update_xaxes(matches=None, title="")
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
-            title=f"Top {top_n} {scope_label.lower()}s filtered per component",
             height=max(400, 120 * min(top_n, 10)),
             showlegend=color_col is not None,
         )
@@ -702,7 +697,6 @@ class Plot:
                 )
 
         fig.update_layout(
-            title=f"Component Drilldown: {component_name}",
             height=max(400, 25 * min(plot_df.height, 30)),
             template="plotly_white",
             yaxis=dict(automargin=True, autorange="reversed"),
@@ -821,10 +815,7 @@ def offer_quality_piecharts(
             i + 1,
         )
 
-    rounding = 3
-    fig.update_layout(
-        title_text=f"Distribution of customers per stage at propensity threshold {round(float(propensityTH), rounding):.1%}",
-    )
+    fig.update_layout(title_text=None)
     fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
     return fig
 
@@ -840,6 +831,16 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
     )
     if return_df:
         return trend_df.lazy()
+    status_labels = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+    status_colors = {
+        "At least one relevant action": "#219e3f",
+        "Only irrelevant actions": "#fca52e",
+        "Without actions": "#cd001f",
+    }
     trend_melted = (
         trend_df.unpivot(
             index=["day"],
@@ -852,13 +853,14 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         )
         .sort("day")
         .rename({"value": "interactions"})
+        .with_columns(pl.col("status").replace(status_labels))
     )
     fig = px.line(
         trend_melted,
         x="day",
         y="interactions",
         color="status",
-        title=f"Interactions in Trouble at {stage} stage",
+        color_discrete_map=status_colors,
     )
 
     return fig

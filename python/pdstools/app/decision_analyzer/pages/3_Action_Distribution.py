@@ -38,27 +38,32 @@ with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
 
     stage_selectbox()
-distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
-st.plotly_chart(
-    st.session_state.decision_data.plot.distribution_as_treemap(
-        df=distribution_data,
-        stage=st.session_state.stage,
-        scope_options=scope_options,
-    ),
-    use_container_width=True,
-)
+
+with st.container(border=True):
+    "## Action Treemap"
+
+    distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
+    st.plotly_chart(
+        st.session_state.decision_data.plot.distribution_as_treemap(
+            df=distribution_data,
+            stage=st.session_state.stage,
+            scope_options=scope_options,
+        ),
+        use_container_width=True,
+    )
 
 if "scope" not in st.session_state:
     st.session_state.scope = scope_options[0]
 
-f"""
-## Trend Chart
-
-Number of decisions that included at least one action from each {st.session_state.scope} over time.
-
-Note: Since a decision can contain actions across multiple [issues/groups], the same decision may be counted in several categories, so the stacked total may exceed the actual sampled decision count.
-"""
 with st.container(border=True):
+    "## Trend Chart"
+
+    f"""
+    Number of decisions that included at least one action from each {st.session_state.scope} over time.
+
+    Note: Since a decision can contain actions across multiple [issues/groups], the same decision may be counted in several categories, so the stacked total may exceed the actual sampled decision count.
+    """
+
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
         st.session_state.stage, st.session_state.scope
     )

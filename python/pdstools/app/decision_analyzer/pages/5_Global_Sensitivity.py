@@ -28,8 +28,9 @@ with st.session_state["sidebar"]:
         key="win_rank",
     )
 
-# How often would it still be rank 1 under different prioritization schemes
 with st.container(border=True):
+    "## Influence of Prioritization Factors"
+
     st.plotly_chart(
         st.session_state.decision_data.plot.sensitivity(
             st.session_state.win_rank,
@@ -37,11 +38,13 @@ with st.container(border=True):
         use_container_width=True,
     )
 
-"""
-Distribution of the actions that "win" in arbitration and the actions that "lose" in arbitration.
-"""
-
 with st.container(border=True):
+    "## Win/Loss Distribution"
+
+    """
+    Distribution of the actions that "win" in arbitration and the actions that "lose" in arbitration.
+    """
+
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
 
     if "glob_sensitivity_scope" not in st.session_state:

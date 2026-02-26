@@ -617,3 +617,40 @@ def convert_df(df):
 @st.cache_data
 def st_get_latest_pdstools_version():
     return cdh_utils.get_latest_pdstools_version()
+
+
+def show_about_page():
+    """Render a standardised About page with version and dependency information.
+
+    Mirrors the Credits section of the Quarto ADM Health Check report.
+    Call this from a Streamlit page to display pdstools version info,
+    platform details, and an expandable dependency listing.
+    """
+    from ..utils.show_versions import show_versions
+
+    st.markdown("# About")
+    st.markdown(
+        "This application is part of "
+        "[Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools), "
+        "an open-source toolkit for Pega decisioning analytics.",
+    )
+
+    st.markdown("### Version information")
+    summary = show_versions(print_output=False, include_dependencies=False)
+    st.code(summary, language=None)
+
+    latest = st_get_latest_pdstools_version()
+    if latest and pdstools_version != latest:
+        st.warning(
+            f"A newer version is available (**{latest}**). Run `uv pip install --upgrade pdstools` to update.",
+        )
+
+    with st.expander("Detailed dependency versions"):
+        details = show_versions(print_output=False, include_dependencies=True)
+        st.code(details, language=None)
+
+    st.markdown(
+        "For more information see the "
+        "[documentation](https://pegasystems.github.io/pega-datascientist-tools/) "
+        "or [report an issue](https://github.com/pegasystems/pega-datascientist-tools/issues).",
+    )

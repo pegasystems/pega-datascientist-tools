@@ -99,6 +99,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### 9 — Thresholding *(⚠ incomplete)*
 - [ ] Largely broken: explode issue with `num_samples > 1`, filtering, interactive thresholds
+- [ ] **Fix interactive threshold distribution plot** — Disabled placeholder text; filtering on min/max is incorrect (should use sampled values). Consider faceted bars instead of separate plots.
 - [ ] Show volume/distribution change with grouped bar charts
 - [ ] Consider rewrite or removal
 
