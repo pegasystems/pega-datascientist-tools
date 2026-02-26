@@ -513,6 +513,7 @@ def create_metric_itable(
     color_background: bool = False,
     strict_metric_validation: bool = True,
     highlight_issues_only: bool = False,
+    rag_source: pl.DataFrame | None = None,
     **itable_kwargs,
 ):
     """Create an interactive table with RAG coloring for metric columns.
@@ -546,6 +547,12 @@ def create_metric_itable(
     highlight_issues_only : bool, default False
         If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
         Set to False to also highlight GREEN values.
+    rag_source : pl.DataFrame, optional
+        If provided, RAG thresholds are evaluated against this DataFrame
+        instead of ``source_table``. Use this when ``source_table`` contains
+        non-numeric display values (e.g. HTML strings) but you still want
+        RAG coloring based on the original numeric data. Must have the same
+        columns and row order as ``source_table``.
     **itable_kwargs
         Additional keyword arguments passed to itables.show().
         Common options include: lengthMenu, paging, searching, ordering.
@@ -592,7 +599,7 @@ def create_metric_itable(
     from .metric_limits import add_rag_columns
 
     df_with_rag = add_rag_columns(
-        source_table,
+        rag_source if rag_source is not None else source_table,
         column_to_metric=column_to_metric,
         strict_metric_validation=strict_metric_validation,
     )
@@ -641,18 +648,18 @@ def create_metric_itable(
 
     format_dict = {}
     for col in source_table.columns:
+        if not source_table[col].dtype.is_numeric():
+            continue
         metric_id = expanded_mapping.get(col, col)
         if isinstance(metric_id, tuple):
             metric_id = metric_id[0]
         if isinstance(metric_id, str):
-            fmt = MetricFormats.get(metric_id)
-            if fmt is not None:
-                format_dict[col] = fmt.to_pandas_format()
-            elif source_table[col].dtype.is_numeric():
-                # Use default compact formatting for numeric columns
+            metric_fmt = MetricFormats.get(metric_id)
+            if metric_fmt is not None:
+                format_dict[col] = metric_fmt.to_pandas_format()
+            else:
                 format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
-        elif source_table[col].dtype.is_numeric():
-            # Use default compact formatting for numeric columns
+        else:
             format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
 
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
