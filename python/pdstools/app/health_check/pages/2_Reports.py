@@ -21,7 +21,7 @@ health_check, model_report = st.tabs(
     [
         "Overall Health Check",
         "Individual Model Reports",
-    ]
+    ],
 )
 
 with health_check:
@@ -30,7 +30,7 @@ with health_check:
     with st.expander("Health Check options"):
         name = st.text_input("Customer name")
         if name == "":
-            name = None
+            name = None  # type: ignore[assignment]
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
         keep_temp_files = st.checkbox("Keep temporary files", False)
@@ -43,7 +43,7 @@ with health_check:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
             logger.info(
-                f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
+                f"Starting Health Check generation. Run ID: {st.session_state['runID']}",
             )
             with st.spinner("Generating Health Check..."):
                 outfile = st.session_state["dm"].generate.health_check(
@@ -70,13 +70,13 @@ with health_check:
                 label="Download Health Check",
                 data=st.session_state["run"][st.session_state["runID"]]["file"],
                 file_name=Path(
-                    st.session_state["run"][st.session_state["runID"]]["name"]
+                    st.session_state["run"][st.session_state["runID"]]["name"],
                 ).name,
                 key="HealthCheckDownload",
             )
         st.title("Create Excel Tables")
         st.write(
-            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format."
+            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format.",
         )
         include_binning = st.checkbox(
             "Include Binning",
@@ -99,7 +99,8 @@ with health_check:
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
-                    tables, "rb"
+                    tables,  # type: ignore[arg-type]
+                    "rb",
                 )
                 for message in warning_messages:
                     st.warning(message)
@@ -115,9 +116,7 @@ with health_check:
         logger.exception(f"An error occurred during Health Check generation: {e}")
         if "health_check_error_download" not in st.session_state:
             st.error(f"An error occurred: {e}")
-            log_file_path = (
-                f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
-            )
+            log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
             with open(log_file_path, "w") as log_file:
                 log_file.write(st.session_state.log_buffer.getvalue())
                 log_file.write(show_versions(print_output=False))
@@ -137,7 +136,7 @@ if st.session_state["dm"].predictor_data is not None:
     with model_report:
         try:
             if "working_dir" not in locals():
-                working_dir = "healthCheckDir"
+                working_dir = "healthCheckDir"  # type: ignore[assignment]
             if "model_selection_df" not in st.session_state:
                 st.session_state["model_selection_df"] = model_selection_df(
                     df=_apply_query(
@@ -158,9 +157,7 @@ if st.session_state["dm"].predictor_data is not None:
                 value=True,
             )
             st.session_state["selected_models"] = (
-                edited_df.filter(pl.col("Generate Report"))
-                .get_column("ModelID")
-                .to_list()
+                edited_df.filter(pl.col("Generate Report")).get_column("ModelID").to_list()
             )
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
             if len(st.session_state["selected_models"]) > 0:
@@ -175,16 +172,15 @@ if st.session_state["dm"].predictor_data is not None:
                         def update_progress(current, total):
                             progress = current / total
                             progress_bar.progress(
-                                progress, text=f"Generated {current} of {total}"
+                                progress,
+                                text=f"Generated {current} of {total}",
                             )
 
                         outfile = st.session_state["dm"].generate.model_reports(
                             model_ids=st.session_state["selected_models"],
                             name="",
                             output_dir=working_dir,
-                            only_active_predictors=st.session_state[
-                                "only_active_predictors"
-                            ],
+                            only_active_predictors=st.session_state["only_active_predictors"],
                             output_type="html",
                             keep_temp_files=keep_temp_files,
                             progress_callback=update_progress,
@@ -193,9 +189,7 @@ if st.session_state["dm"].predictor_data is not None:
                             file = open(outfile, "rb")
                         st.session_state["model_report_files"] = file
                         st.session_state["model_report_name"] = (
-                            outfile.name
-                            if len(st.session_state["selected_models"]) == 1
-                            else "ModelReports.zip"
+                            outfile.name if len(st.session_state["selected_models"]) == 1 else "ModelReports.zip"
                         )
 
                         btn = st.download_button(

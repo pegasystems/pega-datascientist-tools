@@ -149,7 +149,6 @@ class TestAggregatesQueryOperations:
 
     def test_get_table_name_numeric(self):
         """Test getting table name for numeric predictor type"""
-
         expected_table_name = _TABLE_NAME.NUMERIC
         result = Preprocess._get_table_name(_PREDICTOR_TYPE.NUMERIC)
         assert result is not None
@@ -157,7 +156,6 @@ class TestAggregatesQueryOperations:
 
     def test_get_table_name_symbolic(self):
         """Test getting table name for symbolic predictor type"""
-
         expected_table_name = _TABLE_NAME.SYMBOLIC
         result = Preprocess._get_table_name(_PREDICTOR_TYPE.SYMBOLIC)
         assert result is not None
@@ -192,7 +190,8 @@ class TestDataFileSupport:
         preprocess.explanations_folder = Path("explanations")
 
         with mock.patch.object(
-            preprocess, "_populate_selected_files_from_url"
+            preprocess,
+            "_populate_selected_files_from_url",
         ) as mock_url:
             preprocess._populate_selected_files()
             mock_url.assert_called_once_with("https://example.com/data.parquet")
@@ -205,7 +204,8 @@ class TestDataFileSupport:
         preprocess.selected_files = []
 
         with mock.patch.object(
-            preprocess, "_populate_selected_files_from_local"
+            preprocess,
+            "_populate_selected_files_from_local",
         ) as mock_local:
             preprocess._populate_selected_files()
             mock_local.assert_called_once()
@@ -224,11 +224,12 @@ class TestDataFileSupport:
         mock_df = pl.DataFrame({"col": [1]})
 
         with mock.patch(
-            "pdstools.pega_io.File.read_ds_export", return_value=mock_df.lazy()
+            "pdstools.pega_io.File.read_ds_export",
+            return_value=mock_df.lazy(),
         ):
             with mock.patch("pdstools.explanations.Preprocess.logger"):
                 preprocess._populate_selected_files_from_url(
-                    "https://example.com/file.parquet"
+                    "https://example.com/file.parquet",
                 )
                 assert len(preprocess.selected_files) == 1
 
@@ -246,5 +247,5 @@ class TestDataFileSupport:
         ):
             with pytest.raises(ValueError, match="Failed to download file from"):
                 preprocess._populate_selected_files_from_url(
-                    "https://example.com/file.parquet"
+                    "https://example.com/file.parquet",
                 )

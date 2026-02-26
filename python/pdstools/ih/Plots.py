@@ -2,7 +2,7 @@
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import polars as pl
 
@@ -51,6 +51,7 @@ class Plots(LazyNamespace):
     >>> ih = IH.from_ds_export("interaction_history.zip")
     >>> ih.plot.success_rate(metric="Engagement")
     >>> ih.plot.response_count_tree_map()
+
     """
 
     def __init__(self, ih: "IH_Class"):
@@ -60,19 +61,20 @@ class Plots(LazyNamespace):
         ----------
         ih : IH
             The parent IH instance providing the data.
+
         """
         super().__init__()
         self.ih = ih
 
     def overall_gauges(
         self,
-        condition: Union[str, pl.Expr],
+        condition: str | pl.Expr,
         *,
         metric: str = "Engagement",
         by: str = "Channel",
-        reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        reference_values: dict[str, float] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create gauge charts showing success rates by condition and dimension.
@@ -89,7 +91,7 @@ class Plots(LazyNamespace):
             Metric to display: "Engagement", "Conversion", or "OpenRate".
         by : str, default "Channel"
             Dimension for grouping (column name).
-        reference_values : Dict[str, float], optional
+        reference_values : dict[str, float], optional
             Reference values per dimension for comparison thresholds.
         title : str, optional
             Custom title. If None, auto-generated from metric.
@@ -106,11 +108,13 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.overall_gauges("Issue", metric="Engagement", by="Channel")
+
         """
         from plotly.subplots import make_subplots
 
         plot_data = self.ih.aggregates.summary_success_rates(
-            by=[condition, by], query=query
+            by=[condition, by],  # type: ignore[list-item]
+            query=query,
         )
 
         if return_df:
@@ -119,11 +123,11 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Overall Rates"
 
-        plot_data = plot_data.collect()
+        df = plot_data.collect()
 
-        cols = plot_data[by].unique().shape[0]  # TODO can be None
+        cols = df[by].unique().shape[0]  # TODO can be None
         rows = (
-            plot_data[condition].unique().shape[0]
+            df[condition].unique().shape[0]  # type: ignore[index]
         )  # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
 
         fig = make_subplots(
@@ -138,10 +142,8 @@ class Plots(LazyNamespace):
             margin=dict(b=10, t=120, l=10, r=10),
         )
         index = 0
-        for row in plot_data.iter_rows(named=True):
-            ref_value = (
-                reference_values.get(row[by], None) if reference_values else None
-            )
+        for row in df.iter_rows(named=True):
+            ref_value = reference_values.get(row[by], None) if reference_values else None
             gauge = {
                 "axis": {"tickformat": ",.2%"},
                 "threshold": {
@@ -155,11 +157,7 @@ class Plots(LazyNamespace):
                     gauge = {
                         "axis": {"tickformat": ",.2%"},
                         "bar": {
-                            "color": (
-                                "#EC5300"
-                                if row[f"SuccessRate_{metric}"] < (0.75 * ref_value)
-                                else "#EC9B00"
-                            )
+                            "color": ("#EC5300" if row[f"SuccessRate_{metric}"] < (0.75 * ref_value) else "#EC9B00"),
                         },
                         "threshold": {
                             "line": {"color": "red", "width": 2},
@@ -173,7 +171,7 @@ class Plots(LazyNamespace):
                 number={"valueformat": ",.2%"},
                 value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
-                title={"text": f"{row[by]}: {row[condition]}"},
+                title={"text": f"{row[by]}: {row[condition]}"},  # type: ignore[index]
                 gauge=gauge,
             )
             r, c = divmod(index, cols)
@@ -187,9 +185,9 @@ class Plots(LazyNamespace):
     def response_count_tree_map(
         self,
         *,
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        by: list[str] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a treemap of response count distribution.
@@ -199,7 +197,7 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        by : List[str], optional
+        by : list[str], optional
             Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
         title : str, optional
             Custom title.
@@ -221,8 +219,8 @@ class Plots(LazyNamespace):
         --------
         >>> ih.plot.response_count_tree_map()
         >>> ih.plot.response_count_tree_map(by=["Channel", "Issue", "Name"])
-        """
 
+        """
         if by is None:
             by = [
                 f
@@ -261,9 +259,9 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        by: list[str] | None = None,
+        title: str | None = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a treemap colored by success rates.
@@ -276,7 +274,7 @@ class Plots(LazyNamespace):
         ----------
         metric : str, default "Engagement"
             Metric to display: "Engagement", "Conversion", or "OpenRate".
-        by : List[str], optional
+        by : list[str], optional
             Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
         title : str, optional
             Custom title. If None, auto-generated from metric.
@@ -297,8 +295,8 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.success_rate_tree_map(metric="Conversion")
-        """
 
+        """
         if by is None:
             by = [
                 f
@@ -314,7 +312,7 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Rates for All Actions"
 
-        plot_data = (
+        plot_data_collected = (
             plot_data.collect()
             .with_columns(
                 CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
@@ -323,7 +321,7 @@ class Plots(LazyNamespace):
         )
 
         fig = px.treemap(
-            plot_data,
+            plot_data_collected,
             path=[px.Constant("ALL")] + by,
             values="CTR_DisplayValue",
             color="CTR_DisplayValue",
@@ -349,9 +347,9 @@ class Plots(LazyNamespace):
         *,
         by: str = "Name",
         title: str = "Action Distribution",
-        query: Optional[QUERY] = None,
-        color: Optional[str] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        color: str | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart of action distribution.
@@ -382,9 +380,11 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.action_distribution(by="Name", color="Channel")
+
         """
         plot_data = self.ih.aggregates.summary_outcomes(
-            by=[by, color, facet], query=query
+            by=[by, color, facet],  # type: ignore[list-item]
+            query=query,
         )
 
         if return_df:
@@ -451,10 +451,10 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        every: Union[str, timedelta] = "1d",
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        every: str | timedelta = "1d",
+        title: str | None = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of success rates over time.
@@ -490,10 +490,12 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.success_rate(metric="Conversion", every="1w")
-        """
 
+        """
         plot_data = self.ih.aggregates.summary_success_rates(
-            every=every, by=facet, query=query
+            every=every,
+            by=facet,
+            query=query,
         )
 
         if return_df:
@@ -521,10 +523,10 @@ class Plots(LazyNamespace):
     def response_count(
         self,
         *,
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         title: str = "Responses",
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a bar chart of response counts over time.
@@ -557,10 +559,12 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.response_count(every="1w", facet="Channel")
-        """
 
+        """
         plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
-            every=every, by=facet, query=query
+            every=every,
+            by=facet,
+            query=query,
         ).collect()
 
         if return_df:
@@ -584,11 +588,11 @@ class Plots(LazyNamespace):
         self,
         *,
         metric: str = "Engagement",
-        every: Union[str, timedelta] = "1d",
-        by: Optional[str] = None,
+        every: str | timedelta = "1d",
+        by: str | None = None,
         title: str = "Model Performance over Time",
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ) -> Union["Figure", pl.LazyFrame]:
         """Create a line chart of model AUC over time.
@@ -626,24 +630,25 @@ class Plots(LazyNamespace):
         Examples
         --------
         >>> ih.plot.model_performance_trend(by="Channel", every="1w")
-        """
 
+        """
         plot_data = (
             self.ih.aggregates.summarize_by_interaction(
-                every=every, by=cdh_utils.safe_flatten_list([by, facet]), query=query
+                every=every,
+                by=cdh_utils.safe_flatten_list([by, facet]),
+                query=query,
             )
             .filter(
-                pl.col.Propensity.is_not_null()
-                & pl.col(f"Interaction_Outcome_{metric}").is_not_null()
+                pl.col.Propensity.is_not_null() & pl.col(f"Interaction_Outcome_{metric}").is_not_null(),
             )
             .group_by(cdh_utils.safe_flatten_list([by, facet, "OutcomeTime"]))
             .agg(
                 pl.map_groups(
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
-                    function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
+                    function=lambda data: cdh_utils.auc_from_probs(data[0].to_list(), data[1].to_list()),
                     return_dtype=pl.Float64,
                     returns_scalar=True,
-                ).alias("Performance")
+                ).alias("Performance"),
             )
             .sort(["OutcomeTime"])
         ).with_columns(pl.col("Performance") * 100)

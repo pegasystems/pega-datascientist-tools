@@ -6,7 +6,7 @@ import pathlib
 from datetime import timedelta
 from glob import glob
 from importlib.resources import files as resources_files
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import duckdb
 import polars as pl
@@ -16,7 +16,6 @@ from .ExplanationsUtils import _COL, _PREDICTOR_TYPE, _TABLE_NAME
 from .resources import queries as queries_data
 
 logger = logging.getLogger(__name__)
-
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
@@ -37,7 +36,7 @@ class Preprocess(LazyNamespace):
         self.data_file = explanations.data_file
         self.data_foldername = "aggregated_data"
         self.data_folderpath = pathlib.Path(
-            os.path.join(self.explanations.root_dir, self.data_foldername)
+            os.path.join(self.explanations.root_dir, self.data_foldername),
         )
 
         self.from_date = explanations.from_date
@@ -65,7 +64,7 @@ class Preprocess(LazyNamespace):
         self._conn = None
 
         self.selected_files: list[str] = []
-        self.contexts: Optional[dict[str, dict[str, list[str]]]] = None
+        self.contexts: dict[str, dict[str, list[str]]] | None = None
         self.unique_contexts_filename = f"{self.data_folderpath}/unique_contexts.json"
 
         super().__init__()
@@ -94,7 +93,6 @@ class Preprocess(LazyNamespace):
 
         Each of the aggregates are written to parquet files to a temporary output dirtectory
         """
-
         if self._is_cached():
             logger.debug("Using cached data for preprocessing.")
             return
@@ -188,19 +186,13 @@ class Preprocess(LazyNamespace):
         while True:
             file_batches = {}
             for _ in range(self.file_batch_limit):
-                selected_contexts = all_contexts[
-                    curr_idx : curr_idx + self.query_batch_limit
-                ]
-                file_batch_key = (
-                    curr_idx // self.query_batch_limit + 1
-                ) * self.query_batch_limit
+                selected_contexts = all_contexts[curr_idx : curr_idx + self.query_batch_limit]
+                file_batch_key = (curr_idx // self.query_batch_limit + 1) * self.query_batch_limit
                 file_batches[file_batch_key] = selected_contexts
                 curr_idx += self.query_batch_limit
                 if curr_idx >= len(all_contexts):
                     break
-            contexts_dict_key = file_batch_id * (
-                self.file_batch_limit * self.query_batch_limit
-            )
+            contexts_dict_key = file_batch_id * (self.file_batch_limit * self.query_batch_limit)
             contexts_dict[contexts_dict_key] = file_batches
 
             if curr_idx >= len(all_contexts):
@@ -227,7 +219,7 @@ class Preprocess(LazyNamespace):
         if self.contexts is None:
             self._get_contexts(predictor_type=predictor_type)
 
-        for file_batch_nb, query_batches in self.contexts.items():
+        for file_batch_nb, query_batches in self.contexts.items():  # type: ignore[union-attr]
             self._parquet_in_batches(file_batch_nb, query_batches, predictor_type)
 
         logger.info("Processed all batches for %s", predictor_type)
@@ -251,14 +243,12 @@ class Preprocess(LazyNamespace):
 
     @staticmethod
     def _get_table_name(predictor_type) -> _TABLE_NAME:
-        return (
-            _TABLE_NAME.NUMERIC
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC
-        )
+        return _TABLE_NAME.NUMERIC if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC
 
     def _get_create_table_sql_formatted(
-        self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
+        self,
+        tbl_name: _TABLE_NAME,
+        predictor_type: _PREDICTOR_TYPE,
     ):
         sql = self._read_resource_file(
             package_name=queries_data,
@@ -319,7 +309,9 @@ class Preprocess(LazyNamespace):
 
         except Exception as e:
             logger.error(
-                "Failed batch for predictor type=%s, err=%s", predictor_type, e
+                "Failed batch for predictor type=%s, err=%s",
+                predictor_type,
+                e,
             )
             raise
 
@@ -336,31 +328,23 @@ class Preprocess(LazyNamespace):
 
     def _read_overall_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
-            _TABLE_NAME.NUMERIC_OVERALL
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC_OVERALL
+            _TABLE_NAME.NUMERIC_OVERALL if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC_OVERALL
         )
         return self._read_resource_file(
-            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+            package_name=queries_data,
+            filename_w_ext=f"{sql_file.value}.sql",
         )
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
-        sql_file = (
-            _TABLE_NAME.NUMERIC
-            if predictor_type == _PREDICTOR_TYPE.NUMERIC
-            else _TABLE_NAME.SYMBOLIC
-        )
+        sql_file = _TABLE_NAME.NUMERIC if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC
 
         return self._read_resource_file(
-            package_name=queries_data, filename_w_ext=f"{sql_file.value}.sql"
+            package_name=queries_data,
+            filename_w_ext=f"{sql_file.value}.sql",
         )
 
     def _read_resource_file(self, package_name, filename_w_ext):
-        return (
-            resources_files(package_name)
-            .joinpath(filename_w_ext)
-            .read_text(encoding="utf-8")
-        )
+        return resources_files(package_name).joinpath(filename_w_ext).read_text(encoding="utf-8")
 
     def _get_model_contexts_sql_formatted(self, tbl_name: _TABLE_NAME):
         sql = self._read_resource_file(
@@ -396,7 +380,10 @@ class Preprocess(LazyNamespace):
         return self._clean_query(f_sql)
 
     def _get_batch_sql_formatted(
-        self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"
+        self,
+        sql,
+        tbl_name: _TABLE_NAME,
+        where_condition="TRUE",
     ):
         f_sql = f"""{
             sql.format(
@@ -433,12 +420,12 @@ class Preprocess(LazyNamespace):
     def _populate_selected_files_from_local(self):
         if self.from_date is None or self.to_date is None:
             raise ValueError(
-                "Either from_date or to_date must be passed before populating selected files."
+                "Either from_date or to_date must be passed before populating selected files.",
             )
 
         if not self._validate_explanations_folder():
             raise ValueError(
-                f"Explanations folder {self.explanations_folder} does not exist or is empty."
+                f"Explanations folder {self.explanations_folder} does not exist or is empty.",
             )
 
         # get list of dates in the range from `from_date` to `to_date`
@@ -455,15 +442,14 @@ class Preprocess(LazyNamespace):
         )
         files_ = []
         for date in date_range_list:
-            file_pattern = (
-                f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
-            )
+            file_pattern = f"{self.explanations_folder}/{self.model_name}*{date}*.parquet"
             file_paths = glob(file_pattern)
             if file_paths:
                 # Get the latest file based on modification time
                 # incase of multiple runs on the same day, we want the latest file on the day
                 latest_file = max(
-                    file_paths, key=lambda x: pathlib.Path(x).stat().st_mtime
+                    file_paths,
+                    key=lambda x: pathlib.Path(x).stat().st_mtime,
                 )
                 if pathlib.Path(latest_file).exists():
                     files_.append(latest_file)
@@ -477,15 +463,13 @@ class Preprocess(LazyNamespace):
         logger.debug("Downloading file from %s", file_url)
 
         base_path, filename = file_url.rsplit("/", 1)
-        full_explanations_path = (
-            pathlib.Path(self.explanations.root_dir) / self.explanations_folder
-        )
+        full_explanations_path = pathlib.Path(self.explanations.root_dir) / self.explanations_folder
         full_explanations_path.mkdir(parents=True, exist_ok=True)
         local_path = full_explanations_path / filename
 
         try:
             df = read_ds_export(filename=filename, path=base_path)
-            df.collect().write_parquet(local_path)
+            df.collect().write_parquet(local_path)  # type: ignore[union-attr]
             self.selected_files = [str(local_path)]
             logger.info("Downloaded file:= \n %s", self.selected_files)
         except Exception as e:

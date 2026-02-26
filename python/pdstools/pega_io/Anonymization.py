@@ -1,7 +1,6 @@
 import math
 import os
 from glob import glob
-from typing import Dict, List, Optional
 
 import polars as pl
 
@@ -17,12 +16,11 @@ class Anonymization:
         path_to_files: str,
         temporary_path: str = "/tmp/anonymisation",
         output_file: str = "anonymised.parquet",
-        skip_columns_with_prefix: Optional[List[str]] = None,
+        skip_columns_with_prefix: list[str] | None = None,
         batch_size: int = 500,
-        file_limit: Optional[int] = None,
+        file_limit: int | None = None,
     ):
-        """
-        Initialize the Anonymization object.
+        """Initialize the Anonymization object.
 
         Once this class is initialised, simply run `.anonymize` to get started.
 
@@ -38,7 +36,7 @@ class Anonymization:
             Defaults to "/tmp/anonymisation".
         output_file : str, optional
             The name of the output file. Defaults to "anonymised.parquet".
-        skip_columns_with_prefix : List[str], optional
+        skip_columns_with_prefix : list[str], optional
             A list of column prefixes to skip during anonymization.
             Leave empty to use the default values: `Context_` and `Decision_`.
         batch_size : int, optional
@@ -54,6 +52,7 @@ class Anonymization:
         ...     file_limit=10
         ... )
         >>> anonymizer.anonymize()
+
         """
         self.path_to_files = path_to_files
         self.temp_path = temporary_path
@@ -80,6 +79,7 @@ class Anonymization:
         verbose : bool, optional
             Whether to print verbose output during the anonymization process.
             Defaults to True.
+
         """
         if verbose:
             print("Writing temporary parquet files")
@@ -92,14 +92,14 @@ class Anonymization:
             print(f"Succesfully anonymized data to {self.output_file}")
 
     @staticmethod
-    def min_max(column_name: str, range: List[Dict[str, float]]) -> pl.Expr:
+    def min_max(column_name: str, range: list[dict[str, float]]) -> pl.Expr:
         """Normalize the values in a column using the min-max scaling method.
 
         Parameters
         ----------
         column_name : str
             The name of the column to be normalized.
-        range : List[Dict[str, float]]
+        range : list[dict[str, float]]
             A list of dictionaries containing the minimum and maximum values for the column.
 
         Returns
@@ -112,13 +112,12 @@ class Anonymization:
         >>> range = [{"min": 0.0, "max": 100.0}]
         >>> min_max("age", range)
         Column "age" normalized using min-max scaling.
+
         """
         if range[0]["min"] == range[0]["max"]:  # pragma: no cover
             print(f"Column {column_name} only contains one value, so returning 0")
             return pl.lit(0.0).alias(column_name)
-        return (pl.col(column_name) - pl.lit(range[0]["min"])) / (
-            pl.lit(range[0]["max"] - range[0]["min"])
-        )
+        return (pl.col(column_name) - pl.lit(range[0]["min"])) / (pl.lit(range[0]["max"] - range[0]["min"]))
 
     @staticmethod
     def _infer_types(df: pl.DataFrame):
@@ -134,6 +133,7 @@ class Anonymization:
         dict:
             A dictionary mapping column names to their inferred types.
             The inferred types can be either "numeric" or "symbolic".
+
         """
         types = dict()
         for col in df.collect_schema().names():
@@ -151,12 +151,12 @@ class Anonymization:
         return types
 
     @staticmethod
-    def chunker(files: List[str], size: int):
+    def chunker(files: list[str], size: int):
         """Split a list of files into chunks of a specified size.
 
         Parameters
         ----------
-        files (List[str]):
+        files (list[str]):
             A list of file names.
         size (int):
             The size of each chunk.
@@ -175,41 +175,42 @@ class Anonymization:
             ['file1.txt', 'file2.txt']
             ['file3.txt', 'file4.txt']
             ['file5.txt']
-        """
 
+        """
         return (files[pos : pos + size] for pos in range(0, len(files), size))
 
-    def chunk_to_parquet(self, files: List[str], i) -> str:
+    def chunk_to_parquet(self, files: list[str], i) -> str:
         """Convert a chunk of files to Parquet format.
 
-        Parameters:
-        files (List[str]):
-            List of file paths to be converted.
+        Parameters
+        ----------
+        files (list[str]):
+            list of file paths to be converted.
         temp_path (str):
             Path to the temporary directory where the Parquet file will be saved.
         i:
             Index of the chunk.
 
-        Returns:
+        Returns
+        -------
         str: File path of the converted Parquet file.
-        """
 
+        """
         init_df = pl.concat([pl.read_ndjson(n) for n in files], how="diagonal_relaxed")
         df = init_df.select(pl.all().exclude(pl.Null))
         types = self._infer_types(df)
         for n, t in types.items():
             if t == "numeric" and not df.schema[n].is_numeric():  # pragma: no cover
                 df = df.with_columns(
-                    pl.col(n).replace(pl.lit(""), None).cast(pl.Float64)
+                    pl.col(n).replace(pl.lit(""), None).cast(pl.Float64),
                 )
 
         filename = os.path.join(self.temp_path, f"{i}.parquet")
         df.write_parquet(filename)
         return filename
 
-    def preprocess(self, verbose: bool) -> List[str]:
-        """
-        Preprocesses the files in the specified path.
+    def preprocess(self, verbose: bool) -> list[str]:
+        """Preprocesses the files in the specified path.
 
         Parameters
         ----------
@@ -219,8 +220,8 @@ class Anonymization:
         Returns
         -------
             list[str]: A list of the temporary bundled parquet files
-        """
 
+        """
         files = glob(self.path_to_files)
         files.sort(key=os.path.getmtime)
 
@@ -231,10 +232,12 @@ class Anonymization:
         length = math.ceil(len(files) / self.batch_size)
 
         try:
-            from tqdm.auto import tqdm  # type: ignore[import-untyped]
+            from tqdm.auto import tqdm
 
             iterable = tqdm(
-                self.chunker(files, self.batch_size), total=length, disable=not verbose
+                self.chunker(files, self.batch_size),
+                total=length,
+                disable=not verbose,
             )
         except ImportError:
             iterable = self.chunker(files, self.batch_size)
@@ -246,11 +249,10 @@ class Anonymization:
 
     def process(
         self,
-        chunked_files: List[str],
+        chunked_files: list[str],
         verbose: bool = True,
     ):
-        """
-        Process the data for anonymization.
+        """Process the data for anonymization.
 
         Parameters
         ----------
@@ -265,34 +267,27 @@ class Anonymization:
         ImportError:
             If polars-hash is not installed.
 
-        Returns:
+        Returns
+        -------
             None
+
         """
         try:  # to make it optional
             import polars_hash as plh
         except ImportError:  # pragma: no cover
             raise ImportError(
-                "Polars-hash not installed. Please install using pip install polars-hash"
+                "Polars-hash not installed. Please install using pip install polars-hash",
             )
 
-        df: pl.LazyFrame = pl.concat(  # type: ignore[assignment]
-            [pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed"
+        df: pl.LazyFrame = pl.concat(
+            [pl.scan_parquet(f) for f in chunked_files],
+            how="diagonal_relaxed",
         )
         schema = df.collect_schema()
 
-        symb_nonanonymised = [
-            key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))
-        ]
-        nums = [
-            key
-            for key, value in schema.items()
-            if (value.is_numeric() and key not in symb_nonanonymised)
-        ]
-        symb = [
-            key
-            for key in schema.names()
-            if (key not in nums and key not in symb_nonanonymised)
-        ]
+        symb_nonanonymised = [key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))]
+        nums = [key for key, value in schema.items() if (value.is_numeric() and key not in symb_nonanonymised)]
+        symb = [key for key in schema.names() if (key not in nums and key not in symb_nonanonymised)]
         if verbose:
             print(
                 "Context_* and Decision_* columns (not anonymized): ",
@@ -304,10 +299,11 @@ class Anonymization:
         min_max_df = df.select(
             [
                 pl.struct(
-                    pl.col(num).min().alias("min"), pl.col(num).max().alias("max")
+                    pl.col(num).min().alias("min"),
+                    pl.col(num).max().alias("max"),
                 ).alias(num)
                 for num in nums
-            ]
+            ],
         ).collect()
 
         min_max_map = min_max_df.to_dict(as_series=False)

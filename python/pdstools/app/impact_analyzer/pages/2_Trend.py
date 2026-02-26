@@ -34,6 +34,9 @@ fig = ia.plot.trend(metric=metric, facet=facet, every=granularity)
 st.plotly_chart(fig, use_container_width=True)
 
 table = ia.plot.trend(
-    metric=metric, facet=facet, every=granularity, return_df=True
+    metric=metric,
+    facet=facet,
+    every=granularity,
+    return_df=True,
 ).collect()
 st.dataframe(table)

@@ -1,5 +1,5 @@
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -10,12 +10,12 @@ if TYPE_CHECKING:  # pragma: no cover
 class Aggregates:
     def __init__(self, vf: "ValueFinder"):
         self.vf = vf
-        self._quantile_from_threshold: Dict[float, float] = {}
+        self._quantile_from_threshold: dict[float, float] = {}
 
     def get_customer_summary(
         self,
         *,
-        threshold: Optional[float] = None,
+        threshold: float | None = None,
     ) -> pl.LazyFrame:
         """Computes the summary of propensities for all customers
 
@@ -26,6 +26,7 @@ class Aggregates:
             If a customer has actions with propensity above this,
             the customer has at least one relevant action.
             If not given, will default to 5th quantile.
+
         """
         threshold = threshold or self.vf.threshold
         return (
@@ -42,7 +43,7 @@ class Aggregates:
             )
         )
 
-    def get_counts_per_stage(self, *, threshold: Optional[float] = None):
+    def get_counts_per_stage(self, *, threshold: float | None = None):
         threshold = threshold or self.vf.threshold
         customer_summary = self.get_customer_summary(threshold=threshold)
         return (
@@ -57,11 +58,7 @@ class Aggregates:
 
     @cached_property
     def max_propensity_per_customer(self) -> pl.DataFrame:
-        return (
-            self.vf.df.group_by(["CustomerID", "Stage"])
-            .agg(pl.max("ModelPropensity"))
-            .collect()
-        )
+        return self.vf.df.group_by(["CustomerID", "Stage"]).agg(pl.max("ModelPropensity")).collect()
 
     @cache
     def get_threshold_from_quantile(self, quantile: float) -> float:

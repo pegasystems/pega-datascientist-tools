@@ -3,8 +3,8 @@ import json
 
 import polars as pl
 import streamlit as st
+from da_streamlit_utils import ensure_data, get_data_filters, show_filtered_counts
 
-from da_streamlit_utils import get_data_filters, show_filtered_counts, ensure_data
 from pdstools.decision_analyzer.utils import get_first_level_stats
 
 # TODO Customize the filter dropdown, instead of using the one from PDS tools, so to focus on the more logical filter fields
@@ -33,7 +33,8 @@ with st.container(border=True):
     You can (optionally) save and re-apply filters you defined earlier:
     """
     uploaded_file = st.file_uploader(
-        "Use the same data filters you used in previous sessions:", type=["json"]
+        "Use the same data filters you used in previous sessions:",
+        type=["json"],
     )
     if uploaded_file:
         imported_filters = json.load(uploaded_file)

@@ -9,7 +9,7 @@ from polars import enable_string_cache
 from .adm.ADMDatamart import ADMDatamart
 from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
-from .infinity import Infinity
+from .infinity import AsyncInfinity, Infinity
 from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
 from .utils import datasets
@@ -20,21 +20,21 @@ from .valuefinder.ValueFinder import ValueFinder
 
 enable_string_cache()
 
-
 __reports__ = Path(__file__).parents[0] / "reports"
 
 __all__ = [
-    "ADMDatamart",
     "IH",
-    "ImpactAnalyzer",
+    "ADMDatamart",
     "Anonymization",
-    "read_ds_export",
+    "AsyncInfinity",
+    "ImpactAnalyzer",
+    "Infinity",
     "Prediction",
+    "ValueFinder",
+    "cdh_sample",
     "datasets",
     "default_predictor_categorization",
-    "cdh_sample",
+    "read_ds_export",
     "sample_value_finder",
     "show_versions",
-    "ValueFinder",
-    "Infinity",
 ]

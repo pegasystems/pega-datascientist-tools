@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import Optional
 
 import plotly.express as px
 import polars as pl
@@ -45,7 +44,7 @@ def _apply_sidebar_logo():
         "  color: #5a5c63;"
         "  padding: 0 1rem 0.75rem;"
         "}"
-        "</style>"
+        "</style>",
     )
 
 
@@ -60,12 +59,13 @@ def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
         Streamlit layout mode.
     **kwargs
         Extra keyword arguments forwarded to ``st.set_page_config``.
+
     """
     kwargs.setdefault("menu_items", _MENU_ITEMS)
     logo_path = _ASSETS_DIR / "pega-logo.svg"
     if logo_path.exists():
         kwargs.setdefault("page_icon", str(logo_path))
-    st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+    st.set_page_config(layout=layout, page_title=page_title, **kwargs)  # type: ignore[arg-type]
     _apply_sidebar_logo()
 
 
@@ -80,6 +80,7 @@ def show_sidebar_branding(title: str):
     ----------
     title : str
         Application title shown below the logo in the sidebar.
+
     """
     st.session_state["_pdstools_app_title"] = title
     _apply_sidebar_logo()
@@ -93,10 +94,10 @@ def show_version_header(check_latest: bool = True):
     check_latest : bool, default True
         If *True*, queries PyPI for the latest version and shows an upgrade
         warning when the installed version is outdated.
+
     """
     st.caption(
-        f"pdstools {pdstools_version} · "
-        "Keep up to date: `uv pip install --upgrade pdstools`"
+        f"pdstools {pdstools_version} · Keep up to date: `uv pip install --upgrade pdstools`",
     )
 
     if check_latest:
@@ -105,11 +106,11 @@ def show_version_header(check_latest: bool = True):
             st.warning(
                 f"A newer version of pdstools is available (**{latest}**, "
                 f"you have {pdstools_version}). "
-                "Run `uv pip install --upgrade pdstools` to update."
+                "Run `uv pip install --upgrade pdstools` to update.",
             )
 
 
-def ensure_session_data(key: str, message: Optional[str] = None):
+def ensure_session_data(key: str, message: str | None = None):
     """Guard that stops page execution when *key* is missing from session state.
 
     Parameters
@@ -118,13 +119,14 @@ def ensure_session_data(key: str, message: Optional[str] = None):
         The ``st.session_state`` key to check.
     message : str or None
         Custom warning text. Falls back to a generic "Please load data on the Home page."
+
     """
     if key not in st.session_state:
         st.warning(message or "Please load data on the Home page.")
         st.stop()
 
 
-def get_deploy_env() -> Optional[str]:
+def get_deploy_env() -> str | None:
     """Return the deployment environment set via ``--deploy-env`` CLI flag.
 
     Returns ``None`` when running locally without the flag.
@@ -159,17 +161,17 @@ def cached_datamart(**kwargs):
     ----------
     **kwargs
         Arguments passed to ADMDatamart.from_ds_export
+
     """
     with st.spinner("Loading datamart..."):
         try:
             datamart = ADMDatamart.from_ds_export(**kwargs)
             if datamart is not None:
                 return datamart
-            else:
-                st.warning("Unable to load datamart.")
-                return None
+            st.warning("Unable to load datamart.")
+            return None
         except Exception as e:
-            st.error(f"An error occurred while importing the datamart: {str(e)}")
+            st.error(f"An error occurred while importing the datamart: {e!s}")
             return None
 
 
@@ -186,18 +188,18 @@ def cached_prediction_table(**kwargs):
     ----------
     **kwargs
         Arguments passed to Prediction.from_ds_export
+
     """
     with st.spinner("Loading prediction table..."):
         try:
             prediction = Prediction.from_ds_export(**kwargs)
             if prediction is not None:
                 return prediction
-            else:
-                st.warning("Unable to load prediction table.")
-                return None
+            st.warning("Unable to load prediction table.")
+            return None
         except Exception as e:
             st.error(
-                f"An error occurred while importing the prediction table: {str(e)}"
+                f"An error occurred while importing the prediction table: {e!s}",
             )
             return None
 
@@ -216,6 +218,7 @@ def import_datamart(
         Number of rows to scan for schema inference when reading CSV/JSON files.
         For large production datasets, increase this value (e.g., 200000) if columns
         are not being detected correctly.
+
     """
     options = [
         "Direct file path",
@@ -260,7 +263,8 @@ def import_datamart(
 
 def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000):
     model_file = st.file_uploader(
-        "Upload Model Snapshot", type=["json", "zip", "parquet", "csv", "arrow"]
+        "Upload Model Snapshot",
+        type=["json", "zip", "parquet", "csv", "arrow"],
     )
     predictor_file = st.file_uploader(
         "Upload Predictor Binning snapshot",
@@ -275,7 +279,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=1000
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
             Detailed instructions can be found [here](https://pegasystems.github.io/pega-datascientist-tools/GettingStartedWithTheStandAloneApplication.html)
-            """
+            """,
         )
     if model_file and predictor_file:
         try:
@@ -293,7 +297,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=1000
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """
+                """,
         )
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
@@ -324,11 +328,9 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
-    where the original files are located, and we can find it automatically."""
+    where the original files are located, and we can find it automatically.""",
     )
-    placeholder = (
-        "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
-    )
+    placeholder = "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder=placeholder,
@@ -343,7 +345,7 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
             st.error(
                 f"""**Not a directory**:
             It looks like {dir} is a file.
-            Please supply the path to the **folder** the files are in."""
+            Please supply the path to the **folder** the files are in.""",
             )
             st.stop()
 
@@ -363,13 +365,13 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
         else:
             box.write("## X")
             data.write(
-                "Could not find the predicting binning snapshot in the given folder."
+                "Could not find the predicting binning snapshot in the given folder.",
             )
 
         if model_matches is None:
             st.write(
                 """If you can't get the files to automatically be detected,
-    try uploading the files manually using a different data source."""
+    try uploading the files manually using a different data source.""",
             )
 
         elif predictor_matches is None:
@@ -380,7 +382,7 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """
+                """,
             )
             model_analysis = st.checkbox("Only run model-based Health Check")
             if model_analysis:
@@ -412,7 +414,7 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
         else:
             box.write("## X")
             data.write(
-                "Could not find the optional prediction table in the given folder. The file should be named something like `Data-DM-Snapshot_pyGetSnapshot_{date}T{time}.zip`. You can export it from dev studio by following the instructions in the documentation, or continue without it."
+                "Could not find the optional prediction table in the given folder. The file should be named something like `Data-DM-Snapshot_pyGetSnapshot_{date}T{time}.zip`. You can export it from dev studio by following the instructions in the documentation, or continue without it.",
             )
 
 
@@ -422,17 +424,18 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
         .unique()
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
-        .collect()
+        .collect()  # type: ignore[assignment]
     )
 
     return df
 
 
 def filter_dataframe(
-    df: pl.LazyFrame, schema: Optional[dict] = None, queries=[]
+    df: pl.LazyFrame,
+    schema: dict | None = None,
+    queries=[],
 ) -> pl.LazyFrame:
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
+    """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
     ----------
@@ -446,7 +449,9 @@ def filter_dataframe(
 
     """
     to_filter_columns = st.multiselect(
-        "Filter dataframe on", df.collect_schema().names(), key="multiselect"
+        "Filter dataframe on",
+        df.collect_schema().names(),
+        key="multiselect",
     )
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
@@ -459,9 +464,7 @@ def filter_dataframe(
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
                 )
             if f"selected_{column}" not in st.session_state.keys():
-                st.session_state[f"selected_{column}"] = st.session_state[
-                    f"categories_{column}"
-                ]
+                st.session_state[f"selected_{column}"] = st.session_state[f"categories_{column}"]
             if len(st.session_state[f"categories_{column}"]) < 200:
                 options = st.session_state[f"categories_{column}"]
                 selected = right.multiselect(
@@ -471,9 +474,7 @@ def filter_dataframe(
                 )
                 if selected != st.session_state[f"categories_{column}"]:
                     queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"selected_{column}"])
+                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"selected_{column}"]),
                     )
             else:
                 user_text_input = right.text_input(
@@ -506,7 +507,7 @@ def filter_dataframe(
                     max_value=_max,
                     value=_max,
                 )
-                user_num_input = [user_min, user_max]
+                user_num_input = [user_min, user_max]  # type: ignore[assignment]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
         elif df.select(cs.temporal()).collect_schema().get(column) is not None:
@@ -524,8 +525,7 @@ def filter_dataframe(
 
 
 def model_and_row_counts(df: ANY_FRAME):
-    """
-    Returns unique model id count and row count from a dataframe
+    """Returns unique model id count and row count from a dataframe
 
     Parameters
     ----------
@@ -537,6 +537,7 @@ def model_and_row_counts(df: ANY_FRAME):
     Tuple[int, int]
         unique model count
         row count
+
     """
     if isinstance(df, pl.DataFrame):
         df = df.lazy()
@@ -563,11 +564,12 @@ def configure_predictor_categorization():
         .group_by("PredictorCategory")
         .agg(
             Performance=cdh_utils.weighted_average_polars(
-                "PredictorPerformance", "BinResponseCount"
-            )
+                "PredictorPerformance",
+                "BinResponseCount",
+            ),
         )
         .with_columns(
-            Contribution=((pl.col("Performance") / (pl.sum("Performance"))) * 100)
+            Contribution=((pl.col("Performance") / (pl.sum("Performance"))) * 100),
         )
         .collect()
     )

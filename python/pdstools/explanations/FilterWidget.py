@@ -1,13 +1,13 @@
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 from IPython.display import display
 from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo
+from .ExplanationsUtils import ContextInfo, ContextOperations
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
@@ -21,21 +21,21 @@ class FilterWidget(LazyNamespace):
     _CHANGED_VALUE = "new"
     _CHANGED_WIDGET = "owner"
 
-    _selector_widget: Optional[widgets.Select]
+    _selector_widget: widgets.Select | None
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
 
         # init context lists
-        self._raw_list: List[ContextInfo] = []
-        self._filtered_list: List[ContextInfo] = []
+        self._raw_list: list[ContextInfo] = []
+        self._filtered_list: list[ContextInfo] = []
 
         # init widget objects
         self._combobox_widgets: dict[str, widgets.Combobox] = {}
         self._selector_widget = None
 
-        self._context_operations = None
-        self._selected_context_key = None
+        self._context_operations: ContextOperations | None = None
+        self._selected_context_key: dict[str, str] | None = None
 
         super().__init__()
 
@@ -59,8 +59,9 @@ class FilterWidget(LazyNamespace):
 
         self._display_context_selector()
 
-    def set_selected_context(self, context_info: Optional[ContextInfo] = None):
+    def set_selected_context(self, context_info: ContextInfo | None = None):
         """Set the selected context information.
+
         Args:
             context_info (Optional[ContextInfo]):
                 If None, initializes the selected context with 'Any' for all keys.
@@ -73,11 +74,12 @@ class FilterWidget(LazyNamespace):
                         "pyDirection": "direction1",
                         ...
                     }
+
         """
         if context_info is None:
             self._init_selected_context()
         else:
-            self._selected_context_key = cast(dict[str, str], context_info)
+            self._selected_context_key = cast("dict[str, str]", context_info)
 
     def is_context_selected(self) -> bool:
         """Method returns True only if all context keys
@@ -85,19 +87,15 @@ class FilterWidget(LazyNamespace):
         """
         if self._selected_context_key is None:
             return False
-        return all(
-            value != self._ANY_CONTEXT for value in self._selected_context_key.values()
-        )
+        return all(value != self._ANY_CONTEXT for value in self._selected_context_key.values())
 
     def get_selected_context(self):
         """Get the currently selected context information."""
         return self._get_selected_context(with_any_option=False)
 
     def _init_selected_context(self):
-        self._selected_context_key = {
-            key: self._ANY_CONTEXT
-            for key in self._context_operations.get_context_keys()
-        }
+        assert self._context_operations is not None
+        self._selected_context_key = dict.fromkeys(self._context_operations.get_context_keys(), self._ANY_CONTEXT)
 
     def _display_context_selector(self):
         self._filtered_list = self._filter_contexts_by_selected()
@@ -148,23 +146,26 @@ class FilterWidget(LazyNamespace):
         display(grid)
 
     def _get_selected_context(
-        self, with_any_option: bool = True
-    ) -> Optional[ContextInfo]:
+        self,
+        with_any_option: bool = True,
+    ) -> ContextInfo | None:
         # return None if with_any_option is False and any context key value is set to ANY_CONTEXT
-        if not with_any_option and any(
-            x == self._ANY_CONTEXT for x in self._selected_context_key.values()
+        if (
+            not with_any_option
+            and self._selected_context_key is not None
+            and any(x == self._ANY_CONTEXT for x in self._selected_context_key.values())
         ):
             return None
 
-        return cast(ContextInfo, self._selected_context_key)
+        return cast("ContextInfo", self._selected_context_key)
 
     def _get_context_combobox_widgets(self) -> dict[str, widgets.Combobox]:
         ctx_options = {
             ctx_key_name: [self._ANY_CONTEXT]
             + sorted(
-                set(context_info[ctx_key_name] for context_info in self._filtered_list)
+                set(context_info[ctx_key_name] for context_info in self._filtered_list),  # type: ignore[literal-required]
             )
-            for ctx_key_name in self._selected_context_key.keys()
+            for ctx_key_name in (self._selected_context_key or {}).keys()
         }
 
         widget_dict = OrderedDict()
@@ -191,7 +192,7 @@ class FilterWidget(LazyNamespace):
             description="Context Info",
             style={"description_width": "initial"},
             layout=widgets.Layout(width="auto"),
-            rows=len(self._selected_context_key.keys()) + 1,
+            rows=len((self._selected_context_key or {}).keys()) + 1,
         )
         widget.observe(self._on_selector_change, names="value")
 
@@ -215,16 +216,13 @@ class FilterWidget(LazyNamespace):
         changed_widget_options = self._combobox_widgets[changed_widget_id].options
 
         # set the selected context-key value to the changed value
-        if (
-            changed_value in changed_widget_options
-            or changed_value == self._ANY_CONTEXT
-        ):
+        if changed_value in changed_widget_options or changed_value == self._ANY_CONTEXT:
             self._selected_context_key[changed_widget_id] = changed_value
             self._filtered_list = self._filter_contexts_by_selected()
         else:
             raise ValueError(
                 f"Invalid value '{changed_value}' for context key '{changed_widget_id}'. "
-                f"Available options are: {changed_widget_options}"
+                f"Available options are: {changed_widget_options}",
             )
 
         # update all widgets options according to the changed value
@@ -243,7 +241,8 @@ class FilterWidget(LazyNamespace):
             context_info = None
         else:
             context_info = self._context_infos_to_dictionary(self._filtered_list).get(
-                changed_value, None
+                changed_value,
+                None,
             )
 
         self.set_selected_context(context_info)
@@ -256,42 +255,46 @@ class FilterWidget(LazyNamespace):
         return change.get(self._CHANGED_WIDGET, None)
 
     def _get_options_for_context_widget(
-        self, name: str, with_any_option: bool = True
+        self,
+        name: str,
+        with_any_option: bool = True,
     ) -> list[str]:
         options = [self._ANY_CONTEXT] if with_any_option else []
 
         options_list_sorted = sorted(
-            set(context_info[name] for context_info in self._filtered_list)
+            set(context_info[name] for context_info in self._filtered_list),  # type: ignore[literal-required]
         )
-        options += cast(List[str], options_list_sorted)
+        options += cast("list[str]", options_list_sorted)
         return options
 
     def _get_options_for_context_selector(
-        self, with_any_option: bool = True
+        self,
+        with_any_option: bool = True,
     ) -> list[str]:
         options = [self._ANY_CONTEXT] if with_any_option else []
         options += cast(
-            list[str],
+            "list[str]",
             (self._context_infos_to_dictionary(self._filtered_list).keys()),
         )
         return options
 
-    def _filter_contexts_by_selected(self) -> List[ContextInfo]:
+    def _filter_contexts_by_selected(self) -> list[ContextInfo]:
         filtered_context_infos = []
         for context_info in self._raw_list:
             if all(
-                value == self._ANY_CONTEXT or context_info[key] == value
-                for key, value in self._selected_context_key.items()
+                value == self._ANY_CONTEXT or context_info[key] == value  # type: ignore[literal-required]
+                for key, value in (self._selected_context_key or {}).items()
             ):
                 filtered_context_infos.append(context_info)
         return filtered_context_infos
 
     def _context_infos_to_dictionary(
-        self, context_infos: List[ContextInfo]
+        self,
+        context_infos: list[ContextInfo],
     ) -> dict[str, ContextInfo]:
         return {
             (
-                self._context_operations.get_context_info_str(context_info, " - ")
+                self._context_operations.get_context_info_str(context_info, " - ") if self._context_operations else ""
             ): context_info
             for context_info in context_infos
         }

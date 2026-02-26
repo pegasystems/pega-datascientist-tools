@@ -1,11 +1,15 @@
-from ..base import PredictionStudioBase
-from .prediction_studio import PredictionStudio, AsyncPredictionStudio
-from .repository import Repository
-
+from ..base import AsyncPredictionStudioBase, PredictionStudioBase
+from .prediction import AsyncPrediction, Prediction
+from .prediction_studio import AsyncPredictionStudio, PredictionStudio
+from .repository import AsyncRepository, Repository
 
 __all__ = [
-    "PredictionStudioBase",
-    "PredictionStudio",
+    "AsyncPrediction",
     "AsyncPredictionStudio",
+    "AsyncPredictionStudioBase",
+    "AsyncRepository",
+    "Prediction",
+    "PredictionStudio",
+    "PredictionStudioBase",
     "Repository",
 ]

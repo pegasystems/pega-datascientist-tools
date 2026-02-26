@@ -1,34 +1,34 @@
 __all__ = [
-    "_PREDICTOR_TYPE",
-    "_TABLE_NAME",
-    "_CONTRIBUTION_TYPE",
     "_COL",
+    "_CONTRIBUTION_TYPE",
     "_DEFAULT",
+    "_PREDICTOR_TYPE",
     "_SPECIAL",
+    "_TABLE_NAME",
     "ContextInfo",
     "ContextOperations",
 ]
 
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 
 
-def validate(top_n: Optional[int] = None, top_k: Optional[int] = None):
+def validate(top_n: int | None = None, top_k: int | None = None):
     """Validate the parameters for top_n and top_k."""
     if top_n:
         if not isinstance(top_n, int) or top_n <= 1:
             raise ValueError(
-                f"Invalid top_n value: {top_n}. Must be a positive integer greater than zero."
+                f"Invalid top_n value: {top_n}. Must be a positive integer greater than zero.",
             )
     if top_k:
         if not isinstance(top_k, int) or top_k <= 1:
             raise ValueError(
-                f"Invalid top_k value: {top_k}. Must be a positive integer greater than zero."
+                f"Invalid top_k value: {top_k}. Must be a positive integer greater than zero.",
             )
 
 
@@ -61,8 +61,7 @@ class _CONTRIBUTION_TYPE(Enum):
 
     @classmethod
     def validate_and_get_type(cls, val):
-        """get the accepted contribution type which is validated against user input"""
-
+        """Get the accepted contribution type which is validated against user input"""
         for member in cls:
             if val == member.value:
                 return member
@@ -119,7 +118,10 @@ class _DEFAULT(Enum):
     REMAINING = True
 
 
-ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
+class ContextInfo(TypedDict):
+    context_key: str
+    context_value: str
+
 
 if TYPE_CHECKING:
     from .Aggregate import Aggregate
@@ -127,16 +129,20 @@ if TYPE_CHECKING:
 
 class ContextOperations(LazyNamespace):
     """Context related operations such as to filter unique contexts.
-    Parameters:
+
+    Parameters
+    ----------
         aggregate (Aggregate): The aggregate object to operate on.
 
-    Attributes:
+    Attributes
+    ----------
         aggregate (Aggregate): The aggregate object.
         _df (Optional[pl.DataFrame]): DataFrame containing context information.
-        _context_keys (Optional[List[str]]): List of context keys.
+        _context_keys (Optional[list[str]]): list of context keys.
         initialized (bool): Flag indicating if the context operations have been initialized.
 
-    Methods:
+    Methods
+    -------
         get_context_keys():
             Returns the list of context keys from loaded data.
             Eg. ['pyChannel', 'pyDirection', ...]
@@ -153,7 +159,7 @@ class ContextOperations(LazyNamespace):
             | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
 
         get_list(context_infos=None, with_partition_col=False):
-            Returns a List[ContextInfo] containing unique contexts
+            Returns a list[ContextInfo] containing unique contexts
             If `with_partition_col` is True, includes the partition column.
             If `context_infos` is None, returns the full unique contexts,
             else filtered by the context
@@ -175,8 +181,8 @@ class ContextOperations(LazyNamespace):
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate
 
-        self._df: Optional[pl.DataFrame] = None
-        self._context_keys: Optional[List[str]] = None
+        self._df: pl.DataFrame | None = None
+        self._context_keys: list[str] | None = None
         self.initialized = False
 
         super().__init__()
@@ -195,7 +201,7 @@ class ContextOperations(LazyNamespace):
                     .collect()
                     .to_series()
                     .to_list()
-                ]
+                ],
             )
         if self._context_keys is None:
             self._context_keys = list(self._df.select(pl.col("^py.*$")).columns)
@@ -208,30 +214,28 @@ class ContextOperations(LazyNamespace):
 
     def get_df(
         self,
-        context_infos: Optional[List[ContextInfo]] = None,
+        context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
-
         self._load()
-        df = self._df if with_partition_col else self._get_clean_df(self._df)
+        df = self._df if with_partition_col else self._get_clean_df(self._df)  # type: ignore[arg-type]
 
         if context_infos is None or len(context_infos) == 0:
-            return df
+            return df  # type: ignore[return-value]
 
         return self._filter_df_by_context_infos(df, context_infos)
 
     def get_list(
         self,
-        context_infos: Optional[List[ContextInfo]] = None,
+        context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
-    ) -> List[ContextInfo]:
+    ) -> list[ContextInfo]:
         """Get the list of context information filtered by the provided context information."""
-
         self._load()
         df = self.get_df(context_infos, with_partition_col)
         return cast(
-            list[ContextInfo],
+            "list[ContextInfo]",
             df.unique().to_dicts(),
         )
 
@@ -247,10 +251,7 @@ class ContextOperations(LazyNamespace):
     def _get_filter_expression(context_infos):
         expressions = []
         for context_info in context_infos:
-            expr = [
-                pl.col(column_name) == column_value
-                for column_name, column_value in context_info.items()
-            ]
+            expr = [pl.col(column_name) == column_value for column_name, column_value in context_info.items()]
             expressions.append(expr)
         return expressions
 

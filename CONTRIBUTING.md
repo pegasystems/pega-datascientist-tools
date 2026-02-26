@@ -32,7 +32,7 @@ To test with code coverage analysis run the following (make sure to have install
 - The Python documentation uses `Sphinx` to generate the docs, `nbsphinx` to convert the jupyter notebooks to markdown, and `Furo` as the Sphinx template. These dependencies can be installed (from `python/docs`) with `[uv] pip install -r docs-requirements.txt`. `Pandoc` is a requirement too and needs to be installed separately.
 - A Makefile is provided to create the documentation. The docs are automatically generated on any push commits in the master branch, but you can build them locally by following the steps below
 
-### Create documentation locally 
+### Create documentation locally
 To generate a new version of the docs, simply navigate to the top-level folder and run the following command:
 ```sh
 cd python/docs && [uv run] make html

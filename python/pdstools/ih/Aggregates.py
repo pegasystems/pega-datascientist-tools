@@ -1,7 +1,7 @@
 """Aggregation methods for Interaction History analysis."""
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -40,6 +40,7 @@ class Aggregates(LazyNamespace):
     >>> ih = IH.from_ds_export("interaction_history.zip")
     >>> ih.aggregates.summary_success_rates(by="Channel").collect()
     >>> ih.aggregates.summary_outcomes(every="1w").collect()
+
     """
 
     def __init__(self, ih: "IH_Class"):
@@ -49,15 +50,16 @@ class Aggregates(LazyNamespace):
         ----------
         ih : IH
             The parent IH instance providing the data.
+
         """
         super().__init__()
         self.ih = ih
 
     def summarize_by_interaction(
         self,
-        by: Optional[Union[str, List[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
-        query: Optional[QUERY] = None,
+        by: str | list[str] | pl.Expr | None = None,
+        every: str | timedelta | None = None,
+        query: QUERY | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize outcomes per interaction.
@@ -67,7 +69,7 @@ class Aggregates(LazyNamespace):
 
         Parameters
         ----------
-        by : str, List[str], or pl.Expr, optional
+        by : str, list[str], or pl.Expr, optional
             Grouping dimension(s). Default is None.
         every : str or timedelta, optional
             Time aggregation period (e.g., "1d", "1w"). Default is None.
@@ -99,6 +101,7 @@ class Aggregates(LazyNamespace):
         Examples
         --------
         >>> ih.aggregates.summarize_by_interaction(by="Channel").collect()
+
         """
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
@@ -106,8 +109,8 @@ class Aggregates(LazyNamespace):
             source = self.ih.data
 
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
@@ -117,23 +120,21 @@ class Aggregates(LazyNamespace):
         interactions = (
             cdh_utils._apply_query(source, query)
             .group_by(
-                (group_by_clause + ["InteractionID"])
-                if group_by_clause is not None
-                else ["InteractionID"]
+                (group_by_clause + ["InteractionID"]) if group_by_clause is not None else ["InteractionID"],
             )
             .agg(
                 # Take only one outcome per interaction. TODO should perhaps be the last one.
                 [
                     pl.when(
                         pl.col.Outcome.is_in(
-                            self.ih.positive_outcome_labels[metric]
-                        ).any()
+                            self.ih.positive_outcome_labels[metric],
+                        ).any(),
                     )
                     .then(pl.lit(True))
                     .when(
                         pl.col.Outcome.is_in(
-                            self.ih.negative_outcome_labels[metric]
-                        ).any()
+                            self.ih.negative_outcome_labels[metric],
+                        ).any(),
                     )
                     .then(pl.lit(False))
                     .alias(f"Interaction_Outcome_{metric}")
@@ -149,9 +150,9 @@ class Aggregates(LazyNamespace):
 
     def summary_success_rates(
         self,
-        by: Optional[Union[str, List[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
-        query: Optional[QUERY] = None,
+        by: str | list[str] | pl.Expr | None = None,
+        every: str | timedelta | None = None,
+        query: QUERY | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Calculate success rates with standard errors.
@@ -161,7 +162,7 @@ class Aggregates(LazyNamespace):
 
         Parameters
         ----------
-        by : str, List[str], or pl.Expr, optional
+        by : str, list[str], or pl.Expr, optional
             Grouping dimension(s). Default is None.
         every : str or timedelta, optional
             Time aggregation period (e.g., "1d", "1w"). Default is None.
@@ -200,16 +201,14 @@ class Aggregates(LazyNamespace):
         Examples
         --------
         >>> ih.aggregates.summary_success_rates(by="Channel", every="1w").collect()
-        """
 
+        """
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str] = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]  # type: ignore[attr-defined]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            by_pl_exprs
-            + by_non_pl_exprs
-            + (["OutcomeTime"] if every is not None else [])
+            by_pl_exprs + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
         )
 
         summary = (
@@ -237,31 +236,21 @@ class Aggregates(LazyNamespace):
             .with_columns(
                 [
                     (
-                        pl.col(f"Positives_{metric}")
-                        / (
-                            pl.col(f"Positives_{metric}")
-                            + pl.col(f"Negatives_{metric}")
-                        )
+                        pl.col(f"Positives_{metric}") / (pl.col(f"Positives_{metric}") + pl.col(f"Negatives_{metric}"))
                     ).alias(f"SuccessRate_{metric}")
                     for metric in self.ih.positive_outcome_labels.keys()
-                ]
+                ],
             )
             .with_columns(
                 [
                     (
-                        (
-                            pl.col(f"SuccessRate_{metric}")
-                            * (1 - pl.col(f"SuccessRate_{metric}"))
-                        )
-                        / (
-                            pl.col(f"Positives_{metric}")
-                            + pl.col(f"Negatives_{metric}")
-                        )
+                        (pl.col(f"SuccessRate_{metric}") * (1 - pl.col(f"SuccessRate_{metric}")))
+                        / (pl.col(f"Positives_{metric}") + pl.col(f"Negatives_{metric}"))
                     )
                     .sqrt()
                     .alias(f"StdErr_{metric}")
                     for metric in self.ih.positive_outcome_labels.keys()
-                ]
+                ],
             )
             .drop([] if debug else ["Outcomes"])
         )
@@ -275,9 +264,9 @@ class Aggregates(LazyNamespace):
 
     def summary_outcomes(
         self,
-        by: Optional[Union[str, List[str], pl.Expr]] = None,
-        every: Optional[Union[str, timedelta]] = None,
-        query: Optional[QUERY] = None,
+        by: str | list[str] | pl.Expr | None = None,
+        every: str | timedelta | None = None,
+        query: QUERY | None = None,
     ) -> pl.LazyFrame:
         """Count outcomes by type.
 
@@ -286,7 +275,7 @@ class Aggregates(LazyNamespace):
 
         Parameters
         ----------
-        by : str, List[str], or pl.Expr, optional
+        by : str, list[str], or pl.Expr, optional
             Grouping dimension(s). Default is None.
         every : str or timedelta, optional
             Time aggregation period (e.g., "1d", "1w"). Default is None.
@@ -310,28 +299,22 @@ class Aggregates(LazyNamespace):
         --------
         >>> ih.aggregates.summary_outcomes(by="Channel").collect()
         >>> ih.aggregates.summary_outcomes(every="1mo").collect()
-        """
 
+        """
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
         else:
             source = self.ih.data
 
         if not isinstance(by, list):
-            by = [by]
-        by_pl_exprs = [x for x in by if isinstance(x, pl.Expr)]
+            by = [by] if by is not None else []  # type: ignore[list-item]
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
         by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
-            ["Outcome"]
-            + by_non_pl_exprs
-            + (["OutcomeTime"] if every is not None else []),
+            ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
             by_pl_exprs,
         )
 
-        summary = (
-            cdh_utils._apply_query(source, query)
-            .group_by(group_by_clause)
-            .agg(Count=pl.len())
-        ).sort("Count")
+        summary = (cdh_utils._apply_query(source, query).group_by(group_by_clause).agg(Count=pl.len())).sort("Count")
 
         return summary

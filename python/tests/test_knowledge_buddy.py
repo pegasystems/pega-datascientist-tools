@@ -11,7 +11,9 @@ def mock_auth(httpx_mock: HTTPXMock):
     httpx_mock.add_response(json={"access_token": "ABC", "expires_in": 30})
 
     return _auth.PegaOAuth(
-        "https://pega.com", client_id="test_id", client_secret="test_secret"
+        "https://pega.com",
+        client_id="test_id",
+        client_secret="test_secret",
     )
 
 
@@ -40,10 +42,13 @@ def test_buddy_question(mock_auth, httpx_mock: HTTPXMock):
 def test_buddy_feedback(mock_auth, httpx_mock: HTTPXMock):
     client = Infinity(base_url="https://pega.com", auth=mock_auth, pega_version="24.2")
     httpx_mock.add_response(
-        url=re.compile(".*feedback"), json={"status": "Feedback registered"}
+        url=re.compile(".*feedback"),
+        json={"status": "Feedback registered"},
     )
     response = client.knowledge_buddy.feedback(
-        "ASK-158002", helpful="Yes", comments="Correct!"
+        "ASK-158002",
+        helpful="Yes",
+        comments="Correct!",
     )
 
     assert response == {"status": "Feedback registered"}

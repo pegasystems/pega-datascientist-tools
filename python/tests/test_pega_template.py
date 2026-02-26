@@ -1,9 +1,7 @@
-"""
-Testing the functionality of the pega_template module
-"""
+"""Testing the functionality of the pega_template module"""
 
-import plotly.io as pio
 import plotly.graph_objects as go
+import plotly.io as pio
 from pdstools.utils import pega_template
 
 
@@ -59,7 +57,8 @@ def test_template_usage():
     """Test using the template to create a figure"""
     # Create a simple figure with the pega template
     fig = go.Figure(
-        data=[go.Scatter(x=[1, 2, 3], y=[4, 5, 6])], layout=go.Layout(template="pega")
+        data=[go.Scatter(x=[1, 2, 3], y=[4, 5, 6])],
+        layout=go.Layout(template="pega"),
     )
 
     # Check that the template was applied

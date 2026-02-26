@@ -1,3 +1,3 @@
-from .knowledge_buddy import KnowledgeBuddy
+from .knowledge_buddy import AsyncKnowledgeBuddy, KnowledgeBuddy
 
-__all__ = ["KnowledgeBuddy"]
+__all__ = ["AsyncKnowledgeBuddy", "KnowledgeBuddy"]

@@ -40,7 +40,7 @@ if not (pandoc_available and quarto_available):
     st.error(
         f"⚠️ The following required tools are not available on your system:\n"
         f"    - {missing_deps_list}\n"
-        "The app will not function without these tools. Please install them before proceeding."
+        "The app will not function without these tools. Please install them before proceeding.",
     )
 
 # --- Data Import (previously a separate page) ---
@@ -98,5 +98,5 @@ essential_keys = [
     "infer_schema_length",
 ]
 for key in list(st.session_state.keys()):
-    if key not in essential_keys and not key.startswith("_"):
+    if key not in essential_keys and not str(key).startswith("_"):
         del st.session_state[key]

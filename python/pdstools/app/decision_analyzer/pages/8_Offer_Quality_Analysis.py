@@ -1,10 +1,11 @@
 import streamlit as st
+from da_streamlit_utils import (
+    ensure_data,
+    get_current_index,
+)
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
-from da_streamlit_utils import (
-    get_current_index,
-    ensure_data,
-)
+
 # TODO generalize a bit: no actions, just one, with a low propensity, sufficient
 # TODO support the propensity based categories for those stages that have it
 # TODO code align the way we name the stages in the "remaining" view like done elsewhere
@@ -33,13 +34,15 @@ with st.session_state["sidebar"]:
     default_propensity_th = [
         round(x, 4)
         for x in st.session_state.decision_data.getThresholdingData(
-            "Propensity", [0, 5, 100]
+            "Propensity",
+            [0, 5, 100],
         )["Threshold"].to_list()
     ]
     default_priority_th = [
         round(x, 4)
         for x in st.session_state.decision_data.getThresholdingData(
-            "Priority", [0, 5, 100]
+            "Priority",
+            [0, 5, 100],
         )["Threshold"].to_list()
     ]
 
@@ -87,7 +90,8 @@ action_counts = st.session_state.decision_data.filtered_action_counts(
 # Pie Chart
 
 vf = st.session_state.decision_data.get_offer_quality(
-    action_counts, group_by="Interaction ID"
+    action_counts,
+    group_by="Interaction ID",
 )
 # st.write(vf.head().collect())
 
@@ -103,7 +107,8 @@ st.plotly_chart(
 ## Trend Chart
 
 vf = st.session_state.decision_data.get_offer_quality(
-    action_counts, group_by=["Interaction ID", "day"]
+    action_counts,
+    group_by=["Interaction ID", "day"],
 )
 
 st.plotly_chart(

@@ -151,10 +151,14 @@ def remove_block_on_tag(block, tags, template):
 
 
 RST_TEMPLATE = remove_block_on_tag(
-    "input", ["remove_cell", "remove_input"], RST_TEMPLATE
+    "input",
+    ["remove_cell", "remove_input"],
+    RST_TEMPLATE,
 )
 RST_TEMPLATE = remove_block_on_tag(
-    "nboutput", ["remove_cell", "remove_output"], RST_TEMPLATE
+    "nboutput",
+    ["remove_cell", "remove_output"],
+    RST_TEMPLATE,
 )
 nbsphinx.RST_TEMPLATE = RST_TEMPLATE
 

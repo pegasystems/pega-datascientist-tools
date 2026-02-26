@@ -1,13 +1,11 @@
-"""
-Testing the functionality of some end-to-end scenarios
-"""
+"""Testing the functionality of some end-to-end scenarios"""
 
 import pathlib
 
 import polars as pl
 import pytest
-from plotly.graph_objs._figure import Figure
 from pdstools import ADMDatamart
+from plotly.graph_objs._figure import Figure
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -58,9 +56,7 @@ def test_end_to_end(sample: ADMDatamart):
     ]
 
     assert isinstance(sample.plot.bubble_chart(), Figure)
-    assert (
-        len(sample.plot.bubble_chart().data[0].x) == sample.aggregates.last().shape[0]
-    )
+    assert len(sample.plot.bubble_chart().data[0].x) == sample.aggregates.last().shape[0]
 
     query = (pl.col("ResponseCount") > 500) & (pl.col("Group") == "CreditCards")
     queried = len(sample.aggregates.last().filter(query).collect())

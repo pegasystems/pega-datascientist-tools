@@ -2,7 +2,6 @@
 
 import polars as pl
 import pytest
-
 from pdstools.utils.metric_limits import MetricFormats
 from pdstools.utils.number_format import NumberFormat
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from httpx import URL, Response
 
@@ -7,15 +7,15 @@ class PegaException(Exception):
     status_code: int
     classification: str
     localized_value: str
-    details: List[Dict[str, Any]]
+    details: list[dict[str, Any]]
 
     def __init__(
         self,
         base_url: str,
         endpoint: str,
-        params: Dict,
+        params: dict,
         response: Response,
-        override_message: Optional[str] = None,
+        override_message: str | None = None,
     ):  # pragma: no cover
         self.base_url = base_url
         self.endpoint = endpoint
@@ -97,7 +97,7 @@ class IncompatiblePegaVersionError(PegaException):  # pragma: no cover
     def __init__(
         self,
         minimum_supported_version: str,
-        functionality_description: Union[str, None] = None,
+        functionality_description: str | None = None,
     ):
         self.minimum_supported_version = minimum_supported_version
         self.functionality_description = functionality_description
@@ -116,18 +116,25 @@ error_map = {
 
 
 def handle_pega_exception(
-    base_url: Union[URL, str], endpoint: str, params: Dict, response: Response
-) -> Union[PegaException, Exception]:
+    base_url: URL | str,
+    endpoint: str,
+    params: dict,
+    response: Response,
+) -> PegaException | Exception:
     try:
         content = response.json()
     except Exception:
         raise InvalidRequest(
-            str(base_url), endpoint, params, response, "Invalid request."
+            str(base_url),
+            endpoint,
+            params,
+            response,
+            "Invalid request.",
         )
     details = content.get("errorDetails", None)
 
     if not details:
-        raise ValueError(f"Cannot parse error message: {str(content)}")
+        raise ValueError(f"Cannot parse error message: {content!s}")
 
     if len(details) > 1:
         raise MultipleErrors(details)

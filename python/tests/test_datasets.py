@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the built-in datasets
-"""
+"""Testing the functionality of the built-in datasets"""
 
 import polars as pl
 from pdstools import datasets

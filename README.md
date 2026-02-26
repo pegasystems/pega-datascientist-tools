@@ -43,4 +43,3 @@ The installation and getting started guide can be found [in the documentation](h
 # Contributing
 
 We love feedback. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/blob/master/CONTRIBUTING.md) for guidelines.
-

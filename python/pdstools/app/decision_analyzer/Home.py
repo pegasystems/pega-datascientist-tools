@@ -73,15 +73,17 @@ if raw_data is None:
     with st.spinner("Loading sample data"):
         raw_data = handle_sample_data()
     st.info(
-        "No file uploaded — using built-in sample data. "
-        "Upload your own data above to analyze it."
+        "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
 
 if raw_data is not None:
     with st.spinner("Reading Data"):
         data_id = str(hash(raw_data.explain(optimized=False)))
         da = load_decision_analyzer(
-            raw_data, level=level, sample_size=sample_size, data_fingerprint=data_id
+            raw_data,
+            level=level,
+            sample_size=sample_size,
+            data_fingerprint=data_id,
         )
         st.session_state.decision_data = da
         del raw_data

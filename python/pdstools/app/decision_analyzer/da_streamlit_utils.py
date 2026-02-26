@@ -1,7 +1,6 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 import os
 from pathlib import Path
-from typing import List, Optional
 
 import polars as pl
 import streamlit as st
@@ -10,20 +9,19 @@ from pdstools.decision_analyzer.data_read_utils import (
     read_data,
     read_nested_zip_files,
 )
-from pdstools.pega_io.File import read_ds_export
-
 from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+from pdstools.pega_io.File import read_ds_export
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
-    get_current_index,  # noqa: F401 — re-exported for backward compat
     is_managed_deployment,
 )
 
 # Default sample data path for EC2 deployments. Override with
 # PDSTOOLS_SAMPLE_DATA_PATH env var if needed.
 _EC2_SAMPLE_PATH = os.environ.get(
-    "PDSTOOLS_SAMPLE_DATA_PATH", "/s3-files/anonymized/anonymized"
+    "PDSTOOLS_SAMPLE_DATA_PATH",
+    "/s3-files/anonymized/anonymized",
 )
 
 
@@ -38,16 +36,13 @@ def ensure_funnel():
         st.warning(
             "This page requires **Action Analysis (v2)** data with full stage "
             "pipeline information. Explainability Extract (v1) data only contains "
-            "the arbitration stage and cannot show the decision funnel."
+            "the arbitration stage and cannot show the decision funnel.",
         )
         st.stop()
 
 
 def ensure_getFilterComponentData():
-    return (
-        "Component Name"
-        in st.session_state.decision_data.decision_data.collect_schema().names()
-    )
+    return "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 
 
 # st.elements.utils._shown_default_value_warning = (
@@ -93,30 +88,31 @@ def _clean_unselected_filters(to_filter_columns, filter_type):
 
 
 def get_data_filters(
-    df: pl.LazyFrame, columns=None, queries=None, filter_type="local"
-) -> List[
-    pl.Expr
-]:  # this one is way too complex, should be split up into probably 5 functions
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
+    df: pl.LazyFrame,
+    columns=None,
+    queries=None,
+    filter_type="local",
+) -> list[pl.Expr]:  # this one is way too complex, should be split up into probably 5 functions
+    """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
     ----------
     df : pl.DataFrame
         Original dataframe
+
     """
 
     def _save_selected(
-        filter_type, column, regex=""
+        filter_type,
+        column,
+        regex="",
     ):  ## see the issue on why we need to save a different session.state variable https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
         st.session_state[f"{filter_type}{regex}selected_{column}"] = st.session_state[
             f"{filter_type}{regex}_selected_{column}"
         ]
 
     def _save_multiselect():
-        st.session_state[f"{filter_type}multiselect"] = st.session_state[
-            f"{filter_type}_multiselect"
-        ]
+        st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
     if columns is None:
         columns = df.collect_schema().names()
@@ -124,9 +120,7 @@ def get_data_filters(
         queries = []
 
     st.session_state[f"{filter_type}_multiselect"] = (
-        st.session_state[f"{filter_type}multiselect"]
-        if f"{filter_type}multiselect" in st.session_state
-        else []
+        st.session_state[f"{filter_type}multiselect"] if f"{filter_type}multiselect" in st.session_state else []
     )
     to_filter_columns = st.multiselect(
         "Filter data on",
@@ -168,9 +162,7 @@ def get_data_filters(
                 )
                 if selected != st.session_state[f"{filter_type}categories_{column}"]:
                     queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"{filter_type}selected_{column}"])
+                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"{filter_type}selected_{column}"]),
                     )
 
             else:
@@ -203,9 +195,7 @@ def get_data_filters(
             if f"{filter_type}selected_{column}" not in st.session_state:
                 default_min, default_max = _min, _max
             else:
-                default_min, default_max = st.session_state[
-                    f"{filter_type}selected_{column}"
-                ]
+                default_min, default_max = st.session_state[f"{filter_type}selected_{column}"]
             if _max - _min <= 200:
                 user_num_input = right.slider(
                     f"Values for {column}",
@@ -226,7 +216,7 @@ def get_data_filters(
                     max_value=_max,
                     value=default_max,
                 )
-                user_num_input = [user_min, user_max]
+                user_num_input = [user_min, user_max]  # type: ignore[assignment]
             st.session_state[f"{filter_type}selected_{column}"] = user_num_input
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
@@ -253,7 +243,7 @@ def get_data_filters(
     return queries
 
 
-def get_options() -> List[str]:
+def get_options() -> list[str]:
     """Data source options.
 
     'File path' is only shown in managed deployments where users need to
@@ -266,7 +256,7 @@ def get_options() -> List[str]:
     return options
 
 
-def handle_sample_data() -> Optional[pl.LazyFrame]:
+def handle_sample_data() -> pl.LazyFrame | None:
     """Load sample data, using a local S3 path in managed deployments."""
     if is_managed_deployment():
         return read_data(Path(_EC2_SAMPLE_PATH))
@@ -298,13 +288,13 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
             raise ValueError(
                 f"The uploaded archive does not contain recognizable data files. "
                 f"Found: {', '.join(sorted(inner_exts))}. "
-                f"Expected raw decision data in csv, parquet, json, or arrow format."
+                f"Expected raw decision data in csv, parquet, json, or arrow format.",
             )
 
         # If the zip contains .zip files, use the legacy gzipped-ndjson reader
         if ".zip" in inner_exts:
             file_buffer.seek(0)
-            return read_nested_zip_files(file_buffer)
+            return read_nested_zip_files(file_buffer)  # type: ignore[return-value]
 
         # Otherwise extract to a temp directory and use read_data
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
@@ -324,7 +314,7 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> Optional[pl.LazyFrame]:
+def handle_file_upload() -> pl.LazyFrame | None:
     """Show file uploader accepting one or more files and return a LazyFrame, or None."""
     import tempfile
 
@@ -346,11 +336,7 @@ def handle_file_upload() -> Optional[pl.LazyFrame]:
                 frames.append(pl.scan_parquet(tmp.name))
         elif suffix == ".zip":
             frames.append(_read_uploaded_zip(f))
-        elif (
-            name_lower.endswith(".tar.gz")
-            or name_lower.endswith(".tgz")
-            or suffix == ".tar"
-        ):
+        elif name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz") or suffix == ".tar":
             frames.append(_read_uploaded_tar(f))
         elif suffix in {".json", ".ndjson"}:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -379,7 +365,7 @@ def handle_file_upload() -> Optional[pl.LazyFrame]:
     return pl.concat(frames, how="diagonal", rechunk=True)
 
 
-def handle_file_path() -> Optional[pl.LazyFrame]:
+def handle_file_path() -> pl.LazyFrame | None:
     """Show text input for a file/folder path and return a LazyFrame, or None."""
     st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
     path = st.text_input(
@@ -422,8 +408,10 @@ def load_decision_analyzer(
     return DecisionAnalyzer(_raw_data, level=level, sample_size=sample_size)
 
 
-@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)  # type: ignore[arg-type]
 def st_priority_component_distribution(
-    value_data: pl.LazyFrame, component, granularity
+    value_data: pl.LazyFrame,
+    component,
+    granularity,
 ):
     return plot_priority_component_distribution(value_data, component, granularity)

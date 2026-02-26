@@ -1,6 +1,5 @@
 # python/pdstools/decision_analyzer/utils.py
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Type, Union
 
 import polars as pl
 
@@ -37,20 +36,21 @@ class ColumnResolver:
 
     Attributes
     ----------
-    table_definition : Dict
+    table_definition : dict
         Column definitions with 'display_name', 'default', and 'type' keys
-    raw_columns : Set[str]
+    raw_columns : set[str]
         Column names present in the raw data
+
     """
 
-    table_definition: Dict
-    raw_columns: Set[str]
+    table_definition: dict
+    raw_columns: set[str]
 
     # Results populated by resolve()
-    rename_mapping: Dict[str, str] = field(default_factory=dict, init=False)
-    type_mapping: Dict[str, Type[pl.DataType]] = field(default_factory=dict, init=False)
-    columns_to_drop: List[str] = field(default_factory=list, init=False)
-    final_columns: List[str] = field(default_factory=list, init=False)
+    rename_mapping: dict[str, str] = field(default_factory=dict, init=False)
+    type_mapping: dict[str, type[pl.DataType]] = field(default_factory=dict, init=False)
+    columns_to_drop: list[str] = field(default_factory=list, init=False)
+    final_columns: list[str] = field(default_factory=list, init=False)
     _resolved: bool = field(default=False, init=False)
 
     def __post_init__(self):
@@ -63,12 +63,13 @@ class ColumnResolver:
         -------
         ColumnResolver
             Self, for method chaining
+
         """
         if self._resolved:
             return self
 
-        resolved_targets: Dict[str, str] = {}  # display_name -> actual column name
-        columns_needing_rename: Dict[str, str] = {}  # raw_col -> display_name
+        resolved_targets: dict[str, str] = {}  # display_name -> actual column name
+        columns_needing_rename: dict[str, str] = {}  # raw_col -> display_name
 
         for raw_col, config in self.table_definition.items():
             display_name = config["display_name"]
@@ -104,22 +105,20 @@ class ColumnResolver:
 
         for raw_col, config in self.table_definition.items():
             display_name = config["display_name"]
-            if (
-                display_name in resolved_targets
-                and display_name not in self.final_columns
-            ):
+            if display_name in resolved_targets and display_name not in self.final_columns:
                 self.final_columns.append(display_name)
 
         self._resolved = True
         return self
 
-    def get_missing_columns(self) -> List[str]:
+    def get_missing_columns(self) -> list[str]:
         """Get list of required columns missing from the raw data.
 
         Returns
         -------
-        List[str]
+        list[str]
             Column names that are marked as default but not found in raw data
+
         """
         missing = []
         for raw_col, config in self.table_definition.items():
@@ -137,10 +136,10 @@ SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 
 
 def apply_filter(
-    df: pl.LazyFrame, filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+    df: pl.LazyFrame,
+    filters: pl.Expr | list[pl.Expr] | None = None,
 ):
-    """
-    Apply a global set of filters. Kept outside of the DecisionData class as
+    """Apply a global set of filters. Kept outside of the DecisionData class as
     this is really more of a utility function, not bound to that class at all.
     """
 
@@ -156,7 +155,7 @@ def apply_filter(
 
     if filters is None:
         return df
-    elif isinstance(filters, pl.Expr):
+    if isinstance(filters, pl.Expr):
         df = _apply(filters, df)
 
     elif isinstance(filters, list) and all(isinstance(i, pl.Expr) for i in filters):
@@ -164,7 +163,7 @@ def apply_filter(
             df = _apply(item, df)
     else:
         raise ValueError(
-            f"Filters should be a pl.Expr or a list of pl.Expr. Got {type(filters)}"
+            f"Filters should be a pl.Expr or a list of pl.Expr. Got {type(filters)}",
         )
 
     return df
@@ -187,7 +186,8 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
 
 
 def get_first_level_stats(
-    interaction_data: pl.LazyFrame, filters: List[pl.Expr] = None
+    interaction_data: pl.LazyFrame,
+    filters: list[pl.Expr] | None = None,
 ):
     """Returns first-level stats of a dataframe for the filter summary.
 
@@ -219,7 +219,7 @@ def get_first_level_stats(
 
 def resolve_aliases(
     df: pl.LazyFrame,
-    *table_definitions: Dict,
+    *table_definitions: dict,
 ) -> pl.LazyFrame:
     """Rename alias columns to their canonical raw key names before validation.
 
@@ -231,20 +231,21 @@ def resolve_aliases(
     ----------
     df : pl.LazyFrame
         Raw data that may use alternative column names.
-    *table_definitions : Dict
+    *table_definitions : dict
         One or more table definition dicts (DecisionAnalyzer, ExplainabilityExtract).
 
     Returns
     -------
     pl.LazyFrame
         Data with alias columns renamed to canonical raw key names.
+
     """
     raw_cols = set(df.collect_schema().names())
-    renames: Dict[str, str] = {}
+    renames: dict[str, str] = {}
 
     # Collect all raw keys across all table definitions so we never rename
     # a column that is itself a canonical raw key in another definition.
-    all_raw_keys = set()
+    all_raw_keys: set[str] = set()
     for table_def in table_definitions:
         all_raw_keys.update(table_def.keys())
 
@@ -282,14 +283,12 @@ def determine_extract_type(raw_data):
         strategy_names.update(strategy_config.get("aliases", []))
 
     available = set(raw_data.collect_schema().names())
-    return (
-        "decision_analyzer" if strategy_names & available else "explainability_extract"
-    )
+    return "decision_analyzer" if strategy_names & available else "explainability_extract"
 
 
 def rename_and_cast_types(
     df: pl.LazyFrame,
-    table_definition: Dict,
+    table_definition: dict,
 ) -> pl.LazyFrame:
     """Rename columns and cast data types based on table definition.
 
@@ -300,7 +299,7 @@ def rename_and_cast_types(
     ----------
     df : pl.LazyFrame
         The input dataframe to process
-    table_definition : Dict
+    table_definition : dict
         Dictionary containing column definitions with 'display_name', 'default',
         and 'type' keys
 
@@ -308,6 +307,7 @@ def rename_and_cast_types(
     -------
     pl.LazyFrame
         Processed dataframe with renamed columns and cast types
+
     """
     resolver = ColumnResolver(
         table_definition=table_definition,
@@ -323,7 +323,8 @@ def rename_and_cast_types(
 
 
 def _cast_columns(
-    df: pl.LazyFrame, type_mapping: Dict[str, Type[pl.DataType]]
+    df: pl.LazyFrame,
+    type_mapping: dict[str, type[pl.DataType]],
 ) -> pl.LazyFrame:
     """Cast columns to their target types.
 
@@ -331,13 +332,14 @@ def _cast_columns(
     ----------
     df : pl.LazyFrame
         The dataframe to process
-    type_mapping : Dict[str, Type[pl.DataType]]
+    type_mapping : dict[str, type[pl.DataType]]
         Mapping of column names to their target types
 
     Returns
     -------
     pl.LazyFrame
         Dataframe with columns cast to target types
+
     """
     schema = df.collect_schema()
     for col_name, target_type in type_mapping.items():
@@ -364,12 +366,11 @@ def get_table_definition(table: str):
 
 def create_hierarchical_selectors(
     data: pl.LazyFrame,
-    selected_issue: Optional[str] = None,
-    selected_group: Optional[str] = None,
-    selected_action: Optional[str] = None,
-) -> Dict[str, Dict[str, Union[List[str], int]]]:
-    """
-    Create hierarchical filter options and calculate indices for selectbox widgets.
+    selected_issue: str | None = None,
+    selected_group: str | None = None,
+    selected_action: str | None = None,
+) -> dict[str, dict[str, list[str] | int]]:
+    """Create hierarchical filter options and calculate indices for selectbox widgets.
 
     Args:
         data: LazyFrame with hierarchical data (should be pre-filtered to desired stage)
@@ -378,36 +379,26 @@ def create_hierarchical_selectors(
         selected_action: Currently selected action (optional)
 
     Returns:
-        Dict with structure:
+        dict with structure:
         {
             "issues": {"options": [...], "index": 0},
             "groups": {"options": ["All", ...], "index": 0},
             "actions": {"options": ["All", ...], "index": 0}
         }
-    """
 
+    """
     # Step 1: Get all available issues
-    available_issues = (
-        data.select("Issue").unique().collect().get_column("Issue").to_list()
-    )
+    available_issues = data.select("Issue").unique().collect().get_column("Issue").to_list()
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
         issue_index = available_issues.index(selected_issue)
 
     # Use the selected issue (or first one if none selected)
-    current_issue = (
-        selected_issue if selected_issue in available_issues else available_issues[0]
-    )
+    current_issue = selected_issue if selected_issue in available_issues else available_issues[0]
 
     # Step 2: Get groups for current issue
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
-    available_groups = (
-        filtered_by_issue.select("Group")
-        .unique()
-        .collect()
-        .get_column("Group")
-        .to_list()
-    )
+    available_groups = filtered_by_issue.select("Group").unique().collect().get_column("Group").to_list()
     group_options = ["All"] + available_groups
     group_index = 0  # Default to "All"
     if selected_group and selected_group in group_options:
@@ -421,16 +412,10 @@ def create_hierarchical_selectors(
         filtered_by_issue_group = filtered_by_issue
     else:
         filtered_by_issue_group = filtered_by_issue.filter(
-            pl.col("Group") == current_group
+            pl.col("Group") == current_group,
         )
 
-    available_actions = (
-        filtered_by_issue_group.select("Action")
-        .unique()
-        .collect()
-        .get_column("Action")
-        .to_list()
-    )
+    available_actions = filtered_by_issue_group.select("Action").unique().collect().get_column("Action").to_list()
     action_options = ["All"] + available_actions
     action_index = 0  # Default to "All"
     if selected_action and selected_action in action_options:
@@ -444,10 +429,11 @@ def create_hierarchical_selectors(
 
 
 def get_scope_config(
-    selected_issue: str, selected_group: str, selected_action: str
-) -> Dict[str, Union[str, pl.Expr, List[str]]]:
-    """
-    Generate scope configuration for lever application and plotting based on user selections.
+    selected_issue: str,
+    selected_group: str,
+    selected_action: str,
+) -> dict[str, str | pl.Expr | list[str]]:
+    """Generate scope configuration for lever application and plotting based on user selections.
 
     Parameters
     ----------
@@ -460,14 +446,15 @@ def get_scope_config(
 
     Returns
     -------
-    Dict[str, Union[str, pl.Expr, List[str]]]
+    dict[str, Union[str, pl.Expr, list[str]]]
         Configuration dictionary containing:
         - level: "Action", "Group", or "Issue" indicating scope level
         - lever_condition: Polars expression for filtering selected actions
-        - group_cols: List of column names for grouping operations
+        - group_cols: list of column names for grouping operations
         - x_col: Column name to use for x-axis in plots
         - selected_value: The actual selected value for highlighting
         - plot_title_prefix: Prefix for plot titles
+
     """
     if selected_action != "All":
         return {
@@ -478,22 +465,20 @@ def get_scope_config(
             "selected_value": selected_action,
             "plot_title_prefix": "Win Count by Action",
         }
-    elif selected_group != "All":
+    if selected_group != "All":
         return {
             "level": "Group",
-            "lever_condition": (pl.col("Issue") == selected_issue)
-            & (pl.col("Group") == selected_group),
+            "lever_condition": (pl.col("Issue") == selected_issue) & (pl.col("Group") == selected_group),
             "group_cols": ["Issue", "Group"],
             "x_col": "Group",
             "selected_value": selected_group,
             "plot_title_prefix": "Win Count by Group",
         }
-    else:
-        return {
-            "level": "Issue",
-            "lever_condition": pl.col("Issue") == selected_issue,
-            "group_cols": ["Issue"],
-            "x_col": "Issue",
-            "selected_value": selected_issue,
-            "plot_title_prefix": "Win Count by Issue",
-        }
+    return {
+        "level": "Issue",
+        "lever_condition": pl.col("Issue") == selected_issue,
+        "group_cols": ["Issue"],
+        "x_col": "Issue",
+        "selected_value": selected_issue,
+        "plot_title_prefix": "Win Count by Issue",
+    }

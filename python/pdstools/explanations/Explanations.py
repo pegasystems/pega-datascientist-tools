@@ -2,7 +2,6 @@ __all__ = ["Explanations"]
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
 from .Aggregate import Aggregate
 from .FilterWidget import FilterWidget
@@ -14,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Explanations:
-    """
-    Process and explore explanation data for Adaptive Gradient Boost models.
+    """Process and explore explanation data for Adaptive Gradient Boost models.
 
     Class is initialied with data location, which should point to the location of the
     model's explanation parquet files downloaded from the explanations file repository.
@@ -49,16 +47,17 @@ class Explanations:
     PROGRESS_BAR: int
         Show progress bar when running duckdb queries.
         0 = no progress bar, 1 = show progress bar. Default is 0.
+
     """
 
     def __init__(
         self,
         root_dir: str = ".tmp",
         data_folder: str = "explanations_data",
-        data_file: Optional[str] = None,
-        model_name: Optional[str] = "",
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
+        data_file: str | None = None,
+        model_name: str | None = "",
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
     ):
         self.root_dir = root_dir
         self.data_folder = data_folder
@@ -76,7 +75,10 @@ class Explanations:
         self.filter = FilterWidget(explanations=self)
 
     def _set_date_range(
-        self, from_date: Optional[datetime], to_date: Optional[datetime], days: int = 7
+        self,
+        from_date: datetime | None,
+        to_date: datetime | None,
+        days: int = 7,
     ):
         """Set the date range for processing explanation files.
 
@@ -86,6 +88,7 @@ class Explanations:
             The start date for the date range. If None, defaults to 7 days before end_date.
         end_date : datetime, optional
             The end date for the date range. If None, defaults to today.
+
         """
         if from_date is None and to_date is None:
             to_date = datetime.today()

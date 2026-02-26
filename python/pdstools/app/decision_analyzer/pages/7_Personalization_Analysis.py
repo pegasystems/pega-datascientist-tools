@@ -1,8 +1,8 @@
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
-    get_data_filters,
     ensure_data,
+    get_data_filters,
 )
 
 # TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
@@ -35,15 +35,11 @@ with st.session_state["sidebar"]:
     if st.button("Apply Filters"):
         # Only filter and update the DataFrame when the button is clicked
         if st.session_state["local_filters"]:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample.filter(
-                    st.session_state["local_filters"]
-                )
+            st.session_state["local_optionality"] = st.session_state.decision_data.sample.filter(
+                st.session_state["local_filters"],
             )
         else:
-            st.session_state["local_optionality"] = (
-                st.session_state.decision_data.sample
-            )
+            st.session_state["local_optionality"] = st.session_state.decision_data.sample
 "### Optionality"
 
 with st.container(border=True):
@@ -54,13 +50,8 @@ with st.container(border=True):
     """
 
     stage_options = st.session_state.decision_data.getPossibleStageValues()
-    if (
-        "optionality_stage" not in st.session_state
-        or st.session_state.optionality_stage not in stage_options
-    ):
-        st.session_state.optionality_stage = (
-            "Arbitration" if "Arbitration" in stage_options else stage_options[0]
-        )
+    if "optionality_stage" not in st.session_state or st.session_state.optionality_stage not in stage_options:
+        st.session_state.optionality_stage = "Arbitration" if "Arbitration" in stage_options else stage_options[0]
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
@@ -83,11 +74,10 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
         if st.session_state.decision_data.extract_type == "decision_analyzer":
             st.plotly_chart(
                 st.session_state.decision_data.plot.optionality_funnel(
-                    df=st.session_state["local_optionality"]
+                    df=st.session_state["local_optionality"],
                 ),
                 use_container_width=True,
             )
-
 
 "## Optionality Trend chart"
 
@@ -96,10 +86,9 @@ Showing the number of unique actions over time - so you can spot significant
 changes in the number of available actions
 """
 
-
 optionality_data_with_trend_per_stage = (
     st.session_state.decision_data.get_optionality_data_with_trend(
-        df=st.session_state["local_optionality"]
+        df=st.session_state["local_optionality"],
     )
     .group_by(["day", "StageGroup"])
     .agg(nOffers=pl.col("nOffers").max())
@@ -123,14 +112,13 @@ How much variation is there in the offers? Does everyone get the same few action
 is there a lot of variation in what we are offering?
 """
 
-
 st.plotly_chart(
     st.session_state.decision_data.plot.action_variation(stage="Output"),
     use_container_width=True,
 )
 action_variability_stats = st.session_state.decision_data.get_offer_variability_stats(
-    "Output"
+    "Output",
 )
 f"""
-{action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"],3)}**.
+{action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"], 3)}**.
 """

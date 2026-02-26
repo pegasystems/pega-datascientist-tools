@@ -31,7 +31,7 @@ mock_response_predictions = {
             "status": "Completed",
             "lastUpdateTime": "20231129T113556.481 GMT",
         },
-    ]
+    ],
 }
 
 
@@ -39,12 +39,14 @@ def test_repository(prediction_studio_client, mocker):
     mock_response = mock_response_repository
 
     mock_get = mocker.patch.object(
-        prediction_studio_client._client, "get", return_value=mock_response
+        prediction_studio_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_studio_client.repository()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/repository"
+        "/prweb/api/PredictionStudio/v3/predictions/repository",
     )
 
     # Assertions to verify the Repository object's attributes
@@ -54,7 +56,9 @@ def test_repository(prediction_studio_client, mocker):
 def test_list_predictions(prediction_studio_client, mocker):
     mock_response = mock_response_predictions
     mocker.patch.object(
-        prediction_studio_client._client, "get", return_value=mock_response
+        prediction_studio_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_studio_client.list_predictions()
 

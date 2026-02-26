@@ -1,11 +1,8 @@
 import streamlit as st
-
-
 from da_streamlit_utils import (
-    get_current_index,
     ensure_data,
+    get_current_index,
 )
-
 
 # st.set_option("global.showWarningOnDirectExecution", False)
 
@@ -44,7 +41,8 @@ with st.session_state["sidebar"]:
         key="stage",
     )
 distribution_data = st.session_state.decision_data.getDistributionData(
-    st.session_state.stage, scope_options
+    st.session_state.stage,
+    scope_options,
 )
 st.plotly_chart(
     st.session_state.decision_data.plot.distribution_as_treemap(
@@ -67,7 +65,8 @@ Note: Since a decision can contain actions across multiple [issues/groups], the 
 """
 with st.container(border=True):
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
-        st.session_state.stage, st.session_state.scope
+        st.session_state.stage,
+        st.session_state.scope,
     )
     if warning_message:
         st.warning(warning_message)

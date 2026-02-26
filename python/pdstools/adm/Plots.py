@@ -1,27 +1,23 @@
 __all__ = ["Plots"]
 import logging
 import math
+from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
     Literal,
-    Optional,
-    Set,
-    Tuple,
     TypeVar,
     Union,
     overload,
 )
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
-from typing_extensions import Concatenate, ParamSpec
+from typing_extensions import ParamSpec
+from typing import Concatenate
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
@@ -38,7 +34,7 @@ except ImportError as e:  # pragma: no cover
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
-COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -47,36 +43,41 @@ P = ParamSpec("P")
 
 
 def requires(
-    model_columns: Optional[Iterable[str]] = None,
-    predictor_columns: Optional[Iterable[str]] = None,
-    combined_columns: Optional[Iterable[str]] = None,
+    model_columns: Iterable[str] | None = None,
+    predictor_columns: Iterable[str] | None = None,
+    combined_columns: Iterable[str] | None = None,
 ):
     def decorator(
-        func: Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]],
-    ) -> Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]]:
+        func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
+    ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
         @overload
-        def wrapper(
-            self: T, *args: P.args, return_df: Literal[False] = ..., **kwargs: P.kwargs
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: Literal[False] = ...,
+            **kwargs: P.kwargs,
         ) -> Figure: ...
 
         @overload
-        def wrapper(
-            self: T, *args: P.args, return_df: Literal[True], **kwargs: P.kwargs
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: Literal[True],
+            **kwargs: P.kwargs,
         ) -> pl.LazyFrame: ...
 
         @wraps(func)
-        def wrapper(
-            self: T, *args: P.args, return_df: bool = False, **kwargs: P.kwargs
-        ) -> Union[Figure, pl.LazyFrame]:
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: bool = False,
+            **kwargs: P.kwargs,
+        ) -> Figure | pl.LazyFrame:
             # Validation logic (unchanged)
             if model_columns:
                 if self.datamart.model_data is None:
                     raise ValueError("Missing data: model_data")
-                missing = {
-                    c
-                    for c in model_columns
-                    if c not in self.datamart.model_data.collect_schema().names()
-                }
+                missing = {c for c in model_columns if c not in self.datamart.model_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required model columns:{missing}")
 
@@ -84,9 +85,7 @@ def requires(
                 if self.datamart.predictor_data is None:
                     raise ValueError("Missing data: predictor_data")
                 missing = {
-                    c
-                    for c in predictor_columns
-                    if c not in self.datamart.predictor_data.collect_schema().names()
+                    c for c in predictor_columns if c not in self.datamart.predictor_data.collect_schema().names()
                 }
                 if missing:
                     raise ValueError(f"Missing required predictor columns:{missing}")
@@ -94,15 +93,11 @@ def requires(
             if combined_columns:
                 if self.datamart.combined_data is None:
                     raise ValueError("Missing data: combined_data")
-                missing = {
-                    c
-                    for c in combined_columns
-                    if c not in self.datamart.combined_data.collect_schema().names()
-                }
+                missing = {c for c in combined_columns if c not in self.datamart.combined_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
-            return func(self, *args, return_df=return_df, **kwargs)
+            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]
 
         return wrapper
 
@@ -110,7 +105,10 @@ def requires(
 
 
 def fig_update_facet(
-    fig: Figure, n_cols: int = 2, base_height: int = 250, step_height: int = 270
+    fig: Figure,
+    n_cols: int = 2,
+    base_height: int = 250,
+    step_height: int = 270,
 ) -> Figure:
     """Update faceted plot layout with proper height and simplified annotation text.
 
@@ -133,22 +131,24 @@ def fig_update_facet(
     -------
     Figure
         The updated plotly figure
+
     """
     n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
     return fig.for_each_annotation(
-        lambda a: a.update(text=a.text.split("=")[1])
+        lambda a: a.update(text=a.text.split("=")[1]),
     ).update_layout(autosize=True, height=height)
 
 
 def add_bottom_left_text_to_bubble_plot(
-    fig: Figure, df: pl.LazyFrame, bubble_size: int
+    fig: Figure,
+    df: pl.LazyFrame,
+    bubble_size: int,
 ):
     def get_nonperforming_models(df: pl.LazyFrame):
         return (
             df.filter(
-                (pl.col("Performance") == 50)
-                & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0))
+                (pl.col("Performance") == 50) & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0)),
             )
             .select(pl.first().count())
             .collect()
@@ -156,7 +156,7 @@ def add_bottom_left_text_to_bubble_plot(
         )
 
     if len(fig.layout.annotations) > 0:
-        for i in range(0, len(fig.layout.annotations)):
+        for i in range(len(fig.layout.annotations)):
             oldtext = fig.layout.annotations[i].text.split("=")
             subset = df.filter(pl.col(oldtext[0]) == oldtext[1])
             num_models = subset.select(pl.first().count()).collect().item()
@@ -181,7 +181,7 @@ def distribution_graph(df: pl.LazyFrame, title: str):
     plot_df = df.collect()
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
-        go.Bar(x=plot_df["BinSymbol"], y=plot_df["BinResponseCount"], name="Responses")
+        go.Bar(x=plot_df["BinSymbol"], y=plot_df["BinResponseCount"], name="Responses"),
     )
     fig.add_trace(
         go.Scatter(
@@ -190,10 +190,13 @@ def distribution_graph(df: pl.LazyFrame, title: str):
             yaxis="y2",
             name="Propensity",
             mode="lines+markers",
-        )
+        ),
     )
     fig.update_layout(
-        template="pega", title=title, xaxis_title="Range", yaxis_title="Responses"
+        template="pega",
+        title=title,
+        xaxis_title="Range",
+        yaxis_title="Responses",
     )
     fig.update_yaxes(title_text="Propensity", secondary_y=True)
     fig.layout.yaxis2.tickformat = ",.3%"
@@ -218,9 +221,9 @@ class Plots(LazyNamespace):
         *,
         last: bool = True,
         rounding: int = 5,
-        query: Optional[QUERY] = None,
-        facet: Optional[Union[str, pl.Expr]] = None,
-        color: Optional[str] = "Performance",
+        query: QUERY | None = None,
+        facet: str | pl.Expr | None = None,
+        color: str | None = "Performance",
         return_df: bool = False,
     ):
         """The Bubble Chart, as seen in Prediction Studio
@@ -237,6 +240,7 @@ class Plots(LazyNamespace):
             Column name or Polars expression to facet the plot into subplots, by default None
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
+
         """
         # why do we need this select? it's not ideal because columns used in the query are not always selected
         columns_to_select = list(
@@ -251,15 +255,13 @@ class Plots(LazyNamespace):
                     "LastUpdate",
                     "Configuration",
                     *self.datamart.context_keys,
-                ]
-            )
+                ],
+            ),
         ) + (["Performance"] if color != "Performance" else [])
         if facet is not None:
             if isinstance(facet, pl.Expr):
                 facet_columns = facet.meta.root_names()
-                columns_to_select.extend(
-                    col for col in facet_columns if col not in columns_to_select
-                )
+                columns_to_select.extend(col for col in facet_columns if col not in columns_to_select)
                 facet_name = facet.meta.output_name()
             else:
                 if facet not in columns_to_select:
@@ -268,7 +270,7 @@ class Plots(LazyNamespace):
         else:
             facet_name = None
         df = (
-            (self.datamart.aggregates.last() if last else self.datamart.model_data)
+            (self.datamart.aggregates.last() if last else self.datamart.model_data)  # type: ignore[union-attr]
             .select(*columns_to_select)
             .with_columns((pl.col("Performance") * pl.lit(100)).round(rounding))
         )
@@ -310,12 +312,12 @@ class Plots(LazyNamespace):
     def over_time(
         self,
         metric: str = "Performance",
-        by: Union[pl.Expr, str] = "ModelID",
+        by: pl.Expr | str = "ModelID",
         *,
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         cumulative: bool = True,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ):
         """Statistics over time
@@ -337,6 +339,7 @@ class Plots(LazyNamespace):
             Whether to facet the plot into subplots, by default None
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
+
         """
         percentage_metrics = ["Performance", "SuccessRate"]
         metric_formatting = {
@@ -352,7 +355,7 @@ class Plots(LazyNamespace):
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
-        columns_to_select: Set[str] = {"SnapshotTime", metric, "ResponseCount"}
+        columns_to_select: set[str] = {"SnapshotTime", metric, "ResponseCount"}
         columns_to_select.update(by.meta.root_names())
         if facet:
             columns_to_select.add(facet)
@@ -361,9 +364,7 @@ class Plots(LazyNamespace):
         metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
 
         df = (
-            cdh_utils._apply_query(self.datamart.model_data, query)
-            .sort("SnapshotTime")
-            .select(list(columns_to_select))
+            cdh_utils._apply_query(self.datamart.model_data, query).sort("SnapshotTime").select(list(columns_to_select))
         )
 
         grouping_columns = [by_col]
@@ -373,11 +374,10 @@ class Plots(LazyNamespace):
 
         agg_expr = [
             (
-                metric_scaling
-                * cdh_utils.weighted_average_polars(metric, "ResponseCount")
+                metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
                 if is_percentage
                 else pl.sum(metric)
-            ).alias(metric)
+            ).alias(metric),
         ]
         if is_percentage:
             agg_expr.append(pl.sum("ResponseCount"))
@@ -394,7 +394,7 @@ class Plots(LazyNamespace):
         if not cumulative and unique_intervals <= 1:
             logger.warning(
                 f"Only one {every} interval of data found. Cannot calculate interval-to-interval differences. "
-                "Automatically switching to cumulative mode to show values instead."
+                "Automatically switching to cumulative mode to show values instead.",
             )
             cumulative = True
 
@@ -403,11 +403,13 @@ class Plots(LazyNamespace):
             plot_metric = f"{metric}_change"
             df = (
                 df.group_by_dynamic(
-                    "SnapshotTime", every=every, group_by=grouping_columns
+                    "SnapshotTime",
+                    every=every,
+                    group_by=grouping_columns,
                 )
                 .agg(pl.last(metric))
                 .with_columns(
-                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
+                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric),
                 )
             )
 
@@ -450,8 +452,8 @@ class Plots(LazyNamespace):
         by: str = "Name",
         *,
         top_n: int = 0,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ):
         """Proposition Success Rates
@@ -470,12 +472,13 @@ class Plots(LazyNamespace):
             What facetting column to apply to the graph, by default None
         return_df : bool, optional
             Whether to return a DataFrame instead of the graph, by default False
+
         """
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
         df = cdh_utils._apply_query(self.datamart.model_data, query).select(
-            {"ModelID", "Name", metric, by, facet}
+            {"ModelID", "Name", metric, by, facet},
         )
 
         if return_df:
@@ -513,7 +516,7 @@ class Plots(LazyNamespace):
             "BinResponseCount",
             "BinPropensity",
             "ModelID",
-        }
+        },
     )
     def score_distribution(
         self,
@@ -542,6 +545,7 @@ class Plots(LazyNamespace):
         ------
         ValueError
             If no data is available for the provided model ID
+
         """
         df = (
             self.datamart.aggregates.last(table="combined_data")
@@ -558,7 +562,7 @@ class Plots(LazyNamespace):
                 }
                 | set(
                     self.datamart.context_keys,
-                )
+                ),
             )
             .filter(PredictorName="Classifier", ModelID=model_id)
         ).sort("BinIndex")
@@ -567,9 +571,9 @@ class Plots(LazyNamespace):
             active_ranges = self.datamart.active_ranges(model_id).collect()
             if active_ranges.height > 0:
                 active_range_info = active_ranges.to_dicts()[0]
-                active_range_filter_expr = (
-                    pl.col("BinIndex") >= active_range_info["idx_min"]
-                ) & (pl.col("BinIndex") <= active_range_info["idx_max"])
+                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                    pl.col("BinIndex") <= active_range_info["idx_max"]
+                )
                 df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
@@ -581,12 +585,12 @@ class Plots(LazyNamespace):
         context = "/".join(
             df.select(
                 pl.col("Configuration", *self.datamart.context_keys).fill_null(
-                    "MISSING"
-                )
+                    "MISSING",
+                ),
             )
             .unique()
             .collect()
-            .row(0)
+            .row(0),
         )
         return distribution_graph(
             df,
@@ -596,8 +600,10 @@ class Plots(LazyNamespace):
         )
 
     def multiple_score_distributions(
-        self, query: Optional[QUERY] = None, show_all: bool = True
-    ) -> List[Figure]:
+        self,
+        query: QUERY | None = None,
+        show_all: bool = True,
+    ) -> list[Figure]:
         """Generate the score distribution plot for all models in the query
 
         Parameters
@@ -609,8 +615,9 @@ class Plots(LazyNamespace):
 
         Returns
         -------
-        List[go.Figure]
+        list[go.Figure]
             A list of Plotly charts, one for each model instance
+
         """
         plots = []
         for model_id in (
@@ -637,10 +644,13 @@ class Plots(LazyNamespace):
             "BinSymbol",
             "BinResponseCount",
             "BinPropensity",
-        }
+        },
     )
     def predictor_binning(
-        self, model_id: str, predictor_name: str, return_df: bool = False
+        self,
+        model_id: str,
+        predictor_name: str,
+        return_df: bool = False,
     ):
         """Generate a predictor binning plot for a specific model and predictor.
 
@@ -662,6 +672,7 @@ class Plots(LazyNamespace):
         ------
         ValueError
             If no data is available for the provided model ID and predictor name
+
         """
         df = (
             self.datamart.aggregates.last(table="combined_data")
@@ -678,16 +689,17 @@ class Plots(LazyNamespace):
                 }
                 | set(
                     self.datamart.context_keys,
-                )
+                ),
             )
             .filter(
-                pl.col("PredictorName") == predictor_name, pl.col("ModelID") == model_id
+                pl.col("PredictorName") == predictor_name,
+                pl.col("ModelID") == model_id,
             )
         ).sort("BinIndex")
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(
-                f"There is no data for the provided modelid {model_id} and predictor {predictor_name}"
+                f"There is no data for the provided modelid {model_id} and predictor {predictor_name}",
             )
 
         if return_df:
@@ -695,20 +707,24 @@ class Plots(LazyNamespace):
         context = "/".join(
             df.select(
                 pl.col("Configuration", *self.datamart.context_keys).fill_null(
-                    "MISSING"
-                )
+                    "MISSING",
+                ),
             )
             .unique()
             .collect()
-            .row(0)
+            .row(0),
         )
         return distribution_graph(
-            df, title=f"""Predictor binning for {predictor_name}<br><sup>{context}"""
+            df,
+            title=f"""Predictor binning for {predictor_name}<br><sup>{context}""",
         )
 
     def multiple_predictor_binning(
-        self, model_id: str, query: Optional[QUERY] = None, show_all=True
-    ) -> List[Figure]:
+        self,
+        model_id: str,
+        query: QUERY | None = None,
+        show_all=True,
+    ) -> list[Figure]:
         """Generate predictor binning plots for all predictors in a model.
 
         Parameters
@@ -722,8 +738,9 @@ class Plots(LazyNamespace):
 
         Returns
         -------
-        List[Figure]
+        list[Figure]
             A list of Plotly figures, one for each predictor in the model
+
         """
         plots = []
         for predictor in (
@@ -748,8 +765,8 @@ class Plots(LazyNamespace):
         *,
         y_col: str,
         metric_col: str,
-        metric_weight_col: Optional[str] = None,
-        legend_col: Optional[str] = None,
+        metric_weight_col: str | None = None,
+        legend_col: str | None = None,
         return_df: bool = False,
     ):
         if legend_col is None:
@@ -813,9 +830,7 @@ class Plots(LazyNamespace):
             if cat in fixed_colors:
                 color_map[cat] = fixed_colors[cat]
             else:
-                color_map[cat] = template_colors[
-                    template_color_index % len(template_colors)
-                ]
+                color_map[cat] = template_colors[template_color_index % len(template_colors)]
                 template_color_index += 1
 
         # Track which categories have been added to legend
@@ -842,7 +857,7 @@ class Plots(LazyNamespace):
                     legendgroup=row[legend_col],
                     orientation="h",
                     showlegend=show_in_legend,
-                )
+                ),
             )
 
         fig.update_layout(
@@ -852,7 +867,7 @@ class Plots(LazyNamespace):
             template="pega",
         )
 
-        # Set y-axis category order to show highest median values at the top
+        # set y-axis category order to show highest median values at the top
         fig.update_yaxes(
             categoryorder="array",
             categoryarray=pre_aggs[y_col].to_list(),
@@ -869,15 +884,15 @@ class Plots(LazyNamespace):
             "ResponseCountBin",
             "Type",
             "EntryType",
-        }
+        },
     )
     def predictor_performance(
         self,
         *,
         metric: str = "Performance",
-        top_n: Optional[int] = None,
+        top_n: int | None = None,
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plots a box plot of the performance of the predictors
@@ -900,11 +915,11 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
-        See also
+        See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
-        """
 
+        """
         # in combined_data, the performance metric is renamed to PredictorPerformance
         metric = "PredictorPerformance" if metric == "Performance" else metric
         df = cdh_utils._apply_query(
@@ -952,14 +967,14 @@ class Plots(LazyNamespace):
             "ResponseCountBin",
             "Type",
             "EntryType",
-        }
+        },
     )
     def predictor_category_performance(
         self,
         *,
         metric: str = "Performance",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plot the predictor category performance
@@ -980,10 +995,10 @@ class Plots(LazyNamespace):
         px.Figure
             A Plotly figure
 
-
-        See also
+        See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
         """
         metric = "PredictorPerformance" if metric == "Performance" else metric
 
@@ -1017,13 +1032,13 @@ class Plots(LazyNamespace):
             "PredictorPerformance",
             "BinResponseCount",
             "PredictorCategory",
-        }
+        },
     )
     def predictor_contribution(
         self,
         *,
         by: str = "Configuration",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plots the predictor contribution for each configuration
@@ -1042,9 +1057,10 @@ class Plots(LazyNamespace):
         px.Figure
             A plotly figure
 
-        See also
+        See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
         """
         df = (
             cdh_utils._apply_query(
@@ -1057,12 +1073,12 @@ class Plots(LazyNamespace):
             .group_by(by, "PredictorCategory")
             .agg(
                 Performance=cdh_utils.weighted_average_polars(
-                    "PredictorPerformance", "BinResponseCount"
-                )
+                    "PredictorPerformance",
+                    "BinResponseCount",
+                ),
             )
             .with_columns(
-                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by))
-                * 100
+                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by)) * 100,
             )
             .sort("PredictorCategory")
         )
@@ -1087,16 +1103,16 @@ class Plots(LazyNamespace):
             "Performance",
             "PredictorPerformance",
             "ResponseCountBin",
-        }
+        },
     )
     def predictor_performance_heatmap(
         self,
         *,
         top_predictors: int = 20,
-        top_groups: Optional[int] = None,
+        top_groups: int | None = None,
         by: str = "Name",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a heatmap showing predictor performance across different groups.
@@ -1120,6 +1136,7 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly heatmap figure or DataFrame if return_df=True
+
         """
         if isinstance(by, str):
             by_name = by
@@ -1135,22 +1152,24 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
-        df = df.collect().transpose(
-            include_header=True, header_name=by_name, column_names=by_name
+        collected = df.collect().transpose(
+            include_header=True,
+            header_name=by_name,
+            column_names=by_name,
         )
 
         if return_df:
-            return df.lazy()
+            return collected.lazy()
 
         title = "over all models"
         fig = px.imshow(
-            df.select(pl.all().exclude(by_name)),
+            collected.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df[by_name],
+            y=collected[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
@@ -1159,7 +1178,7 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def response_gain(): ...  # TODO: more generic plot_gains function?
+    def response_gain(self) -> None: ...  # TODO: more generic plot_gains function?
 
     def tree_map(
         self,
@@ -1172,7 +1191,7 @@ class Plots(LazyNamespace):
         ] = "Performance",
         *,
         by: str = "Name",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a tree map visualization showing hierarchical model metrics.
@@ -1192,19 +1211,16 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly treemap figure or DataFrame if return_df=True
+
         """
         # TODO: clean up implementation a bit
 
-        group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by)]
-            if by != "ModelID"
-            else [by]
-        )
+        group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by)] if by != "ModelID" else [by]
         df = self.datamart.aggregates.model_summary(by=by, query=query).select(
             pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
             pl.col("count").alias("Model Count"),
             pl.col("Percentage_without_responses").alias(
-                "Percentage without responses"
+                "Percentage without responses",
             ),
             pl.col("ResponseCount_sum").alias("Total number of responses"),
             pl.col("Weighted_success_rate").alias("Weighted average Success Rate"),
@@ -1251,15 +1267,15 @@ class Plots(LazyNamespace):
     def predictor_count(
         self,
         *,
-        by: Union[str, List[str]] = ["EntryType", "Type"],
-        query: Optional[QUERY] = None,
+        by: str | list[str] = ["EntryType", "Type"],
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a box plot showing the distribution of predictor counts by type.
 
         Parameters
         ----------
-        by : Union[str, List[str]], optional
+        by : Union[str, list[str]], optional
             Column(s) to group predictors by, by default ["EntryType", "Type"]
         query : Optional[QUERY], optional
             Optional query to filter the data, by default None
@@ -1270,37 +1286,35 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly box plot figure or DataFrame if return_df=True
+
         """
         if isinstance(by, str):
             by = [by]
 
         df = cdh_utils._apply_query(
-            self.datamart.aggregates.last(table="combined_data"), query
+            self.datamart.aggregates.last(table="combined_data"),
+            query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        df = (
-            df.group_by(["ModelID"] + by)
-            .agg(Count=pl.n_unique("PredictorName"))
-            .collect()
-        )
+        collected = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
 
         if len(by) > 1:
-            df = pl.concat(
+            collected = pl.concat(
                 [
-                    df,
-                    df.group_by(["ModelID"] + by[1:])
+                    collected,
+                    collected.group_by(["ModelID"] + by[1:])
                     .agg(pl.col("Count").sum())
                     .with_columns(pl.lit("Overall").alias(by[0])),
                 ],
                 how="diagonal_relaxed",
             )
-        df = df.sort(by)
+        collected = collected.sort(by)
 
         if return_df:
-            return df
+            return collected
 
         fig = px.box(
-            df.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
+            collected.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
             x="Count",
             y="_Type",
             color=by[0],
@@ -1325,7 +1339,7 @@ class Plots(LazyNamespace):
         model_id: str,
         predictor_name: str,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate a binning lift plot for a specific predictor showing propensity lift per bin.
@@ -1345,6 +1359,7 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly bar chart showing binning lift or DataFrame if return_df=True
+
         """
         df = cdh_utils._apply_query(
             (
@@ -1357,20 +1372,20 @@ class Plots(LazyNamespace):
             ),
             query,
         ).select(
-            "PredictorName", "BinIndex", "BinPositives", "BinNegatives", "BinSymbol"
+            "PredictorName",
+            "BinIndex",
+            "BinPositives",
+            "BinNegatives",
+            "BinSymbol",
         )
         cols = df.collect_schema().names()
 
         if "Lift" not in cols:
             df = df.with_columns(
-                (
-                    cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0
-                ).alias("Lift")
+                (cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift"),
             )
 
-        shading_expr = (
-            pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
-        )
+        shading_expr = pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
 
         plot_df = df.with_columns(
             pl.when((pl.col("Lift") >= 0.0) & shading_expr.not_())
@@ -1387,7 +1402,7 @@ class Plots(LazyNamespace):
             BinSymbolAbbreviated=pl.when(pl.col("BinSymbol").str.len_chars() < 25)
             .then(pl.col("BinSymbol"))
             .otherwise(
-                pl.concat_str([pl.col("BinSymbol").str.slice(0, 25), pl.lit("...")])
+                pl.concat_str([pl.col("BinSymbol").str.slice(0, 25), pl.lit("...")]),
             ),
         ).sort(["PredictorName", "BinIndex"])
 
@@ -1414,8 +1429,12 @@ class Plots(LazyNamespace):
         )
         fig.update_traces(
             hovertemplate="<br>".join(
-                ["<b>%{customdata[0]}</b>", "%{customdata[1]}", "<b>Lift: %{x:.2%}</b>"]
-            )
+                [
+                    "<b>%{customdata[0]}</b>",
+                    "%{customdata[1]}",
+                    "<b>Lift: %{x:.2%}</b>",
+                ],
+            ),
         )
         fig.add_vline(x=0, line_color="black")
 
@@ -1433,17 +1452,17 @@ class Plots(LazyNamespace):
             matches=None,  # allow independent y-labels if there are row facets
         )
         fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1])
+            lambda a: a.update(text=a.text.split("=")[-1]),
         )  # split plotly facet label, show only right side
         return fig
 
     def action_overlap(
         self,
-        group_col: Union[str, list[str], pl.Expr] = "Channel",
+        group_col: str | list[str] | pl.Expr = "Channel",
         overlap_col="Name",
         *,
         show_fraction=True,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Generate an overlap matrix heatmap showing shared actions across different groups.
@@ -1465,16 +1484,17 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly heatmap showing action overlap or DataFrame if return_df=True
+
         """
         df = cdh_utils._apply_query(
-            (self.datamart.model_data),
+            (self.datamart.model_data),  # type: ignore[arg-type]
             query,
         )
 
         if isinstance(group_col, list):
             group_col_name = "/".join(group_col)
             df = df.with_columns(
-                pl.concat_str(*group_col, separator="/").alias(group_col_name)
+                pl.concat_str(*group_col, separator="/").alias(group_col_name),
             )
         elif isinstance(group_col, pl.Expr):
             group_col_name = group_col.meta.output_name()
@@ -1483,10 +1503,7 @@ class Plots(LazyNamespace):
             group_col_name = group_col
 
         overlap_data = cdh_utils.overlap_matrix(
-            df.group_by(group_col_name)
-            .agg(pl.col(overlap_col).unique())
-            .sort(group_col_name)
-            .collect(),
+            df.group_by(group_col_name).agg(pl.col(overlap_col).unique()).sort(group_col_name).collect(),
             overlap_col,
             by=group_col_name,
             show_fraction=show_fraction,
@@ -1504,7 +1521,9 @@ class Plots(LazyNamespace):
             y=overlap_data[group_col_name],
             template="pega",
             labels=dict(
-                x=f"{group_col_name} on x", y=f"{group_col_name} on y", color="Overlap"
+                x=f"{group_col_name} on x",
+                y=f"{group_col_name} on y",
+                color="Overlap",
             ),
         )
         plt.update_coloraxes(showscale=False)
@@ -1513,7 +1532,7 @@ class Plots(LazyNamespace):
     def partitioned_plot(
         self,
         func: Callable,
-        facets: List[Dict[str, Optional[str]]],
+        facets: list[dict[str, str | None]],
         show_plots: bool = True,
         *args,
         **kwargs,
@@ -1528,8 +1547,8 @@ class Plots(LazyNamespace):
         ----------
         func : Callable
             The plotting function to execute for each facet
-        facets : List[Dict[str, Optional[str]]]
-            List of dictionaries defining filter conditions for each facet
+        facets : list[dict[str, Optional[str]]]
+            list of dictionaries defining filter conditions for each facet
         show_plots : bool, optional
             Whether to display the plots as they are generated, by default True
         *args : tuple
@@ -1539,8 +1558,9 @@ class Plots(LazyNamespace):
 
         Returns
         -------
-        List[Figure]
-            List of Plotly figures, one for each facet condition
+        list[Figure]
+            list of Plotly figures, one for each facet condition
+
         """
         figs = []
         existing_query = kwargs.get("query")
@@ -1553,7 +1573,8 @@ class Plots(LazyNamespace):
                     new_query = pl.col(k).eq(v)
                 if combined_query is not None:
                     combined_query = cdh_utils._combine_queries(
-                        combined_query, new_query
+                        combined_query,
+                        new_query,
                     )
                 else:
                     combined_query = new_query

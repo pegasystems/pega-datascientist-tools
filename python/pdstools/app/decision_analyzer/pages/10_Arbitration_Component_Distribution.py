@@ -5,7 +5,6 @@ from da_streamlit_utils import (
     st_priority_component_distribution,
 )
 
-
 # # TODO Finish up to show effect on proposition distribution (side to side)
 
 "# Arbitration Component Distribution"
@@ -34,7 +33,6 @@ if "scope" not in st.session_state:
     st.session_state.scope = scope_options[0]
 if "prioritization_component" not in st.session_state:
     st.session_state.prioritization_component = component_options[0]
-
 
 valueData = st.session_state.decision_data.priority_component_distribution(
     component=st.session_state.prioritization_component,
