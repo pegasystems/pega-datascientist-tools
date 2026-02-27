@@ -1,5 +1,6 @@
 import gzip
 import os
+import tempfile
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -105,20 +106,27 @@ def read_data(path):
     extension = None  # Initialize extension to None
     if original_path.is_dir():
         # It's a directory, so we assume it's partitioned
-        # Find the depth of the directory structure by finding the maximum number of parts among all files
-        depth = max(len(p.parts) for p in original_path.glob("**/*") if p.is_file()) - len(original_path.parts)
-        partition_structure = Path("/".join(["*"] * depth))
-        path = original_path / partition_structure  # now path points to the partition structure
-        # Assume the first file extension is the same for all files in the directory
-        for dirpath, dirs, files in os.walk(
-            str(original_path),
-        ):  # walk through the original directory
+        # Find the first real data file extension, skipping hidden files
+        for dirpath, dirs, files in os.walk(str(original_path)):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
             for file in files:
-                extension = Path(file).suffix
-                if extension:
-                    break
+                if not file.startswith("."):
+                    extension = Path(file).suffix
+                    if extension:
+                        break
             if extension:
                 break
+        # Find the depth of the directory structure by finding the maximum
+        # number of parts among all matching files
+        data_files = [
+            p for p in original_path.glob(f"**/*{extension}") if not any(part.startswith(".") for part in p.parts)
+        ]
+        if not data_files:
+            raise ValueError("No data files found in directory")
+        depth = max(len(p.parts) for p in data_files) - len(original_path.parts)
+        partition_structure = Path("/".join(["*"] * (depth - 1)))
+        # Append the file extension glob to only match actual data files
+        path = original_path / partition_structure / f"*{extension}"
     else:
         # It's a file, so we read based on the extension
         extension = original_path.suffix
@@ -131,7 +139,15 @@ def read_data(path):
     elif extension in [".ndjson", ".json"]:
         df = pl.scan_ndjson(path)
     elif extension == ".zip":
-        df = read_gzips_with_zip_extension(original_path)
+        if original_path.is_file():
+            # Single zip file: extract to temp dir and read the contents
+            tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
+            with zipfile.ZipFile(original_path, "r") as zf:
+                zf.extractall(tmp_dir)
+            df = read_data(tmp_dir)
+        else:
+            # Directory of .zip files (legacy gzipped ndjson)
+            df = read_gzips_with_zip_extension(str(original_path))
     elif extension is None:
         raise ValueError("No files found in directory")
     else:
