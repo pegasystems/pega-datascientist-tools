@@ -170,9 +170,44 @@ Once everything is installed, you can launch the Decision Analyzer application:
 
          pdstools decision_analyzer
 
-You can also point the app at a data file or directory on startup using
-``--data-path``. This is useful for server deployments or when you always work
-with data at a known location:
+CLI Options
+^^^^^^^^^^^
+
+The ``pdstools decision_analyzer`` command accepts several options to control
+data loading, sampling, and deployment. All options can also be set via
+environment variables (useful for containerised or headless deployments).
+
+``--data-path PATH``
+   Path to a data file or directory to load on startup.
+   Supports parquet, csv, json, arrow, zip, and partitioned folders.
+   When provided, the app loads that data automatically instead of falling
+   back to the built-in sample dataset. You can still override it by
+   uploading a file through the UI.
+   *(env var:* ``PDSTOOLS_DATA_PATH`` *)*
+
+``--sample VALUE``
+   Pre-ingestion interaction sampling for large datasets.
+   Specify an absolute count (e.g. ``100000``) or a percentage
+   (e.g. ``10%``). Sampling is done at the interaction level: a random
+   subset of interaction IDs is selected and **all rows for each sampled
+   interaction are kept**, preserving the complete decision funnel per
+   interaction.
+   *(env var:* ``PDSTOOLS_SAMPLE_LIMIT`` *)*
+
+``--temp-dir DIR``
+   Directory for temporary files such as the sampled-data parquet cache.
+   Defaults to the current working directory.
+   *(env var:* ``PDSTOOLS_TEMP_DIR`` *)*
+
+``--deploy-env ENV``
+   Signal that the app is running on a managed server (e.g. ``ec2``,
+   ``docker``). When set, the data-import UI exposes an additional
+   **File path** option so users can point at data mounted on the server
+   filesystem. The actual value is not interpreted — any non-empty string
+   enables the managed-deployment mode.
+   *(env var:* ``PDSTOOLS_DEPLOY_ENV`` *)*
+
+**Examples:**
 
 .. code-block:: bash
 
@@ -182,12 +217,14 @@ with data at a known location:
    # Load a partitioned directory
    pdstools decision_analyzer --data-path /path/to/export_folder/
 
-   # Docker/EC2 deployment with S3-mounted data
-   pdstools decision_analyzer --deploy-env ec2 --data-path /s3-files/data
+   # Sample 100 000 interactions from a large dataset
+   pdstools decision_analyzer --data-path /path/to/data.parquet --sample 100000
 
-When ``--data-path`` is provided, the app loads that data automatically instead
-of falling back to the built-in sample dataset. You can still override it by
-uploading a file through the UI.
+   # Sample 10% of interactions, store temp files in /tmp
+   pdstools decision_analyzer --data-path /path/to/data.parquet --sample 10% --temp-dir /tmp
+
+   # Docker / EC2 deployment with S3-mounted data
+   pdstools decision_analyzer --deploy-env ec2 --data-path /s3-files/data
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 

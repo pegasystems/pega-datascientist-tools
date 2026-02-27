@@ -46,6 +46,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Session state cleanup** — Too much stored in `st.session_state` (especially pages 8, 11). Review and minimize.
 - [ ] **Move inline plot code to `plots` module** — Business lever analysis (page 11) and others have plots defined inline.
 - [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern with different labels. Could be aligned.
+- [ ] **Remove `--deploy-env` flag** — The only effect of `--deploy-env` / `PDSTOOLS_DEPLOY_ENV` is showing a "File path" text input in the data-import UI (via `is_managed_deployment()`). This input is harmless for local users; always showing it would simplify the CLI and eliminate a configuration step for server deployments. Proposal: always include the "File path" option, remove `--deploy-env` from the CLI, and deprecate `is_managed_deployment()`.
 
 ---
 
