@@ -108,13 +108,13 @@ To use the stand-alone health check application, you need to install several Pyt
 
       .. code-block:: bash
 
-         python -m pip install pip
+         python -m pip install --upgrade pip
 
       **Step 4:** Install pdstools with app dependencies
 
       .. code-block:: bash
 
-         pip install 'pdstools[app]'
+         pip install --upgrade 'pdstools[app]'
 
       **Remember:** Always activate your virtual environment before working with the application:
 
@@ -129,13 +129,13 @@ To use the stand-alone health check application, you need to install several Pyt
 
       .. code-block:: bash
 
-         python -m pip install pip
+         python -m pip install --upgrade pip
 
       **Step 2:** Install pdstools with app dependencies globally
 
       .. code-block:: bash
 
-         pip install 'pdstools[app]'
+         pip install --upgrade 'pdstools[app]'
 
       **Consider using virtual environments:** Global installations can cause conflicts with other Python projects. Consider switching to the "uv" or "pip + venv" methods for better project isolation.
 
@@ -217,7 +217,7 @@ If you already had an older version of pdstools, make sure to upgrade to the lat
 
       .. code-block:: bash
 
-         uv tool update pdstools
+         uv tool upgrade pdstools
 
    .. group-tab:: uv + venv
 
