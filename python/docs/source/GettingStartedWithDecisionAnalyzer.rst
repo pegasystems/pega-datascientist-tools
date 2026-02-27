@@ -258,11 +258,11 @@ Upgrading pdstools
 If you already had an older version of pdstools, make sure to upgrade to the latest version:
 
 .. tabs::
-   .. tab:: uv + tool (recommended)
+   .. tab:: uv tool (recommended)
 
       .. code-block:: bash
 
-         uv tool update pdstools
+         uv tool upgrade pdstools
 
    .. tab:: uv + venv
 
