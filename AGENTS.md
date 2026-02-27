@@ -152,6 +152,76 @@ python -m build --sdist --wheel --outdir dist/ .
 - Editing `.ipynb` notebook files directly is fine — modern tooling handles
   the JSON format well.
 
+## Streamlit apps
+
+### Architecture
+- Apps live under `python/pdstools/app/<app_name>/` with a `Home.py`
+  entry point and numbered pages in a `pages/` subdirectory.
+- Three apps exist: `health_check`, `decision_analyzer`, `impact_analyzer`.
+  All are launched via the unified CLI in `python/pdstools/cli.py`.
+- **Shared utilities** go in `python/pdstools/utils/streamlit_utils.py`.
+  App-specific helpers (data loading, custom widgets) go in a co-located
+  `<app>_streamlit_utils.py` (e.g. `da_streamlit_utils.py`).
+
+### Page boilerplate
+Every page must start with two calls before any other Streamlit output:
+
+```python
+from pdstools.utils.streamlit_utils import standard_page_config
+standard_page_config(page_title="Page Title · App Name")
+```
+
+Home pages additionally call `show_sidebar_branding(title)` to set the
+sidebar logo and title (sub-pages re-apply it automatically).
+
+### Session state conventions
+- Store the main data object under a well-known key
+  (e.g. `st.session_state.decision_data`).
+- Guard every sub-page with an `ensure_data()` call that shows a
+  warning and calls `st.stop()` when data is missing.
+- Use the `_persist_widget_value` pattern (copy widget value to a
+  second key on `on_change`) to survive Streamlit's page-navigation
+  state clearing. Widget keys use a `_` prefix; persisted keys omit it.
+- Prefix filter session-state keys with a `filter_type` string
+  (`"global"`, `"local"`) so independent filter sets don't collide.
+
+### Caching
+- Use `@st.cache_resource` for stateful / non-serializable objects
+  (e.g. `DecisionAnalyzer` instances). Prefix unhashable parameters
+  with `_` and supply a `data_fingerprint` string for cache busting.
+- Use `@st.cache_data` for pure data transforms and plot functions.
+  When inputs include `pl.LazyFrame` or `pl.Expr`, pass a custom
+  `hash_funcs` dict (see `polars_lazyframe_hashing` in
+  `da_streamlit_utils.py`).
+
+### CLI integration
+- CLI flags (`--deploy-env`, `--data-path`, `--sample`, `--temp-dir`)
+  are propagated to the Streamlit process as `PDSTOOLS_*` environment
+  variables. Read them via helpers in `streamlit_utils.py`
+  (`get_deploy_env()`, `get_data_path()`, etc.), never via
+  `os.environ` directly in page code.
+
+### Plotly charts
+- All charts use Plotly. Display with `st.plotly_chart(...,
+  use_container_width=True)`.
+- Keep plot construction in the library layer (`plots.py`); Streamlit
+  pages call those functions and may tweak layout via
+  `.update_layout()` before rendering.
+
+### Shared About page
+- Use `show_about_page()` from `streamlit_utils.py` for a
+  standardised About page. A page file can be as small as two lines
+  (page config + `show_about_page()`).
+
+### General Streamlit rules
+- Never use `st.experimental_*` APIs — they have been removed. Use
+  the stable equivalents (`st.cache_data`, `st.cache_resource`, etc.).
+- Use Streamlit magic (bare strings/expressions) for static markdown
+  where convenient, but prefer explicit `st.markdown()` / `st.write()`
+  for dynamic content.
+- Keep heavy computation out of page scripts; delegate to cached
+  functions or the library layer.
+
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
 - Healthcheck tests are separate and require extra deps/tools.
