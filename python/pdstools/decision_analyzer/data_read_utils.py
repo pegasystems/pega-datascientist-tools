@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 
-from .table_definition import TableConfig
+from .column_schema import TableConfig
 from .utils import ColumnResolver
 
 
@@ -53,7 +53,7 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
 
     Returns
     -------
-    Optional[pl.DataFrame]
+    pl.DataFrame | None
         The Polars DataFrame containing the data, or None if reading fails.
 
     """

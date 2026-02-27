@@ -1,10 +1,12 @@
 import plotly.express as px
 import plotly.graph_objects as go
-import polars as pl
 from plotly.subplots import make_subplots
 
+
+import polars as pl
+
+from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
-from .utils import apply_filter
 
 
 class Plot:
@@ -40,12 +42,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def distribution_as_treemap(
-        self,
-        df: pl.LazyFrame,
-        stage: str,
-        scope_options: list[str],
-    ):
+    def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: list[str]):
         # Create consistent color mapping for the primary scope level
         color_discrete_map = None
         if scope_options:
@@ -77,16 +74,15 @@ class Plot:
         return_df=False,
         reference_group=None,
     ):
-        """If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group."""
+        """
+        If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group.
+
+        """
         df = self._decision_data.get_sensitivity(win_rank, reference_group)
         if return_df:
             return df
         n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
-        plotData = df.with_columns(
-            pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias(
-                "Relative",
-            ),
-        )
+        plotData = df.with_columns(pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias("Relative"))
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
@@ -149,58 +145,63 @@ class Plot:
         )
 
         fig.update_layout(
-            title=f"Wins and Losses of {level}s in Arbitration",
             font_size=12,
             polar_angularaxis_rotation=90,
             xaxis_title="",
             yaxis_title="",
         )
-        fig.update_xaxes(tickformat=".2%").update_layout(legend_title_text=f"{level}")
+        fig.update_xaxes(tickformat=".2%")
 
         return fig
 
     def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
         if df is None:
             df = self._decision_data.sample
-        plotData = self._decision_data.get_optionality_data(df).filter(
-            pl.col(self._decision_data.level) == stage,
-        )
+        plotData = self._decision_data.get_optionality_data(df).filter(pl.col(self._decision_data.level) == stage)
         if return_df:
             return plotData
         plotData = plotData.collect()
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
+        bar_colors = ["#cd001f" if n == 0 else colorway[0] for n in plotData["nOffers"]]
         fig.add_trace(
             go.Bar(
                 x=plotData["nOffers"],
                 y=plotData["Interactions"],
                 name="Optionality",
-            ),
+                marker_color=bar_colors,
+            )
         )
-        fig.add_trace(
-            go.Scatter(
-                x=plotData["nOffers"],
-                y=plotData["AverageBestPropensity"],
-                yaxis="y2",
-                name="Propensity",
-                mode="markers+lines",
-            ),
-            secondary_y=True,
+        has_propensity = (
+            "AverageBestPropensity" in plotData.columns and (plotData["AverageBestPropensity"].drop_nulls() > 0).any()
         )
+        if has_propensity:
+            fig.add_trace(
+                go.Scatter(
+                    x=plotData["nOffers"],
+                    y=plotData["AverageBestPropensity"],
+                    yaxis="y2",
+                    name="Propensity",
+                    mode="markers+lines",
+                ),
+                secondary_y=True,
+            )
         fig.update_layout(
             template="pega",
             xaxis_title="Number of Actions per Customer",
             yaxis_title="Decisions",
         )
-        fig.update_yaxes(title_text="Propensity", secondary_y=True)
-        fig.layout.yaxis2.tickformat = ",.2%"
-        fig.layout.yaxis2.showgrid = False
+        if has_propensity:
+            fig.update_yaxes(title_text="Propensity", secondary_y=True)
+            fig.layout.yaxis2.tickformat = ",.2%"
+            fig.layout.yaxis2.showgrid = False
         return fig
 
     def optionality_funnel(self, df):
+        level = self._decision_data.level
         plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
         total_interactions = (
-            plot_data.filter(pl.col("StageGroup") == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
+            plot_data.filter(pl.col(level) == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
         )
         fig = go.Figure()
 
@@ -217,14 +218,12 @@ class Plot:
         for i, action_count in enumerate(["0", "1", "2", "3", "4", "5", "6", "7+"]):
             df_filtered = plot_data.filter(pl.col("available_actions") == action_count)
             df_with_percent = df_filtered.with_columns(
-                ((pl.col("Interactions") / total_interactions) * 100).alias(
-                    "percentage",
-                ),
+                ((pl.col("Interactions") / total_interactions) * 100).alias("percentage")
             )
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_with_percent["StageGroup"],
+                    x=df_with_percent[level],
                     y=df_with_percent["percentage"],
                     mode="lines",
                     stackgroup="one",
@@ -236,7 +235,7 @@ class Plot:
                         f"{action_count} {'action' if action_count == '1' else 'actions'}"
                         for _ in range(len(df_with_percent))
                     ],
-                ),
+                )
             )
 
         fig.update_layout(
@@ -284,41 +283,27 @@ class Plot:
             .update_layout(width=500, height=500)
         )
 
-    def trend_chart(
-        self,
-        stage: str,
-        scope: str,
-        return_df=False,
-    ) -> tuple[go.Figure, str | None]:
+    def trend_chart(self, stage: str, scope: str, return_df=False) -> tuple[go.Figure, str | None]:
         df = self._decision_data.get_trend_data(stage, scope).collect()
 
         if return_df:
             return df.lazy()
 
-        if df.select(pl.col("day").n_unique()).get_column("day")[0] > 1:
-            fig = px.area(
-                data_frame=df,
-                x="day",
-                y="Decisions",
-                color=scope,
-                template="pega",
-            )
-            warning_message = None
-        else:
+        warning_message = None
+        if df.select(pl.col("day").n_unique()).get_column("day")[0] <= 1:
             warning_message = (
                 "Insufficient data: Trend analysis requires data from multiple days. "
-                "Currently, the dataset contains information for only one day. Hence, a trend can't be detected. "
-                "A scatter plot will be displayed instead for the available data."
+                "Currently, the dataset contains information for only one day."
             )
-            fig = px.scatter(
-                data_frame=df,
-                x="day",
-                y="Decisions",
-                color=scope,
-                template="pega",
-            )
+        fig = px.area(
+            data_frame=df,
+            x="day",
+            y="Decisions",
+            color=scope,
+            template="pega",
+        )
 
-        fig.update_layout(xaxis_title="", legend_title_text=f"{scope}")
+        fig.update_layout(xaxis_title="")
 
         return fig, warning_message
 
@@ -328,10 +313,7 @@ class Plot:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        remaining_df, filter_df = self._decision_data.getFunnelData(
-            scope,
-            additional_filters,
-        )
+        remaining_df, filter_df = self._decision_data.getFunnelData(scope, additional_filters)
         if return_df:
             return remaining_df, filter_df
 
@@ -340,9 +322,7 @@ class Plot:
         color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
         remaining_fig = (
             px.funnel(
-                remaining_df.sort(
-                    [self._decision_data.level, "count", scope],
-                ).collect(),
+                remaining_df.sort([self._decision_data.level, "count", scope]).collect(),
                 y="average_actions",
                 x=self._decision_data.level,
                 color=scope,
@@ -358,7 +338,6 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
-                legend_title_text=f"{scope}",
                 legend=dict(traceorder="reversed"),
             )
         )
@@ -369,7 +348,7 @@ class Plot:
             color=scope,
             hover_data=["count", "average_actions"],
             color_discrete_map=color_map,
-            category_orders={"StageGroup": self._decision_data.AvailableNBADStages},
+            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
         ).update_layout(
             template="plotly_white",
             xaxis_title="Filtered Actions per Decision",
@@ -454,13 +433,12 @@ class Plot:
             text="Component Name",
         )
         fig.update_layout(
-            title=f"Top {top_n} filter components",
             font_size=12,
             polar_angularaxis_rotation=90,
-            showlegend=False,  # TODO still showing...
+            showlegend=False,
         )
         fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1]),
+            lambda a: a.update(text=a.text.split("=")[-1])
         )  # split plotly facet label, show only right side
 
         return fig
@@ -482,16 +460,13 @@ class Plot:
             color=breakdown,
             orientation="h" if horizontal else "v",
             template="pega",
-        ).update_layout(legend_title_text=f"{breakdown}")
+        )
 
         if horizontal:
             fig = (
                 fig.update_xaxes(automargin=True, title=metric)
                 .update_yaxes(title="")
-                .update_layout(
-                    yaxis={"categoryorder": "total ascending"},
-                    xaxis_title_text="Count",
-                )
+                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count")
             )
         else:
             fig = (
@@ -509,17 +484,12 @@ class Plot:
         return_df=False,
     ) -> tuple[go.Figure, str | None]:
         df = self._decision_data.arbitration_stage
-        prio_factors = [
-            "Propensity",
-            "Value",
-            "Context Weight",
-            "Levers",
-        ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
+        prio_factors = PRIO_FACTORS
         segmented_df = (
             df.with_columns(
-                segment=pl.when(reference)  # type: ignore[arg-type]  # pl.col("Action").is_in(models)
+                segment=pl.when(reference)  # pl.col("Action").is_in(models)
                 .then(pl.lit("Selected Actions"))
-                .otherwise(pl.lit("Others")),
+                .otherwise(pl.lit("Others"))
             ).select(prio_factors + ["segment"])
         ).collect()
         if return_df:
@@ -551,11 +521,9 @@ class Plot:
                     row=i,
                     col=1,
                 )
-                fig.update_yaxes(
-                    autorange="reversed",
-                    row=i,
-                    col=1,
-                )  # for correct legend ordering
+                fig.update_yaxes(autorange="reversed", row=i, col=1)  # for correct legend ordering
+                if metric == "Propensity":
+                    fig.update_xaxes(tickformat=",.0%", row=i, col=1)
 
         fig.update_layout(height=800, width=600, showlegend=False)
         fig.update_yaxes(automargin=True)
@@ -572,16 +540,12 @@ class Plot:
             return df
         ranks = (
             apply_filter(df, reference)
-            .filter(
-                pl.col(self._decision_data.level).is_in(
-                    self._decision_data.stages_from_arbitration_down,
-                ),
-            )
-            .select("pxRank")
+            .filter(pl.col(self._decision_data.level).is_in(self._decision_data.stages_from_arbitration_down))
+            .select("Rank")
             .collect()
         )
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
-        fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
+        fig = px.box(ranks, x="Rank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
 
     def component_action_impact(
@@ -611,12 +575,9 @@ class Plot:
         Returns
         -------
         go.Figure or pl.DataFrame
-
         """
         df = self._decision_data.getComponentActionImpact(
-            top_n=top_n,
-            scope=scope,
-            additional_filters=additional_filters,
+            top_n=top_n, scope=scope, additional_filters=additional_filters
         )
         if return_df:
             return df
@@ -639,10 +600,10 @@ class Plot:
         y_col = scope if scope in plot_df.columns else "Action"
         # Determine a color column (one level above scope in hierarchy)
         color_col = None
-        if scope == "Action" and "Issue" in plot_df.columns or scope == "Group" and "Issue" in plot_df.columns:
+        if scope == "Action" and "Issue" in plot_df.columns:
             color_col = "Issue"
-
-        scope_label = scope
+        elif scope == "Group" and "Issue" in plot_df.columns:
+            color_col = "Issue"
 
         fig = px.bar(
             plot_df,
@@ -658,10 +619,8 @@ class Plot:
         fig.update_xaxes(matches=None, title="")
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
-            title=f"Top {top_n} {scope_label.lower()}s filtered per component",
             height=max(400, 120 * min(top_n, 10)),
             showlegend=color_col is not None,
-            legend_title_text=color_col if color_col else "",
         )
         return fig
 
@@ -692,7 +651,6 @@ class Plot:
         Returns
         -------
         go.Figure or pl.DataFrame
-
         """
         df = self._decision_data.getComponentDrilldown(
             component_name=component_name,
@@ -703,10 +661,7 @@ class Plot:
 
         if df.height == 0:
             fig = go.Figure()
-            fig.add_annotation(
-                text=f"No actions filtered by '{component_name}'",
-                showarrow=False,
-            )
+            fig.add_annotation(text=f"No actions filtered by '{component_name}'", showarrow=False)
             return fig
 
         if sort_by in df.columns:
@@ -742,7 +697,6 @@ class Plot:
                 )
 
         fig.update_layout(
-            title=f"Component Drilldown: {component_name}",
             height=max(400, 25 * min(plot_df.height, 30)),
             template="plotly_white",
             yaxis=dict(automargin=True, autorange="reversed"),
@@ -769,9 +723,7 @@ class Plot:
         fig.update_layout(
             template="pega",
             title="Number of Actions per Customer",
-            xaxis_title="Stage",
             yaxis_title="Number of Actions",
-            legend_title_text="Stage",
         )
         fig.update_xaxes(
             categoryorder="array",
@@ -788,28 +740,19 @@ class Plot:
             return collected_df.lazy()
         unique_days = collected_df.select(pl.col("day").unique()).height
         warning = None
-        if unique_days == 1:
-            warning = "Insufficient data: Trend analysis requires data from multiple days. Currently, the dataset contains information for only one day. Hence, a trend can't be detected. "
-
-            # Create a scatter plot instead of a line plot
-            fig = px.scatter(
-                collected_df,
-                x="day",
-                y="nOffers",
-                color=self._decision_data.level,
-                template="pega",
+        if unique_days <= 1:
+            warning = (
+                "Insufficient data: Trend analysis requires data from multiple days. "
+                "Currently, the dataset contains information for only one day."
             )
-        else:
-            # Create the line plot as usual
-            fig = px.line(
-                collected_df,
-                x="day",
-                y="nOffers",
-                color=self._decision_data.level,
-                template="pega",
-            )
+        fig = px.line(
+            collected_df,
+            x="day",
+            y="nOffers",
+            color=self._decision_data.level,
+            template="pega",
+        )
 
-        fig.update_layout(legend_title_text="Stage")
         fig.update_xaxes(title="")
         fig.update_yaxes(title="Number of Unique Offers")
 
@@ -821,21 +764,26 @@ def offer_quality_piecharts(
     propensityTH,
     AvailableNBADStages,
     return_df=False,
-    level="StageGroup",
+    level="Stage Group",
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    all_frames = df.group_by(level).agg(pl.sum(*value_finder_names)).collect().partition_by(level, as_dict=True)
+    all_frames = (
+        df.group_by(level)
+        .agg(pl.sum(*value_finder_names))
+        .collect()  # type: ignore[union-attribute]
+        .partition_by(level, as_dict=True)
+    )
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
-    frames_dict: dict[tuple[str, ...], pl.DataFrame] = {}
+    df = {}  # type: ignore[assignment]
     AvailableNBADStages = AvailableNBADStages[:5]
     for stage in AvailableNBADStages[:5]:
-        frames_dict[(stage,)] = all_frames[(stage,)]
+        df[(stage,)] = all_frames[(stage,)]
     if return_df:
-        return frames_dict
+        return df
 
     fig = make_subplots(
         rows=1,
@@ -846,7 +794,7 @@ def offer_quality_piecharts(
     )
 
     for i, stage in enumerate(AvailableNBADStages):
-        plotdf = frames_dict[(stage,)].drop(level)
+        plotdf = df[(stage,)].drop(level)
         fig.add_trace(
             go.Pie(
                 values=list(plotdf.to_numpy())[0],
@@ -856,8 +804,8 @@ def offer_quality_piecharts(
                             "atleast_one_relevant_action": "At least one relevant action",
                             "only_irrelevant_actions": "Only irrelevant actions",
                             "has_no_offers": "Without actions",
-                        },
-                    ).columns,
+                        }
+                    ).columns
                 ),
                 name=stage,
                 # visible=False,
@@ -867,34 +815,36 @@ def offer_quality_piecharts(
             i + 1,
         )
 
-    rounding = 3
-    fig.update_layout(
-        title_text=f"Distribution of customers per stage at propensity threshold {round(float(propensityTH), rounding):.1%}",
-    )
+    fig.update_layout(title_text=None)
     fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
     return fig
 
 
-def getTrendChart(
-    df: pl.LazyFrame,
-    stage: str = "Output",
-    return_df=False,
-    level="StageGroup",
-):
+def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
     value_finder_names = [
         "atleast_one_relevant_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    df_collected = (df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect()).sort(
-        "day"
+    trend_df = (
+        df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect().sort("day")  # type: ignore[union-attribute]
     )
     if return_df:
-        return df_collected.lazy()
+        return trend_df.lazy()
+    status_labels = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+    status_colors = {
+        "At least one relevant action": "#219e3f",
+        "Only irrelevant actions": "#fca52e",
+        "Without actions": "#cd001f",
+    }
     trend_melted = (
-        df_collected.melt(
-            id_vars=["day"],
-            value_vars=[
+        trend_df.unpivot(
+            index=["day"],
+            on=[
                 "has_no_offers",
                 "atleast_one_relevant_action",
                 "only_irrelevant_actions",
@@ -903,50 +853,151 @@ def getTrendChart(
         )
         .sort("day")
         .rename({"value": "interactions"})
+        .with_columns(pl.col("status").replace(status_labels))
     )
     fig = px.line(
         trend_melted,
         x="day",
         y="interactions",
         color="status",
-        title=f"Interactions in Trouble at {stage} stage",
+        color_discrete_map=status_colors,
     )
 
     return fig
 
 
-def plot_priority_component_distribution(
-    value_data: pl.LazyFrame,
-    component: str,
-    granularity: str,
-):
-    histogram = px.histogram(
-        value_data.collect(),
+# ECDF sends one point per row to the browser; cap to keep it responsive.
+_ECDF_MAX_ROWS = 50_000
+
+
+def plot_priority_component_distribution(value_data: pl.LazyFrame, component: str, granularity: str):
+    """Violin + ECDF + summary statistics for a single prioritization component.
+
+    Returns
+    -------
+    tuple of (go.Figure, go.Figure, pl.DataFrame)
+        violin_fig, ecdf_fig, stats_df
+    """
+    collected = value_data.collect()
+
+    violin_fig = px.violin(
+        collected,
         x=component,
-        nbins=20,
-        title=f"{component} Distribution",
         color=granularity,
         template="pega",
+        box=True,
+        points=False,
     ).update_layout(
-        legend_title_text=granularity,
+        yaxis_title=granularity,
         xaxis_title=component,
-        yaxis_title="Number of Actions",
+        legend_title_text=granularity,
     )
+    if component == "Propensity":
+        violin_fig.update_xaxes(tickformat=",.0%")
 
-    # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
-    box_plot = px.box(
-        value_data.collect(),
-        x=granularity,
-        y=component,
-        title=f"{component} Distribution by Issue",
+    ecdf_fig = px.ecdf(
+        collected,
+        x=component,
+        color=granularity,
         template="pega",
+        markers=False,
     ).update_layout(
-        xaxis_title=granularity,
-        yaxis_title=component,
-        showlegend=False,
+        yaxis_title="Cumulative Proportion",
+        xaxis_title=component,
+        legend_title_text=granularity,
+    )
+    if component == "Propensity":
+        ecdf_fig.update_xaxes(tickformat=",.0%")
+
+    stats_df = (
+        value_data.group_by(granularity)
+        .agg(
+            pl.col(component).count().alias("Count"),
+            pl.col(component).mean().alias("Mean"),
+            pl.col(component).median().alias("Median"),
+            pl.col(component).std().alias("Std"),
+            pl.col(component).min().alias("Min"),
+            pl.col(component).quantile(0.05).alias("P5"),
+            pl.col(component).quantile(0.25).alias("P25"),
+            pl.col(component).quantile(0.75).alias("P75"),
+            pl.col(component).quantile(0.95).alias("P95"),
+            pl.col(component).max().alias("Max"),
+        )
+        .sort(granularity)
+        .collect()
     )
 
-    return histogram, box_plot
+    return violin_fig, ecdf_fig, stats_df
+
+
+def plot_component_overview(value_data: pl.LazyFrame, components: list[str], granularity: str) -> go.Figure:
+    """Small-multiples violin panel showing all components side by side.
+
+    Each component gets its own subplot with a fully independent x-axis
+    so their different scales are always visible.
+
+    Returns
+    -------
+    go.Figure
+    """
+    available = set(value_data.collect_schema().names())
+    components = [c for c in components if c in available]
+    if not components:
+        fig = go.Figure()
+        fig.add_annotation(text="No component columns available", showarrow=False)
+        return fig
+
+    collected: pl.DataFrame = value_data.select([granularity] + components).collect()  # type: ignore[assignment]
+    groups = collected.get_column(granularity).unique().sort().to_list()
+
+    n_cols = min(3, len(components))
+    n_rows = (len(components) + n_cols - 1) // n_cols
+
+    fig = make_subplots(
+        rows=n_rows,
+        cols=n_cols,
+        subplot_titles=components,
+        horizontal_spacing=0.08,
+        vertical_spacing=0.15,
+    )
+
+    for idx, component in enumerate(components):
+        row = idx // n_cols + 1
+        col = idx % n_cols + 1
+        for group in groups:
+            vals = collected.filter(pl.col(granularity) == group).get_column(component).drop_nulls().to_list()
+            if not vals:
+                continue
+            fig.add_trace(
+                go.Violin(
+                    x=vals,
+                    name=str(group),
+                    legendgroup=str(group),
+                    showlegend=(idx == 0),
+                    box_visible=True,
+                    meanline_visible=False,
+                    scalemode="width",
+                    side="positive",
+                ),
+                row=row,
+                col=col,
+            )
+
+        tick_fmt = ",.0%" if component == "Propensity" else None
+        fig.update_xaxes(
+            row=row,
+            col=col,
+            showticklabels=True,
+            tickformat=tick_fmt,
+        )
+        fig.update_yaxes(row=row, col=col, showticklabels=False)
+
+    fig.update_layout(
+        height=max(350, 250 * n_rows),
+        showlegend=False,
+        template="pega",
+    )
+    return fig
 
 
 def create_win_distribution_plot(
@@ -956,7 +1007,8 @@ def create_win_distribution_plot(
     title_suffix: str,
     y_axis_title: str,
 ) -> tuple[go.Figure, pl.DataFrame]:
-    """Create a win distribution bar chart with highlighted selected items.
+    """
+    Create a win distribution bar chart with highlighted selected items.
 
     This function creates a bar chart showing win counts across actions, groups, or issues
     based on the scope configuration. It automatically aggregates data appropriately and
@@ -968,10 +1020,10 @@ def create_win_distribution_plot(
         DataFrame containing win distribution data with action identifiers and win counts
     win_count_col : str
         Column name containing win counts to plot (e.g., "original_win_count", "new_win_count")
-    scope_config : dict[str, Union[str, list[str]]]
+    scope_config : dict[str, str | list[str]]
         Configuration dictionary from get_scope_config() containing:
         - level: "Action", "Group", or "Issue"
-        - group_cols: list of columns for grouping
+        - group_cols: List of columns for grouping
         - x_col: Column name for x-axis
         - selected_value: Value to highlight in red
         - plot_title_prefix: Prefix for plot title
@@ -1006,7 +1058,6 @@ def create_win_distribution_plot(
     ...     "After Lever Adjustment",
     ...     "New Win Count"
     ... )
-
     """
     if scope_config["level"] == "Action":
         plot_data = data
@@ -1025,17 +1076,20 @@ def create_win_distribution_plot(
             # If we have "No Winner" data, we need to select only the columns that match aggregated_regular
             if no_winner_data.height > 0:
                 # Select only the columns that exist in aggregated_regular
-                columns_to_keep = scope_config["group_cols"] + [win_count_col]  # type: ignore[operator]
+                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                columns_to_keep = group_cols + [win_count_col]
                 no_winner_data_selected = no_winner_data.select(columns_to_keep)
                 plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
             else:
                 plot_data = aggregated_regular
-        # If no regular data, just use no_winner_data (select appropriate columns)
-        elif no_winner_data.height > 0:
-            columns_to_keep = scope_config["group_cols"] + [win_count_col]  # type: ignore[operator]
-            plot_data = no_winner_data.select(columns_to_keep)
         else:
-            plot_data = pl.DataFrame()
+            # If no regular data, just use no_winner_data (select appropriate columns)
+            if no_winner_data.height > 0:
+                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                columns_to_keep = group_cols + [win_count_col]
+                plot_data = no_winner_data.select(columns_to_keep)
+            else:
+                plot_data = pl.DataFrame()
 
     # Create the plot
     fig = go.Figure()
@@ -1050,7 +1104,7 @@ def create_win_distribution_plot(
         hover_template = (
             "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
         )
-        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))  # type: ignore[assignment]
+        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
     else:
         # Default hover template
         hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"
@@ -1064,7 +1118,7 @@ def create_win_distribution_plot(
             textposition="auto",
             hovertemplate=hover_template,
             customdata=customdata,
-        ),
+        )
     )
 
     # Create color scheme with special handling for "No Winner"
@@ -1073,7 +1127,7 @@ def create_win_distribution_plot(
 
     # Highlight the selected item in red
     try:
-        selected_index = x_values.index(scope_config["selected_value"])  # type: ignore[arg-type]
+        selected_index = x_values.index(scope_config["selected_value"])
         colors[selected_index] = "#FF0000"
     except ValueError:
         # Selected value not found in the data
@@ -1081,7 +1135,7 @@ def create_win_distribution_plot(
 
     # Highlight "No Winner" in orange if present
     try:
-        no_winner_index = x_values.index("No Winner")  # type: ignore[arg-type]
+        no_winner_index = x_values.index("No Winner")
         colors[no_winner_index] = "#FFA500"  # Orange color for "No Winner"
     except ValueError:
         # "No Winner" not found in the data
@@ -1105,10 +1159,11 @@ def create_win_distribution_plot(
 
 def create_parameter_distribution_boxplots(
     segmented_df: pl.DataFrame,
-    parameters: list[str] = ["Propensity", "Value", "Context Weight", "Levers"],
+    parameters: list[str] | None = None,
     title: str = "Parameter Distributions: Selected Actions vs Competitors",
 ) -> go.Figure:
-    """Create box plots comparing parameter distributions between selected actions and others.
+    """
+    Create box plots comparing parameter distributions between selected actions and others.
 
     Parameters
     ----------
@@ -1116,7 +1171,7 @@ def create_parameter_distribution_boxplots(
         DataFrame with columns for parameters and a 'segment' column
         containing "Selected Actions" or "Others"
     parameters : list[str], optional
-        list of parameter column names to plot
+        List of parameter column names to plot
     title : str, optional
         Title for the plot
 
@@ -1124,8 +1179,10 @@ def create_parameter_distribution_boxplots(
     -------
     go.Figure
         Plotly figure with box plots
-
     """
+    if parameters is None:
+        parameters = PRIO_FACTORS
+
     colors = [
         "#1f77b4",  # Blue for Selected Actions
         "#ff7f0e",  # Orange for Others
@@ -1147,6 +1204,8 @@ def create_parameter_distribution_boxplots(
                     row=i,
                     col=1,
                 )
+        if metric == "Propensity":
+            fig.update_yaxes(tickformat=",.0%", row=i, col=1)
 
     fig.update_layout(
         height=800,

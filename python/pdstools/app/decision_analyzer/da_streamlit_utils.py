@@ -1,5 +1,5 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
-import os
+from __future__ import annotations
 from pathlib import Path
 
 import polars as pl
@@ -9,19 +9,18 @@ from pdstools.decision_analyzer.data_read_utils import (
     read_data,
     read_nested_zip_files,
 )
-from pdstools.decision_analyzer.plots import plot_priority_component_distribution
 from pdstools.pega_io.File import read_ds_export
+
+from pdstools.decision_analyzer.plots import (
+    plot_component_overview,
+    plot_priority_component_distribution,
+)
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
+    get_current_index,  # noqa: F401 — re-exported for backward compat
+    get_data_path,
     is_managed_deployment,
-)
-
-# Default sample data path for EC2 deployments. Override with
-# PDSTOOLS_SAMPLE_DATA_PATH env var if needed.
-_EC2_SAMPLE_PATH = os.environ.get(
-    "PDSTOOLS_SAMPLE_DATA_PATH",
-    "/s3-files/anonymized/anonymized",
 )
 
 
@@ -31,12 +30,110 @@ def ensure_data():
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
 
 
+def _apply_stage_level():
+    """Callback: sync the DA level with the radio widget value."""
+    da = st.session_state.decision_data
+    da.set_level(st.session_state["_stage_level_radio"])
+
+
+def stage_level_selector():
+    """Show a radio toggle for stage granularity when multiple levels are available.
+
+    Calls ``set_level`` on the DecisionAnalyzer instance when the user
+    switches. Only renders the widget for v2 data that has both
+    "Stage Group" and "Stage" columns; for v1 data this is a no-op.
+    """
+    da = st.session_state.decision_data
+    levels = da.available_levels
+    if len(levels) <= 1:
+        return
+    current = da.level if da.level in levels else levels[0]
+    st.radio(
+        "Stage Granularity",
+        options=levels,
+        index=levels.index(current),
+        horizontal=True,
+        key="_stage_level_radio",
+        on_change=_apply_stage_level,
+        help="'Stage Group' shows high-level pipeline phases; 'Stage' shows individual strategy stages.",
+    )
+    # Also apply on first render (no callback fires on initial load)
+    chosen = st.session_state.get("_stage_level_radio", current)
+    if chosen != da.level:
+        da.set_level(chosen)
+
+
+def stage_selectbox(
+    label: str = "Select Stage",
+    key: str = "stage",
+    default: str | None = None,
+    options: list[str] | None = None,
+    **kwargs,
+):
+    """Render a stage selectbox that groups stages by their Stage Group.
+
+    When the DecisionAnalyzer ``level`` is ``"Stage"`` and a stage→group
+    mapping exists, each option is displayed as ``"GroupName / StageName"``
+    so the user can see which group a stage belongs to.  At ``"Stage Group"``
+    level (or when there is no mapping), options are shown as-is.
+
+    Parameters
+    ----------
+    label : str
+        Widget label.
+    key : str
+        Session-state key for the selected value.
+    default : str, optional
+        Preferred default value (e.g. ``"Arbitration"``).  Falls back to
+        the first option when the default is not available.
+    options : list[str], optional
+        Explicit list of stage values to show. When provided, overrides
+        ``da.getPossibleStageValues()``.
+    **kwargs
+        Extra keyword arguments forwarded to ``st.selectbox``.
+    """
+    da = st.session_state.decision_data
+    stage_options = options if options is not None else da.getPossibleStageValues()
+    mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
+
+    if mapping:
+        format_func = lambda s: f"{mapping.get(s, '?')}  ·  {s}"  # noqa: E731
+    else:
+        format_func = str
+
+    # If the stored value is no longer valid (e.g. after a level switch),
+    # reset to the default so upstream code reading session state gets a
+    # valid stage before the widget re-renders.
+    if key in st.session_state and st.session_state[key] not in stage_options:
+        if default and default in stage_options:
+            st.session_state[key] = default
+        else:
+            st.session_state[key] = stage_options[0]
+
+    # Only pass index when the key is not yet in session state;
+    # Streamlit does not allow both a session-state value and an index.
+    selectbox_kwargs: dict = dict(
+        label=label,
+        options=stage_options,
+        key=key,
+        format_func=format_func,
+        **kwargs,
+    )
+    if key not in st.session_state:
+        if default and default in stage_options:
+            selectbox_kwargs["index"] = stage_options.index(default)
+        else:
+            selectbox_kwargs["index"] = 0
+
+    st.selectbox(**selectbox_kwargs)
+
+
 def ensure_funnel():
     if st.session_state.decision_data.extract_type == "explainability_extract":
         st.warning(
             "This page requires **Action Analysis (v2)** data with full stage "
             "pipeline information. Explainability Extract (v1) data only contains "
-            "the arbitration stage and cannot show the decision funnel.",
+            "the arbitration stage and cannot show the decision funnel."
         )
         st.stop()
 
@@ -63,182 +160,222 @@ def show_filtered_counts(statsBefore, statsAfter):
         )
 
 
-def _clean_unselected_filters(to_filter_columns, filter_type):
+def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
+    """Copy widget value to a persistent session-state key.
+
+    Streamlit clears keyed widget state on page navigation. We work around
+    this by copying the value to a second key that survives navigation.
+    See https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
+    """
+    src = f"{filter_type}{regex}_selected_{column}"
+    dst = f"{filter_type}{regex}selected_{column}"
+    st.session_state[dst] = st.session_state[src]
+
+
+def reset_filter_state(filter_type: str):
+    """Remove all session-state keys for the given filter type prefix."""
+    keys_to_remove = [k for k in st.session_state.keys() if k.startswith(filter_type) and k != "filters"]
+    for k in keys_to_remove:
+        del st.session_state[k]
+
+
+def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
+    """Remove session-state keys for columns no longer in the filter list."""
     keys_to_remove = []
     for key in st.session_state.keys():
-        if key.__contains__("selected_"):
+        if "selected_" in key:
             column_name = key.split("selected_", 1)[1]
             if column_name not in to_filter_columns:
                 keys_to_remove.append(column_name)
     for column in keys_to_remove:
-        selected_key = f"{filter_type}selected_{column}"
-        _selected_key = f"{filter_type}_selected_{column}"
-        regexselected_key = f"{filter_type}regexselected_{column}"
-        regex_selected_key = f"{filter_type}regex_selected_{column}"
-        categories_key = f"{filter_type}categories_{column}"
-        for val in [
-            selected_key,
-            _selected_key,
-            categories_key,
-            regexselected_key,
-            regex_selected_key,
+        for key in [
+            f"{filter_type}selected_{column}",
+            f"{filter_type}_selected_{column}",
+            f"{filter_type}regexselected_{column}",
+            f"{filter_type}regex_selected_{column}",
+            f"{filter_type}categories_{column}",
         ]:
-            if val in st.session_state:
-                del st.session_state[val]
+            if key in st.session_state:
+                del st.session_state[key]
 
 
-def get_data_filters(
-    df: pl.LazyFrame,
-    columns=None,
-    queries=None,
-    filter_type="local",
-) -> list[pl.Expr]:  # this one is way too complex, should be split up into probably 5 functions
-    """Adds a UI on top of a dataframe to let viewers filter columns
-
-    Parameters
-    ----------
-    df : pl.DataFrame
-        Original dataframe
-
-    """
-
-    def _save_selected(
-        filter_type,
-        column,
-        regex="",
-    ):  ## see the issue on why we need to save a different session.state variable https://discuss.streamlit.io/t/session-state-is-not-preserved-when-navigating-pages/48787
-        st.session_state[f"{filter_type}{regex}selected_{column}"] = st.session_state[
-            f"{filter_type}{regex}_selected_{column}"
-        ]
+def _render_column_selector(df: pl.LazyFrame, columns: list[str], filter_type: str) -> list[str]:
+    """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
         st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
-    if columns is None:
-        columns = df.collect_schema().names()
-    if queries is None:
-        queries = []
-
-    st.session_state[f"{filter_type}_multiselect"] = (
-        st.session_state[f"{filter_type}multiselect"] if f"{filter_type}multiselect" in st.session_state else []
-    )
-    to_filter_columns = st.multiselect(
+    st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(f"{filter_type}multiselect", [])
+    return st.multiselect(
         "Filter data on",
         columns,
         key=f"{filter_type}_multiselect",
         on_change=_save_multiselect,
     )
+
+
+def _render_categorical_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: list[pl.Expr],
+):
+    """Render filter UI for a categorical/string column.
+
+    Uses a multiselect when fewer than 200 unique values exist, otherwise
+    falls back to a regex text input.
+    """
+    categories_key = f"{filter_type}categories_{column}"
+    if categories_key not in st.session_state:
+        st.session_state[categories_key] = df.select(pl.col(column).unique()).collect().to_series().to_list()
+
+    widget_key = f"{filter_type}_selected_{column}"
+    persisted_key = f"{filter_type}selected_{column}"
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state.get(persisted_key, st.session_state[categories_key])
+
+    categories = st.session_state[categories_key]
+
+    if len(categories) < 200:
+        default = st.session_state.get(persisted_key, categories)
+        st.session_state[widget_key] = default
+        selected = container.multiselect(
+            f"Values for {column}",
+            options=categories,
+            key=widget_key,
+            on_change=_persist_widget_value,
+            kwargs={"filter_type": filter_type, "column": column},
+        )
+        if selected != categories:
+            queries.append(pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key]))
+    else:
+        # Too many unique values — use regex input instead
+        if widget_key in st.session_state:
+            del st.session_state[widget_key]
+        regex_persisted = f"{filter_type}regexselected_{column}"
+        default = st.session_state.get(regex_persisted, "")
+        user_text_input = container.text_input(
+            f"Substring or regex in {column}",
+            value=default,
+            key=f"{filter_type}regex_selected_{column}",
+            on_change=_persist_widget_value,
+            kwargs={
+                "filter_type": filter_type,
+                "column": column,
+                "regex": "regex",
+            },
+        )
+        if user_text_input:
+            queries.append(pl.col(column).str.contains(user_text_input))
+
+
+def _render_numeric_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: list[pl.Expr],
+):
+    """Render filter UI for a numeric column (slider or dual number inputs)."""
+    min_col, max_col = container.columns((1, 1))
+    _min = float(df.select(pl.min(column)).collect().item())
+    _max = float(df.select(pl.max(column)).collect().item())
+
+    persisted_key = f"{filter_type}selected_{column}"
+    if persisted_key not in st.session_state:
+        default_min, default_max = _min, _max
+    else:
+        default_min, default_max = st.session_state[persisted_key]
+
+    if _max - _min <= 200:
+        user_num_input = container.slider(
+            f"Values for {column}",
+            min_value=_min,
+            max_value=_max,
+            value=(default_min, default_max),
+        )
+    else:
+        user_min = min_col.number_input(
+            label=f"Min value for {column} (Min:{_min})",
+            min_value=_min,
+            max_value=_max,
+            value=default_min,
+        )
+        user_max = max_col.number_input(
+            label=f"Max value for {column} (Max:{_max})",
+            min_value=_min,
+            max_value=_max,
+            value=default_max,
+        )
+        user_num_input = [user_min, user_max]
+
+    st.session_state[persisted_key] = user_num_input
+    if user_num_input[0] != _min or user_num_input[1] != _max:
+        queries.append(pl.col(column).is_between(*user_num_input))
+
+
+def _render_temporal_filter(
+    df: pl.LazyFrame,
+    column: str,
+    container,
+    filter_type: str,
+    queries: list[pl.Expr],
+):
+    """Render filter UI for a temporal (date/datetime) column."""
+    value = (
+        df.select(pl.min(column)).collect().item(),
+        df.select(pl.max(column)).collect().item(),
+    )
+    widget_key = f"{filter_type}_selected_{column}"
+    persisted_key = f"{filter_type}selected_{column}"
+    st.session_state[widget_key] = st.session_state.get(persisted_key, value)
+
+    user_date_input = container.date_input(
+        f"Values for {column}",
+        value=value,
+        key=widget_key,
+        on_change=_persist_widget_value,
+        kwargs={"filter_type": filter_type, "column": column},
+    )
+    if len(user_date_input) == 2:
+        queries.append(pl.col(column).is_between(*user_date_input))
+
+
+def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="local") -> list[pl.Expr]:
+    """Build filter expressions via interactive Streamlit widgets.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Source data used to derive filter options.
+    columns : list, optional
+        Columns available for filtering. Defaults to all columns in *df*.
+    queries : list, optional
+        Pre-existing filter expressions to extend.
+    filter_type : str
+        Prefix for session-state keys, allowing independent filter sets
+        (e.g. ``"global"`` vs ``"local"``).
+    """
+    if columns is None:
+        columns = df.collect_schema().names()
+    if queries is None:
+        queries = []
+
+    to_filter_columns = _render_column_selector(df, columns, filter_type)
+
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
         left.write("## ↳")
 
-        # Treat columns with < 20 unique values as categorical
         col_dtype = df.collect_schema()[column]
-        if (col_dtype == pl.Categorical) or (col_dtype == pl.Utf8):
-            if f"{filter_type}categories_{column}" not in st.session_state.keys():
-                st.session_state[f"{filter_type}categories_{column}"] = (
-                    df.select(pl.col(column).unique()).collect().to_series().to_list()
-                )
-            if f"{filter_type}_selected_{column}" not in st.session_state.keys():
-                st.session_state[f"{filter_type}_selected_{column}"] = (
-                    st.session_state[f"{filter_type}categories_{column}"]
-                    if f"{filter_type}selected_{column}" not in st.session_state
-                    else st.session_state[f"{filter_type}selected_{column}"]
-                )
-            if len(st.session_state[f"{filter_type}categories_{column}"]) < 200:
-                options = st.session_state[f"{filter_type}categories_{column}"]
-                default_selected = (
-                    st.session_state[f"{filter_type}selected_{column}"]
-                    if f"{filter_type}selected_{column}" in st.session_state
-                    else options
-                )
-                st.session_state[f"{filter_type}_selected_{column}"] = default_selected
-                selected = right.multiselect(
-                    f"Values for {column}",
-                    options=options,
-                    key=f"{filter_type}_selected_{column}",
-                    on_change=_save_selected,
-                    kwargs={"filter_type": filter_type, "column": column},
-                )
-                if selected != st.session_state[f"{filter_type}categories_{column}"]:
-                    queries.append(
-                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"{filter_type}selected_{column}"]),
-                    )
-
-            else:
-                key_to_delete = f"{filter_type}_selected_{column}"
-                if key_to_delete in st.session_state:
-                    del st.session_state[key_to_delete]
-                default_selected = (
-                    st.session_state[f"{filter_type}regexselected_{column}"]
-                    if f"{filter_type}regexselected_{column}" in st.session_state
-                    else ""
-                )
-                user_text_input = right.text_input(
-                    f"Substring or regex in {column}",
-                    value=default_selected,
-                    key=f"{filter_type}regex_selected_{column}",
-                    on_change=_save_selected,
-                    kwargs={
-                        "filter_type": filter_type,
-                        "column": column,
-                        "regex": "regex",
-                    },
-                )
-                if user_text_input:
-                    queries.append(pl.col(column).str.contains(user_text_input))
-
+        if col_dtype in (pl.Categorical, pl.Utf8):
+            _render_categorical_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_numeric():
-            min_col, max_col = right.columns((1, 1))
-            _min = float(df.select(pl.min(column)).collect().item())
-            _max = float(df.select(pl.max(column)).collect().item())
-            if f"{filter_type}selected_{column}" not in st.session_state:
-                default_min, default_max = _min, _max
-            else:
-                default_min, default_max = st.session_state[f"{filter_type}selected_{column}"]
-            if _max - _min <= 200:
-                user_num_input = right.slider(
-                    f"Values for {column}",
-                    min_value=_min,
-                    max_value=_max,
-                    value=(default_min, default_max),
-                )
-            else:
-                user_min = min_col.number_input(
-                    label=f"Min value for {column} (Min:{_min})",
-                    min_value=_min,
-                    max_value=_max,
-                    value=default_min,
-                )
-                user_max = max_col.number_input(
-                    label=f"Max value for {column} (Max:{_max})",
-                    min_value=_min,
-                    max_value=_max,
-                    value=default_max,
-                )
-                user_num_input = [user_min, user_max]  # type: ignore[assignment]
-            st.session_state[f"{filter_type}selected_{column}"] = user_num_input
-            if user_num_input[0] != _min or user_num_input[1] != _max:
-                queries.append(pl.col(column).is_between(*user_num_input))
+            _render_numeric_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_temporal():
-            value = (
-                df.select(pl.min(column)).collect().item(),
-                df.select(pl.max(column)).collect().item(),
-            )
-            st.session_state[f"{filter_type}_selected_{column}"] = (
-                (st.session_state[f"{filter_type}selected_{column}"])
-                if f"{filter_type}selected_{column}" in st.session_state
-                else value
-            )
-            user_date_input = right.date_input(
-                f"Values for {column}",
-                value=value,
-                key=f"{filter_type}_selected_{column}",
-                on_change=_save_selected,
-                kwargs={"filter_type": filter_type, "column": column},
-            )
-            if len(user_date_input) == 2:
-                queries.append(pl.col(column).is_between(*user_date_input))
+            _render_temporal_filter(df, column, right, filter_type, queries)
+
     _clean_unselected_filters(to_filter_columns, filter_type)
     return queries
 
@@ -257,10 +394,7 @@ def get_options() -> list[str]:
 
 
 def handle_sample_data() -> pl.LazyFrame | None:
-    """Load sample data, using a local S3 path in managed deployments."""
-    if is_managed_deployment():
-        return read_data(Path(_EC2_SAMPLE_PATH))
-
+    """Load built-in sample data for demo purposes."""
     # Prefer local file when available (e.g. during development), fall back
     # to downloading from GitHub for installed-package users.
     local_path = Path(__file__).resolve().parents[4] / "data" / "sample_eev2.parquet"
@@ -271,6 +405,34 @@ def handle_sample_data() -> pl.LazyFrame | None:
         filename="sample_eev2.parquet",
         path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
     )
+
+
+def handle_data_path() -> pl.LazyFrame | None:
+    """Load data from the ``--data-path`` CLI flag, if configured.
+
+    Supports the same formats as the file upload: parquet, csv, json, arrow,
+    zip archives, and partitioned directories.
+    """
+    data_path = get_data_path()
+    if not data_path:
+        return None
+
+    p = Path(data_path)
+    if not p.exists():
+        st.error(f"Configured data path does not exist: `{data_path}`")
+        return None
+
+    # Single zip file: extract first, then read the extracted contents
+    if p.is_file() and p.suffix.lower() == ".zip":
+        import tempfile
+        import zipfile
+
+        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
+        with zipfile.ZipFile(p, "r") as zf:
+            zf.extractall(tmp_dir)
+        return read_data(tmp_dir)
+
+    return read_data(data_path)
 
 
 def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
@@ -288,13 +450,13 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
             raise ValueError(
                 f"The uploaded archive does not contain recognizable data files. "
                 f"Found: {', '.join(sorted(inner_exts))}. "
-                f"Expected raw decision data in csv, parquet, json, or arrow format.",
+                f"Expected raw decision data in csv, parquet, json, or arrow format."
             )
 
         # If the zip contains .zip files, use the legacy gzipped-ndjson reader
         if ".zip" in inner_exts:
             file_buffer.seek(0)
-            return read_nested_zip_files(file_buffer)  # type: ignore[return-value]
+            return read_nested_zip_files(file_buffer)
 
         # Otherwise extract to a temp directory and use read_data
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
@@ -408,10 +570,11 @@ def load_decision_analyzer(
     return DecisionAnalyzer(_raw_data, level=level, sample_size=sample_size)
 
 
-@st.cache_data(hash_funcs=polars_lazyframe_hashing)  # type: ignore[arg-type]
-def st_priority_component_distribution(
-    value_data: pl.LazyFrame,
-    component,
-    granularity,
-):
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def st_priority_component_distribution(value_data: pl.LazyFrame, component, granularity):
     return plot_priority_component_distribution(value_data, component, granularity)
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def st_component_overview(value_data: pl.LazyFrame, components, granularity):
+    return plot_component_overview(value_data, components, granularity)

@@ -1,8 +1,9 @@
-# python/pdstools/decision_analyzer/table_definition.py
+# python/pdstools/decision_analyzer/column_schema.py
 from typing import TypedDict
 
-import polars as pl
 from typing_extensions import NotRequired
+
+import polars as pl
 
 
 class TableConfig(TypedDict):
@@ -14,7 +15,7 @@ class TableConfig(TypedDict):
 
 DecisionAnalyzer: dict[str, TableConfig] = {
     "pxRecordType": {
-        "display_name": "Record type",
+        "display_name": "Record Type",
         "default": False,
         "type": pl.Categorical,
     },
@@ -25,10 +26,10 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "aliases": ["Subject ID", "SubjectID", "pySubjectID"],
     },
     "Primary_pySubjectType": {
-        "display_name": "Subject type",
+        "display_name": "Subject Type",
         "default": False,
         "type": pl.Categorical,
-        "aliases": ["Subject type", "SubjectType", "pySubjectType"],
+        "aliases": ["Subject Type", "SubjectType", "pySubjectType"],
     },
     "pxInteractionID": {
         "display_name": "Interaction ID",
@@ -67,7 +68,7 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "aliases": ["Treatment"],
     },
     "PlacementType": {
-        "display_name": "Placement type",
+        "display_name": "Placement Type",
         "default": False,
         "type": pl.Categorical,
     },
@@ -95,12 +96,12 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "type": pl.Categorical,
     },
     "Stage_pyStageGroup": {
-        "display_name": "StageGroup",
+        "display_name": "Stage Group",
         "default": True,
         "type": pl.Categorical,
     },
     "Stage_pyOrder": {
-        "display_name": "StageOrder",
+        "display_name": "Stage Order",
         "default": True,
         "type": pl.Int32,
     },
@@ -111,10 +112,10 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "aliases": ["Component Name"],
     },
     "pxComponentType": {
-        "display_name": "Component type",
+        "display_name": "Component Type",
         "default": True,
         "type": pl.Utf8,
-        "aliases": ["Component type"],
+        "aliases": ["Component Type"],
     },
     "Value": {
         "display_name": "Value",
@@ -131,6 +132,8 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "default": True,
         "type": pl.Float64,
     },
+    # V2 has only one propensity column (FinalPropensity); v1 has multiple
+    # (pyPropensity and FinalPropensity). See ExplainabilityExtract below.
     "FinalPropensity": {
         "display_name": "Propensity",
         "default": False,
@@ -154,6 +157,7 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "aliases": ["Application Version"],
     },
 }
+
 
 ExplainabilityExtract: dict[str, TableConfig] = {
     "pySubjectID": {
@@ -216,6 +220,10 @@ ExplainabilityExtract: dict[str, TableConfig] = {
         "default": True,
         "type": pl.Float64,
     },
+    # V1 has multiple propensity columns: pyPropensity (model propensity)
+    # and FinalPropensity (after adjustments). V2 only has FinalPropensity.
+    # TODO: give these distinct display names (e.g. "Model Propensity" and
+    # "Propensity") and update all PVCL code that references "Propensity".
     "pyPropensity": {
         "display_name": "pyPropensity",
         "default": True,
@@ -232,12 +240,13 @@ ExplainabilityExtract: dict[str, TableConfig] = {
         "type": pl.Float32,
     },
     "ModelControlGroup": {
-        "display_name": "ModelControlGroup",
+        "display_name": "Model Control Group",
         "default": True,
         "type": pl.Utf8,
         "aliases": ["ModelControl"],
     },
 }
+
 
 audit_tag_mapping = {
     "AvailableActions": ["ActionAvailability"],

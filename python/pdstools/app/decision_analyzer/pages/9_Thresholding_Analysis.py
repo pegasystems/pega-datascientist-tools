@@ -1,108 +1,161 @@
+# python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
 import plotly.express as px
 import polars as pl
 import streamlit as st
+
 from da_streamlit_utils import ensure_data
 
-# TODO Interactive Thresholding isn't working properly yet. Also show the total numbers.
-# TODO Instead of priority/propensity side to side have a drop-down to select which property to show
-# TODO show volume change and distribution change, experiment with showing delta with a grouped bar chart; underlying data may be one DF with a column for the "condition"
-# TODO can then also show expected sum of propensities for the top-1 ranked items. Win loss looks similar.
-
-"# Analysis for Propensity and Priority thresholding"
+"# Propensity Thresholding Analysis"
 
 """
-Analysis of the propensity and other arbitration factors.
-
-There will be an easy way to see the effects of thresholding on volume and distribution of
-the actions.
+Explore how applying a propensity threshold affects the volume and distribution
+of actions at arbitration.
 
 * What is the effect of new offers (new models with propensity 0.5, showing a peak there)?
-* What should my priority / propensity threshold be and how does this effect the volumes and distributions? You will want to see this for a specific channel, which can easily be accomplished by globally filtering on that channel only.
-* Is the random control group working? (propensity spreading 0-1)
-
+* What should my propensity threshold be and how does it affect volumes and distributions?
+  Filter on a specific channel globally to answer this per channel.
+* Is the random control group working? (propensity spreading 0–1)
 """
+
 ensure_data()
 
+da = st.session_state.decision_data
+
+# ---------------------------------------------------------------------------
+# Sidebar: threshold slider
+# ---------------------------------------------------------------------------
 st.session_state["sidebar"] = st.sidebar
-thresholding_mapping = {
-    # TODO generalize, move to one of the utils
-    "Propensity": "Propensity",
-}
 
 with st.session_state["sidebar"]:
-    # TODO: work in progress
-    thresholding_on = st.radio(
-        "Thresholding",
-        options=list(thresholding_mapping.keys()),
-        format_func=lambda option: thresholding_mapping[option],
-        horizontal=True,
-    )
-    value_range = st.session_state.decision_data.getThresholdingData(
-        thresholding_on,
-        quantile_range=[0, 100],
-    )["Threshold"].to_list()
+    value_range = da.getThresholdingData("Propensity", quantile_range=[0, 100])["Threshold"].to_list()
 
-    current_threshold = st.slider(
-        "Threshold :sunglasses:",
-        value_range[0],
-        value_range[1],
+    if all(v is None for v in value_range):
+        st.warning(
+            "⚠️ No actions survive to the arbitration stage in this data set. "
+            "Thresholding Analysis requires actions at or after arbitration. "
+            "Please check your data or filters."
+        )
+        st.stop()
+
+    value_range = [v if v is not None else 0.0 for v in value_range]
+
+    current_threshold = (
+        st.slider(
+            "Propensity threshold",
+            value_range[0] * 100,
+            value_range[1] * 100,
+            format="%.2f%%",
+        )
+        / 100
     )
 
-col1, col2 = st.columns(2)
-with col1:
-    st.plotly_chart(
-        px.histogram(
-            # Note this is not overly expensive as we have sampled the values into the pre-agg views
-            st.session_state.decision_data.getPreaggregatedFilterView
-            # TODO this breaks when the list is size > 1, figure out how to solve elegantly
-            .select(pl.col("Propensity").explode(), pl.col("Decisions")).collect(),
+# ---------------------------------------------------------------------------
+# Collect sampled propensity values from arbitration once
+# ---------------------------------------------------------------------------
+arb_propensities = (
+    da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+    .select(pl.col("Propensity").explode(), pl.col("Decisions"))
+    .collect()
+)
+
+total_decisions = arb_propensities["Decisions"].sum()
+above_decisions = arb_propensities.filter(pl.col("Propensity") >= current_threshold)["Decisions"].sum()
+below_decisions = total_decisions - above_decisions
+pct_filtered = (below_decisions / total_decisions * 100) if total_decisions > 0 else 0.0
+
+# ---------------------------------------------------------------------------
+# Section 1: Volume impact metrics
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    "## Threshold Impact"
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total at Arbitration", f"{total_decisions:,.0f}")
+    c2.metric("Above Threshold", f"{above_decisions:,.0f}")
+    c3.metric("Below Threshold", f"{below_decisions:,.0f}")
+    c4.metric("% Filtered", f"{pct_filtered:.1f}%")
+
+# ---------------------------------------------------------------------------
+# Section 2: Propensity distribution with threshold line
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    "## Propensity and Priority Distributions"
+
+    col1, col2 = st.columns(2)
+    with col1:
+        propensity_hist = px.histogram(
+            arb_propensities,
             x="Propensity",
             y="Decisions",
-        ),
-        use_container_width=True,
+        )
+        propensity_hist.update_xaxes(tickformat=",.0%")
+        propensity_hist.add_vline(
+            x=current_threshold,
+            line_dash="dash",
+            line_color="red",
+            line_width=2,
+            annotation_text=f"Threshold: {current_threshold:.2%}",
+            annotation_position="top right",
+            annotation_font_color="red",
+        )
+        st.plotly_chart(propensity_hist, use_container_width=True)
+
+    with col2:
+        st.plotly_chart(
+            px.histogram(
+                da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+                .select(pl.col("Priority").explode(), pl.col("Decisions"))
+                .collect(),
+                x="Priority",
+                y="Decisions",
+                log_y=True,
+            ),
+            use_container_width=True,
+        )
+
+# ---------------------------------------------------------------------------
+# Section 3: Distribution of surviving actions at the threshold
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    "## Action Distribution above Threshold"
+
+    surviving = (
+        da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+        .select(
+            pl.col("Issue"),
+            pl.col("Group"),
+            pl.col("Propensity").explode().alias("Propensity"),
+            pl.col("Decisions"),
+        )
+        .filter(pl.col("Propensity") >= current_threshold)
+        .group_by(["Issue", "Group"])
+        .agg(pl.sum("Decisions"))
+        .sort("Decisions", descending=True)
+        .filter(pl.col("Decisions") > 0)
+        .collect()
     )
-with col2:
-    st.plotly_chart(
-        px.histogram(
-            st.session_state.decision_data.getPreaggregatedFilterView
-            # TODO this breaks when the list is size > 1, figure out how to solve elegantly
-            .select(pl.col("Priority").explode(), pl.col("Decisions")).collect(),
-            x="Priority",
+
+    if surviving.height == 0:
+        st.info("No actions survive at this threshold.")
+    else:
+        fig = px.bar(
+            surviving,
+            x="Group",
             y="Decisions",
-            log_y=True,  # TODO maybe make this a UI control
-        ),
+            color="Issue",
+            template="pega",
+        )
+        fig.update_xaxes(tickangle=45, automargin=True, title="")
+        fig.update_layout(xaxis={"categoryorder": "total descending"})
+        st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------------------------------------------------------
+# Section 4: Decile chart (static context)
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    "## Propensity Decile Overview"
+
+    st.plotly_chart(
+        da.plot.threshold_deciles("Propensity", "Propensity"),
         use_container_width=True,
     )
-
-threshold_deciles_data = st.session_state.decision_data.getThresholdingData(
-    thresholding_on,
-)
-# st.dataframe(plotData)
-
-st.plotly_chart(
-    st.session_state.decision_data.plot.threshold_deciles(
-        thresholding_on,
-        thresholding_mapping[thresholding_on],
-    ),
-    use_container_width=True,
-)
-
-# TODO fix this, not working properly. Filtering isn't working, should probably be on the
-# sampled values not the min/max. Bars perhaps as facets rather than separate plots.
-"""Below plot is not working yet"""
-
-# st.write(current_threshold)
-xxx = st.session_state.decision_data.getDistributionData(
-    "Output",
-    ["Issue", "Group"],
-    additional_filters=(pl.col(f"{thresholding_on}_min") > current_threshold),  # Hmm, probalby not the right way
-    # additional_filters=((pl.col(thresholding_on).list.eval(pl.element() > current_threshold)).list.any()),
-)
-st.write(
-    st.session_state.decision_data.plot.distribution(
-        xxx,
-        scope="Issue",
-        breakdown="Group",
-        horizontal=True,
-    ),
-)

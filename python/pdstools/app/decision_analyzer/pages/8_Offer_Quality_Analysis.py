@@ -1,11 +1,12 @@
+# python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py
 import streamlit as st
-from da_streamlit_utils import (
-    ensure_data,
-    get_current_index,
-)
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
-
+from da_streamlit_utils import (
+    ensure_data,
+    stage_level_selector,
+    stage_selectbox,
+)
 # TODO generalize a bit: no actions, just one, with a low propensity, sufficient
 # TODO support the propensity based categories for those stages that have it
 # TODO code align the way we name the stages in the "remaining" view like done elsewhere
@@ -27,91 +28,78 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 defaultPercentile = 0.05
 
+
+def _safe_thresholds(thresholding_data):
+    """Extract threshold values, returning None if no data survives to arbitration."""
+    values = thresholding_data["Threshold"].to_list()
+    if all(v is None for v in values):
+        return None
+    return [round(v, 4) if v is not None else 0.0 for v in values]
+
+
+propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100]))
+priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100]))
+
+if propensity_th is None or priority_th is None:
+    st.warning(
+        "⚠️ No actions survive to the arbitration stage in this data set. "
+        "Offer Quality Analysis requires actions at or after arbitration. "
+        "Please check your data or filters."
+    )
+    st.stop()
+
 with st.session_state["sidebar"]:
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
+    stage_level_selector()
 
-    default_propensity_th = [
-        round(x, 4)
-        for x in st.session_state.decision_data.getThresholdingData(
-            "Propensity",
-            [0, 5, 100],
-        )["Threshold"].to_list()
-    ]
-    default_priority_th = [
-        round(x, 4)
-        for x in st.session_state.decision_data.getThresholdingData(
-            "Priority",
-            [0, 5, 100],
-        )["Threshold"].to_list()
-    ]
-
-    # TODO too much kept in session state here, not necessary
-
-    propensityTH = st.slider(
-        "Propensity threshold",
-        default_propensity_th[0],
-        default_propensity_th[2],
-        default_propensity_th[1],
-        # step=(default_propensity_th[2]-default_propensity_th[0])/10,
-        format="%.4f",
+    propensityTH = (
+        st.slider(
+            "Propensity threshold",
+            propensity_th[0] * 100,
+            propensity_th[2] * 100,
+            propensity_th[1] * 100,
+            format="%.2f%%",
+        )
+        / 100
     )
     priorityTH = st.slider(
         "Priority threshold",
-        default_priority_th[0],
-        default_priority_th[2],
-        default_priority_th[1],
-        # step=(default_priority_th[2]-default_priority_th[0])/10,
+        priority_th[0],
+        priority_th[2],
+        priority_th[1],
+        # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
     )
 
-    scope_index = get_current_index(scope_options, "scope")
-    st.selectbox(
-        "Scope",
-        options=scope_options,
-        # column names are already friendly
-        index=scope_index,
-        key="scope",
-    )
-    stage_index = get_current_index(stage_options, "stage")
-    st.selectbox(
-        "Select Stage",
-        options=stage_options,
-        index=stage_index,
-        key="stage",
-    )
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
-    groupby_cols=["StageGroup", "Interaction ID", "day"] + [st.session_state.scope],
+    groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )
 
-# Pie Chart
+with st.container(border=True):
+    "## Distribution of Customers per Stage"
 
-vf = st.session_state.decision_data.get_offer_quality(
-    action_counts,
-    group_by="Interaction ID",
-)
-# st.write(vf.head().collect())
+    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
 
-st.plotly_chart(
-    offer_quality_piecharts(
-        vf,
-        propensityTH=propensityTH,
-        AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
-    ),
-    use_container_width=True,
-)
+    st.plotly_chart(
+        offer_quality_piecharts(
+            vf,
+            propensityTH=propensityTH,
+            AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
+            level=st.session_state.decision_data.level,
+        ),
+        use_container_width=True,
+    )
 
-## Trend Chart
+with st.container(border=True):
+    "## Interactions in Trouble"
 
-vf = st.session_state.decision_data.get_offer_quality(
-    action_counts,
-    group_by=["Interaction ID", "day"],
-)
+    stage_selectbox()
 
-st.plotly_chart(
-    getTrendChart(vf, stage=st.session_state.stage),
-    use_container_width=True,
-)
+    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+
+    st.plotly_chart(
+        getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
+        use_container_width=True,
+    )

@@ -134,6 +134,30 @@ def get_deploy_env() -> str | None:
     return os.environ.get("PDSTOOLS_DEPLOY_ENV")
 
 
+def get_data_path() -> str | None:
+    """Return the data path set via ``--data-path`` CLI flag.
+
+    Returns ``None`` when no path was configured.
+    """
+    return os.environ.get("PDSTOOLS_DATA_PATH")
+
+
+def get_sample_limit() -> str | None:
+    """Return the raw sample limit string set via ``--sample`` CLI flag.
+
+    Returns ``None`` when no sampling was requested.
+    """
+    return os.environ.get("PDSTOOLS_SAMPLE_LIMIT")
+
+
+def get_temp_dir() -> str | None:
+    """Return the temp directory set via ``--temp-dir`` CLI flag.
+
+    Returns ``None`` when no temp directory was configured.
+    """
+    return os.environ.get("PDSTOOLS_TEMP_DIR")
+
+
 def is_managed_deployment() -> bool:
     """Return *True* when the app is running in a managed deployment (e.g. EC2)."""
     return get_deploy_env() is not None
@@ -593,3 +617,40 @@ def convert_df(df):
 @st.cache_data
 def st_get_latest_pdstools_version():
     return cdh_utils.get_latest_pdstools_version()
+
+
+def show_about_page():
+    """Render a standardised About page with version and dependency information.
+
+    Mirrors the Credits section of the Quarto ADM Health Check report.
+    Call this from a Streamlit page to display pdstools version info,
+    platform details, and an expandable dependency listing.
+    """
+    from ..utils.show_versions import show_versions
+
+    st.markdown("# About")
+    st.markdown(
+        "This application is part of "
+        "[Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools), "
+        "an open-source toolkit for Pega decisioning analytics.",
+    )
+
+    st.markdown("### Version information")
+    summary = show_versions(print_output=False, include_dependencies=False)
+    st.code(summary, language=None)
+
+    latest = st_get_latest_pdstools_version()
+    if latest and pdstools_version != latest:
+        st.warning(
+            f"A newer version is available (**{latest}**). Run `uv pip install --upgrade pdstools` to update.",
+        )
+
+    with st.expander("Detailed dependency versions"):
+        details = show_versions(print_output=False, include_dependencies=True)
+        st.code(details, language=None)
+
+    st.markdown(
+        "For more information see the "
+        "[documentation](https://pegasystems.github.io/pega-datascientist-tools/) "
+        "or [report an issue](https://github.com/pegasystems/pega-datascientist-tools/issues).",
+    )

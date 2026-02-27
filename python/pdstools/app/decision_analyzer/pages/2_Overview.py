@@ -13,10 +13,23 @@ st.session_state["sidebar"] = st.sidebar
 Quick insights into your decisioning implementation at a glance.
 """
 
+has_arbitration_data = (
+    "Arbitration" in st.session_state.decision_data.AvailableNBADStages
+    and st.session_state.decision_data.arbitration_stage.collect().height > 0
+)
+
 col1, col2 = st.columns(2)
 
 with col1:
-    "## :green[Overview]"
+    "## :green[Source Data]"
+
+    extract_type = st.session_state.decision_data.extract_type
+    format_label = (
+        "Explainability Extract (v1) — arbitration stage only"
+        if extract_type == "explainability_extract"
+        else "Action Analysis / EEV2 (v2) — full pipeline"
+    )
+    st.caption(f"Data format: **{format_label}**")
 
     overview = st.session_state.decision_data.get_overview_stats
 
@@ -30,32 +43,42 @@ with col1:
 
     "## :blue[Optionality Analysis]"
 
-    """
-    The number of actions available at arbitration vs the propensity to accept those. As
-    there are more actions available, generally the success rates increase (and thus propensities).
-    """
-    st.plotly_chart(
-        st.session_state.decision_data.plot.propensity_vs_optionality(
-            "Arbitration",
-        ).update_layout(showlegend=False, height=300),
-        use_container_width=True,
-    )
+    if has_arbitration_data:
+        """
+        The number of actions available at arbitration vs the propensity to accept those. As
+        there are more actions available, generally the success rates increase (and thus propensities).
+        """
+        st.plotly_chart(
+            st.session_state.decision_data.plot.propensity_vs_optionality("Arbitration").update_layout(
+                showlegend=False, height=300
+            ),
+            use_container_width=True,
+        )
+    else:
+        st.warning(
+            "No actions survive to the arbitration stage in this data set. Optionality analysis is not available."
+        )
 
 with col2:
     "## :orange[Influence of Prioritization Factors]"
 
-    """
-    Showing the percentage of decisions influenced by the various prioritization factors. In a
-    more emphathetic, user centric, approach, the model propensities would be the major
-    factor.
-    """
+    if has_arbitration_data:
+        """
+        Showing the percentage of decisions influenced by the various prioritization factors. In a
+        more emphathetic, user centric, approach, the model propensities would be the major
+        factor.
+        """
 
-    st.plotly_chart(
-        st.session_state.decision_data.plot.sensitivity(
-            win_rank=1,
-            hide_priority=True,
-        ).update_layout(
-            height=300,
-        ),
-        use_container_width=True,
-    )
+        st.plotly_chart(
+            st.session_state.decision_data.plot.sensitivity(
+                win_rank=1,
+                hide_priority=True,
+            ).update_layout(
+                height=300,
+            ),
+            use_container_width=True,
+        )
+    else:
+        st.warning(
+            "No actions survive to the arbitration stage in this data set. Sensitivity analysis is not available."
+        )

@@ -1,10 +1,12 @@
 # python/pdstools/decision_analyzer/utils.py
+import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import polars as pl
 
 from ..utils.cdh_utils import parse_pega_date_time_formats
-from .table_definition import (
+from .column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
 )
@@ -40,7 +42,6 @@ class ColumnResolver:
         Column definitions with 'display_name', 'default', and 'type' keys
     raw_columns : set[str]
         Column names present in the raw data
-
     """
 
     table_definition: dict
@@ -63,7 +64,6 @@ class ColumnResolver:
         -------
         ColumnResolver
             Self, for method chaining
-
         """
         if self._resolved:
             return self
@@ -118,7 +118,6 @@ class ColumnResolver:
         -------
         list[str]
             Column names that are marked as default but not found in raw data
-
         """
         missing = []
         for raw_col, config in self.table_definition.items():
@@ -134,12 +133,16 @@ class ColumnResolver:
 # Keys are the display names used in the data after renaming.
 SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 
+# Priority factors (PVCL) used in arbitration scoring and sensitivity analysis.
+PRIO_FACTORS = ["Propensity", "Value", "Context Weight", "Levers"]
 
-def apply_filter(
-    df: pl.LazyFrame,
-    filters: pl.Expr | list[pl.Expr] | None = None,
-):
-    """Apply a global set of filters. Kept outside of the DecisionData class as
+# All prioritization components including the computed Priority itself.
+PRIO_COMPONENTS = PRIO_FACTORS + ["Priority"]
+
+
+def apply_filter(df: pl.LazyFrame, filters: pl.Expr | list[pl.Expr] | None = None):
+    """
+    Apply a global set of filters. Kept outside of the DecisionData class as
     this is really more of a utility function, not bound to that class at all.
     """
 
@@ -155,16 +158,14 @@ def apply_filter(
 
     if filters is None:
         return df
-    if isinstance(filters, pl.Expr):
+    elif isinstance(filters, pl.Expr):
         df = _apply(filters, df)
 
     elif isinstance(filters, list) and all(isinstance(i, pl.Expr) for i in filters):
         for item in filters:
             df = _apply(item, df)
     else:
-        raise ValueError(
-            f"Filters should be a pl.Expr or a list of pl.Expr. Got {type(filters)}",
-        )
+        raise ValueError(f"Filters should be a pl.Expr or a list of pl.Expr. Got {type(filters)}")
 
     return df
 
@@ -185,10 +186,7 @@ def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
     return area_under_curve(df, col_x, col_y) * 2 - 1
 
 
-def get_first_level_stats(
-    interaction_data: pl.LazyFrame,
-    filters: list[pl.Expr] | None = None,
-):
+def get_first_level_stats(interaction_data: pl.LazyFrame, filters: list[pl.Expr] | None = None):
     """Returns first-level stats of a dataframe for the filter summary.
 
     Shows unique actions (Issue/Group/Action combinations), unique
@@ -238,14 +236,13 @@ def resolve_aliases(
     -------
     pl.LazyFrame
         Data with alias columns renamed to canonical raw key names.
-
     """
     raw_cols = set(df.collect_schema().names())
     renames: dict[str, str] = {}
 
     # Collect all raw keys across all table definitions so we never rename
     # a column that is itself a canonical raw key in another definition.
-    all_raw_keys: set[str] = set()
+    all_raw_keys = set()
     for table_def in table_definitions:
         all_raw_keys.update(table_def.keys())
 
@@ -307,7 +304,6 @@ def rename_and_cast_types(
     -------
     pl.LazyFrame
         Processed dataframe with renamed columns and cast types
-
     """
     resolver = ColumnResolver(
         table_definition=table_definition,
@@ -322,10 +318,7 @@ def rename_and_cast_types(
     return df.rename(resolver.rename_mapping).select(resolver.final_columns)
 
 
-def _cast_columns(
-    df: pl.LazyFrame,
-    type_mapping: dict[str, type[pl.DataType]],
-) -> pl.LazyFrame:
+def _cast_columns(df: pl.LazyFrame, type_mapping: dict[str, type[pl.DataType]]) -> pl.LazyFrame:
     """Cast columns to their target types.
 
     Parameters
@@ -339,7 +332,6 @@ def _cast_columns(
     -------
     pl.LazyFrame
         Dataframe with columns cast to target types
-
     """
     schema = df.collect_schema()
     for col_name, target_type in type_mapping.items():
@@ -370,7 +362,8 @@ def create_hierarchical_selectors(
     selected_group: str | None = None,
     selected_action: str | None = None,
 ) -> dict[str, dict[str, list[str] | int]]:
-    """Create hierarchical filter options and calculate indices for selectbox widgets.
+    """
+    Create hierarchical filter options and calculate indices for selectbox widgets.
 
     Args:
         data: LazyFrame with hierarchical data (should be pre-filtered to desired stage)
@@ -385,10 +378,11 @@ def create_hierarchical_selectors(
             "groups": {"options": ["All", ...], "index": 0},
             "actions": {"options": ["All", ...], "index": 0}
         }
-
     """
+
     # Step 1: Get all available issues
-    available_issues = data.select("Issue").unique().collect().get_column("Issue").to_list()
+    issues_df: pl.DataFrame = data.select("Issue").unique().collect()  # type: ignore[assignment]
+    available_issues = issues_df.get_column("Issue").to_list()
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
         issue_index = available_issues.index(selected_issue)
@@ -398,7 +392,10 @@ def create_hierarchical_selectors(
 
     # Step 2: Get groups for current issue
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
-    available_groups = filtered_by_issue.select("Group").unique().collect().get_column("Group").to_list()
+    groups_df: pl.DataFrame = (
+        filtered_by_issue.select("Group").unique().collect()  # type: ignore[assignment]
+    )
+    available_groups = groups_df.get_column("Group").to_list()
     group_options = ["All"] + available_groups
     group_index = 0  # Default to "All"
     if selected_group and selected_group in group_options:
@@ -411,11 +408,12 @@ def create_hierarchical_selectors(
     if current_group == "All":
         filtered_by_issue_group = filtered_by_issue
     else:
-        filtered_by_issue_group = filtered_by_issue.filter(
-            pl.col("Group") == current_group,
-        )
+        filtered_by_issue_group = filtered_by_issue.filter(pl.col("Group") == current_group)
 
-    available_actions = filtered_by_issue_group.select("Action").unique().collect().get_column("Action").to_list()
+    actions_df: pl.DataFrame = (
+        filtered_by_issue_group.select("Action").unique().collect()  # type: ignore[assignment]
+    )
+    available_actions = actions_df.get_column("Action").to_list()
     action_options = ["All"] + available_actions
     action_index = 0  # Default to "All"
     if selected_action and selected_action in action_options:
@@ -429,11 +427,10 @@ def create_hierarchical_selectors(
 
 
 def get_scope_config(
-    selected_issue: str,
-    selected_group: str,
-    selected_action: str,
+    selected_issue: str, selected_group: str, selected_action: str
 ) -> dict[str, str | pl.Expr | list[str]]:
-    """Generate scope configuration for lever application and plotting based on user selections.
+    """
+    Generate scope configuration for lever application and plotting based on user selections.
 
     Parameters
     ----------
@@ -446,15 +443,14 @@ def get_scope_config(
 
     Returns
     -------
-    dict[str, Union[str, pl.Expr, list[str]]]
+    dict[str, str | pl.Expr | list[str]]
         Configuration dictionary containing:
         - level: "Action", "Group", or "Issue" indicating scope level
         - lever_condition: Polars expression for filtering selected actions
-        - group_cols: list of column names for grouping operations
+        - group_cols: List of column names for grouping operations
         - x_col: Column name to use for x-axis in plots
         - selected_value: The actual selected value for highlighting
         - plot_title_prefix: Prefix for plot titles
-
     """
     if selected_action != "All":
         return {
@@ -465,7 +461,7 @@ def get_scope_config(
             "selected_value": selected_action,
             "plot_title_prefix": "Win Count by Action",
         }
-    if selected_group != "All":
+    elif selected_group != "All":
         return {
             "level": "Group",
             "lever_condition": (pl.col("Issue") == selected_issue) & (pl.col("Group") == selected_group),
@@ -474,11 +470,183 @@ def get_scope_config(
             "selected_value": selected_group,
             "plot_title_prefix": "Win Count by Group",
         }
-    return {
-        "level": "Issue",
-        "lever_condition": pl.col("Issue") == selected_issue,
-        "group_cols": ["Issue"],
-        "x_col": "Issue",
-        "selected_value": selected_issue,
-        "plot_title_prefix": "Win Count by Issue",
-    }
+    else:
+        return {
+            "level": "Issue",
+            "lever_condition": pl.col("Issue") == selected_issue,
+            "group_cols": ["Issue"],
+            "x_col": "Issue",
+            "selected_value": selected_issue,
+            "plot_title_prefix": "Win Count by Issue",
+        }
+
+
+logger = logging.getLogger(__name__)
+
+_INTERACTION_ID_RAW_KEY = "pxInteractionID"
+
+
+def _get_interaction_id_candidates() -> list[str]:
+    """Build the set of possible interaction ID column names from the schema.
+
+    Collects the raw key, display name, and aliases from both table
+    definitions so this stays in sync with ``column_schema.py``.
+    """
+    candidates: list[str] = [_INTERACTION_ID_RAW_KEY]
+    for table_def in (DecisionAnalyzer, ExplainabilityExtract):
+        config = table_def.get(_INTERACTION_ID_RAW_KEY)
+        if config is None:
+            continue
+        display = config["display_name"]
+        if display not in candidates:
+            candidates.append(display)
+        for alias in config.get("aliases", []):
+            if alias not in candidates:
+                candidates.append(alias)
+    return candidates
+
+
+def _find_interaction_id_column(columns: set[str]) -> str:
+    """Return the first matching interaction ID column name from the data."""
+    for candidate in _get_interaction_id_candidates():
+        if candidate in columns:
+            return candidate
+    raise ValueError(
+        f"Cannot sample: no interaction ID column found. Looked for: {', '.join(_get_interaction_id_candidates())}"
+    )
+
+
+def sample_interactions(
+    df: pl.LazyFrame,
+    n: int | None = None,
+    fraction: float | None = None,
+    id_column: str | None = None,
+) -> pl.LazyFrame:
+    """Sample interactions from a LazyFrame before ingestion.
+
+    Uses deterministic hash-based filtering so the same data and limit
+    always produce the same sample. All rows belonging to a selected
+    interaction are kept (stratified on interaction ID).
+
+    Exactly one of *n* or *fraction* must be provided.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data to sample from.
+    n : int, optional
+        Maximum number of unique interactions to keep.
+    fraction : float, optional
+        Fraction of interactions to keep (0.0–1.0).
+    id_column : str, optional
+        Name of the interaction ID column. Auto-detected if not given.
+
+    Returns
+    -------
+    pl.LazyFrame
+        Filtered LazyFrame containing only the sampled interactions.
+    """
+    if (n is None) == (fraction is None):
+        raise ValueError("Exactly one of 'n' or 'fraction' must be provided.")
+
+    available = set(df.collect_schema().names())
+    if id_column is None:
+        id_column = _find_interaction_id_column(available)
+
+    if fraction is not None:
+        if not 0.0 < fraction <= 1.0:
+            raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+        threshold = int(fraction * 10_000)
+    else:
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
+        if total <= n:
+            logger.info(
+                "Data has %d interactions (≤ requested %d), skipping sampling.",
+                total,
+                n,
+            )
+            return df
+        threshold = int((n / total) * 10_000)
+
+    return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+
+
+def sample_and_save(
+    df: pl.LazyFrame,
+    n: int | None = None,
+    fraction: float | None = None,
+    output_dir: str | None = None,
+) -> pl.LazyFrame:
+    """Sample interactions and persist the result as a parquet file.
+
+    Writes ``decision_analyzer_sample.parquet`` into *output_dir* (defaults
+    to the current working directory). Returns a LazyFrame scanning the
+    written file so downstream code benefits from a fast parquet scan.
+
+    If the data is smaller than the requested sample, sampling is skipped
+    and the original LazyFrame is returned unchanged (no file is written).
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw data to sample from.
+    n : int, optional
+        Maximum number of unique interactions to keep.
+    fraction : float, optional
+        Fraction of interactions to keep (0.0–1.0).
+    output_dir : str, optional
+        Directory for the sample parquet file. Defaults to ``"."``.
+
+    Returns
+    -------
+    pl.LazyFrame
+        Either a scan of the written parquet file, or the original
+        LazyFrame when sampling was skipped.
+    """
+    available = set(df.collect_schema().names())
+    id_column = _find_interaction_id_column(available)
+
+    # Check whether sampling would actually reduce the data.
+    if n is not None:
+        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
+        if total <= n:
+            logger.info(
+                "Data has %d interactions (≤ requested %d), skipping sampling.",
+                total,
+                n,
+            )
+            return df
+
+    sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+
+    dest = Path(output_dir) if output_dir else Path(".")
+    dest.mkdir(parents=True, exist_ok=True)
+    out_path = dest / "decision_analyzer_sample.parquet"
+
+    logger.info("Writing sampled data to %s", out_path)
+    sampled.collect().write_parquet(out_path)  # type: ignore[union-attribute]
+
+    return pl.scan_parquet(out_path)
+
+
+def parse_sample_flag(value: str) -> dict[str, int | float]:
+    """Parse the ``--sample`` CLI flag value into keyword arguments.
+
+    Supports absolute counts (``"100000"``) and percentages (``"10%"``).
+
+    Returns
+    -------
+    dict
+        Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+    """
+    value = value.strip()
+    if value.endswith("%"):
+        pct = float(value[:-1])
+        if not 0 < pct <= 100:
+            raise ValueError(f"Percentage must be in (0, 100], got {pct}")
+        return {"fraction": pct / 100.0}
+    else:
+        count = int(value)
+        if count <= 0:
+            raise ValueError(f"Sample count must be positive, got {count}")
+        return {"n": count}

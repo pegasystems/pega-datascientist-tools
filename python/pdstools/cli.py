@@ -51,6 +51,37 @@ def create_parser():
         default=None,
         help=("Set the deployment environment (e.g. 'ec2'). Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."),
     )
+    parser.add_argument(
+        "--data-path",
+        dest="data_path",
+        default=None,
+        help=(
+            "Path to a data file or directory to load on startup. "
+            "Supports parquet, csv, json, arrow, zip, and partitioned folders. "
+            "Exposed to the app as the PDSTOOLS_DATA_PATH env var."
+        ),
+    )
+    parser.add_argument(
+        "--sample",
+        dest="sample",
+        default=None,
+        help=(
+            "Pre-ingestion interaction sampling for large datasets. "
+            "Specify an absolute count (e.g. '100000') or a percentage "
+            "(e.g. '10%%'). All rows for each sampled interaction are kept. "
+            "Exposed to the app as the PDSTOOLS_SAMPLE_LIMIT env var."
+        ),
+    )
+    parser.add_argument(
+        "--temp-dir",
+        dest="temp_dir",
+        default=None,
+        help=(
+            "Directory for temporary files such as the sampled data parquet. "
+            "Defaults to the current working directory. "
+            "Exposed to the app as the PDSTOOLS_TEMP_DIR env var."
+        ),
+    )
     return parser
 
 
@@ -124,9 +155,15 @@ def run(args, unknown):
             except Exception:
                 print("Invalid input. Please try again.")
 
-    # Propagate deployment environment to the Streamlit process
+    # Propagate CLI flags to the Streamlit process via env vars
     if args.deploy_env:
         os.environ["PDSTOOLS_DEPLOY_ENV"] = args.deploy_env
+    if args.data_path:
+        os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
+    if args.sample:
+        os.environ["PDSTOOLS_SAMPLE_LIMIT"] = args.sample
+    if args.temp_dir:
+        os.environ["PDSTOOLS_TEMP_DIR"] = args.temp_dir
 
     display_name = APPS[args.app]["display_name"]
     print(f"Running {display_name} app...")
