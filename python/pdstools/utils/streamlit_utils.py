@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from packaging.version import Version, InvalidVersion
 import plotly.express as px
 import polars as pl
 import polars.selectors as cs
@@ -24,6 +25,19 @@ _MENU_ITEMS = {
 }
 
 _ASSETS_DIR = Path(__file__).resolve().parent.parent / "app" / "assets"
+
+
+def _is_newer_version_available(installed: str, latest: str) -> bool:
+    """Return True only when *latest* is strictly newer than *installed*.
+
+    Uses PEP 440 parsing so that pre-release / dev versions of *installed*
+    (e.g. ``4.6.0rc1``) are correctly recognised as newer than an older
+    stable release on PyPI (e.g. ``4.5.2``).
+    """
+    try:
+        return Version(latest) > Version(installed)
+    except InvalidVersion:
+        return False
 
 
 def _apply_sidebar_logo():
@@ -102,7 +116,7 @@ def show_version_header(check_latest: bool = True):
 
     if check_latest:
         latest = st_get_latest_pdstools_version()
-        if latest and pdstools_version != latest:
+        if latest and _is_newer_version_available(pdstools_version, latest):
             st.warning(
                 f"A newer version of pdstools is available (**{latest}**, "
                 f"you have {pdstools_version}). "
@@ -640,7 +654,7 @@ def show_about_page():
     st.code(summary, language=None)
 
     latest = st_get_latest_pdstools_version()
-    if latest and pdstools_version != latest:
+    if latest and _is_newer_version_available(pdstools_version, latest):
         st.warning(
             f"A newer version is available (**{latest}**). Run `uv pip install --upgrade pdstools` to update.",
         )
