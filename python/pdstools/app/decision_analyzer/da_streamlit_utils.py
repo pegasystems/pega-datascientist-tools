@@ -172,11 +172,32 @@ def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
     st.session_state[dst] = st.session_state[src]
 
 
+def serialize_filters(filters: list[pl.Expr]) -> str:
+    """Serialize a list of polars filter expressions to a JSON string."""
+    import json
+
+    serialized = {}
+    for i, expr in enumerate(filters):
+        serialized[i] = json.loads(expr.meta.serialize(format="json"))
+    return json.dumps(serialized)
+
+
+def deserialize_filters(json_str: str) -> list[pl.Expr]:
+    """Deserialize a JSON string back into a list of polars filter expressions."""
+    import io
+    import json
+
+    data = json.loads(json_str)
+    return [pl.Expr.deserialize(io.StringIO(json.dumps(v)), format="json") for v in data.values()]
+
+
 def reset_filter_state(filter_type: str):
     """Remove all session-state keys for the given filter type prefix."""
     keys_to_remove = [k for k in st.session_state.keys() if k.startswith(filter_type) and k != "filters"]
     for k in keys_to_remove:
         del st.session_state[k]
+    # Clear the persistent filter store
+    st.session_state.pop("_applied_filters_json", None)
 
 
 def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
