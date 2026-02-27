@@ -46,10 +46,6 @@ zoom, and hover for details.
 ### Data import
 """
 
-if "decision_data" in st.session_state:
-    del st.session_state["decision_data"]
-st.session_state["filters"] = []
-
 level = "Stage Group"
 
 sample_size = st.number_input(
@@ -84,10 +80,14 @@ if raw_data is None and configured_path:
     if raw_data is not None:
         st.info(f"📂 Loaded data from configured path: `{configured_path}`")
 
-# Fall back to sample data only when nothing else provided
-if raw_data is None:
+has_new_data = raw_data is not None
+has_existing_data = "decision_data" in st.session_state
+
+# Fall back to sample data only when nothing was uploaded *and* no data is loaded yet
+if not has_new_data and not has_existing_data:
     with st.spinner("Loading sample data"):
         raw_data = handle_sample_data()
+    has_new_data = raw_data is not None
     st.info(
         "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
@@ -111,7 +111,35 @@ if raw_data is not None and sample_limit_raw:
     label = sample_limit_raw.strip()
     st.info(f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions.")
 
-if raw_data is not None:
+
+def _show_data_summary(da):
+    """Display a summary banner for the loaded DecisionAnalyzer."""
+    if da.validation_error:
+        st.warning(da.validation_error)
+    extract_type = da.extract_type
+    format_label = (
+        "**Explainability Extract (v1)** — arbitration stage only"
+        if extract_type == "explainability_extract"
+        else "**Action Analysis / EEV2 (v2)** — full pipeline"
+    )
+
+    overview = da.get_overview_stats
+    rows = da.decision_data.select(pl.len()).collect().item()
+    summary = (
+        f"Data loaded successfully. Detected format: {format_label}\n\n"
+        f"**{rows:,}** rows · "
+        f"**{overview['Decisions']:,}** decisions · "
+        f"**{overview['Customers']:,}** customers · "
+        f"**{overview['Actions']}** actions · "
+        f"**{overview['Channels']}** channels · "
+        f"**{overview['Duration'].days}** days "
+        f"(from {overview['StartDate']})"
+    )
+    st.success(summary)
+
+
+if has_new_data and raw_data is not None:
+    # New data provided — ingest, store, and reset filters
     with st.spinner("Reading Data"):
         data_id = str(hash(raw_data.explain(optimized=False)))
         da = load_decision_analyzer(
@@ -121,27 +149,9 @@ if raw_data is not None:
             data_fingerprint=data_id,
         )
         st.session_state.decision_data = da
+        st.session_state["filters"] = []
         del raw_data
-
-        if da.validation_error:
-            st.warning(da.validation_error)
-        extract_type = da.extract_type
-        format_label = (
-            "**Explainability Extract (v1)** — arbitration stage only"
-            if extract_type == "explainability_extract"
-            else "**Action Analysis / EEV2 (v2)** — full pipeline"
-        )
-
-        overview = da.get_overview_stats
-        rows = da.decision_data.select(pl.len()).collect().item()
-        summary = (
-            f"Data loaded successfully. Detected format: {format_label}\n\n"
-            f"**{rows:,}** rows · "
-            f"**{overview['Decisions']:,}** decisions · "
-            f"**{overview['Customers']:,}** customers · "
-            f"**{overview['Actions']}** actions · "
-            f"**{overview['Channels']}** channels · "
-            f"**{overview['Duration'].days}** days "
-            f"(from {overview['StartDate']})"
-        )
-        st.success(summary)
+        _show_data_summary(da)
+elif has_existing_data:
+    # Returning to Home with data already loaded — just show the summary
+    _show_data_summary(st.session_state.decision_data)
