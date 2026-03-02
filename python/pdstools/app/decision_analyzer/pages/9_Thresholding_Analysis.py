@@ -57,6 +57,7 @@ with st.sidebar:
             "Propensity threshold",
             prop_range[0] * 100,
             prop_range[1] * 100,
+            value=0.0,
             format="%.2f%%",
         )
         / 100
@@ -69,7 +70,7 @@ with st.sidebar:
         "Priority threshold",
         prio_range[0],
         prio_range[1],
-        value=prio_range[0],
+        value=0.0,
         format="%.4f",
     )
 
@@ -145,7 +146,7 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(propensity_hist, use_container_width=True)
+        st.plotly_chart(propensity_hist, width="stretch")
 
     with col2:
         prio_data = (
@@ -169,7 +170,7 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(priority_hist, use_container_width=True)
+        st.plotly_chart(priority_hist, width="stretch")
 
 # ---------------------------------------------------------------------------
 # Section 3: Distribution of surviving actions above both thresholds
@@ -206,27 +207,4 @@ with st.container(border=True):
         )
         fig.update_xaxes(tickangle=45, automargin=True, title="")
         fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
-
-# ---------------------------------------------------------------------------
-# Section 4: Decile charts (static context)
-# ---------------------------------------------------------------------------
-with st.container(border=True):
-    "## Decile Overviews"
-
-    st.caption(
-        "Each bar shows the count of actions with values below that decile threshold. "
-        "The line shows the threshold value at each decile."
-    )
-
-    dec_col1, dec_col2 = st.columns(2)
-    with dec_col1:
-        st.plotly_chart(
-            da.plot.threshold_deciles("Propensity", "Propensity"),
-            use_container_width=True,
-        )
-    with dec_col2:
-        st.plotly_chart(
-            da.plot.threshold_deciles("Priority", "Priority"),
-            use_container_width=True,
-        )
+        st.plotly_chart(fig, width="stretch")
