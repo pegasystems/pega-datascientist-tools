@@ -102,14 +102,20 @@ if raw_data is not None and sample_limit_raw:
         st.stop()
 
     with st.spinner("Sampling interactions…"):
-        raw_data = sample_and_save(
+        raw_data, sample_path = sample_and_save(
             raw_data,
             n=sample_kwargs.get("n"),  # type: ignore[arg-type]
             fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
             output_dir=get_temp_dir(),
         )
     label = sample_limit_raw.strip()
-    st.info(f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions.")
+    if sample_path is not None:
+        st.info(
+            f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
+            f"Sampled data saved to `{sample_path}`."
+        )
+    else:
+        st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
 
 
 def _show_data_summary(da):

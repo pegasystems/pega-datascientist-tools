@@ -576,12 +576,13 @@ def sample_and_save(
     n: int | None = None,
     fraction: float | None = None,
     output_dir: str | None = None,
-) -> pl.LazyFrame:
+) -> tuple[pl.LazyFrame, Path | None]:
     """Sample interactions and persist the result as a parquet file.
 
     Writes ``decision_analyzer_sample.parquet`` into *output_dir* (defaults
     to the current working directory). Returns a LazyFrame scanning the
-    written file so downstream code benefits from a fast parquet scan.
+    written file plus the file path, so callers can display where the
+    sample was saved.
 
     If the data is smaller than the requested sample, sampling is skipped
     and the original LazyFrame is returned unchanged (no file is written).
@@ -599,9 +600,9 @@ def sample_and_save(
 
     Returns
     -------
-    pl.LazyFrame
-        Either a scan of the written parquet file, or the original
-        LazyFrame when sampling was skipped.
+    tuple[pl.LazyFrame, Path | None]
+        The (possibly sampled) LazyFrame and the path to the written
+        parquet file, or ``None`` when sampling was skipped.
     """
     available = set(df.collect_schema().names())
     id_column = _find_interaction_id_column(available)
@@ -615,7 +616,7 @@ def sample_and_save(
                 total,
                 n,
             )
-            return df
+            return df, None
 
     sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
 
@@ -626,7 +627,7 @@ def sample_and_save(
     logger.info("Writing sampled data to %s", out_path)
     sampled.collect().write_parquet(out_path)  # type: ignore[union-attribute]
 
-    return pl.scan_parquet(out_path)
+    return pl.scan_parquet(out_path), out_path
 
 
 def parse_sample_flag(value: str) -> dict[str, int | float]:
