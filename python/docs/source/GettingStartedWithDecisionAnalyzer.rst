@@ -299,6 +299,24 @@ Troubleshooting
 - Ensure Quarto and Pandoc are properly installed and accessible from the command line
 - Check the application logs in the terminal for specific error messages
 
+**Large datasets crash or fail with capacity errors**
+
+Standard polars uses 32-bit indexing and cannot handle datasets with more
+than ~2 billion elements. If you are working with very large decision data
+exports, install the 64-bit runtime extra:
+
+.. code-block:: bash
+
+   pip install 'polars[rt64]'
+
+This drops in a 64-bit runtime alongside polars, which is selected
+automatically at import time — no code changes required. Alternatively,
+use the ``--sample`` CLI flag to reduce the data before ingestion:
+
+.. code-block:: bash
+
+   pdstools decision_analyzer --sample 500000 --data-path /path/to/data
+
 **For more help:**
 
 - Review the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_

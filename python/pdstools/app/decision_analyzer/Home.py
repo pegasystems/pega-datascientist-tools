@@ -144,20 +144,44 @@ def _show_data_summary(da):
     st.success(summary)
 
 
+_LARGE_DATA_HINT = (
+    "**Your data may be too large for the default polars build.** "
+    "Standard polars uses 32-bit indexing and cannot handle more than "
+    "~2 billion elements.\n\n"
+    "To fix this, install the 64-bit runtime extra:\n\n"
+    "```\npip install 'polars[rt64]'\n```\n\n"
+    "Or reduce the data before loading with the `--sample` CLI flag:\n\n"
+    "```\npdstools da --sample 500000 --data-path /path/to/data\n```"
+)
+
+
+def _is_capacity_error(exc: BaseException) -> bool:
+    """Detect polars index-capacity or memory-related errors."""
+    msg = str(exc).lower()
+    return any(keyword in msg for keyword in ("capacity overflow", "index exceeds", "out of memory", "alloc"))
+
+
 if has_new_data and raw_data is not None:
     # New data provided — ingest, store, and reset filters
-    with st.spinner("Reading Data"):
-        data_id = str(hash(raw_data.explain(optimized=False)))
-        da = load_decision_analyzer(
-            raw_data,
-            level=level,
-            sample_size=sample_size,
-            data_fingerprint=data_id,
-        )
-        st.session_state.decision_data = da
-        st.session_state["filters"] = []
-        del raw_data
-        _show_data_summary(da)
+    try:
+        with st.spinner("Reading Data"):
+            data_id = str(hash(raw_data.explain(optimized=False)))
+            da = load_decision_analyzer(
+                raw_data,
+                level=level,
+                sample_size=sample_size,
+                data_fingerprint=data_id,
+            )
+            st.session_state.decision_data = da
+            st.session_state["filters"] = []
+            del raw_data
+            _show_data_summary(da)
+    except BaseException as exc:
+        if _is_capacity_error(exc):
+            st.error(f"🚫 {type(exc).__name__}: {exc}")
+            st.info(_LARGE_DATA_HINT)
+            st.stop()
+        raise  # re-raise unrelated errors
 elif has_existing_data:
     # Returning to Home with data already loaded — just show the summary
     _show_data_summary(st.session_state.decision_data)
