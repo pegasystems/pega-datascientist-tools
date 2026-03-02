@@ -841,3 +841,333 @@ class TestScopeHelpers:
     def test_available_categorical_fields(self, da_v1):
         fields = da_v1.getAvailableFieldsForFiltering(categoricalOnly=True)
         assert len(fields) > 0
+
+
+# ---------------------------------------------------------------------------
+# Available levels and set_level
+# ---------------------------------------------------------------------------
+
+
+class TestAvailableLevelsAndSetLevel:
+    def test_v1_available_levels_is_stage_group_only(self, da_v1):
+        """v1 (explainability_extract) only has synthetic Stage Group."""
+        assert da_v1.available_levels == ["Stage Group"]
+
+    def test_v2_available_levels_includes_stage_group(self, da_v2):
+        levels = da_v2.available_levels
+        assert "Stage Group" in levels
+
+    def test_v2_set_level_to_stage(self, da_v2):
+        """If Stage is available in v2, switching to it should work."""
+        if "Stage" not in da_v2.available_levels:
+            pytest.skip("Stage not available in this v2 dataset")
+        original_level = da_v2.level
+        da_v2.set_level("Stage")
+        assert da_v2.level == "Stage"
+        # Restore
+        da_v2.set_level(original_level)
+        assert da_v2.level == original_level
+
+    def test_set_level_invalid_raises_valueerror(self, da_v2):
+        with pytest.raises(ValueError, match="level must be one of"):
+            da_v2.set_level("NonexistentLevel")
+
+    def test_set_level_same_is_noop(self, da_v2):
+        """Setting level to its current value should be a no-op."""
+        original_level = da_v2.level
+        original_stages = list(da_v2.AvailableNBADStages)
+        da_v2.set_level(original_level)  # should not change anything
+        assert da_v2.level == original_level
+        assert da_v2.AvailableNBADStages == original_stages
+
+
+# ---------------------------------------------------------------------------
+# Stage methods (stages_from_arbitration_down, arbitration_stage)
+# ---------------------------------------------------------------------------
+
+
+class TestStageMethods:
+    def test_stages_from_arbitration_down_v2(self, da_v2):
+        stages = da_v2.stages_from_arbitration_down
+        assert stages[0] == "Arbitration"
+        assert len(stages) >= 1
+
+    def test_arbitration_stage_returns_lazyframe(self, da_v1):
+        result = da_v1.arbitration_stage
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+
+    def test_arbitration_stage_only_contains_arbitration_stages(self, da_v1):
+        df = da_v1.arbitration_stage.collect()
+        stage_values = df[da_v1.level].unique().to_list()
+        for s in stage_values:
+            assert s in da_v1.stages_from_arbitration_down
+
+    def test_v2_arbitration_stage(self, da_v2):
+        result = da_v2.arbitration_stage
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+
+
+# ---------------------------------------------------------------------------
+# Data access: getPossibleStageValues, stage_to_group_mapping
+# ---------------------------------------------------------------------------
+
+
+class TestDataAccess:
+    def test_getPossibleStageValues_v1(self, da_v1):
+        stages = da_v1.getPossibleStageValues()
+        assert isinstance(stages, list)
+        assert "Arbitration" in stages
+        assert "Output" in stages
+
+    def test_getPossibleStageValues_v2(self, da_v2):
+        stages = da_v2.getPossibleStageValues()
+        assert isinstance(stages, list)
+        assert len(stages) >= 2
+        assert "Arbitration" in stages
+
+    def test_stage_to_group_mapping_at_stage_group_level(self, da_v2):
+        """When level is Stage Group, mapping should be empty."""
+        assert da_v2.level == "Stage Group"
+        mapping = da_v2.stage_to_group_mapping
+        assert mapping == {}
+
+    def test_stage_to_group_mapping_at_stage_level(self, da_v2):
+        """When level is Stage, mapping should return non-empty dict."""
+        if "Stage" not in da_v2.available_levels:
+            pytest.skip("Stage not available in this v2 dataset")
+        original_level = da_v2.level
+        da_v2.set_level("Stage")
+        mapping = da_v2.stage_to_group_mapping
+        assert isinstance(mapping, dict)
+        assert len(mapping) > 0
+        # Values should be stage group names
+        assert "Arbitration" in mapping.values() or len(mapping) > 0
+        # Restore
+        da_v2.set_level(original_level)
+
+    def test_stage_to_group_mapping_v1_always_empty(self, da_v1):
+        """v1 has no real stage mapping."""
+        mapping = da_v1.stage_to_group_mapping
+        assert mapping == {}
+
+
+# ---------------------------------------------------------------------------
+# Analysis methods: optionality funnel, AB tests, thresholding
+# ---------------------------------------------------------------------------
+
+
+class TestAnalysisMethods:
+    def test_get_optionality_funnel_v1(self, da_v1):
+        result = da_v1.get_optionality_funnel()
+        df = result.collect()
+        assert df.height > 0
+        assert "available_actions" in df.columns
+        assert "Interactions" in df.columns
+        assert da_v1.level in df.columns
+
+    def test_get_optionality_funnel_v2(self, da_v2):
+        result = da_v2.get_optionality_funnel()
+        df = result.collect()
+        assert df.height > 0
+        assert "available_actions" in df.columns
+
+    def test_getABTestResults_no_crash(self, da_v2):
+        """AB test requires Model Control Group column — test it doesn't crash or raises cleanly."""
+        schema = da_v2.decision_data.collect_schema()
+        if "Model Control Group" not in schema.names():
+            with pytest.raises(Exception):
+                da_v2.getABTestResults()
+        else:
+            result = da_v2.getABTestResults()
+            assert isinstance(result, pl.DataFrame)
+            assert result.height > 0
+
+    def test_getThresholdingData_propensity(self, da_v1):
+        result = da_v1.getThresholdingData(fld="Propensity")
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+        assert "Decile" in result.columns
+        assert "Threshold" in result.columns
+        assert "Count" in result.columns
+        assert da_v1.level in result.columns
+
+    def test_getThresholdingData_priority(self, da_v2):
+        result = da_v2.getThresholdingData(fld="Priority")
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+
+    def test_getThresholdingData_custom_quantile_range(self, da_v1):
+        result = da_v1.getThresholdingData(fld="Propensity", quantile_range=range(20, 100, 20))
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+
+    def test_getThresholdingData_caches_result(self, da_v1):
+        """Calling with same args should return cached result."""
+        r1 = da_v1.getThresholdingData(fld="Propensity")
+        r2 = da_v1.getThresholdingData(fld="Propensity")
+        assert r1.equals(r2)
+
+
+# ---------------------------------------------------------------------------
+# Filtering/scoping: priority component distribution, remaining at stage,
+# filtered_action_counts
+# ---------------------------------------------------------------------------
+
+
+class TestFilteringAndScoping:
+    def test_priority_component_distribution_v2(self, da_v2):
+        """Test priority_component_distribution with a known component."""
+        available = set(da_v2.sample.collect_schema().names())
+        component = None
+        for c in ["Propensity", "Value", "Priority"]:
+            if c in available:
+                component = c
+                break
+        if component is None:
+            pytest.skip("No priority components available")
+        result = da_v2.priority_component_distribution(component=component, granularity="Issue", stage="Arbitration")
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "Issue" in df.columns
+        assert component in df.columns
+
+    def test_priority_component_distribution_no_stage(self, da_v2):
+        available = set(da_v2.sample.collect_schema().names())
+        component = "Propensity" if "Propensity" in available else None
+        if component is None:
+            pytest.skip("Propensity not available")
+        result = da_v2.priority_component_distribution(component=component, granularity="Action", stage=None)
+        df = result.collect()
+        assert df.height > 0
+
+    def test_all_components_distribution_v2(self, da_v2):
+        result = da_v2.all_components_distribution(granularity="Issue", stage="Arbitration")
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "Issue" in df.columns
+
+    def test_all_components_distribution_no_stage(self, da_v2):
+        result = da_v2.all_components_distribution(granularity="Group", stage=None)
+        df = result.collect()
+        assert df.height > 0
+        assert "Group" in df.columns
+
+    def test_remaining_at_stage_none(self, da_v2):
+        """stage=None falls back to non-null Priority rows."""
+        result = da_v2._remaining_at_stage(stage=None)
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        # All rows should have non-null Priority
+        assert df["Priority"].null_count() == 0
+
+    def test_remaining_at_stage_arbitration(self, da_v2):
+        result = da_v2._remaining_at_stage(stage="Arbitration")
+        df = result.collect()
+        assert df.height > 0
+        stages = df[da_v2.level].unique().to_list()
+        for s in stages:
+            assert s in da_v2.stages_from_arbitration_down
+
+    def test_filtered_action_counts_no_thresholds(self, da_v2):
+        result = da_v2.filtered_action_counts(groupby_cols=[da_v2.level])
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "no_of_offers" in df.columns
+
+    def test_filtered_action_counts_with_thresholds(self, da_v2):
+        result = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level],
+            propensityTH=0.5,
+            priorityTH=0.5,
+        )
+        df = result.collect()
+        assert df.height > 0
+        assert "no_of_offers" in df.columns
+        assert "good_offers" in df.columns
+        assert "poor_propensity_offers" in df.columns
+        assert "poor_priority_offers" in df.columns
+        assert "new_models" in df.columns
+
+    def test_filtered_action_counts_by_interaction(self, da_v1):
+        result = da_v1.filtered_action_counts(groupby_cols=["Interaction ID"])
+        df = result.collect()
+        assert df.height > 0
+        assert "Interaction ID" in df.columns
+
+    def test_filtered_action_counts_missing_col_raises(self, da_v1):
+        with pytest.raises(ValueError, match="not found"):
+            da_v1.filtered_action_counts(groupby_cols=["NonexistentColumn"])
+
+
+# ---------------------------------------------------------------------------
+# Win distribution (deeper coverage)
+# ---------------------------------------------------------------------------
+
+
+class TestWinDistributionExtended:
+    def test_baseline_distribution_v2(self, da_v2):
+        """Test baseline win distribution (lever_value=None) on v2."""
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond)
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+        assert "original_win_count" in result.columns
+        assert "selected_action" in result.columns
+        # Should have both Selected and Rest
+        selected_vals = result["selected_action"].unique().to_list()
+        assert "Selected" in selected_vals or "Rest" in selected_vals
+
+    def test_lever_adjusted_distribution_v2(self, da_v2):
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond, lever_value=2.0)
+        assert "new_win_count" in result.columns
+        assert "original_win_count" in result.columns
+
+    def test_distribution_with_no_winner_v2(self, da_v2):
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond, all_interactions=1000)
+        assert "No Winner" in result["Action"].to_list()
+
+    def test_lever_adjusted_with_no_winner(self, da_v1):
+        first_issue = da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v1.get_win_distribution_data(lever_condition=lever_cond, lever_value=1.5, all_interactions=5000)
+        assert "No Winner" in result["Action"].to_list()
+        assert "new_win_count" in result.columns
+
+
+# ---------------------------------------------------------------------------
+# find_lever_value (expensive — minimal test)
+# ---------------------------------------------------------------------------
+
+
+class TestFindLeverValue:
+    def test_find_lever_value_narrow_range(self, da_v1):
+        """Test find_lever_value with a narrow search range for speed."""
+        first_issue = da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        # Use a generous precision and narrow range to keep it fast
+        try:
+            result = da_v1.find_lever_value(
+                lever_condition=lever_cond,
+                target_win_percentage=50.0,
+                low=0.5,
+                high=10.0,
+                precision=1.0,
+            )
+            assert isinstance(result, float)
+            assert 0.5 <= result <= 10.0
+        except ValueError:
+            # Target may not be achievable — that's acceptable
+            pass

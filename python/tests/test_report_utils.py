@@ -305,3 +305,169 @@ def test_create_metric_gttable_callable_rag_without_format():
     # 12345.678 -> "12K" or similar compact format
     # 99999.123 -> "100K" or similar compact format
     assert "12345.678" not in html  # Raw value should not appear
+
+
+class TestGetVersionOnlyEdgeCases:
+    """Edge cases for _get_version_only not covered by test_get_version_only."""
+
+    def test_empty_string(self):
+        assert report_utils._get_version_only("") == ""
+
+    def test_no_digits(self):
+        assert report_utils._get_version_only("no version here") == ""
+
+    def test_single_number(self):
+        assert report_utils._get_version_only("version 42") == "42"
+
+    def test_leading_v(self):
+        assert report_utils._get_version_only("v1.2.3") == "1.2.3"
+
+    def test_version_with_trailing_text(self):
+        assert report_utils._get_version_only("1.3.450 (some build info)") == "1.3.450"
+
+    def test_four_part_version(self):
+        assert report_utils._get_version_only("tool 10.20.30.40") == "10.20.30.40"
+
+
+class TestGenerateZippedReport:
+    """Tests for generate_zipped_report."""
+
+    def test_creates_zip_from_directory(self, tmp_path):
+        """Test that a valid directory is zipped successfully."""
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "file1.txt").write_text("hello")
+        (source_dir / "file2.txt").write_text("world")
+
+        output_name = str(tmp_path / "my_archive.html")
+        report_utils.generate_zipped_report(output_name, str(source_dir))
+
+        expected_zip = tmp_path / "my_archive.zip"
+        assert expected_zip.exists()
+        assert expected_zip.stat().st_size > 0
+
+    def test_creates_zip_strips_extension(self, tmp_path):
+        """Test that the output filename extension is replaced with .zip."""
+        source_dir = tmp_path / "src"
+        source_dir.mkdir()
+        (source_dir / "data.csv").write_text("a,b,c")
+
+        output_name = str(tmp_path / "report.pdf")
+        report_utils.generate_zipped_report(output_name, str(source_dir))
+
+        assert (tmp_path / "report.zip").exists()
+        assert not (tmp_path / "report.pdf").exists()
+
+    def test_nonexistent_directory_returns_none(self, tmp_path):
+        """Test that a non-existent directory logs an error and returns."""
+        fake_dir = str(tmp_path / "does_not_exist")
+        # Should not raise — just logs and returns
+        result = report_utils.generate_zipped_report("output.html", fake_dir)
+        assert result is None
+
+    def test_file_instead_of_directory(self, tmp_path):
+        """Test that passing a file path (not a directory) logs an error and returns."""
+        a_file = tmp_path / "not_a_dir.txt"
+        a_file.write_text("I am a file")
+        result = report_utils.generate_zipped_report("output.html", str(a_file))
+        assert result is None
+
+
+class TestRemoveDuplicateHtmlScripts:
+    """Tests for remove_duplicate_html_scripts."""
+
+    def _make_large_script(self, content_id: str, size: int = 1_100_000) -> str:
+        """Create a script tag with content larger than the 1MB threshold."""
+        payload = f"/* {content_id} */ " + "x" * size
+        return f"<script>{payload}</script>"
+
+    def test_no_duplicates(self):
+        """No scripts are removed when all are unique."""
+        script_a = self._make_large_script("A")
+        script_b = self._make_large_script("B")
+        html = f"<html>{script_a}{script_b}</html>"
+        result = report_utils.remove_duplicate_html_scripts(html)
+        assert result == html
+
+    def test_duplicate_large_script_removed(self):
+        """Duplicate large scripts are replaced with a comment."""
+        script = self._make_large_script("plotly")
+        html = f"<html>{script}<p>content</p>{script}</html>"
+        result = report_utils.remove_duplicate_html_scripts(html)
+        assert result.count("<script>") == 1
+        assert "<!-- Duplicate script removed -->" in result
+
+    def test_small_scripts_not_deduplicated(self):
+        """Scripts under 1MB are not touched even if duplicated."""
+        small_script = "<script>var x = 1;</script>"
+        html = f"<html>{small_script}{small_script}</html>"
+        result = report_utils.remove_duplicate_html_scripts(html)
+        assert result == html  # unchanged
+
+    def test_three_copies_keeps_first(self):
+        """Three identical large scripts → first kept, two removed."""
+        script = self._make_large_script("lib")
+        html = f"<html>{script}{script}{script}</html>"
+        result = report_utils.remove_duplicate_html_scripts(html)
+        assert result.count("<script>") == 1
+        assert result.count("<!-- Duplicate script removed -->") == 2
+
+    def test_verbose_logging(self, caplog):
+        """Verbose mode logs size reduction info."""
+        import logging
+
+        script = self._make_large_script("plotly")
+        html = f"<html>{script}{script}</html>"
+        with caplog.at_level(logging.INFO, logger="pdstools.utils.report_utils"):
+            report_utils.remove_duplicate_html_scripts(html, verbose=True)
+        assert any("reduction" in r.message.lower() for r in caplog.records)
+
+    def test_empty_html(self):
+        """Empty string returns empty string."""
+        assert report_utils.remove_duplicate_html_scripts("") == ""
+
+    def test_no_scripts(self):
+        """HTML with no script tags is returned unchanged."""
+        html = "<html><body><p>Hello</p></body></html>"
+        assert report_utils.remove_duplicate_html_scripts(html) == html
+
+
+class TestDeserializeQuery:
+    """Tests for deserialize_query and serialize/deserialize roundtrip."""
+
+    def test_none_roundtrip(self):
+        assert report_utils.deserialize_query(None) is None
+
+    def test_expr_list_roundtrip(self):
+        """Expressions survive a serialize → deserialize roundtrip."""
+        original = [pl.col("A") > 5, pl.col("B").is_null()]
+        serialized = report_utils.serialize_query(original)
+        restored = report_utils.deserialize_query(serialized)
+        assert isinstance(restored, list)
+        assert len(restored) == 2
+        # Verify expressions work on real data
+        df = pl.DataFrame({"A": [3, 6, 10], "B": [None, "x", None]})
+        filtered = df.filter(restored)
+        assert len(filtered) == 1  # only row (10, None) matches both
+
+    def test_dict_roundtrip(self):
+        original = {"col": ["v1", "v2"]}
+        serialized = report_utils.serialize_query(original)
+        restored = report_utils.deserialize_query(serialized)
+        assert restored == original
+
+    def test_single_expr_roundtrip(self):
+        """A single expression (not a list) survives roundtrip."""
+        original = pl.col("score") >= 0.5
+        serialized = report_utils.serialize_query(original)
+        restored = report_utils.deserialize_query(serialized)
+        assert isinstance(restored, list)
+        assert len(restored) == 1
+        # Verify the expression works
+        df = pl.DataFrame({"score": [0.3, 0.5, 0.9]})
+        assert len(df.filter(restored)) == 2
+
+    def test_unknown_type_raises(self):
+        """Deserializing an unknown type raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown query type"):
+            report_utils.deserialize_query({"type": "unknown"})

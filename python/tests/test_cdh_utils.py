@@ -830,3 +830,290 @@ def test_parse_pega_date_time_formats():
     assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 6
     assert df["SnapshotTime2"].to_list()[2] is not None
     assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 7
+
+
+# ── Tests for _combine_queries ──────────────────────────────────────────────
+
+
+def test_combine_queries_expr_with_expr():
+    q1 = pl.col("A") > 1
+    q2 = pl.col("B") < 5
+    result = cdh_utils._combine_queries(q1, q2)
+    assert isinstance(result, pl.Expr)
+    df = pl.DataFrame({"A": [0, 2, 3], "B": [1, 6, 3]})
+    filtered = df.filter(result)
+    assert filtered.to_dict(as_series=False) == {"A": [3], "B": [3]}
+
+
+def test_combine_queries_list_with_expr():
+    q1 = [pl.col("A") > 1]
+    q2 = pl.col("B") < 5
+    result = cdh_utils._combine_queries(q1, q2)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    df = pl.DataFrame({"A": [0, 2, 3], "B": [1, 6, 3]})
+    filtered = df.filter(result)
+    assert filtered.to_dict(as_series=False) == {"A": [3], "B": [3]}
+
+
+def test_combine_queries_dict_with_expr():
+    q1 = {"A": [2, 3]}
+    q2 = pl.col("B") < 5
+    result = cdh_utils._combine_queries(q1, q2)
+    assert isinstance(result, list)
+    df = pl.DataFrame({"A": [0, 2, 3], "B": [1, 6, 3]})
+    filtered = df.filter(result)
+    assert filtered.to_dict(as_series=False) == {"A": [3], "B": [3]}
+
+
+def test_combine_queries_unsupported_type_raises():
+    with pytest.raises(ValueError, match="Unsupported query type"):
+        cdh_utils._combine_queries("not_a_query", pl.col("A") > 1)
+
+
+# ── Tests for safe_flatten_list ──────────────────────────────────────────────
+
+
+def test_safe_flatten_list_nested():
+    result = cdh_utils.safe_flatten_list([1, [2, 3], None, [4]])
+    assert result == [1, 2, 3, 4]
+
+
+def test_safe_flatten_list_deduplication():
+    result = cdh_utils.safe_flatten_list([1, 1, 2])
+    assert result == [1, 2]
+
+
+def test_safe_flatten_list_empty_returns_none():
+    result = cdh_utils.safe_flatten_list([], [])
+    assert result is None
+
+
+def test_safe_flatten_list_extras():
+    result = cdh_utils.safe_flatten_list([3, 4], extras=[1, 2])
+    assert result == [1, 2, 3, 4]
+
+
+def test_safe_flatten_list_none_alist():
+    result = cdh_utils.safe_flatten_list(None)
+    assert result is None
+
+
+# ── Tests for process_files_to_bytes ─────────────────────────────────────────
+
+
+def test_process_files_to_bytes_single_file(tmp_path):
+    f = tmp_path / "report.html"
+    f.write_text("<html>hello</html>")
+    content, name = cdh_utils.process_files_to_bytes([str(f)], "report.html")
+    assert content == b"<html>hello</html>"
+    assert name == "report.html"
+
+
+def test_process_files_to_bytes_multiple_files(tmp_path):
+    import zipfile
+
+    f1 = tmp_path / "a.txt"
+    f2 = tmp_path / "b.txt"
+    f1.write_text("aaa")
+    f2.write_text("bbb")
+    content, name = cdh_utils.process_files_to_bytes([str(f1), str(f2)], "reports.html")
+    assert name.startswith("reports_")
+    assert name.endswith(".zip")
+    import io
+
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        assert set(zf.namelist()) == {"a.txt", "b.txt"}
+        assert zf.read("a.txt") == b"aaa"
+        assert zf.read("b.txt") == b"bbb"
+
+
+def test_process_files_to_bytes_empty_list():
+    content, name = cdh_utils.process_files_to_bytes([], "report.html")
+    assert content == b""
+    assert name == ""
+
+
+# ── Tests for create_working_and_temp_dir ────────────────────────────────────
+
+
+def test_create_working_and_temp_dir_with_name(tmp_path):
+    working, temp = cdh_utils.create_working_and_temp_dir(name="myreport", working_dir=tmp_path)
+    assert working == tmp_path
+    assert temp.exists()
+    assert temp.parent == tmp_path
+    assert "tmp_myreport_" in temp.name
+
+
+def test_create_working_and_temp_dir_without_name(tmp_path):
+    working, temp = cdh_utils.create_working_and_temp_dir(working_dir=tmp_path)
+    assert working == tmp_path
+    assert temp.exists()
+    assert temp.name.startswith("tmp_")
+
+
+def test_create_working_and_temp_dir_custom_working_dir(tmp_path):
+    custom = tmp_path / "sub" / "dir"
+    working, temp = cdh_utils.create_working_and_temp_dir(working_dir=custom)
+    assert working == custom
+    assert working.exists()
+    assert temp.exists()
+
+
+# ── Tests for lazy_sample ────────────────────────────────────────────────────
+
+
+def test_lazy_sample_with_replacement():
+    df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
+    sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=True)
+    assert isinstance(sampled, pl.DataFrame)
+    assert sampled.shape[0] == 10
+    assert sampled.columns == ["x", "y"]
+
+
+def test_lazy_sample_without_replacement():
+    df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
+    sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=False)
+    assert isinstance(sampled, pl.DataFrame)
+    # Without replacement uses binomial sampling so result is approximate
+    assert sampled.shape[0] > 0
+    assert sampled.shape[0] <= 100
+    assert sampled.columns == ["x", "y"]
+
+
+def test_lazy_sample_n_larger_than_data_without_replacement():
+    df = pl.DataFrame({"x": [1, 2, 3]})
+    sampled = cdh_utils.lazy_sample(df, n_rows=100, with_replacement=False)
+    assert isinstance(sampled, pl.DataFrame)
+    # When n_rows > len, all rows should be returned
+    assert sampled.shape[0] == 3
+
+
+# ── Tests for _get_start_end_date_args ───────────────────────────────────────
+
+
+def test_get_start_end_date_args_start_and_end():
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                datetime.datetime(2024, 1, 1),
+                datetime.datetime(2024, 1, 10),
+                datetime.datetime(2024, 1, 20),
+            ],
+        },
+    )
+    start = datetime.datetime(2024, 1, 5)
+    end = datetime.datetime(2024, 1, 15)
+    s, e = cdh_utils._get_start_end_date_args(df, start_date=start, end_date=end)
+    assert s == start
+    assert e == end
+
+
+def test_get_start_end_date_args_start_and_window():
+    df = pl.DataFrame(
+        {"SnapshotTime": [datetime.datetime(2024, 1, 1)]},
+    )
+    start = datetime.datetime(2024, 1, 1)
+    s, e = cdh_utils._get_start_end_date_args(df, start_date=start, window=7)
+    assert s == start
+    assert e == start + datetime.timedelta(days=6)
+
+
+def test_get_start_end_date_args_end_and_window():
+    df = pl.DataFrame(
+        {"SnapshotTime": [datetime.datetime(2024, 1, 1)]},
+    )
+    end = datetime.datetime(2024, 1, 10)
+    s, e = cdh_utils._get_start_end_date_args(df, end_date=end, window=5)
+    assert s == end - datetime.timedelta(days=4)
+    assert e == end
+
+
+def test_get_start_end_date_args_all_three_raises():
+    df = pl.DataFrame(
+        {"SnapshotTime": [datetime.datetime(2024, 1, 1)]},
+    )
+    with pytest.raises(ValueError, match="Only max two"):
+        cdh_utils._get_start_end_date_args(
+            df,
+            start_date=datetime.datetime(2024, 1, 1),
+            end_date=datetime.datetime(2024, 1, 10),
+            window=5,
+        )
+
+
+def test_get_start_end_date_args_none_uses_data_range():
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                datetime.datetime(2024, 1, 5),
+                datetime.datetime(2024, 1, 15),
+            ],
+        },
+    )
+    s, e = cdh_utils._get_start_end_date_args(df)
+    assert s == datetime.datetime(2024, 1, 5)
+    assert e == datetime.datetime(2024, 1, 15)
+
+
+def test_get_start_end_date_args_start_after_end_raises():
+    df = pl.DataFrame(
+        {"SnapshotTime": [datetime.datetime(2024, 1, 1)]},
+    )
+    with pytest.raises(ValueError, match="start date"):
+        cdh_utils._get_start_end_date_args(
+            df,
+            start_date=datetime.datetime(2024, 2, 1),
+            end_date=datetime.datetime(2024, 1, 1),
+        )
+
+
+def test_get_start_end_date_args_with_lazyframe():
+    lf = pl.LazyFrame(
+        {
+            "SnapshotTime": [
+                datetime.datetime(2024, 3, 1),
+                datetime.datetime(2024, 3, 31),
+            ],
+        },
+    )
+    s, e = cdh_utils._get_start_end_date_args(lf)
+    assert s == datetime.datetime(2024, 3, 1)
+    assert e == datetime.datetime(2024, 3, 31)
+
+
+def test_get_start_end_date_args_with_series():
+    series = pl.Series(
+        "SnapshotTime",
+        [datetime.datetime(2024, 6, 1), datetime.datetime(2024, 6, 30)],
+    )
+    s, e = cdh_utils._get_start_end_date_args(series)
+    assert s == datetime.datetime(2024, 6, 1)
+    assert e == datetime.datetime(2024, 6, 30)
+
+
+# ── Tests for z_ratio / lift with string column names ────────────────────────
+
+
+def test_z_ratio_with_string_columns():
+    df = pl.DataFrame(
+        {
+            "BinPositives": [0, 7, 11, 12, 6],
+            "BinNegatives": [5, 2208, 1919, 1082, 352],
+        },
+    )
+    expr_result = df.with_columns(cdh_utils.z_ratio()).select("ZRatio")
+    str_result = df.with_columns(cdh_utils.z_ratio(pos_col="BinPositives", neg_col="BinNegatives")).select("ZRatio")
+    assert expr_result.equals(str_result)
+
+
+def test_lift_with_string_columns():
+    df = pl.DataFrame(
+        {
+            "BinPositives": [0, 7, 11, 12, 6],
+            "BinNegatives": [5, 2208, 1919, 1082, 352],
+        },
+    )
+    expr_result = df.with_columns(cdh_utils.lift()).select("Lift")
+    str_result = df.with_columns(cdh_utils.lift(pos_col="BinPositives", neg_col="BinNegatives")).select("Lift")
+    assert expr_result.equals(str_result)
