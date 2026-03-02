@@ -126,11 +126,13 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "display_name": "Context Weight",
         "default": True,
         "type": pl.Float64,
+        "aliases": ["Context Weight", "contextweight"],
     },
     "Weight": {
         "display_name": "Levers",
         "default": True,
         "type": pl.Float64,
+        "aliases": ["Levers", "leverweight"],
     },
     # V2 has only one propensity column (FinalPropensity); v1 has multiple
     # (pyPropensity and FinalPropensity). See ExplainabilityExtract below.
@@ -143,6 +145,7 @@ DecisionAnalyzer: dict[str, TableConfig] = {
         "display_name": "Priority",
         "default": False,
         "type": pl.Float32,
+        "aliases": ["pxPriority"],
     },
     "pyApplication": {
         "display_name": "Application",

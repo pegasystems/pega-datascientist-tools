@@ -269,18 +269,30 @@ def resolve_aliases(
 def determine_extract_type(raw_data):
     """Detect whether the data is a Decision Analyzer (v2) or Explainability Extract (v1).
 
-    The heuristic is: if any column name matches the raw key, display name, or
-    aliases for the ``pxStrategyName`` entry in the DecisionAnalyzer table
-    definition, the data is v2.
+    V2 data must have both a strategy name column *and* stage pipeline columns
+    (``Stage_pyStageGroup`` / ``Stage Group``). Data that has strategy names
+    but no stage information (e.g. pre-aggregated or anonymized exports) is
+    treated as v1 so the synthetic-stage fallback is used.
     """
+    available = set(raw_data.collect_schema().names())
+
     strategy_config = DecisionAnalyzer.get("pxStrategyName", {})
     strategy_names = {"pxStrategyName"}
     if strategy_config:
         strategy_names.add(strategy_config["display_name"])
         strategy_names.update(strategy_config.get("aliases", []))
 
-    available = set(raw_data.collect_schema().names())
-    return "decision_analyzer" if strategy_names & available else "explainability_extract"
+    has_strategy = bool(strategy_names & available)
+
+    stage_config = DecisionAnalyzer.get("Stage_pyStageGroup", {})
+    stage_names = {"Stage_pyStageGroup"}
+    if stage_config:
+        stage_names.add(stage_config["display_name"])
+        stage_names.update(stage_config.get("aliases", []))
+
+    has_stages = bool(stage_names & available)
+
+    return "decision_analyzer" if (has_strategy and has_stages) else "explainability_extract"
 
 
 def rename_and_cast_types(

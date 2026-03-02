@@ -558,12 +558,16 @@ class DecisionAnalyzer:
         been added to generate more data.
         """
 
-        if "day" not in df.collect_schema().names():
+        available = set(df.collect_schema().names())
+
+        if "day" not in available:
             df = df.with_columns(day=pl.col("Decision Time").dt.date())
 
-        # Build ranking columns - include StageOrder only if it exists
-        ranking_cols = ["is_mandatory", "Priority"]
-        if "Stage Order" in df.collect_schema().names():
+        # Build ranking columns — only include columns that actually exist
+        ranking_cols: list[str | pl.Expr] = ["is_mandatory"]
+        if "Priority" in available:
+            ranking_cols.append("Priority")
+        if "Stage Order" in available:
             ranking_cols.append("Stage Order")
         ranking_cols.extend(
             [
