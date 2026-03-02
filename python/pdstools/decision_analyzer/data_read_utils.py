@@ -68,8 +68,9 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
 
 
 def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
-    """Iterates over all files with a .zip extension in the given directory, treats them
-    as gzipped ndjson files, reads, and concatenates them into a single Polars DataFrame.
+    """Recursively finds all files with a .zip extension under the given directory,
+    treats them as gzipped ndjson files, reads, and concatenates them into a single
+    Polars DataFrame. Supports arbitrary directory depth.
 
     Parameters
     ----------
@@ -85,18 +86,15 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     dfs: list[pl.DataFrame] = []
     columns: list[str] = []
 
-    # Iterate over all files in the directory
-    for filename in os.listdir(path):
-        if filename.endswith(".zip"):
-            # Construct the full file path
-            file_path = os.path.join(path, filename)
-            # Read the gzipped file
-            with gzip.open(file_path, "rb") as file:
-                file_content = file.read()
-                df = pl.read_ndjson(BytesIO(file_content)).lazy()
-                if columns == []:
-                    columns = df.columns
-                dfs.append(df.select(columns))  # type: ignore[arg-type]
+    for file_path in sorted(Path(path).rglob("*.zip")):
+        if any(part.startswith(".") for part in file_path.parts):
+            continue
+        with gzip.open(file_path, "rb") as file:
+            file_content = file.read()
+            df = pl.read_ndjson(BytesIO(file_content)).lazy()
+            if columns == []:
+                columns = df.columns
+            dfs.append(df.select(columns))  # type: ignore[arg-type]
 
     return pl.concat(dfs, rechunk=True)
 
@@ -105,8 +103,8 @@ def read_data(path):
     original_path = Path(path)  # save the original path
     extension = None  # Initialize extension to None
     if original_path.is_dir():
-        # It's a directory, so we assume it's partitioned
-        # Find the first real data file extension, skipping hidden files
+        # It's a directory, possibly hive-partitioned at arbitrary depth.
+        # Find the first real data file extension, skipping hidden files.
         for dirpath, dirs, files in os.walk(str(original_path)):
             dirs[:] = [d for d in dirs if not d.startswith(".")]
             for file in files:
@@ -116,17 +114,8 @@ def read_data(path):
                         break
             if extension:
                 break
-        # Find the depth of the directory structure by finding the maximum
-        # number of parts among all matching files
-        data_files = [
-            p for p in original_path.glob(f"**/*{extension}") if not any(part.startswith(".") for part in p.parts)
-        ]
-        if not data_files:
-            raise ValueError("No data files found in directory")
-        depth = max(len(p.parts) for p in data_files) - len(original_path.parts)
-        partition_structure = Path("/".join(["*"] * (depth - 1)))
-        # Append the file extension glob to only match actual data files
-        path = original_path / partition_structure / f"*{extension}"
+        # Use a recursive glob — works regardless of partition depth.
+        path = original_path / f"**/*{extension}"
     else:
         # It's a file, so we read based on the extension
         extension = original_path.suffix
