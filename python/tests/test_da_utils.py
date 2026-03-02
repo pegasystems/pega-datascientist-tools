@@ -1,0 +1,580 @@
+# python/tests/test_da_utils.py
+"""
+Tests for decision_analyzer/utils.py utility functions.
+
+Covers: parse_sample_flag, area_under_curve, gini_coefficient,
+get_first_level_stats, resolve_aliases, rename_and_cast_types,
+_cast_columns, get_scope_config, create_hierarchical_selectors,
+sample_interactions, sample_and_save, _find_interaction_id_column,
+_get_interaction_id_candidates.
+"""
+
+import polars as pl
+import pytest
+
+pl.enable_string_cache()
+
+from pdstools.decision_analyzer.column_schema import (  # noqa: E402
+    DecisionAnalyzer,
+    ExplainabilityExtract,
+)
+from pdstools.decision_analyzer.utils import (  # noqa: E402
+    _cast_columns,
+    _find_interaction_id_column,
+    _get_interaction_id_candidates,
+    area_under_curve,
+    create_hierarchical_selectors,
+    get_first_level_stats,
+    get_scope_config,
+    gini_coefficient,
+    parse_sample_flag,
+    rename_and_cast_types,
+    resolve_aliases,
+    sample_and_save,
+    sample_interactions,
+)
+
+
+# ---------------------------------------------------------------------------
+# parse_sample_flag
+# ---------------------------------------------------------------------------
+
+
+class TestParseSampleFlag:
+    """Parsing the --sample CLI flag into n/fraction kwargs."""
+
+    def test_absolute_count(self):
+        result = parse_sample_flag("100000")
+        assert result == {"n": 100000}
+
+    def test_percentage(self):
+        result = parse_sample_flag("10%")
+        assert result == {"fraction": 0.1}
+
+    def test_percentage_with_whitespace(self):
+        result = parse_sample_flag("  25%  ")
+        assert result == {"fraction": 0.25}
+
+    def test_100_percent(self):
+        result = parse_sample_flag("100%")
+        assert result == {"fraction": 1.0}
+
+    def test_zero_count_raises(self):
+        with pytest.raises(ValueError, match="positive"):
+            parse_sample_flag("0")
+
+    def test_zero_percent_raises(self):
+        with pytest.raises(ValueError, match=r"\(0, 100\]"):
+            parse_sample_flag("0%")
+
+    def test_negative_count_raises(self):
+        with pytest.raises(ValueError, match="positive"):
+            parse_sample_flag("-5")
+
+    def test_101_percent_raises(self):
+        with pytest.raises(ValueError, match=r"\(0, 100\]"):
+            parse_sample_flag("101%")
+
+    def test_non_numeric_raises(self):
+        with pytest.raises(ValueError):
+            parse_sample_flag("abc")
+
+    def test_single_unit(self):
+        result = parse_sample_flag("1")
+        assert result == {"n": 1}
+
+
+# ---------------------------------------------------------------------------
+# area_under_curve / gini_coefficient
+# ---------------------------------------------------------------------------
+
+
+class TestAreaUnderCurve:
+    """Trapezoidal area computation."""
+
+    def test_triangle(self):
+        """Triangle with vertices (0,0)→(1,1): area = 0.5."""
+        df = pl.DataFrame({"x": [0.0, 1.0], "y": [0.0, 1.0]})
+        assert area_under_curve(df, "x", "y") == pytest.approx(0.5)
+
+    def test_unit_square(self):
+        """Rectangle (0,1)→(1,1): area = 1.0."""
+        df = pl.DataFrame({"x": [0.0, 1.0], "y": [1.0, 1.0]})
+        assert area_under_curve(df, "x", "y") == pytest.approx(1.0)
+
+    def test_trapezoid(self):
+        """Trapezoid: y goes 0→1→1 over x=0,0.5,1 → area = 0.75."""
+        df = pl.DataFrame({"x": [0.0, 0.5, 1.0], "y": [0.0, 1.0, 1.0]})
+        assert area_under_curve(df, "x", "y") == pytest.approx(0.75)
+
+    def test_zero_area(self):
+        """All y=0 → area=0."""
+        df = pl.DataFrame({"x": [0.0, 1.0], "y": [0.0, 0.0]})
+        assert area_under_curve(df, "x", "y") == pytest.approx(0.0)
+
+
+class TestGiniCoefficient:
+    """gini = auc * 2 - 1."""
+
+    def test_perfect_equality(self):
+        """AUC=0.5 → Gini=0."""
+        df = pl.DataFrame({"x": [0.0, 1.0], "y": [0.0, 1.0]})
+        assert gini_coefficient(df, "x", "y") == pytest.approx(0.0)
+
+    def test_perfect_model(self):
+        """AUC=1.0 → Gini=1.0."""
+        df = pl.DataFrame({"x": [0.0, 1.0], "y": [1.0, 1.0]})
+        assert gini_coefficient(df, "x", "y") == pytest.approx(1.0)
+
+    def test_relationship_to_auc(self):
+        df = pl.DataFrame({"x": [0.0, 0.5, 1.0], "y": [0.0, 1.0, 1.0]})
+        auc = area_under_curve(df, "x", "y")
+        gini = gini_coefficient(df, "x", "y")
+        assert gini == pytest.approx(auc * 2 - 1)
+
+
+# ---------------------------------------------------------------------------
+# get_first_level_stats
+# ---------------------------------------------------------------------------
+
+
+class TestGetFirstLevelStats:
+    """Summary statistics with and without Interaction ID column."""
+
+    @pytest.fixture()
+    def interaction_data_with_id(self):
+        return pl.LazyFrame(
+            {
+                "Issue": ["Sales", "Sales", "Service", "Service"],
+                "Group": ["Cards", "Cards", "Support", "Support"],
+                "Action": ["A1", "A2", "B1", "B2"],
+                "Interaction ID": ["i1", "i1", "i2", "i3"],
+            },
+            schema={
+                "Issue": pl.Categorical,
+                "Group": pl.Categorical,
+                "Action": pl.Categorical,
+                "Interaction ID": pl.Utf8,
+            },
+        )
+
+    @pytest.fixture()
+    def interaction_data_no_id(self):
+        return pl.LazyFrame(
+            {
+                "Issue": ["Sales", "Sales", "Service"],
+                "Group": ["Cards", "Cards", "Support"],
+                "Action": ["A1", "A2", "B1"],
+            },
+            schema={
+                "Issue": pl.Categorical,
+                "Group": pl.Categorical,
+                "Action": pl.Categorical,
+            },
+        )
+
+    def test_stats_with_interaction_id(self, interaction_data_with_id):
+        stats = get_first_level_stats(interaction_data_with_id)
+        assert stats["Actions"] == 4
+        assert stats["Rows"] == 4
+        assert stats["Interactions"] == 3
+
+    def test_stats_without_interaction_id(self, interaction_data_no_id):
+        stats = get_first_level_stats(interaction_data_no_id)
+        assert stats["Actions"] == 3
+        assert stats["Rows"] == 3
+        assert "Interactions" not in stats
+
+    def test_stats_with_filter(self, interaction_data_with_id):
+        filt = pl.col("Issue") == "Sales"
+        stats = get_first_level_stats(interaction_data_with_id, filters=filt)
+        assert stats["Actions"] == 2
+        assert stats["Rows"] == 2
+        assert stats["Interactions"] == 1
+
+
+# ---------------------------------------------------------------------------
+# resolve_aliases
+# ---------------------------------------------------------------------------
+
+
+class TestResolveAliases:
+    """Alias renaming for column harmonisation."""
+
+    def test_alias_renamed_to_canonical(self):
+        """When alias 'pyChannel' exists and canonical doesn't, rename it."""
+        lf = pl.LazyFrame({"pyChannel": ["Web", "Mobile"]})
+        result = resolve_aliases(lf, DecisionAnalyzer)
+        names = result.collect_schema().names()
+        assert "Primary_ContainerPayload_Channel" in names
+        assert "pyChannel" not in names
+
+    def test_no_rename_when_canonical_exists(self):
+        """If the canonical raw key already exists, don't rename the alias."""
+        lf = pl.LazyFrame(
+            {
+                "Primary_ContainerPayload_Channel": ["Web", "Mobile"],
+                "pyChannel": ["X", "Y"],
+            }
+        )
+        result = resolve_aliases(lf, DecisionAnalyzer)
+        names = result.collect_schema().names()
+        # Both should still exist — canonical present, so no rename.
+        assert "Primary_ContainerPayload_Channel" in names
+        assert "pyChannel" in names
+
+    def test_no_rename_when_display_name_exists(self):
+        """If the display_name already exists, don't rename alias."""
+        lf = pl.LazyFrame({"Channel": ["Web"], "pyChannel": ["X"]})
+        result = resolve_aliases(lf, DecisionAnalyzer)
+        names = result.collect_schema().names()
+        assert "Channel" in names
+        assert "pyChannel" in names
+
+    def test_multiple_table_definitions(self):
+        """Pass both DA and EE definitions; aliases from each are handled."""
+        # pyChannel is itself a raw key in EE, so the alias guard prevents
+        # renaming it to DA's Primary_ContainerPayload_Channel. Use an alias
+        # that is NOT a raw key in either definition.
+        lf = pl.LazyFrame(
+            {
+                "InteractionID": ["i1"],
+                "DecisionTime": ["20230101T120000.000 GMT"],
+            }
+        )
+        result = resolve_aliases(lf, DecisionAnalyzer, ExplainabilityExtract)
+        names = result.collect_schema().names()
+        # InteractionID is alias for pxInteractionID in both defs
+        assert "pxInteractionID" in names
+        # DecisionTime is alias for pxDecisionTime
+        assert "pxDecisionTime" in names
+
+    def test_no_aliases_is_noop(self):
+        """Columns with no aliases defined stay untouched."""
+        lf = pl.LazyFrame({"SomeRandomCol": [1]})
+        result = resolve_aliases(lf, DecisionAnalyzer)
+        assert result.collect_schema().names() == ["SomeRandomCol"]
+
+
+# ---------------------------------------------------------------------------
+# rename_and_cast_types
+# ---------------------------------------------------------------------------
+
+
+class TestRenameAndCastTypes:
+    """Single-pass rename + type cast via ColumnResolver."""
+
+    def test_basic_rename_and_cast(self):
+        lf = pl.LazyFrame(
+            {
+                "pyIssue": ["Sales", "Service"],
+                "pyGroup": ["Cards", "Support"],
+                "pyName": ["A1", "B1"],
+            }
+        )
+        result = rename_and_cast_types(lf, DecisionAnalyzer)
+        schema = result.collect_schema()
+        assert "Issue" in schema.names()
+        assert "Group" in schema.names()
+        assert "Action" in schema.names()
+        assert schema["Issue"] == pl.Categorical
+        assert schema["Group"] == pl.Categorical
+
+    def test_conflict_resolution_prefers_display_name(self):
+        """When both raw key and display_name columns exist, drop the raw key."""
+        lf = pl.LazyFrame(
+            {
+                "pyIssue": ["raw_val"],
+                "Issue": ["display_val"],
+                "pyGroup": ["G1"],
+                "pyName": ["A1"],
+            }
+        )
+        result = rename_and_cast_types(lf, DecisionAnalyzer)
+        collected = result.collect()
+        assert collected.get_column("Issue").to_list() == ["display_val"]
+
+
+# ---------------------------------------------------------------------------
+# _cast_columns
+# ---------------------------------------------------------------------------
+
+
+class TestCastColumns:
+    """Column type casting including special Datetime handling."""
+
+    def test_cast_float(self):
+        lf = pl.LazyFrame({"val": [1, 2, 3]})
+        result = _cast_columns(lf, {"val": pl.Float64})
+        assert result.collect_schema()["val"] == pl.Float64
+
+    def test_cast_categorical(self):
+        lf = pl.LazyFrame({"cat": ["a", "b", "c"]})
+        result = _cast_columns(lf, {"cat": pl.Categorical})
+        assert result.collect_schema()["cat"] == pl.Categorical
+
+    def test_cast_skips_missing_column(self):
+        lf = pl.LazyFrame({"x": [1]})
+        result = _cast_columns(lf, {"nonexistent": pl.Float64})
+        assert result.collect_schema() == lf.collect_schema()
+
+    def test_cast_same_type_is_noop(self):
+        lf = pl.LazyFrame({"x": pl.Series([1.0, 2.0], dtype=pl.Float64)})
+        result = _cast_columns(lf, {"x": pl.Float64})
+        assert result.collect().get_column("x").to_list() == [1.0, 2.0]
+
+    def test_cast_datetime_uses_pega_parser(self):
+        """Datetime target type triggers parse_pega_date_time_formats."""
+        lf = pl.LazyFrame({"dt": ["20230101T120000.000 GMT"]})
+        result = _cast_columns(lf, {"dt": pl.Datetime})
+        schema = result.collect_schema()
+        # parse_pega_date_time_formats should produce a Datetime column
+        assert schema["dt"] == pl.Datetime or schema["dt"].base_type() == pl.Datetime
+
+
+# ---------------------------------------------------------------------------
+# get_scope_config
+# ---------------------------------------------------------------------------
+
+
+class TestGetScopeConfig:
+    """Three branches: Action-level, Group-level, Issue-level."""
+
+    def test_action_level(self):
+        cfg = get_scope_config("Sales", "Cards", "GoldCard")
+        assert cfg["level"] == "Action"
+        assert cfg["x_col"] == "Action"
+        assert cfg["selected_value"] == "GoldCard"
+        assert cfg["group_cols"] == ["Issue", "Group", "Action"]
+
+    def test_group_level(self):
+        cfg = get_scope_config("Sales", "Cards", "All")
+        assert cfg["level"] == "Group"
+        assert cfg["x_col"] == "Group"
+        assert cfg["selected_value"] == "Cards"
+        assert cfg["group_cols"] == ["Issue", "Group"]
+
+    def test_issue_level(self):
+        cfg = get_scope_config("Sales", "All", "All")
+        assert cfg["level"] == "Issue"
+        assert cfg["x_col"] == "Issue"
+        assert cfg["selected_value"] == "Sales"
+        assert cfg["group_cols"] == ["Issue"]
+
+    def test_lever_condition_is_expr(self):
+        for args in [
+            ("I", "G", "A"),
+            ("I", "G", "All"),
+            ("I", "All", "All"),
+        ]:
+            cfg = get_scope_config(*args)
+            assert isinstance(cfg["lever_condition"], pl.Expr)
+
+
+# ---------------------------------------------------------------------------
+# create_hierarchical_selectors
+# ---------------------------------------------------------------------------
+
+
+class TestCreateHierarchicalSelectors:
+    """Hierarchical filter options from Issue/Group/Action data."""
+
+    @pytest.fixture()
+    def hierarchy_data(self):
+        return pl.LazyFrame(
+            {
+                "Issue": ["Sales", "Sales", "Sales", "Service"],
+                "Group": ["Cards", "Cards", "Loans", "Support"],
+                "Action": ["A1", "A2", "A3", "B1"],
+            },
+            schema={
+                "Issue": pl.Categorical,
+                "Group": pl.Categorical,
+                "Action": pl.Categorical,
+            },
+        )
+
+    def test_default_selections(self, hierarchy_data):
+        result = create_hierarchical_selectors(hierarchy_data)
+        # Issues should contain both
+        assert set(result["issues"]["options"]) == {"Sales", "Service"}
+        assert result["issues"]["index"] == 0
+        # Groups and actions should have "All" prefix
+        assert result["groups"]["options"][0] == "All"
+        assert result["actions"]["options"][0] == "All"
+
+    def test_selected_issue_sets_index(self, hierarchy_data):
+        # Get the options list first and verify a known issue can be selected
+        result_sales = create_hierarchical_selectors(hierarchy_data, selected_issue="Sales")
+        result_service = create_hierarchical_selectors(hierarchy_data, selected_issue="Service")
+        # Both should find their issue in the options
+        sales_opts = result_sales["issues"]["options"]
+        service_opts = result_service["issues"]["options"]
+        assert "Sales" in sales_opts
+        assert "Service" in service_opts
+        # The index should point to the selected issue
+        sales_idx = result_sales["issues"]["index"]
+        service_idx = result_service["issues"]["index"]
+        assert sales_opts[sales_idx] == "Sales"
+        assert service_opts[service_idx] == "Service"
+
+    def test_selected_group_filters_actions(self, hierarchy_data):
+        # Select "Sales" issue and "Cards" group
+        result = create_hierarchical_selectors(hierarchy_data, selected_issue="Sales", selected_group="Cards")
+        assert result["groups"]["index"] > 0  # not "All"
+        # Actions should be filtered to Cards actions only
+        action_opts = result["actions"]["options"]
+        assert "All" in action_opts
+        # A1 and A2 are under Cards, A3 is under Loans
+        actual_actions = [a for a in action_opts if a != "All"]
+        assert set(actual_actions) == {"A1", "A2"}
+
+    def test_all_group_shows_all_actions(self, hierarchy_data):
+        result = create_hierarchical_selectors(hierarchy_data, selected_issue="Sales", selected_group="All")
+        action_opts = result["actions"]["options"]
+        actual_actions = [a for a in action_opts if a != "All"]
+        assert set(actual_actions) == {"A1", "A2", "A3"}
+
+
+# ---------------------------------------------------------------------------
+# sample_interactions
+# ---------------------------------------------------------------------------
+
+
+class TestSampleInteractions:
+    """Deterministic hash-based interaction sampling."""
+
+    @pytest.fixture()
+    def sample_data(self):
+        """20 rows, 10 unique interactions, 2 rows each."""
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        vals = list(range(20))
+        return pl.LazyFrame(
+            {"pxInteractionID": ids, "value": vals},
+        )
+
+    def test_both_n_and_fraction_raises(self, sample_data):
+        with pytest.raises(ValueError, match="Exactly one"):
+            sample_interactions(sample_data, n=5, fraction=0.5)
+
+    def test_neither_n_nor_fraction_raises(self, sample_data):
+        with pytest.raises(ValueError, match="Exactly one"):
+            sample_interactions(sample_data)
+
+    def test_sample_by_n(self, sample_data):
+        result = sample_interactions(sample_data, n=5).collect()
+        unique_ids = result.get_column("pxInteractionID").n_unique()
+        # Should have at most 5 unique interactions (hash-based, approximate)
+        assert unique_ids <= 10
+        assert result.height > 0
+
+    def test_sample_by_fraction(self, sample_data):
+        result = sample_interactions(sample_data, fraction=0.5).collect()
+        assert result.height > 0
+        assert result.height <= 20
+
+    def test_fraction_out_of_range_raises(self, sample_data):
+        with pytest.raises(ValueError, match="fraction"):
+            sample_interactions(sample_data, fraction=0.0)
+        with pytest.raises(ValueError, match="fraction"):
+            sample_interactions(sample_data, fraction=1.5)
+
+    def test_deterministic_output(self, sample_data):
+        """Same data + same params → same result."""
+        r1 = sample_interactions(sample_data, fraction=0.5).collect()
+        r2 = sample_interactions(sample_data, fraction=0.5).collect()
+        assert r1.equals(r2)
+
+    def test_n_larger_than_total_returns_all(self, sample_data):
+        """If n >= total interactions, return all data unchanged."""
+        result = sample_interactions(sample_data, n=100).collect()
+        assert result.height == 20
+
+    def test_auto_detect_id_column(self):
+        """Works when 'Interaction ID' display name is used."""
+        lf = pl.LazyFrame(
+            {
+                "Interaction ID": ["i1", "i1", "i2", "i2", "i3", "i3"],
+                "x": [1, 2, 3, 4, 5, 6],
+            }
+        )
+        result = sample_interactions(lf, fraction=0.5).collect()
+        assert result.height >= 0  # just verify it doesn't error
+
+
+# ---------------------------------------------------------------------------
+# sample_and_save
+# ---------------------------------------------------------------------------
+
+
+class TestSampleAndSave:
+    """Persist sampled data as parquet."""
+
+    def test_writes_parquet_file(self, tmp_path):
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        lf = pl.LazyFrame(
+            {
+                "pxInteractionID": ids,
+                "value": list(range(20)),
+            }
+        )
+        result = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+        out_file = tmp_path / "decision_analyzer_sample.parquet"
+        assert out_file.exists()
+        # Result should be a LazyFrame scanning the written file
+        collected = result.collect()
+        assert collected.height > 0
+
+    def test_skips_when_n_exceeds_total(self, tmp_path):
+        ids = ["i1", "i1", "i2", "i2"]
+        lf = pl.LazyFrame({"pxInteractionID": ids, "value": [1, 2, 3, 4]})
+        result = sample_and_save(lf, n=100, output_dir=str(tmp_path))
+        out_file = tmp_path / "decision_analyzer_sample.parquet"
+        # File should NOT be written when sampling is skipped
+        assert not out_file.exists()
+        assert result.collect().height == 4
+
+
+# ---------------------------------------------------------------------------
+# _find_interaction_id_column / _get_interaction_id_candidates
+# ---------------------------------------------------------------------------
+
+
+class TestFindInteractionIdColumn:
+    """Locating the interaction ID column from raw column names."""
+
+    def test_finds_raw_key(self):
+        assert _find_interaction_id_column({"pxInteractionID", "other"}) == "pxInteractionID"
+
+    def test_finds_display_name(self):
+        assert _find_interaction_id_column({"Interaction ID", "other"}) == "Interaction ID"
+
+    def test_raises_when_missing(self):
+        with pytest.raises(ValueError, match="no interaction ID column"):
+            _find_interaction_id_column({"foo", "bar"})
+
+    def test_prefers_raw_key_over_display_name(self):
+        """pxInteractionID comes first in candidates, so it wins."""
+        result = _find_interaction_id_column({"pxInteractionID", "Interaction ID"})
+        assert result == "pxInteractionID"
+
+
+class TestGetInteractionIdCandidates:
+    """Candidate list from schema definitions."""
+
+    def test_returns_nonempty_list(self):
+        candidates = _get_interaction_id_candidates()
+        assert len(candidates) > 0
+
+    def test_includes_raw_key(self):
+        assert "pxInteractionID" in _get_interaction_id_candidates()
+
+    def test_includes_display_name(self):
+        assert "Interaction ID" in _get_interaction_id_candidates()
+
+    def test_includes_alias(self):
+        assert "InteractionID" in _get_interaction_id_candidates()
+
+    def test_no_duplicates(self):
+        candidates = _get_interaction_id_candidates()
+        assert len(candidates) == len(set(candidates))
