@@ -35,7 +35,7 @@ with st.container(border=True):
         st.session_state.decision_data.plot.sensitivity(
             st.session_state.win_rank,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 with st.container(border=True):
@@ -55,7 +55,7 @@ with st.container(border=True):
             level=st.session_state.glob_sensitivity_scope,
             win_rank=st.session_state.win_rank,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     scope_index = get_current_index(scope_options, "glob_sensitivity_scope")

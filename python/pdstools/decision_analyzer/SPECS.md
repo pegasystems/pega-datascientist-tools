@@ -115,12 +115,34 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **EE v1: include all propensity-like properties** — Explainability Extract (v1) has multiple propensity flavors (e.g. model propensity, adjusted propensity) whereas v2 only has one. The component overview and detail views should surface all propensity-like columns for v1 data.
 - [ ] Finish proposition distribution side-by-side view
 
-### 11 — Business Lever Analysis
+### 11 — Business Lever Analysis *(hidden — needs full rework)*
+
+> **Status:** Page moved out of `pages/` into `_stashed/Business_Lever_Analysis.py`
+> as of the `feat/external-user-readiness` branch. The current implementation is
+> not ready for external users. Before re-enabling, the page needs a thorough
+> redesign:
+>
+> **Purpose:** Support what-if analysis of lever changes — let users simulate
+> the effect of adjusting business levers on win distributions and, ultimately,
+> automatically find the right lever values to reach specific goals (target win
+> rates, volume targets, etc.).
+>
+> **Why hidden:** The UX is confusing (unclear terminology, non-intuitive
+> controls), the code bypasses the standard data/session-state patterns used by
+> other pages, and the lever-finder feature is too rough for production use.
+>
+> **To re-enable:** Address the items below, rename the file back to a numbered
+> page (e.g. `11_Business_Lever_Analysis.py`), and renumber About accordingly.
+
 - [x] Use dynamic stage level — *(Completed: uses st.session_state.stage_level instead of hardcoded 'Stage Group')*
+- [ ] Redesign UX: clearer terminology, intuitive controls, side-by-side before/after distributions
+- [ ] Generalize to work across a selection of actions, not just a single action
 - [ ] Refactor lever calculation into `DecisionAnalyzer` class
 - [ ] Use aggregated/sampled data (not raw `decision_data`)
 - [ ] Move plots to `plots` module; clean up session state
 - [ ] Start target win ratio at > 0
+- [ ] Share distribution visualization code with Thresholding Analysis page
+- [ ] Improve lever-finder algorithm robustness and UX
 
 ---
 

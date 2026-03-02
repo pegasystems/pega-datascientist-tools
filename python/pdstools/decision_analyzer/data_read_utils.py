@@ -157,7 +157,7 @@ def read_data(path):
             # Directory of .zip files (legacy gzipped ndjson)
             df = read_gzips_with_zip_extension(str(original_path))
     elif extension is None:
-        raise ValueError("No files found in directory")
+        raise ValueError("No data files found in directory")
     else:
         raise ValueError(f"Unsupported file type: {extension}")
 

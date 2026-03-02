@@ -19,7 +19,7 @@ class Plot:
             return df
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Bar(x=df["Decile"], y=df["Count"], name="Impressions"))
+        fig.add_trace(go.Bar(x=df["Decile"], y=df["Count"], name="Actions Below Threshold"))
         fig.add_trace(
             go.Scatter(
                 x=df["Decile"],
@@ -33,7 +33,7 @@ class Plot:
             template="none",
             title="Thresholding Effects",
             xaxis_title="Deciles",
-            yaxis_title="Volume",
+            yaxis_title="Action Count",
         )
         fig.update_yaxes(title_text=thresholding_name, secondary_y=True)
         fig.update_yaxes(rangemode="tozero")
