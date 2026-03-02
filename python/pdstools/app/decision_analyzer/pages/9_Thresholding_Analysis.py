@@ -11,10 +11,10 @@ from da_streamlit_utils import ensure_data
 Explore how applying propensity and priority thresholds affects the volume and
 distribution of actions reaching arbitration.
 
-* What is the effect of new offers (new models with propensity 0.5, showing a peak there)?
+* What is the effect of new offers (new models with propensity 50%, showing a peak there)?
 * What should my propensity threshold be and how does it affect volumes and distributions?
   Filter on a specific channel globally to answer this per channel.
-* Is the random control group working? (propensity spreading 0–1)
+* Is the random control group working? (propensity spreading 0–100%)
 """
 
 ensure_data()
