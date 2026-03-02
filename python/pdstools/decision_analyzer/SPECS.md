@@ -16,6 +16,7 @@ Tracked on branch: `refactor/decision-analyzer`
 
 ### Medium Priority
 
+- [ ] **Raw IH data support** — Test how well Decision Analyzer works with raw Interaction History data. IH is similar to EE v1 but may lack a few columns; identify gaps and decide whether to support it as a first-class input format or document limitations.
 - [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
 - [ ] **Win rank flexibility** — `get_win_loss_distribution_data` has a fixed rank parameter. Return all ranks, let UI filter. Make `max_value` data-driven (not hardcoded 10).
 - [x] **Caching for expensive methods** — `getThresholdingData` and `get_sensitivity` are expensive but uncached. *(Completed: dict-based caching keyed by arguments; cleared on filter/level changes.)*
@@ -34,6 +35,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Optimize thresholding quantiles** — Current implementation is verbose and potentially slow.
 - [x] **Fix `sample` docstring** — Says "taking the first 50,000 interactions" but actually uses hash-based sampling.
 - [ ] **Stratified sampling option** — Current `sample` property is random by interaction ID. Consider optional stratification by channel/direction.
+- [ ] **Scale up counts in UI after sampling** — When data is sampled, counts shown in the UI should be multiplied by the inverse of the sample fraction so users see estimated real volumes. When re-loading a previously sampled file, the original sample percentage must be recoverable — consider encoding it in the generated filename (e.g. `…_sampled_10pct.parquet`).
 - [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on the full dataset. Investigate polars streaming or chunked processing for GB-scale data.
 
 ---
@@ -46,6 +48,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Session state cleanup** — Too much stored in `st.session_state` (especially pages 8, 11). Review and minimize.
 - [ ] **Move inline plot code to `plots` module** — Business lever analysis (page 11) and others have plots defined inline.
 - [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern with different labels. Could be aligned.
+- [ ] **Promote `data_read_utils` to pdstools core** — The data-reading facilities in `decision_analyzer/data_read_utils.py` (multi-format ingestion, schema detection, lazy scanning) are generic enough to serve all apps and potentially replace the legacy `readDSExport` family. Evaluate extracting them into `pdstools/pega_io` or a top-level utility module.
 - [ ] **Remove `--deploy-env` flag** — The only effect of `--deploy-env` / `PDSTOOLS_DEPLOY_ENV` is showing a "File path" text input in the data-import UI (via `is_managed_deployment()`). This input is harmless for local users; always showing it would simplify the CLI and eliminate a configuration step for server deployments. Proposal: always include the "File path" option, remove `--deploy-env` from the CLI, and deprecate `is_managed_deployment()`.
 
 ---
