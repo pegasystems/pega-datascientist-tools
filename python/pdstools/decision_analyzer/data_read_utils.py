@@ -1,3 +1,4 @@
+# python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
 import os
 import tempfile
@@ -9,6 +10,22 @@ import polars as pl
 
 from .column_schema import TableConfig
 from .utils import ColumnResolver
+
+# Extensions that read_data knows how to handle.
+_SUPPORTED_EXTENSIONS: set[str] = {
+    ".parquet",
+    ".csv",
+    ".arrow",
+    ".ndjson",
+    ".jsonl",
+    ".json",
+    ".zip",
+}
+
+
+def _is_artifact(name: str) -> bool:
+    """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
+    return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
@@ -32,7 +49,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
 
     with zipfile.ZipFile(file_buffer, "r") as zip_ref:
         for file_name in zip_ref.namelist():
-            if file_name.endswith(".zip") and not file_name.startswith("__MACOSX/._"):
+            if file_name.endswith(".zip") and not _is_artifact(Path(file_name).name):
                 with zip_ref.open(file_name) as f:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
@@ -87,7 +104,7 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     columns: list[str] = []
 
     for file_path in sorted(Path(path).rglob("*.zip")):
-        if any(part.startswith(".") for part in file_path.parts):
+        if any(part.startswith(".") or _is_artifact(part) for part in file_path.parts):
             continue
         with gzip.open(file_path, "rb") as file:
             file_content = file.read()
@@ -104,14 +121,16 @@ def read_data(path):
     extension = None  # Initialize extension to None
     if original_path.is_dir():
         # It's a directory, possibly hive-partitioned at arbitrary depth.
-        # Find the first real data file extension, skipping hidden files.
+        # Find the first supported data file, skipping hidden/OS-artifact entries.
         for dirpath, dirs, files in os.walk(str(original_path)):
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
-            for file in files:
-                if not file.startswith("."):
-                    extension = Path(file).suffix
-                    if extension:
-                        break
+            dirs[:] = [d for d in dirs if not d.startswith(".") and not _is_artifact(d)]
+            for file in sorted(files):
+                if file.startswith(".") or _is_artifact(file):
+                    continue
+                ext = Path(file).suffix
+                if ext in _SUPPORTED_EXTENSIONS:
+                    extension = ext
+                    break
             if extension:
                 break
         # Use a recursive glob — works regardless of partition depth.
@@ -125,7 +144,7 @@ def read_data(path):
         df = pl.scan_csv(path)
     elif extension == ".arrow":
         df = pl.scan_ipc(path)
-    elif extension in [".ndjson", ".json"]:
+    elif extension in {".ndjson", ".jsonl", ".json"}:
         df = pl.scan_ndjson(path)
     elif extension == ".zip":
         if original_path.is_file():
