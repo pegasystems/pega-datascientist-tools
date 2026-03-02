@@ -518,9 +518,10 @@ class TestSampleAndSave:
                 "value": list(range(20)),
             }
         )
-        result = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
         out_file = tmp_path / "decision_analyzer_sample.parquet"
         assert out_file.exists()
+        assert path == out_file
         # Result should be a LazyFrame scanning the written file
         collected = result.collect()
         assert collected.height > 0
@@ -528,10 +529,11 @@ class TestSampleAndSave:
     def test_skips_when_n_exceeds_total(self, tmp_path):
         ids = ["i1", "i1", "i2", "i2"]
         lf = pl.LazyFrame({"pxInteractionID": ids, "value": [1, 2, 3, 4]})
-        result = sample_and_save(lf, n=100, output_dir=str(tmp_path))
+        result, path = sample_and_save(lf, n=100, output_dir=str(tmp_path))
         out_file = tmp_path / "decision_analyzer_sample.parquet"
         # File should NOT be written when sampling is skipped
         assert not out_file.exists()
+        assert path is None
         assert result.collect().height == 4
 
 
