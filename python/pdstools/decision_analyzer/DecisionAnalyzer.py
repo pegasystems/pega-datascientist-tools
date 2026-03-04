@@ -1291,7 +1291,9 @@ class DecisionAnalyzer:
         stage_df = stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
             atleast_one_relevant_action=pl.when(pl.col("good_offers") >= 1).then(pl.lit(1)).otherwise(pl.lit(0)),
-            only_irrelevant_actions=pl.when(pl.col("good_offers") == 0).then(pl.lit(1)).otherwise(0),
+            only_irrelevant_actions=pl.when((pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0))
+            .then(pl.lit(1))
+            .otherwise(0),
         )
         return stage_df
 
