@@ -52,13 +52,11 @@ sample_size = st.number_input(
     value=DEFAULT_SAMPLE_SIZE,
     step=1000,
     help=(
-        "Maximum number of interactions sampled for resource-intensive pages "
-        "(Global Data Filters, Win/Loss Analysis, Optionality Analysis, "
-        "Business Lever Analysis). Other pages use the full dataset. "
-        "This is *not* the same as the `--sample` CLI flag, which reduces "
-        "the data before ingestion. "
-        "Reduce this value if those pages run too slowly; increase it for "
-        "higher statistical significance."
+        "Number of interactions used to compute distribution overviews on certain pages. "
+        "Affects distribution plots and histograms, not aggregate metrics or counts. "
+        "This is an in-app calculation setting, unrelated to the `--sample` CLI flag "
+        "(which reduces data before loading). "
+        "Decrease for faster rendering; increase for smoother distributions."
     ),
 )
 
