@@ -364,6 +364,43 @@ class DecisionAnalyzer:
         return stages
 
     @cached_property
+    def stages_with_propensity(self):
+        """Infer which stages have meaningful propensity scores from the data.
+
+        Examines the sample data to determine which stages have non-null, non-default
+        propensity values. Returns stages where propensity-based classification makes sense.
+        """
+        # Check which stages have meaningful propensity values in the sample data
+        # Propensity = 0.5 is the default for new/untested models, so we look for diversity
+        propensity_by_stage = (
+            self.sample.group_by(self.level)
+            .agg(
+                [
+                    pl.col("Propensity").drop_nulls().count().alias("prop_count"),
+                    pl.col("Propensity").drop_nulls().n_unique().alias("prop_unique"),
+                    # Check if there are non-0.5 propensity values
+                    (pl.col("Propensity").drop_nulls() != 0.5).sum().alias("prop_non_default"),
+                ]
+            )
+            .collect()
+        )
+
+        # Stages have propensity if they have diverse propensity scores (not just 0.5)
+        stages_with_scores = (
+            propensity_by_stage.filter(
+                (pl.col("prop_count") > 0) & ((pl.col("prop_unique") > 1) | (pl.col("prop_non_default") > 0))
+            )
+            .get_column(self.level)
+            .to_list()
+        )
+
+        if stages_with_scores:
+            return stages_with_scores
+
+        # Fallback: use stages_from_arbitration_down (Arbitration and later)
+        return self.stages_from_arbitration_down
+
+    @cached_property
     def arbitration_stage(self):
         return self.sample.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
 
@@ -1228,26 +1265,26 @@ class DecisionAnalyzer:
                 no_of_offers=pl.count("Action"),
             )
 
-        # Only classify actions by propensity/priority at arbitration and later stages
-        # Actions filtered before arbitration don't have meaningful propensity scores
-        at_or_after_arbitration = pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        # Only classify actions by propensity/priority at stages where propensity is available
+        # Actions filtered before ActionPropensity stage don't have meaningful propensity scores
+        has_propensity = pl.col(self.level).is_in(self.stages_with_propensity)
 
         propensity_classifying_expr = [
             pl.col("Action")
-            .filter(at_or_after_arbitration & (pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
+            .filter(has_propensity & (pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter(at_or_after_arbitration & (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter(at_or_after_arbitration & (pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
-                at_or_after_arbitration
+                has_propensity
                 & (pl.col("Propensity") >= propensityTH)
                 & (pl.col("Propensity") != 0.5)
                 & (pl.col("Priority") >= priorityTH)
@@ -1294,21 +1331,21 @@ class DecisionAnalyzer:
             dfs.append(stage_df)
         stage_df = pl.concat(dfs)
 
-        # Determine if stage is at or after arbitration (where propensity is available)
-        at_or_after_arbitration = pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        # Determine if stage has propensity scores available (ActionPropensity and later)
+        has_propensity = pl.col(self.level).is_in(self.stages_with_propensity)
 
         stage_df = stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
-            # For pre-arbitration stages: treat all offers as relevant (green)
-            # For arbitration+: use actual good_offers count
+            # For stages without propensity: treat all offers as relevant (green)
+            # For stages with propensity: use actual good_offers count
             atleast_one_relevant_action=pl.when(
-                (pl.col("good_offers") >= 1) | (~at_or_after_arbitration & (pl.col("no_of_offers") > 0))
+                (pl.col("good_offers") >= 1) | (~has_propensity & (pl.col("no_of_offers") > 0))
             )
             .then(pl.lit(1))
             .otherwise(pl.lit(0)),
-            # Only show as irrelevant (orange) at arbitration+ stages where propensity is meaningful
+            # Only show as irrelevant (orange) at stages where propensity is meaningful
             only_irrelevant_actions=pl.when(
-                at_or_after_arbitration & (pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0)
+                has_propensity & (pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0)
             )
             .then(pl.lit(1))
             .otherwise(0),
