@@ -17,15 +17,16 @@ from da_streamlit_utils import (
 # TODO consider a plot of how often "winning", at rank x, or is this simply the final stage
 
 """
-# Distribution of the Actions
+# Action Distribution
 
-Shows which actions are present at a given pipeline stage. Use the **Stage
-Granularity** toggle in the sidebar to switch between coarse stage groups
-and individual stages, then pick a stage to inspect.
+Understand which offers are being presented to customers at each stage of your decisioning pipeline.
+Use the **Stage Granularity** toggle in the sidebar to switch between high-level stage groups
+and individual stages, then select a stage to analyze.
 
-* What are the most common offers? In which issues/groups?
-* How does the distribution change after filtering stages?
-* Does the distribution look okay?
+**Key questions:**
+* Which offers dominate your mix? Are they the right ones?
+* How does filtering change which offers reach customers?
+* Is your offer portfolio balanced or concentrated in a few actions?
 """
 
 ensure_data()
@@ -40,7 +41,13 @@ with st.session_state["sidebar"]:
     stage_selectbox()
 
 with st.container(border=True):
-    "## Action Treemap"
+    "## Offer Mix by Volume"
+
+    """
+    Visualize the relative volume of each offer at the selected stage. Box sizes represent
+    the number of times each action appears. Explore the hierarchy by clicking through
+    Issue → Group → Action to see how your portfolio is composed.
+    """
 
     distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
     st.plotly_chart(
@@ -56,12 +63,14 @@ if "scope" not in st.session_state:
     st.session_state.scope = scope_options[0]
 
 with st.container(border=True):
-    "## Trend Chart"
+    "## Offer Trends Over Time"
 
     f"""
-    Number of decisions that included at least one action from each {st.session_state.scope} over time.
+    Track how often each {st.session_state.scope} appears in customer decisions over time.
+    Spot seasonal patterns, campaign impacts, and shifts in your offer mix.
 
-    Note: Since a decision can contain actions across multiple [issues/groups], the same decision may be counted in several categories, so the stacked total may exceed the actual sampled decision count.
+    *Note: Since decisions can include multiple {st.session_state.scope.lower()}s, the stacked total
+    may exceed the actual decision count — this is expected when customers see diverse offers.*
     """
 
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
