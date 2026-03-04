@@ -47,7 +47,7 @@ zoom, and hover for details.
 level = "Stage Group"
 
 sample_size = st.number_input(
-    "Sample Size",
+    "Distribution Overview Sample Size",
     min_value=1000,
     value=DEFAULT_SAMPLE_SIZE,
     step=1000,
