@@ -105,7 +105,15 @@ if raw_data is not None and sample_limit_raw:
         st.error(f"Invalid --sample value: {e}")
         st.stop()
 
-    with st.spinner("Sampling interactions…"):
+    # Build explicit sampling message based on parameters
+    if "fraction" in sample_kwargs:
+        sampling_msg = f"Sampling {sample_kwargs['fraction'] * 100:.0f}% of the interactions…"
+    elif "n" in sample_kwargs:
+        sampling_msg = f"Sampling {sample_kwargs['n']:,} interactions…"
+    else:
+        sampling_msg = "Sampling interactions…"
+
+    with st.spinner(sampling_msg):
         raw_data, sample_path_result = sample_and_save(
             raw_data,
             n=sample_kwargs.get("n"),  # type: ignore[arg-type]
