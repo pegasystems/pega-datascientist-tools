@@ -682,16 +682,30 @@ class Plot:
             secondary_y=False,
         )
 
-        if "avg_Value" in plot_df.columns:
-            non_null_values = plot_df.filter(pl.col("avg_Value").is_not_null())
+        # Add secondary axis trace based on sort_by selection
+        metric_col = None
+        metric_label = None
+        if sort_by == "avg_Value" and "avg_Value" in plot_df.columns:
+            metric_col = "avg_Value"
+            metric_label = "Average Value"
+        elif sort_by == "avg_Priority" and "avg_Priority" in plot_df.columns:
+            metric_col = "avg_Priority"
+            metric_label = "Average Priority"
+        elif sort_by == "avg_Propensity" and "avg_Propensity" in plot_df.columns:
+            metric_col = "avg_Propensity"
+            metric_label = "Average Propensity"
+
+        if metric_col:
+            non_null_values = plot_df.filter(pl.col(metric_col).is_not_null())
             if non_null_values.height > 0:
                 fig.add_trace(
                     go.Scatter(
                         y=non_null_values["Action"],
-                        x=non_null_values["avg_Value"],
-                        mode="markers",
-                        name="Avg Value (surviving)",
-                        marker=dict(color="#1f77b4", size=8, symbol="diamond"),
+                        x=non_null_values[metric_col],
+                        mode="lines+markers",
+                        name=metric_label,
+                        marker=dict(color="#1f77b4", size=6),
+                        line=dict(color="#1f77b4", width=2),
                     ),
                     secondary_y=True,
                 )
@@ -704,7 +718,10 @@ class Plot:
         )
         fig.update_xaxes(title="Filtered Decisions")
         fig.update_yaxes(title="", secondary_y=False)
-        fig.update_yaxes(title="Avg Value", secondary_y=True)
+        if metric_label:
+            fig.update_yaxes(title=metric_label, secondary_y=True)
+        else:
+            fig.update_yaxes(title="", secondary_y=True)
 
         return fig
 

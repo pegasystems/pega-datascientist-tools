@@ -178,7 +178,7 @@ if has_components:
                 options=component_names,
                 key="drilldown_component",
             )
-            sort_options = ["Filtered Decisions", "avg_Value", "avg_Priority"]
+            sort_options = ["Filtered Decisions", "avg_Value", "avg_Priority", "avg_Propensity"]
             sort_by = st.selectbox(
                 "Sort by:",
                 options=sort_options,
@@ -190,10 +190,18 @@ if has_components:
             )
             st.plotly_chart(drilldown_fig, width="stretch")
 
-            # Also show the raw data table
+            # Also show the raw data table with readable column names
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(
                 component_name=selected_component,
             )
-            st.dataframe(drilldown_df)
+            # Rename columns for display
+            display_df = drilldown_df.rename(
+                {
+                    "avg_Priority": "Average Priority",
+                    "avg_Value": "Average Value",
+                    "avg_Propensity": "Average Propensity",
+                }
+            )
+            st.dataframe(display_df)
         else:
             st.warning("No filter components found in the data.")
