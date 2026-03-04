@@ -1228,22 +1228,27 @@ class DecisionAnalyzer:
                 no_of_offers=pl.count("Action"),
             )
 
+        # Only classify actions by propensity/priority at arbitration and later stages
+        # Actions filtered before arbitration don't have meaningful propensity scores
+        at_or_after_arbitration = pl.col(self.level).is_in(self.stages_from_arbitration_down)
+
         propensity_classifying_expr = [
             pl.col("Action")
-            .filter((pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
+            .filter(at_or_after_arbitration & (pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter((pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
+            .filter(at_or_after_arbitration & (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .filter(at_or_after_arbitration & (pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
-                (pl.col("Propensity") >= propensityTH)
+                at_or_after_arbitration
+                & (pl.col("Propensity") >= propensityTH)
                 & (pl.col("Propensity") != 0.5)
                 & (pl.col("Priority") >= priorityTH)
             )
@@ -1288,10 +1293,23 @@ class DecisionAnalyzer:
             )
             dfs.append(stage_df)
         stage_df = pl.concat(dfs)
+
+        # Determine if stage is at or after arbitration (where propensity is available)
+        at_or_after_arbitration = pl.col(self.level).is_in(self.stages_from_arbitration_down)
+
         stage_df = stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
-            atleast_one_relevant_action=pl.when(pl.col("good_offers") >= 1).then(pl.lit(1)).otherwise(pl.lit(0)),
-            only_irrelevant_actions=pl.when((pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0))
+            # For pre-arbitration stages: treat all offers as relevant (green)
+            # For arbitration+: use actual good_offers count
+            atleast_one_relevant_action=pl.when(
+                (pl.col("good_offers") >= 1) | (~at_or_after_arbitration & (pl.col("no_of_offers") > 0))
+            )
+            .then(pl.lit(1))
+            .otherwise(pl.lit(0)),
+            # Only show as irrelevant (orange) at arbitration+ stages where propensity is meaningful
+            only_irrelevant_actions=pl.when(
+                at_or_after_arbitration & (pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0)
+            )
             .then(pl.lit(1))
             .otherwise(0),
         )
