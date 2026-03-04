@@ -497,9 +497,16 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> pl.LazyFrame | None:
-    """Show file uploader accepting one or more files and return a LazyFrame, or None."""
+def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
+    """Show file uploader accepting one or more files and return a LazyFrame and metadata, or (None, None).
+
+    Returns:
+        Tuple of (LazyFrame, metadata dict) where metadata contains sample information if available.
+        For single parquet file uploads, metadata is read from the file.
+        For other cases, metadata is None.
+    """
     import tempfile
+    from pdstools.decision_analyzer.utils import _read_source_metadata
 
     uploaded_files = st.file_uploader(
         "Upload decision data",
@@ -507,15 +514,18 @@ def handle_file_upload() -> pl.LazyFrame | None:
         accept_multiple_files=True,
     )
     if not uploaded_files:
-        return None
+        return None, None
 
     frames: list[pl.LazyFrame] = []
+    temp_paths: list[str] = []  # Track temp file paths for parquet files
+
     for f in uploaded_files:
         name_lower = f.name.lower()
         suffix = Path(f.name).suffix.lower()
         if suffix == ".parquet":
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp:
                 tmp.write(f.getbuffer())
+                temp_paths.append(tmp.name)
                 frames.append(pl.scan_parquet(tmp.name))
         elif suffix == ".zip":
             frames.append(_read_uploaded_zip(f))
@@ -542,10 +552,16 @@ def handle_file_upload() -> pl.LazyFrame | None:
                 frames.append(pl.scan_ndjson(tmp.name))
 
     if not frames:
-        return None
+        return None, None
+
+    # Try to read metadata for single parquet file uploads
+    metadata = None
+    if len(frames) == 1 and len(temp_paths) == 1:
+        metadata = _read_source_metadata(temp_paths[0])
+
     if len(frames) == 1:
-        return frames[0]
-    return pl.concat(frames, how="diagonal", rechunk=True)
+        return frames[0], metadata
+    return pl.concat(frames, how="diagonal", rechunk=True), None
 
 
 def handle_file_path() -> pl.LazyFrame | None:

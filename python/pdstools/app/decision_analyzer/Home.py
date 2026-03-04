@@ -65,7 +65,7 @@ sample_size = st.number_input(
 )
 
 # File upload — always visible. Drag-and-drop or use the Browse button.
-raw_data = handle_file_upload()
+raw_data, uploaded_metadata = handle_file_upload()
 data_source_path = None  # Track the source path for metadata
 sample_path = None  # Track the sampled file path if sampling is applied
 
@@ -203,11 +203,12 @@ if has_new_data and raw_data is not None:
             st.session_state["filters"] = []
 
             # Check if the loaded data has sampling metadata
-            # Prefer sample_path (from --sample flag) over data_source_path
-            sample_metadata = None
-            metadata_path = sample_path or data_source_path
-            if metadata_path:
-                sample_metadata = _read_source_metadata(str(metadata_path))
+            # Priority: uploaded_metadata > sample_path > data_source_path
+            sample_metadata = uploaded_metadata
+            if sample_metadata is None:
+                metadata_path = sample_path or data_source_path
+                if metadata_path:
+                    sample_metadata = _read_source_metadata(str(metadata_path))
             st.session_state["sample_metadata"] = sample_metadata
 
             del raw_data
