@@ -20,7 +20,6 @@ from pdstools.utils.streamlit_utils import (
     ensure_session_data,
     get_current_index,  # noqa: F401 — re-exported for backward compat
     get_data_path,
-    is_managed_deployment,
 )
 
 
@@ -401,19 +400,6 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
     return queries
 
 
-def get_options() -> list[str]:
-    """Data source options.
-
-    'File path' is only shown in managed deployments where users need to
-    reference server-side paths (e.g. S3-mounted directories). For local use,
-    the file uploader's browse button is sufficient.
-    """
-    options = ["Sample data", "File upload"]
-    if is_managed_deployment():
-        options.append("File path")
-    return options
-
-
 def handle_sample_data() -> pl.LazyFrame | None:
     """Load built-in sample data for demo purposes."""
     # Prefer local file when available (e.g. during development), fall back
@@ -562,28 +548,6 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     if len(frames) == 1:
         return frames[0], metadata
     return pl.concat(frames, how="diagonal", rechunk=True), None
-
-
-def handle_file_path() -> pl.LazyFrame | None:
-    """Show text input for a file/folder path and return a LazyFrame, or None."""
-    st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
-    path = st.text_input(
-        "File or partitioned folder path",
-        placeholder="/path/to/data",
-    )
-    if not path:
-        return None
-    p = Path(path)
-    # Single zip file: extract first, then read the extracted contents
-    if p.is_file() and p.suffix.lower() == ".zip":
-        import tempfile
-        import zipfile
-
-        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
-        with zipfile.ZipFile(p, "r") as zf:
-            zf.extractall(tmp_dir)
-        return read_data(tmp_dir)
-    return read_data(path)
 
 
 @st.cache_resource

@@ -4,10 +4,8 @@ import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_data_path,
-    handle_file_path,
     handle_file_upload,
     handle_sample_data,
-    is_managed_deployment,
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
@@ -71,12 +69,6 @@ sample_path = None  # Track the sampled file path if sampling is applied
 
 # Check if we already have data loaded (used by all data loading logic below)
 has_existing_data = "decision_data" in st.session_state
-
-# For managed deployments, also show a server-side file path input
-if is_managed_deployment():
-    if raw_data is None and not has_existing_data:
-        raw_data = handle_file_path()
-        # TODO: handle_file_path should return the path, for now we don't have it
 
 # If --data-path was provided, load from that path (takes priority over sample data)
 configured_path = get_data_path()

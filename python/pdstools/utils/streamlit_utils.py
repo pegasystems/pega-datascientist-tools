@@ -140,14 +140,6 @@ def ensure_session_data(key: str, message: str | None = None):
         st.stop()
 
 
-def get_deploy_env() -> str | None:
-    """Return the deployment environment set via ``--deploy-env`` CLI flag.
-
-    Returns ``None`` when running locally without the flag.
-    """
-    return os.environ.get("PDSTOOLS_DEPLOY_ENV")
-
-
 def get_data_path() -> str | None:
     """Return the data path set via ``--data-path`` CLI flag.
 
@@ -170,11 +162,6 @@ def get_temp_dir() -> str | None:
     Returns ``None`` when no temp directory was configured.
     """
     return os.environ.get("PDSTOOLS_TEMP_DIR")
-
-
-def is_managed_deployment() -> bool:
-    """Return *True* when the app is running in a managed deployment (e.g. EC2)."""
-    return get_deploy_env() is not None
 
 
 def get_current_index(options, key, default=0):

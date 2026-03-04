@@ -59,12 +59,6 @@ def create_parser():
         default=None,  # Explicitly set default to None
     )
     parser.add_argument(
-        "--deploy-env",
-        dest="deploy_env",
-        default=None,
-        help=("Set the deployment environment (e.g. 'ec2'). Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."),
-    )
-    parser.add_argument(
         "--data-path",
         dest="data_path",
         default=None,
@@ -223,8 +217,6 @@ def run(args, unknown):
                 print("Invalid input. Please try again.")
 
     # Propagate CLI flags to the Streamlit process via env vars
-    if args.deploy_env:
-        os.environ["PDSTOOLS_DEPLOY_ENV"] = args.deploy_env
     if args.data_path:
         os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
     if args.sample:

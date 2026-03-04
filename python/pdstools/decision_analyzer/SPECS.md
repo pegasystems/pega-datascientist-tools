@@ -51,7 +51,7 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Move inline plot code to `plots` module** — Business lever analysis (page 11) and others have plots defined inline.
 - [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern with different labels. Could be aligned.
 - [ ] **Promote `data_read_utils` to pdstools core** — The data-reading facilities in `decision_analyzer/data_read_utils.py` (multi-format ingestion, schema detection, lazy scanning) are generic enough to serve all apps and potentially replace the legacy `readDSExport` family. Evaluate extracting them into `pdstools/pega_io` or a top-level utility module.
-- [ ] **Remove `--deploy-env` flag** — The only effect of `--deploy-env` / `PDSTOOLS_DEPLOY_ENV` is showing a "File path" text input in the data-import UI (via `is_managed_deployment()`). This input is harmless for local users; always showing it would simplify the CLI and eliminate a configuration step for server deployments. Proposal: always include the "File path" option, remove `--deploy-env` from the CLI, and deprecate `is_managed_deployment()`.
+- [x] **Remove `--deploy-env` flag** — *(Completed: removed `--deploy-env` CLI flag, `get_deploy_env()`, `is_managed_deployment()`, `handle_file_path()`, and `get_options()` functions. The `--data-path` CLI flag provides the same functionality in a cleaner way.)*
 
 ---
 
