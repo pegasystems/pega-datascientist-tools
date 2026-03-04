@@ -624,6 +624,28 @@ def sample_and_save(
     tuple[pl.LazyFrame, Path | None]
         The (possibly sampled) LazyFrame and the path to the written
         parquet file, or ``None`` when sampling was skipped.
+
+    Examples
+    --------
+    Sample data and save with metadata:
+
+    >>> df = pl.scan_parquet("large_data.parquet")
+    >>> sampled, path = sample_and_save(
+    ...     df,
+    ...     n=100000,
+    ...     source_path="large_data.parquet"
+    ... )
+    >>> print(path)
+    decision_analyzer_sample_100k.parquet
+
+    Read metadata from a sampled file:
+
+    >>> import polars as pl
+    >>> metadata = pl.read_parquet_metadata("decision_analyzer_sample_100k.parquet")
+    >>> print(metadata["pdstools:source_file"])
+    large_data.parquet
+    >>> print(metadata["pdstools:sample_percentage"])
+    10.0
     """
     available = set(df.collect_schema().names())
     id_column = _find_interaction_id_column(available)
