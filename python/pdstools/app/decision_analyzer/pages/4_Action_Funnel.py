@@ -178,12 +178,20 @@ if has_components:
                 options=component_names,
                 key="drilldown_component",
             )
-            sort_options = ["Filtered Decisions", "avg_Value", "avg_Priority", "avg_Propensity"]
-            sort_by = st.selectbox(
+            # Readable sort options with mapping to internal column names
+            sort_options_display = ["Filtered Decisions", "Average Value", "Average Priority", "Average Propensity"]
+            sort_options_mapping = {
+                "Filtered Decisions": "Filtered Decisions",
+                "Average Value": "avg_Value",
+                "Average Priority": "avg_Priority",
+                "Average Propensity": "avg_Propensity",
+            }
+            sort_by_display = st.selectbox(
                 "Sort by:",
-                options=sort_options,
+                options=sort_options_display,
                 key="drilldown_sort",
             )
+            sort_by = sort_options_mapping[sort_by_display]
             drilldown_fig = st.session_state.decision_data.plot.component_drilldown(
                 component_name=selected_component,
                 sort_by=sort_by,
