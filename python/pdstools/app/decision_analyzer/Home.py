@@ -69,15 +69,18 @@ raw_data, uploaded_metadata = handle_file_upload()
 data_source_path = None  # Track the source path for metadata
 sample_path = None  # Track the sampled file path if sampling is applied
 
+# Check if we already have data loaded (used by all data loading logic below)
+has_existing_data = "decision_data" in st.session_state
+
 # For managed deployments, also show a server-side file path input
 if is_managed_deployment():
-    if raw_data is None:
+    if raw_data is None and not has_existing_data:
         raw_data = handle_file_path()
         # TODO: handle_file_path should return the path, for now we don't have it
 
 # If --data-path was provided, load from that path (takes priority over sample data)
 configured_path = get_data_path()
-if raw_data is None and configured_path:
+if raw_data is None and configured_path and not has_existing_data:
     with st.spinner(f"Loading data from configured path: {configured_path}"):
         raw_data = handle_data_path()
         data_source_path = configured_path  # Capture the source
@@ -85,7 +88,6 @@ if raw_data is None and configured_path:
         st.info(f"📂 Loaded data from configured path: `{configured_path}`")
 
 has_new_data = raw_data is not None
-has_existing_data = "decision_data" in st.session_state
 
 # Fall back to sample data only when nothing was uploaded *and* no data is loaded yet
 if not has_new_data and not has_existing_data:
