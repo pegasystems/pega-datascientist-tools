@@ -718,3 +718,35 @@ def format_count_for_filename(count: int) -> str:
         else:
             formatted = f"{value:.2g}"
             return f"{formatted}B"
+
+
+def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
+    """Read pdstools metadata from a parquet file if it exists.
+
+    Parameters
+    ----------
+    source_path : str
+        Path to the parquet file to check.
+
+    Returns
+    -------
+    dict or None
+        Dictionary with keys: source_file, sample_percentage, method
+        Returns None if file doesn't exist, is not parquet, or lacks metadata.
+    """
+    try:
+        metadata = pl.read_parquet_metadata(source_path)
+
+        # Check if this file has our metadata
+        source_file = metadata.get("pdstools:source_file")
+        if source_file is None:
+            return None
+
+        return {
+            "source_file": source_file,
+            "sample_percentage": float(metadata.get("pdstools:sample_percentage", "0")),
+            "method": metadata.get("pdstools:sample_percentage_method", "unknown"),
+        }
+    except Exception:
+        # File doesn't exist, not a parquet, or other read error
+        return None

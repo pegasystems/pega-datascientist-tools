@@ -618,3 +618,52 @@ class TestGetInteractionIdCandidates:
     def test_no_duplicates(self):
         candidates = _get_interaction_id_candidates()
         assert len(candidates) == len(set(candidates))
+
+
+# ---------------------------------------------------------------------------
+# _read_source_metadata
+# ---------------------------------------------------------------------------
+
+
+def test_read_source_metadata_with_metadata(tmp_path):
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+    import polars as pl
+
+    # Create a file with metadata
+    df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
+    test_file = tmp_path / "test.parquet"
+    metadata = {
+        "pdstools:source_file": "/original/data.parquet",
+        "pdstools:sample_percentage": "50.0",
+        "pdstools:sample_percentage_method": "exact",
+    }
+    df.write_parquet(test_file, metadata=metadata)
+
+    result = _read_source_metadata(str(test_file))
+
+    assert result is not None
+    assert result["source_file"] == "/original/data.parquet"
+    assert result["sample_percentage"] == 50.0
+    assert result["method"] == "exact"
+
+
+def test_read_source_metadata_without_metadata(tmp_path):
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+    import polars as pl
+
+    # Create a file without our metadata
+    df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
+    test_file = tmp_path / "test.parquet"
+    df.write_parquet(test_file)
+
+    result = _read_source_metadata(str(test_file))
+
+    assert result is None
+
+
+def test_read_source_metadata_nonexistent_file():
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+
+    result = _read_source_metadata("/nonexistent/file.parquet")
+
+    assert result is None
