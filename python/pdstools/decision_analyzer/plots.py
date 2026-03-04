@@ -134,23 +134,55 @@ class Plot:
         # Create color mapping using imported Pega colorway
         color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
-        fig = px.bar(
-            df.collect(),
-            x="Percentage",
-            y="Status",
-            orientation="h",
-            color=level,
-            color_discrete_map=color_discrete_map,
-            category_orders={"Status": ["Wins", "Losses"]},
+        # Collect and split data into wins and losses
+        df_collected = df.collect()
+        wins_df = df_collected.filter(pl.col("Status") == "Wins")
+        losses_df = df_collected.filter(pl.col("Status") == "Losses")
+
+        # Create two side-by-side pie charts
+        fig = make_subplots(
+            rows=1,
+            cols=2,
+            specs=[[{"type": "pie"}, {"type": "pie"}]],
+            subplot_titles=["Wins", "Losses"],
         )
+
+        # Add wins pie chart
+        if wins_df.height > 0:
+            colors_wins = [color_discrete_map.get(val, "#cccccc") for val in wins_df[level].to_list()]
+            fig.add_trace(
+                go.Pie(
+                    labels=wins_df[level],
+                    values=wins_df["Percentage"],
+                    marker=dict(colors=colors_wins),
+                    textposition="auto",
+                    textinfo="label+percent",
+                    hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+
+        # Add losses pie chart
+        if losses_df.height > 0:
+            colors_losses = [color_discrete_map.get(val, "#cccccc") for val in losses_df[level].to_list()]
+            fig.add_trace(
+                go.Pie(
+                    labels=losses_df[level],
+                    values=losses_df["Percentage"],
+                    marker=dict(colors=colors_losses),
+                    textposition="auto",
+                    textinfo="label+percent",
+                    hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                ),
+                row=1,
+                col=2,
+            )
 
         fig.update_layout(
             font_size=12,
-            polar_angularaxis_rotation=90,
-            xaxis_title="",
-            yaxis_title="",
+            showlegend=False,  # Labels are shown on the pie slices
         )
-        fig.update_xaxes(tickformat=".2%")
 
         return fig
 
