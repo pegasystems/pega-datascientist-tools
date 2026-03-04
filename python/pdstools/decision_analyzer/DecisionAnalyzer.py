@@ -1359,19 +1359,19 @@ class DecisionAnalyzer:
 
         stage_df = stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
-            # For stages without propensity: treat all offers as relevant (green)
-            # For stages with propensity: use actual good_offers count
-            atleast_one_relevant_action=pl.when(
-                (pl.col("good_offers") >= 1) | (~has_propensity & (pl.col("no_of_offers") > 0))
-            )
+            # For stages WITH propensity: classify as relevant (green) or irrelevant (orange)
+            atleast_one_relevant_action=pl.when(has_propensity & (pl.col("good_offers") >= 1))
             .then(pl.lit(1))
             .otherwise(pl.lit(0)),
-            # Only show as irrelevant (orange) at stages where propensity is meaningful
             only_irrelevant_actions=pl.when(
                 has_propensity & (pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0)
             )
             .then(pl.lit(1))
             .otherwise(0),
+            # For stages WITHOUT propensity: just show as having actions (blue)
+            atleast_one_action=pl.when(~has_propensity & (pl.col("no_of_offers") > 0))
+            .then(pl.lit(1))
+            .otherwise(pl.lit(0)),
         )
         return stage_df
 
