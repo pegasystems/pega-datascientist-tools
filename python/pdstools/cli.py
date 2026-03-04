@@ -27,17 +27,29 @@ APPS = {
     },
 }
 
+# Aliases for app names
+ALIASES = {
+    "hc": "health_check",
+    "da": "decision_analyzer",
+    "ia": "impact_analyzer",
+}
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps.",
     )
 
-    # Create help text with display names
-    app_choices = list(APPS.keys())
-    help_text = "The app to run: " + " | ".join(
-        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices],
-    )
+    # Create help text with display names and aliases
+    app_choices = list(APPS.keys()) + list(ALIASES.keys())
+    help_parts = []
+    for key in APPS.keys():
+        # Find aliases for this app
+        app_aliases = [alias for alias, full_name in ALIASES.items() if full_name == key]
+        alias_text = f" (alias: {', '.join(app_aliases)})" if app_aliases else ""
+        help_parts.append(f'"{key}"{alias_text}')
+
+    help_text = "The app to run: " + " | ".join(help_parts)
 
     parser.add_argument(
         "app",
@@ -120,6 +132,10 @@ def main():
     parser = create_parser()
     args, unknown = parser.parse_known_args()
 
+    # Resolve alias to full app name
+    if args.app and args.app in ALIASES:
+        args.app = ALIASES[args.app]
+
     # Check for likely typos in pdstools arguments
     known_pdstools_args = ["--deploy-env", "--data-path", "--sample", "--temp-dir"]
     typos = check_for_typos(unknown, known_pdstools_args)
@@ -173,6 +189,11 @@ def run(args, unknown):
                     args.app = choice.lower()
                     break
 
+                # Check if it's an alias
+                if choice.lower() in ALIASES:
+                    args.app = ALIASES[choice.lower()]
+                    break
+
                 # Check if it's a display name (case insensitive)
                 found = False
                 for app_key, app_info in APPS.items():
@@ -187,6 +208,7 @@ def run(args, unknown):
                 valid_options = []
                 valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
                 valid_options.extend(APPS.keys())
+                valid_options.extend(ALIASES.keys())
                 valid_options.extend(
                     [app_info["display_name"] for app_info in APPS.values()],
                 )
