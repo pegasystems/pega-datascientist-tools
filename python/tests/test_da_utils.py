@@ -2,8 +2,8 @@
 """
 Tests for decision_analyzer/utils.py utility functions.
 
-Covers: parse_sample_flag, area_under_curve, gini_coefficient,
-get_first_level_stats, resolve_aliases, rename_and_cast_types,
+Covers: parse_sample_flag, format_count_for_filename, area_under_curve,
+gini_coefficient, get_first_level_stats, resolve_aliases, rename_and_cast_types,
 _cast_columns, get_scope_config, create_hierarchical_selectors,
 sample_interactions, sample_and_save, _find_interaction_id_column,
 _get_interaction_id_candidates.
@@ -82,6 +82,44 @@ class TestParseSampleFlag:
     def test_single_unit(self):
         result = parse_sample_flag("1")
         assert result == {"n": 1}
+
+
+# ---------------------------------------------------------------------------
+# format_count_for_filename
+# ---------------------------------------------------------------------------
+
+
+def test_format_count_for_filename_units():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(42) == "42"
+    assert format_count_for_filename(999) == "999"
+
+
+def test_format_count_for_filename_thousands():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000) == "1k"
+    assert format_count_for_filename(1500) == "1.5k"
+    assert format_count_for_filename(87432) == "87k"
+    assert format_count_for_filename(999999) == "1000k"
+
+
+def test_format_count_for_filename_millions():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000000) == "1M"
+    assert format_count_for_filename(1234567) == "1.2M"
+    assert format_count_for_filename(87000000) == "87M"
+    assert format_count_for_filename(999999999) == "1000M"
+
+
+def test_format_count_for_filename_billions():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000000000) == "1B"
+    assert format_count_for_filename(2500000000) == "2.5B"
+    assert format_count_for_filename(87000000000) == "87B"
 
 
 # ---------------------------------------------------------------------------

@@ -663,3 +663,58 @@ def parse_sample_flag(value: str) -> dict[str, int | float]:
         if count <= 0:
             raise ValueError(f"Sample count must be positive, got {count}")
         return {"n": count}
+
+
+def format_count_for_filename(count: int) -> str:
+    """Format an interaction count for use in filenames.
+
+    Uses human-readable abbreviations with 2 significant figures.
+
+    Parameters
+    ----------
+    count : int
+        Number of interactions.
+
+    Returns
+    -------
+    str
+        Formatted count (e.g., "87k", "1.2M", "2.5B").
+
+    Examples
+    --------
+    >>> format_count_for_filename(42)
+    '42'
+    >>> format_count_for_filename(1500)
+    '1.5k'
+    >>> format_count_for_filename(87432)
+    '87k'
+    >>> format_count_for_filename(1234567)
+    '1.2M'
+    """
+    if count < 1000:
+        return str(count)
+    elif count < 1_000_000:
+        # Thousands
+        value = count / 1000
+        if value >= 100:
+            return f"{int(round(value))}k"
+        else:
+            formatted = f"{value:.2g}"
+            # Remove unnecessary decimal point for whole numbers
+            return f"{formatted}k"
+    elif count < 1_000_000_000:
+        # Millions
+        value = count / 1_000_000
+        if value >= 100:
+            return f"{int(round(value))}M"
+        else:
+            formatted = f"{value:.2g}"
+            return f"{formatted}M"
+    else:
+        # Billions
+        value = count / 1_000_000_000
+        if value >= 100:
+            return f"{int(round(value))}B"
+        else:
+            formatted = f"{value:.2g}"
+            return f"{formatted}B"
