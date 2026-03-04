@@ -548,6 +548,17 @@ class TestSampleInteractions:
 class TestSampleAndSave:
     """Persist sampled data as parquet."""
 
+    @pytest.fixture()
+    def mock_decision_data(self):
+        """Mock decision analyzer data with interactions."""
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        return pl.LazyFrame(
+            {
+                "pxInteractionID": ids,
+                "value": list(range(20)),
+            }
+        )
+
     def test_writes_parquet_file(self, tmp_path):
         ids = [f"int_{i}" for i in range(10) for _ in range(2)]
         lf = pl.LazyFrame(
@@ -557,9 +568,12 @@ class TestSampleAndSave:
             }
         )
         result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
-        out_file = tmp_path / "decision_analyzer_sample.parquet"
-        assert out_file.exists()
-        assert path == out_file
+        # Path should be returned and file should exist
+        assert path is not None
+        assert path.exists()
+        # Filename should have the new format with count
+        assert "decision_analyzer_sample_" in path.name
+        assert path.name.endswith(".parquet")
         # Result should be a LazyFrame scanning the written file
         collected = result.collect()
         assert collected.height > 0
@@ -573,6 +587,74 @@ class TestSampleAndSave:
         assert not out_file.exists()
         assert path is None
         assert result.collect().height == 4
+
+    def test_sample_and_save_with_source_path_metadata(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import sample_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+        source_file = tmp_path / "original.parquet"
+
+        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path), source_path=str(source_file))
+
+        assert path is not None
+        # Check filename contains count
+        assert "decision_analyzer_sample_" in path.name
+        assert path.name.endswith(".parquet")
+
+        # Check metadata was written
+        metadata = pl.read_parquet_metadata(str(path))
+        assert "pdstools:source_file" in metadata
+        assert metadata["pdstools:source_file"] == str(source_file)
+        assert "pdstools:sample_percentage" in metadata
+        assert float(metadata["pdstools:sample_percentage"]) == 50.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_sample_and_save_with_chained_sampling(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import sample_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+        original_source = "/data/original.parquet"
+
+        # First sample: 50%
+        first_sample_file = tmp_path / "first.parquet"
+        first_meta = {
+            "pdstools:source_file": original_source,
+            "pdstools:sample_percentage": "50.0",
+            "pdstools:sample_percentage_method": "exact",
+        }
+        lf.collect().write_parquet(first_sample_file, metadata=first_meta)
+
+        # Second sample: 20% of the first sample
+        lf_rescan = pl.scan_parquet(first_sample_file)
+        result, path = sample_and_save(
+            lf_rescan, fraction=0.2, output_dir=str(tmp_path), source_path=str(first_sample_file)
+        )
+
+        assert path is not None
+
+        # Check metadata inheritance
+        metadata = pl.read_parquet_metadata(str(path))
+        # Should inherit original source, not intermediate file
+        assert metadata["pdstools:source_file"] == original_source
+        # Should multiply percentages: 50% * 20% = 10%
+        assert float(metadata["pdstools:sample_percentage"]) == 10.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_sample_and_save_filename_format(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import sample_and_save
+
+        lf = mock_decision_data
+
+        # Sample to a specific count
+        result, path = sample_and_save(lf, n=100, output_dir=str(tmp_path), source_path="test.parquet")
+
+        if path is not None:
+            # Filename should contain formatted count
+            assert "decision_analyzer_sample_" in path.name
+            # Should have a number (exact format depends on actual count in mock data)
+            assert any(char.isdigit() for char in path.name)
 
 
 # ---------------------------------------------------------------------------

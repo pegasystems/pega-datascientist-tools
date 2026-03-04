@@ -588,13 +588,20 @@ def sample_and_save(
     n: int | None = None,
     fraction: float | None = None,
     output_dir: str | None = None,
+    source_path: str | None = None,
 ) -> tuple[pl.LazyFrame, Path | None]:
     """Sample interactions and persist the result as a parquet file.
 
-    Writes ``decision_analyzer_sample.parquet`` into *output_dir* (defaults
-    to the current working directory). Returns a LazyFrame scanning the
-    written file plus the file path, so callers can display where the
+    Writes ``decision_analyzer_sample_<count>.parquet`` into *output_dir*
+    (defaults to the current working directory). The filename includes a
+    human-readable count (e.g., 87k, 1.2M). Returns a LazyFrame scanning
+    the written file plus the file path, so callers can display where the
     sample was saved.
+
+    The parquet file includes metadata tracking:
+    - Original source file path
+    - Sample percentage relative to original data
+    - Whether percentage was calculated exactly or approximated
 
     If the data is smaller than the requested sample, sampling is skipped
     and the original LazyFrame is returned unchanged (no file is written).
@@ -609,6 +616,8 @@ def sample_and_save(
         Fraction of interactions to keep (0.0–1.0).
     output_dir : str, optional
         Directory for the sample parquet file. Defaults to ``"."``.
+    source_path : str, optional
+        Path to the original source file for metadata tracking.
 
     Returns
     -------
@@ -619,7 +628,17 @@ def sample_and_save(
     available = set(df.collect_schema().names())
     id_column = _find_interaction_id_column(available)
 
-    # Check whether sampling would actually reduce the data.
+    # Step 1: Read source metadata if available
+    source_metadata = None
+    original_source = source_path or "unknown"
+    if source_path:
+        source_metadata = _read_source_metadata(source_path)
+        if source_metadata:
+            # Inherit original source from chained sampling
+            original_source = source_metadata["source_file"]
+
+    # Step 2: Calculate total interactions if needed
+    total = None
     if n is not None:
         total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
         if total <= n:
@@ -630,14 +649,52 @@ def sample_and_save(
             )
             return df, None
 
+    # Step 3: Perform sampling
     sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+    sampled_df = sampled.collect()  # type: ignore[union-attribute]
+
+    # Step 4: Calculate sample percentage
+    if fraction is not None:
+        # Fraction-based: exact percentage
+        sample_percentage = fraction * 100.0
+        method = "exact"
+    elif total is not None and n is not None:
+        # Count-based: we already have total, calculate exact
+        sample_percentage = (n / total) * 100.0
+        method = "exact"
+    else:
+        # Fallback (shouldn't happen in normal flow)
+        sample_percentage = 0.0
+        method = "unknown"
+
+    # Step 5: Apply inheritance if sampling a sample
+    if source_metadata:
+        # Multiply percentages for chained sampling
+        source_pct = source_metadata["sample_percentage"]
+        assert isinstance(source_pct, float)  # Type narrowing
+        sample_percentage = (sample_percentage * source_pct) / 100.0
+        # Inherit method (use "approximated" if either step was approximate)
+        if source_metadata["method"] == "approximated":
+            method = "approximated"
+
+    # Step 6: Determine output filename with count
+    sampled_count = sampled_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
+    formatted_count = format_count_for_filename(sampled_count)
 
     dest = Path(output_dir) if output_dir else Path(".")
     dest.mkdir(parents=True, exist_ok=True)
-    out_path = dest / "decision_analyzer_sample.parquet"
+    out_path = dest / f"decision_analyzer_sample_{formatted_count}.parquet"
 
+    # Step 7: Build metadata
+    metadata = {
+        "pdstools:source_file": original_source,
+        "pdstools:sample_percentage": f"{sample_percentage:.2f}",
+        "pdstools:sample_percentage_method": method,
+    }
+
+    # Step 8: Write with metadata
     logger.info("Writing sampled data to %s", out_path)
-    sampled.collect().write_parquet(out_path)  # type: ignore[union-attribute]
+    sampled_df.write_parquet(out_path, metadata=metadata)
 
     return pl.scan_parquet(out_path), out_path
 
