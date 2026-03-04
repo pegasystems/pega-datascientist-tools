@@ -17,14 +17,17 @@ from da_streamlit_utils import (
 # TODO the coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO be ready for the many stages - see Dennis' designs
 
-"# Funnel Analysis"
+"# Action Funnel"
 
 """
-This gives a view of which actions are filtered out where in the
-decision funnel, but also by what component.
+Understand how your offers flow through the decisioning pipeline and where they drop off.
+See which filtering rules are impacting your offer mix and identify opportunities to improve
+customer reach.
 
-This helps answering questions like: Where do my "cards offers" get dropped? What gets filtered in which stage?
-
+**Key questions:**
+* Which offers are being filtered out too early?
+* Are high-value offers getting blocked by business rules?
+* Where in the pipeline do specific offer categories drop off?
 """
 
 ensure_data()
@@ -61,10 +64,11 @@ with st.container(border=True):
     remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
     with remaining_tab:
         st.write("""
-        The Funnel illustrates how many actions arrived to each Stage.
+        Track how many offers survive to each stage of your decisioning pipeline. The narrowing
+        funnel shows where offers drop off, helping you spot bottlenecks or overly aggressive filtering.
 
-        The **Granularity** defines the breakdown of the chart. You can for example look at
-        Groups, Issues, individual Actions or, if available, Treatments.
+        Use **Granularity** (sidebar) to analyze at different levels — from high-level offer categories
+        (Issue/Group) down to individual actions or treatments.
         """)
         remanining_funnel, filtered_funnel = decision_funnel(
             scope=st.session_state.scope,
@@ -82,9 +86,11 @@ with st.container(border=True):
         )
 
 """
-Decision Analyzer offers a unique perspective with all the details of what
-action got dropped in which stage and by what component.
+## Filter Impact Details
 
+See exactly which business rules are removing offers, at which stage, and how frequently.
+This table shows all filter components ranked by impact, helping you identify rules that
+may need adjustment.
 """
 
 data = (
@@ -126,10 +132,11 @@ st.download_button(
 has_components = "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 if has_components:
     with st.container(border=True):
-        "## Component → Action Impact"
+        "## Filter Impact by Offer"
         """
-        Which specific actions are most affected by each filter component?
-        This shows the top actions that each component filters out.
+        Discover which offers are most affected by each business rule. Identify if critical
+        offers are being blocked unintentionally and understand which filters have the
+        strongest impact on your offer portfolio.
         """
         impact_top_n = st.number_input(
             "Actions per component:",
@@ -148,12 +155,11 @@ if has_components:
     # Component Drilldown
     # ---------------------------------------------------------------------------
     with st.container(border=True):
-        "## Component Drilldown"
+        "## Deep Dive: Filter Details"
         """
-        Select a filter component to see all actions it drops, enriched with
-        scoring context (average Priority / Value / Propensity from surviving
-        rows of the same action). Sort by value to find high-value actions
-        being removed.
+        Investigate a specific filter to see all offers it removes. Each offer shows its average
+        business value, priority, and propensity score — making it easy to spot if high-value
+        offers are being filtered out. Sort by value to identify the most impactful removals.
         """
         component_names = (
             st.session_state.decision_data.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
