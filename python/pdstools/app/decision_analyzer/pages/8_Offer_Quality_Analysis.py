@@ -102,7 +102,10 @@ with st.container(border=True):
 with st.container(border=True):
     "## Offer Quality Over Time"
 
-    stage_selectbox()
+    # Default to the first stage with propensity scores for more meaningful analysis
+    stages_with_prop = st.session_state.decision_data.stages_with_propensity
+    default_stage = stages_with_prop[0] if stages_with_prop else None
+    stage_selectbox(default=default_stage)
 
     vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
