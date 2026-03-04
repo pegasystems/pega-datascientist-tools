@@ -867,32 +867,41 @@ def offer_quality_piecharts(
         cols=len(AvailableNBADStages),
         specs=[[{"type": "domain"}] * len(AvailableNBADStages)],
         subplot_titles=AvailableNBADStages,
-        horizontal_spacing=0.1,
+        horizontal_spacing=0.15,  # Increased from 0.1 to reduce label overlap
     )
 
+    # Define consistent label order (matching color order: green, orange, red)
+    label_order = ["At least one relevant action", "Only irrelevant actions", "Without actions"]
+    label_mapping = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+
     for i, stage in enumerate(AvailableNBADStages):
-        plotdf = df[(stage,)].drop(level)
+        plotdf = df[(stage,)].drop(level).rename(label_mapping)
+
+        # Reorder to match label_order
+        ordered_values = [plotdf[label][0] if label in plotdf.columns else 0 for label in label_order]
+
         fig.add_trace(
             go.Pie(
-                values=list(plotdf.to_numpy())[0],
-                labels=list(
-                    plotdf.rename(
-                        {
-                            "atleast_one_relevant_action": "At least one relevant action",
-                            "only_irrelevant_actions": "Only irrelevant actions",
-                            "has_no_offers": "Without actions",
-                        }
-                    ).columns
-                ),
+                values=ordered_values,
+                labels=label_order,
                 name=stage,
-                # visible=False,
-                sort=False,
+                sort=False,  # Keep our defined order
+                legendgroup="quality",  # Group all pie slices in same legend
+                showlegend=(i == 0),  # Only show legend for first pie chart
             ),
             1,
             i + 1,
         )
 
-    fig.update_layout(title_text=None)
+    fig.update_layout(
+        title_text=None,
+        legend_title_text="Customers",
+        annotations=[dict(font=dict(size=11)) for _ in fig.layout.annotations],  # Smaller font for stage labels
+    )
     fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
     return fig
 
@@ -918,13 +927,14 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         "Only irrelevant actions": "#fca52e",
         "Without actions": "#cd001f",
     }
+    # Order to match pie charts: green, orange, red
     trend_melted = (
         trend_df.unpivot(
             index=["day"],
             on=[
-                "has_no_offers",
                 "atleast_one_relevant_action",
                 "only_irrelevant_actions",
+                "has_no_offers",
             ],
             variable_name="status",
         )
@@ -938,7 +948,9 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         y="interactions",
         color="status",
         color_discrete_map=status_colors,
+        category_orders={"status": ["At least one relevant action", "Only irrelevant actions", "Without actions"]},
     )
+    fig.update_layout(legend_title_text="Customers")
 
     return fig
 
