@@ -122,6 +122,19 @@ def test_format_count_for_filename_billions():
     assert format_count_for_filename(87000000000) == "87B"
 
 
+def test_format_count_for_filename_edge_cases():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    # Exact boundaries
+    assert format_count_for_filename(1) == "1"
+    assert format_count_for_filename(10) == "10"
+    assert format_count_for_filename(100) == "100"
+    # Check boundary transitions
+    assert "k" in format_count_for_filename(1001)
+    assert "M" in format_count_for_filename(1000001)
+    assert "B" in format_count_for_filename(1000000001)
+
+
 # ---------------------------------------------------------------------------
 # area_under_curve / gini_coefficient
 # ---------------------------------------------------------------------------
@@ -655,6 +668,38 @@ class TestSampleAndSave:
             assert "decision_analyzer_sample_" in path.name
             # Should have a number (exact format depends on actual count in mock data)
             assert any(char.isdigit() for char in path.name)
+
+    def test_sample_and_save_without_source_path(self, mock_decision_data, tmp_path):
+        """Test backward compatibility - source_path is optional."""
+        from pdstools.decision_analyzer.utils import sample_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+
+        # Call without source_path (backward compatibility)
+        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+
+        assert path is not None
+        # Should still write metadata, but with "unknown" source
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == "unknown"
+
+    def test_sample_and_save_with_invalid_source_path(self, mock_decision_data, tmp_path):
+        """Test graceful handling of nonexistent source path."""
+        from pdstools.decision_analyzer.utils import sample_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+
+        # Pass nonexistent source path
+        result, path = sample_and_save(
+            lf, fraction=0.5, output_dir=str(tmp_path), source_path="/nonexistent/file.parquet"
+        )
+
+        assert path is not None
+        # Should write metadata with the provided path (even if it doesn't exist)
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == "/nonexistent/file.parquet"
 
 
 # ---------------------------------------------------------------------------
