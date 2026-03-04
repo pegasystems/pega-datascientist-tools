@@ -122,9 +122,10 @@ def convert_polars_df(df):
 
 csv = convert_polars_df(data)
 st.download_button(
-    label="Click to Download",
-    file_name="file.csv",
+    label="Download as CSV",
+    file_name="filter_impact_analysis.csv",
     data=csv,
+    help="Download the complete filter impact analysis as a CSV file",
 )
 
 # ---------------------------------------------------------------------------
