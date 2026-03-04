@@ -11,7 +11,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
-from pdstools.decision_analyzer.utils import parse_sample_flag, sample_and_save
+from pdstools.decision_analyzer.utils import parse_sample_flag, sample_and_save, _read_source_metadata
 from pdstools.utils.streamlit_utils import (
     get_data_path,
     get_sample_limit,
@@ -67,6 +67,7 @@ sample_size = st.number_input(
 # File upload — always visible. Drag-and-drop or use the Browse button.
 raw_data = handle_file_upload()
 data_source_path = None  # Track the source path for metadata
+sample_path = None  # Track the sampled file path if sampling is applied
 
 # For managed deployments, also show a server-side file path input
 if is_managed_deployment():
@@ -105,7 +106,7 @@ if raw_data is not None and sample_limit_raw:
         st.stop()
 
     with st.spinner("Sampling interactions…"):
-        raw_data, sample_path = sample_and_save(
+        raw_data, sample_path_result = sample_and_save(
             raw_data,
             n=sample_kwargs.get("n"),  # type: ignore[arg-type]
             fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
@@ -113,7 +114,8 @@ if raw_data is not None and sample_limit_raw:
             source_path=data_source_path,
         )
     label = sample_limit_raw.strip()
-    if sample_path is not None:
+    if sample_path_result is not None:
+        sample_path = sample_path_result  # Update the tracked sample path
         st.info(
             f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
             f"Sampled data saved to `{sample_path}`."
@@ -147,6 +149,19 @@ def _show_data_summary(da):
     )
     st.success(summary)
 
+    # Check if data is sampled by looking for metadata in session state
+    sample_metadata = st.session_state.get("sample_metadata")
+    if sample_metadata:
+        sample_pct = sample_metadata["sample_percentage"]
+        method = sample_metadata["method"]
+        source_file = sample_metadata.get("source_file", "unknown")
+
+        method_label = "exact" if method == "exact" else "approximate"
+        st.info(
+            f"📊 This data represents **{sample_pct:.1f}%** of the original dataset ({method_label} calculation). "
+            f"Original source: `{source_file}`"
+        )
+
 
 _LARGE_DATA_HINT = (
     "**Your data may be too large for the default polars build.** "
@@ -178,6 +193,15 @@ if has_new_data and raw_data is not None:
             )
             st.session_state.decision_data = da
             st.session_state["filters"] = []
+
+            # Check if the loaded data has sampling metadata
+            # Prefer sample_path (from --sample flag) over data_source_path
+            sample_metadata = None
+            metadata_path = sample_path or data_source_path
+            if metadata_path:
+                sample_metadata = _read_source_metadata(str(metadata_path))
+            st.session_state["sample_metadata"] = sample_metadata
+
             del raw_data
             _show_data_summary(da)
     except BaseException as exc:
