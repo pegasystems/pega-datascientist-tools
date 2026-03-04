@@ -432,7 +432,8 @@ class DecisionAnalyzer:
             pl.min(*stats_cols).name.suffix("_min"),
             pl.max(*stats_cols).name.suffix("_max"),
             pl.col("Propensity", "Priority").sample(n=num_samples, with_replacement=True, shuffle=True),
-            pl.len().alias("Decisions"),
+            pl.col("Interaction ID").unique().alias("Interaction_IDs"),
+            pl.col("Interaction ID").n_unique().alias("Decisions"),
         ]
 
         self.preaggregated_decision_data_filterview = (
@@ -455,7 +456,7 @@ class DecisionAnalyzer:
                 self.getPreaggregatedFilterView,
                 list(self.preaggregation_columns),
                 [
-                    pl.sum("Decisions"),
+                    pl.col("Interaction_IDs").flatten().unique().count().alias("Decisions"),
                     pl.min("Decision Time_min"),
                     pl.max("Decision Time_max"),
                     pl.min("Value_min"),
@@ -670,14 +671,14 @@ class DecisionAnalyzer:
         funnelData = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
-            aggregations=[pl.sum("Decisions").alias("count")],
+            aggregations=[pl.col("Interaction_IDs").flatten().unique().count().alias("count")],
         ).filter(pl.col("count") > 0)
 
         # Compute filtered funnel view
         filtered_funnel = (
             filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
             .group_by([self.level, scope])
-            .agg(count=pl.sum("Decisions"))
+            .agg(count=pl.col("Interaction_IDs").flatten().unique().count())
             .collect()
         )
 
@@ -699,7 +700,7 @@ class DecisionAnalyzer:
             apply_filter(self.getPreaggregatedFilterView, additional_filters)
             .filter(pl.col(self.level) != "Output")
             .group_by(group_cols)
-            .agg(pl.sum("Decisions").alias("Filtered Decisions"))
+            .agg(pl.col("Interaction_IDs").flatten().unique().count().alias("Filtered Decisions"))
             .collect()
         )
         result = pl.concat(
