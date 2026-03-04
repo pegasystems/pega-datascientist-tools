@@ -58,21 +58,23 @@ with st.session_state["sidebar"]:
 
     propensityTH = (
         st.slider(
-            "Propensity threshold",
+            "Minimum propensity for relevance",
             propensity_th[0] * 100,
             propensity_th[2] * 100,
             propensity_th[1] * 100,
             format="%.2f%%",
+            help="Offers with propensity below this value are considered irrelevant (low quality)",
         )
         / 100
     )
     priorityTH = st.slider(
-        "Priority threshold",
+        "Minimum priority for relevance",
         priority_th[0],
         priority_th[2],
         priority_th[1],
         # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
+        help="Offers with priority below this value are considered irrelevant (low quality)",
     )
 
 
