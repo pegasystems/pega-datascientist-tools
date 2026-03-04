@@ -23,6 +23,11 @@ low predicted response rates or priorities.
 * Which customers are seeing limited choices?
 * Are there interactions with only low-quality offers?
 * Where might new or untested offers be impacting customer experience?
+
+**Note:** Propensity-based quality assessment (distinguishing between "relevant" and
+"irrelevant" offers) is only available from the arbitration stage onward. For earlier
+stages, the analysis shows whether customers received at least one action, without
+quality assessment.
 """
 ensure_data()
 st.session_state["sidebar"] = st.sidebar

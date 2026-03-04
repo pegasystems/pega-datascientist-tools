@@ -845,6 +845,7 @@ def offer_quality_piecharts(
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
+        "atleast_one_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
@@ -870,10 +871,16 @@ def offer_quality_piecharts(
         horizontal_spacing=0.15,  # Increased from 0.1 to reduce label overlap
     )
 
-    # Define consistent label order (matching color order: green, orange, red)
-    label_order = ["At least one relevant action", "Only irrelevant actions", "Without actions"]
+    # Define consistent label order: green (relevant), blue (action), orange (irrelevant), red (none)
+    label_order = [
+        "At least one relevant action",
+        "At least one action",
+        "Only irrelevant actions",
+        "Without actions",
+    ]
     label_mapping = {
         "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
         "only_irrelevant_actions": "Only irrelevant actions",
         "has_no_offers": "Without actions",
     }
@@ -902,13 +909,15 @@ def offer_quality_piecharts(
         legend_title_text="Customers",
         annotations=[dict(font=dict(size=11)) for _ in fig.layout.annotations],  # Smaller font for stage labels
     )
-    fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
+    # Colors: green, blue, orange, red
+    fig.update_traces(marker=dict(colors=["#219e3f", "#4A90E2", "#fca52e", "#cd001f"]))
     return fig
 
 
 def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
     value_finder_names = [
         "atleast_one_relevant_action",
+        "atleast_one_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
@@ -919,20 +928,23 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         return trend_df.lazy()
     status_labels = {
         "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
         "only_irrelevant_actions": "Only irrelevant actions",
         "has_no_offers": "Without actions",
     }
     status_colors = {
         "At least one relevant action": "#219e3f",
+        "At least one action": "#4A90E2",
         "Only irrelevant actions": "#fca52e",
         "Without actions": "#cd001f",
     }
-    # Order to match pie charts: green, orange, red
+    # Order to match pie charts: green, blue, orange, red
     trend_melted = (
         trend_df.unpivot(
             index=["day"],
             on=[
                 "atleast_one_relevant_action",
+                "atleast_one_action",
                 "only_irrelevant_actions",
                 "has_no_offers",
             ],
@@ -948,7 +960,14 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         y="customers",
         color="status",
         color_discrete_map=status_colors,
-        category_orders={"status": ["At least one relevant action", "Only irrelevant actions", "Without actions"]},
+        category_orders={
+            "status": [
+                "At least one relevant action",
+                "At least one action",
+                "Only irrelevant actions",
+                "Without actions",
+            ]
+        },
         labels={"customers": "Customers"},
     )
     fig.update_layout(legend_title_text="Customers")
