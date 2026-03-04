@@ -939,16 +939,17 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
             variable_name="status",
         )
         .sort("day")
-        .rename({"value": "interactions"})
+        .rename({"value": "customers"})
         .with_columns(pl.col("status").replace(status_labels))
     )
     fig = px.line(
         trend_melted,
         x="day",
-        y="interactions",
+        y="customers",
         color="status",
         color_discrete_map=status_colors,
         category_orders={"status": ["At least one relevant action", "Only irrelevant actions", "Without actions"]},
+        labels={"customers": "Customers"},
     )
     fig.update_layout(legend_title_text="Customers")
 
