@@ -105,12 +105,11 @@ with st.container(border=True):
         "receive nothing."
     )
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Actions", f"{total_action_appearances:,.0f}")
     c2.metric("Above Both Thresholds", f"{above_actions:,.0f}")
-    c3.metric("Below Either Threshold", f"{below_actions:,.0f}")
-    c4.metric("% Actions Filtered", f"{pct_filtered:.1f}%")
-    c5.metric(
+    c3.metric("% Actions Filtered", f"{pct_filtered:.1f}%")
+    c4.metric(
         "Decisions without Actions",
         f"{empty_interactions:,}",
         delta=f"{empty_pct:.1f}% of {total_interactions:,}",
