@@ -687,6 +687,7 @@ class Plot:
         # Determine which metric to show based on sort_by selection
         metric_col = None
         metric_label = None
+        is_propensity = False
         if sort_by == "avg_Value" and "avg_Value" in plot_df.columns:
             metric_col = "avg_Value"
             metric_label = "Average Value"
@@ -696,20 +697,31 @@ class Plot:
         elif sort_by == "avg_Propensity" and "avg_Propensity" in plot_df.columns:
             metric_col = "avg_Propensity"
             metric_label = "Average Propensity"
+            is_propensity = True
 
         # Add secondary trace with its own x-axis scale if a metric is selected
         if metric_col:
             non_null_values = plot_df.filter(pl.col(metric_col).is_not_null())
             if non_null_values.height > 0:
+                # Convert propensity to percentage for display
+                x_values = non_null_values[metric_col]
+                if is_propensity:
+                    x_values = x_values * 100  # Convert to percentage
+
+                # Build hover template
+                hover_suffix = "%" if is_propensity else ""
+                hover_template = f"<b>%{{y}}</b><br>{metric_label}: %{{x:.1f}}{hover_suffix}<extra></extra>"
+
                 fig.add_trace(
                     go.Scatter(
                         y=non_null_values["Action"],
-                        x=non_null_values[metric_col],
+                        x=x_values,
                         mode="lines+markers",
                         name=metric_label,
                         marker=dict(color="#1f77b4", size=6),
                         line=dict(color="#1f77b4", width=2),
                         xaxis="x2",  # Secondary x-axis with independent scale
+                        hovertemplate=hover_template,
                     )
                 )
 
@@ -727,11 +739,15 @@ class Plot:
 
         # Add secondary x-axis configuration if we have a metric
         if metric_label:
-            layout_config["xaxis2"] = dict(
-                title=metric_label,
-                overlaying="x",
-                side="top",
-            )
+            xaxis2_config = {
+                "title": f"{metric_label} (%)" if is_propensity else metric_label,
+                "overlaying": "x",
+                "side": "top",
+            }
+            # Format propensity axis as percentage
+            if is_propensity:
+                xaxis2_config["ticksuffix"] = "%"
+            layout_config["xaxis2"] = xaxis2_config
 
         fig.update_layout(**layout_config)
 
