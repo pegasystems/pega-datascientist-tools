@@ -36,7 +36,8 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Optimize thresholding quantiles** — Current implementation is verbose and potentially slow.
 - [x] **Fix `sample` docstring** — Says "taking the first 50,000 interactions" but actually uses hash-based sampling.
 - [ ] **Stratified sampling option** — Current `sample` property is random by interaction ID. Consider optional stratification by channel/direction.
-- [ ] **Scale up counts in UI after sampling** — When data is sampled, counts shown in the UI should be multiplied by the inverse of the sample fraction so users see estimated real volumes. When re-loading a previously sampled file, the original sample percentage must be recoverable — consider encoding it in the generated filename (e.g. `…_sampled_10pct.parquet`).
+- [x] **Sample metadata tracking and display** — Implemented comprehensive metadata tracking for sampled files. The `sample_and_save` function now: (1) Generates descriptive filenames with human-readable counts (e.g., `decision_analyzer_sample_87k.parquet`), (2) Stores metadata in parquet files including original source file path, sample percentage, and calculation method (exact/approximate), (3) Supports chained sampling with percentage multiplication and lineage tracking. The Home and Overview pages display sample information when data is sampled. Uses Polars native metadata API with keys: `pdstools:source_file`, `pdstools:sample_percentage`, `pdstools:sample_percentage_method`. Reading: `metadata = pl.read_parquet_metadata(file_path)`.
+- [ ] **Scale up counts in UI after sampling** — Future enhancement: multiply displayed counts by inverse of sample fraction to show estimated real volumes (metadata infrastructure now in place).
 - [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on the full dataset. Investigate polars streaming or chunked processing for GB-scale data.
 
 ---
