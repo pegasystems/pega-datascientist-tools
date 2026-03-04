@@ -64,8 +64,9 @@ with st.container(border=True):
     remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
     with remaining_tab:
         st.write("""
-        Track how many offers survive to each stage of your decisioning pipeline. The narrowing
-        funnel shows where offers drop off, helping you spot bottlenecks or overly aggressive filtering.
+        Track how many offers **enter** each stage of your decisioning pipeline. The numbers show
+        offers arriving at each stage (not exiting) — the narrowing funnel reveals where offers drop
+        off, helping you spot bottlenecks or overly aggressive filtering.
 
         Use **Granularity** (sidebar) to analyze at different levels — from high-level offer categories
         (Issue/Group) down to individual actions or treatments.
