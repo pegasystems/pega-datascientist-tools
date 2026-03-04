@@ -1311,8 +1311,18 @@ class DecisionAnalyzer:
         pl.LazyFrame
             Value Finder style, available action counts per group_by category
         """
+        # Get all unique customers/interactions from the sample to ensure we count those with no actions
+        if isinstance(group_by, str):
+            group_by = [group_by]
+
+        # Get the full set of customers from the FIRST stage (where all customers start)
+        # This ensures we track all customers throughout the pipeline
+        first_stage = self.AvailableNBADStages[0]
+        all_customers = self.sample.filter(pl.col(self.level) == first_stage).select(group_by).unique().collect().lazy()
+
         dfs = []
         for i, stage in enumerate(self.AvailableNBADStages):
+            # Get aggregated counts for this stage (only interactions WITH actions)
             stage_df = (
                 # TODO refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
                 df.filter(pl.col(self.level).is_in(self.AvailableNBADStages[i:]))
@@ -1328,6 +1338,19 @@ class DecisionAnalyzer:
                 )
                 .with_columns(pl.lit(stage).alias(self.level))
             )
+
+            # Left join with all customers to include those with no actions (fill with 0s)
+            # Cast stage_df level column to categorical to match join keys
+            stage_df = stage_df.with_columns(pl.col(self.level).cast(pl.Categorical))
+
+            # Add stage to all customers and join
+            stage_customers = all_customers.with_columns(pl.lit(stage).cast(pl.Categorical).alias(self.level))
+            stage_df = stage_customers.join(stage_df, on=group_by + [self.level], how="left").with_columns(
+                pl.col(
+                    "no_of_offers", "new_models", "poor_propensity_offers", "poor_priority_offers", "good_offers"
+                ).fill_null(0)
+            )
+
             dfs.append(stage_df)
         stage_df = pl.concat(dfs)
 
