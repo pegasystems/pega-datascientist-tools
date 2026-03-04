@@ -10,7 +10,9 @@ st.session_state["sidebar"] = st.sidebar
 "# Overview"
 
 """
-Quick insights into your decisioning implementation at a glance.
+Key metrics and insights about your offer strategy at a glance. See how many offers
+reach customers, which factors drive decisions, and where opportunities exist to
+improve customer reach.
 """
 
 # Display sample information if available
@@ -54,12 +56,13 @@ with col1:
 
     """
 
-    "## :blue[Optionality Analysis]"
+    "## :blue[Customer Choice]"
 
     if has_arbitration_data:
         """
-        The number of actions available at arbitration vs the propensity to accept those. As
-        there are more actions available, generally the success rates increase (and thus propensities).
+        Shows how many offers reach customers and how likely they are to respond. More
+        offers typically means higher engagement — customers appreciate having choices
+        that match their needs.
         """
         st.plotly_chart(
             st.session_state.decision_data.plot.propensity_vs_optionality("Arbitration").update_layout(
@@ -73,13 +76,13 @@ with col1:
         )
 
 with col2:
-    "## :orange[Influence of Prioritization Factors]"
+    "## :orange[What Drives Your Offers]"
 
     if has_arbitration_data:
         """
-        Showing the percentage of decisions influenced by the various prioritization factors. In a
-        more emphathetic, user centric, approach, the model propensities would be the major
-        factor.
+        See which factors influence which offers reach customers. Customer likelihood to
+        respond (propensity) should typically drive decisions for a customer-centric
+        approach, balanced with business value and priorities.
         """
 
         st.plotly_chart(

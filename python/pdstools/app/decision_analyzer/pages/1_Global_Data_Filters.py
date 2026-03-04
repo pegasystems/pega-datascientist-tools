@@ -17,12 +17,13 @@ from pdstools.decision_analyzer.utils import get_first_level_stats
 
 """# Global Data Filters"""
 
-"""Here you can filter the decision data for analysis. You don't need to, if
-you don't, then **all** data will be used.
+"""
+Focus your analysis on specific segments. Use filters to narrow down the data by
+channel, offer type, customer segment, or any other dimension. All charts and analyses
+will reflect only the filtered data.
 
-In the drop down below, select the columns you wish to filter (e.g. Group, Issue, Channel etc).
-For each column, a new configuration screen will be added in which you can specify
-what values you want to use in the Decision Analyzer.
+**How it works:** Select dimensions from the dropdown below. For each dimension, you can
+choose which specific values to include in your analysis.
 """
 
 ensure_data()

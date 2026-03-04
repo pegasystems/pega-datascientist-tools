@@ -15,14 +15,14 @@ from da_streamlit_utils import (
 "# Offer Quality Analysis"
 
 """
-**Value Finder** has a unique concept of attaching a propensity to every action even if it is
-filtered out before Arbitration. **Decision Analyzer** does not have these propensities - as
-it is running from actual production data.
+Identify customer interactions where offer quality may be a concern. This analysis
+helps you spot situations where customers see too few offers, or where offers have
+low predicted response rates or priorities.
 
-But there are a lot of Value Finder - like analyses that can still be done here. For example,
-looking at the number of interactions with just very few actions. And for the actions at or
-after arbitration, we can do the value finder analyses that relate to the propensity value
-or the number of actions driven by immature, new, models.
+**Key insights:**
+* Which customers are seeing limited choices?
+* Are there interactions with only low-quality offers?
+* Where might new or untested offers be impacting customer experience?
 """
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
@@ -78,7 +78,7 @@ action_counts = st.session_state.decision_data.filtered_action_counts(
 )
 
 with st.container(border=True):
-    "## Distribution of Customers per Stage"
+    "## Customer Segments by Offer Quality"
 
     vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
 
@@ -93,7 +93,7 @@ with st.container(border=True):
     )
 
 with st.container(border=True):
-    "## Interactions in Trouble"
+    "## Offer Quality Over Time"
 
     stage_selectbox()
 

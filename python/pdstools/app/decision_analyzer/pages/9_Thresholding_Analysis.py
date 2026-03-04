@@ -8,13 +8,14 @@ from da_streamlit_utils import ensure_data
 "# Thresholding Analysis"
 
 """
-Explore how applying propensity and priority thresholds affects the volume and
-distribution of actions reaching arbitration.
+Explore how setting minimum thresholds for response likelihood (propensity) and priority
+affects which offers reach customers. Use this to fine-tune your offer quality standards
+and understand the trade-offs between offer volume and predicted performance.
 
-* What is the effect of new offers (new models with propensity 50%, showing a peak there)?
-* What should my propensity threshold be and how does it affect volumes and distributions?
-  Filter on a specific channel globally to answer this per channel.
-* Is the random control group working? (propensity spreading 0–100%)
+**Key questions:**
+* How many offers would be filtered if we raised quality thresholds?
+* What's the right balance between offer volume and customer relevance?
+* How do threshold changes affect specific offer categories?
 """
 
 ensure_data()
@@ -96,12 +97,12 @@ empty_pct = (empty_interactions / total_interactions * 100) if total_interaction
 # Section 1: Volume impact metrics
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    "## Threshold Impact"
+    "## Impact Summary"
 
     st.caption(
-        "**Total actions** counts each action reaching arbitration separately "
-        "(multiple per interaction). **Decisions without actions** counts interactions "
-        "where *no* action survives both thresholds."
+        "Shows how many offers meet your threshold criteria. **Decisions without actions** "
+        "indicates customer interactions where no offers qualify — these customers would "
+        "receive nothing."
     )
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -121,11 +122,12 @@ with st.container(border=True):
 # Section 2: Propensity and Priority distributions with threshold lines
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    "## Propensity and Priority Distributions"
+    "## Response Likelihood and Priority Distributions"
 
     st.caption(
-        "Each bar shows the number of actions in that value bin "
-        "(weighted by pre-aggregated counts). The dashed red line marks the threshold."
+        "See how your offers are distributed across response likelihood (propensity) and "
+        "priority values. The red dashed line shows your current threshold — offers below "
+        "this line would be filtered out."
     )
 
     col1, col2 = st.columns(2)
@@ -176,7 +178,7 @@ with st.container(border=True):
 # Section 3: Distribution of surviving actions above both thresholds
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    "## Action Distribution above Thresholds"
+    "## Offers Meeting Quality Thresholds"
 
     surviving = (
         da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))

@@ -18,14 +18,15 @@ from pdstools.decision_analyzer.utils import (
 # TODO: also because now the colors are inconsistent - separate for both plots
 # TODO: colors get too pale if the counts become really small, becomes invisible
 
-"# Win Loss Analysis"
+"# Win/Loss Analysis"
 
 """
-This analysis shows that if a (group of) action(s) is "winning", what
-it is winning from. A comparison, or reference, group needs to be
-defined. You can, for example, investigate that when *upsell actions* are
-winning, what are they generally winning from. This analysis only applies
-to Arbitration.
+Understand competitive dynamics between your offers. When one offer wins the customer
+interaction, which other offers did it beat? Define a comparison group (e.g., upsell offers)
+to see what they typically win against and lose to.
+
+**Use this to:** Identify which offers compete most directly and understand why certain
+offers consistently win or lose.
 """
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
@@ -178,13 +179,13 @@ if st.session_state.local_filters != []:
             key="loss_distribution_chart",
         )
 
-    "## What are the Prioritization Factors that make these actions win?"
+    "## Why Do These Offers Win?"
 
     """
-    We simply count the number of times the selected offer(s) are in the top-1 when dropping one of the prioritization factors from the priortization formula.
-
-    So if it wins 600 times right now, but when leaving out value it only wins 200 times, that means value pushes the selected offer(s) up. The difference of +400 is shown in the bar chart below.
-
+    See which factors drive your comparison group to the top. The chart shows how many
+    additional wins each factor contributes. If an offer wins 600 times now but only
+    200 times without considering value, then value is adding 400 wins — pushing this
+    offer ahead of others.
     """
     if win_count == 0:
         st.warning("The selected comparison Group never wins in the arbitration")
@@ -196,12 +197,12 @@ if st.session_state.local_filters != []:
             width="stretch",
             key="sensitivity_chart",
         )
-    "## Why are the actions winning"
+    "## Comparison: Your Group vs Others"
 
     """
-    Here we show the distribution of the various arbitration factors of the
-    comparison group vs the other actions that make it to arbitration for the
-    same interactions.
+    Compare how your selected offers score on key factors (value, priority, propensity)
+    against competing offers in the same customer interactions. This reveals whether
+    your group wins through higher scores or other strategic factors.
     """
 
     fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
@@ -216,12 +217,12 @@ if st.session_state.local_filters != []:
             key="prio_factor_boxplots_chart",
         )
 
-    "## Rank Distribution of Comparison Group"
+    "## How Often Do These Offers Rank First?"
 
     """
-    Showing the distribution of the prioritization rank of the selected actions.
-
-    If the rank is low, the selected actions are not (often) winning.
+    Shows where your selected offers typically rank in customer interactions. Lower
+    ranks (closer to 1) mean these offers frequently win. Higher ranks indicate
+    they're often beat by other offers.
     """
     st.plotly_chart(
         st.session_state.decision_data.plot.rank_boxplot(
