@@ -61,8 +61,7 @@ with col1:
     if has_arbitration_data:
         """
         Shows how many offers reach customers and how likely they are to respond. More
-        offers typically means higher engagement — customers appreciate having choices
-        that match their needs.
+        offers typically means higher engagement.
         """
         st.plotly_chart(
             st.session_state.decision_data.plot.propensity_vs_optionality("Arbitration").update_layout(
@@ -82,7 +81,7 @@ with col2:
         """
         See which factors influence which offers reach customers. Customer likelihood to
         respond (propensity) should typically drive decisions for a customer-centric
-        approach, balanced with business value and priorities.
+        approach, balanced with business value.
         """
 
         st.plotly_chart(
