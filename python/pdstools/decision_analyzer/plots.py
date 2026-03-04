@@ -668,8 +668,10 @@ class Plot:
             df = df.sort(sort_by, descending=True)
         plot_df = df.head(30)
 
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # Create figure without subplots - use overlaying x-axes for different scales
+        fig = go.Figure()
 
+        # Primary trace: bar chart of filtered decisions
         fig.add_trace(
             go.Bar(
                 y=plot_df["Action"],
@@ -678,11 +680,11 @@ class Plot:
                 name="Filtered Decisions",
                 marker_color="#cd001f",
                 hovertemplate=("<b>%{y}</b><br>Filtered: %{x}<br><extra></extra>"),
-            ),
-            secondary_y=False,
+                xaxis="x",  # Primary x-axis
+            )
         )
 
-        # Add secondary axis trace based on sort_by selection
+        # Determine which metric to show based on sort_by selection
         metric_col = None
         metric_label = None
         if sort_by == "avg_Value" and "avg_Value" in plot_df.columns:
@@ -695,6 +697,7 @@ class Plot:
             metric_col = "avg_Propensity"
             metric_label = "Average Propensity"
 
+        # Add secondary trace with its own x-axis scale if a metric is selected
         if metric_col:
             non_null_values = plot_df.filter(pl.col(metric_col).is_not_null())
             if non_null_values.height > 0:
@@ -706,22 +709,31 @@ class Plot:
                         name=metric_label,
                         marker=dict(color="#1f77b4", size=6),
                         line=dict(color="#1f77b4", width=2),
-                    ),
-                    secondary_y=True,
+                        xaxis="x2",  # Secondary x-axis with independent scale
+                    )
                 )
 
-        fig.update_layout(
-            height=max(400, 25 * min(plot_df.height, 30)),
-            template="plotly_white",
-            yaxis=dict(automargin=True, autorange="reversed"),
-            showlegend=True,
-        )
-        fig.update_xaxes(title="Filtered Decisions")
-        fig.update_yaxes(title="", secondary_y=False)
+        # Configure layout with overlaying x-axes
+        layout_config = {
+            "height": max(400, 25 * min(plot_df.height, 30)),
+            "template": "plotly_white",
+            "yaxis": dict(automargin=True, autorange="reversed"),
+            "showlegend": True,
+            "xaxis": dict(
+                title="Filtered Decisions",
+                side="bottom",
+            ),
+        }
+
+        # Add secondary x-axis configuration if we have a metric
         if metric_label:
-            fig.update_yaxes(title=metric_label, secondary_y=True)
-        else:
-            fig.update_yaxes(title="", secondary_y=True)
+            layout_config["xaxis2"] = dict(
+                title=metric_label,
+                overlaying="x",
+                side="top",
+            )
+
+        fig.update_layout(**layout_config)
 
         return fig
 
