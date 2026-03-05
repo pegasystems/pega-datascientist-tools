@@ -135,7 +135,7 @@ def main():
         args.app = ALIASES[args.app]
 
     # Check for likely typos in pdstools arguments
-    known_pdstools_args = ["--deploy-env", "--data-path", "--sample", "--temp-dir"]
+    known_pdstools_args = ["--version", "--deploy-env", "--data-path", "--sample", "--temp-dir"]
     typos = check_for_typos(unknown, known_pdstools_args)
 
     if typos:
