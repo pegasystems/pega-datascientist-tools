@@ -799,6 +799,40 @@ def format_count_for_filename(count: int) -> str:
             return f"{formatted}B"
 
 
+def should_cache_source(source_path: str | None) -> bool:
+    """Return True if source should be cached as parquet.
+
+    Caching is beneficial for non-parquet sources (CSV, JSON, ZIP, directories)
+    but unnecessary for single parquet files which are already optimized.
+
+    Parameters
+    ----------
+    source_path : str | None
+        Path to the source file or directory.
+
+    Returns
+    -------
+    bool
+        True if source should be cached, False otherwise.
+
+    Examples
+    --------
+    >>> should_cache_source("/data/export.csv")
+    True
+    >>> should_cache_source("/data/export.parquet")
+    False
+    >>> should_cache_source(None)
+    False
+    """
+    if not source_path:
+        return False
+    path = Path(source_path)
+    # Skip if source is already a single parquet file
+    if path.is_file() and path.suffix == ".parquet":
+        return False
+    return True
+
+
 def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
     """Read pdstools metadata from a parquet file if it exists.
 

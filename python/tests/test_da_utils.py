@@ -794,3 +794,57 @@ def test_read_source_metadata_nonexistent_file():
     result = _read_source_metadata("/nonexistent/file.parquet")
 
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# should_cache_source
+# ---------------------------------------------------------------------------
+
+
+class TestShouldCacheSource:
+    """Detect when source data should be cached as parquet."""
+
+    def test_none_returns_false(self):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        assert should_cache_source(None) is False
+
+    def test_single_parquet_returns_false(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        parquet_file = tmp_path / "data.parquet"
+        parquet_file.touch()
+        assert should_cache_source(str(parquet_file)) is False
+
+    def test_csv_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        csv_file = tmp_path / "data.csv"
+        csv_file.touch()
+        assert should_cache_source(str(csv_file)) is True
+
+    def test_directory_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        data_dir = tmp_path / "data_dir"
+        data_dir.mkdir()
+        assert should_cache_source(str(data_dir)) is True
+
+    def test_json_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        json_file = tmp_path / "data.json"
+        json_file.touch()
+        assert should_cache_source(str(json_file)) is True
+
+    def test_arrow_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        arrow_file = tmp_path / "data.arrow"
+        arrow_file.touch()
+        assert should_cache_source(str(arrow_file)) is True
+
+    def test_empty_string_returns_false(self):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        assert should_cache_source("") is False
