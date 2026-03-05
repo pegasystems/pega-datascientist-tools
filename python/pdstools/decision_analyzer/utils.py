@@ -662,6 +662,13 @@ def prepare_and_save(
     >>> print(metadata["pdstools:sample_percentage"])
     10.0
     """
+    # Determine mode: sampling or caching
+    is_sampling = (n is not None) or (fraction is not None)
+
+    # Skip caching if no source path provided
+    if not is_sampling and not source_path:
+        return df, None
+
     available = set(df.collect_schema().names())
     id_column = _find_interaction_id_column(available)
 
@@ -674,38 +681,48 @@ def prepare_and_save(
             # Inherit original source from chained sampling
             original_source = source_metadata["source_file"]
 
-    # Step 2: Calculate total interactions if needed
-    total = None
-    if n is not None:
-        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
-        if total <= n:
-            logger.info(
-                "Data has %d interactions (≤ requested %d), skipping sampling.",
-                total,
-                n,
-            )
-            return df, None
+    # Step 2: Process data based on mode
+    if is_sampling:
+        # Sampling mode: calculate total if needed for n-based sampling
+        total = None
+        if n is not None:
+            total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
+            if total <= n:
+                logger.info(
+                    "Data has %d interactions (≤ requested %d), skipping sampling.",
+                    total,
+                    n,
+                )
+                return df, None
 
-    # Step 3: Perform sampling
-    sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
-    sampled_df = sampled.collect()  # type: ignore[union-attribute]
-
-    # Step 4: Calculate sample percentage
-    if fraction is not None:
-        # Fraction-based: exact percentage
-        sample_percentage = fraction * 100.0
-        method = "exact"
-    elif total is not None and n is not None:
-        # Count-based: we already have total, calculate exact
-        sample_percentage = (n / total) * 100.0
-        method = "exact"
+        # Perform sampling
+        sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+        processed_df = sampled.collect()  # type: ignore[union-attribute]
     else:
-        # Fallback (shouldn't happen in normal flow)
-        sample_percentage = 0.0
-        method = "unknown"
+        # Caching mode: collect all data (no sampling)
+        processed_df = df.collect()
 
-    # Step 5: Apply inheritance if sampling a sample
-    if source_metadata:
+    # Step 3: Calculate sample percentage
+    if is_sampling:
+        if fraction is not None:
+            # Fraction-based: exact percentage
+            sample_percentage = fraction * 100.0
+            method = "exact"
+        elif total is not None and n is not None:
+            # Count-based: we already have total, calculate exact
+            sample_percentage = (n / total) * 100.0
+            method = "exact"
+        else:
+            # Fallback (shouldn't happen in normal flow)
+            sample_percentage = 0.0
+            method = "unknown"
+    else:
+        # Caching mode: always 100%
+        sample_percentage = 100.0
+        method = "exact"
+
+    # Step 4: Apply inheritance if sampling a sample
+    if source_metadata and is_sampling:
         # Multiply percentages for chained sampling
         source_pct = source_metadata["sample_percentage"]
         assert isinstance(source_pct, float)  # Type narrowing
@@ -714,24 +731,27 @@ def prepare_and_save(
         if source_metadata["method"] == "approximated":
             method = "approximated"
 
-    # Step 6: Determine output filename with count
-    sampled_count = sampled_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
-    formatted_count = format_count_for_filename(sampled_count)
+    # Step 5: Determine output filename with count
+    processed_count = processed_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
+    formatted_count = format_count_for_filename(processed_count)
+
+    # Choose prefix based on mode
+    prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
 
     dest = Path(output_dir) if output_dir else Path(".")
     dest.mkdir(parents=True, exist_ok=True)
-    out_path = dest / f"decision_analyzer_sample_{formatted_count}.parquet"
+    out_path = dest / f"{prefix}{formatted_count}.parquet"
 
-    # Step 7: Build metadata
+    # Step 6: Build metadata
     metadata = {
         "pdstools:source_file": original_source,
         "pdstools:sample_percentage": f"{sample_percentage:.2f}",
         "pdstools:sample_percentage_method": method,
     }
 
-    # Step 8: Write with metadata
-    logger.info("Writing sampled data to %s", out_path)
-    sampled_df.write_parquet(out_path, metadata=metadata)
+    # Step 7: Write with metadata
+    logger.info("Writing prepared data to %s", out_path)
+    processed_df.write_parquet(out_path, metadata=metadata)
 
     return pl.scan_parquet(out_path), out_path
 
