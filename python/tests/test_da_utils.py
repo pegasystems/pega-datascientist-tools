@@ -102,7 +102,7 @@ def test_format_count_for_filename_thousands():
     assert format_count_for_filename(1000) == "1k"
     assert format_count_for_filename(1500) == "1.5k"
     assert format_count_for_filename(87432) == "87k"
-    assert format_count_for_filename(999999) == "1000k"
+    assert format_count_for_filename(999999) == "1M"
 
 
 def test_format_count_for_filename_millions():
@@ -111,7 +111,7 @@ def test_format_count_for_filename_millions():
     assert format_count_for_filename(1000000) == "1M"
     assert format_count_for_filename(1234567) == "1.2M"
     assert format_count_for_filename(87000000) == "87M"
-    assert format_count_for_filename(999999999) == "1000M"
+    assert format_count_for_filename(999999999) == "1B"
 
 
 def test_format_count_for_filename_billions():

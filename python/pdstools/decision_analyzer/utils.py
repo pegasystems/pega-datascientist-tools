@@ -810,27 +810,57 @@ def format_count_for_filename(count: int) -> str:
     elif count < 1_000_000:
         # Thousands
         value = count / 1000
-        if value >= 100:
-            return f"{int(round(value))}k"
+        rounded = round(value)
+
+        if rounded >= 1000:
+            # Transition to millions (e.g., 999,500 → 1M)
+            millions = count / 1_000_000
+            rounded_m = round(millions)
+            if rounded_m >= 10:
+                return f"{rounded_m}M"
+            elif rounded_m >= 1:
+                # For values 1-9M, show as integer if it rounds cleanly
+                return f"{rounded_m}M"
+            else:
+                formatted = f"{millions:.1f}".rstrip("0").rstrip(".")
+                return f"{formatted}M"
+        elif rounded >= 10:
+            return f"{rounded}k"
         else:
-            formatted = f"{value:.2g}"
-            # Remove unnecessary decimal point for whole numbers
+            # Use 1 decimal for < 10
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
             return f"{formatted}k"
     elif count < 1_000_000_000:
         # Millions
         value = count / 1_000_000
-        if value >= 100:
-            return f"{int(round(value))}M"
+        rounded = round(value)
+
+        if rounded >= 1000:
+            # Transition to billions
+            billions = count / 1_000_000_000
+            rounded_b = round(billions)
+            if rounded_b >= 10:
+                return f"{rounded_b}B"
+            elif rounded_b >= 1:
+                # For values 1-9B, show as integer if it rounds cleanly
+                return f"{rounded_b}B"
+            else:
+                formatted = f"{billions:.1f}".rstrip("0").rstrip(".")
+                return f"{formatted}B"
+        elif rounded >= 10:
+            return f"{rounded}M"
         else:
-            formatted = f"{value:.2g}"
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
             return f"{formatted}M"
     else:
         # Billions
         value = count / 1_000_000_000
-        if value >= 100:
-            return f"{int(round(value))}B"
+        rounded = round(value)
+
+        if rounded >= 10:
+            return f"{rounded}B"
         else:
-            formatted = f"{value:.2g}"
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
             return f"{formatted}B"
 
 
