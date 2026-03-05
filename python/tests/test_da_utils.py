@@ -135,6 +135,23 @@ def test_format_count_for_filename_edge_cases():
     assert "B" in format_count_for_filename(1000000001)
 
 
+def test_format_count_rounding_to_unit_boundaries():
+    """Test that values rounding to 100+ transition to next unit cleanly."""
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    # Values that round to 100k should display as 100k
+    assert format_count_for_filename(99500) == "100k"
+    assert format_count_for_filename(99900) == "100k"
+
+    # Values that round to 1000k should transition to 1M
+    assert format_count_for_filename(999500) == "1M"
+    assert format_count_for_filename(999900) == "1M"
+
+    # Verify no scientific notation in output
+    result = format_count_for_filename(99500)
+    assert "e" not in result.lower(), f"Got scientific notation: {result}"
+
+
 # ---------------------------------------------------------------------------
 # area_under_curve / gini_coefficient
 # ---------------------------------------------------------------------------
