@@ -9,7 +9,12 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
-from pdstools.decision_analyzer.utils import parse_sample_flag, sample_and_save, _read_source_metadata
+from pdstools.decision_analyzer.utils import (
+    parse_sample_flag,
+    prepare_and_save,
+    should_cache_source,
+    _read_source_metadata,
+)
 from pdstools.utils.streamlit_utils import (
     get_data_path,
     get_sample_limit,
@@ -88,40 +93,56 @@ if not has_new_data and not has_existing_data:
         "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
 
-# Pre-ingestion sampling (--sample CLI flag)
+# Pre-ingestion data preparation (sampling or caching)
 sample_limit_raw = get_sample_limit()
-if raw_data is not None and sample_limit_raw:
-    try:
-        sample_kwargs = parse_sample_flag(sample_limit_raw)
-    except ValueError as e:
-        st.error(f"Invalid --sample value: {e}")
-        st.stop()
+if raw_data is not None:
+    prepared_path = None  # Track the prepared file path
 
-    # Build explicit sampling message based on parameters
-    if "fraction" in sample_kwargs:
-        sampling_msg = f"Sampling {sample_kwargs['fraction'] * 100:.0f}% of the interactions…"
-    elif "n" in sample_kwargs:
-        sampling_msg = f"Sampling {sample_kwargs['n']:,} interactions…"
-    else:
-        sampling_msg = "Sampling interactions…"
+    if sample_limit_raw:
+        # Sampling mode
+        try:
+            sample_kwargs = parse_sample_flag(sample_limit_raw)
+        except ValueError as e:
+            st.error(f"Invalid --sample value: {e}")
+            st.stop()
 
-    with st.spinner(sampling_msg):
-        raw_data, sample_path_result = sample_and_save(
-            raw_data,
-            n=sample_kwargs.get("n"),  # type: ignore[arg-type]
-            fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
-            output_dir=get_temp_dir(),
-            source_path=data_source_path,
-        )
-    label = sample_limit_raw.strip()
-    if sample_path_result is not None:
-        sample_path = sample_path_result  # Update the tracked sample path
-        st.info(
-            f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
-            f"Sampled data saved to `{sample_path}`."
-        )
-    else:
-        st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
+        # Build explicit sampling message based on parameters
+        if "fraction" in sample_kwargs:
+            sampling_msg = f"Sampling {sample_kwargs['fraction'] * 100:.0f}% of the interactions…"
+        elif "n" in sample_kwargs:
+            sampling_msg = f"Sampling {sample_kwargs['n']:,} interactions…"
+        else:
+            sampling_msg = "Sampling interactions…"
+
+        with st.spinner(sampling_msg):
+            raw_data, prepared_path = prepare_and_save(
+                raw_data,
+                n=sample_kwargs.get("n"),  # type: ignore[arg-type]
+                fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
+                output_dir=get_temp_dir(),
+                source_path=data_source_path,
+            )
+
+        label = sample_limit_raw.strip()
+        if prepared_path is not None:
+            st.info(
+                f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
+                f"Sampled data saved to `{prepared_path}`."
+            )
+        else:
+            st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
+
+    elif should_cache_source(data_source_path):
+        # Caching mode - save 100% of data from non-parquet sources
+        with st.spinner("Caching data for faster reloading..."):
+            raw_data, prepared_path = prepare_and_save(
+                raw_data,
+                source_path=data_source_path,
+                output_dir=".",  # Current working directory
+            )
+
+        if prepared_path is not None:
+            st.info(f"💾 Cached data saved to `{prepared_path}` for faster reloading.")
 
 
 def _show_data_summary(da):
