@@ -410,46 +410,117 @@ class TestOptionalityTrend:
 class TestOfferQualityPiecharts:
     """Test offer_quality_piecharts function."""
 
-    @pytest.mark.skip(reason="get_offer_quality returns data that needs further processing for offer_quality_piecharts")
     def test_piecharts(self, da_v2):
         """Test offer quality pie charts."""
-        # Requires aggregated quality data by stage
-        pass
+        from pdstools.decision_analyzer.plots import offer_quality_piecharts
+
+        # Step 1: Get filtered action counts (mimicking the Streamlit page workflow)
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        # Step 2: Get offer quality data
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        # Step 3: Create pie charts
+        fig = offer_quality_piecharts(
+            quality_data,
+            propensityTH=0.5,
+            AvailableNBADStages=da_v2.AvailableNBADStages,
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
 
 
 class TestGetTrendChart:
     """Test getTrendChart function."""
 
-    @pytest.mark.skip(reason="get_offer_quality returns data that needs further processing for getTrendChart")
     def test_trend_chart(self, da_v2):
         """Test trend chart function."""
-        # Requires aggregated quality data with day information
-        pass
+        from pdstools.decision_analyzer.plots import getTrendChart
 
-    @pytest.mark.skip(reason="get_offer_quality returns data that needs further processing for getTrendChart")
+        # Step 1: Get filtered action counts
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        # Step 2: Get offer quality data with day grouping
+        quality_data = da_v2.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+
+        # Step 3: Create trend chart
+        fig = getTrendChart(quality_data, stage="Output", level=da_v2.level)
+
+        assert isinstance(fig, Figure)
+
     def test_return_df(self, da_v2):
         """Test with return_df."""
-        pass
+        from pdstools.decision_analyzer.plots import getTrendChart
+
+        # Step 1: Get filtered action counts
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        # Step 2: Get offer quality data with day grouping
+        quality_data = da_v2.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+
+        # Step 3: Get dataframe instead of figure
+        df = getTrendChart(quality_data, stage="Output", level=da_v2.level, return_df=True)
+
+        assert isinstance(df, pl.LazyFrame)
 
 
 class TestPlotPriorityComponentDistribution:
     """Test plot_priority_component_distribution function."""
 
-    @pytest.mark.skip(reason="get_priority_component_summary may not exist or return expected structure")
     def test_component_distribution(self, da_v2):
         """Test priority component distribution plot."""
-        # Method signature or data requirements unclear
-        pass
+        from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+
+        # Use the correct method name: priority_component_distribution
+        value_data = da_v2.priority_component_distribution(
+            component="Value",
+            granularity="Action",
+            stage="Output",
+        )
+
+        # This function returns a tuple of (violin_fig, ecdf_fig, stats_df)
+        violin_fig, ecdf_fig, stats_df = plot_priority_component_distribution(
+            value_data, component="Value", granularity="Action"
+        )
+
+        assert isinstance(violin_fig, Figure)
+        assert isinstance(ecdf_fig, Figure)
+        assert isinstance(stats_df, pl.DataFrame)
 
 
 class TestPlotComponentOverview:
     """Test plot_component_overview function."""
 
-    @pytest.mark.skip(reason="get_priority_component_summary may not exist or return expected structure")
     def test_overview_plot(self, da_v2):
         """Test component overview plot."""
-        # Method signature or data requirements unclear
-        pass
+        from pdstools.decision_analyzer.plots import plot_component_overview
+        from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
+
+        # Use the correct method: all_components_distribution
+        overview_data = da_v2.all_components_distribution(
+            granularity="Action",
+            stage="Output",
+        )
+
+        # Get available components from the data
+        available_cols = set(overview_data.collect_schema().names())
+        component_options = [c for c in PRIO_COMPONENTS if c in available_cols]
+
+        fig = plot_component_overview(overview_data, component_options, granularity="Action")
+        assert isinstance(fig, Figure)
 
 
 class TestCreateWinDistributionPlot:
