@@ -703,6 +703,96 @@ class TestSampleAndSave:
 
 
 # ---------------------------------------------------------------------------
+# prepare_and_save (caching mode)
+# ---------------------------------------------------------------------------
+
+
+class TestPrepareAndSaveCachingMode:
+    """Test prepare_and_save (renamed from sample_and_save) in caching mode."""
+
+    @pytest.fixture()
+    def mock_decision_data(self):
+        """Mock decision analyzer data with interactions."""
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        return pl.LazyFrame(
+            {
+                "pxInteractionID": ids,
+                "value": list(range(20)),
+            }
+        )
+
+    def test_cache_creates_file_with_cache_prefix(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        source_file = tmp_path / "original.csv"
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(source_file),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        assert path.exists()
+        # Should use "cache" prefix not "sample"
+        assert "decision_analyzer_cache_" in path.name
+        assert path.name.endswith(".parquet")
+
+    def test_cache_metadata_has_100_percent(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        source_file = tmp_path / "original.csv"
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(source_file),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == str(source_file)
+        assert float(metadata["pdstools:sample_percentage"]) == 100.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_cache_without_source_path_returns_none(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            output_dir=str(tmp_path),
+        )
+
+        # Without source_path, caching should be skipped
+        assert path is None
+
+    def test_sampling_mode_still_uses_sample_prefix(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            fraction=0.5,
+            source_path=str(tmp_path / "original.csv"),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        # Sampling mode should still use "sample" prefix
+        assert "decision_analyzer_sample_" in path.name
+
+    def test_cache_includes_interaction_count_in_filename(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(tmp_path / "original.csv"),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        # Should have formatted count (10 interactions in mock data)
+        assert "10" in path.name or "10." in path.name
+
+
+# ---------------------------------------------------------------------------
 # _find_interaction_id_column / _get_interaction_id_candidates
 # ---------------------------------------------------------------------------
 
