@@ -786,7 +786,7 @@ class Plot:
         return fig
 
     def optionality_per_stage(self, return_df=False):
-        df = self._decision_data.get_optionality_data(self.sample)
+        df = self._decision_data.get_optionality_data(self._decision_data.sample)
         if return_df:
             return df
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
@@ -804,7 +804,7 @@ class Plot:
         )
         fig.update_xaxes(
             categoryorder="array",
-            categoryarray=list(self._decision_data.self.AvailableNBADStages),
+            categoryarray=list(self._decision_data.AvailableNBADStages),
             title="",
         )
 
