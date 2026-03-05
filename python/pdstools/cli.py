@@ -11,6 +11,8 @@ import os
 import sys
 from importlib import resources
 
+from pdstools import __version__
+
 # App configuration with display names and paths
 APPS = {
     "health_check": {
@@ -39,6 +41,8 @@ def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps.",
     )
+
+    parser.add_argument("--version", action="version", version=f"pdstools {__version__}")
 
     # Create help text with display names and aliases
     app_choices = list(APPS.keys()) + list(ALIASES.keys())
