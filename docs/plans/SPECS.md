@@ -36,7 +36,8 @@ Tracked on branch: `refactor/decision-analyzer`
 - [ ] **Optimize thresholding quantiles** — Current implementation is verbose and potentially slow.
 - [x] **Fix `sample` docstring** — Says "taking the first 50,000 interactions" but actually uses hash-based sampling.
 - [ ] **Stratified sampling option** — Current `sample` property is random by interaction ID. Consider optional stratification by channel/direction.
-- [ ] **Scale up counts in UI after sampling** — When data is sampled, counts shown in the UI should be multiplied by the inverse of the sample fraction so users see estimated real volumes. When re-loading a previously sampled file, the original sample percentage must be recoverable — consider encoding it in the generated filename (e.g. `…_sampled_10pct.parquet`).
+- [x] **Sample metadata tracking and display** — Implemented comprehensive metadata tracking for sampled files. The `prepare_and_save` function now: (1) Generates descriptive filenames with human-readable counts (e.g., `decision_analyzer_sample_87k.parquet` or `decision_analyzer_cache_49k.parquet`), (2) Stores metadata in parquet files including original source file path, sample percentage, and calculation method (exact/approximate), (3) Supports chained sampling with percentage multiplication and lineage tracking, (4) Automatically caches non-sampled data from slow formats (CSV, JSON, ZIP) as `decision_analyzer_cache_*` files with 100% metadata for faster reloading. The Home and Overview pages display sample information when data is sampled. Uses Polars native metadata API with keys: `pdstools:source_file`, `pdstools:sample_percentage`, `pdstools:sample_percentage_method`. Reading: `metadata = pl.read_parquet_metadata(file_path)`. The sampling UI message now shows explicit parameters (e.g., "Sampling 40% of the interactions…" or "Sampling 100,000 interactions…").
+- [ ] **Scale up counts in UI after sampling** — Future enhancement: multiply displayed counts by inverse of sample fraction to show estimated real volumes (metadata infrastructure now in place).
 - [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on the full dataset. Investigate polars streaming or chunked processing for GB-scale data.
 
 ---
@@ -44,13 +45,13 @@ Tracked on branch: `refactor/decision-analyzer`
 ## Streamlit App — Architecture
 
 - [x] **Shared utilities** — Added `stage_selectbox`, `stage_level_selector`, and other helpers to `da_streamlit_utils.py` for consistent UI patterns.
-- [x] **Pre-ingestion sampling support** — CLI integration with `--sample` flag, temp directory caching via `parse_sample_flag`, `sample_and_save`, `get_sample_limit`, `get_temp_dir`.
+- [x] **Pre-ingestion sampling support** — CLI integration with `--sample` flag, temp directory caching via `parse_sample_flag`, `prepare_and_save`, `should_cache_source`, `get_sample_limit`, `get_temp_dir`.
 - [ ] **Dynamic stage UI** — Stages should be data-driven with arbitrary count. Several pages hardcode stage names.
 - [ ] **Session state cleanup** — Too much stored in `st.session_state` (especially pages 8, 11). Review and minimize.
 - [ ] **Move inline plot code to `plots` module** — Business lever analysis (page 11) and others have plots defined inline.
 - [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern with different labels. Could be aligned.
 - [ ] **Promote `data_read_utils` to pdstools core** — The data-reading facilities in `decision_analyzer/data_read_utils.py` (multi-format ingestion, schema detection, lazy scanning) are generic enough to serve all apps and potentially replace the legacy `readDSExport` family. Evaluate extracting them into `pdstools/pega_io` or a top-level utility module.
-- [ ] **Remove `--deploy-env` flag** — The only effect of `--deploy-env` / `PDSTOOLS_DEPLOY_ENV` is showing a "File path" text input in the data-import UI (via `is_managed_deployment()`). This input is harmless for local users; always showing it would simplify the CLI and eliminate a configuration step for server deployments. Proposal: always include the "File path" option, remove `--deploy-env` from the CLI, and deprecate `is_managed_deployment()`.
+- [x] **Remove `--deploy-env` flag** — *(Completed: removed `--deploy-env` CLI flag, `get_deploy_env()`, `is_managed_deployment()`, `handle_file_path()`, and `get_options()` functions. The `--data-path` CLI flag provides the same functionality in a cleaner way.)*
 
 ---
 

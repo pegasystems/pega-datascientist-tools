@@ -6,9 +6,12 @@
 # ///
 
 import argparse
+import difflib
 import os
 import sys
 from importlib import resources
+
+from pdstools import __version__
 
 # App configuration with display names and paths
 APPS = {
@@ -26,17 +29,31 @@ APPS = {
     },
 }
 
+# Aliases for app names
+ALIASES = {
+    "hc": "health_check",
+    "da": "decision_analyzer",
+    "ia": "impact_analyzer",
+}
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps.",
     )
 
-    # Create help text with display names
-    app_choices = list(APPS.keys())
-    help_text = "The app to run: " + " | ".join(
-        [f'"{key}" ({APPS[key]["display_name"]})' for key in app_choices],
-    )
+    parser.add_argument("--version", action="version", version=f"pdstools {__version__}")
+
+    # Create help text with display names and aliases
+    app_choices = list(APPS.keys()) + list(ALIASES.keys())
+    help_parts = []
+    for key in APPS.keys():
+        # Find aliases for this app
+        app_aliases = [alias for alias, full_name in ALIASES.items() if full_name == key]
+        alias_text = f" (alias: {', '.join(app_aliases)})" if app_aliases else ""
+        help_parts.append(f'"{key}"{alias_text}')
+
+    help_text = "The app to run: " + " | ".join(help_parts)
 
     parser.add_argument(
         "app",
@@ -44,12 +61,6 @@ def create_parser():
         help=help_text,
         nargs="?",  # This makes the 'app' argument optional
         default=None,  # Explicitly set default to None
-    )
-    parser.add_argument(
-        "--deploy-env",
-        dest="deploy_env",
-        default=None,
-        help=("Set the deployment environment (e.g. 'ec2'). Exposed to the app as the PDSTOOLS_DEPLOY_ENV env var."),
     )
     parser.add_argument(
         "--data-path",
@@ -85,11 +96,59 @@ def create_parser():
     return parser
 
 
+def check_for_typos(unknown_args, known_args):
+    """Check if unknown arguments might be typos of known pdstools arguments.
+
+    Args:
+        unknown_args: List of unknown arguments from parse_known_args
+        known_args: List of known pdstools argument names (with --)
+
+    Returns:
+        List of (typo, suggestion, similarity) tuples for likely typos
+    """
+    likely_typos = []
+
+    # Extract arguments that start with -- (not streamlit args or values)
+    unknown_flags = [arg for arg in unknown_args if arg.startswith("--")]
+
+    for unknown in unknown_flags:
+        # Find the most similar known argument
+        # Use cutoff=0.6 to only suggest reasonably similar names
+        matches = difflib.get_close_matches(unknown, known_args, n=1, cutoff=0.6)
+
+        if matches:
+            # Calculate similarity ratio for reporting
+            similarity = difflib.SequenceMatcher(None, unknown, matches[0]).ratio()
+            likely_typos.append((unknown, matches[0], similarity))
+
+    return likely_typos
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "run":
         del sys.argv[1]
     parser = create_parser()
     args, unknown = parser.parse_known_args()
+
+    # Resolve alias to full app name
+    if args.app and args.app in ALIASES:
+        args.app = ALIASES[args.app]
+
+    # Check for likely typos in pdstools arguments
+    known_pdstools_args = ["--version", "--data-path", "--sample", "--temp-dir"]
+    typos = check_for_typos(unknown, known_pdstools_args)
+
+    if typos:
+        print("\n⚠️  Warning: Possible typo(s) in pdstools arguments:\n", file=sys.stderr)
+        for typo, suggestion, similarity in typos:
+            print(f"  '{typo}' → Did you mean '{suggestion}'?", file=sys.stderr)
+
+        print("\nAvailable pdstools arguments:", file=sys.stderr)
+        for arg in known_pdstools_args:
+            print(f"  {arg}", file=sys.stderr)
+
+        print("\nNote: Unknown arguments are passed to Streamlit, which may not recognize them.", file=sys.stderr)
+        print("Use --help to see all available options.\n", file=sys.stderr)
 
     run(args, unknown)
 
@@ -128,6 +187,11 @@ def run(args, unknown):
                     args.app = choice.lower()
                     break
 
+                # Check if it's an alias
+                if choice.lower() in ALIASES:
+                    args.app = ALIASES[choice.lower()]
+                    break
+
                 # Check if it's a display name (case insensitive)
                 found = False
                 for app_key, app_info in APPS.items():
@@ -142,6 +206,7 @@ def run(args, unknown):
                 valid_options = []
                 valid_options.extend([str(i) for i in range(1, len(app_list) + 1)])
                 valid_options.extend(APPS.keys())
+                valid_options.extend(ALIASES.keys())
                 valid_options.extend(
                     [app_info["display_name"] for app_info in APPS.values()],
                 )
@@ -156,8 +221,6 @@ def run(args, unknown):
                 print("Invalid input. Please try again.")
 
     # Propagate CLI flags to the Streamlit process via env vars
-    if args.deploy_env:
-        os.environ["PDSTOOLS_DEPLOY_ENV"] = args.deploy_env
     if args.data_path:
         os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
     if args.sample:

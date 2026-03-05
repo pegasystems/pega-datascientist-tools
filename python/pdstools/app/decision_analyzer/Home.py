@@ -4,14 +4,17 @@ import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_data_path,
-    handle_file_path,
     handle_file_upload,
     handle_sample_data,
-    is_managed_deployment,
     load_decision_analyzer,
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
-from pdstools.decision_analyzer.utils import parse_sample_flag, sample_and_save
+from pdstools.decision_analyzer.utils import (
+    parse_sample_flag,
+    prepare_and_save,
+    should_cache_source,
+    _read_source_metadata,
+)
 from pdstools.utils.streamlit_utils import (
     get_data_path,
     get_sample_limit,
@@ -49,39 +52,37 @@ zoom, and hover for details.
 level = "Stage Group"
 
 sample_size = st.number_input(
-    "Sample Size",
+    "Distribution Overview Sample Size",
     min_value=1000,
     value=DEFAULT_SAMPLE_SIZE,
     step=1000,
     help=(
-        "Maximum number of interactions sampled for resource-intensive pages "
-        "(Global Data Filters, Win/Loss Analysis, Optionality Analysis, "
-        "Business Lever Analysis). Other pages use the full dataset. "
-        "This is *not* the same as the `--sample` CLI flag, which reduces "
-        "the data before ingestion. "
-        "Reduce this value if those pages run too slowly; increase it for "
-        "higher statistical significance."
+        "Number of interactions used to compute distribution overviews on certain pages. "
+        "Affects distribution plots and histograms, not aggregate metrics or counts. "
+        "This is an in-app calculation setting, unrelated to the `--sample` CLI flag "
+        "(which reduces data before loading). "
+        "Decrease for faster rendering; increase for smoother distributions."
     ),
 )
 
 # File upload — always visible. Drag-and-drop or use the Browse button.
-raw_data = handle_file_upload()
+raw_data, uploaded_metadata = handle_file_upload()
+data_source_path = None  # Track the source path for metadata
+sample_path = None  # Track the sampled file path if sampling is applied
 
-# For managed deployments, also show a server-side file path input
-if is_managed_deployment():
-    if raw_data is None:
-        raw_data = handle_file_path()
+# Check if we already have data loaded (used by all data loading logic below)
+has_existing_data = "decision_data" in st.session_state
 
 # If --data-path was provided, load from that path (takes priority over sample data)
 configured_path = get_data_path()
-if raw_data is None and configured_path:
+if raw_data is None and configured_path and not has_existing_data:
     with st.spinner(f"Loading data from configured path: {configured_path}"):
         raw_data = handle_data_path()
+        data_source_path = configured_path  # Capture the source
     if raw_data is not None:
         st.info(f"📂 Loaded data from configured path: `{configured_path}`")
 
 has_new_data = raw_data is not None
-has_existing_data = "decision_data" in st.session_state
 
 # Fall back to sample data only when nothing was uploaded *and* no data is loaded yet
 if not has_new_data and not has_existing_data:
@@ -92,30 +93,56 @@ if not has_new_data and not has_existing_data:
         "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
 
-# Pre-ingestion sampling (--sample CLI flag)
+# Pre-ingestion data preparation (sampling or caching)
 sample_limit_raw = get_sample_limit()
-if raw_data is not None and sample_limit_raw:
-    try:
-        sample_kwargs = parse_sample_flag(sample_limit_raw)
-    except ValueError as e:
-        st.error(f"Invalid --sample value: {e}")
-        st.stop()
+if raw_data is not None:
+    prepared_path = None  # Track the prepared file path
 
-    with st.spinner("Sampling interactions…"):
-        raw_data, sample_path = sample_and_save(
-            raw_data,
-            n=sample_kwargs.get("n"),  # type: ignore[arg-type]
-            fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
-            output_dir=get_temp_dir(),
-        )
-    label = sample_limit_raw.strip()
-    if sample_path is not None:
-        st.info(
-            f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
-            f"Sampled data saved to `{sample_path}`."
-        )
-    else:
-        st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
+    if sample_limit_raw:
+        # Sampling mode
+        try:
+            sample_kwargs = parse_sample_flag(sample_limit_raw)
+        except ValueError as e:
+            st.error(f"Invalid --sample value: {e}")
+            st.stop()
+
+        # Build explicit sampling message based on parameters
+        if "fraction" in sample_kwargs:
+            sampling_msg = f"Sampling {sample_kwargs['fraction'] * 100:.0f}% of the interactions…"
+        elif "n" in sample_kwargs:
+            sampling_msg = f"Sampling {sample_kwargs['n']:,} interactions…"
+        else:
+            sampling_msg = "Sampling interactions…"
+
+        with st.spinner(sampling_msg):
+            raw_data, prepared_path = prepare_and_save(
+                raw_data,
+                n=sample_kwargs.get("n"),  # type: ignore[arg-type]
+                fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
+                output_dir=get_temp_dir(),
+                source_path=data_source_path,
+            )
+
+        label = sample_limit_raw.strip()
+        if prepared_path is not None:
+            st.info(
+                f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
+                f"Sampled data saved to `{prepared_path}`."
+            )
+        else:
+            st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
+
+    elif should_cache_source(data_source_path):
+        # Caching mode - save 100% of data from non-parquet sources
+        with st.spinner("Caching data for faster reloading..."):
+            raw_data, prepared_path = prepare_and_save(
+                raw_data,
+                source_path=data_source_path,
+                output_dir=".",  # Current working directory
+            )
+
+        if prepared_path is not None:
+            st.info(f"💾 Cached data saved to `{prepared_path}` for faster reloading.")
 
 
 def _show_data_summary(da):
@@ -142,6 +169,19 @@ def _show_data_summary(da):
         f"(from {overview['StartDate']})"
     )
     st.success(summary)
+
+    # Check if data is sampled by looking for metadata in session state
+    sample_metadata = st.session_state.get("sample_metadata")
+    if sample_metadata:
+        sample_pct = sample_metadata["sample_percentage"]
+        method = sample_metadata["method"]
+        source_file = sample_metadata.get("source_file", "unknown")
+
+        method_label = "exact" if method == "exact" else "approximate"
+        st.info(
+            f"📊 This data represents **{sample_pct:.1f}%** of the original dataset ({method_label} calculation). "
+            f"Original source: `{source_file}`"
+        )
 
 
 _LARGE_DATA_HINT = (
@@ -174,6 +214,16 @@ if has_new_data and raw_data is not None:
             )
             st.session_state.decision_data = da
             st.session_state["filters"] = []
+
+            # Check if the loaded data has sampling metadata
+            # Priority: uploaded_metadata > sample_path > data_source_path
+            sample_metadata = uploaded_metadata
+            if sample_metadata is None:
+                metadata_path = sample_path or data_source_path
+                if metadata_path:
+                    sample_metadata = _read_source_metadata(str(metadata_path))
+            st.session_state["sample_metadata"] = sample_metadata
+
             del raw_data
             _show_data_summary(da)
     except BaseException as exc:

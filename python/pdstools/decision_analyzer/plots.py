@@ -134,23 +134,55 @@ class Plot:
         # Create color mapping using imported Pega colorway
         color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
 
-        fig = px.bar(
-            df.collect(),
-            x="Percentage",
-            y="Status",
-            orientation="h",
-            color=level,
-            color_discrete_map=color_discrete_map,
-            category_orders={"Status": ["Wins", "Losses"]},
+        # Collect and split data into wins and losses
+        df_collected = df.collect()
+        wins_df = df_collected.filter(pl.col("Status") == "Wins")
+        losses_df = df_collected.filter(pl.col("Status") == "Losses")
+
+        # Create two side-by-side pie charts
+        fig = make_subplots(
+            rows=1,
+            cols=2,
+            specs=[[{"type": "pie"}, {"type": "pie"}]],
+            subplot_titles=["Wins", "Losses"],
         )
+
+        # Add wins pie chart
+        if wins_df.height > 0:
+            colors_wins = [color_discrete_map.get(val, "#cccccc") for val in wins_df[level].to_list()]
+            fig.add_trace(
+                go.Pie(
+                    labels=wins_df[level],
+                    values=wins_df["Percentage"],
+                    marker=dict(colors=colors_wins),
+                    textposition="auto",
+                    textinfo="label+percent",
+                    hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+
+        # Add losses pie chart
+        if losses_df.height > 0:
+            colors_losses = [color_discrete_map.get(val, "#cccccc") for val in losses_df[level].to_list()]
+            fig.add_trace(
+                go.Pie(
+                    labels=losses_df[level],
+                    values=losses_df["Percentage"],
+                    marker=dict(colors=colors_losses),
+                    textposition="auto",
+                    textinfo="label+percent",
+                    hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                ),
+                row=1,
+                col=2,
+            )
 
         fig.update_layout(
             font_size=12,
-            polar_angularaxis_rotation=90,
-            xaxis_title="",
-            yaxis_title="",
+            showlegend=False,  # Labels are shown on the pie slices
         )
-        fig.update_xaxes(tickformat=".2%")
 
         return fig
 
@@ -668,8 +700,10 @@ class Plot:
             df = df.sort(sort_by, descending=True)
         plot_df = df.head(30)
 
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # Create figure without subplots - use overlaying x-axes for different scales
+        fig = go.Figure()
 
+        # Primary trace: bar chart of filtered decisions
         fig.add_trace(
             go.Bar(
                 y=plot_df["Action"],
@@ -678,38 +712,81 @@ class Plot:
                 name="Filtered Decisions",
                 marker_color="#cd001f",
                 hovertemplate=("<b>%{y}</b><br>Filtered: %{x}<br><extra></extra>"),
-            ),
-            secondary_y=False,
+                xaxis="x",  # Primary x-axis
+            )
         )
 
-        if "avg_Value" in plot_df.columns:
-            non_null_values = plot_df.filter(pl.col("avg_Value").is_not_null())
+        # Determine which metric to show based on sort_by selection
+        metric_col = None
+        metric_label = None
+        is_propensity = False
+        if sort_by == "avg_Value" and "avg_Value" in plot_df.columns:
+            metric_col = "avg_Value"
+            metric_label = "Average Value"
+        elif sort_by == "avg_Priority" and "avg_Priority" in plot_df.columns:
+            metric_col = "avg_Priority"
+            metric_label = "Average Priority"
+        elif sort_by == "avg_Propensity" and "avg_Propensity" in plot_df.columns:
+            metric_col = "avg_Propensity"
+            metric_label = "Average Propensity"
+            is_propensity = True
+
+        # Add secondary trace with its own x-axis scale if a metric is selected
+        if metric_col:
+            non_null_values = plot_df.filter(pl.col(metric_col).is_not_null())
             if non_null_values.height > 0:
+                # Convert propensity to percentage for display
+                x_values = non_null_values[metric_col]
+                if is_propensity:
+                    x_values = x_values * 100  # Convert to percentage
+
+                # Build hover template
+                hover_suffix = "%" if is_propensity else ""
+                hover_template = f"<b>%{{y}}</b><br>{metric_label}: %{{x:.1f}}{hover_suffix}<extra></extra>"
+
                 fig.add_trace(
                     go.Scatter(
                         y=non_null_values["Action"],
-                        x=non_null_values["avg_Value"],
-                        mode="markers",
-                        name="Avg Value (surviving)",
-                        marker=dict(color="#1f77b4", size=8, symbol="diamond"),
-                    ),
-                    secondary_y=True,
+                        x=x_values,
+                        mode="lines+markers",
+                        name=metric_label,
+                        marker=dict(color="#1f77b4", size=6),
+                        line=dict(color="#1f77b4", width=2),
+                        xaxis="x2",  # Secondary x-axis with independent scale
+                        hovertemplate=hover_template,
+                    )
                 )
 
-        fig.update_layout(
-            height=max(400, 25 * min(plot_df.height, 30)),
-            template="plotly_white",
-            yaxis=dict(automargin=True, autorange="reversed"),
-            showlegend=True,
-        )
-        fig.update_xaxes(title="Filtered Decisions")
-        fig.update_yaxes(title="", secondary_y=False)
-        fig.update_yaxes(title="Avg Value", secondary_y=True)
+        # Configure layout with overlaying x-axes
+        layout_config = {
+            "height": max(400, 25 * min(plot_df.height, 30)),
+            "template": "plotly_white",
+            "yaxis": dict(automargin=True, autorange="reversed"),
+            "showlegend": True,
+            "xaxis": dict(
+                title="Filtered Decisions",
+                side="bottom",
+            ),
+        }
+
+        # Add secondary x-axis configuration if we have a metric
+        if metric_label:
+            xaxis2_config = {
+                "title": f"{metric_label} (%)" if is_propensity else metric_label,
+                "overlaying": "x",
+                "side": "top",
+            }
+            # Format propensity axis as percentage
+            if is_propensity:
+                xaxis2_config["ticksuffix"] = "%"
+            layout_config["xaxis2"] = xaxis2_config
+
+        fig.update_layout(**layout_config)
 
         return fig
 
     def optionality_per_stage(self, return_df=False):
-        df = self._decision_data.get_optionality_data(self.sample)
+        df = self._decision_data.get_optionality_data(self._decision_data.sample)
         if return_df:
             return df
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
@@ -727,7 +804,7 @@ class Plot:
         )
         fig.update_xaxes(
             categoryorder="array",
-            categoryarray=list(self._decision_data.self.AvailableNBADStages),
+            categoryarray=list(self._decision_data.AvailableNBADStages),
             title="",
         )
 
@@ -768,6 +845,7 @@ def offer_quality_piecharts(
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
+        "atleast_one_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
@@ -790,39 +868,56 @@ def offer_quality_piecharts(
         cols=len(AvailableNBADStages),
         specs=[[{"type": "domain"}] * len(AvailableNBADStages)],
         subplot_titles=AvailableNBADStages,
-        horizontal_spacing=0.1,
+        horizontal_spacing=0.15,  # Increased from 0.1 to reduce label overlap
     )
 
+    # Define consistent label order: green (relevant), blue (action), orange (irrelevant), red (none)
+    label_order = [
+        "At least one relevant action",
+        "At least one action",
+        "Only irrelevant actions",
+        "Without actions",
+    ]
+    label_mapping = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+
     for i, stage in enumerate(AvailableNBADStages):
-        plotdf = df[(stage,)].drop(level)
+        plotdf = df[(stage,)].drop(level).rename(label_mapping)
+
+        # Reorder to match label_order
+        ordered_values = [plotdf[label][0] if label in plotdf.columns else 0 for label in label_order]
+
         fig.add_trace(
             go.Pie(
-                values=list(plotdf.to_numpy())[0],
-                labels=list(
-                    plotdf.rename(
-                        {
-                            "atleast_one_relevant_action": "At least one relevant action",
-                            "only_irrelevant_actions": "Only irrelevant actions",
-                            "has_no_offers": "Without actions",
-                        }
-                    ).columns
-                ),
+                values=ordered_values,
+                labels=label_order,
                 name=stage,
-                # visible=False,
-                sort=False,
+                sort=False,  # Keep our defined order
+                legendgroup="quality",  # Group all pie slices in same legend
+                showlegend=(i == 0),  # Only show legend for first pie chart
             ),
             1,
             i + 1,
         )
 
-    fig.update_layout(title_text=None)
-    fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
+    fig.update_layout(
+        title_text=None,
+        legend_title_text="Customers",
+        annotations=[dict(font=dict(size=11)) for _ in fig.layout.annotations],  # Smaller font for stage labels
+    )
+    # Colors: green, blue, orange, red
+    fig.update_traces(marker=dict(colors=["#219e3f", "#4A90E2", "#fca52e", "#cd001f"]))
     return fig
 
 
 def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
     value_finder_names = [
         "atleast_one_relevant_action",
+        "atleast_one_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
@@ -833,35 +928,49 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         return trend_df.lazy()
     status_labels = {
         "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
         "only_irrelevant_actions": "Only irrelevant actions",
         "has_no_offers": "Without actions",
     }
     status_colors = {
         "At least one relevant action": "#219e3f",
+        "At least one action": "#4A90E2",
         "Only irrelevant actions": "#fca52e",
         "Without actions": "#cd001f",
     }
+    # Order to match pie charts: green, blue, orange, red
     trend_melted = (
         trend_df.unpivot(
             index=["day"],
             on=[
-                "has_no_offers",
                 "atleast_one_relevant_action",
+                "atleast_one_action",
                 "only_irrelevant_actions",
+                "has_no_offers",
             ],
             variable_name="status",
         )
         .sort("day")
-        .rename({"value": "interactions"})
+        .rename({"value": "customers"})
         .with_columns(pl.col("status").replace(status_labels))
     )
     fig = px.line(
         trend_melted,
         x="day",
-        y="interactions",
+        y="customers",
         color="status",
         color_discrete_map=status_colors,
+        category_orders={
+            "status": [
+                "At least one relevant action",
+                "At least one action",
+                "Only irrelevant actions",
+                "Without actions",
+            ]
+        },
+        labels={"customers": "Customers"},
     )
+    fig.update_layout(legend_title_text="Customers")
 
     return fig
 

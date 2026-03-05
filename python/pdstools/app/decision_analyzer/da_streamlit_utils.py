@@ -20,7 +20,6 @@ from pdstools.utils.streamlit_utils import (
     ensure_session_data,
     get_current_index,  # noqa: F401 — re-exported for backward compat
     get_data_path,
-    is_managed_deployment,
 )
 
 
@@ -401,19 +400,6 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
     return queries
 
 
-def get_options() -> list[str]:
-    """Data source options.
-
-    'File path' is only shown in managed deployments where users need to
-    reference server-side paths (e.g. S3-mounted directories). For local use,
-    the file uploader's browse button is sufficient.
-    """
-    options = ["Sample data", "File upload"]
-    if is_managed_deployment():
-        options.append("File path")
-    return options
-
-
 def handle_sample_data() -> pl.LazyFrame | None:
     """Load built-in sample data for demo purposes."""
     # Prefer local file when available (e.g. during development), fall back
@@ -497,9 +483,16 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     return read_data(tmp_dir)
 
 
-def handle_file_upload() -> pl.LazyFrame | None:
-    """Show file uploader accepting one or more files and return a LazyFrame, or None."""
+def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
+    """Show file uploader accepting one or more files and return a LazyFrame and metadata, or (None, None).
+
+    Returns:
+        Tuple of (LazyFrame, metadata dict) where metadata contains sample information if available.
+        For single parquet file uploads, metadata is read from the file.
+        For other cases, metadata is None.
+    """
     import tempfile
+    from pdstools.decision_analyzer.utils import _read_source_metadata
 
     uploaded_files = st.file_uploader(
         "Upload decision data",
@@ -507,15 +500,18 @@ def handle_file_upload() -> pl.LazyFrame | None:
         accept_multiple_files=True,
     )
     if not uploaded_files:
-        return None
+        return None, None
 
     frames: list[pl.LazyFrame] = []
+    temp_paths: list[str] = []  # Track temp file paths for parquet files
+
     for f in uploaded_files:
         name_lower = f.name.lower()
         suffix = Path(f.name).suffix.lower()
         if suffix == ".parquet":
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp:
                 tmp.write(f.getbuffer())
+                temp_paths.append(tmp.name)
                 frames.append(pl.scan_parquet(tmp.name))
         elif suffix == ".zip":
             frames.append(_read_uploaded_zip(f))
@@ -542,32 +538,16 @@ def handle_file_upload() -> pl.LazyFrame | None:
                 frames.append(pl.scan_ndjson(tmp.name))
 
     if not frames:
-        return None
+        return None, None
+
+    # Try to read metadata for single parquet file uploads
+    metadata = None
+    if len(frames) == 1 and len(temp_paths) == 1:
+        metadata = _read_source_metadata(temp_paths[0])
+
     if len(frames) == 1:
-        return frames[0]
-    return pl.concat(frames, how="diagonal", rechunk=True)
-
-
-def handle_file_path() -> pl.LazyFrame | None:
-    """Show text input for a file/folder path and return a LazyFrame, or None."""
-    st.write("Point the app to a file (zip, parquet, csv, …) or a partitioned folder.")
-    path = st.text_input(
-        "File or partitioned folder path",
-        placeholder="/path/to/data",
-    )
-    if not path:
-        return None
-    p = Path(path)
-    # Single zip file: extract first, then read the extracted contents
-    if p.is_file() and p.suffix.lower() == ".zip":
-        import tempfile
-        import zipfile
-
-        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
-        with zipfile.ZipFile(p, "r") as zf:
-            zf.extractall(tmp_dir)
-        return read_data(tmp_dir)
-    return read_data(path)
+        return frames[0], metadata
+    return pl.concat(frames, how="diagonal", rechunk=True), None
 
 
 @st.cache_resource

@@ -2,11 +2,11 @@
 """
 Tests for decision_analyzer/utils.py utility functions.
 
-Covers: parse_sample_flag, area_under_curve, gini_coefficient,
-get_first_level_stats, resolve_aliases, rename_and_cast_types,
+Covers: parse_sample_flag, format_count_for_filename, area_under_curve,
+gini_coefficient, get_first_level_stats, resolve_aliases, rename_and_cast_types,
 _cast_columns, get_scope_config, create_hierarchical_selectors,
-sample_interactions, sample_and_save, _find_interaction_id_column,
-_get_interaction_id_candidates.
+sample_interactions, prepare_and_save, _find_interaction_id_column,
+_get_interaction_id_candidates, should_cache_source.
 """
 
 import polars as pl
@@ -28,9 +28,9 @@ from pdstools.decision_analyzer.utils import (  # noqa: E402
     get_scope_config,
     gini_coefficient,
     parse_sample_flag,
+    prepare_and_save,
     rename_and_cast_types,
     resolve_aliases,
-    sample_and_save,
     sample_interactions,
 )
 
@@ -82,6 +82,74 @@ class TestParseSampleFlag:
     def test_single_unit(self):
         result = parse_sample_flag("1")
         assert result == {"n": 1}
+
+
+# ---------------------------------------------------------------------------
+# format_count_for_filename
+# ---------------------------------------------------------------------------
+
+
+def test_format_count_for_filename_units():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(42) == "42"
+    assert format_count_for_filename(999) == "999"
+
+
+def test_format_count_for_filename_thousands():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000) == "1k"
+    assert format_count_for_filename(1500) == "1.5k"
+    assert format_count_for_filename(87432) == "87k"
+    assert format_count_for_filename(999999) == "1M"
+
+
+def test_format_count_for_filename_millions():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000000) == "1M"
+    assert format_count_for_filename(1234567) == "1.2M"
+    assert format_count_for_filename(87000000) == "87M"
+    assert format_count_for_filename(999999999) == "1B"
+
+
+def test_format_count_for_filename_billions():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    assert format_count_for_filename(1000000000) == "1B"
+    assert format_count_for_filename(2500000000) == "2.5B"
+    assert format_count_for_filename(87000000000) == "87B"
+
+
+def test_format_count_for_filename_edge_cases():
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    # Exact boundaries
+    assert format_count_for_filename(1) == "1"
+    assert format_count_for_filename(10) == "10"
+    assert format_count_for_filename(100) == "100"
+    # Check boundary transitions
+    assert "k" in format_count_for_filename(1001)
+    assert "M" in format_count_for_filename(1000001)
+    assert "B" in format_count_for_filename(1000000001)
+
+
+def test_format_count_rounding_to_unit_boundaries():
+    """Test that values rounding to 100+ transition to next unit cleanly."""
+    from pdstools.decision_analyzer.utils import format_count_for_filename
+
+    # Values that round to 100k should display as 100k
+    assert format_count_for_filename(99500) == "100k"
+    assert format_count_for_filename(99900) == "100k"
+
+    # Values that round to 1000k should transition to 1M
+    assert format_count_for_filename(999500) == "1M"
+    assert format_count_for_filename(999900) == "1M"
+
+    # Verify no scientific notation in output
+    result = format_count_for_filename(99500)
+    assert "e" not in result.lower(), f"Got scientific notation: {result}"
 
 
 # ---------------------------------------------------------------------------
@@ -503,12 +571,23 @@ class TestSampleInteractions:
 
 
 # ---------------------------------------------------------------------------
-# sample_and_save
+# prepare_and_save
 # ---------------------------------------------------------------------------
 
 
-class TestSampleAndSave:
-    """Persist sampled data as parquet."""
+class TestPrepareAndSave:
+    """Persist prepared data (sampled or cached) as parquet."""
+
+    @pytest.fixture()
+    def mock_decision_data(self):
+        """Mock decision analyzer data with interactions."""
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        return pl.LazyFrame(
+            {
+                "pxInteractionID": ids,
+                "value": list(range(20)),
+            }
+        )
 
     def test_writes_parquet_file(self, tmp_path):
         ids = [f"int_{i}" for i in range(10) for _ in range(2)]
@@ -518,10 +597,13 @@ class TestSampleAndSave:
                 "value": list(range(20)),
             }
         )
-        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
-        out_file = tmp_path / "decision_analyzer_sample.parquet"
-        assert out_file.exists()
-        assert path == out_file
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+        # Path should be returned and file should exist
+        assert path is not None
+        assert path.exists()
+        # Filename should have the new format with count
+        assert "decision_analyzer_sample_" in path.name
+        assert path.name.endswith(".parquet")
         # Result should be a LazyFrame scanning the written file
         collected = result.collect()
         assert collected.height > 0
@@ -529,12 +611,202 @@ class TestSampleAndSave:
     def test_skips_when_n_exceeds_total(self, tmp_path):
         ids = ["i1", "i1", "i2", "i2"]
         lf = pl.LazyFrame({"pxInteractionID": ids, "value": [1, 2, 3, 4]})
-        result, path = sample_and_save(lf, n=100, output_dir=str(tmp_path))
+        result, path = prepare_and_save(lf, n=100, output_dir=str(tmp_path))
         out_file = tmp_path / "decision_analyzer_sample.parquet"
         # File should NOT be written when sampling is skipped
         assert not out_file.exists()
         assert path is None
         assert result.collect().height == 4
+
+    def test_prepare_and_save_with_source_path_metadata(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+        source_file = tmp_path / "original.parquet"
+
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path), source_path=str(source_file))
+
+        assert path is not None
+        # Check filename contains count
+        assert "decision_analyzer_sample_" in path.name
+        assert path.name.endswith(".parquet")
+
+        # Check metadata was written
+        metadata = pl.read_parquet_metadata(str(path))
+        assert "pdstools:source_file" in metadata
+        assert metadata["pdstools:source_file"] == str(source_file)
+        assert "pdstools:sample_percentage" in metadata
+        assert float(metadata["pdstools:sample_percentage"]) == 50.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_prepare_and_save_with_chained_sampling(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+        original_source = "/data/original.parquet"
+
+        # First sample: 50%
+        first_sample_file = tmp_path / "first.parquet"
+        first_meta = {
+            "pdstools:source_file": original_source,
+            "pdstools:sample_percentage": "50.0",
+            "pdstools:sample_percentage_method": "exact",
+        }
+        lf.collect().write_parquet(first_sample_file, metadata=first_meta)
+
+        # Second sample: 20% of the first sample
+        lf_rescan = pl.scan_parquet(first_sample_file)
+        result, path = prepare_and_save(
+            lf_rescan, fraction=0.2, output_dir=str(tmp_path), source_path=str(first_sample_file)
+        )
+
+        assert path is not None
+
+        # Check metadata inheritance
+        metadata = pl.read_parquet_metadata(str(path))
+        # Should inherit original source, not intermediate file
+        assert metadata["pdstools:source_file"] == original_source
+        # Should multiply percentages: 50% * 20% = 10%
+        assert float(metadata["pdstools:sample_percentage"]) == 10.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_prepare_and_save_filename_format(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        lf = mock_decision_data
+
+        # Sample to a specific count
+        result, path = prepare_and_save(lf, n=100, output_dir=str(tmp_path), source_path="test.parquet")
+
+        if path is not None:
+            # Filename should contain formatted count
+            assert "decision_analyzer_sample_" in path.name
+            # Should have a number (exact format depends on actual count in mock data)
+            assert any(char.isdigit() for char in path.name)
+
+    def test_prepare_and_save_without_source_path(self, mock_decision_data, tmp_path):
+        """Test backward compatibility - source_path is optional."""
+        from pdstools.decision_analyzer.utils import prepare_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+
+        # Call without source_path (backward compatibility)
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+
+        assert path is not None
+        # Should still write metadata, but with "unknown" source
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == "unknown"
+
+    def test_prepare_and_save_with_invalid_source_path(self, mock_decision_data, tmp_path):
+        """Test graceful handling of nonexistent source path."""
+        from pdstools.decision_analyzer.utils import prepare_and_save
+        import polars as pl
+
+        lf = mock_decision_data
+
+        # Pass nonexistent source path
+        result, path = prepare_and_save(
+            lf, fraction=0.5, output_dir=str(tmp_path), source_path="/nonexistent/file.parquet"
+        )
+
+        assert path is not None
+        # Should write metadata with the provided path (even if it doesn't exist)
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == "/nonexistent/file.parquet"
+
+
+# ---------------------------------------------------------------------------
+# prepare_and_save (caching mode)
+# ---------------------------------------------------------------------------
+
+
+class TestPrepareAndSaveCachingMode:
+    """Test prepare_and_save (renamed from prepare_and_save) in caching mode."""
+
+    @pytest.fixture()
+    def mock_decision_data(self):
+        """Mock decision analyzer data with interactions."""
+        ids = [f"int_{i}" for i in range(10) for _ in range(2)]
+        return pl.LazyFrame(
+            {
+                "pxInteractionID": ids,
+                "value": list(range(20)),
+            }
+        )
+
+    def test_cache_creates_file_with_cache_prefix(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        source_file = tmp_path / "original.csv"
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(source_file),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        assert path.exists()
+        # Should use "cache" prefix not "sample"
+        assert "decision_analyzer_cache_" in path.name
+        assert path.name.endswith(".parquet")
+
+    def test_cache_metadata_has_100_percent(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        source_file = tmp_path / "original.csv"
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(source_file),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        metadata = pl.read_parquet_metadata(str(path))
+        assert metadata["pdstools:source_file"] == str(source_file)
+        assert float(metadata["pdstools:sample_percentage"]) == 100.0
+        assert metadata["pdstools:sample_percentage_method"] == "exact"
+
+    def test_cache_without_source_path_returns_none(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            output_dir=str(tmp_path),
+        )
+
+        # Without source_path, caching should be skipped
+        assert path is None
+
+    def test_sampling_mode_still_uses_sample_prefix(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            fraction=0.5,
+            source_path=str(tmp_path / "original.csv"),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        # Sampling mode should still use "sample" prefix
+        assert "decision_analyzer_sample_" in path.name
+
+    def test_cache_includes_interaction_count_in_filename(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
+
+        result, path = prepare_and_save(
+            mock_decision_data,
+            source_path=str(tmp_path / "original.csv"),
+            output_dir=str(tmp_path),
+        )
+
+        assert path is not None
+        # Should have formatted count (10 interactions in mock data)
+        assert "10" in path.name or "10." in path.name
 
 
 # ---------------------------------------------------------------------------
@@ -580,3 +852,106 @@ class TestGetInteractionIdCandidates:
     def test_no_duplicates(self):
         candidates = _get_interaction_id_candidates()
         assert len(candidates) == len(set(candidates))
+
+
+# ---------------------------------------------------------------------------
+# _read_source_metadata
+# ---------------------------------------------------------------------------
+
+
+def test_read_source_metadata_with_metadata(tmp_path):
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+    import polars as pl
+
+    # Create a file with metadata
+    df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
+    test_file = tmp_path / "test.parquet"
+    metadata = {
+        "pdstools:source_file": "/original/data.parquet",
+        "pdstools:sample_percentage": "50.0",
+        "pdstools:sample_percentage_method": "exact",
+    }
+    df.write_parquet(test_file, metadata=metadata)
+
+    result = _read_source_metadata(str(test_file))
+
+    assert result is not None
+    assert result["source_file"] == "/original/data.parquet"
+    assert result["sample_percentage"] == 50.0
+    assert result["method"] == "exact"
+
+
+def test_read_source_metadata_without_metadata(tmp_path):
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+    import polars as pl
+
+    # Create a file without our metadata
+    df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
+    test_file = tmp_path / "test.parquet"
+    df.write_parquet(test_file)
+
+    result = _read_source_metadata(str(test_file))
+
+    assert result is None
+
+
+def test_read_source_metadata_nonexistent_file():
+    from pdstools.decision_analyzer.utils import _read_source_metadata
+
+    result = _read_source_metadata("/nonexistent/file.parquet")
+
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# should_cache_source
+# ---------------------------------------------------------------------------
+
+
+class TestShouldCacheSource:
+    """Detect when source data should be cached as parquet."""
+
+    def test_none_returns_false(self):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        assert should_cache_source(None) is False
+
+    def test_single_parquet_returns_false(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        parquet_file = tmp_path / "data.parquet"
+        parquet_file.touch()
+        assert should_cache_source(str(parquet_file)) is False
+
+    def test_csv_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        csv_file = tmp_path / "data.csv"
+        csv_file.touch()
+        assert should_cache_source(str(csv_file)) is True
+
+    def test_directory_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        data_dir = tmp_path / "data_dir"
+        data_dir.mkdir()
+        assert should_cache_source(str(data_dir)) is True
+
+    def test_json_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        json_file = tmp_path / "data.json"
+        json_file.touch()
+        assert should_cache_source(str(json_file)) is True
+
+    def test_arrow_file_returns_true(self, tmp_path):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        arrow_file = tmp_path / "data.arrow"
+        arrow_file.touch()
+        assert should_cache_source(str(arrow_file)) is True
+
+    def test_empty_string_returns_false(self):
+        from pdstools.decision_analyzer.utils import should_cache_source
+
+        assert should_cache_source("") is False

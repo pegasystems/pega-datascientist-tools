@@ -7,13 +7,13 @@ from da_streamlit_utils import ensure_data, get_current_index
 "# Global Sensitivity Analysis"
 
 """
-Showing the *overall* effect of propensity, value, levers and context weights
-on the decisions made.
+Understand which factors have the biggest impact on which offers win. This shows
+how much each factor (customer response likelihood, business value, strategic levers)
+influences your final offer selections.
 
-Sensitivity is defined as the number of winning actions that change when
-omitting just this one arbitration factor. The percentages indicates how
-many of the total (final) decisions would change. The percentages will
-usually not add up to 100%.
+**How to read this:** Each factor shows what percentage of winning offers would change
+if that factor were removed. Higher percentages mean that factor is more influential in
+driving offer selection.
 """
 
 ensure_data()
@@ -29,7 +29,7 @@ with st.session_state["sidebar"]:
     )
 
 with st.container(border=True):
-    "## Influence of Prioritization Factors"
+    "## What Drives Your Offer Selection?"
 
     st.plotly_chart(
         st.session_state.decision_data.plot.sensitivity(
@@ -42,7 +42,8 @@ with st.container(border=True):
     "## Win/Loss Distribution"
 
     """
-    Distribution of the actions that "win" in arbitration and the actions that "lose" in arbitration.
+    See which offers most often win or lose in the final selection. This reveals
+    which offers dominate your customer interactions and which rarely make it through.
     """
 
     scope_options = st.session_state.decision_data.getPossibleScopeValues()

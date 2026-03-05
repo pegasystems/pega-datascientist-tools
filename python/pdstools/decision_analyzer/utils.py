@@ -583,61 +583,175 @@ def sample_interactions(
     return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
 
-def sample_and_save(
+def prepare_and_save(
     df: pl.LazyFrame,
     n: int | None = None,
     fraction: float | None = None,
     output_dir: str | None = None,
+    source_path: str | None = None,
 ) -> tuple[pl.LazyFrame, Path | None]:
-    """Sample interactions and persist the result as a parquet file.
+    """Prepare data for analysis by sampling or caching, and persist as parquet.
 
-    Writes ``decision_analyzer_sample.parquet`` into *output_dir* (defaults
-    to the current working directory). Returns a LazyFrame scanning the
-    written file plus the file path, so callers can display where the
-    sample was saved.
+    **Sampling mode** (when n or fraction provided):
+    Writes ``decision_analyzer_sample_<count>.parquet`` into *output_dir*
+    (defaults to the current working directory). Returns a LazyFrame scanning
+    the written file plus the file path.
 
-    If the data is smaller than the requested sample, sampling is skipped
-    and the original LazyFrame is returned unchanged (no file is written).
+    **Caching mode** (when neither n nor fraction provided):
+    Writes ``decision_analyzer_cache_<count>.parquet`` into *output_dir*
+    with 100% sample metadata. Useful for caching non-parquet sources (CSV,
+    JSON, ZIP) for faster reloading.
+
+    The parquet file includes metadata tracking:
+    - Original source file path
+    - Sample percentage relative to original data (100% for caching mode)
+    - Whether percentage was calculated exactly or approximated
+
+    If sampling is requested but the data is smaller than the requested sample,
+    sampling is skipped and the original LazyFrame is returned unchanged
+    (no file is written).
 
     Parameters
     ----------
     df : pl.LazyFrame
-        Raw data to sample from.
+        Raw data to process.
     n : int, optional
-        Maximum number of unique interactions to keep.
+        Maximum number of unique interactions to keep (sampling mode).
     fraction : float, optional
-        Fraction of interactions to keep (0.0–1.0).
+        Fraction of interactions to keep 0.0–1.0 (sampling mode).
     output_dir : str, optional
-        Directory for the sample parquet file. Defaults to ``"."``.
+        Directory for the output parquet file. Defaults to ``"."``.
+    source_path : str, optional
+        Path to the original source file for metadata tracking.
 
     Returns
     -------
     tuple[pl.LazyFrame, Path | None]
-        The (possibly sampled) LazyFrame and the path to the written
-        parquet file, or ``None`` when sampling was skipped.
+        The (possibly sampled/cached) LazyFrame and the path to the written
+        parquet file, or ``None`` when no file was written.
+
+    Examples
+    --------
+    Sample data and save with metadata:
+
+    >>> df = pl.scan_parquet("large_data.parquet")
+    >>> sampled, path = prepare_and_save(
+    ...     df,
+    ...     n=100000,
+    ...     source_path="large_data.parquet"
+    ... )
+    >>> print(path)
+    decision_analyzer_sample_100k.parquet
+
+    Cache non-parquet data:
+
+    >>> df = pl.scan_csv("export.csv")
+    >>> cached, path = prepare_and_save(
+    ...     df,
+    ...     source_path="export.csv"
+    ... )
+    >>> print(path)
+    decision_analyzer_cache_87k.parquet
+
+    Read metadata from a prepared file:
+
+    >>> import polars as pl
+    >>> metadata = pl.read_parquet_metadata("decision_analyzer_sample_100k.parquet")
+    >>> print(metadata["pdstools:source_file"])
+    large_data.parquet
+    >>> print(metadata["pdstools:sample_percentage"])
+    10.0
     """
+    # Determine mode: sampling or caching
+    is_sampling = (n is not None) or (fraction is not None)
+
+    # Skip caching if no source path provided
+    if not is_sampling and not source_path:
+        return df, None
+
     available = set(df.collect_schema().names())
     id_column = _find_interaction_id_column(available)
 
-    # Check whether sampling would actually reduce the data.
-    if n is not None:
-        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
-        if total <= n:
-            logger.info(
-                "Data has %d interactions (≤ requested %d), skipping sampling.",
-                total,
-                n,
-            )
-            return df, None
+    # Step 1: Read source metadata if available
+    source_metadata = None
+    original_source = source_path or "unknown"
+    if source_path:
+        source_metadata = _read_source_metadata(source_path)
+        if source_metadata:
+            # Inherit original source from chained sampling
+            original_source = source_metadata["source_file"]
 
-    sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+    # Step 2: Process data based on mode
+    if is_sampling:
+        # Sampling mode: calculate total if needed for n-based sampling
+        total = None
+        if n is not None:
+            total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
+            if total <= n:
+                logger.info(
+                    "Data has %d interactions (≤ requested %d), skipping sampling.",
+                    total,
+                    n,
+                )
+                return df, None
+
+        # Perform sampling
+        sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+        processed_df = sampled.collect()  # type: ignore[union-attribute]
+    else:
+        # Caching mode: collect all data (no sampling)
+        processed_df = df.collect()
+
+    # Step 3: Calculate sample percentage
+    if is_sampling:
+        if fraction is not None:
+            # Fraction-based: exact percentage
+            sample_percentage = fraction * 100.0
+            method = "exact"
+        elif total is not None and n is not None:
+            # Count-based: we already have total, calculate exact
+            sample_percentage = (n / total) * 100.0
+            method = "exact"
+        else:
+            # Fallback (shouldn't happen in normal flow)
+            sample_percentage = 0.0
+            method = "unknown"
+    else:
+        # Caching mode: always 100%
+        sample_percentage = 100.0
+        method = "exact"
+
+    # Step 4: Apply inheritance if sampling a sample
+    if source_metadata and is_sampling:
+        # Multiply percentages for chained sampling
+        source_pct = source_metadata["sample_percentage"]
+        assert isinstance(source_pct, float)  # Type narrowing
+        sample_percentage = (sample_percentage * source_pct) / 100.0
+        # Inherit method (use "approximated" if either step was approximate)
+        if source_metadata["method"] == "approximated":
+            method = "approximated"
+
+    # Step 5: Determine output filename with count
+    processed_count = processed_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
+    formatted_count = format_count_for_filename(processed_count)
+
+    # Choose prefix based on mode
+    prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
 
     dest = Path(output_dir) if output_dir else Path(".")
     dest.mkdir(parents=True, exist_ok=True)
-    out_path = dest / "decision_analyzer_sample.parquet"
+    out_path = dest / f"{prefix}{formatted_count}.parquet"
 
-    logger.info("Writing sampled data to %s", out_path)
-    sampled.collect().write_parquet(out_path)  # type: ignore[union-attribute]
+    # Step 6: Build metadata
+    metadata = {
+        "pdstools:source_file": original_source,
+        "pdstools:sample_percentage": f"{sample_percentage:.2f}",
+        "pdstools:sample_percentage_method": method,
+    }
+
+    # Step 7: Write with metadata
+    logger.info("Writing prepared data to %s", out_path)
+    processed_df.write_parquet(out_path, metadata=metadata)
 
     return pl.scan_parquet(out_path), out_path
 
@@ -663,3 +777,154 @@ def parse_sample_flag(value: str) -> dict[str, int | float]:
         if count <= 0:
             raise ValueError(f"Sample count must be positive, got {count}")
         return {"n": count}
+
+
+def format_count_for_filename(count: int) -> str:
+    """Format an interaction count for use in filenames.
+
+    Uses human-readable abbreviations with 2 significant figures.
+
+    Parameters
+    ----------
+    count : int
+        Number of interactions.
+
+    Returns
+    -------
+    str
+        Formatted count (e.g., "87k", "1.2M", "2.5B").
+
+    Examples
+    --------
+    >>> format_count_for_filename(42)
+    '42'
+    >>> format_count_for_filename(1500)
+    '1.5k'
+    >>> format_count_for_filename(87432)
+    '87k'
+    >>> format_count_for_filename(1234567)
+    '1.2M'
+    """
+    if count < 1000:
+        return str(count)
+    elif count < 1_000_000:
+        # Thousands
+        value = count / 1000
+        rounded = round(value)
+
+        if rounded >= 1000:
+            # Transition to millions (e.g., 999,500 → 1M)
+            millions = count / 1_000_000
+            rounded_m = round(millions)
+            if rounded_m >= 10:
+                return f"{rounded_m}M"
+            elif rounded_m >= 1:
+                # For values 1-9M, show as integer if it rounds cleanly
+                return f"{rounded_m}M"
+            else:
+                formatted = f"{millions:.1f}".rstrip("0").rstrip(".")
+                return f"{formatted}M"
+        elif rounded >= 10:
+            return f"{rounded}k"
+        else:
+            # Use 1 decimal for < 10
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+            return f"{formatted}k"
+    elif count < 1_000_000_000:
+        # Millions
+        value = count / 1_000_000
+        rounded = round(value)
+
+        if rounded >= 1000:
+            # Transition to billions
+            billions = count / 1_000_000_000
+            rounded_b = round(billions)
+            if rounded_b >= 10:
+                return f"{rounded_b}B"
+            elif rounded_b >= 1:
+                # For values 1-9B, show as integer if it rounds cleanly
+                return f"{rounded_b}B"
+            else:
+                formatted = f"{billions:.1f}".rstrip("0").rstrip(".")
+                return f"{formatted}B"
+        elif rounded >= 10:
+            return f"{rounded}M"
+        else:
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+            return f"{formatted}M"
+    else:
+        # Billions
+        value = count / 1_000_000_000
+        rounded = round(value)
+
+        if rounded >= 10:
+            return f"{rounded}B"
+        else:
+            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+            return f"{formatted}B"
+
+
+def should_cache_source(source_path: str | None) -> bool:
+    """Return True if source should be cached as parquet.
+
+    Caching is beneficial for non-parquet sources (CSV, JSON, ZIP, directories)
+    but unnecessary for single parquet files which are already optimized.
+
+    Parameters
+    ----------
+    source_path : str | None
+        Path to the source file or directory.
+
+    Returns
+    -------
+    bool
+        True if source should be cached, False otherwise.
+
+    Examples
+    --------
+    >>> should_cache_source("/data/export.csv")
+    True
+    >>> should_cache_source("/data/export.parquet")
+    False
+    >>> should_cache_source(None)
+    False
+    """
+    if not source_path:
+        return False
+    path = Path(source_path)
+    # Skip if source is already a single parquet file
+    if path.is_file() and path.suffix == ".parquet":
+        return False
+    return True
+
+
+def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
+    """Read pdstools metadata from a parquet file if it exists.
+
+    Parameters
+    ----------
+    source_path : str
+        Path to the parquet file to check.
+
+    Returns
+    -------
+    dict or None
+        Dictionary with keys: source_file, sample_percentage, method
+        Returns None if file doesn't exist, is not parquet, or lacks metadata.
+    """
+    try:
+        metadata = pl.read_parquet_metadata(source_path)
+
+        # Check if this file has our metadata
+        source_file = metadata.get("pdstools:source_file")
+        if source_file is None:
+            return None
+
+        return {
+            "source_file": source_file,
+            "sample_percentage": float(metadata.get("pdstools:sample_percentage", "0")),
+            "method": metadata.get("pdstools:sample_percentage_method", "unknown"),
+        }
+    except Exception:
+        # File doesn't exist, not a parquet, or other read error
+        return None

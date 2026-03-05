@@ -47,14 +47,15 @@ class TestCreateParser:
 
     def test_parser_choices(self):
         parser = create_parser()
-        # The 'app' positional argument should have correct choices
+        # The 'app' positional argument should have correct choices (including aliases)
         app_action = None
+        expected_choices = {"health_check", "decision_analyzer", "impact_analyzer", "hc", "da", "ia"}
         for action in parser._actions:
             if hasattr(action, "choices") and action.choices is not None:
-                if set(action.choices) == {"health_check", "decision_analyzer", "impact_analyzer"}:
+                if set(action.choices) == expected_choices:
                     app_action = action
                     break
-        assert app_action is not None, "Parser should have an 'app' argument with the three app choices"
+        assert app_action is not None, "Parser should have an 'app' argument with the app choices and aliases"
 
     def test_parser_description(self):
         parser = create_parser()
@@ -71,7 +72,6 @@ class TestArgumentParsing:
         parser = create_parser()
         args = parser.parse_args([])
         assert args.app is None
-        assert args.deploy_env is None
         assert args.data_path is None
         assert args.sample is None
         assert args.temp_dir is None
@@ -81,11 +81,6 @@ class TestArgumentParsing:
         for app_name in ("health_check", "decision_analyzer", "impact_analyzer"):
             args = parser.parse_args([app_name])
             assert args.app == app_name
-
-    def test_deploy_env_flag(self):
-        parser = create_parser()
-        args = parser.parse_args(["health_check", "--deploy-env", "ec2"])
-        assert args.deploy_env == "ec2"
 
     def test_data_path_flag(self):
         parser = create_parser()
@@ -112,8 +107,6 @@ class TestArgumentParsing:
         args = parser.parse_args(
             [
                 "decision_analyzer",
-                "--deploy-env",
-                "local",
                 "--data-path",
                 "/data/extract",
                 "--sample",
@@ -123,7 +116,6 @@ class TestArgumentParsing:
             ]
         )
         assert args.app == "decision_analyzer"
-        assert args.deploy_env == "local"
         assert args.data_path == "/data/extract"
         assert args.sample == "50000"
         assert args.temp_dir == "/tmp/work"

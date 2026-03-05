@@ -15,14 +15,19 @@ from da_streamlit_utils import (
 "# Offer Quality Analysis"
 
 """
-**Value Finder** has a unique concept of attaching a propensity to every action even if it is
-filtered out before Arbitration. **Decision Analyzer** does not have these propensities - as
-it is running from actual production data.
+Identify customer interactions where offer quality may be a concern. This analysis
+helps you spot situations where customers see too few offers, or where offers have
+low predicted response rates or priorities.
 
-But there are a lot of Value Finder - like analyses that can still be done here. For example,
-looking at the number of interactions with just very few actions. And for the actions at or
-after arbitration, we can do the value finder analyses that relate to the propensity value
-or the number of actions driven by immature, new, models.
+**Key insights:**
+* Which customers are seeing limited choices?
+* Are there interactions with only low-quality offers?
+* Where might new or untested offers be impacting customer experience?
+
+**Note:** Propensity-based quality assessment (distinguishing between "relevant" and
+"irrelevant" offers) is only available from the arbitration stage onward. For earlier
+stages, the analysis shows whether customers received at least one action, without
+quality assessment.
 """
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
@@ -53,21 +58,23 @@ with st.session_state["sidebar"]:
 
     propensityTH = (
         st.slider(
-            "Propensity threshold",
+            "Minimum propensity for relevance",
             propensity_th[0] * 100,
             propensity_th[2] * 100,
             propensity_th[1] * 100,
             format="%.2f%%",
+            help="Offers with propensity below this value are considered irrelevant (low quality)",
         )
         / 100
     )
     priorityTH = st.slider(
-        "Priority threshold",
+        "Minimum priority for relevance",
         priority_th[0],
         priority_th[2],
         priority_th[1],
         # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
+        help="Offers with priority below this value are considered irrelevant (low quality)",
     )
 
 
@@ -78,7 +85,7 @@ action_counts = st.session_state.decision_data.filtered_action_counts(
 )
 
 with st.container(border=True):
-    "## Distribution of Customers per Stage"
+    "## Customer Segments by Offer Quality"
 
     vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
 
@@ -93,9 +100,12 @@ with st.container(border=True):
     )
 
 with st.container(border=True):
-    "## Interactions in Trouble"
+    "## Offer Quality Over Time"
 
-    stage_selectbox()
+    # Default to the first stage with propensity scores for more meaningful analysis
+    stages_with_prop = st.session_state.decision_data.stages_with_propensity
+    default_stage = stages_with_prop[0] if stages_with_prop else None
+    stage_selectbox(default=default_stage)
 
     vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 

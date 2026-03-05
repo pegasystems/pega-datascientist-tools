@@ -364,6 +364,43 @@ class DecisionAnalyzer:
         return stages
 
     @cached_property
+    def stages_with_propensity(self):
+        """Infer which stages have meaningful propensity scores from the data.
+
+        Examines the sample data to determine which stages have non-null, non-default
+        propensity values. Returns stages where propensity-based classification makes sense.
+        """
+        # Check which stages have meaningful propensity values in the sample data
+        # Propensity = 0.5 is the default for new/untested models, so we look for diversity
+        propensity_by_stage = (
+            self.sample.group_by(self.level)
+            .agg(
+                [
+                    pl.col("Propensity").drop_nulls().count().alias("prop_count"),
+                    pl.col("Propensity").drop_nulls().n_unique().alias("prop_unique"),
+                    # Check if there are non-0.5 propensity values
+                    (pl.col("Propensity").drop_nulls() != 0.5).sum().alias("prop_non_default"),
+                ]
+            )
+            .collect()
+        )
+
+        # Stages have propensity if they have diverse propensity scores (not just 0.5)
+        stages_with_scores = (
+            propensity_by_stage.filter(
+                (pl.col("prop_count") > 0) & ((pl.col("prop_unique") > 1) | (pl.col("prop_non_default") > 0))
+            )
+            .get_column(self.level)
+            .to_list()
+        )
+
+        if stages_with_scores:
+            return stages_with_scores
+
+        # Fallback: use stages_from_arbitration_down (Arbitration and later)
+        return self.stages_from_arbitration_down
+
+    @cached_property
     def arbitration_stage(self):
         return self.sample.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
 
@@ -432,7 +469,8 @@ class DecisionAnalyzer:
             pl.min(*stats_cols).name.suffix("_min"),
             pl.max(*stats_cols).name.suffix("_max"),
             pl.col("Propensity", "Priority").sample(n=num_samples, with_replacement=True, shuffle=True),
-            pl.len().alias("Decisions"),
+            pl.col("Interaction ID").unique().alias("Interaction_IDs"),
+            pl.col("Interaction ID").n_unique().alias("Decisions"),
         ]
 
         self.preaggregated_decision_data_filterview = (
@@ -455,7 +493,7 @@ class DecisionAnalyzer:
                 self.getPreaggregatedFilterView,
                 list(self.preaggregation_columns),
                 [
-                    pl.sum("Decisions"),
+                    pl.col("Interaction_IDs").flatten().unique().count().alias("Decisions"),
                     pl.min("Decision Time_min"),
                     pl.max("Decision Time_max"),
                     pl.min("Value_min"),
@@ -670,14 +708,14 @@ class DecisionAnalyzer:
         funnelData = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
-            aggregations=[pl.sum("Decisions").alias("count")],
+            aggregations=[pl.col("Interaction_IDs").flatten().unique().count().alias("count")],
         ).filter(pl.col("count") > 0)
 
         # Compute filtered funnel view
         filtered_funnel = (
             filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
             .group_by([self.level, scope])
-            .agg(count=pl.sum("Decisions"))
+            .agg(count=pl.col("Interaction_IDs").flatten().unique().count())
             .collect()
         )
 
@@ -699,7 +737,7 @@ class DecisionAnalyzer:
             apply_filter(self.getPreaggregatedFilterView, additional_filters)
             .filter(pl.col(self.level) != "Output")
             .group_by(group_cols)
-            .agg(pl.sum("Decisions").alias("Filtered Decisions"))
+            .agg(pl.col("Interaction_IDs").flatten().unique().count().alias("Filtered Decisions"))
             .collect()
         )
         result = pl.concat(
@@ -1227,22 +1265,27 @@ class DecisionAnalyzer:
                 no_of_offers=pl.count("Action"),
             )
 
+        # Only classify actions by propensity/priority at stages where propensity is available
+        # Actions filtered before ActionPropensity stage don't have meaningful propensity scores
+        has_propensity = pl.col(self.level).is_in(self.stages_with_propensity)
+
         propensity_classifying_expr = [
             pl.col("Action")
-            .filter((pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
+            .filter(has_propensity & (pl.col("Propensity") == 0.5) & (pl.col(self.level) != "Output"))
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter((pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
-                (pl.col("Propensity") >= propensityTH)
+                has_propensity
+                & (pl.col("Propensity") >= propensityTH)
                 & (pl.col("Propensity") != 0.5)
                 & (pl.col("Priority") >= priorityTH)
             )
@@ -1268,8 +1311,18 @@ class DecisionAnalyzer:
         pl.LazyFrame
             Value Finder style, available action counts per group_by category
         """
+        # Get all unique customers/interactions from the sample to ensure we count those with no actions
+        if isinstance(group_by, str):
+            group_by = [group_by]
+
+        # Get the full set of customers from the FIRST stage (where all customers start)
+        # This ensures we track all customers throughout the pipeline
+        first_stage = self.AvailableNBADStages[0]
+        all_customers = self.sample.filter(pl.col(self.level) == first_stage).select(group_by).unique().collect().lazy()
+
         dfs = []
         for i, stage in enumerate(self.AvailableNBADStages):
+            # Get aggregated counts for this stage (only interactions WITH actions)
             stage_df = (
                 # TODO refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
                 df.filter(pl.col(self.level).is_in(self.AvailableNBADStages[i:]))
@@ -1285,12 +1338,40 @@ class DecisionAnalyzer:
                 )
                 .with_columns(pl.lit(stage).alias(self.level))
             )
+
+            # Left join with all customers to include those with no actions (fill with 0s)
+            # Cast stage_df level column to categorical to match join keys
+            stage_df = stage_df.with_columns(pl.col(self.level).cast(pl.Categorical))
+
+            # Add stage to all customers and join
+            stage_customers = all_customers.with_columns(pl.lit(stage).cast(pl.Categorical).alias(self.level))
+            stage_df = stage_customers.join(stage_df, on=group_by + [self.level], how="left").with_columns(
+                pl.col(
+                    "no_of_offers", "new_models", "poor_propensity_offers", "poor_priority_offers", "good_offers"
+                ).fill_null(0)
+            )
+
             dfs.append(stage_df)
         stage_df = pl.concat(dfs)
+
+        # Determine if stage has propensity scores available (ActionPropensity and later)
+        has_propensity = pl.col(self.level).is_in(self.stages_with_propensity)
+
         stage_df = stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
-            atleast_one_relevant_action=pl.when(pl.col("good_offers") >= 1).then(pl.lit(1)).otherwise(pl.lit(0)),
-            only_irrelevant_actions=pl.when(pl.col("good_offers") == 0).then(pl.lit(1)).otherwise(0),
+            # For stages WITH propensity: classify as relevant (green) or irrelevant (orange)
+            atleast_one_relevant_action=pl.when(has_propensity & (pl.col("good_offers") >= 1))
+            .then(pl.lit(1))
+            .otherwise(pl.lit(0)),
+            only_irrelevant_actions=pl.when(
+                has_propensity & (pl.col("good_offers") == 0) & (pl.col("no_of_offers") > 0)
+            )
+            .then(pl.lit(1))
+            .otherwise(0),
+            # For stages WITHOUT propensity: just show as having actions (blue)
+            atleast_one_action=pl.when(~has_propensity & (pl.col("no_of_offers") > 0))
+            .then(pl.lit(1))
+            .otherwise(pl.lit(0)),
         )
         return stage_df
 

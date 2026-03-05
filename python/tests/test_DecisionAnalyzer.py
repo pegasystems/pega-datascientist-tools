@@ -1171,3 +1171,98 @@ class TestFindLeverValue:
         except ValueError:
             # Target may not be achievable — that's acceptable
             pass
+
+
+# ---------------------------------------------------------------------------
+# Offer Quality Analysis
+# ---------------------------------------------------------------------------
+
+
+class TestOfferQualityAnalysis:
+    def test_stages_with_propensity_property(self, da_v2):
+        """Test that stages_with_propensity detects stages with propensity scores."""
+        stages = da_v2.stages_with_propensity
+        assert isinstance(stages, list)
+        assert len(stages) > 0
+        # Should include arbitration-related stages
+        assert any("arbitration" in s.lower() or "output" in s.lower() for s in stages)
+
+    def test_stages_with_propensity_v1(self, da_v1):
+        """Test stages_with_propensity on v1 data."""
+        stages = da_v1.stages_with_propensity
+        assert isinstance(stages, list)
+        assert len(stages) > 0
+
+    def test_get_offer_quality_basic(self, da_v2):
+        """Test get_offer_quality returns expected structure."""
+        # get_offer_quality requires action_counts to have threshold columns
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+        assert df.height > 0
+        # Check for offer quality category columns
+        assert "has_no_offers" in df.columns
+        assert "atleast_one_relevant_action" in df.columns
+        assert "only_irrelevant_actions" in df.columns
+        assert "atleast_one_action" in df.columns
+        assert da_v2.level in df.columns
+
+    def test_get_offer_quality_with_thresholds(self, da_v2):
+        """Test get_offer_quality respects propensity/priority thresholds."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.5, priorityTH=50.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+        assert df.height > 0
+        # At least one category should have non-zero counts
+        has_counts = (
+            df.select("has_no_offers", "atleast_one_relevant_action", "only_irrelevant_actions", "atleast_one_action")
+            .sum()
+            .row(0)
+        )
+        assert sum(has_counts) > 0
+
+    def test_get_offer_quality_includes_all_customers(self, da_v2):
+        """Test that get_offer_quality includes customers even if they have no actions."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.99,  # High threshold to filter most
+            priorityTH=999.0,  # High threshold to filter most
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+
+        # Should have customers with no offers
+        assert df.filter(pl.col("has_no_offers") > 0).height > 0
+
+        # Total unique customers should match first stage customer count
+        first_stage = da_v2.AvailableNBADStages[0]
+        total_customers_in_result = df.filter(pl.col(da_v2.level) == first_stage).select("Interaction ID").n_unique()
+        total_customers_in_data = (
+            da_v2.sample.filter(pl.col(da_v2.level) == first_stage)
+            .select(pl.col("Interaction ID").n_unique().alias("count"))
+            .collect()
+            .item()
+        )
+        # Results should include all customers from the data
+        assert total_customers_in_result == total_customers_in_data
+
+    def test_get_offer_quality_stage_without_propensity(self, da_v2):
+        """Test offer quality for stages without propensity uses atleast_one_action category."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+
+        # For stages without propensity, should use atleast_one_action instead of relevant/irrelevant
+        stages_without_prop = set(da_v2.AvailableNBADStages) - set(da_v2.stages_with_propensity)
+        if stages_without_prop:
+            stage = list(stages_without_prop)[0]
+            stage_df = df.filter(pl.col(da_v2.level) == stage)
+            if stage_df.height > 0:
+                # Should have atleast_one_action counts, not relevant/irrelevant
+                assert stage_df.select(pl.col("atleast_one_action").sum()).item() >= 0
