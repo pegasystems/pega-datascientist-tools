@@ -583,54 +583,59 @@ def sample_interactions(
     return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
 
-def sample_and_save(
+def prepare_and_save(
     df: pl.LazyFrame,
     n: int | None = None,
     fraction: float | None = None,
     output_dir: str | None = None,
     source_path: str | None = None,
 ) -> tuple[pl.LazyFrame, Path | None]:
-    """Sample interactions and persist the result as a parquet file.
+    """Prepare data for analysis by sampling or caching, and persist as parquet.
 
+    **Sampling mode** (when n or fraction provided):
     Writes ``decision_analyzer_sample_<count>.parquet`` into *output_dir*
-    (defaults to the current working directory). The filename includes a
-    human-readable count (e.g., 87k, 1.2M). Returns a LazyFrame scanning
-    the written file plus the file path, so callers can display where the
-    sample was saved.
+    (defaults to the current working directory). Returns a LazyFrame scanning
+    the written file plus the file path.
+
+    **Caching mode** (when neither n nor fraction provided):
+    Writes ``decision_analyzer_cache_<count>.parquet`` into *output_dir*
+    with 100% sample metadata. Useful for caching non-parquet sources (CSV,
+    JSON, ZIP) for faster reloading.
 
     The parquet file includes metadata tracking:
     - Original source file path
-    - Sample percentage relative to original data
+    - Sample percentage relative to original data (100% for caching mode)
     - Whether percentage was calculated exactly or approximated
 
-    If the data is smaller than the requested sample, sampling is skipped
-    and the original LazyFrame is returned unchanged (no file is written).
+    If sampling is requested but the data is smaller than the requested sample,
+    sampling is skipped and the original LazyFrame is returned unchanged
+    (no file is written).
 
     Parameters
     ----------
     df : pl.LazyFrame
-        Raw data to sample from.
+        Raw data to process.
     n : int, optional
-        Maximum number of unique interactions to keep.
+        Maximum number of unique interactions to keep (sampling mode).
     fraction : float, optional
-        Fraction of interactions to keep (0.0–1.0).
+        Fraction of interactions to keep 0.0–1.0 (sampling mode).
     output_dir : str, optional
-        Directory for the sample parquet file. Defaults to ``"."``.
+        Directory for the output parquet file. Defaults to ``"."``.
     source_path : str, optional
         Path to the original source file for metadata tracking.
 
     Returns
     -------
     tuple[pl.LazyFrame, Path | None]
-        The (possibly sampled) LazyFrame and the path to the written
-        parquet file, or ``None`` when sampling was skipped.
+        The (possibly sampled/cached) LazyFrame and the path to the written
+        parquet file, or ``None`` when no file was written.
 
     Examples
     --------
     Sample data and save with metadata:
 
     >>> df = pl.scan_parquet("large_data.parquet")
-    >>> sampled, path = sample_and_save(
+    >>> sampled, path = prepare_and_save(
     ...     df,
     ...     n=100000,
     ...     source_path="large_data.parquet"
@@ -638,7 +643,17 @@ def sample_and_save(
     >>> print(path)
     decision_analyzer_sample_100k.parquet
 
-    Read metadata from a sampled file:
+    Cache non-parquet data:
+
+    >>> df = pl.scan_csv("export.csv")
+    >>> cached, path = prepare_and_save(
+    ...     df,
+    ...     source_path="export.csv"
+    ... )
+    >>> print(path)
+    decision_analyzer_cache_87k.parquet
+
+    Read metadata from a prepared file:
 
     >>> import polars as pl
     >>> metadata = pl.read_parquet_metadata("decision_analyzer_sample_100k.parquet")

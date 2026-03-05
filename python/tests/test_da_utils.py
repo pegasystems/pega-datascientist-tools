@@ -5,8 +5,8 @@ Tests for decision_analyzer/utils.py utility functions.
 Covers: parse_sample_flag, format_count_for_filename, area_under_curve,
 gini_coefficient, get_first_level_stats, resolve_aliases, rename_and_cast_types,
 _cast_columns, get_scope_config, create_hierarchical_selectors,
-sample_interactions, sample_and_save, _find_interaction_id_column,
-_get_interaction_id_candidates.
+sample_interactions, prepare_and_save, _find_interaction_id_column,
+_get_interaction_id_candidates, should_cache_source.
 """
 
 import polars as pl
@@ -28,9 +28,9 @@ from pdstools.decision_analyzer.utils import (  # noqa: E402
     get_scope_config,
     gini_coefficient,
     parse_sample_flag,
+    prepare_and_save,
     rename_and_cast_types,
     resolve_aliases,
-    sample_and_save,
     sample_interactions,
 )
 
@@ -554,12 +554,12 @@ class TestSampleInteractions:
 
 
 # ---------------------------------------------------------------------------
-# sample_and_save
+# prepare_and_save
 # ---------------------------------------------------------------------------
 
 
-class TestSampleAndSave:
-    """Persist sampled data as parquet."""
+class TestPrepareAndSave:
+    """Persist prepared data (sampled or cached) as parquet."""
 
     @pytest.fixture()
     def mock_decision_data(self):
@@ -580,7 +580,7 @@ class TestSampleAndSave:
                 "value": list(range(20)),
             }
         )
-        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
         # Path should be returned and file should exist
         assert path is not None
         assert path.exists()
@@ -594,21 +594,21 @@ class TestSampleAndSave:
     def test_skips_when_n_exceeds_total(self, tmp_path):
         ids = ["i1", "i1", "i2", "i2"]
         lf = pl.LazyFrame({"pxInteractionID": ids, "value": [1, 2, 3, 4]})
-        result, path = sample_and_save(lf, n=100, output_dir=str(tmp_path))
+        result, path = prepare_and_save(lf, n=100, output_dir=str(tmp_path))
         out_file = tmp_path / "decision_analyzer_sample.parquet"
         # File should NOT be written when sampling is skipped
         assert not out_file.exists()
         assert path is None
         assert result.collect().height == 4
 
-    def test_sample_and_save_with_source_path_metadata(self, mock_decision_data, tmp_path):
-        from pdstools.decision_analyzer.utils import sample_and_save
+    def test_prepare_and_save_with_source_path_metadata(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
 
         lf = mock_decision_data
         source_file = tmp_path / "original.parquet"
 
-        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path), source_path=str(source_file))
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path), source_path=str(source_file))
 
         assert path is not None
         # Check filename contains count
@@ -623,8 +623,8 @@ class TestSampleAndSave:
         assert float(metadata["pdstools:sample_percentage"]) == 50.0
         assert metadata["pdstools:sample_percentage_method"] == "exact"
 
-    def test_sample_and_save_with_chained_sampling(self, mock_decision_data, tmp_path):
-        from pdstools.decision_analyzer.utils import sample_and_save
+    def test_prepare_and_save_with_chained_sampling(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
 
         lf = mock_decision_data
@@ -641,7 +641,7 @@ class TestSampleAndSave:
 
         # Second sample: 20% of the first sample
         lf_rescan = pl.scan_parquet(first_sample_file)
-        result, path = sample_and_save(
+        result, path = prepare_and_save(
             lf_rescan, fraction=0.2, output_dir=str(tmp_path), source_path=str(first_sample_file)
         )
 
@@ -655,13 +655,13 @@ class TestSampleAndSave:
         assert float(metadata["pdstools:sample_percentage"]) == 10.0
         assert metadata["pdstools:sample_percentage_method"] == "exact"
 
-    def test_sample_and_save_filename_format(self, mock_decision_data, tmp_path):
-        from pdstools.decision_analyzer.utils import sample_and_save
+    def test_prepare_and_save_filename_format(self, mock_decision_data, tmp_path):
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         lf = mock_decision_data
 
         # Sample to a specific count
-        result, path = sample_and_save(lf, n=100, output_dir=str(tmp_path), source_path="test.parquet")
+        result, path = prepare_and_save(lf, n=100, output_dir=str(tmp_path), source_path="test.parquet")
 
         if path is not None:
             # Filename should contain formatted count
@@ -669,30 +669,30 @@ class TestSampleAndSave:
             # Should have a number (exact format depends on actual count in mock data)
             assert any(char.isdigit() for char in path.name)
 
-    def test_sample_and_save_without_source_path(self, mock_decision_data, tmp_path):
+    def test_prepare_and_save_without_source_path(self, mock_decision_data, tmp_path):
         """Test backward compatibility - source_path is optional."""
-        from pdstools.decision_analyzer.utils import sample_and_save
+        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
 
         lf = mock_decision_data
 
         # Call without source_path (backward compatibility)
-        result, path = sample_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
+        result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
 
         assert path is not None
         # Should still write metadata, but with "unknown" source
         metadata = pl.read_parquet_metadata(str(path))
         assert metadata["pdstools:source_file"] == "unknown"
 
-    def test_sample_and_save_with_invalid_source_path(self, mock_decision_data, tmp_path):
+    def test_prepare_and_save_with_invalid_source_path(self, mock_decision_data, tmp_path):
         """Test graceful handling of nonexistent source path."""
-        from pdstools.decision_analyzer.utils import sample_and_save
+        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
 
         lf = mock_decision_data
 
         # Pass nonexistent source path
-        result, path = sample_and_save(
+        result, path = prepare_and_save(
             lf, fraction=0.5, output_dir=str(tmp_path), source_path="/nonexistent/file.parquet"
         )
 
@@ -708,7 +708,7 @@ class TestSampleAndSave:
 
 
 class TestPrepareAndSaveCachingMode:
-    """Test prepare_and_save (renamed from sample_and_save) in caching mode."""
+    """Test prepare_and_save (renamed from prepare_and_save) in caching mode."""
 
     @pytest.fixture()
     def mock_decision_data(self):
