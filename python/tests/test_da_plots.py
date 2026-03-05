@@ -269,31 +269,45 @@ class TestFilteringComponents:
 class TestDistribution:
     """Test distribution method."""
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific structure")
-    def test_distribution_plot(self, plot_v2):
-        """Test distribution plot."""
-        # distribution() requires a pre-filtered LazyFrame, not direct parameters
-        pass
+    def test_distribution_plot(self, plot_v2, da_v2):
+        """Test distribution plot - smoke test to ensure it runs."""
+        # Get pre-aggregated data like the UI does
+        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        fig = plot_v2.distribution(
+            df=df,
+            scope="Action",
+            breakdown="Channel",
+            metric="Decisions",
+        )
+        assert isinstance(fig, Figure)
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific structure")
-    def test_priority_distribution(self, plot_v2):
-        """Test priority distribution."""
-        pass
+    def test_distribution_horizontal(self, plot_v2, da_v2):
+        """Test distribution with horizontal orientation."""
+        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        fig = plot_v2.distribution(
+            df=df,
+            scope="Channel",
+            breakdown="Action",
+            metric="Decisions",
+            horizontal=True,
+        )
+        assert isinstance(fig, Figure)
 
 
 class TestPrioFactorBoxplots:
     """Test prio_factor_boxplots method."""
 
-    @pytest.mark.skip(reason="Requires data with specific boolean column structure that sample data doesn't have")
-    def test_factor_boxplots(self, plot_v2):
-        """Test priority factor boxplots."""
-        # Fails with polars schema error on sample data
+    @pytest.mark.skip(reason="Sample data doesn't have the correct boolean column structure - fails with schema error")
+    def test_factor_boxplots_no_reference(self, plot_v2):
+        """Test priority factor boxplots without reference group."""
+        # Test without reference group (simpler case)
+        # Fails with: invalid series dtype: expected `Boolean`, got `null`
         pass
 
-    @pytest.mark.skip(reason="Requires data with specific boolean column structure that sample data doesn't have")
-    def test_return_df(self, plot_v2):
-        """Test with return_df."""
-        # Same issue as test_factor_boxplots
+    @pytest.mark.skip(reason="Sample data doesn't have the correct boolean column structure - fails with schema error")
+    def test_return_df_no_reference(self, plot_v2):
+        """Test with return_df and no reference."""
+        # Same issue as test_factor_boxplots_no_reference
         pass
 
 
@@ -309,31 +323,53 @@ class TestRankBoxplot:
 class TestComponentActionImpact:
     """Test component_action_impact method."""
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific component data structure")
     def test_component_impact(self, plot_v2):
-        """Test component action impact plot."""
-        # Requires specific filtered data structure
-        pass
+        """Test component action impact plot - smoke test."""
+        # This calls getComponentActionImpact internally
+        fig = plot_v2.component_action_impact(top_n=5, scope="Action")
+        assert isinstance(fig, Figure)
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific component data structure")
+    def test_component_impact_by_group(self, plot_v2):
+        """Test component impact at Group level."""
+        fig = plot_v2.component_action_impact(top_n=5, scope="Group")
+        assert isinstance(fig, Figure)
+
     def test_return_df(self, plot_v2):
         """Test with return_df."""
-        pass
+        df = plot_v2.component_action_impact(top_n=5, scope="Action", return_df=True)
+        assert isinstance(df, pl.DataFrame)
 
 
 class TestComponentDrilldown:
     """Test component_drilldown method."""
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific component data structure")
-    def test_drilldown_plot(self, plot_v2):
-        """Test component drilldown plot."""
-        # Requires specific filtered data structure
-        pass
+    def test_drilldown_plot(self, plot_v2, da_v2):
+        """Test component drilldown plot - smoke test."""
+        # Get a valid component name from the data
+        component_data = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT").select("Component Name").collect()
+        )
 
-    @pytest.mark.skip(reason="Requires prepared LazyFrame with specific component data structure")
-    def test_return_df(self, plot_v2):
+        if component_data.height > 0:
+            component_name = component_data.get_column("Component Name")[0]
+            fig = plot_v2.component_drilldown(component_name=component_name)
+            assert isinstance(fig, Figure)
+        else:
+            # If no component data, that's OK for smoke test - skip
+            pytest.skip("No component data in sample")
+
+    def test_return_df(self, plot_v2, da_v2):
         """Test with return_df."""
-        pass
+        component_data = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT").select("Component Name").collect()
+        )
+
+        if component_data.height > 0:
+            component_name = component_data.get_column("Component Name")[0]
+            df = plot_v2.component_drilldown(component_name=component_name, return_df=True)
+            assert isinstance(df, pl.DataFrame)
+        else:
+            pytest.skip("No component data in sample")
 
 
 class TestOptionalityPerStage:
