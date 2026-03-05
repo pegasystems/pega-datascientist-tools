@@ -449,9 +449,3 @@ class TestEdgeCases:
         # v1 doesn't have propensity, but should work with some plots
         fig = plot_v1.sensitivity(win_rank=1)
         assert isinstance(fig, Figure)
-
-    @pytest.mark.skip(reason="Minimal dataset doesn't have all required columns for DecisionAnalyzer")
-    def test_small_dataset(self):
-        """Test with minimal dataset."""
-        # DecisionAnalyzer requires specific columns and data structure
-        pass
