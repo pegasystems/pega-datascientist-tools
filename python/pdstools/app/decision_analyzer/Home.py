@@ -114,6 +114,21 @@ if raw_data is not None:
         else:
             sampling_msg = "Sampling interactions…"
 
+        # Try to add time estimate to sampling message
+        try:
+            from pdstools.utils.progress_utils import (
+                estimate_sampling_time,
+                format_time_estimate,
+            )
+
+            row_count = raw_data.select(pl.len()).collect().item()
+            target_n = sample_kwargs.get("n", int(row_count * sample_kwargs.get("fraction", 1.0)))
+            min_time, max_time = estimate_sampling_time(row_count, target_n)
+            time_msg = format_time_estimate(min_time, max_time)
+            sampling_msg += f" (estimated: {time_msg})"
+        except Exception:
+            pass  # Keep the simple message
+
         with st.spinner(sampling_msg):
             raw_data, prepared_path = prepare_and_save(
                 raw_data,
