@@ -96,7 +96,7 @@ with st.container(border=True):
             AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
             level=st.session_state.decision_data.level,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 with st.container(border=True):

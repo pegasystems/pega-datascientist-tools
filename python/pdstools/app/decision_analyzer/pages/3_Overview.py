@@ -1,4 +1,5 @@
 # python/pdstools/app/decision_analyzer/pages/3_Overview.py
+import polars as pl
 import streamlit as st
 from da_streamlit_utils import ensure_data
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
@@ -7,6 +8,12 @@ from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
+
+# Ensure we're using Stage Group level for Overview analyses
+# (other pages may have changed the level to "Stage")
+da = st.session_state.decision_data
+if da.level != "Stage Group" and "Stage Group" in da.available_levels:
+    da.set_level("Stage Group")
 
 "# Overview"
 
@@ -20,19 +27,35 @@ improve customer reach.
 sample_metadata = st.session_state.get("sample_metadata")
 if sample_metadata:
     sample_pct = sample_metadata["sample_percentage"]
-    method = sample_metadata["method"]
     source_file = sample_metadata.get("source_file", "unknown")
 
-    method_label = "exact" if method == "exact" else "approximate"
-    st.info(
-        f"📊 This data represents **{sample_pct:.1f}%** of the original dataset ({method_label} calculation). "
-        f"Original source: `{source_file}`"
-    )
+    st.info(f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`")
 
-has_arbitration_data = (
-    "Arbitration" in st.session_state.decision_data.AvailableNBADStages
-    and st.session_state.decision_data.arbitration_stage.collect().height > 0
+# Find the best stage for overview analyses - prefer stages with propensity scores
+# For datasets where Arbitration stage has limited propensity data, use the first
+# stage from arbitration onwards that has meaningful propensity scores
+da = st.session_state.decision_data
+best_stage_for_overview = None
+stages_with_prop = da.stages_with_propensity if da.stages_with_propensity else []
+
+# Filter stages_with_propensity to only those from Arbitration onwards
+arbitration_stages = set(da.stages_from_arbitration_down) if hasattr(da, "stages_from_arbitration_down") else set()
+propensity_stages_from_arb = (
+    [s for s in stages_with_prop if s in arbitration_stages] if arbitration_stages else stages_with_prop
 )
+
+if propensity_stages_from_arb:
+    # Use the first stage from arbitration onwards with propensity scores
+    best_stage_for_overview = propensity_stages_from_arb[0]
+elif "Arbitration" in da.AvailableNBADStages:
+    # Fallback to Arbitration if available
+    best_stage_for_overview = "Arbitration"
+
+# Check if we have data at the selected stage
+has_arbitration_data = False
+if best_stage_for_overview:
+    stage_data = da.sample.filter(pl.col(da.level) == best_stage_for_overview).collect()
+    has_arbitration_data = stage_data.height > 0
 
 col1, col2 = st.columns(2)
 
@@ -64,8 +87,12 @@ with col1:
         Shows how many offers reach customers and how likely they are to respond. More
         offers typically means higher engagement.
         """
+        stage_caption = f" (at {best_stage_for_overview} stage)" if best_stage_for_overview != "Arbitration" else ""
+        if stage_caption:
+            st.caption(f"Using {best_stage_for_overview} stage for this analysis")
+
         st.plotly_chart(
-            st.session_state.decision_data.plot.propensity_vs_optionality("Arbitration").update_layout(
+            st.session_state.decision_data.plot.propensity_vs_optionality(best_stage_for_overview).update_layout(
                 showlegend=False, height=300
             ),
             width="stretch",
@@ -108,6 +135,9 @@ with col2:
         while red shows customers without offers.
         """
 
+        if best_stage_for_overview != "Arbitration":
+            st.caption(f"Using {best_stage_for_overview} stage for this analysis")
+
         # Use 5th percentile thresholds (same defaults as Offer Quality page)
         propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100])
         priority_th = st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100])
@@ -133,11 +163,11 @@ with col2:
             st.plotly_chart(
                 offer_quality_single_pie(
                     quality_data,
-                    stage="Arbitration",
+                    stage=best_stage_for_overview,
                     propensityTH=propensityTH,
                     level="Stage Group",
                 ),
-                use_container_width=True,
+                width="stretch",
             )
         else:
             st.warning("Offer quality analysis requires propensity and priority thresholds.")
