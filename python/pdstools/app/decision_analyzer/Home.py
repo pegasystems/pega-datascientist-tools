@@ -147,8 +147,16 @@ if raw_data is not None:
 
 def _show_data_summary(da):
     """Display a summary banner for the loaded DecisionAnalyzer."""
+    # Show link to Data Quality page if there are any warnings
+    has_warnings = False
     if da.validation_error:
-        st.warning(da.validation_error)
+        has_warnings = True
+    if hasattr(da, "propensity_validation_warning") and da.propensity_validation_warning:
+        has_warnings = True
+
+    if has_warnings:
+        st.info("ℹ️ **Data quality warnings detected.** Please review the **Data Quality** page for details.")
+
     extract_type = da.extract_type
     format_label = (
         "**Explainability Extract (v1)** — arbitration stage only"
