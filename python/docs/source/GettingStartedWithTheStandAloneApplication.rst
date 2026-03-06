@@ -154,7 +154,7 @@ Once everything is installed, you can launch the Health Check application:
 
          pdstools
 
-      This will prompt you to open either the ADM Health Check or the Decision Analyzer application. Choose the Health Check option.
+      This will prompt you to open either the ADM Health Check or the Decision Analysis Tool. Choose the Health Check option.
 
    .. group-tab:: uv + venv
 

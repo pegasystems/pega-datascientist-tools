@@ -8,14 +8,15 @@ The Decision Analyzer Tool is a stand-alone tool designed to analyze Explainabil
 
 Like the ADM Health Check Tool, you will need to have Python and install pdstools, but you do not need to run a (data science) environment, and there is no need to create a script - it is all configured from a user-friendly interface.
 
-The Decision Analyzer provides:
+The Decision Analysis Tool provides:
 
-- **Decision Funnel Analysis**: Visualize which actions are filtered out at different stages and by which components
-- **Action Distribution Analysis**: Understand the distribution of actions at the arbitration stage using interactive treemaps
-- **Global Sensitivity Analysis**: Analyze how arbitration factors (propensity, value, levers, context weights) affect decision-making
-- **Win/Loss Analysis**: Examine which actions win or lose in arbitration and understand the factors behind these outcomes
+- **Overview**: Key metrics and insights about your offer strategy at a glance
+- **Action Funnel**: Visualize how offers flow through the full decision pipeline and identify where they drop off
+- **Action Distribution**: Understand the distribution of actions at the arbitration stage using interactive treemaps
+- **Optionality Analysis**: Analyze the number of actions available per customer and personalization opportunities
+- **Global Sensitivity Analysis**: Understand how arbitration factors (propensity, value, levers, context weights) affect decision-making
+- **Win/Loss Analysis**: Examine which actions win or lose in arbitration and the factors behind these outcomes
 - **Arbitration Component Distribution**: Analyze the distribution of prioritization components to identify potential issues
-- **Lever Experimentation**: Test different lever values to understand their impact on action win rates
 - **No coding required**: Everything is configured through a web-based UI
 - **Interactive visualizations**: Hover over charts for detailed information and insights
 
@@ -138,10 +139,10 @@ To use the Decision Analyzer Tool, you need to install several Python components
 
       **Consider using virtual environments:** Global installations can cause conflicts with other Python projects. Consider switching to the "uv" or "pip + venv" methods for better project isolation.
 
-Launching the Decision Analyzer
--------------------------------
+Launching the Decision Analysis Tool
+------------------------------------
 
-Once everything is installed, you can launch the Decision Analyzer application:
+Once everything is installed, you can launch the Decision Analysis Tool:
 
 .. tabs::
    .. tab:: uv tool (recommended)
@@ -228,15 +229,15 @@ environment variables (useful for containerised or headless deployments).
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
-Using the Decision Analyzer
----------------------------
+Using the Decision Analysis Tool
+--------------------------------
 
 **Step 1: Import Your Decision Data**
 
 Start by upload your data through the data import section in the Home page.
 
 .. note::
-   The Decision Analyzer works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1. V1 only contains data from the arbitration stage.
+   The Decision Analysis Tool works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1. V1 only contains data from the arbitration stage.
 
    **V2 datasets** include data from all decision stages (eligibility, applicability, suitability, and arbitration), enabling comprehensive analysis of the full decision funnel. **V1 datasets** only include arbitration stage data, so some analyses specific to the full decision funnel will be hidden when working with V1 data.
 
@@ -320,5 +321,5 @@ use the ``--sample`` CLI flag to reduce the data before ingestion:
 **For more help:**
 
 - Review the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_
-- Check the `Decision Analyzer example <https://pegasystems.github.io/pega-datascientist-tools/articles/decision_analyzer.html>`_
+- Check the `Decision Analysis Tool example <https://pegasystems.github.io/pega-datascientist-tools/articles/decision_analyzer.html>`_
 - Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_
