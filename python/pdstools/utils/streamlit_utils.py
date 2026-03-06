@@ -111,7 +111,7 @@ def show_version_header(check_latest: bool = True):
 
     """
     st.caption(
-        f"pdstools {pdstools_version} · Keep up to date: `uv pip install --upgrade pdstools`",
+        f"pdstools {pdstools_version} · Keep up to date",
     )
 
     if check_latest:
