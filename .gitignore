@@ -38,3 +38,4 @@ r/tests/testthat/d/tmp2
 scripts/
 **/.tmp/
 .dev
+.worktrees
