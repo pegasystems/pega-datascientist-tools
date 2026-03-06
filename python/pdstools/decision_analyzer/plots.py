@@ -352,17 +352,30 @@ class Plot:
         unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
         colors = px.colors.qualitative.Light24
         color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
+
+        # Prepare data with formatted labels for hover
+        remaining_collected = remaining_df.sort([self._decision_data.level, "count", scope]).collect()
+
         remaining_fig = (
             px.funnel(
-                remaining_df.sort([self._decision_data.level, "count", scope]).collect(),
+                remaining_collected,
                 y="average_actions",
                 x=self._decision_data.level,
                 color=scope,
-                # title=f"Distribution of {scope}s over the stages",
-                hover_data=["count", "average_actions"],
-                labels={self._decision_data.level: "Stage"},
+                labels={
+                    self._decision_data.level: "Stage",
+                    "average_actions": "Avg Offers per Customer",
+                    "count": "Total Offers",
+                },
                 template="pega",
                 color_discrete_map=color_map,
+            )
+            .update_traces(
+                hovertemplate="<b>%{label}</b><br>"
+                + "Offers per Customer: %{value:.2f}<br>"
+                + "Total Offers: %{customdata[0]:,}<br>"
+                + "<extra></extra>",
+                customdata=remaining_collected.select(["count"]).to_numpy(),
             )
             .update_xaxes(
                 categoryorder="array",
@@ -370,20 +383,37 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
+                yaxis_title="Average Offers per Customer",
                 legend=dict(traceorder="reversed"),
             )
         )
-        filter_fig = px.bar(
-            filter_df,
-            x="average_actions",
-            y=self._decision_data.level,
-            color=scope,
-            hover_data=["count", "average_actions"],
-            color_discrete_map=color_map,
-            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
-        ).update_layout(
-            template="plotly_white",
-            xaxis_title="Filtered Actions per Decision",
+        filter_fig = (
+            px.bar(
+                filter_df,
+                x="average_actions",
+                y=self._decision_data.level,
+                color=scope,
+                labels={
+                    self._decision_data.level: "Stage",
+                    "average_actions": "Avg Filtered Offers per Customer",
+                    "count": "Total Filtered Offers",
+                },
+                color_discrete_map=color_map,
+                category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
+            )
+            .update_traces(
+                hovertemplate="<b>%{y}</b><br>"
+                + "%{fullData.name}<br>"
+                + "Filtered per Customer: %{x:.2f}<br>"
+                + "Total Filtered: %{customdata[0]:,}<br>"
+                + "<extra></extra>",
+                customdata=filter_df.select(["count"]).to_numpy(),
+            )
+            .update_layout(
+                template="plotly_white",
+                xaxis_title="Average Filtered Offers per Customer",
+                yaxis_title="",
+            )
         )
 
         return remaining_fig, filter_fig
