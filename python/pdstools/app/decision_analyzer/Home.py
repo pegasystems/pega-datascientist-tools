@@ -94,10 +94,9 @@ if not has_new_data and not has_existing_data:
     )
 
 # Pre-ingestion data preparation (sampling or caching)
-sample_limit_raw = get_sample_limit()
+# Only apply --sample flag when loading from --data-path (not for file uploads)
+sample_limit_raw = get_sample_limit() if data_source_path else None
 if raw_data is not None:
-    prepared_path = None  # Track the prepared file path
-
     if sample_limit_raw:
         # Sampling mode
         try:
@@ -130,7 +129,7 @@ if raw_data is not None:
             pass  # Keep the simple message
 
         with st.spinner(sampling_msg):
-            raw_data, prepared_path = prepare_and_save(
+            raw_data, sample_path = prepare_and_save(
                 raw_data,
                 n=sample_kwargs.get("n"),  # type: ignore[arg-type]
                 fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
@@ -139,10 +138,10 @@ if raw_data is not None:
             )
 
         label = sample_limit_raw.strip()
-        if prepared_path is not None:
+        if sample_path is not None:
             st.info(
                 f"📉 Pre-ingestion sampling applied: keeping **{label}** interactions. "
-                f"Sampled data saved to `{prepared_path}`."
+                f"Sampled data saved to `{sample_path}`."
             )
         else:
             st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
@@ -150,14 +149,14 @@ if raw_data is not None:
     elif should_cache_source(data_source_path):
         # Caching mode - save 100% of data from non-parquet sources
         with st.spinner("Caching data for faster reloading..."):
-            raw_data, prepared_path = prepare_and_save(
+            raw_data, sample_path = prepare_and_save(
                 raw_data,
                 source_path=data_source_path,
                 output_dir=".",  # Current working directory
             )
 
-        if prepared_path is not None:
-            st.info(f"💾 Cached data saved to `{prepared_path}` for faster reloading.")
+        if sample_path is not None:
+            st.info(f"💾 Cached data saved to `{sample_path}` for faster reloading.")
 
 
 def _show_data_summary(da):
