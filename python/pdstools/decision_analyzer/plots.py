@@ -914,6 +914,77 @@ def offer_quality_piecharts(
     return fig
 
 
+def offer_quality_single_pie(
+    df: pl.LazyFrame,
+    stage: str,
+    propensityTH,
+    level="Stage Group",
+):
+    """Create a single pie chart showing offer quality for a specific stage.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Offer quality data from get_offer_quality()
+    stage : str
+        Stage name to display (e.g., "Arbitration", "Output")
+    propensityTH : float
+        Propensity threshold used for relevance categorization
+    level : str, default "Stage Group"
+        Grouping level (Stage or Stage Group)
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Single pie chart figure
+    """
+    value_finder_names = [
+        "atleast_one_relevant_action",
+        "atleast_one_action",
+        "only_irrelevant_actions",
+        "has_no_offers",
+    ]
+
+    stage_data = df.filter(pl.col(level) == stage).select(value_finder_names).sum().collect()
+
+    label_mapping = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+
+    label_order = [
+        "At least one relevant action",
+        "At least one action",
+        "Only irrelevant actions",
+        "Without actions",
+    ]
+
+    plotdf = stage_data.rename(label_mapping)
+    ordered_values = [plotdf[label][0] if label in plotdf.columns else 0 for label in label_order]
+
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                values=ordered_values,
+                labels=label_order,
+                name=stage,
+                sort=False,
+                marker=dict(colors=["#219e3f", "#4A90E2", "#fca52e", "#cd001f"]),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title_text=f"Offer Quality - {stage}",
+        legend_title_text="Customers",
+        height=300,
+    )
+
+    return fig
+
+
 def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
     value_finder_names = [
         "atleast_one_relevant_action",

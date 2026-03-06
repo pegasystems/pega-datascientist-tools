@@ -435,6 +435,55 @@ class TestOfferQualityPiecharts:
         assert isinstance(fig, Figure)
 
 
+class TestOfferQualitySinglePie:
+    """Test offer_quality_single_pie function."""
+
+    def test_single_pie_arbitration(self, da_v2):
+        """Test single pie chart for Arbitration stage."""
+        from pdstools.decision_analyzer.plots import offer_quality_single_pie
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.05,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_single_pie(
+            quality_data,
+            stage="Arbitration",
+            propensityTH=0.05,
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+        assert len(fig.data[0].values) == 4
+
+    def test_single_pie_output_stage(self, da_v2):
+        """Test single pie chart for Output stage."""
+        from pdstools.decision_analyzer.plots import offer_quality_single_pie
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.05,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_single_pie(
+            quality_data,
+            stage="Output",
+            propensityTH=0.05,
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+
+
 class TestGetTrendChart:
     """Test getTrendChart function."""
 
