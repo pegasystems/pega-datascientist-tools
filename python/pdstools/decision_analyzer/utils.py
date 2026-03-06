@@ -759,7 +759,8 @@ def prepare_and_save(
 def parse_sample_flag(value: str) -> dict[str, int | float]:
     """Parse the ``--sample`` CLI flag value into keyword arguments.
 
-    Supports absolute counts (``"100000"``) and percentages (``"10%"``).
+    Supports absolute counts (``"100000"``), percentages (``"10%"``),
+    and human-readable notation (``"100k"``, ``"1M"``).
 
     Returns
     -------
@@ -772,11 +773,22 @@ def parse_sample_flag(value: str) -> dict[str, int | float]:
         if not 0 < pct <= 100:
             raise ValueError(f"Percentage must be in (0, 100], got {pct}")
         return {"fraction": pct / 100.0}
+
+    # Parse human-readable notation (k/K for thousands, m/M for millions)
+    multiplier = None
+    if value.lower().endswith("k"):
+        multiplier = 1000
+    elif value.lower().endswith("m"):
+        multiplier = 1000000
+
+    if multiplier:
+        count = int(float(value[:-1]) * multiplier)
     else:
         count = int(value)
-        if count <= 0:
-            raise ValueError(f"Sample count must be positive, got {count}")
-        return {"n": count}
+
+    if count <= 0:
+        raise ValueError(f"Sample count must be positive, got {count}")
+    return {"n": count}
 
 
 def format_count_for_filename(count: int) -> str:

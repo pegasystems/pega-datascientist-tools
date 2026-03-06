@@ -83,6 +83,34 @@ class TestParseSampleFlag:
         result = parse_sample_flag("1")
         assert result == {"n": 1}
 
+    def test_thousands_notation_lowercase_k(self):
+        result = parse_sample_flag("100k")
+        assert result == {"n": 100000}
+
+    def test_thousands_notation_uppercase_k(self):
+        result = parse_sample_flag("100K")
+        assert result == {"n": 100000}
+
+    def test_millions_notation_lowercase_m(self):
+        result = parse_sample_flag("1M")
+        assert result == {"n": 1000000}
+
+    def test_millions_notation_uppercase_m(self):
+        result = parse_sample_flag("1m")
+        assert result == {"n": 1000000}
+
+    def test_decimal_thousands(self):
+        result = parse_sample_flag("1.5k")
+        assert result == {"n": 1500}
+
+    def test_decimal_millions(self):
+        result = parse_sample_flag("2.5M")
+        assert result == {"n": 2500000}
+
+    def test_thousands_with_whitespace(self):
+        result = parse_sample_flag("  50k  ")
+        assert result == {"n": 50000}
+
 
 # ---------------------------------------------------------------------------
 # format_count_for_filename
