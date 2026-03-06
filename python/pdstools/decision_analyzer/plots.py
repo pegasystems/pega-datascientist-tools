@@ -352,17 +352,34 @@ class Plot:
         unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
         colors = px.colors.qualitative.Light24
         color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
+
+        # Prepare data with formatted labels for hover
+        remaining_collected = remaining_df.sort([self._decision_data.level, "action_occurrences", scope]).collect()
+
+        # Funnel height always shows actions per interaction (granularity-independent)
+        # Segments are colored/grouped by the selected scope for breakdown
         remaining_fig = (
             px.funnel(
-                remaining_df.sort([self._decision_data.level, "count", scope]).collect(),
-                y="average_actions",
+                remaining_collected,
+                y="actions_per_interaction",
                 x=self._decision_data.level,
                 color=scope,
-                # title=f"Distribution of {scope}s over the stages",
-                hover_data=["count", "average_actions"],
-                labels={self._decision_data.level: "Stage"},
+                labels={
+                    self._decision_data.level: "Stage",
+                    "actions_per_interaction": "Average Actions per Interaction",
+                    "action_occurrences": "Total Action Occurrences",
+                    "penetration_pct": "Reach (%)",
+                },
                 template="pega",
                 color_discrete_map=color_map,
+            )
+            .update_traces(
+                hovertemplate="<b>%{fullData.name}</b><br>"
+                + "Actions per Interaction: %{y:.3f}<br>"
+                + "Reach: %{customdata[0]:.1f}% of interactions<br>"
+                + "Total Action Occurrences: %{customdata[1]:,}<br>"
+                + "<extra></extra>",
+                customdata=remaining_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
             )
             .update_xaxes(
                 categoryorder="array",
@@ -370,20 +387,39 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
+                yaxis_title="Average Actions per Interaction",
                 legend=dict(traceorder="reversed"),
             )
         )
-        filter_fig = px.bar(
-            filter_df,
-            x="average_actions",
-            y=self._decision_data.level,
-            color=scope,
-            hover_data=["count", "average_actions"],
-            color_discrete_map=color_map,
-            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
-        ).update_layout(
-            template="plotly_white",
-            xaxis_title="Filtered Actions per Decision",
+        filter_fig = (
+            px.bar(
+                filter_df,
+                x="actions_per_interaction",
+                y=self._decision_data.level,
+                color=scope,
+                labels={
+                    self._decision_data.level: "Stage",
+                    "actions_per_interaction": "Average Filtered Actions per Interaction",
+                    "action_occurrences": "Total Filtered Action Occurrences",
+                    "penetration_pct": "Filtered Reach (%)",
+                },
+                color_discrete_map=color_map,
+                category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
+            )
+            .update_traces(
+                hovertemplate="<b>%{y}</b><br>"
+                + "%{fullData.name}<br>"
+                + "Filtered Actions per Interaction: %{x:.3f}<br>"
+                + "Filtered Reach: %{customdata[0]:.1f}%<br>"
+                + "Total Filtered: %{customdata[1]:,}<br>"
+                + "<extra></extra>",
+                customdata=filter_df.select(["penetration_pct", "action_occurrences"]).to_numpy(),
+            )
+            .update_layout(
+                template="plotly_white",
+                xaxis_title="Average Filtered Actions per Interaction",
+                yaxis_title="",
+            )
         )
 
         return remaining_fig, filter_fig

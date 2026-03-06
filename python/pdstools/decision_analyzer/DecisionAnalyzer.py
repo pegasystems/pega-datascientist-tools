@@ -811,27 +811,42 @@ class DecisionAnalyzer:
         )
 
         # Compute remaining actions funnel
+        # Count total action occurrences (not unique interactions) for granularity-independent metric
         funnelData = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
-            aggregations=[pl.col("Interaction_IDs").flatten().unique().count().alias("count")],
-        ).filter(pl.col("count") > 0)
+            aggregations=[
+                pl.sum("Decisions").alias("action_occurrences"),  # Total action occurrences for this scope value
+                pl.col("Interaction_IDs")
+                .flatten()
+                .unique()
+                .count()
+                .alias("interaction_count_for_scope"),  # Unique interactions with this scope value
+            ],
+        ).filter(pl.col("action_occurrences") > 0)
 
         # Compute filtered funnel view
         filtered_funnel = (
             filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
             .group_by([self.level, scope])
-            .agg(count=pl.col("Interaction_IDs").flatten().unique().count())
+            .agg(
+                action_occurrences=pl.sum("Decisions"),
+                interaction_count_for_scope=pl.col("Interaction_IDs").flatten().unique().count(),
+            )
             .collect()
         )
 
         interaction_count = interaction_count_expr.collect().item()
-        average_actions_expr = (
+        # Calculate metrics:
+        # - actions_per_interaction: total action occurrences / total interactions (granularity-independent)
+        # - penetration_pct: percentage of interactions that have at least one action of this scope value
+        metrics_expr = (
             pl.lit(interaction_count).alias("interaction_count"),
-            (pl.col("count") / pl.lit(interaction_count)).alias("average_actions"),
+            (pl.col("action_occurrences") / pl.lit(interaction_count)).alias("actions_per_interaction"),
+            ((pl.col("interaction_count_for_scope") / pl.lit(interaction_count)) * 100).alias("penetration_pct"),
         )
 
-        return funnelData.with_columns(average_actions_expr), filtered_funnel.with_columns(average_actions_expr)
+        return funnelData.with_columns(metrics_expr), filtered_funnel.with_columns(metrics_expr)
 
     def getFilterComponentData(self, top_n, additional_filters: pl.Expr | list[pl.Expr] | None = None) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]

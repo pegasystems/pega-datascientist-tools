@@ -239,6 +239,23 @@ Page description...
 ensure_data()  # Guard for pages requiring loaded data
 ```
 
+### Streamlit Chart Display
+
+**Deprecated parameter**: Do not use `use_container_width` in `st.plotly_chart()` calls. This parameter was deprecated after 2025-12-31.
+
+**Use these instead**:
+- `width="stretch"` — equivalent to `use_container_width=True`
+- `width="content"` — equivalent to `use_container_width=False`
+
+**Example**:
+```python
+# Good
+st.plotly_chart(fig, width="stretch")
+
+# Avoid (deprecated)
+st.plotly_chart(fig, use_container_width=True)
+```
+
 ### Documentation Formatting
 - Use relative links for internal docs
 - Code blocks: use appropriate language tags

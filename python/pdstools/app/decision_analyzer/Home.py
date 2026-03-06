@@ -161,16 +161,6 @@ if raw_data is not None:
 
 def _show_data_summary(da):
     """Display a summary banner for the loaded DecisionAnalyzer."""
-    # Show link to Data Quality page if there are any warnings
-    has_warnings = False
-    if da.validation_error:
-        has_warnings = True
-    if hasattr(da, "propensity_validation_warning") and da.propensity_validation_warning:
-        has_warnings = True
-
-    if has_warnings:
-        st.info("ℹ️ **Data quality warnings detected.** Please review the **Data Quality** page for details.")
-
     extract_type = da.extract_type
     format_label = (
         "**Explainability Extract (v1)** — arbitration stage only"
@@ -196,13 +186,10 @@ def _show_data_summary(da):
     sample_metadata = st.session_state.get("sample_metadata")
     if sample_metadata:
         sample_pct = sample_metadata["sample_percentage"]
-        method = sample_metadata["method"]
         source_file = sample_metadata.get("source_file", "unknown")
 
-        method_label = "exact" if method == "exact" else "approximate"
         st.info(
-            f"📊 This data represents **{sample_pct:.1f}%** of the original dataset ({method_label} calculation). "
-            f"Original source: `{source_file}`"
+            f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`"
         )
 
 

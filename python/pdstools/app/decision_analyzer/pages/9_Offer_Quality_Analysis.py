@@ -42,8 +42,8 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100]))
-priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100]))
+propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100]))
+priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 10, 100]))
 
 if propensity_th is None or priority_th is None:
     st.warning(
@@ -71,7 +71,7 @@ with st.session_state["sidebar"]:
         "Minimum priority for relevance",
         priority_th[0],
         priority_th[2],
-        priority_th[1],
+        priority_th[0],  # Default to minimum (0)
         # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
         help="Offers with priority below this value are considered irrelevant (low quality)",
@@ -96,7 +96,7 @@ with st.container(border=True):
             AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
             level=st.session_state.decision_data.level,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 with st.container(border=True):
