@@ -1266,3 +1266,67 @@ class TestOfferQualityAnalysis:
             if stage_df.height > 0:
                 # Should have atleast_one_action counts, not relevant/irrelevant
                 assert stage_df.select(pl.col("atleast_one_action").sum()).item() >= 0
+
+
+# ---------------------------------------------------------------------------
+# Propensity validation
+# ---------------------------------------------------------------------------
+
+
+class TestPropensityValidation:
+    """Test propensity validation warnings for data quality issues."""
+
+    def test_sample_data_propensity_detection(self, da_v2):
+        """Test that propensity validation detects issues in sample data if present."""
+        # The sample_eev2.parquet data may have high propensities
+        # This test verifies the validation runs without errors
+        warning = da_v2.propensity_validation_warning
+        # If there's a warning, it should be properly formatted
+        if warning is not None:
+            # Should contain one of the expected warning types
+            assert "Invalid propensity" in warning or "Unusually high propensities" in warning
+
+    def test_high_propensities_triggers_warning(self, da_v2):
+        """Test that high propensities (> 10%) trigger a warning."""
+        # Load real data and modify propensities to be high
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        modified_data = raw.with_columns(pl.lit(0.15).alias("FinalPropensity"))  # Set all to 15%
+        da = DecisionAnalyzer(modified_data, sample_size=1000)
+        warning = da.propensity_validation_warning
+        assert warning is not None
+        assert "Unusually high propensities detected" in warning or "Invalid propensity" in warning
+
+    def test_invalid_propensities_triggers_warning(self, da_v2):
+        """Test that invalid propensities (> 1.0) trigger a warning."""
+        # Load real data and modify propensities to be invalid
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        modified_data = raw.with_columns(pl.lit(1.5).alias("FinalPropensity"))  # Set all to 1.5
+        da = DecisionAnalyzer(modified_data, sample_size=1000)
+        warning = da.propensity_validation_warning
+        assert warning is not None
+        assert "Invalid propensity values detected" in warning
+        assert "> 1.0" in warning
+
+    def test_missing_propensity_column_no_warning(self, da_v2):
+        """Test that missing Propensity column doesn't cause errors."""
+        # Load real data and drop propensity column
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        # Drop FinalPropensity if it exists
+        cols_to_keep = [c for c in raw.collect_schema().names() if c not in ["FinalPropensity", "Propensity"]]
+        modified_data = raw.select(cols_to_keep)
+
+        # This will warn about missing FinalPropensity but shouldn't crash
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            da = DecisionAnalyzer(modified_data, sample_size=1000)
+            # propensity_validation_warning should handle missing column gracefully
+            assert da.propensity_validation_warning is None
+
+    def test_propensity_validation_warning_is_cached(self, da_v2):
+        """Test that propensity_validation_warning is a cached property."""
+        # Access twice should return same result without recomputation
+        warning1 = da_v2.propensity_validation_warning
+        warning2 = da_v2.propensity_validation_warning
+        assert warning1 == warning2

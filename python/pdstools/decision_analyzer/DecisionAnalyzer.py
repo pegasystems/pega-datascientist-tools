@@ -401,6 +401,104 @@ class DecisionAnalyzer:
         return self.stages_from_arbitration_down
 
     @cached_property
+    def propensity_validation_warning(self) -> str | None:
+        """Validate propensity values and return warning message if issues detected.
+
+        Checks for:
+        1. Invalid propensities (> 1.0) - mathematically impossible for probabilities
+        2. Unusually high propensities (> 0.1) - uncommon for typical marketing interactions
+
+        Returns None if validation passes or propensity data is not available.
+        Uses sample data for efficiency.
+        """
+        # Edge case: No propensity column
+        if "Propensity" not in self.sample.collect_schema().names():
+            return None
+
+        # Edge case: No stages with meaningful propensity
+        if not self.stages_with_propensity:
+            return None
+
+        # Filter to stages with propensity and compute statistics
+        propensity_data = (
+            self.sample.filter(pl.col(self.level).is_in(self.stages_with_propensity))
+            .select(pl.col("Propensity"), pl.col(self.level))
+            .filter(pl.col("Propensity").is_not_null() & pl.col("Propensity").is_finite())
+            .collect()
+        )
+
+        # Edge case: No valid propensity data
+        total_count = propensity_data.height
+        if total_count == 0:
+            return None
+
+        # Compute statistics
+        stats = propensity_data.select(
+            pl.col("Propensity").quantile(0.95).alias("p95"),
+            pl.col("Propensity").max().alias("max"),
+            (pl.col("Propensity") > 1.0).sum().alias("invalid_count"),
+            (pl.col("Propensity") > 0.1).sum().alias("high_count"),
+        ).row(0, named=True)
+
+        # Build warning messages
+        warnings = []
+
+        # Check for invalid propensities (> 1.0)
+        if stats["invalid_count"] > 0:
+            invalid_pct = 100 * stats["invalid_count"] / total_count
+            # Get stages with invalid values
+            invalid_stages = (
+                propensity_data.filter(pl.col("Propensity") > 1.0)
+                .select(pl.col(self.level).unique())
+                .get_column(self.level)
+                .to_list()
+            )
+            stage_list = (
+                ", ".join(invalid_stages)
+                if len(invalid_stages) <= 3
+                else f"{', '.join(invalid_stages[:3])}, and {len(invalid_stages) - 3} more"
+            )
+
+            warnings.append(
+                f"⚠️ **Invalid propensity values detected:**\n\n"
+                f"• {stats['invalid_count']:,} records ({invalid_pct:.2f}%) have propensities > 1.0\n\n"
+                f"• Maximum propensity: {stats['max']:.2f}\n\n"
+                f"• Affected stages: {stage_list}\n\n"
+                f"Propensities should be between 0 and 1. Please check your model calibration or data extraction process."
+            )
+
+        # Check for unusually high propensities (> 10%)
+        elif stats["high_count"] > 0:  # Only show if no invalid values
+            high_pct = 100 * stats["high_count"] / total_count
+            # Only warn if a significant portion has high values
+            if high_pct > 5:  # More than 5% of records
+                high_stages = (
+                    propensity_data.filter(pl.col("Propensity") > 0.1)
+                    .select(pl.col(self.level).unique())
+                    .get_column(self.level)
+                    .to_list()
+                )
+                stage_list = (
+                    ", ".join(high_stages)
+                    if len(high_stages) <= 3
+                    else f"{', '.join(high_stages[:3])}, and {len(high_stages) - 3} more"
+                )
+
+                warnings.append(
+                    f"ℹ️ **Unusually high propensities detected:**\n\n"
+                    f"• {high_pct:.1f}% of records have propensities > 10%\n\n"
+                    f"• 95th percentile propensity: {stats['p95'] * 100:.1f}%\n\n"
+                    f"• Affected stages: {stage_list}\n\n"
+                    f"This is unusual for typical marketing interactions (usually < 1%). This might indicate:\n\n"
+                    f"• Different model calibration approach\n\n"
+                    f"• High-intent channels or contexts\n\n"
+                    f"• Potential data quality issues\n\n"
+                    f"Consider reviewing your model configuration if this seems unexpected."
+                )
+
+        return warnings[0] if warnings else None
+
+    @cached_property
     def arbitration_stage(self):
         return self.sample.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
 
