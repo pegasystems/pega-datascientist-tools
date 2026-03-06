@@ -31,9 +31,8 @@ if sample_metadata:
 
     st.info(f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`")
 
-# Find the best stage for overview analyses - prefer stages with propensity scores
-# For datasets where Arbitration stage has limited propensity data, use the first
-# stage from arbitration onwards that has meaningful propensity scores
+# Find the best stage for overview analyses
+# Strategy: prefer stages with quality variation (both relevant and irrelevant offers)
 da = st.session_state.decision_data
 best_stage_for_overview = None
 stages_with_prop = da.stages_with_propensity if da.stages_with_propensity else []
@@ -45,8 +44,31 @@ propensity_stages_from_arb = (
 )
 
 if propensity_stages_from_arb:
-    # Use the first stage from arbitration onwards with propensity scores
-    best_stage_for_overview = propensity_stages_from_arb[0]
+    # Get 10th percentile propensity threshold to detect quality variation
+    propensity_th = da.getThresholdingData("Propensity", [0, 10, 100])
+    prop_values = propensity_th["Threshold"].to_list()
+    propensity_threshold = prop_values[1] if prop_values[1] is not None else 0.10
+
+    # Try to find a stage with quality variation (has some irrelevant actions)
+    for stage in propensity_stages_from_arb:
+        stage_data = da.sample.filter(pl.col(da.level) == stage).collect()
+        if stage_data.height > 0:
+            # Check if this stage has any actions below the propensity threshold
+            has_low_propensity = (
+                stage_data.filter(
+                    (pl.col("Propensity").is_not_null()) & (pl.col("Propensity") < propensity_threshold)
+                ).height
+                > 0
+            )
+
+            if has_low_propensity:
+                # Found a stage with quality variation - use it
+                best_stage_for_overview = stage
+                break
+
+    # If no stage has quality variation, fall back to first stage with propensities
+    if best_stage_for_overview is None:
+        best_stage_for_overview = propensity_stages_from_arb[0]
 elif "Arbitration" in da.AvailableNBADStages:
     # Fallback to Arbitration if available
     best_stage_for_overview = "Arbitration"
@@ -87,10 +109,6 @@ with col1:
         Shows how many offers reach customers and how likely they are to respond. More
         offers typically means higher engagement.
         """
-        stage_caption = f" (at {best_stage_for_overview} stage)" if best_stage_for_overview != "Arbitration" else ""
-        if stage_caption:
-            st.caption(f"Using {best_stage_for_overview} stage for this analysis")
-
         st.plotly_chart(
             st.session_state.decision_data.plot.propensity_vs_optionality(best_stage_for_overview).update_layout(
                 showlegend=False, height=300
@@ -131,12 +149,10 @@ with col2:
     if has_arbitration_data:
         """
         Shows the distribution of customer interactions by offer quality at the
-        arbitration stage. Green indicates customers received relevant offers,
-        while red shows customers without offers.
+        arbitration stage. Green indicates customers received relevant offers (propensity
+        above 10th percentile), while red shows customers without offers. Orange shows
+        customers with only irrelevant offers (propensity below 10th percentile).
         """
-
-        if best_stage_for_overview != "Arbitration":
-            st.caption(f"Using {best_stage_for_overview} stage for this analysis")
 
         # Use 10th percentile thresholds (same defaults as Offer Quality page)
         propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100])
@@ -147,7 +163,7 @@ with col2:
 
         if not all(v is None for v in prop_values) and not all(v is None for v in prio_values):
             propensityTH = prop_values[1] if prop_values[1] is not None else 0.10
-            priorityTH = prio_values[1] if prio_values[1] is not None else 0.0
+            priorityTH = prio_values[0] if prio_values[0] is not None else 0.0
 
             action_counts = st.session_state.decision_data.filtered_action_counts(
                 groupby_cols=["Stage Group", "Interaction ID"],

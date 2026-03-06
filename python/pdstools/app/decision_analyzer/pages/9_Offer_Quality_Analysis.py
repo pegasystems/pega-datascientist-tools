@@ -71,7 +71,7 @@ with st.session_state["sidebar"]:
         "Minimum priority for relevance",
         priority_th[0],
         priority_th[2],
-        priority_th[1],
+        priority_th[0],  # Default to minimum (0)
         # step=(priority_th[2]-priority_th[0])/10,
         format="%.4f",
         help="Offers with priority below this value are considered irrelevant (low quality)",
