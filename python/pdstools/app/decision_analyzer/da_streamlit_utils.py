@@ -434,9 +434,23 @@ def handle_data_path() -> pl.LazyFrame | None:
         import tempfile
         import zipfile
 
+        try:
+            from pdstools.utils.progress_utils import (
+                estimate_extraction_time,
+                format_time_estimate,
+            )
+
+            file_size = p.stat().st_size
+            min_time, max_time = estimate_extraction_time(file_size)
+            time_msg = format_time_estimate(min_time, max_time)
+            spinner_msg = f"Extracting archive... (estimated: {time_msg})"
+        except Exception:
+            spinner_msg = "Extracting archive..."
+
         tmp_dir = tempfile.mkdtemp(prefix="da_path_")
-        with zipfile.ZipFile(p, "r") as zf:
-            zf.extractall(tmp_dir)
+        with st.spinner(spinner_msg):
+            with zipfile.ZipFile(p, "r") as zf:
+                zf.extractall(tmp_dir)
         return read_data(tmp_dir)
 
     return read_data(data_path)
