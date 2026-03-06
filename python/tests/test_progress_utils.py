@@ -81,3 +81,38 @@ def test_estimate_sampling_time_no_sampling():
     min_sec, max_sec = estimate_sampling_time(1_000, 50_000)
     assert min_sec < max_sec
     assert max_sec < 1  # Very fast
+
+
+def test_format_time_estimate_without_humanize(monkeypatch):
+    """Test fallback when humanize not available."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def mock_import(name, *args, **kwargs):
+        if name == "humanize":
+            raise ImportError("humanize not available")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+
+    # Should still work with fallback
+    result = format_time_estimate(30, 45)
+    assert "45" in result or "second" in result.lower()
+
+    result = format_time_estimate(120, 180)
+    assert "minute" in result.lower()
+
+
+def test_estimate_extraction_time_zero_size():
+    """Test with zero-byte file."""
+    min_sec, max_sec = estimate_extraction_time(0)
+    assert min_sec == 0
+    assert max_sec == 0
+
+
+def test_estimate_sampling_time_zero_rows():
+    """Test with empty dataset."""
+    min_sec, max_sec = estimate_sampling_time(0, 1000)
+    assert min_sec >= 0
+    assert max_sec >= 0
