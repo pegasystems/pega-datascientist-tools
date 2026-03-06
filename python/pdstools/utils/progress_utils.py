@@ -1,4 +1,15 @@
-"""Utilities for progress feedback and time estimation."""
+"""Utilities for progress feedback and time estimation.
+
+This module provides functions to estimate operation times and format them
+in user-friendly ways. Used primarily by the Decision Analysis Tool Streamlit
+app to show progress feedback for long-running operations like:
+
+- Extracting large zip archives
+- Sampling large datasets
+
+The estimates are based on calibrated speeds and provide ranges to account
+for system variability.
+"""
 
 
 def estimate_extraction_time(file_size_bytes: int) -> tuple[float, float]:
