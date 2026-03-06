@@ -50,7 +50,7 @@ pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot', 'ipykernel']
 explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
-app = ['pdstools[healthcheck]', 'streamlit>=1.45']
+app = ['pdstools[healthcheck]', 'streamlit>=1.45', 'polars[rt64]>=1.30,!=1.35.1,<=1.36.1']
 onnx = [
     'scikit-learn>=1.6.1',
     'skl2onnx>=1.19.1', # Updated to be compatible with onnx 1.19.0+
