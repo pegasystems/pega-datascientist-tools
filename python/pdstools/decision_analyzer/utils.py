@@ -734,13 +734,28 @@ def prepare_and_save(
     # Step 5: Determine output filename with count
     processed_count = processed_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
     formatted_count = format_count_for_filename(processed_count)
+    logger.info(
+        "Processed %d interactions%s",
+        processed_count,
+        f" ({sample_percentage:.1f}% of original)" if is_sampling and sample_percentage < 100 else "",
+    )
 
     # Choose prefix based on mode
     prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
 
     dest = Path(output_dir) if output_dir else Path(".")
     dest.mkdir(parents=True, exist_ok=True)
-    out_path = dest / f"{prefix}{formatted_count}.parquet"
+
+    # Build output path with collision avoidance
+    base_path = dest / f"{prefix}{formatted_count}.parquet"
+    out_path = base_path
+
+    # If file exists with same name, add incremental suffix to avoid overwriting
+    counter = 1
+    while out_path.exists():
+        logger.info("File %s already exists, adding suffix", out_path.name)
+        out_path = dest / f"{prefix}{formatted_count}_{counter}.parquet"
+        counter += 1
 
     # Step 6: Build metadata
     metadata = {
