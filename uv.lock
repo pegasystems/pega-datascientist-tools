@@ -2084,6 +2084,7 @@ all = [
     { name = "onnxruntime" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
+    { name = "polars", extra = ["rt64"] },
     { name = "polars-hash" },
     { name = "pyarrow" },
     { name = "pydantic" },
@@ -2107,6 +2108,7 @@ app = [
     { name = "ipykernel" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
+    { name = "polars", extra = ["rt64"] },
     { name = "pydot" },
     { name = "quarto" },
     { name = "requests" },
@@ -2179,6 +2181,7 @@ tests = [
     { name = "openpyxl" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
+    { name = "polars", extra = ["rt64"] },
     { name = "polars-hash" },
     { name = "pyarrow" },
     { name = "pydantic" },
@@ -2230,6 +2233,7 @@ requires-dist = [
     { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0" },
     { name = "plotly", extras = ["express"], marker = "extra == 'explanations'" },
     { name = "polars", specifier = ">=1.30,!=1.35.1,<=1.36.1" },
+    { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = ">=1.30,!=1.35.1,<=1.36.1" },
     { name = "polars-hash", marker = "extra == 'pega-io'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pyarrow", marker = "extra == 'explanations'" },
@@ -2403,6 +2407,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f6/c6/36a1b874036b49893ecae0ac44a2f63d1a76e6212631a5b2f50a86e0e8af/polars-1.36.1-py3-none-any.whl", hash = "sha256:853c1bbb237add6a5f6d133c15094a9b727d66dd6a4eb91dbb07cdb056b2b8ef", size = 802429, upload-time = "2025-12-10T01:13:53.838Z" },
 ]
 
+[package.optional-dependencies]
+rt64 = [
+    { name = "polars-runtime-64" },
+]
+
 [[package]]
 name = "polars-hash"
 version = "0.5.5"
@@ -2435,6 +2444,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/11/b2/3fede95feee441be64b4bcb32444679a8fbb7a453a10251583053f6efe52/polars_runtime_32-1.36.1-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:d9d077bb9df711bc635a86540df48242bb91975b353e53ef261c6fae6cb0948f", size = 40688448, upload-time = "2025-12-10T01:14:05.131Z" },
     { url = "https://files.pythonhosted.org/packages/05/0f/e629713a72999939b7b4bfdbf030a32794db588b04fdf3dc977dd8ea6c53/polars_runtime_32-1.36.1-cp39-abi3-win_amd64.whl", hash = "sha256:cc17101f28c9a169ff8b5b8d4977a3683cd403621841623825525f440b564cf0", size = 44464898, upload-time = "2025-12-10T01:14:08.296Z" },
     { url = "https://files.pythonhosted.org/packages/d1/d8/a12e6aa14f63784cead437083319ec7cece0d5bb9a5bfe7678cc6578b52a/polars_runtime_32-1.36.1-cp39-abi3-win_arm64.whl", hash = "sha256:809e73857be71250141225ddd5d2b30c97e6340aeaa0d445f930e01bef6888dc", size = 39798896, upload-time = "2025-12-10T01:14:11.568Z" },
+]
+
+[[package]]
+name = "polars-runtime-64"
+version = "1.36.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/08/f287dbd8a5695ff03e9e8ea97d135c5a986b1cde887cb6fac21652e90473/polars_runtime_64-1.36.1.tar.gz", hash = "sha256:e77144090cdd13c68f125117bcad5bb9dd2c2d892897785b3375a411b73300f5", size = 2789627, upload-time = "2025-12-10T01:14:55.617Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/64/b3deb2ffc1fbc2d218c3dceda0227ae4ad5748ae4b5189e17d04215e242d/polars_runtime_64-1.36.1-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c8e176935b08ed595cd8056ca0c6cd271f925740cc8acefb00b59e6a54d8c7cf", size = 43358525, upload-time = "2025-12-10T01:14:14.747Z" },
+    { url = "https://files.pythonhosted.org/packages/22/19/f3b4d670911b96c6fe4235b9710464c93eefb64d37cf2e1b2e6b2b4e5308/polars_runtime_64-1.36.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:932d17d6fea10596e777e0dc4dc8e5a2303dd945aee61a9fc5f125f92a60d199", size = 39207720, upload-time = "2025-12-10T01:14:17.525Z" },
+    { url = "https://files.pythonhosted.org/packages/35/60/6a8673945827150ff16a1ae4c3249ab2d615208cef96bd1a8ab6fca9c902/polars_runtime_64-1.36.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5968655744f876fafb6b2fcb2aebe6ae55d495409fc092b56f147d219484e1c6", size = 44380668, upload-time = "2025-12-10T01:14:20.596Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/a7/c7c8fa57a69aa75a1c28318ad0c9a84c4dfe05cbd3b08dedcc39da25adba/polars_runtime_64-1.36.1-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:739f15c52e8b62a6e1cbd5b8a91697b664ec1ca191d4e5fb8f092b8c0515a912", size = 40568263, upload-time = "2025-12-10T01:14:23.861Z" },
+    { url = "https://files.pythonhosted.org/packages/53/a4/5a9343b5cb2591f96c2f8cc57fee716cbc0ab32cba137427725445d6a552/polars_runtime_64-1.36.1-cp39-abi3-win_amd64.whl", hash = "sha256:b6f2feb0ff8cfd2df56b2da4437ddff537ada539357fe2baef1e9712591a82d6", size = 44348636, upload-time = "2025-12-10T01:14:27.989Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/b7/a9f0001ccf16c92969b5fc6102ce5beae3c47deb89adcce404b11f002b6e/polars_runtime_64-1.36.1-cp39-abi3-win_arm64.whl", hash = "sha256:3378cd82b8057828d2a6ea46ea9446500315bb2215aa80b85e765d2f78d013be", size = 39656016, upload-time = "2025-12-10T01:14:31.112Z" },
 ]
 
 [[package]]
@@ -3316,15 +3339,15 @@ wheels = [
 
 [[package]]
 name = "skl2onnx"
-version = "1.19.1"
+version = "1.20.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "onnx" },
     { name = "scikit-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/59/3f4d82eb96d8a80fd80325fc658d20e772ee6ac1c6f5cc85dd6aaaf7ccff/skl2onnx-1.19.1.tar.gz", hash = "sha256:0c105f2a3b87a624dd218d1fb98fdd19cf1bf6217190d25ce7e15484127d0e5d", size = 948919, upload-time = "2025-05-28T17:37:02.746Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/39/a5015fefb613d5172541740540851a301c53392b57051cf4d313cb6d5718/skl2onnx-1.20.0.tar.gz", hash = "sha256:c74ea827d92ba186fe659695e8fc989cd97bfc320edce3d32b9936a5878da10a", size = 956369, upload-time = "2026-01-30T10:52:07.694Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/ec/9a0d709217aa385d87b3eadcf19e2ae32eca097077fa2236312d5fc8f656/skl2onnx-1.19.1-py3-none-any.whl", hash = "sha256:fddf2f49e3ffc355f332e676b43c6fec5e63797627925b279d9f5b2c4d0c81a7", size = 315511, upload-time = "2025-05-28T17:37:00.61Z" },
+    { url = "https://files.pythonhosted.org/packages/24/d3/b0db77025a4683ec1b9aafc301b78c7e2e2059a1e2543e918435f3d03582/skl2onnx-1.20.0-py3-none-any.whl", hash = "sha256:30cac34803d1776c14b336ae945e48ef28debfc339215acde1cc04b963ed3f7b", size = 317169, upload-time = "2026-01-30T10:52:05.824Z" },
 ]
 
 [[package]]
