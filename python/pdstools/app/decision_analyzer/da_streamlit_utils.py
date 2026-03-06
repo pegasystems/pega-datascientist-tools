@@ -480,8 +480,25 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
             return read_nested_zip_files(file_buffer)
 
         # Otherwise extract to a temp directory and use read_data
+        try:
+            from pdstools.utils.progress_utils import (
+                estimate_extraction_time,
+                format_time_estimate,
+            )
+
+            file_buffer.seek(0, 2)
+            file_size = file_buffer.tell()
+            file_buffer.seek(0)
+
+            min_time, max_time = estimate_extraction_time(file_size)
+            time_msg = format_time_estimate(min_time, max_time)
+            spinner_msg = f"Extracting uploaded archive... (estimated: {time_msg})"
+        except Exception:
+            spinner_msg = "Extracting uploaded archive..."
+
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
-        zf.extractall(tmp_dir)
+        with st.spinner(spinner_msg):
+            zf.extractall(tmp_dir)
 
     return read_data(tmp_dir)
 
