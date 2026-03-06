@@ -356,26 +356,31 @@ class Plot:
         # Prepare data with formatted labels for hover
         remaining_collected = remaining_df.sort([self._decision_data.level, "count", scope]).collect()
 
+        # Use avg_per_interaction metric - shows average occurrences of each scope value per interaction
+        # When stacked, the funnel height shows total average scope values per interaction
         remaining_fig = (
             px.funnel(
                 remaining_collected,
-                y="average_actions",
+                y="avg_per_interaction",
                 x=self._decision_data.level,
                 color=scope,
                 labels={
                     self._decision_data.level: "Stage",
-                    "average_actions": "Avg Offers per Customer",
-                    "count": "Total Offers",
+                    "avg_per_interaction": f"Avg {scope}s per Interaction",
+                    "count": f"Total {scope} Occurrences",
+                    "penetration_pct": "Reach (%)",
                 },
                 template="pega",
                 color_discrete_map=color_map,
             )
             .update_traces(
-                hovertemplate="<b>%{label}</b><br>"
-                + "Offers per Customer: %{value:.2f}<br>"
-                + "Total Offers: %{customdata[0]:,}<br>"
+                hovertemplate="<b>%{fullData.name}</b><br>"
+                + f"{scope} per Interaction: "
+                + "%{y:.3f}<br>"
+                + "Reach: %{customdata[0]:.1f}% of interactions<br>"
+                + "Total Occurrences: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
-                customdata=remaining_collected.select(["count"]).to_numpy(),
+                customdata=remaining_collected.select(["penetration_pct", "count"]).to_numpy(),
             )
             .update_xaxes(
                 categoryorder="array",
@@ -383,20 +388,21 @@ class Plot:
             .update_layout(
                 showlegend=True,
                 xaxis_title="",
-                yaxis_title="Average Offers per Customer",
+                yaxis_title=f"Average {scope}s per Interaction",
                 legend=dict(traceorder="reversed"),
             )
         )
         filter_fig = (
             px.bar(
                 filter_df,
-                x="average_actions",
+                x="avg_per_interaction",
                 y=self._decision_data.level,
                 color=scope,
                 labels={
                     self._decision_data.level: "Stage",
-                    "average_actions": "Avg Filtered Offers per Customer",
-                    "count": "Total Filtered Offers",
+                    "avg_per_interaction": f"Avg Filtered {scope}s per Interaction",
+                    "count": f"Total Filtered {scope} Occurrences",
+                    "penetration_pct": "Filtered Reach (%)",
                 },
                 color_discrete_map=color_map,
                 category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
@@ -404,14 +410,16 @@ class Plot:
             .update_traces(
                 hovertemplate="<b>%{y}</b><br>"
                 + "%{fullData.name}<br>"
-                + "Filtered per Customer: %{x:.2f}<br>"
-                + "Total Filtered: %{customdata[0]:,}<br>"
+                + f"Filtered {scope} per Interaction: "
+                + "%{x:.3f}<br>"
+                + "Filtered Reach: %{customdata[0]:.1f}%<br>"
+                + "Total Filtered: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
-                customdata=filter_df.select(["count"]).to_numpy(),
+                customdata=filter_df.select(["penetration_pct", "count"]).to_numpy(),
             )
             .update_layout(
                 template="plotly_white",
-                xaxis_title="Average Filtered Offers per Customer",
+                xaxis_title=f"Average Filtered {scope}s per Interaction",
                 yaxis_title="",
             )
         )

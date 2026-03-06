@@ -826,12 +826,18 @@ class DecisionAnalyzer:
         )
 
         interaction_count = interaction_count_expr.collect().item()
-        average_actions_expr = (
+        # Calculate multiple metrics for flexibility:
+        # - count: raw number of interactions with this scope value at this stage
+        # - avg_per_interaction: average occurrences of this scope value per interaction (count / total_interactions)
+        #   When summed across all scope values at a stage, gives total avg scope values per interaction
+        # - penetration_pct: percentage of interactions that have this scope value (0-100%)
+        metrics_expr = (
             pl.lit(interaction_count).alias("interaction_count"),
-            (pl.col("count") / pl.lit(interaction_count)).alias("average_actions"),
+            (pl.col("count") / pl.lit(interaction_count)).alias("avg_per_interaction"),
+            ((pl.col("count") / pl.lit(interaction_count)) * 100).alias("penetration_pct"),
         )
 
-        return funnelData.with_columns(average_actions_expr), filtered_funnel.with_columns(average_actions_expr)
+        return funnelData.with_columns(metrics_expr), filtered_funnel.with_columns(metrics_expr)
 
     def getFilterComponentData(self, top_n, additional_filters: pl.Expr | list[pl.Expr] | None = None) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]
