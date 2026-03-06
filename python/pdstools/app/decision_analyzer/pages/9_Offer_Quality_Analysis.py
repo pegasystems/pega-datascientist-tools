@@ -42,8 +42,8 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100]))
-priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100]))
+propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100]))
+priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 10, 100]))
 
 if propensity_th is None or priority_th is None:
     st.warning(

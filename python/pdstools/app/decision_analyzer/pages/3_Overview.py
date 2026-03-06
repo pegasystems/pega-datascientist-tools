@@ -138,15 +138,15 @@ with col2:
         if best_stage_for_overview != "Arbitration":
             st.caption(f"Using {best_stage_for_overview} stage for this analysis")
 
-        # Use 5th percentile thresholds (same defaults as Offer Quality page)
-        propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100])
-        priority_th = st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100])
+        # Use 10th percentile thresholds (same defaults as Offer Quality page)
+        propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100])
+        priority_th = st.session_state.decision_data.getThresholdingData("Priority", [0, 10, 100])
 
         prop_values = propensity_th["Threshold"].to_list()
         prio_values = priority_th["Threshold"].to_list()
 
         if not all(v is None for v in prop_values) and not all(v is None for v in prio_values):
-            propensityTH = prop_values[1] if prop_values[1] is not None else 0.05
+            propensityTH = prop_values[1] if prop_values[1] is not None else 0.10
             priorityTH = prio_values[1] if prio_values[1] is not None else 0.0
 
             action_counts = st.session_state.decision_data.filtered_action_counts(
