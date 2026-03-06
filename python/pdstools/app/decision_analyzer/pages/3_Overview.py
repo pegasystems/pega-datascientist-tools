@@ -1,6 +1,7 @@
-# python/pdstools/app/decision_analyzer/pages/2_Overview.py
+# python/pdstools/app/decision_analyzer/pages/3_Overview.py
 import streamlit as st
 from da_streamlit_utils import ensure_data
+from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
 # TODO see if we can speed up on first use - it's doing a lot now
 
@@ -96,4 +97,51 @@ with col2:
     else:
         st.warning(
             "No actions survive to the arbitration stage in this data set. Sensitivity analysis is not available."
+        )
+
+    "## :red[Offer Quality]"
+
+    if has_arbitration_data:
+        """
+        Shows the distribution of customer interactions by offer quality at the
+        arbitration stage. Green indicates customers received relevant offers,
+        while red shows customers without offers.
+        """
+
+        # Use 5th percentile thresholds (same defaults as Offer Quality page)
+        propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 5, 100])
+        priority_th = st.session_state.decision_data.getThresholdingData("Priority", [0, 5, 100])
+
+        prop_values = propensity_th["Threshold"].to_list()
+        prio_values = priority_th["Threshold"].to_list()
+
+        if not all(v is None for v in prop_values) and not all(v is None for v in prio_values):
+            propensityTH = prop_values[1] if prop_values[1] is not None else 0.05
+            priorityTH = prio_values[1] if prio_values[1] is not None else 0.0
+
+            action_counts = st.session_state.decision_data.filtered_action_counts(
+                groupby_cols=["Stage Group", "Interaction ID"],
+                priorityTH=priorityTH,
+                propensityTH=propensityTH,
+            )
+
+            quality_data = st.session_state.decision_data.get_offer_quality(
+                action_counts,
+                group_by="Interaction ID",
+            )
+
+            st.plotly_chart(
+                offer_quality_single_pie(
+                    quality_data,
+                    stage="Arbitration",
+                    propensityTH=propensityTH,
+                    level="Stage Group",
+                ),
+                use_container_width=True,
+            )
+        else:
+            st.warning("Offer quality analysis requires propensity and priority thresholds.")
+    else:
+        st.warning(
+            "No actions survive to the arbitration stage in this data set. Offer quality analysis is not available."
         )
