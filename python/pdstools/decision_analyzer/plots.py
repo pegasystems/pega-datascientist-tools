@@ -843,6 +843,8 @@ def offer_quality_piecharts(
     return_df=False,
     level="Stage Group",
 ):
+    import math
+
     value_finder_names = [
         "atleast_one_relevant_action",
         "atleast_one_action",
@@ -855,23 +857,53 @@ def offer_quality_piecharts(
         .collect()  # type: ignore[union-attribute]
         .partition_by(level, as_dict=True)
     )
-    # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
-    df = {}  # type: ignore[assignment]
-    AvailableNBADStages = AvailableNBADStages[:5]
-    for stage in AvailableNBADStages[:5]:
-        df[(stage,)] = all_frames[(stage,)]
+
+    # Filter to only include stages that exist in the data
+    df_dict = {}  # type: ignore[assignment]
+    stages_to_plot = []
+    for stage in AvailableNBADStages:
+        if (stage,) in all_frames:
+            df_dict[(stage,)] = all_frames[(stage,)]
+            stages_to_plot.append(stage)
+
     if return_df:
-        return df
+        return df_dict
+
+    if not stages_to_plot:
+        fig = go.Figure()
+        fig.update_layout(height=400)
+        return fig
+
+    # Calculate grid dimensions
+    num_stages = len(stages_to_plot)
+    num_cols = min(4, num_stages)
+    num_rows = math.ceil(num_stages / num_cols)
+
+    # Dynamic height: base 400px + 300px per additional row
+    fig_height = 400 + (num_rows - 1) * 300
+
+    # Build subplot specs grid, filling partial last row with None
+    specs = []
+    stage_idx = 0
+    for _row in range(num_rows):
+        row_specs = []
+        for _col in range(num_cols):
+            if stage_idx < num_stages:
+                row_specs.append({"type": "domain"})
+                stage_idx += 1
+            else:
+                row_specs.append(None)
+        specs.append(row_specs)
 
     fig = make_subplots(
-        rows=1,
-        cols=len(AvailableNBADStages),
-        specs=[[{"type": "domain"}] * len(AvailableNBADStages)],
-        subplot_titles=AvailableNBADStages,
-        horizontal_spacing=0.15,  # Increased from 0.1 to reduce label overlap
+        rows=num_rows,
+        cols=num_cols,
+        specs=specs,
+        subplot_titles=stages_to_plot,
+        horizontal_spacing=0.15,
+        vertical_spacing=0.10,
     )
 
-    # Define consistent label order: green (relevant), blue (action), orange (irrelevant), red (none)
     label_order = [
         "At least one relevant action",
         "At least one action",
@@ -885,32 +917,104 @@ def offer_quality_piecharts(
         "has_no_offers": "Without actions",
     }
 
-    for i, stage in enumerate(AvailableNBADStages):
-        plotdf = df[(stage,)].drop(level).rename(label_mapping)
-
-        # Reorder to match label_order
+    for i, stage in enumerate(stages_to_plot):
+        plotdf = df_dict[(stage,)].drop(level).rename(label_mapping)
         ordered_values = [plotdf[label][0] if label in plotdf.columns else 0 for label in label_order]
+
+        row = (i // num_cols) + 1
+        col = (i % num_cols) + 1
 
         fig.add_trace(
             go.Pie(
                 values=ordered_values,
                 labels=label_order,
                 name=stage,
-                sort=False,  # Keep our defined order
-                legendgroup="quality",  # Group all pie slices in same legend
-                showlegend=(i == 0),  # Only show legend for first pie chart
+                sort=False,
+                legendgroup="quality",
+                showlegend=(i == 0),
             ),
-            1,
-            i + 1,
+            row,
+            col,
         )
 
     fig.update_layout(
         title_text=None,
         legend_title_text="Customers",
-        annotations=[dict(font=dict(size=11)) for _ in fig.layout.annotations],  # Smaller font for stage labels
+        annotations=[dict(font=dict(size=11)) for _ in fig.layout.annotations],
+        height=fig_height,
     )
-    # Colors: green, blue, orange, red
     fig.update_traces(marker=dict(colors=["#219e3f", "#4A90E2", "#fca52e", "#cd001f"]))
+    return fig
+
+
+def offer_quality_single_pie(
+    df: pl.LazyFrame,
+    stage: str,
+    propensityTH,
+    level="Stage Group",
+):
+    """Create a single pie chart showing offer quality for a specific stage.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Offer quality data from get_offer_quality()
+    stage : str
+        Stage name to display (e.g., "Arbitration", "Output")
+    propensityTH : float
+        Propensity threshold used for relevance categorization
+    level : str, default "Stage Group"
+        Grouping level (Stage or Stage Group)
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Single pie chart figure
+    """
+    value_finder_names = [
+        "atleast_one_relevant_action",
+        "atleast_one_action",
+        "only_irrelevant_actions",
+        "has_no_offers",
+    ]
+
+    stage_data = df.filter(pl.col(level) == stage).select(value_finder_names).sum().collect()
+
+    label_mapping = {
+        "atleast_one_relevant_action": "At least one relevant action",
+        "atleast_one_action": "At least one action",
+        "only_irrelevant_actions": "Only irrelevant actions",
+        "has_no_offers": "Without actions",
+    }
+
+    label_order = [
+        "At least one relevant action",
+        "At least one action",
+        "Only irrelevant actions",
+        "Without actions",
+    ]
+
+    plotdf = stage_data.rename(label_mapping)
+    ordered_values = [plotdf[label][0] if label in plotdf.columns else 0 for label in label_order]
+
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                values=ordered_values,
+                labels=label_order,
+                name=stage,
+                sort=False,
+                marker=dict(colors=["#219e3f", "#4A90E2", "#fca52e", "#cd001f"]),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title_text=f"Offer Quality - {stage}",
+        legend_title_text="Customers",
+        height=300,
+    )
+
     return fig
 
 

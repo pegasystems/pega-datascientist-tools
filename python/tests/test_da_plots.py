@@ -434,6 +434,124 @@ class TestOfferQualityPiecharts:
 
         assert isinstance(fig, Figure)
 
+    def test_piecharts_all_stages(self, da_v2):
+        """Test that all stages are included (no 5-stage limit)."""
+        from pdstools.decision_analyzer.plots import offer_quality_piecharts
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_piecharts(
+            quality_data,
+            propensityTH=0.5,
+            AvailableNBADStages=da_v2.AvailableNBADStages,
+            level=da_v2.level,
+        )
+
+        num_stages = len(da_v2.AvailableNBADStages)
+        assert len(fig.data) == num_stages
+        assert isinstance(fig, Figure)
+
+    def test_piecharts_no_matching_stages(self, da_v2):
+        """Test graceful handling when no stages match the data."""
+        from pdstools.decision_analyzer.plots import offer_quality_piecharts
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_piecharts(
+            quality_data,
+            propensityTH=0.5,
+            AvailableNBADStages=["NonExistent_Stage"],
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 0
+        assert fig.layout.height == 400
+
+    def test_piecharts_single_stage(self, da_v2):
+        """Test with single stage (edge case)."""
+        from pdstools.decision_analyzer.plots import offer_quality_piecharts
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID", "day"],
+            propensityTH=0.5,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_piecharts(
+            quality_data,
+            propensityTH=0.5,
+            AvailableNBADStages=["Arbitration"],
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+        assert fig.layout.height == 400
+
+
+class TestOfferQualitySinglePie:
+    """Test offer_quality_single_pie function."""
+
+    def test_single_pie_arbitration(self, da_v2):
+        """Test single pie chart for Arbitration stage."""
+        from pdstools.decision_analyzer.plots import offer_quality_single_pie
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.05,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_single_pie(
+            quality_data,
+            stage="Arbitration",
+            propensityTH=0.05,
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+        assert len(fig.data[0].values) == 4
+
+    def test_single_pie_output_stage(self, da_v2):
+        """Test single pie chart for Output stage."""
+        from pdstools.decision_analyzer.plots import offer_quality_single_pie
+
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.05,
+            priorityTH=50,
+        )
+
+        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+
+        fig = offer_quality_single_pie(
+            quality_data,
+            stage="Output",
+            propensityTH=0.05,
+            level=da_v2.level,
+        )
+
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+
 
 class TestGetTrendChart:
     """Test getTrendChart function."""
