@@ -32,45 +32,17 @@ if sample_metadata:
     st.info(f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`")
 
 # Find the best stage for overview analyses
-# Strategy: prefer stages with quality variation (both relevant and irrelevant offers)
 da = st.session_state.decision_data
 best_stage_for_overview = None
 stages_with_prop = da.stages_with_propensity if da.stages_with_propensity else []
 
-# Filter stages_with_propensity to only those from Arbitration onwards
-arbitration_stages = set(da.stages_from_arbitration_down) if hasattr(da, "stages_from_arbitration_down") else set()
-propensity_stages_from_arb = (
-    [s for s in stages_with_prop if s in arbitration_stages] if arbitration_stages else stages_with_prop
-)
-
-if propensity_stages_from_arb:
-    # Get 10th percentile propensity threshold to detect quality variation
-    propensity_th = da.getThresholdingData("Propensity", [0, 10, 100])
-    prop_values = propensity_th["Threshold"].to_list()
-    propensity_threshold = prop_values[1] if prop_values[1] is not None else 0.10
-
-    # Try to find a stage with quality variation (has some irrelevant actions)
-    for stage in propensity_stages_from_arb:
-        stage_data = da.sample.filter(pl.col(da.level) == stage).collect()
-        if stage_data.height > 0:
-            # Check if this stage has any actions below the propensity threshold
-            has_low_propensity = (
-                stage_data.filter(
-                    (pl.col("Propensity").is_not_null()) & (pl.col("Propensity") < propensity_threshold)
-                ).height
-                > 0
-            )
-
-            if has_low_propensity:
-                # Found a stage with quality variation - use it
-                best_stage_for_overview = stage
-                break
-
-    # If no stage has quality variation, fall back to first stage with propensities
-    if best_stage_for_overview is None:
-        best_stage_for_overview = propensity_stages_from_arb[0]
+# Prefer ActionPropensity stage, otherwise use first stage with propensities
+if "ActionPropensity" in stages_with_prop:
+    best_stage_for_overview = "ActionPropensity"
+elif stages_with_prop:
+    best_stage_for_overview = stages_with_prop[0]
 elif "Arbitration" in da.AvailableNBADStages:
-    # Fallback to Arbitration if available
+    # Fallback to Arbitration if no propensity stages available
     best_stage_for_overview = "Arbitration"
 
 # Check if we have data at the selected stage

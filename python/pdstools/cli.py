@@ -7,6 +7,7 @@
 
 import argparse
 import difflib
+import logging
 import os
 import sys
 from importlib import resources
@@ -154,6 +155,15 @@ def main():
 
 
 def run(args, unknown):
+    # Configure logging based on environment variable
+    log_level = os.environ.get("PDSTOOLS_LOG_LEVEL", "WARNING").upper()
+    numeric_level = getattr(logging, log_level, logging.WARNING)
+    logging.basicConfig(
+        level=numeric_level,
+        format="%(levelname)s [%(name)s]: %(message)s",
+        force=True,  # Override any existing config
+    )
+
     try:
         from streamlit.web import cli as stcli
     except ImportError:

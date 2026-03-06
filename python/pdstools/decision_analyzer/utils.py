@@ -533,12 +533,15 @@ def sample_interactions(
     n: int | None = None,
     fraction: float | None = None,
     id_column: str | None = None,
+    use_random: bool = False,
 ) -> pl.LazyFrame:
     """Sample interactions from a LazyFrame before ingestion.
 
-    Uses deterministic hash-based filtering so the same data and limit
-    always produce the same sample. All rows belonging to a selected
-    interaction are kept (stratified on interaction ID).
+    By default, uses deterministic hash-based filtering so the same data and limit
+    always produce the same sample. When sampling already-sampled data, uses random
+    sampling to avoid bias from repeated deterministic sampling.
+
+    All rows belonging to a selected interaction are kept (stratified on interaction ID).
 
     Exactly one of *n* or *fraction* must be provided.
 
@@ -552,6 +555,9 @@ def sample_interactions(
         Fraction of interactions to keep (0.0–1.0).
     id_column : str, optional
         Name of the interaction ID column. Auto-detected if not given.
+    use_random : bool, default False
+        If True, use random sampling instead of deterministic hash-based sampling.
+        This should be set when sampling already-sampled data to avoid bias.
 
     Returns
     -------
@@ -565,12 +571,16 @@ def sample_interactions(
     if id_column is None:
         id_column = _find_interaction_id_column(available)
 
+    # Get unique interaction IDs
+    unique_ids_df = df.select(id_column).unique().collect()
+    total = len(unique_ids_df)
+
+    # Calculate target count
     if fraction is not None:
         if not 0.0 < fraction <= 1.0:
             raise ValueError(f"fraction must be in (0, 1], got {fraction}")
-        threshold = int(fraction * 10_000)
+        target_n = int(fraction * total)
     else:
-        total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
         if total <= n:
             logger.info(
                 "Data has %d interactions (≤ requested %d), skipping sampling.",
@@ -578,9 +588,22 @@ def sample_interactions(
                 n,
             )
             return df
-        threshold = int((n / total) * 10_000)
+        target_n = n
 
-    return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+    if use_random:
+        # Random sampling: take a random subset of interaction IDs
+        logger.info("sample_interactions: using RANDOM sampling, target=%d of %d interactions", target_n, total)
+        sampled_ids_df = unique_ids_df.sample(n=target_n, shuffle=True, seed=None)
+    else:
+        # Deterministic hash-based sampling
+        threshold = int((target_n / total) * 10_000)
+        logger.info(
+            "sample_interactions: using HASH-based sampling, threshold=%d (hash %% 10000 < %d)", threshold, threshold
+        )
+        sampled_ids_df = unique_ids_df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+
+    # Filter original data to only include sampled interaction IDs (convert back to lazy for join)
+    return df.join(sampled_ids_df.lazy(), on=id_column, how="semi")
 
 
 def prepare_and_save(
@@ -694,9 +717,17 @@ def prepare_and_save(
                     n,
                 )
                 return df, None
+        elif fraction is not None:
+            # For fraction-based sampling, get source size
+            total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
+
+        # Detect if source was already sampled (use random sampling to avoid hash bias)
+        use_random = source_metadata is not None
+        if use_random:
+            logger.info("Source is already sampled - using random sampling to avoid hash-based bias")
 
         # Perform sampling
-        sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column)
+        sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column, use_random=use_random)
         processed_df = sampled.collect()  # type: ignore[union-attribute]
     else:
         # Caching mode: collect all data (no sampling)
