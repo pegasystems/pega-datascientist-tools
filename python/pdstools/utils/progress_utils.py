@@ -80,3 +80,40 @@ def format_time_estimate(min_sec: float, max_sec: float) -> str:
         if min_str == max_str:
             return min_str
         return f"{min_str} to {max_str}"
+
+
+def estimate_sampling_time(total_rows: int, sample_size: int) -> tuple[float, float]:
+    """Estimate time for sampling operations based on dataset size.
+
+    Parameters
+    ----------
+    total_rows : int
+        Total number of rows in the dataset
+    sample_size : int
+        Target sample size
+
+    Returns
+    -------
+    tuple[float, float]
+        (min_seconds, max_seconds) for a range estimate
+
+    Examples
+    --------
+    >>> min_time, max_time = estimate_sampling_time(1_000_000, 50_000)
+    >>> min_time < max_time
+    True
+    """
+    # Calibrated sampling speeds (rows/second)
+    # Based on Polars hash-based sampling performance
+    FAST_ROWS_PER_SEC = 1_000_000  # Good CPU, in-memory data
+    SLOW_ROWS_PER_SEC = 100_000  # Slower system or disk-based
+
+    # If no sampling needed (data smaller than sample), very fast
+    if total_rows <= sample_size:
+        return (0.1, 0.5)
+
+    # Estimate based on total rows (not sample size) since we scan all data
+    min_time = total_rows / FAST_ROWS_PER_SEC
+    max_time = total_rows / SLOW_ROWS_PER_SEC
+
+    return (min_time, max_time)

@@ -1,4 +1,8 @@
-from pdstools.utils.progress_utils import estimate_extraction_time, format_time_estimate
+from pdstools.utils.progress_utils import (
+    estimate_extraction_time,
+    estimate_sampling_time,
+    format_time_estimate,
+)
 
 
 def test_estimate_extraction_time_small_file():
@@ -54,3 +58,26 @@ def test_format_time_estimate_same_range():
     result = format_time_estimate(120, 130)
     result_count = result.count("minute")
     assert result_count <= 2  # At most "X minutes to Y minutes"
+
+
+def test_estimate_sampling_time_small():
+    """Test estimation for small dataset."""
+    # 10k rows, sampling 5k
+    min_sec, max_sec = estimate_sampling_time(10_000, 5_000)
+    assert min_sec < max_sec
+    assert max_sec < 10  # Should be fast
+
+
+def test_estimate_sampling_time_large():
+    """Test estimation for large dataset."""
+    # 10M rows, sampling 50k
+    min_sec, max_sec = estimate_sampling_time(10_000_000, 50_000)
+    assert min_sec < max_sec
+    assert min_sec > 0
+
+
+def test_estimate_sampling_time_no_sampling():
+    """Test when no sampling needed (data smaller than sample size)."""
+    min_sec, max_sec = estimate_sampling_time(1_000, 50_000)
+    assert min_sec < max_sec
+    assert max_sec < 1  # Very fast
