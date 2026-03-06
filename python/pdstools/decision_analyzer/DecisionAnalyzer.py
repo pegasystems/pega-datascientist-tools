@@ -667,15 +667,23 @@ class DecisionAnalyzer:
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
         # but doesn't require collecting all unique IDs first, 15x faster than collecting 50k interactions first.
-        df = (
-            self.decision_data.select(columns_to_keep)
-            .with_columns([(pl.col("Interaction ID").hash() % 1000 < 1000 * sample_rate).alias("_sample")])
-            .filter(pl.col("_sample"))
-            .drop("_sample")
-            .collect()
-            .shrink_to_fit()  # reclaim unused memory (DataFrame-only method)
-            .lazy()  # re-wrap so downstream consumers stay lazy
-        )
+        try:
+            df = (
+                self.decision_data.select(columns_to_keep)
+                .with_columns([(pl.col("Interaction ID").hash() % 1000 < 1000 * sample_rate).alias("_sample")])
+                .filter(pl.col("_sample"))
+                .drop("_sample")
+                .collect()
+                .shrink_to_fit()  # reclaim unused memory (DataFrame-only method)
+                .lazy()  # re-wrap so downstream consumers stay lazy
+            )
+        except Exception as e:
+            if "maximum length reached" in str(e).lower():
+                raise RuntimeError(
+                    "Dataset exceeds Polars' 32-bit row limit (2^32 rows). "
+                    "Install the 64-bit runtime with: uv pip install 'polars[rt64]'"
+                ) from e
+            raise
 
         return df
 
