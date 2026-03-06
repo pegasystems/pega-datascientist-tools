@@ -98,6 +98,132 @@ When documenting analysis types:
 - Analysis pages: `python/pdstools/app/*/pages/*.py`
 - Shared utilities: `python/pdstools/utils/streamlit_utils.py`
 
+### Quarto Reports
+- Main reports: `python/pdstools/reports/HealthCheck.qmd`, `python/pdstools/reports/ModelReport.qmd`
+- GlobalExplanations templates: `python/pdstools/reports/GlobalExplanations/assets/templates/*.qmd`
+- Report utilities: `python/pdstools/utils/report_utils.py`
+- Formatting config: `python/pdstools/utils/metric_limits.py`, `python/pdstools/utils/number_format.py`
+
+## Quarto Report Standards
+
+Quarto reports provide static, portable HTML analysis documents for ADM data. The primary reports are the ADM Health Check and the Model Report. GlobalExplanations reports use a simpler template-based approach.
+
+### Design Principles
+
+**Delegation over Duplication**: Reports should be lightweight orchestrators, not implementations.
+- Use `pdstools` methods for data processing (e.g., `datamart.aggregates.summary_by_channel()`)
+- Use `pdstools.plot.*` methods for visualizations
+- Keep code cells focused on configuration and presentation, not complex logic
+- Avoid duplicating business logic that belongs in the library
+
+**Target Audience**: Technical business analysts and data scientists who understand ADM concepts but need concrete interpretation guidance.
+
+**Consistency Elements**:
+- Pega logo and branding via `assets/pega-report-overrides.css`
+- Credits section at end using `report_utils.show_credits()`
+- Version information in collapsible callout at end
+- Standard error handling with `report_utils.quarto_plot_exception()`
+- Consistent YAML front matter (title-block-banner, Pega theme, etc.)
+
+### Formatting Standards for Rates and Propensities
+
+**Critical Rule**: All rates, propensities, CTR, and similar percentage values **must be displayed as percentages with exactly 3 decimal places** (e.g., "12.345%").
+
+Use the centralized `MetricFormats` system defined in `python/pdstools/utils/metric_limits.py`:
+
+```python
+# In create_metric_gttable calls, specify the metric ID for RAG coloring:
+column_to_metric={
+    "CTR": report_utils.exclusive_0_1_range_rag,  # Auto-formats as X.XXX%
+    "Performance": "ModelPerformance",  # Auto-formats as XX (scaled to 0-100)
+    "Base Propensity": report_utils.exclusive_0_1_range_rag,  # Auto-formats as X.XXX%
+}
+```
+
+**Do NOT** format rates/propensities manually in Polars unless necessary for intermediate calculations. The table rendering functions (`create_metric_gttable`, `create_metric_itable`) automatically apply the correct format from `MetricFormats` when you specify the metric ID or RAG function.
+
+**Common Metrics**:
+- `CTR`: 3 decimals, percentage (12.345%)
+- `ModelPerformance`: 2 decimals, scaled to 0-100 (87.50)
+- `EngagementLift`: 0 decimals, percentage (125%)
+- `OmniChannelPercentage`: 1 decimal, percentage (45.2%)
+
+**Adding New Metrics**: Register format in `MetricFormats._FORMATS` in `metric_limits.py`:
+
+```python
+"MyMetric": NumberFormat(decimals=3, scale_by=100, suffix="%"),
+```
+
+### Visual Consistency
+
+**Plots**:
+- Use `template="pega"` for Plotly figures
+- Clear, descriptive titles (use `<br><sup>subtitle</sup>` for additional context)
+- Proper axis labels (not empty strings or generic labels)
+- Include guidance callouts for interpretation where needed
+- Consistent color schemes (use Pega colors where applicable)
+
+**Tables**:
+- Use `report_utils.create_metric_gttable()` for all tables containing metrics
+- Apply RAG coloring via `column_to_metric` parameter
+- Hide technical columns (e.g., `isValid`, `usesNBAD`) with `.cols_hide()`
+- Use `.cols_label()` for user-friendly column names (e.g., "CTR" → "Base Rate")
+- Use `.tab_spanner()` to group related columns with headers
+
+### Structure
+
+Standard report sections:
+1. **Title and metadata** (automatically from YAML front matter)
+2. **Overview** with key metrics and global view
+3. **Detailed analysis sections** with specific insights
+4. **Guidance callouts** with interpretation tips using Quarto callouts
+5. **Credits section** using `report_utils.show_credits("path/to/report.qmd")`
+6. **Version information** in collapsible callout with `show_versions()`
+
+### Common Patterns
+
+**Exception Handling**:
+```python
+try:
+    fig = datamart.plot.score_distribution(model_id=model_id)
+    fig.update_layout(title="Distribution", xaxis_title="Score")
+    fig.show()
+except Exception as e:
+    report_utils.quarto_plot_exception("Score Distribution", e)
+```
+
+**Conditional Content**:
+```python
+if condition:
+    report_utils.quarto_print("Additional analysis...")
+```
+
+**Interactive Plot Disclaimer** (standard callout):
+```markdown
+::: {.callout-tip}
+Charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/).
+These interactive plots do not render well in portals like Sharepoint or Box. View from a browser for best experience.
+:::
+```
+
+**Table RAG Coloring**:
+```python
+formatted_table = report_utils.create_metric_gttable(
+    df,
+    title="Overview",
+    column_to_metric={
+        "Performance": "ModelPerformance",
+        "CTR": report_utils.exclusive_0_1_range_rag,
+        ("Actions", "Used Actions"): "ActionCount",  # Multiple columns same metric
+    },
+)
+display(formatted_table.cols_hide(["technical_column"]))
+```
+
+### Notes on GlobalExplanations Reports
+
+The GlobalExplanations reports (`python/pdstools/reports/GlobalExplanations/`) use a simpler template-based approach with string substitution (e.g., `{TOP_N}`, `{ROOT_DIR}`). These are composable templates rather than standalone reports and may not follow all the conventions above. Focus consistency efforts on HealthCheck.qmd and ModelReport.qmd as the reference implementations.
+
 ## Code Patterns
 
 ### Streamlit Page Structure
