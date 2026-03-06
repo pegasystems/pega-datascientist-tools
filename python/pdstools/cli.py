@@ -78,7 +78,7 @@ def create_parser():
         default=None,
         help=(
             "Pre-ingestion interaction sampling for large datasets. "
-            "Specify an absolute count (e.g. '100000') or a percentage "
+            "Specify an absolute count (e.g. '100000', '100k', '1M') or a percentage "
             "(e.g. '10%%'). All rows for each sampled interaction are kept. "
             "Exposed to the app as the PDSTOOLS_SAMPLE_LIMIT env var."
         ),
