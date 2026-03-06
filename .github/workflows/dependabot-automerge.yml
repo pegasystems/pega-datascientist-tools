@@ -1,6 +1,8 @@
 name: Dependabot auto-merge
 
-on: pull_request
+on:
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -9,7 +11,7 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Dependabot metadata
         id: metadata
@@ -24,4 +26,17 @@ jobs:
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  retroactive:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Enable auto-merge for all open Dependabot PRs
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --author 'dependabot[bot]' --state open --json url --jq '.[].url' | while read -r pr_url; do
+            echo "Enabling auto-merge for $pr_url"
+            gh pr merge --auto --squash "$pr_url" || true
+          done
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
