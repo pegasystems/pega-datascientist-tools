@@ -63,18 +63,11 @@ with st.session_state["sidebar"]:
 with st.container(border=True):
     remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
     with remaining_tab:
-        st.write("""
-        Track how many offers **enter** each stage of your decisioning pipeline. The numbers show
-        offers arriving at each stage (not exiting) — the narrowing funnel reveals where offers drop
-        off, helping you spot bottlenecks or overly aggressive filtering.
-
-        The funnel height shows **Average Actions per Interaction** (how many times offers appear per customer
-        interaction on average), while **Reach** indicates what percentage of interactions had at least one
-        offer of that type. Together, these metrics reveal both frequency and penetration of your offers.
-
-        Use **Granularity** (sidebar) to analyze at different levels — from high-level offer categories
-        (Issue/Group) down to individual actions or treatments.
-        """)
+        st.caption(
+            "Track offers entering each stage. Funnel height shows **Average Actions per Interaction**, "
+            "while **Reach** shows percentage of interactions with at least one offer. Use **Granularity** "
+            "(sidebar) to analyze from high-level categories down to individual actions."
+        )
         remanining_funnel, filtered_funnel = decision_funnel(
             scope=st.session_state.scope,
             level=st.session_state.decision_data.level,
