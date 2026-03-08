@@ -116,6 +116,46 @@ The Decision Analysis Tool (`decision_analyzer`) analyzes Pega decisioning data 
 
 **Plot Functions**: All visualization functions belong in `plots.py`. Page files should only configure and display plots, not define them inline.
 
+### Streamlit Text Styling
+
+**Explanatory Text Hierarchy**: Use consistent text styling to create clear visual hierarchy:
+
+- **Page-level introduction** (immediately after page title): Use triple-quoted strings `"""..."""` for normal body text
+  - Purpose: High-level page description and key questions
+  - Should remain prominent to orient users
+
+- **Section-level explanations** (inside `st.container(border=True)` blocks): Use `st.caption()` for smaller, subdued text
+  - Purpose: Describe specific charts, tables, or interactions
+  - Should be concise and visually de-emphasized relative to the content
+
+**Example:**
+```python
+"# Page Title"
+
+"""
+Page-level introduction explaining the purpose and key questions.
+This uses normal body text for emphasis.
+"""
+
+ensure_data()
+
+with st.container(border=True):
+    "## Section Title"
+
+    st.caption(
+        "Section explanation describing the chart below. "
+        "This uses caption styling for a more compact appearance."
+    )
+
+    st.plotly_chart(fig, width="stretch")
+```
+
+**Writing Guidelines:**
+- Keep captions concise (aim for 30-50 words per section)
+- Preserve markdown formatting (bold, italics) within captions
+- Explain what the visualization shows and how to use it
+- Remove redundant information that's obvious from context
+
 ## Testing Expectations
 
 ### Before Committing

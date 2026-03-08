@@ -43,11 +43,11 @@ with st.session_state["sidebar"]:
 with st.container(border=True):
     "## Offer Mix by Volume"
 
-    """
-    Visualize the relative volume of each offer at the selected stage. Box sizes represent
-    the number of times each action appears. Explore the hierarchy by clicking through
-    Issue → Group → Action to see how your portfolio is composed.
-    """
+    st.caption(
+        "Visualize the relative volume of each offer at the selected stage. Box sizes represent "
+        "the number of times each action appears. Explore the hierarchy by clicking through "
+        "Issue → Group → Action to see how your portfolio is composed."
+    )
 
     distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
     st.plotly_chart(
@@ -65,13 +65,12 @@ if "scope" not in st.session_state:
 with st.container(border=True):
     "## Offer Trends Over Time"
 
-    f"""
-    Track how often each {st.session_state.scope} appears in customer decisions over time.
-    Spot seasonal patterns, campaign impacts, and shifts in your offer mix.
-
-    *Note: Since decisions can include multiple {st.session_state.scope.lower()}s, the stacked total
-    may exceed the actual decision count — this is expected when customers see diverse offers.*
-    """
+    st.caption(
+        f"Track how often each {st.session_state.scope} appears in customer decisions over time. "
+        f"Spot seasonal patterns, campaign impacts, and shifts in your offer mix. "
+        f"*Note: Since decisions can include multiple {st.session_state.scope.lower()}s, the stacked total "
+        f"may exceed the actual decision count — this is expected when customers see diverse offers.*"
+    )
 
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
         st.session_state.stage, st.session_state.scope

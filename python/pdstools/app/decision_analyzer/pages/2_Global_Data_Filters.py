@@ -38,9 +38,7 @@ if st.session_state.pop("_needs_filter_reset", False):
 # ── Uploaded filter file ─────────────────────────────────────────────
 expr_list: list[pl.Expr] = []
 with st.container(border=True):
-    """
-    You can (optionally) save and re-apply filters you defined earlier:
-    """
+    st.caption("You can (optionally) save and re-apply filters you defined earlier.")
     uploaded_file = st.file_uploader(
         "Use the same data filters you used in previous sessions:",
         type=["json"],

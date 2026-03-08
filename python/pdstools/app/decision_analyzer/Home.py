@@ -75,23 +75,35 @@ has_existing_data = "decision_data" in st.session_state
 
 # If --data-path was provided, load from that path (takes priority over sample data)
 configured_path = get_data_path()
+configured_path_failed = False
 if raw_data is None and configured_path and not has_existing_data:
     with st.spinner(f"Loading data from configured path: {configured_path}"):
         raw_data = handle_data_path()
         data_source_path = configured_path  # Capture the source
     if raw_data is not None:
         st.info(f"📂 Loaded data from configured path: `{configured_path}`")
+    else:
+        configured_path_failed = True
 
 has_new_data = raw_data is not None
 
-# Fall back to sample data only when nothing was uploaded *and* no data is loaded yet
-if not has_new_data and not has_existing_data:
+# Fall back to sample data only when:
+# 1. Nothing was uploaded, AND
+# 2. No data is loaded yet, AND
+# 3. No configured --data-path was attempted (or it would have shown error above)
+if not has_new_data and not has_existing_data and not configured_path_failed:
     with st.spinner("Loading sample data"):
         raw_data = handle_sample_data()
     has_new_data = raw_data is not None
     st.info(
         "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
     )
+elif configured_path_failed:
+    st.error(
+        f"Failed to load data from configured path: `{configured_path}`. "
+        "Please check the path and file format, or upload data using the file uploader above."
+    )
+    st.stop()
 
 # Pre-ingestion data preparation (sampling or caching)
 # Only apply --sample flag when loading from --data-path (not for file uploads)

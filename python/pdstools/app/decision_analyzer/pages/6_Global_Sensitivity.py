@@ -41,10 +41,10 @@ with st.container(border=True):
 with st.container(border=True):
     "## Win/Loss Distribution"
 
-    """
-    See which offers most often win or lose in the final selection. This reveals
-    which offers dominate your customer interactions and which rarely make it through.
-    """
+    st.caption(
+        "See which offers most often win or lose in the final selection. This reveals "
+        "which offers dominate your customer interactions and which rarely make it through."
+    )
 
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
 

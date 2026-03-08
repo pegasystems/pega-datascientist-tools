@@ -196,17 +196,32 @@ class Plot:
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         bar_colors = ["#cd001f" if n == 0 else colorway[0] for n in plotData["nOffers"]]
+        has_propensity = (
+            "AverageBestPropensity" in plotData.columns and (plotData["AverageBestPropensity"].drop_nulls() > 0).any()
+        )
+
+        # Build hover template for bars
+        if has_propensity:
+            # Include propensity in hover when available
+            bar_customdata = plotData.select(["AverageBestPropensity"]).to_numpy()
+            bar_hovertemplate = (
+                "Optionality = %{x}<br>Decisions = %{y:,.0f}<br>Avg Propensity = %{customdata[0]:.3%}<extra></extra>"
+            )
+        else:
+            bar_customdata = None
+            bar_hovertemplate = "Optionality = %{x}<br>Decisions = %{y:,.0f}<extra></extra>"
+
         fig.add_trace(
             go.Bar(
                 x=plotData["nOffers"],
                 y=plotData["Interactions"],
                 name="Optionality",
                 marker_color=bar_colors,
+                customdata=bar_customdata,
+                hovertemplate=bar_hovertemplate,
             )
         )
-        has_propensity = (
-            "AverageBestPropensity" in plotData.columns and (plotData["AverageBestPropensity"].drop_nulls() > 0).any()
-        )
+
         if has_propensity:
             fig.add_trace(
                 go.Scatter(
@@ -215,6 +230,7 @@ class Plot:
                     yaxis="y2",
                     name="Propensity",
                     mode="markers+lines",
+                    hovertemplate=("Optionality = %{x}<br>Avg Propensity = %{y:.3%}<extra></extra>"),
                 ),
                 secondary_y=True,
             )
@@ -225,7 +241,7 @@ class Plot:
         )
         if has_propensity:
             fig.update_yaxes(title_text="Propensity", secondary_y=True)
-            fig.layout.yaxis2.tickformat = ",.2%"
+            fig.layout.yaxis2.tickformat = ",.3%"
             fig.layout.yaxis2.showgrid = False
         return fig
 
@@ -374,6 +390,7 @@ class Plot:
                 color_discrete_map=color_map,
             )
             .update_traces(
+                texttemplate="%{y:.1f}",
                 hovertemplate="<b>%{fullData.name}</b><br>"
                 + "Average Actions per Interaction: %{y:.1f}<br>"
                 + "Reach: %{customdata[0]:.1f}% of interactions<br>"
@@ -407,6 +424,7 @@ class Plot:
                 category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
             )
             .update_traces(
+                texttemplate="%{x:.1f}",
                 hovertemplate="<b>%{y}</b><br>"
                 + "%{fullData.name}<br>"
                 + "Average Filtered Actions per Interaction: %{x:.1f}<br>"
