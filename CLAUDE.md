@@ -74,6 +74,48 @@ When documenting analysis types:
 - **Package Manager**: Always use `uv` for Python package management and execution
 - **Data Processing**: Prefer Polars over Pandas for data processing. When suggesting Polars syntax, ensure it is valid and tested against the latest Polars version.
 
+## Decision Analyzer Standards
+
+The Decision Analysis Tool (`decision_analyzer`) analyzes Pega decisioning data exports to provide insights into arbitration, filtering, and lever effectiveness.
+
+### File Organization
+
+- **Core library**: `python/pdstools/decision_analyzer/DecisionAnalyzer.py` (main class)
+- **Plots module**: `python/pdstools/decision_analyzer/plots.py` (all visualization functions)
+- **Streamlit app**: `python/pdstools/app/decision_analyzer/`
+  - `Home.py` (entry point)
+  - `pages/*.py` (numbered analysis pages)
+  - `da_streamlit_utils.py` (shared UI utilities)
+- **Data utilities**: `python/pdstools/decision_analyzer/data_read_utils.py` (multi-format ingestion)
+- **Schema**: `python/pdstools/decision_analyzer/column_schema.py` (column definitions and display names)
+
+### Design Patterns
+
+**Propensity Display**: All propensity values must be displayed as percentages (e.g., "12.345%"), not raw decimals. This applies to:
+- Chart axes, labels, and hover text
+- Table cells and headers
+- Slider values and input fields
+- Component distributions (violin plots, ECDFs, box plots)
+
+**Stage Level Selection**: Users can toggle between "Stage Group" and "Stage" granularity. Use the shared `stage_level_selector()` helper from `da_streamlit_utils.py` for consistent UI. Store the selection in `st.session_state.stage_level`.
+
+**Shared UI Components**: Use utilities from `da_streamlit_utils.py`:
+- `stage_selectbox()` — stage selector with stage-group-aware formatting
+- `stage_level_selector()` — granularity toggle
+- `ensure_data()` — guard for pages requiring loaded data
+
+**Session State**: Minimize what's stored in `st.session_state`. Prefer computing values on-demand from the `DecisionAnalyzer` instance rather than caching intermediate results.
+
+**Dynamic Stages**: Avoid hardcoding stage names (e.g., "Final", "Arbitration"). Get stage lists from data and use display name mappings where available.
+
+**Mandatory Actions**: Mandatory actions use special arbitration priority values (4999999 or 4999999999) that bypass normal prioritization. The `DecisionAnalyzer` accepts a `mandatory_expr` parameter to tag these at initialization. When implementing features involving ranking or sensitivity analysis, consider how mandatory actions should be handled (typically: flag them clearly, exclude from sensitivity analyses).
+
+### Code Organization
+
+**Delegation Principle**: Keep Streamlit page code focused on UI presentation. Delegate data processing to `DecisionAnalyzer` methods and visualization to `plots.py` functions. Avoid complex business logic in page files.
+
+**Plot Functions**: All visualization functions belong in `plots.py`. Page files should only configure and display plots, not define them inline.
+
 ## Testing Expectations
 
 ### Before Committing

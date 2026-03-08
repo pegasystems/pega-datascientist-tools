@@ -275,7 +275,6 @@ class DecisionAnalyzer:
             self.NBADStages_FilterView = self.AvailableNBADStages
             self.NBADStages_RemainingView = self.AvailableNBADStages
 
-        # TODO: support human-friendly names, to show "Final" as "Presented" for example
         elif self.extract_type == "decision_analyzer":
             stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
             if "Arbitration" not in stage_df[self.level] and self.level == "Stage Group":
