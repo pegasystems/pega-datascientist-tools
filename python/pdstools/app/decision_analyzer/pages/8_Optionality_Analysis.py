@@ -88,10 +88,10 @@ with st.container(border=True):
 with st.container(border=True):
     "## Offer Variation"
 
-    """
-    How much variation is there in the offers? Does everyone get the same few actions or
-    is there a lot of variation in what we are offering?
-    """
+    st.caption(
+        "How much variation is there in the offers? Does everyone get the same few actions or "
+        "is there a lot of variation in what we are offering?"
+    )
 
     st.plotly_chart(
         st.session_state.decision_data.plot.action_variation(stage="Output"),
