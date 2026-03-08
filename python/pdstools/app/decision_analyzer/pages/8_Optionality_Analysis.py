@@ -25,11 +25,11 @@ with st.session_state["sidebar"]:
 with st.container(border=True):
     "## Optionality"
 
-    """
-    Showing the number of actions available and the average of the highest
-    propensity when there are this number of actions. Generally, with more actions
-    you would expect higher propensities as there is more to choose from.
-    """
+    st.caption(
+        "Showing the number of actions available and the average of the highest "
+        "propensity when there are this number of actions. Generally, with more actions "
+        "you would expect higher propensities as there is more to choose from."
+    )
 
     stage_selectbox(
         key="optionality_stage",
