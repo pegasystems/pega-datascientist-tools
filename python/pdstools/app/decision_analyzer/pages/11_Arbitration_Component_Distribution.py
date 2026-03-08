@@ -95,10 +95,10 @@ with st.container(border=True):
     violin_tab, ecdf_tab, stats_tab = st.tabs(["Violin Plot", "Cumulative Distribution", "Summary Statistics"])
 
     with violin_tab:
-        """
-        The violin shape shows the full density of the component — no binning
-        artifacts. The embedded box marks the median and IQR.
-        """
+        st.caption(
+            "The violin shape shows the full density of the component — no binning "
+            "artifacts. The embedded box marks the median and IQR."
+        )
         st.plotly_chart(violin_fig)
 
     with ecdf_tab:
