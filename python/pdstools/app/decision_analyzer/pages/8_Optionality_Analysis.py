@@ -98,6 +98,7 @@ with st.container(border=True):
         width="stretch",
     )
     action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
-    f"""
-    {action_variability_stats["n90"]} actions win in 90% of the final decisions made. The personalization index is **{round(action_variability_stats["gini"], 3)}**.
-    """
+    st.caption(
+        f"{action_variability_stats['n90']} actions win in 90% of the final decisions made. "
+        f"The personalization index is **{round(action_variability_stats['gini'], 3)}**."
+    )
