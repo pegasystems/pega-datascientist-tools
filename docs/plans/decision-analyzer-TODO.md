@@ -2,90 +2,150 @@
 
 Active work items for the Decision Analysis Tool.
 
+## Quick Reference
+
+**Blockers (fix before release):**
+- None currently
+
+**High Impact (fix soon):**
+- [P1] `num_samples > 1` breaks thresholding — affects data quality, users cannot get representative distributions
+- [P1] Overview page slow first load — 10-30 second wait creates poor UX
+- [P1] Mandatory actions skew analysis — sensitivity and win/loss metrics misleading
+
+**Priority levels:**
+- **[P1]** High — Critical functionality, poor UX, or blocking issues
+- **[P2]** Medium — Important improvements, moderate UX impact
+- **[P3]** Low — Nice-to-have, minor issues, future enhancements
+
+**Total items:** 50+ across core library, app architecture, pages, and plots
+
 ---
 
 ## Core Library
 
 ### High Priority
 
-- [ ] **Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Issue:** With multiple samples per group, `.explode()` in `getThresholdingData` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing the quantile calculation toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
+- [ ] **[P1] Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Consequence:** Users cannot get representative distributions across groups; sampling only provides one data point per group regardless of group size, potentially missing important variation patterns in small-volume groups. **Root cause:** With multiple samples per group, `.explode()` in `getThresholdingData` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing quantile calculations toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
 
 ### Medium Priority
 
-- [ ] **Raw IH data support** — Test how well Decision Analyzer works with raw Interaction History data. IH is similar to EE v1 but may lack a few columns; identify gaps and decide whether to support it as a first-class input format or document limitations.
-- [ ] **Refactor `get_offer_quality`** — Uses a manual stage loop; should delegate to `aggregate_remaining_per_stage`.
-- [ ] **Win rank flexibility** — `get_win_loss_distribution_data` has a fixed rank parameter. Return all ranks, let UI filter. Make `max_value` data-driven (not hardcoded 10).
-- [ ] **Handle Mandatory Actions** — Mandatory actions use a special arbitration priority (4999999 or possibly 4999999999 in data) that bypasses normal prioritization. This affects sensitivity analysis, win/loss distributions, and component distributions. See [Pega docs: NBA Strategy Arbitration](https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/nba-strategy-arbitration.html). **Existing support:** `DecisionAnalyzer` already accepts a `mandatory_expr` parameter (a polars expression) to tag issue/group/action combinations as mandatory at init time, and ranking sorts by the resulting `is_mandatory` field before Priority. **Remaining work:** auto-detect mandatory actions from the priority value in the data (instead of requiring an explicit expression), flag/annotate them in the UI, and exclude them from sensitivity analyses (their fixed high priority makes them insensitive to lever changes, skewing results). Also consider excluding or annotating them in component distributions and win/loss analyses.
-- [ ] **Distinct propensity display names** — `column_schema.py` has model propensity and propensity sharing the same display name. Give them distinct names (e.g. "Model Propensity" vs "Propensity") and update PVCL code.
+- [ ] **[P2] Raw IH data support** — Test with raw Interaction History format (similar to EE v1). **Consequence:** Users with only IH data (not EE exports) cannot use the tool, limiting adoption in organizations that haven't migrated to EE. IH may lack columns needed for certain analyses (e.g., component details, treatment info). **Action:** Identify missing columns, test with sample IH data, decide whether to support as first-class format or document limitations and required preprocessing.
+
+- [ ] **[P2] Refactor `get_offer_quality`** — Uses manual stage loop instead of delegating to `aggregate_remaining_per_stage`. **Consequence:** Code duplication increases maintenance burden; inconsistent with other aggregation methods; harder to optimize or extend to new use cases. **Action:** Rewrite to use `aggregate_remaining_per_stage`, verify results match current implementation, update tests.
+
+- [ ] **[P2] Win rank flexibility** — `get_win_loss_distribution_data` has fixed rank parameter and hardcoded `max_value=10`. **Consequence:** Users cannot analyze ranks beyond 10, even when data has higher ranks; UI must make multiple calls to get different ranks; performance impact from redundant processing; artificial limit doesn't match data. **Action:** Return all ranks in single call, let UI filter as needed; compute `max_value` from actual max rank in data (`df.select(pl.col("Rank").max())`).
+
+- [ ] **[P1] Handle Mandatory Actions** — Mandatory actions use special arbitration priority (4999999+) that bypasses normal ranking. **Consequence:** Sensitivity analyses are skewed because mandatory actions never change rank regardless of lever adjustments; win/loss distributions are misleading (mandatory wins look like normal wins); users cannot distinguish mandatory from competitive arbitration outcomes; lever recommendations may be wrong. **Status:** `DecisionAnalyzer` already accepts a `mandatory_expr` parameter to tag issue/group/action combinations as mandatory at init time, and ranking sorts by `is_mandatory` field before Priority. **Remaining work:** (1) Auto-detect from priority value in data (instead of requiring explicit expression), (2) Flag/annotate mandatory actions in all UI visualizations with distinct color/marker, (3) Exclude from sensitivity analysis or show separately, (4) Consider separate treatment in component distributions and win/loss analyses. See [Pega docs: NBA Strategy Arbitration](https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/nba-strategy-arbitration.html).
+
+- [ ] **[P2] Distinct propensity display names** — `column_schema.py` maps model propensity and (final) propensity to same display name. **Consequence:** Users cannot distinguish between raw model output and arbitration-adjusted propensity in UI; confusing for lever analysis where the distinction matters (model propensity is input, final propensity is after lever adjustments); charts and tables ambiguous. **Action:** Use "Model Propensity" for raw model output vs "Final Propensity" for arbitration-adjusted value, update `column_schema.py` and all PVCL references.
 
 ### Low Priority
 
-- [ ] **Pre-aggregated data visualization** — The Infinity Action Analysis feature exports  pre-computed results (sensitivity, funnel data) rather than raw interactions. Could bypass `DecisionAnalyzer` and visualize directly.
-- [ ] **Add treatment to scope hierarchy** — Currently commented out in `ExplainabilityExtract` schema. Requires design decisions about aggregation strategy and user choice. See detailed analysis in "Treatment Support Analysis" section below.
-- [ ] **Customer-level aggregates** — Per-customer stats (postponed; current data not representative).
-- [ ] **AB test: include IA properties** — `getABTestResults` should include Impact Analyzer properties when populated.
-- [ ] **Optimize thresholding quantiles** — Current implementation is verbose and potentially slow.
-- [ ] **Stratified sampling option** — Current `sample` property is random by interaction ID. Consider optional stratification by channel/direction.
-- [ ] **Scale up counts in UI after sampling** — Future enhancement: multiply displayed counts by inverse of sample fraction to show estimated real volumes (metadata infrastructure now in place).
-- [ ] **Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on the full dataset. Investigate polars streaming or chunked processing for GB-scale data.
+- [ ] **[P3] Pre-aggregated data visualization** — The Infinity Action Analysis feature exports pre-computed results (sensitivity, funnel data) rather than raw interactions. **Consequence:** Missed opportunity for faster load times with pre-aggregated data; users must run full pipeline even when Infinity has already done the work. **Action:** Add data loader branch that detects pre-aggregated format and bypasses `DecisionAnalyzer` aggregation, directly feeds plots module.
+
+- [ ] **[P3] Treatment support** — Currently not supported; Treatment column commented out in `ExplainabilityExtract` schema. **Consequence:** Users analyzing treatment-level data (creative variants, channel placements) see duplicated actions with different propensities; all current metrics are wrong for treatment-enabled data (actions counted multiple times, propensity values ambiguous). **Scope:** Affects ~0.6% of data rows; 284 actions with treatments in sample data; each action has 1-16 treatments with varying propensities. **Action:** See detailed analysis below in "Treatment Support Analysis" section. Key decisions needed: (1) aggregation strategy (max propensity vs best rank vs weighted average), (2) UX approach (automatic aggregation vs user choice vs auto-detect prompt), (3) which metrics need treatment-specific handling.
+
+- [ ] **[P3] Customer-level aggregates** — Per-customer statistics and trends. **Consequence:** Cannot analyze customer-level patterns (e.g., "do high-value customers see different action mixes?"); limited to interaction-level view. **Status:** Postponed; current sample data not representative of real customer distributions. **Action:** Wait for representative multi-customer dataset, then design customer aggregation methods.
+
+- [ ] **[P3] AB test: include IA properties** — `getABTestResults` doesn't include Impact Analyzer properties when populated in data. **Consequence:** Users running A/B tests cannot see treatment effects on business outcomes (CTR, conversion, revenue) that IA would provide; limited to arbitration metrics only. **Action:** Extend method to join IA properties when available, add to output dataframe.
+
+- [ ] **[P3] Optimize thresholding quantiles** — Current implementation is verbose and potentially slow on large datasets. **Consequence:** Slight performance overhead in thresholding analysis; code harder to maintain. **Action:** Profile performance, refactor to use vectorized polars operations if measurably faster.
+
+- [ ] **[P3] Stratified sampling option** — Current `sample` property is pure random sampling by interaction ID. **Consequence:** Small channels/directions may be underrepresented or missing entirely in samples; analysis may miss important segments. **Action:** Add optional stratified sampling mode (e.g., `sample_stratified_by=["Channel", "Direction"]`) that ensures proportional representation across specified dimensions.
+
+- [ ] **[P3] Scale up counts in UI after sampling** — When sampling is applied, displayed counts are actual sample counts, not estimates of true volumes. **Consequence:** Users see artificially low numbers that don't reflect reality; can't estimate production impact from sample analysis. **Status:** Metadata infrastructure now in place to track sample fraction. **Action:** Add UI toggle to show "Estimated Full Volume" by multiplying counts by inverse of sample fraction; clearly indicate estimates vs actuals.
+
+- [ ] **[P3] Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on full dataset before aggregation. **Consequence:** Memory pressure on GB-scale datasets; potential OOM crashes; slower than necessary. **Action:** Investigate polars streaming mode or chunked processing to aggregate without full materialization; benchmark memory and speed improvements.
 
 ---
 
 ## Streamlit App — Architecture
 
-- [ ] **Dynamic stage UI** — Mostly data-driven, but some hardcoded stages remain: [8_Optionality_Analysis.py:97-100](../python/pdstools/app/decision_analyzer/pages/8_Optionality_Analysis.py#L97-L100) hardcodes `stage="Output"` for action variation (should use last stage from data or make selectable); [plots.py:439](../python/pdstools/decision_analyzer/plots.py#L439) filters out `"Final"` stage without checking if it exists.
-- [ ] **HC data import alignment** — Health Check still uses its own `import_datamart()` pattern with different labels. Could be aligned.
-- [ ] **Promote `data_read_utils` to pdstools core** — The data-reading facilities in `decision_analyzer/data_read_utils.py` (multi-format ingestion, schema detection, lazy scanning) are generic enough to serve all apps and potentially replace the legacy `readDSExport` family. Evaluate extracting them into `pdstools/pega_io` or a top-level utility module.
+- [ ] **[P2] Dynamic stage UI** — Mostly data-driven, but some hardcoded stages remain. **Consequence:** Tool breaks or shows wrong/empty data when stage names differ from expected values (e.g., customer has "OutputStage" instead of "Output", or no "Final" stage); limits portability across Pega versions and configurations. **Locations:** [8_Optionality_Analysis.py:97-100](../python/pdstools/app/decision_analyzer/pages/8_Optionality_Analysis.py#L97-L100) hardcodes `stage="Output"` for action variation; [plots.py:439](../python/pdstools/decision_analyzer/plots.py#L439) filters `"Final"` stage without checking existence. **Action:** Get all stage names from `DecisionAnalyzer.stages` property, use last stage instead of hardcoded "Output", check stage existence before filtering.
+
+- [ ] **[P3] HC data import alignment** — Health Check uses different `import_datamart()` pattern with different labels than Decision Analyzer's data loader. **Consequence:** Maintenance burden (parallel implementations of similar functionality); confusing code patterns for contributors; harder to share improvements between tools; inconsistent UX (different file type labels, different error messages). **Action:** Evaluate consolidating to common pattern, possibly using `data_read_utils` as shared foundation.
+
+- [ ] **[P3] Promote `data_read_utils` to pdstools core** — The data-reading facilities in `decision_analyzer/data_read_utils.py` (multi-format ingestion, schema detection, lazy scanning) are generic and could serve all apps. **Consequence:** Each app reimplements file reading (duplication in ADM Health Check, Value Finder, Prediction Studio); inconsistent UX across tools; missed optimization opportunities; harder to add new formats. **Action:** Extract to `pdstools/pega_io` or top-level utility module, potentially replacing legacy `readDSExport` family; refactor existing apps to use shared implementation; ensure backward compatibility.
 
 ---
 
 ## Streamlit Pages
 
-### 2 — Global Data Filters
-- [ ] Robustness against heavy filtering (e.g. dropping stages)
-- [ ] Apply filters by default when set
+### Page 2 — Global Data Filters
 
-### 3 — Overview
-- [ ] Speed up first-use (too much computation upfront)
-- [ ] Add Value Finder-style pie chart at arbitration
+- [ ] **[P2] Robustness against heavy filtering** — Aggressive filters (e.g., selecting only one stage, filtering out major channels) can leave downstream pages with empty or invalid data. **Consequence:** Pages crash with cryptic polars errors; users lose work and trust in tool; unclear which filter combination caused the problem. **Action:** Add data validation after filter application; show warning if filters eliminate >95% of data or result in <100 interactions; provide "reset filters" escape hatch on error pages.
 
-### 4 — Action Distribution
-- [ ] Dynamic stages from data
-- [ ] Top-K limiter for bar charts; show all ticks or indicate truncation
-- [ ] Multi-stage selection
+- [ ] **[P3] Apply filters by default when set** — Currently filters are defined but user must manually apply them. **Consequence:** Users may forget to apply filters and analyze wrong data; extra click required; not intuitive. **Action:** Add toggle "Auto-apply filters" (default on) that applies filters immediately when changed; maintain manual "Apply" button for users who want to batch changes.
 
-### 5 — Action Funnel
-- [ ] Toggle between Passing and Filtered perspective
-- [ ] Better coloring for filter components (by type)
-- [ ] Move top-N control from sidebar to section
-- [ ] Component overlap analysis, component impact over time (trend)
+### Page 3 — Overview
 
-### 6 — Global Sensitivity
-- [ ] Infer top-X from data (max rank per channel for Final records)
-- [ ] Win rank upper bound from data, not hardcoded
+- [ ] **[P1] Speed up first-use page load** — First render computes all stage aggregations, metrics, and charts upfront. **Consequence:** 10-30 second wait on large datasets (appears frozen); poor first impression; users may think app crashed; unnecessary computation for tabs user never opens. **Action:** Lazy-load stage-specific metrics only when tabs are opened; show loading spinner with progress indicator; consider background computation with "still loading" indicators; prioritize visible content first.
 
-### 7 — Win/Loss Analysis
-- [ ] Verify numbers (bar charts vs box plots)
-- [ ] Consistent colors across paired charts; fix pale colors for small counts
-- [ ] Handle many channels gracefully
-- [ ] Generalize rank usage across pages
+- [ ] **[P2] Add Value Finder-style pie chart at arbitration** — Users migrating from Value Finder expect this visualization showing win/loss proportions. **Consequence:** Less intuitive for existing VF users; harder to see arbitration impact at a glance; missing familiar visual reference. **Action:** Add pie chart showing % of interactions where top action wins vs loses at arbitration stage, matching VF design; place prominently near arbitration stage metrics.
 
-### 8 — Optionality Analysis
-- [ ] Overlay propensity + priority on optionality plot
-- [ ] Consistent stage color scheme across all plots
+### Page 4 — Action Distribution
 
-### 9 — Offer Quality Analysis
-- [ ] Generalize stage naming, session state cleanup, move logic to class
+- [ ] **[P2] Dynamic stages from data** — Some stage references may still be hardcoded. **Consequence:** Charts break or show empty data when expected stage names differ. **Action:** Audit page for any hardcoded stage names, replace with data-driven stage selection using `DecisionAnalyzer.stages` property.
 
-### 10 — Thresholding Analysis
-- [ ] **Move inline plots to `plots` module** — Three plotly charts ([lines 134-174, 202-209](../python/pdstools/app/decision_analyzer/pages/10_Thresholding_Analysis.py#L134-L174)) defined inline. Extract to reusable functions in `plots.py`.
-- [ ] **Depends on `num_samples = 1`** — Page uses `.explode()` throughout (lines 31-32, 155, 187-188), so it breaks if `num_samples > 1` is ever enabled. See High Priority item above.
+- [ ] **[P2] Top-K limiter for bar charts** — Bar charts with >50 actions are unreadable; x-axis labels overlap. **Consequence:** Cluttered visualizations; can't read action names; poor UX for large action catalogs. **Action:** Add "Show top N" control (default 20, max 50) with sorting options (by volume, by propensity, by win rate); clearly indicate "Showing top 20 of 150 actions" with option to download full data.
 
-### 11 — Arbitration Component Distribution
-- [ ] **EE v1: include all propensity-like properties** — Explainability Extract (v1) has multiple propensity flavors (e.g. model propensity, adjusted propensity) whereas v2 only has one. The component overview and detail views should surface all propensity-like columns for v1 data.
-- [ ] Finish proposition distribution side-by-side view
+- [ ] **[P3] Multi-stage selection** — Currently shows one stage at a time. **Consequence:** Users cannot compare distributions across stages side-by-side; must screenshot or remember values; harder to see how actions drop off through pipeline. **Action:** Add multi-select for stages; show side-by-side bar charts or small multiples layout; ensure colors consistent across stages.
 
-### 11 — Business Lever Analysis *(hidden — needs full rework)*
+### Page 5 — Action Funnel
+
+- [ ] **[P2] Toggle between Passing and Filtered perspective** — Currently shows only actions passing through stages (remaining after filters). **Consequence:** Hard to see filter impact; users can't visualize what was removed; unclear which filters are most restrictive. **Action:** Add toggle "Show: Remaining / Filtered Out / Both" to switch between perspectives; use contrasting colors for passed vs filtered; show filter-specific impact.
+
+- [ ] **[P2] Better coloring for filter components** — All filters use similar colors regardless of type. **Consequence:** Hard to distinguish engagement filters from eligibility filters from suitability filters; cognitive load to parse charts. **Action:** Use consistent color scheme by filter category (e.g., blue for eligibility, orange for suitability, green for engagement); add legend; consider icons for common filter types.
+
+- [ ] **[P3] Move top-N control from sidebar to section** — Top-N action selector is in sidebar, far from affected charts. **Consequence:** Poor UX (control separated from effect); unclear what top-N applies to; sidebar cluttered. **Action:** Move control to inline position above affected charts; make scope clear with label "Show top N actions by final volume".
+
+- [ ] **[P3] Component overlap analysis** — Cannot see which actions are affected by multiple filters simultaneously. **Consequence:** Users don't know if filters are redundant or complementary; can't optimize filter strategy; unclear if filters compound or overlap. **Action:** Add UpSet plot or Sankey diagram showing filter overlap patterns; show "removed by multiple filters" vs "removed by single filter" breakdown.
+
+- [ ] **[P3] Component impact over time** — Filter effectiveness may vary over time (seasonal, campaign-related). **Consequence:** Static view doesn't reveal temporal patterns; can't identify trending issues; miss opportunities to adjust filters based on changing behavior. **Action:** Add time-series trend chart showing filter removal rates over time; allow date range selection; flag significant changes.
+
+### Page 6 — Global Sensitivity
+
+- [ ] **[P2] Infer top-X from data** — Currently uses user-specified top-X value, but optimal value depends on data. **Consequence:** Users don't know what value to pick; may choose too high (noisy results) or too low (miss important actions); inconsistent across datasets. **Action:** Auto-compute from data: use max rank per channel for Final records as default; show data-driven suggestion; explain reasoning in help text.
+
+- [ ] **[P2] Win rank upper bound from data** — Max rank hardcoded in some places (see Core Library item). **Consequence:** Analysis artificially limited; can't see sensitivity for lower-ranked actions even when they exist in data. **Action:** Use `df.select(pl.col("Rank").max())` to set upper bound dynamically; remove hardcoded limits.
+
+### Page 7 — Win/Loss Analysis
+
+- [ ] **[P2] Verify numbers across visualizations** — Bar charts and box plots sometimes show different counts for same data. **Consequence:** Users lose confidence in tool; unclear which number is correct; potential bugs in aggregation logic. **Action:** Audit all metrics computations; ensure bar charts and box plots use identical data sources; add data validation checks; show counts in both views for cross-reference.
+
+- [ ] **[P2] Consistent colors across paired charts** — Win/loss charts use different color schemes; small counts appear in pale, hard-to-see colors. **Consequence:** Hard to visually match across charts; pale colors fail accessibility standards (contrast ratio); poor UX for colorblind users. **Action:** Use shared color palette across all win/loss visualizations; ensure minimum contrast ratio 4.5:1; use patterns/shapes in addition to color for key distinctions.
+
+- [ ] **[P3] Handle many channels gracefully** — With >10 channels, charts become cluttered and slow. **Consequence:** Overlapping labels; cramped layout; slow rendering; hard to find specific channel. **Action:** Add channel filter at top of page; use faceted plots with scrolling; consider grouping low-volume channels as "Other"; add search/filter box for channel selection.
+
+- [ ] **[P3] Generalize rank usage across pages** — Rank selection UI differs between Win/Loss, Sensitivity, and other pages. **Consequence:** Inconsistent UX; users must relearn controls on each page; different defaults may confuse. **Action:** Create shared rank selector component in `da_streamlit_utils.py`; standardize on data-driven default; consistent placement and labeling.
+
+### Page 8 — Optionality Analysis
+
+- [ ] **[P2] Overlay propensity + priority on optionality plot** — Currently shows only counts; component distributions not visible. **Consequence:** Users can't see how propensity/priority correlate with optionality levels; miss insights about whether high-propensity actions have more options; unclear if low optionality is due to poor propensity or filtering. **Action:** Add dual-axis or faceted view showing average propensity and priority alongside optionality distribution; use color gradient for propensity; add toggle to switch between metrics.
+
+- [ ] **[P3] Consistent stage color scheme** — Different plots use different colors for same stages. **Consequence:** Cognitive load to reinterpret colors; harder to track stages across visualizations; looks unprofessional. **Action:** Define canonical stage color palette in `da_streamlit_utils.py` or `plots.py`; use consistently across all optionality plots; document in code.
+
+### Page 9 — Offer Quality Analysis
+
+- [ ] **[P2] Generalize stage naming** — May have hardcoded stage references or assumptions about stage sequence. **Consequence:** Breaks with non-standard stage configurations; not portable across Pega versions. **Action:** Audit for hardcoded stages; use `DecisionAnalyzer.stages` property; make stage selection data-driven.
+
+- [ ] **[P2] Session state cleanup** — Page may store intermediate results in session state unnecessarily. **Consequence:** Session state bloat; stale data persists across page navigation; harder to debug; potential memory leaks. **Action:** Review what's stored in `st.session_state`; remove anything that can be recomputed cheaply; use `@st.cache_data` for expensive computations instead of manual caching.
+
+- [ ] **[P2] Move logic to DecisionAnalyzer class** — Business logic for offer quality calculations may be in Streamlit page code. **Consequence:** Can't reuse logic in other contexts (CLI, reports, tests); harder to test; violates separation of concerns. **Action:** Extract offer quality methods to `DecisionAnalyzer` class; page should only handle UI presentation.
+
+### Page 10 — Thresholding Analysis
+
+- [ ] **[P2] Move inline plots to `plots` module** — Three plotly charts ([lines 134-174, 202-209](../python/pdstools/app/decision_analyzer/pages/10_Thresholding_Analysis.py#L134-L174)) defined inline in page code. **Consequence:** Code duplication if plots reused elsewhere; page file bloated; harder to maintain consistent styling; can't test plots independently. **Action:** Extract to reusable functions in `plots.py` (e.g., `plot_threshold_distribution()`, `plot_threshold_impact()`); page should only configure and display.
+
+- [ ] **[P1] Depends on `num_samples = 1`** — Page uses `.explode()` on samples throughout (lines 31-32, 155, 187-188). **Consequence:** Will break if `num_samples > 1` is ever enabled (see Core Library High Priority item); blocks improvement to sampling strategy. **Action:** Coordinate with `num_samples` fix; update page to handle multiple samples correctly (aggregate before exploding, or use min/max columns).
+
+### Page 11 — Arbitration Component Distribution
+
+- [ ] **[P2] EE v1: include all propensity-like properties** — Explainability Extract v1 has multiple propensity flavors (e.g., model propensity, adjusted propensity, final propensity) whereas v2 only has one. **Consequence:** V1 users miss detailed propensity breakdown; can't analyze lever impact on different propensity stages; reduced value for V1 datasets. **Action:** Detect V1 vs V2 format; for V1, show component distributions for all propensity columns; add tabs or facets to compare model vs adjusted vs final; ensure column_schema properly maps V1 propensity columns.
+
+- [ ] **[P3] Finish proposition distribution side-by-side view** — Partially implemented feature for comparing component distributions across propositions. **Consequence:** Users can only view one proposition at a time; can't compare propensity distributions for similar actions; harder to identify patterns. **Action:** Complete implementation of side-by-side view; allow multi-select of propositions; show overlapping violin/box plots with transparency; add statistical comparison (e.g., KS test for distribution difference).
+
+### Hidden Page — Business Lever Analysis *(needs full rework)*
 
 > **Status:** Page moved to `_stashed/Business_Lever_Analysis.py` as of the `feat/external-user-readiness` branch. Not ready for external users. Before re-enabling, the page needs a thorough redesign.
 >
@@ -95,29 +155,37 @@ Active work items for the Decision Analysis Tool.
 >
 > **To re-enable:** Address the items below, rename the file back to a numbered page (e.g. `11_Business_Lever_Analysis.py`), and renumber About accordingly.
 
-- [ ] Redesign UX: clearer terminology, intuitive controls, side-by-side before/after distributions
-- [ ] Generalize to work across a selection of actions, not just a single action
-- [ ] Refactor lever calculation into `DecisionAnalyzer` class
-- [ ] Use aggregated/sampled data (not raw `decision_data`)
-- [ ] Move plots to `plots` module; clean up session state
-- [ ] Start target win ratio at > 0
-- [ ] Share distribution visualization code with Thresholding Analysis page
-- [ ] Improve lever-finder algorithm robustness and UX
+- [ ] **[P1] Redesign UX** — Current interface is confusing. **Consequence:** Users don't understand what levers do or how to use the page; unclear terminology ("weight" vs "lever" vs "priority"); non-intuitive controls; can't interpret results. **Action:** User research on terminology; redesign with side-by-side before/after distributions; add explanatory text and examples; show clear cause-and-effect; use consistent terms from Pega docs.
+
+- [ ] **[P1] Generalize to action sets** — Currently works on single action only. **Consequence:** Limited utility; users want to adjust levers for groups of actions (e.g., all retention offers); must repeat process for each action; misses cross-action effects. **Action:** Allow multi-select or action group selection; show aggregate impact across selected actions; handle interactions between actions.
+
+- [ ] **[P1] Refactor lever calculation to DecisionAnalyzer** — Lever logic is embedded in Streamlit page. **Consequence:** Can't reuse in other contexts; hard to test; violates architecture; inconsistent with other pages. **Action:** Create `simulate_lever_changes()` method in `DecisionAnalyzer` class; page should only handle UI.
+
+- [ ] **[P2] Use aggregated/sampled data** — Currently uses raw `decision_data`, bypassing normal data flow. **Consequence:** Slow on large datasets; ignores user-selected sample/filters; different behavior from other pages; potential memory issues. **Action:** Use `DecisionAnalyzer.filtered_data` property that respects sampling and filters; consistent with architecture.
+
+- [ ] **[P2] Move plots to plots module** — Charts defined inline. **Consequence:** Code duplication with Thresholding Analysis (similar distribution plots); can't maintain consistent styling; harder to test. **Action:** Extract to `plots.py`, share visualization code with Thresholding Analysis page.
+
+- [ ] **[P3] Start target win ratio at > 0** — Min value for target slider is 0. **Consequence:** Confusing (0% win rate is meaningless); solver may fail or behave unexpectedly with zero target. **Action:** Set min to 1% or 5%; add validation.
+
+- [ ] **[P3] Improve lever-finder algorithm** — Current optimization algorithm is brittle. **Consequence:** May not converge; gives nonsensical lever values; no feedback on why it failed; users lose trust. **Action:** Add constraints (lever values must be realistic); improve solver convergence; show optimization progress; provide fallback if no solution found; explain failure modes.
 
 ---
 
 ## Plots (`plots.py`)
 
-- [ ] **Plotly box sizing** — Multiple box plots ignore size constraints. Adopt the solution from ADM Datamart Plots.
-- [ ] **Legend suppression** — `showlegend=False` not working in some polar/bar charts.
-- [ ] **Hover info** — Add hover showing individual colored totals and total bar in stacked histograms.
-- [ ] **Pie chart stage limit** — Temporary cap at 5 stages; make dynamic.
+- [ ] **[P2] Plotly box sizing** — Multiple box plots ignore size constraints and render too large or too small. **Consequence:** Charts overflow containers on small screens; inconsistent sizing across plots; poor mobile experience; layout breaks. **Action:** Adopt the solution from ADM Datamart Plots (explicit height/width parameters with responsive scaling); audit all box plot calls; test on various screen sizes.
+
+- [ ] **[P3] Legend suppression** — `showlegend=False` parameter not working in some polar/bar charts; legends appear despite being disabled. **Consequence:** Cluttered visualizations when legend is redundant; wastes screen space; inconsistent behavior across chart types. **Action:** Investigate Plotly version-specific workarounds; may need `layout.showlegend=False` instead; test with current Plotly version; document any version-dependent behavior.
+
+- [ ] **[P2] Hover info in stacked histograms** — Stacked bar charts only show individual segment value on hover, not total bar height. **Consequence:** Users must do mental math to get totals; reduced data clarity; poor UX compared to industry standard behavior. **Action:** Add hover template showing both individual segment value and total bar height; format as "Component: X (Y% of total Z)"; ensure works across all stacked charts.
+
+- [ ] **[P3] Pie chart stage limit** — Temporary hardcoded cap at 5 stages to prevent overcrowding. **Consequence:** Tool fails or shows incomplete data with >5 stages; arbitrary limit doesn't match data; unclear to user why stages are missing. **Action:** Make dynamic based on actual stage count; for >5 stages, use donut chart or horizontal bar chart instead; add "show all stages" expansion option; or group low-volume stages as "Other".
 
 ---
 
 ## Data Size & Performance
 
-- [ ] **Data size warning in UI** — Show warning when data exceeds a practical threshold (>500 MB, >5M rows).
+- [ ] **[P2] Data size warning in UI** — No feedback when loading large files; app becomes unresponsive without explanation. **Consequence:** Users load multi-GB files without realizing impact; app freezes or crashes; poor experience with out-of-memory errors; users lose work; no guidance on appropriate data size. **Thresholds:** Warn at >500MB or >5M rows (expect slow performance); strongly discourage >2GB (may fail); show estimated memory usage and expected load time. **Action:** Add size check in data loader with clear warning message; suggest sampling for large files; show progress bar during load; add "memory mode" setting for large datasets (streaming vs full load).
 
 ---
 
@@ -276,5 +344,5 @@ Before implementing, need to:
 ### Related TODO Items
 
 This work relates to:
-- [ ] **Distinct propensity display names** (line 21) — Need to clarify model propensity vs final propensity, especially for treatments
-- [ ] **Handle Mandatory Actions** (line 20) — Mandatory actions may or may not have treatments; ensure aggregation doesn't break mandatory logic
+- **Distinct propensity display names** — Need to clarify model propensity vs final propensity, especially for treatments
+- **Handle Mandatory Actions** — Mandatory actions may or may not have treatments; ensure aggregation doesn't break mandatory logic

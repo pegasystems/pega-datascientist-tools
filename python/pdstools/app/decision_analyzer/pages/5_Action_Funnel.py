@@ -68,6 +68,10 @@ with st.container(border=True):
         offers arriving at each stage (not exiting) — the narrowing funnel reveals where offers drop
         off, helping you spot bottlenecks or overly aggressive filtering.
 
+        The funnel height shows **Average Actions per Interaction** (how many times offers appear per customer
+        interaction on average), while **Reach** indicates what percentage of interactions had at least one
+        offer of that type. Together, these metrics reveal both frequency and penetration of your offers.
+
         Use **Granularity** (sidebar) to analyze at different levels — from high-level offer categories
         (Issue/Group) down to individual actions or treatments.
         """)

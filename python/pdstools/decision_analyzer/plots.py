@@ -375,7 +375,7 @@ class Plot:
             )
             .update_traces(
                 hovertemplate="<b>%{fullData.name}</b><br>"
-                + "Actions per Interaction: %{y:.3f}<br>"
+                + "Average Actions per Interaction: %{y:.1f}<br>"
                 + "Reach: %{customdata[0]:.1f}% of interactions<br>"
                 + "Total Action Occurrences: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
@@ -409,7 +409,7 @@ class Plot:
             .update_traces(
                 hovertemplate="<b>%{y}</b><br>"
                 + "%{fullData.name}<br>"
-                + "Filtered Actions per Interaction: %{x:.3f}<br>"
+                + "Average Filtered Actions per Interaction: %{x:.1f}<br>"
                 + "Filtered Reach: %{customdata[0]:.1f}%<br>"
                 + "Total Filtered: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
