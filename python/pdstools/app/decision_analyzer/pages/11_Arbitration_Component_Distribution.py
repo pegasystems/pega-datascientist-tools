@@ -61,12 +61,12 @@ with st.session_state["sidebar"]:
 # ---------------------------------------------------------------------------
 with st.container(border=True):
     "## Overview — All Components"
-    """
-    A compact violin panel showing every prioritization component at once.
-    The embedded box plot marks the median and interquartile range; the
-    violin shape reveals the full density — skew, bimodality, long tails —
-    that histograms and box plots alone can hide.
-    """
+    st.caption(
+        "A compact violin panel showing every prioritization component at once. "
+        "The embedded box plot marks the median and interquartile range; the "
+        "violin shape reveals the full density — skew, bimodality, long tails — "
+        "that histograms and box plots alone can hide."
+    )
     overview_data = st.session_state.decision_data.all_components_distribution(
         st.session_state.scope,
         stage=st.session_state.stage,
