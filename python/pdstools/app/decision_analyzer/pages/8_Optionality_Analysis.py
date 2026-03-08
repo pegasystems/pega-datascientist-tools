@@ -63,10 +63,10 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
 with st.container(border=True):
     "## Optionality Trend"
 
-    """
-    Showing the number of unique actions over time - so you can spot significant
-    changes in the number of available actions.
-    """
+    st.caption(
+        "Showing the number of unique actions over time - so you can spot significant "
+        "changes in the number of available actions."
+    )
 
     optionality_data_with_trend_per_stage = (
         st.session_state.decision_data.get_optionality_data_with_trend(df=st.session_state.decision_data.sample)
