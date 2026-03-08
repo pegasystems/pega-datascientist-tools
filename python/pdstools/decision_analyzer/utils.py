@@ -1,5 +1,6 @@
 # python/pdstools/decision_analyzer/utils.py
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -528,6 +529,51 @@ def _find_interaction_id_column(columns: set[str]) -> str:
     )
 
 
+def _determine_output_directory(source_path: str | None, output_dir: str | None) -> Path:
+    """Determine the best output directory for cached/sampled files.
+
+    Priority order:
+    1. If output_dir is explicitly provided, use that
+    2. Otherwise, if source_path is a file and its directory is writeable, use that
+    3. Otherwise, fall back to current directory
+
+    Parameters
+    ----------
+    source_path : str | None
+        Path to the source file.
+    output_dir : str | None
+        Explicitly requested output directory (takes precedence if provided).
+
+    Returns
+    -------
+    Path
+        Directory to use for output.
+    """
+    # Explicit output_dir takes precedence
+    if output_dir:
+        return Path(output_dir)
+
+    # Try to use source file's directory if it's a file and writeable
+    if source_path:
+        source = Path(source_path)
+        if source.is_file():
+            parent_dir = source.parent
+            # Check if directory is writeable
+            if parent_dir.exists() and parent_dir.is_dir():
+                try:
+                    # Test writeability by checking permissions
+                    if os.access(parent_dir, os.W_OK):
+                        logger.info("Using source file directory for output: %s", parent_dir)
+                        return parent_dir
+                    else:
+                        logger.debug("Source directory %s is not writeable, using fallback", parent_dir)
+                except Exception as e:
+                    logger.debug("Error checking writeability of %s: %s", parent_dir, e)
+
+    # Fall back to current directory
+    return Path(".")
+
+
 def sample_interactions(
     df: pl.LazyFrame,
     n: int | None = None,
@@ -643,9 +689,12 @@ def prepare_and_save(
     fraction : float, optional
         Fraction of interactions to keep 0.0–1.0 (sampling mode).
     output_dir : str, optional
-        Directory for the output parquet file. Defaults to ``"."``.
+        Directory for the output parquet file. If not provided, defaults to the
+        source file's directory (when source is a file and directory is writeable),
+        otherwise current directory ``"."``.
     source_path : str, optional
-        Path to the original source file for metadata tracking.
+        Path to the original source file for metadata tracking and determining
+        output directory.
 
     Returns
     -------
@@ -774,7 +823,8 @@ def prepare_and_save(
     # Choose prefix based on mode
     prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
 
-    dest = Path(output_dir) if output_dir else Path(".")
+    # Determine output directory: prefer source file's directory if writeable
+    dest = _determine_output_directory(source_path, output_dir)
     dest.mkdir(parents=True, exist_ok=True)
 
     # Build output path with collision avoidance

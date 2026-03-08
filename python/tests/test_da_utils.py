@@ -983,3 +983,59 @@ class TestShouldCacheSource:
         from pdstools.decision_analyzer.utils import should_cache_source
 
         assert should_cache_source("") is False
+
+
+# ---------------------------------------------------------------------------
+# _determine_output_directory
+# ---------------------------------------------------------------------------
+
+
+class TestDetermineOutputDirectory:
+    """Test output directory selection logic for cached/sampled files."""
+
+    def test_explicit_output_dir_takes_precedence(self, tmp_path):
+        from pdstools.decision_analyzer.utils import _determine_output_directory
+
+        source_file = tmp_path / "data" / "source.parquet"
+        source_file.parent.mkdir()
+        source_file.touch()
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        result = _determine_output_directory(str(source_file), str(output_dir))
+        assert result == output_dir
+
+    def test_uses_source_directory_when_file_and_writeable(self, tmp_path):
+        from pdstools.decision_analyzer.utils import _determine_output_directory
+
+        source_file = tmp_path / "data" / "source.parquet"
+        source_file.parent.mkdir()
+        source_file.touch()
+
+        result = _determine_output_directory(str(source_file), None)
+        assert result == source_file.parent
+
+    def test_falls_back_to_current_dir_when_source_is_directory(self, tmp_path):
+        from pdstools.decision_analyzer.utils import _determine_output_directory
+        from pathlib import Path
+
+        source_dir = tmp_path / "data"
+        source_dir.mkdir()
+
+        result = _determine_output_directory(str(source_dir), None)
+        assert result == Path(".")
+
+    def test_falls_back_to_current_dir_when_source_is_none(self):
+        from pdstools.decision_analyzer.utils import _determine_output_directory
+        from pathlib import Path
+
+        result = _determine_output_directory(None, None)
+        assert result == Path(".")
+
+    def test_falls_back_to_current_dir_when_source_nonexistent(self):
+        from pdstools.decision_analyzer.utils import _determine_output_directory
+        from pathlib import Path
+
+        result = _determine_output_directory("/nonexistent/file.parquet", None)
+        assert result == Path(".")
