@@ -374,6 +374,7 @@ class Plot:
                 color_discrete_map=color_map,
             )
             .update_traces(
+                texttemplate="%{y:.1f}",
                 hovertemplate="<b>%{fullData.name}</b><br>"
                 + "Average Actions per Interaction: %{y:.1f}<br>"
                 + "Reach: %{customdata[0]:.1f}% of interactions<br>"
@@ -407,6 +408,7 @@ class Plot:
                 category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
             )
             .update_traces(
+                texttemplate="%{x:.1f}",
                 hovertemplate="<b>%{y}</b><br>"
                 + "%{fullData.name}<br>"
                 + "Average Filtered Actions per Interaction: %{x:.1f}<br>"
