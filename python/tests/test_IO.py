@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import tempfile
 import zipfile
 from io import BytesIO
 
@@ -316,3 +317,36 @@ def test_infer_schema_length_affects_schema_inference(tmp_path):
     # With larger sample, still String but data is correctly loaded
     result_large = pega_io.read_ds_export(str(csv_path), infer_schema_length=200)
     assert len(result_large.collect()) == n_total_rows
+
+
+def test_zip_without_data_json_should_raise_file_not_found():
+    """Test that ZIP without data.json raises FileNotFoundError (not IndexError)."""
+
+    # Create a temporary ZIP file with random files (no data.json)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = os.path.join(tmpdir, "invalid.zip")
+
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            # Add some dummy files that are NOT data.json
+            zf.writestr("image.jpg", b"fake image data")
+            zf.writestr("document.docx", b"fake document")
+            zf.writestr("README.txt", b"some readme")
+
+        # This should raise FileNotFoundError, not IndexError
+        with pytest.raises(FileNotFoundError, match="Cannot find a 'data.json'"):
+            pega_io.read_zipped_file(zip_path)
+
+
+def test_zip_with_nested_data_json():
+    """Test that ZIP with nested folder/data.json works correctly."""
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = os.path.join(tmpdir, "nested.zip")
+
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            # Add nested data.json
+            zf.writestr("some_folder/data.json", b'{"test": "data"}')
+
+        # Should return the BytesIO and extension
+        result = pega_io.read_zipped_file(zip_path)
+        assert result[1] == ".json"

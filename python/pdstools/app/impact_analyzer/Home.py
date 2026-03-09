@@ -32,11 +32,10 @@ show_version_header()
 Analyze A/B test experiments from PDC exports or VBD Scenario Planner Actuals.
 Two data formats are supported — format is auto-detected on upload:
 
-| | **PDC Export** | **VBD Scenario Planner** |
-|---|---|---|
-| Format | JSON/NDJSON | ZIP archive |
-| Source | Pega Decisioning Center | Value-Based Design |
-| Metrics | CTR lift, value lift | Scenario comparison |
+| | **PDC Export** | **VBD Scenario Planner** | **Interaction History** |
+|---|---|---|---|
+| Format | JSON/NDJSON | ZIP archive | TBD - future |
+| Source | Pega Diagnostic Cloud | Pega Infinity | Pega Infinity |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.

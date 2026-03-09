@@ -265,7 +265,7 @@ def read_zipped_file(
             return "data.json"
         # pragma: no cover
         file = [file for file in files if file.endswith("/data.json")]
-        if 0 < len(file) > 1:
+        if len(file) != 1:
             return None
         return file[0]
 
@@ -273,7 +273,7 @@ def read_zipped_file(
         logger.debug("Opened zip file.")
         zfile = get_valid_files(z.namelist())
         logger.debug(f"Opening file {file}")
-        if file is not None:
+        if zfile is not None:
             logger.debug("data.json found.")
             if verbose:
                 print(

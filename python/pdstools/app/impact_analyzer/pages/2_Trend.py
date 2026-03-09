@@ -58,4 +58,4 @@ with st.container(border=True):
         every=granularity,
         return_df=True,
     ).collect()
-    st.dataframe(table, use_container_width=True)
+    st.dataframe(table, width="stretch")
