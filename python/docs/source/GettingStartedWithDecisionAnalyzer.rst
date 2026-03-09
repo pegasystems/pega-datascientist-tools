@@ -175,8 +175,8 @@ CLI Options
 ^^^^^^^^^^^
 
 The ``pdstools decision_analyzer`` command accepts several options to control
-data loading, sampling, and deployment. All options can also be set via
-environment variables (useful for containerised or headless deployments).
+data loading and sampling. All options can also be set via environment variables
+(useful for containerised or headless deployments).
 
 ``--data-path PATH``
    Path to a data file or directory to load on startup.
@@ -188,7 +188,7 @@ environment variables (useful for containerised or headless deployments).
 
 ``--sample VALUE``
    Pre-ingestion interaction sampling for large datasets.
-   Specify an absolute count (e.g. ``100000``) or a percentage
+   Specify an absolute count (e.g. ``100000``, ``100k``, ``1M``) or a percentage
    (e.g. ``10%``). Sampling is done at the interaction level: a random
    subset of interaction IDs is selected and **all rows for each sampled
    interaction are kept**, preserving the complete decision funnel per
@@ -199,14 +199,6 @@ environment variables (useful for containerised or headless deployments).
    Directory for temporary files such as the sampled-data parquet cache.
    Defaults to the current working directory.
    *(env var:* ``PDSTOOLS_TEMP_DIR`` *)*
-
-``--deploy-env ENV``
-   Signal that the app is running on a managed server (e.g. ``ec2``,
-   ``docker``). When set, the data-import UI exposes an additional
-   **File path** option so users can point at data mounted on the server
-   filesystem. The actual value is not interpreted — any non-empty string
-   enables the managed-deployment mode.
-   *(env var:* ``PDSTOOLS_DEPLOY_ENV`` *)*
 
 **Examples:**
 
@@ -224,8 +216,8 @@ environment variables (useful for containerised or headless deployments).
    # Sample 10% of interactions, store temp files in /tmp
    pdstools decision_analyzer --data-path /path/to/data.parquet --sample 10% --temp-dir /tmp
 
-   # Docker / EC2 deployment with S3-mounted data
-   pdstools decision_analyzer --deploy-env ec2 --data-path /s3-files/data
+   # Sample using shorthand notation (1M = 1 million interactions)
+   pdstools decision_analyzer --data-path /path/to/data.parquet --sample 1M
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
@@ -320,6 +312,6 @@ use the ``--sample`` CLI flag to reduce the data before ingestion:
 
 **For more help:**
 
-- Review the `DecisionAnalyzer class documentation <https://pegasystems.github.io/pega-datascientist-tools/autoapi/pdstools/decision_analyzer/decision_data/index.html>`_
+- Review the `DecisionAnalyzer class documentation <autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html>`_
 - Check the `Decision Analysis Tool example <https://pegasystems.github.io/pega-datascientist-tools/articles/decision_analyzer.html>`_
 - Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_
