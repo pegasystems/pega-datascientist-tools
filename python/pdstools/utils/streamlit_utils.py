@@ -164,6 +164,40 @@ def get_temp_dir() -> str | None:
     return os.environ.get("PDSTOOLS_TEMP_DIR")
 
 
+def parse_sample_spec(value: str) -> dict[str, int | float]:
+    """Parse a ``--sample`` flag value into keyword arguments.
+
+    Supports absolute counts (``"100000"``), percentages (``"10%"``),
+    and human-readable notation (``"100k"``, ``"1M"``).
+
+    Returns
+    -------
+    dict
+        Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+    """
+    value = value.strip()
+    if value.endswith("%"):
+        pct = float(value[:-1])
+        if not 0 < pct <= 100:
+            raise ValueError(f"Percentage must be in (0, 100], got {pct}")
+        return {"fraction": pct / 100.0}
+
+    multiplier = None
+    if value.lower().endswith("k"):
+        multiplier = 1000
+    elif value.lower().endswith("m"):
+        multiplier = 1000000
+
+    if multiplier:
+        count = int(float(value[:-1]) * multiplier)
+    else:
+        count = int(value)
+
+    if count <= 0:
+        raise ValueError(f"Sample count must be positive, got {count}")
+    return {"n": count}
+
+
 def get_current_index(options, key, default=0):
     """Get index from session state if key exists and value is in options, else return default."""
     return (

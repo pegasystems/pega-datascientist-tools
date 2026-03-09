@@ -855,36 +855,11 @@ def prepare_and_save(
 def parse_sample_flag(value: str) -> dict[str, int | float]:
     """Parse the ``--sample`` CLI flag value into keyword arguments.
 
-    Supports absolute counts (``"100000"``), percentages (``"10%"``),
-    and human-readable notation (``"100k"``, ``"1M"``).
-
-    Returns
-    -------
-    dict
-        Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+    Delegates to :func:`pdstools.utils.streamlit_utils.parse_sample_spec`.
     """
-    value = value.strip()
-    if value.endswith("%"):
-        pct = float(value[:-1])
-        if not 0 < pct <= 100:
-            raise ValueError(f"Percentage must be in (0, 100], got {pct}")
-        return {"fraction": pct / 100.0}
+    from pdstools.utils.streamlit_utils import parse_sample_spec
 
-    # Parse human-readable notation (k/K for thousands, m/M for millions)
-    multiplier = None
-    if value.lower().endswith("k"):
-        multiplier = 1000
-    elif value.lower().endswith("m"):
-        multiplier = 1000000
-
-    if multiplier:
-        count = int(float(value[:-1]) * multiplier)
-    else:
-        count = int(value)
-
-    if count <= 0:
-        raise ValueError(f"Sample count must be positive, got {count}")
-    return {"n": count}
+    return parse_sample_spec(value)
 
 
 def format_count_for_filename(count: int) -> str:
