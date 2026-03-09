@@ -111,7 +111,12 @@ def _show_data_summary(ia, is_sample_data: bool = False):
     """Display a summary banner for the loaded ImpactAnalyzer."""
     try:
         schema_names = set(ia.ia_data.collect_schema().names())
-        if "MktValue" in schema_names and "OutcomeTime" in schema_names:
+        # Check for VBD-specific columns after from_vbd() processing
+        # (MktValue becomes ControlGroup, OutcomeTime becomes SnapshotTime,
+        # and VBD data has Application, Value, Outcome columns)
+        has_vbd_markers = {"Application", "Value", "Outcome"}.issubset(schema_names)
+
+        if has_vbd_markers:
             format_label = "**VBD Scenario Planner**"
         else:
             format_label = "**PDC Export**"
