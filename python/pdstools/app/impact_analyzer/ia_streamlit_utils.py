@@ -66,6 +66,57 @@ def load_pdc_from_uploads(uploaded_files: Iterable) -> ImpactAnalyzer:
     return load_pdc_from_paths(tuple(paths))
 
 
+def _detect_file_format(uploaded_file) -> str:
+    """Detect if file is PDC or VBD format by examining content.
+
+    Returns: "pdc", "vbd", or "unknown"
+    """
+    import json
+
+    # Read first few lines to detect format
+    uploaded_file.seek(0)
+    first_bytes = uploaded_file.read(500)
+    uploaded_file.seek(0)
+
+    try:
+        first_line = first_bytes.decode("utf-8", errors="ignore").split("\n")[0]
+
+        # Try to parse first line as JSON
+        first_obj = json.loads(first_line)
+
+        # PDC format has pxResults at top level
+        if "pxResults" in first_obj:
+            return "pdc"
+
+        # VBD format (unzipped) has columns like OutcomeTime, MktValue, Channel, etc.
+        vbd_indicators = {"OutcomeTime", "MktValue", "Channel", "AggregateCount", "Outcome"}
+        if vbd_indicators.intersection(first_obj.keys()):
+            return "vbd"
+
+    except (json.JSONDecodeError, UnicodeDecodeError, IndexError):
+        pass
+
+    return "unknown"
+
+
+def load_from_upload_auto(uploaded_file) -> ImpactAnalyzer | None:
+    """Load Impact Analyzer data with automatic format detection."""
+    format_type = _detect_file_format(uploaded_file)
+
+    if format_type == "pdc":
+        return load_pdc_from_uploads([uploaded_file])
+    elif format_type == "vbd":
+        return load_vbd_from_upload(uploaded_file)
+    else:
+        # Fall back to extension-based detection
+        suffix = Path(uploaded_file.name).suffix.lower()
+        if suffix == ".zip":
+            return load_vbd_from_upload(uploaded_file)
+        else:
+            # Try PDC as default for .json/.ndjson
+            return load_pdc_from_uploads([uploaded_file])
+
+
 @st.cache_resource
 def load_vbd_from_path(path: str) -> ImpactAnalyzer | None:
     return ImpactAnalyzer.from_vbd(path)

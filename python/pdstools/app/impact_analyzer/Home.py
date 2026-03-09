@@ -6,9 +6,9 @@ import streamlit as st
 
 from pdstools.app.impact_analyzer.ia_streamlit_utils import (
     handle_data_path_ia,
+    load_from_upload_auto,
     load_pdc_from_uploads,
     load_sample_pdc,
-    load_vbd_from_upload,
     prepare_and_save_random,
 )
 from pdstools.utils.streamlit_utils import (
@@ -84,16 +84,30 @@ def _load_with_warning(loader, label: str, *, expected_input_cols=None):
             st.warning(
                 f"{label} data is missing required columns: {', '.join(sorted(required_cols))}. {message}",
             )
-        elif "unable to find column" in message and expected_input_cols:
-            st.warning(
-                f"{label} data is missing expected input columns: {', '.join(sorted(expected_input_cols))}. {message}",
+        elif "unable to find column" in message:
+            # Extract the missing column name from the error message
+            import re
+
+            match = re.search(r'unable to find column "([^"]+)"', message)
+            missing_col = match.group(1) if match else "unknown"
+
+            # Use expected_input_cols if provided, otherwise default to VBD required columns
+            required_cols_list = expected_input_cols or VBD_REQUIRED_COLS
+            required_cols_str = ", ".join(f"`{col}`" for col in sorted(required_cols_list))
+
+            st.error(
+                f"**Cannot load this data** — missing required column: `{missing_col}`\n\n"
+                "Impact Analyzer requires VBD data from **Scenario Planner Actuals** exports, "
+                "which include control group information (`MktValue`). Standard VBD Actuals exports "
+                "don't contain this data.\n\n"
+                f"**Required columns:** {required_cols_str}"
             )
         else:
             st.warning(f"Unable to load {label} data. {message}")
         return None
 
 
-def _show_data_summary(ia):
+def _show_data_summary(ia, is_sample_data: bool = False):
     """Display a summary banner for the loaded ImpactAnalyzer."""
     try:
         schema_names = set(ia.ia_data.collect_schema().names())
@@ -109,11 +123,16 @@ def _show_data_summary(ia):
         channels = (
             ia.ia_data.select(pl.col("Channel").n_unique()).collect().item() if "Channel" in schema_names else "N/A"
         )
-        st.success(
-            f"Data loaded successfully. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels"
-        )
+
+        if is_sample_data:
+            prefix = "Sample data loaded"
+        else:
+            prefix = "Data loaded successfully"
+
+        st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
     except Exception:
-        st.success(f"Data loaded successfully. Detected format: {format_label}")
+        prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
+        st.success(f"{prefix}. Detected format: {format_label}")
 
 
 # --- Data loading priority chain: upload > CLI path > sample ---
@@ -121,31 +140,52 @@ def _show_data_summary(ia):
 # File upload — always visible
 uploaded_files = st.file_uploader(
     "Upload Impact Analyzer data",
-    type=["json", "ndjson", "zip"],
     accept_multiple_files=True,
 )
 
 impact_analyzer = None
 data_source_path = None
+is_sample_data = False
 
 # 1. Handle file upload
 if uploaded_files:
-    suffixes = {Path(f.name).suffix.lower() for f in uploaded_files}
-    if suffixes.issubset({".json", ".ndjson"}):
-        with st.spinner("Loading PDC data"):
-            impact_analyzer = _load_with_warning(
-                lambda: load_pdc_from_uploads(uploaded_files),
-                "PDC",
-            )
-    elif len(uploaded_files) == 1 and ".zip" in suffixes:
-        with st.spinner("Loading VBD data"):
-            impact_analyzer = _load_with_warning(
-                lambda: load_vbd_from_upload(uploaded_files[0]),
-                "VBD",
-                expected_input_cols=VBD_REQUIRED_COLS,
-            )
+    # Clear any old data when new upload is attempted
+    if "impact_analyzer" in st.session_state:
+        del st.session_state["impact_analyzer"]
+    if "ia_is_sample_data" in st.session_state:
+        del st.session_state["ia_is_sample_data"]
+
+    # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
+    valid_suffixes = {".json", ".ndjson", ".zip"}
+    filtered_files = [
+        f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
+    ]
+
+    if not filtered_files:
+        st.error(
+            "No valid data files found. Upload JSON/NDJSON (PDC) or ZIP (VBD) files. "
+            "If you dragged a folder, try uploading just the `data.json` file instead."
+        )
     else:
-        st.error("Upload JSON/NDJSON (PDC) or a single ZIP (VBD).")
+        suffixes = {Path(f.name).suffix.lower() for f in filtered_files}
+
+        # Single file: use auto-detection
+        if len(filtered_files) == 1:
+            with st.spinner("Loading data (auto-detecting format)..."):
+                impact_analyzer = _load_with_warning(
+                    lambda: load_from_upload_auto(filtered_files[0]),
+                    "uploaded",
+                    expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
+                )
+        # Multiple JSON files: treat as PDC
+        elif suffixes.issubset({".json", ".ndjson"}):
+            with st.spinner("Loading PDC data"):
+                impact_analyzer = _load_with_warning(
+                    lambda: load_pdc_from_uploads(filtered_files),
+                    "PDC",
+                )
+        else:
+            st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
 
 # 2. Handle --data-path CLI flag
 has_existing_data = "impact_analyzer" in st.session_state
@@ -166,6 +206,7 @@ if impact_analyzer is None and not has_existing_data and not uploaded_files:
     with st.spinner("Loading sample PDC data"):
         impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
     if impact_analyzer is not None:
+        is_sample_data = True
         st.info(
             "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
         )
@@ -207,6 +248,9 @@ if impact_analyzer is not None and sample_limit_raw:
 # Store data and show summary
 if impact_analyzer is not None:
     st.session_state["impact_analyzer"] = impact_analyzer
-    _show_data_summary(impact_analyzer)
-elif has_existing_data:
-    _show_data_summary(st.session_state["impact_analyzer"])
+    st.session_state["ia_is_sample_data"] = is_sample_data
+    _show_data_summary(impact_analyzer, is_sample_data=is_sample_data)
+elif "impact_analyzer" in st.session_state:
+    # Show summary for previously loaded data (only if no upload was attempted)
+    was_sample = st.session_state.get("ia_is_sample_data", False)
+    _show_data_summary(st.session_state["impact_analyzer"], is_sample_data=was_sample)
