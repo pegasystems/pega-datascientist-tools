@@ -4,19 +4,25 @@ import streamlit as st
 from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
 from pdstools.utils.streamlit_utils import standard_page_config
 
-standard_page_config(page_title="Impact Analyzer - Overall Summary")
+standard_page_config(page_title="Impact Analyzer · Overall Summary")
 
-ensure_impact_analyzer()
+ia = ensure_impact_analyzer()
 
-ia = st.session_state["impact_analyzer"]
+"# Overall Summary"
 
 """
-# Overall Summary
-
-This page shows lift metrics aggregated across all channels.
+View lift metrics aggregated across all channels. This page shows the overall
+impact of your experiments, comparing treatment vs control groups.
 """
 
-with st.expander("Display options", expanded=True):
+with st.container(border=True):
+    "## Display Options"
+
+    st.caption(
+        "Select which metric to visualize. CTR Lift shows the relative improvement "
+        "in click-through rates, while Value Lift shows the impact on business value."
+    )
+
     metric = st.selectbox(
         "Metric",
         options=["CTR_Lift", "Value_Lift"],
@@ -25,8 +31,18 @@ with st.expander("Display options", expanded=True):
 
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
 
-fig = ia.plot.overview(metric=metric, facet=facet)
-st.plotly_chart(fig, use_container_width=True)
+with st.container(border=True):
+    "## Lift Overview"
 
-table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
-st.dataframe(table)
+    st.caption("Interactive chart showing lift metrics. Hover for details, click and drag to zoom.")
+
+    fig = ia.plot.overview(metric=metric, facet=facet)
+    st.plotly_chart(fig, width="stretch")
+
+with st.container(border=True):
+    "## Detailed Metrics"
+
+    st.caption("Tabular view of lift metrics with exact values. Use this for detailed analysis and reporting.")
+
+    table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
+    st.dataframe(table, use_container_width=True)
