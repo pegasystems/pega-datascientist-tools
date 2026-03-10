@@ -1,4 +1,6 @@
 # python/pdstools/app/impact_analyzer/pages/2_Trend.py
+import re
+
 import streamlit as st
 
 from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
@@ -28,11 +30,29 @@ with st.container(border=True):
         options=["CTR_Lift", "Value_Lift"],
         index=0,
     )
-    granularity = st.text_input(
-        "Granularity",
-        value="1d",
-        help="Examples: 1d, 1w, 1mo, 2mo",
-    ).strip()
+    granularity = (
+        st.text_input(
+            "Granularity",
+            value="1d",
+            help="Examples: 1d, 1w, 1mo, 2mo, 1y",
+        )
+        .strip()
+        .lower()
+    )
+
+
+def _is_valid_granularity(value: str) -> bool:
+    """Validate Polars duration syntax accepted by group_by_dynamic()."""
+    return bool(re.fullmatch(r"[1-9]\d*(y|mo|q|w|d|h|m|s|ms|us|ns)", value))
+
+
+if not _is_valid_granularity(granularity):
+    st.warning(
+        "Invalid granularity. Use a positive integer followed by a unit: "
+        "`y`, `mo`, `q`, `w`, `d`, `h`, `m`, `s`, `ms`, `us`, or `ns` "
+        "(for example `1d`, `1w`, `2mo`)."
+    )
+    st.stop()
 
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
 
