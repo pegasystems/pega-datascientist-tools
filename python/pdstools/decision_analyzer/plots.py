@@ -120,13 +120,8 @@ class Plot:
         if return_df:
             return df
 
-        # Create consistent color mapping for the selected level
-        # Get all unique values for the level across all stages to ensure consistency
-        all_stages_data = self._decision_data.getPreaggregatedRemainingView
-        unique_values = all_stages_data.select(level).unique().collect().get_column(level).sort().to_list()
-
-        # Create color mapping using imported Pega colorway
-        color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
+        # Use consistent color mapping from the DecisionAnalyzer instance
+        color_discrete_map = self._decision_data.color_mappings.get(level, {})
 
         # Collect and split data into wins and losses
         df_collected = df.collect()
