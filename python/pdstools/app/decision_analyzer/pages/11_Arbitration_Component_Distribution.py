@@ -14,7 +14,7 @@ from da_streamlit_utils import (
 from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
 
 
-"# Arbitration Component Distribution"
+"# Arbitration Distribution"
 
 """
 Analyze the distribution of prioritization components. Since prioritization
