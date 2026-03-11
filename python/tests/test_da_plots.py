@@ -204,6 +204,15 @@ class TestActionVariation:
         df = plot_v2.action_variation(stage="Output", return_df=True)
         assert isinstance(df, pl.LazyFrame)
 
+    def test_action_variation_with_color_by(self, plot_v2):
+        """Test action variation plot with color_by parameter."""
+        fig = plot_v2.action_variation(stage="Output", color_by="Channel/Direction")
+        assert isinstance(fig, Figure)
+        # Verify the figure has at least one trace
+        assert len(fig.data) >= 1
+        # Verify the legend title matches the color_by dimension
+        assert fig.layout.legend.title.text == "Channel/Direction"
+
 
 class TestTrendChart:
     """Test trend_chart method."""

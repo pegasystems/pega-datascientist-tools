@@ -521,6 +521,21 @@ class TestActionVariation:
         last_fraction = df["DecisionsFraction"][-1]
         assert abs(last_fraction - 1.0) < 0.01
 
+    def test_action_variation_with_color_by(self, da_v1):
+        df = da_v1.getActionVariationData(stage="Arbitration", color_by="Channel/Direction").collect()
+        assert df.height > 0
+        assert "Channel/Direction" in df.columns
+        assert "ActionIndex" in df.columns
+        assert "DecisionsFraction" in df.columns
+        # Verify each group starts at zero and has proper fractions
+        for group in df["Channel/Direction"].unique():
+            group_df = df.filter(pl.col("Channel/Direction") == group)
+            # Each group should have its own zero point
+            assert group_df["ActionIndex"].min() == 0
+            # Each group should end at or near 1.0
+            max_fraction = group_df["DecisionsFraction"].max()
+            assert abs(max_fraction - 1.0) < 0.01
+
 
 # ---------------------------------------------------------------------------
 # Re-ranking

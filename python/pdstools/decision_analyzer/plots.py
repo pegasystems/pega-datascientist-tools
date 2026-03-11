@@ -292,15 +292,29 @@ class Plot:
         )
         return fig
 
-    def action_variation(self, stage="Final", return_df=False):
-        df = self._decision_data.getActionVariationData(stage)
+    def action_variation(self, stage="Final", color_by=None, return_df=False):
+        """Plot action variation (Lorenz curve showing action concentration).
+
+        Args:
+            stage: Stage to analyze
+            color_by: Optional dimension to color by (e.g., "Channel/Direction")
+            return_df: If True, return the data instead of the figure
+        """
+        df = self._decision_data.getActionVariationData(stage, color_by=color_by)
         if return_df:
             return df
+
+        color_discrete_map = None
+        if color_by is not None:
+            color_discrete_map = self._decision_data.color_mappings.get(color_by)
+
         return (
             px.line(
                 df.collect(),
                 y="DecisionsFraction",
                 x="ActionsFraction",
+                color=color_by,
+                color_discrete_map=color_discrete_map,
                 template="pega",
             )
             .update_yaxes(

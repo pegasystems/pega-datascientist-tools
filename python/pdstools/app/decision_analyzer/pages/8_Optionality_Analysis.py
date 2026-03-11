@@ -106,9 +106,12 @@ with st.container(border=True):
     )
 
     # Offer Variation uses Output stage and is intentionally excluded from
-    # channel filtering to show global variation.
+    # channel filtering to show global variation, colored by Channel/Direction.
     st.plotly_chart(
-        st.session_state.decision_data.plot.action_variation(stage="Output"),
+        st.session_state.decision_data.plot.action_variation(
+            stage="Output",
+            color_by="Channel/Direction",
+        ),
     )
     action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
     st.caption(
