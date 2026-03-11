@@ -1,4 +1,4 @@
-# python/pdstools/app/decision_analyzer/pages/10_Arbitration_Component_Distribution.py
+# python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
