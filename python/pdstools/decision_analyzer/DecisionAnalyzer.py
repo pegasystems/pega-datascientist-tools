@@ -341,6 +341,67 @@ class DecisionAnalyzer:
         self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
     @cached_property
+    def color_mappings(self) -> dict[str, dict[str, str]]:
+        """Compute consistent color mappings for all categorical dimensions.
+
+        Color assignments are based on all unique values in the full dataset
+        (before sampling), sorted alphabetically. This ensures colors remain
+        consistent throughout the session regardless of filtering.
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            Nested dictionary mapping dimension names to color dictionaries.
+            Example: {
+                "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
+            }
+
+        Notes
+        -----
+        Uses @cached_property so computation happens once on first access.
+        Colors are assigned from the Pega colorway using modulo indexing.
+        """
+        from ..utils.pega_template import colorway
+
+        # Categorical columns that are used for plot coloring
+        categorical_columns = [
+            "Issue",
+            "Group",
+            "Action",
+            "Treatment",
+            "Channel",
+            "Direction",
+            "Stage Group",
+            "Stage",
+        ]
+
+        mappings = {}
+        schema = self.decision_data.collect_schema().names()
+
+        for col_name in categorical_columns:
+            # Skip if column doesn't exist in this dataset
+            if col_name not in schema:
+                continue
+
+            # Get all unique values, sorted alphabetically for determinism
+            unique_values = (
+                self.decision_data.select(pl.col(col_name).unique())
+                .collect()
+                .get_column(col_name)
+                .drop_nulls()
+                .sort()
+                .to_list()
+            )
+
+            # Assign colors from colorway using modulo indexing
+            color_map = {str(val): colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
+
+            mappings[col_name] = color_map
+
+        return mappings
+
+    @cached_property
     def stages_from_arbitration_down(self):
         """All stages from Arbitration onward, respecting the current level.
 
