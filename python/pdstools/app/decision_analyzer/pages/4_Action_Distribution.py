@@ -56,7 +56,6 @@ with st.container(border=True):
             stage=st.session_state.stage,
             scope_options=scope_options,
         ),
-        width="stretch",
     )
 
 if "scope" not in st.session_state:
@@ -79,7 +78,6 @@ with st.container(border=True):
         st.warning(warning_message)
     st.plotly_chart(
         fig,
-        width="stretch",
     )
 
     scope_index = get_current_index(scope_options, "scope")

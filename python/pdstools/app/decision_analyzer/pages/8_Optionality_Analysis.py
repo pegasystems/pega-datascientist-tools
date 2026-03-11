@@ -56,7 +56,6 @@ with st.container(border=True):
             stage=st.session_state.get("optionality_stage", "Arbitration"),
             df=filtered_data,
         ),
-        width="stretch",
     )
 
     st.caption(
@@ -71,7 +70,6 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
         if st.session_state.decision_data.extract_type == "decision_analyzer":
             st.plotly_chart(
                 st.session_state.decision_data.plot.optionality_funnel(df=filtered_data),
-                width="stretch",
             )
 
 
@@ -97,7 +95,6 @@ with st.container(border=True):
         st.warning(warning)
     st.plotly_chart(
         fig,
-        width="stretch",
     )
 
 with st.container(border=True):
@@ -112,7 +109,6 @@ with st.container(border=True):
     # channel filtering to show global variation.
     st.plotly_chart(
         st.session_state.decision_data.plot.action_variation(stage="Output"),
-        width="stretch",
     )
     action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
     st.caption(

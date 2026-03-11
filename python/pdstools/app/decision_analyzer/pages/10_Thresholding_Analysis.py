@@ -147,7 +147,7 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(propensity_hist, width="stretch")
+        st.plotly_chart(propensity_hist)
 
     with col2:
         prio_data = (
@@ -171,7 +171,7 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(priority_hist, width="stretch")
+        st.plotly_chart(priority_hist)
 
 # ---------------------------------------------------------------------------
 # Section 3: Distribution of surviving actions above both thresholds
@@ -208,4 +208,4 @@ with st.container(border=True):
         )
         fig.update_xaxes(tickangle=45, automargin=True, title="")
         fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig)

@@ -96,7 +96,6 @@ with st.container(border=True):
             AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
             level=st.session_state.decision_data.level,
         ),
-        width="stretch",
     )
 
 with st.container(border=True):
@@ -111,5 +110,4 @@ with st.container(border=True):
 
     st.plotly_chart(
         getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
-        width="stretch",
     )

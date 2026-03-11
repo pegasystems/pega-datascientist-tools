@@ -156,7 +156,6 @@ if st.session_state.local_filters != []:
                 horizontal=True,
                 # models=models,
             ),
-            width="stretch",
             key="win_distribution_chart",
         )
 
@@ -175,7 +174,6 @@ if st.session_state.local_filters != []:
                 "Decisions",
                 horizontal=True,
             ),
-            width="stretch",
             key="loss_distribution_chart",
         )
 
@@ -194,7 +192,6 @@ if st.session_state.local_filters != []:
             st.session_state.decision_data.plot.sensitivity(
                 reference_group=st.session_state["local_filters"],
             ),
-            width="stretch",
             key="sensitivity_chart",
         )
     "## Comparison: Your Group vs Others"
@@ -213,7 +210,6 @@ if st.session_state.local_filters != []:
     if fig is not None:
         st.plotly_chart(
             fig,
-            width="stretch",
             key="prio_factor_boxplots_chart",
         )
 
@@ -228,7 +224,6 @@ if st.session_state.local_filters != []:
         st.session_state.decision_data.plot.rank_boxplot(
             reference=st.session_state["local_filters"],
         ),
-        width="stretch",
         key="rank_boxplot_chart",
     )
 else:

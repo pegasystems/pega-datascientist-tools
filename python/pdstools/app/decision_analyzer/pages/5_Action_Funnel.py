@@ -74,13 +74,11 @@ with st.container(border=True):
         )
         st.plotly_chart(
             remanining_funnel,
-            width="stretch",
         )
 
     with filtered_tab:
         st.plotly_chart(
             filtered_funnel,
-            width="stretch",
         )
 
 """
@@ -148,7 +146,7 @@ if has_components:
             top_n=impact_top_n,
             scope=st.session_state.scope,
         )
-        st.plotly_chart(impact_fig, width="stretch")
+        st.plotly_chart(impact_fig)
 
     # ---------------------------------------------------------------------------
     # Component Drilldown
@@ -193,7 +191,7 @@ if has_components:
                 component_name=selected_component,
                 sort_by=sort_by,
             )
-            st.plotly_chart(drilldown_fig, width="stretch")
+            st.plotly_chart(drilldown_fig)
 
             # Also show the raw data table with readable column names
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(
