@@ -2,6 +2,7 @@
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
+    channel_direction_selector,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
@@ -21,6 +22,20 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     stage_level_selector()
+    channel_direction_selector()
+
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.count()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
 
 with st.container(border=True):
     "## Optionality"
@@ -39,7 +54,7 @@ with st.container(border=True):
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
             stage=st.session_state.get("optionality_stage", "Arbitration"),
-            df=st.session_state.decision_data.sample,
+            df=filtered_data,
         ),
         width="stretch",
     )
@@ -55,7 +70,7 @@ if st.session_state.decision_data.extract_type != "explainability_extract":
         "Distribution of Available action by Stage"
         if st.session_state.decision_data.extract_type == "decision_analyzer":
             st.plotly_chart(
-                st.session_state.decision_data.plot.optionality_funnel(df=st.session_state.decision_data.sample),
+                st.session_state.decision_data.plot.optionality_funnel(df=filtered_data),
                 width="stretch",
             )
 
@@ -69,7 +84,7 @@ with st.container(border=True):
     )
 
     optionality_data_with_trend_per_stage = (
-        st.session_state.decision_data.get_optionality_data_with_trend(df=st.session_state.decision_data.sample)
+        st.session_state.decision_data.get_optionality_data_with_trend(df=filtered_data)
         .group_by(["day", st.session_state.decision_data.level])
         .agg(nOffers=pl.col("nOffers").max())
         .sort("day")
@@ -93,6 +108,8 @@ with st.container(border=True):
         "is there a lot of variation in what we are offering?"
     )
 
+    # Offer Variation uses Output stage and is intentionally excluded from
+    # channel filtering to show global variation.
     st.plotly_chart(
         st.session_state.decision_data.plot.action_variation(stage="Output"),
         width="stretch",
