@@ -100,7 +100,8 @@ extend-select = [
 asyncio_mode = "auto"
 addopts = "--strict-markers"
 markers = [
-    "slow: marks tests as slow (report generation, integration tests)"
+    "slow: marks tests as slow (report generation, integration tests)",
+    "ui: UI tests requiring a running Streamlit app and Playwright (deselect with '-m \"not ui\"')",
 ]
 
 [tool.mypy]

@@ -4,6 +4,7 @@ import io
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
+    channel_direction_selector,
     ensure_data,
     ensure_funnel,
     get_current_index,
@@ -39,8 +40,13 @@ def decision_funnel(
     scope,
     level=None,
     return_df=False,
+    channel_filter=None,
 ):
-    return st.session_state.decision_data.plot.decision_funnel(scope=scope, return_df=return_df)
+    return st.session_state.decision_data.plot.decision_funnel(
+        scope=scope,
+        return_df=return_df,
+        additional_filters=channel_filter,
+    )
 
 
 st.session_state["sidebar"] = st.sidebar
@@ -58,7 +64,22 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
+    channel_direction_selector()
 
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 with st.container(border=True):
     remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
@@ -71,16 +92,15 @@ with st.container(border=True):
         remanining_funnel, filtered_funnel = decision_funnel(
             scope=st.session_state.scope,
             level=st.session_state.decision_data.level,
+            channel_filter=channel_filter,
         )
         st.plotly_chart(
             remanining_funnel,
-            width="stretch",
         )
 
     with filtered_tab:
         st.plotly_chart(
             filtered_funnel,
-            width="stretch",
         )
 
 """
@@ -148,7 +168,7 @@ if has_components:
             top_n=impact_top_n,
             scope=st.session_state.scope,
         )
-        st.plotly_chart(impact_fig, width="stretch")
+        st.plotly_chart(impact_fig)
 
     # ---------------------------------------------------------------------------
     # Component Drilldown
@@ -193,7 +213,7 @@ if has_components:
                 component_name=selected_component,
                 sort_by=sort_by,
             )
-            st.plotly_chart(drilldown_fig, width="stretch")
+            st.plotly_chart(drilldown_fig)
 
             # Also show the raw data table with readable column names
             drilldown_df = st.session_state.decision_data.getComponentDrilldown(

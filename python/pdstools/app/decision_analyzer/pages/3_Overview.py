@@ -85,7 +85,6 @@ with col1:
             st.session_state.decision_data.plot.propensity_vs_optionality(best_stage_for_overview).update_layout(
                 showlegend=False, height=300
             ),
-            width="stretch",
         )
     else:
         st.warning(
@@ -109,7 +108,6 @@ with col2:
             ).update_layout(
                 height=300,
             ),
-            width="stretch",
         )
     else:
         st.warning(
@@ -155,7 +153,6 @@ with col2:
                     propensityTH=propensityTH,
                     level="Stage Group",
                 ),
-                width="stretch",
             )
         else:
             st.warning("Offer quality analysis requires propensity and priority thresholds.")

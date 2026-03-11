@@ -581,6 +581,87 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     return pl.concat(frames, how="diagonal", rechunk=True), None
 
 
+def get_available_channel_directions(sample_df: pl.LazyFrame) -> list[str]:
+    """Get list of Channel/Direction combinations from the sample data.
+
+    Handles both v2 data (with Direction) and v1 data (Channel only).
+    Respects any filters already applied to the sample (e.g., global filters).
+
+    Parameters
+    ----------
+    sample_df : pl.LazyFrame
+        The sample data (after global filters applied).
+
+    Returns
+    -------
+    list[str]
+        Sorted list of "Channel/Direction" strings for v2 data,
+        or sorted list of "Channel" strings for v1 data,
+        or empty list if no channel data available.
+    """
+    schema = sample_df.collect_schema().names()
+
+    if "Direction" in schema:
+        combos = sample_df.select(pl.struct("Channel", "Direction")).unique().collect().to_series().to_list()
+        return sorted([f"{c['Channel']}/{c['Direction']}" for c in combos])
+    elif "Channel" in schema:
+        channels = sample_df.select("Channel").unique().collect().to_series().to_list()
+        return sorted(channels)
+    else:
+        return []
+
+
+def _update_channel_filter():
+    """Callback to update filter expression when channel selection changes."""
+    selected = st.session_state._channel_direction_widget
+    st.session_state.page_channel_filter = selected
+
+    if selected == "Any":
+        st.session_state.page_channel_expr = None
+    else:
+        if "/" in selected:
+            channel, direction = selected.split("/", 1)
+            st.session_state.page_channel_expr = (pl.col("Channel") == channel) & (pl.col("Direction") == direction)
+        else:
+            st.session_state.page_channel_expr = pl.col("Channel") == selected
+
+
+def channel_direction_selector():
+    """Render channel/direction selector in sidebar.
+
+    Stores selection in st.session_state.page_channel_filter (UI value)
+    and st.session_state.page_channel_expr (Polars filter expression).
+    The filter is applied via DecisionAnalyzer.filtered_sample property.
+    """
+    da = st.session_state.decision_data
+
+    available = get_available_channel_directions(da.sample)
+
+    if not available:
+        st.warning("No channel data available with current global filters.")
+        st.session_state.page_channel_filter = "Any"
+        st.session_state.page_channel_expr = None
+        return
+
+    current = st.session_state.get("page_channel_filter", "Any")
+    if current != "Any" and current not in available:
+        st.info(f"Previous selection '{current}' is no longer available. Reset to 'Any'.")
+        current = "Any"
+        st.session_state.page_channel_filter = "Any"
+        st.session_state.page_channel_expr = None
+
+    options = ["Any"] + available
+
+    st.selectbox(
+        "Channel / Direction",
+        options=options,
+        index=options.index(current),
+        key="_channel_direction_widget",
+        on_change=_update_channel_filter,
+        help="Filter analysis to a specific channel. 'Any' shows all channels that pass global filters.",
+    )
+
+
 @st.cache_resource
 def load_decision_analyzer(
     _raw_data: pl.LazyFrame,

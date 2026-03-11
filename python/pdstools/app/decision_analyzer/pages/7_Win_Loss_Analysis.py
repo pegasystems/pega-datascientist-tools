@@ -1,5 +1,7 @@
+import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
+    channel_direction_selector,
     ensure_data,
     get_current_index,
     get_data_filters,
@@ -62,10 +64,13 @@ with st.session_state["sidebar"]:
         key="scope",
     )
 
+    # Apply channel filter to sample data
+    filtered_data = st.session_state.decision_data.filtered_sample
+
     "### Define a Comparison Group"
 
     st.session_state["local_filters"] = get_data_filters(
-        st.session_state.decision_data.sample,
+        filtered_data,
         columns=st.session_state.decision_data.getAvailableFieldsForFiltering(
             categoricalOnly=True,
         ),
@@ -74,24 +79,29 @@ with st.session_state["sidebar"]:
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
-            st.session_state.decision_data.sample,
+            filtered_data,
         )
         statsAfterExtraFilter = get_first_level_stats(
-            st.session_state.decision_data.sample,
+            filtered_data,
             st.session_state["local_filters"],
         )
         show_filtered_counts(statsBeforeExtraFilter, statsAfterExtraFilter)
     else:
         st.warning("No comparison group defined")
 
-    # I've removed the additional model selection / listing for now
-    # models = show_filtered_counts(
-    #     st.session_state.df, st.session_state.local_filters
-    # )
-    # with st.expander("Selected actions"):
-    #     st.write(models)
+    channel_direction_selector()
 
-# st.write(st.session_state.to_dict().keys())
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 
 def get_groupby_columns(scope_options, current_scope_key):
@@ -117,23 +127,27 @@ if st.session_state.local_filters != []:
         win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         win=True,
+        additional_filters=channel_filter,
     )
     winning_from = st.session_state.decision_data.winning_from(
         interactions=interactions_where_comparison_group_wins,
         win_rank=st.session_state.win_rank,
         groupby_cols=groupby_cols,
         top_k=top_k,
+        additional_filters=channel_filter,
     )
     interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
         win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         win=False,
+        additional_filters=channel_filter,
     )
     losing_to = st.session_state.decision_data.losing_to(
         interactions=interactions_where_comparison_group_loses,
         win_rank=st.session_state.win_rank,
         groupby_cols=groupby_cols,
         top_k=top_k,
+        additional_filters=channel_filter,
     )
 
     col1, col2 = st.columns(2)
@@ -156,7 +170,6 @@ if st.session_state.local_filters != []:
                 horizontal=True,
                 # models=models,
             ),
-            width="stretch",
             key="win_distribution_chart",
         )
 
@@ -175,7 +188,6 @@ if st.session_state.local_filters != []:
                 "Decisions",
                 horizontal=True,
             ),
-            width="stretch",
             key="loss_distribution_chart",
         )
 
@@ -193,8 +205,8 @@ if st.session_state.local_filters != []:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
                 reference_group=st.session_state["local_filters"],
+                additional_filters=channel_filter,
             ),
-            width="stretch",
             key="sensitivity_chart",
         )
     "## Comparison: Your Group vs Others"
@@ -207,13 +219,13 @@ if st.session_state.local_filters != []:
 
     fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
         reference=st.session_state["local_filters"],
+        additional_filters=channel_filter,
     )
     if warning_message:
         st.warning(warning_message)
     if fig is not None:
         st.plotly_chart(
             fig,
-            width="stretch",
             key="prio_factor_boxplots_chart",
         )
 
@@ -227,8 +239,8 @@ if st.session_state.local_filters != []:
     st.plotly_chart(
         st.session_state.decision_data.plot.rank_boxplot(
             reference=st.session_state["local_filters"],
+            additional_filters=channel_filter,
         ),
-        width="stretch",
         key="rank_boxplot_chart",
     )
 else:

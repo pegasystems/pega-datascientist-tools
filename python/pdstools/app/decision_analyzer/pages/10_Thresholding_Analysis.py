@@ -3,7 +3,8 @@ import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import ensure_data
+from da_streamlit_utils import channel_direction_selector, ensure_data
+from pdstools.decision_analyzer.utils import apply_filter
 
 "# Thresholding Analysis"
 
@@ -22,11 +23,27 @@ ensure_data()
 
 da = st.session_state.decision_data
 
+# Apply channel filter to sample data
+filtered_data = da.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
+
 # ---------------------------------------------------------------------------
 # Collect sampled values from arbitration once
 # ---------------------------------------------------------------------------
 arb_data = (
-    da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+    apply_filter(da.getPreaggregatedFilterView, channel_filter)
+    .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
     .select(
         pl.col("Propensity").explode(),
         pl.col("Priority").explode(),
@@ -74,6 +91,7 @@ with st.sidebar:
         value=0.0,
         format="%.4f",
     )
+    channel_direction_selector()
 
 # ---------------------------------------------------------------------------
 # Apply both thresholds
@@ -85,7 +103,7 @@ pct_filtered = (below_actions / total_action_appearances * 100) if total_action_
 
 # Count interactions that would have zero actions after thresholding.
 # Uses the sample (interaction-level data) for an accurate per-interaction check.
-arb_sample = da.sample.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down)).collect()
+arb_sample = filtered_data.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down)).collect()
 total_interactions = arb_sample["Interaction ID"].n_unique()
 interactions_with_survivors = arb_sample.filter(
     (pl.col("Propensity") >= propensity_threshold) & (pl.col("Priority") >= priority_threshold)
@@ -147,11 +165,12 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(propensity_hist, width="stretch")
+        st.plotly_chart(propensity_hist)
 
     with col2:
         prio_data = (
-            da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+            apply_filter(da.getPreaggregatedFilterView, channel_filter)
+            .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
             .select(pl.col("Priority").explode(), pl.col("Decisions"))
             .collect()
         )
@@ -171,7 +190,7 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(priority_hist, width="stretch")
+        st.plotly_chart(priority_hist)
 
 # ---------------------------------------------------------------------------
 # Section 3: Distribution of surviving actions above both thresholds
@@ -180,7 +199,8 @@ with st.container(border=True):
     "## Offers Meeting Quality Thresholds"
 
     surviving = (
-        da.getPreaggregatedFilterView.filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
+        apply_filter(da.getPreaggregatedFilterView, channel_filter)
+        .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
         .select(
             pl.col("Issue"),
             pl.col("Group"),
@@ -208,4 +228,4 @@ with st.container(border=True):
         )
         fig.update_xaxes(tickangle=45, automargin=True, title="")
         fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig)

@@ -1,5 +1,6 @@
+import polars as pl
 import streamlit as st
-from da_streamlit_utils import ensure_data, get_current_index
+from da_streamlit_utils import channel_direction_selector, ensure_data, get_current_index
 
 # TODO The coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO Infer the top-X by channel from the data (max rank per channel for Final records)
@@ -27,6 +28,22 @@ with st.session_state["sidebar"]:
         value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
         key="win_rank",
     )
+    channel_direction_selector()
+
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 with st.container(border=True):
     "## What Drives Your Offer Selection?"
@@ -34,8 +51,8 @@ with st.container(border=True):
     st.plotly_chart(
         st.session_state.decision_data.plot.sensitivity(
             st.session_state.win_rank,
+            additional_filters=channel_filter,
         ),
-        width="stretch",
     )
 
 with st.container(border=True):
@@ -55,8 +72,8 @@ with st.container(border=True):
         st.session_state.decision_data.plot.global_winloss_distribution(
             level=st.session_state.glob_sensitivity_scope,
             win_rank=st.session_state.win_rank,
+            additional_filters=channel_filter,
         ),
-        width="stretch",
     )
 
     scope_index = get_current_index(scope_options, "glob_sensitivity_scope")

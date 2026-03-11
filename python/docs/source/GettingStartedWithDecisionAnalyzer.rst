@@ -245,6 +245,39 @@ You can now analyze the results from various angles (optionality, funnel effects
 
 The analysis provided in this tool are similar but not necessarily identical to the ones that will be delivered in product.
 
+**Channel Filtering**
+
+Many analysis pages include a **Channel / Direction** filter in the sidebar
+that lets you focus on a specific channel combination:
+
+- **Any** (default): Shows aggregated data across all channels that pass global filters
+- **Specific channel**: Shows data only for that Channel/Direction combination
+  (e.g., "Web/Inbound", "Email/Outbound")
+
+The channel filter is available on these pages:
+
+- Action Distribution
+- Action Funnel
+- Global Sensitivity
+- Win/Loss Analysis
+- Optionality Analysis
+- Offer Quality Analysis
+- Thresholding Analysis
+- Arbitration Component Distribution
+
+Your selection persists as you navigate between pages, allowing you to maintain
+the same channel focus across different analyses.
+
+.. note::
+   The Overview page intentionally shows global metrics across all channels and
+   does not have a channel filter.
+
+.. note::
+   The channel filter respects global filters from the Global Data Filters page. Only
+   channels that exist after global filters are applied will appear in the dropdown.
+   In the Action Funnel page, the Filter Impact table intentionally remains unfiltered
+   to show all filter events across channels.
+
 Upgrading pdstools
 ------------------
 

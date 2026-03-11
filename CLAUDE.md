@@ -147,7 +147,7 @@ with st.container(border=True):
         "This uses caption styling for a more compact appearance."
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig)
 ```
 
 **Writing Guidelines:**
@@ -323,19 +323,26 @@ ensure_data()  # Guard for pages requiring loaded data
 
 ### Streamlit Chart Display
 
-**Deprecated parameter**: Do not use `use_container_width` in `st.plotly_chart()` calls. This parameter was deprecated after 2025-12-31.
+Do not pass `width="stretch"` or other extra keyword arguments to `st.plotly_chart()`.
+Streamlit 1.50 deprecated `**kwargs` on `plotly_chart`; any unrecognized keyword triggers
+a deprecation warning. Since `use_container_width=True` is the default, omit it for
+full-width charts. Use `use_container_width=False` only when you need content-width.
 
-**Use these instead**:
-- `width="stretch"` — equivalent to `use_container_width=True`
-- `width="content"` — equivalent to `use_container_width=False`
+For Plotly configuration options (e.g., disabling scroll zoom), use the explicit `config` parameter.
 
 **Example**:
 ```python
-# Good
-st.plotly_chart(fig, width="stretch")
+# Good — full width (default)
+st.plotly_chart(fig)
 
-# Avoid (deprecated)
-st.plotly_chart(fig, use_container_width=True)
+# Good — content width
+st.plotly_chart(fig, use_container_width=False)
+
+# Good — Plotly config
+st.plotly_chart(fig, config={"scrollZoom": False})
+
+# Avoid — triggers deprecation warning
+st.plotly_chart(fig, width="stretch")
 ```
 
 ### Documentation Formatting

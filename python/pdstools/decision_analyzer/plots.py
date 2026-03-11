@@ -73,12 +73,13 @@ class Plot:
         hide_priority=True,
         return_df=False,
         reference_group=None,
+        additional_filters=None,
     ):
         """
         If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group.
 
         """
-        df = self._decision_data.get_sensitivity(win_rank, reference_group)
+        df = self._decision_data.get_sensitivity(win_rank, reference_group, additional_filters=additional_filters)
         if return_df:
             return df
         n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
@@ -120,9 +121,9 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def global_winloss_distribution(self, level, win_rank, return_df=False):
+    def global_winloss_distribution(self, level, win_rank, return_df=False, additional_filters=None):
         # level, cat = getScope(level)
-        df = self._decision_data.get_win_loss_distribution_data(level, win_rank)
+        df = self._decision_data.get_win_loss_distribution_data(level, win_rank, additional_filters=additional_filters)
         if return_df:
             return df
 
@@ -331,8 +332,10 @@ class Plot:
             .update_layout(width=500, height=500)
         )
 
-    def trend_chart(self, stage: str, scope: str, return_df=False) -> tuple[go.Figure, str | None]:
-        df = self._decision_data.get_trend_data(stage, scope).collect()
+    def trend_chart(
+        self, stage: str, scope: str, return_df=False, additional_filters=None
+    ) -> tuple[go.Figure, str | None]:
+        df = self._decision_data.get_trend_data(stage, scope, additional_filters=additional_filters).collect()
 
         if return_df:
             return df.lazy()
@@ -568,8 +571,9 @@ class Plot:
         self,
         reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
+        additional_filters=None,
     ) -> tuple[go.Figure, str | None]:
-        df = self._decision_data.arbitration_stage
+        df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
         prio_factors = PRIO_FACTORS
         segmented_df = (
             df.with_columns(
@@ -620,8 +624,9 @@ class Plot:
         self,
         reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
+        additional_filters=None,
     ):
-        df = self._decision_data.sample
+        df = apply_filter(self._decision_data.sample, additional_filters)
         if return_df:
             return df
         ranks = (

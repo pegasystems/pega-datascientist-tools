@@ -37,7 +37,7 @@ with st.container(border=True):
     st.caption("Interactive chart showing lift metrics. Hover for details, click and drag to zoom.")
 
     fig = ia.plot.overview(metric=metric, facet=facet)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig)
 
 with st.container(border=True):
     "## Detailed Metrics"

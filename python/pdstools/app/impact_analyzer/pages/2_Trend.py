@@ -67,7 +67,7 @@ with st.container(border=True):
     )
 
     fig = ia.plot.trend(metric=metric, facet=facet, every=granularity)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig)
 
 with st.container(border=True):
     "## Detailed Metrics"

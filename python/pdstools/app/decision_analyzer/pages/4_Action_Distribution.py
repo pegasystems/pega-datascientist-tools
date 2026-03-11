@@ -1,7 +1,8 @@
+import polars as pl
 import streamlit as st
 
-
 from da_streamlit_utils import (
+    channel_direction_selector,
     get_current_index,
     ensure_data,
     stage_level_selector,
@@ -39,6 +40,22 @@ with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
 
     stage_selectbox()
+    channel_direction_selector()
+
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 with st.container(border=True):
     "## Offer Mix by Volume"
@@ -49,14 +66,17 @@ with st.container(border=True):
         "Issue → Group → Action to see how your portfolio is composed."
     )
 
-    distribution_data = st.session_state.decision_data.getDistributionData(st.session_state.stage, scope_options)
+    distribution_data = st.session_state.decision_data.getDistributionData(
+        st.session_state.stage,
+        scope_options,
+        additional_filters=channel_filter,
+    )
     st.plotly_chart(
         st.session_state.decision_data.plot.distribution_as_treemap(
             df=distribution_data,
             stage=st.session_state.stage,
             scope_options=scope_options,
         ),
-        width="stretch",
     )
 
 if "scope" not in st.session_state:
@@ -73,13 +93,14 @@ with st.container(border=True):
     )
 
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
-        st.session_state.stage, st.session_state.scope
+        st.session_state.stage,
+        st.session_state.scope,
+        additional_filters=channel_filter,
     )
     if warning_message:
         st.warning(warning_message)
     st.plotly_chart(
         fig,
-        width="stretch",
     )
 
     scope_index = get_current_index(scope_options, "scope")
