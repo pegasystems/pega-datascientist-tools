@@ -245,6 +245,23 @@ You can now analyze the results from various angles (optionality, funnel effects
 
 The analysis provided in this tool are similar but not necessarily identical to the ones that will be delivered in product.
 
+**Channel Filtering in Optionality Analysis**
+
+The Optionality Analysis page includes a **Channel / Direction** filter in the sidebar
+that lets you focus on a specific channel combination:
+
+- **Any** (default): Shows aggregated data across all channels that pass global filters
+- **Specific channel**: Shows data only for that Channel/Direction combination
+  (e.g., "Web/Inbound", "Email/Outbound")
+
+The filter applies to the Optionality chart, Optionality Funnel, and Optionality Trend
+sections. The Offer Variation section is intentionally not filtered, as it shows
+the global variation in action selection across all channels.
+
+.. note::
+   The channel filter respects global filters from the Global Data Filters page. Only
+   channels that exist after global filters are applied will appear in the dropdown.
+
 Upgrading pdstools
 ------------------
 
