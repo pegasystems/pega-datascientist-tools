@@ -686,6 +686,32 @@ class DecisionAnalyzer:
 
         return df
 
+    @property
+    def filtered_sample(self):
+        """Sample data with page-level filters applied.
+
+        Reads filter expressions from st.session_state.page_channel_expr if available.
+        Falls back to unfiltered sample if no page filters are set or not in Streamlit context.
+
+        This property is not cached because it depends on mutable session_state.
+        Page-level code should cache the result locally if needed for performance.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Sampled data with page filters applied, or unfiltered sample if no filters.
+        """
+        try:
+            import streamlit as st
+
+            channel_expr = st.session_state.get("page_channel_expr", None)
+            if channel_expr is not None:
+                return apply_filter(self.sample, [channel_expr])
+        except ImportError:
+            pass  # Not in Streamlit context
+
+        return self.sample
+
     def getAvailableFieldsForFiltering(self, categoricalOnly=False):
         if not categoricalOnly:
             return list(self.fields_for_data_filtering)
