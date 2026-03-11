@@ -29,7 +29,7 @@ filtered_data = st.session_state.decision_data.filtered_sample
 
 # Check for empty results when a specific channel is selected
 if st.session_state.get("page_channel_filter", "Any") != "Any":
-    filtered_count = filtered_data.select(pl.count()).collect().item()
+    filtered_count = filtered_data.select(pl.len()).collect().item()
     if filtered_count == 0:
         st.warning(
             f"No data available for {st.session_state.page_channel_filter}. "

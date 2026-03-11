@@ -1,8 +1,10 @@
 # python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py
+import polars as pl
 import streamlit as st
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
+    channel_direction_selector,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
@@ -76,12 +78,29 @@ with st.session_state["sidebar"]:
         format="%.4f",
         help="Offers with priority below this value are considered irrelevant (low quality)",
     )
+    channel_direction_selector()
 
+
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
     groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
+    additional_filters=channel_filter,
 )
 
 with st.container(border=True):

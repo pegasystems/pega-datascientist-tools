@@ -1,6 +1,8 @@
 # python/pdstools/app/decision_analyzer/pages/10_Arbitration_Component_Distribution.py
+import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
+    channel_direction_selector,
     ensure_data,
     get_current_index,
     stage_level_selector,
@@ -55,6 +57,22 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
+    channel_direction_selector()
+
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 # ---------------------------------------------------------------------------
 # Overview: all components at a glance
@@ -70,6 +88,7 @@ with st.container(border=True):
     overview_data = st.session_state.decision_data.all_components_distribution(
         st.session_state.scope,
         stage=st.session_state.stage,
+        additional_filters=channel_filter,
     )
     overview_fig = st_component_overview(overview_data, component_options, st.session_state.scope)
     st.plotly_chart(overview_fig)
@@ -84,6 +103,7 @@ with st.container(border=True):
         component=st.session_state.prioritization_component,
         granularity=st.session_state.scope,
         stage=st.session_state.stage,
+        additional_filters=channel_filter,
     )
 
     violin_fig, ecdf_fig, stats_df = st_priority_component_distribution(

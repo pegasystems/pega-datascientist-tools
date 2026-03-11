@@ -1079,10 +1079,11 @@ class DecisionAnalyzer:
     # TODO consider making his more generic, dropping the win_rank argument and
     # creating a larger result set for all possible ranks, with filtering only
     # in the UI.
-    def get_win_loss_distribution_data(self, level, win_rank):
+    def get_win_loss_distribution_data(self, level, win_rank, additional_filters=None):
         win_col = f"Win_at_rank{win_rank}"
         group_level_win_losses = (
-            self.getPreaggregatedRemainingView.filter(pl.col(self.level) == "Arbitration")
+            apply_filter(self.getPreaggregatedRemainingView, additional_filters)
+            .filter(pl.col(self.level) == "Arbitration")
             .group_by(level)
             .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
             .with_columns(Losses=pl.col("Decisions") - pl.col("Wins"))
@@ -1290,7 +1291,7 @@ class DecisionAnalyzer:
         self._thresholding_cache[cache_key] = thresholds_long
         return thresholds_long
 
-    def priority_component_distribution(self, component, granularity, stage=None):
+    def priority_component_distribution(self, component, granularity, stage=None, additional_filters=None):
         """Data for a single component's distribution, grouped by granularity.
 
         Parameters
@@ -1302,12 +1303,14 @@ class DecisionAnalyzer:
         stage : str, optional
             Filter to actions remaining at this stage. If None, uses all
             rows with non-null Priority.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Extra filters applied to the sample (e.g. channel filter).
         """
         cols = [granularity, component]
-        df = self._remaining_at_stage(stage)
+        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
         return df.select(cols).sort(granularity)
 
-    def all_components_distribution(self, granularity, stage=None):
+    def all_components_distribution(self, granularity, stage=None, additional_filters=None):
         """Data for the overview panel: all prioritization components at once.
 
         Parameters
@@ -1316,26 +1319,29 @@ class DecisionAnalyzer:
             Column to group by.
         stage : str, optional
             Filter to actions remaining at this stage.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Extra filters applied to the sample (e.g. channel filter).
         """
         from .utils import PRIO_COMPONENTS
 
         available = set(self.sample.collect_schema().names())
         cols = [c for c in PRIO_COMPONENTS if c in available]
-        df = self._remaining_at_stage(stage)
+        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
         return df.select([granularity] + cols).sort(granularity)
 
-    def _remaining_at_stage(self, stage=None):
+    def _remaining_at_stage(self, stage=None, additional_filters=None):
         """Return sample rows remaining at *stage*.
 
         Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
         order is >= the selected stage are "remaining" there.  If *stage*
         is None, falls back to rows with non-null Priority.
         """
+        base = apply_filter(self.sample, additional_filters)
         if stage is None:
-            return self.sample.filter(pl.col("Priority").is_not_null())
+            return base.filter(pl.col("Priority").is_not_null())
         stage_idx = self.AvailableNBADStages.index(stage) if stage in self.AvailableNBADStages else 0
         remaining_stages = self.AvailableNBADStages[stage_idx:]
-        return self.sample.filter(pl.col(self.level).is_in(remaining_stages))
+        return base.filter(pl.col(self.level).is_in(remaining_stages))
 
     def aggregate_remaining_per_stage(
         self, df: pl.LazyFrame, group_by_columns: list[str], aggregations: list = []
@@ -1381,6 +1387,7 @@ class DecisionAnalyzer:
         groupby_cols: list,
         propensityTH: float | None = None,
         priorityTH: float | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """Return action counts from the sample, optionally classified by propensity/priority thresholds.
 
@@ -1392,6 +1399,8 @@ class DecisionAnalyzer:
             Propensity threshold for classifying offers.
         priorityTH : float, optional
             Priority threshold for classifying offers.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Extra filters applied to the sample (e.g. channel filter).
 
         Returns
         -------
@@ -1399,7 +1408,7 @@ class DecisionAnalyzer:
             Aggregated action counts per group, with quality buckets when
             both thresholds are provided.
         """
-        df = self.sample
+        df = apply_filter(self.sample, additional_filters)
         additional_cols = ["Action", "Propensity"]
         required_cols = list(set(groupby_cols + additional_cols))
         for col in required_cols:
@@ -1578,7 +1587,7 @@ class DecisionAnalyzer:
 
         return {k: kpis[k].item() for k in kpis.columns}
 
-    def get_sensitivity(self, win_rank=1, filters=None):
+    def get_sensitivity(self, win_rank=1, filters=None, additional_filters=None):
         """Global or local sensitivity of the prioritization factors.
 
         Parameters
@@ -1588,20 +1597,25 @@ class DecisionAnalyzer:
         filters : pl.Expr, optional
             Selected offers, only used in local sensitivity analysis.
             When ``None`` (global), results are cached by ``win_rank``.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Extra filters applied to the sample before re-ranking
+            (e.g. channel filter).  When set, caching is bypassed.
 
         Returns
         -------
         pl.LazyFrame
         """
         is_global_sensitivity = filters is None
-        if is_global_sensitivity:
+        if is_global_sensitivity and additional_filters is None:
             if win_rank in self._sensitivity_cache:
                 return self._sensitivity_cache[win_rank]
+            filters = pl.col("Rank") <= win_rank
+        elif is_global_sensitivity:
             filters = pl.col("Rank") <= win_rank
 
         sensitivity = (
             apply_filter(
-                self.reRank(), filters
+                self.reRank(additional_filters=additional_filters), filters
             )  # don't put filters in rerank function, we need to filter after reranking!
             # .filter(pl.col("rank_PVCL") <= win_rank)
             .select(
@@ -1644,7 +1658,8 @@ class DecisionAnalyzer:
         )
         if is_global_sensitivity:
             sensitivity = sensitivity.with_columns(Influence=pl.col("Influence").abs())
-            self._sensitivity_cache[win_rank] = sensitivity
+            if additional_filters is None:
+                self._sensitivity_cache[win_rank] = sensitivity
         return sensitivity
 
     def get_offer_variability_stats(self, stage):
@@ -1663,20 +1678,21 @@ class DecisionAnalyzer:
             ),
         }
 
-    def get_winning_or_losing_interactions(self, win_rank, group_filter, win: bool):
+    def get_winning_or_losing_interactions(self, win_rank, group_filter, win: bool, additional_filters=None):
         if win:
             rank_filter = pl.col("Rank") <= win_rank
         else:
             rank_filter = pl.col("Rank") > win_rank
         return (
-            apply_filter(self.sample, group_filter)
+            apply_filter(apply_filter(self.sample, additional_filters), group_filter)
             .filter(rank_filter & (pl.col(self.level).is_in(self.stages_from_arbitration_down)))
             .select(pl.col("Interaction ID").unique())
         )
 
-    def winning_from(self, interactions, win_rank, groupby_cols, top_k):
+    def winning_from(self, interactions, win_rank, groupby_cols, top_k, additional_filters=None):
         winning_from = (
-            self.sample.filter(
+            apply_filter(self.sample, additional_filters)
+            .filter(
                 pl.col("Rank") > win_rank
             )  # TODO generalize this to any stage from Arbitration up but excluding Final
             .join(
@@ -1692,9 +1708,10 @@ class DecisionAnalyzer:
         )
         return winning_from
 
-    def losing_to(self, interactions, win_rank, groupby_cols, top_k):
+    def losing_to(self, interactions, win_rank, groupby_cols, top_k, additional_filters=None):
         return (
-            self.sample.filter(pl.col("Rank") <= win_rank)
+            apply_filter(self.sample, additional_filters)
+            .filter(pl.col("Rank") <= win_rank)
             .join(
                 interactions,
                 on="Interaction ID",
@@ -1862,12 +1879,14 @@ class DecisionAnalyzer:
         self,
         stage: str = "AvailableActions",
         scope: Literal["Group", "Issue", "Action"] | None = "Group",
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
         stages = self.AvailableNBADStages[self.AvailableNBADStages.index(stage) :]
         group_by = ["day"] if scope is None else ["day", scope]
 
         trend_data = (
-            self.sample.filter(pl.col(self.level).is_in(stages))
+            apply_filter(self.sample, additional_filters)
+            .filter(pl.col(self.level).is_in(stages))
             .group_by(group_by)
             .agg(pl.n_unique("Interaction ID").alias("Decisions"))
             .sort(group_by)
