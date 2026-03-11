@@ -43,18 +43,11 @@ class Plot:
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: list[str]):
-        # Create consistent color mapping for the primary scope level
+        # Use consistent color mapping from the DecisionAnalyzer instance
         color_discrete_map = None
         if scope_options:
-            # Get all unique values for the primary scope across all stages to ensure consistency
             primary_scope = scope_options[0]
-            all_stages_data = self._decision_data.getPreaggregatedRemainingView
-            unique_values = (
-                all_stages_data.select(primary_scope).unique().collect().get_column(primary_scope).sort().to_list()
-            )
-
-            # Create color mapping using imported Pega colorway
-            color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
+            color_discrete_map = self._decision_data.color_mappings.get(primary_scope)
 
         fig = px.treemap(
             df.collect(),
@@ -127,13 +120,8 @@ class Plot:
         if return_df:
             return df
 
-        # Create consistent color mapping for the selected level
-        # Get all unique values for the level across all stages to ensure consistency
-        all_stages_data = self._decision_data.getPreaggregatedRemainingView
-        unique_values = all_stages_data.select(level).unique().collect().get_column(level).sort().to_list()
-
-        # Create color mapping using imported Pega colorway
-        color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
+        # Use consistent color mapping from the DecisionAnalyzer instance
+        color_discrete_map = self._decision_data.color_mappings.get(level, {})
 
         # Collect and split data into wins and losses
         df_collected = df.collect()
@@ -304,15 +292,29 @@ class Plot:
         )
         return fig
 
-    def action_variation(self, stage="Final", return_df=False):
-        df = self._decision_data.getActionVariationData(stage)
+    def action_variation(self, stage="Final", color_by=None, return_df=False):
+        """Plot action variation (Lorenz curve showing action concentration).
+
+        Args:
+            stage: Stage to analyze
+            color_by: Optional dimension to color by (e.g., "Channel/Direction")
+            return_df: If True, return the data instead of the figure
+        """
+        df = self._decision_data.getActionVariationData(stage, color_by=color_by)
         if return_df:
             return df
+
+        color_discrete_map = None
+        if color_by is not None:
+            color_discrete_map = self._decision_data.color_mappings.get(color_by)
+
         return (
             px.line(
                 df.collect(),
                 y="DecisionsFraction",
                 x="ActionsFraction",
+                color=color_by,
+                color_discrete_map=color_discrete_map,
                 template="pega",
             )
             .update_yaxes(
@@ -346,11 +348,15 @@ class Plot:
                 "Insufficient data: Trend analysis requires data from multiple days. "
                 "Currently, the dataset contains information for only one day."
             )
+
+        color_discrete_map = self._decision_data.color_mappings.get(scope)
+
         fig = px.area(
             data_frame=df,
             x="day",
             y="Decisions",
             color=scope,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
 
@@ -368,9 +374,7 @@ class Plot:
         if return_df:
             return remaining_df, filter_df
 
-        unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
-        colors = px.colors.qualitative.Light24
-        color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
+        color_map = self._decision_data.color_mappings.get(scope)
 
         # Prepare data with formatted labels for hover
         remaining_collected = remaining_df.sort([self._decision_data.level, "action_occurrences", scope]).collect()
@@ -541,12 +545,15 @@ class Plot:
         metric: str = "Decisions",
         horizontal=False,
     ):
+        color_discrete_map = self._decision_data.color_mappings.get(breakdown)
+
         # TODO have a nice hover showing both the individual colored totals as the total bar
         fig = px.histogram(
             df.collect(),
             x=metric if horizontal else scope,
             y=scope if horizontal else metric,
             color=breakdown,
+            color_discrete_map=color_discrete_map,
             orientation="h" if horizontal else "v",
             template="pega",
         )
@@ -718,6 +725,7 @@ class Plot:
     def component_drilldown(
         self,
         component_name: str,
+        scope: str = "Action",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         sort_by: str = "Filtered Decisions",
         return_df=False,
@@ -732,6 +740,8 @@ class Plot:
         ----------
         component_name : str
             The pxComponentName to drill into.
+        scope : str, default "Action"
+            The granularity level to display (Issue, Group, or Action).
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters applied before aggregation.
         sort_by : str, default "Filtered Decisions"
@@ -765,7 +775,7 @@ class Plot:
         # Primary trace: bar chart of filtered decisions
         fig.add_trace(
             go.Bar(
-                y=plot_df["Action"],
+                y=plot_df[scope],
                 x=plot_df["Filtered Decisions"],
                 orientation="h",
                 name="Filtered Decisions",
@@ -848,12 +858,17 @@ class Plot:
         df = self._decision_data.get_optionality_data(self._decision_data.sample)
         if return_df:
             return df
+
+        level = self._decision_data.level
+        color_discrete_map = self._decision_data.color_mappings.get(level)
+
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(
             df.collect(),
-            x=self._decision_data.level,
+            x=level,
             y="nOffers",
-            color=self._decision_data.level,
+            color=level,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
         fig.update_layout(
@@ -881,11 +896,16 @@ class Plot:
                 "Insufficient data: Trend analysis requires data from multiple days. "
                 "Currently, the dataset contains information for only one day."
             )
+
+        level = self._decision_data.level
+        color_discrete_map = self._decision_data.color_mappings.get(level)
+
         fig = px.line(
             collected_df,
             x="day",
             y="nOffers",
-            color=self._decision_data.level,
+            color=level,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
 
@@ -1142,7 +1162,9 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
 _ECDF_MAX_ROWS = 50_000
 
 
-def plot_priority_component_distribution(value_data: pl.LazyFrame, component: str, granularity: str):
+def plot_priority_component_distribution(
+    value_data: pl.LazyFrame, component: str, granularity: str, color_discrete_map: dict[str, str] | None = None
+):
     """Violin + ECDF + summary statistics for a single prioritization component.
 
     Returns
@@ -1156,6 +1178,7 @@ def plot_priority_component_distribution(value_data: pl.LazyFrame, component: st
         collected,
         x=component,
         color=granularity,
+        color_discrete_map=color_discrete_map,
         template="pega",
         box=True,
         points=False,
@@ -1171,6 +1194,7 @@ def plot_priority_component_distribution(value_data: pl.LazyFrame, component: st
         collected,
         x=component,
         color=granularity,
+        color_discrete_map=color_discrete_map,
         template="pega",
         markers=False,
     ).update_layout(

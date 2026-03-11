@@ -1,4 +1,4 @@
-# python/pdstools/app/decision_analyzer/pages/10_Arbitration_Component_Distribution.py
+# python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
@@ -14,7 +14,7 @@ from da_streamlit_utils import (
 from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
 
 
-"# Arbitration Component Distribution"
+"# Arbitration Distribution"
 
 """
 Analyze the distribution of prioritization components. Since prioritization
@@ -106,10 +106,13 @@ with st.container(border=True):
         additional_filters=channel_filter,
     )
 
+    color_discrete_map = st.session_state.decision_data.color_mappings.get(st.session_state.scope)
+
     violin_fig, ecdf_fig, stats_df = st_priority_component_distribution(
         value_data,
         component=st.session_state.prioritization_component,
         granularity=st.session_state.scope,
+        color_discrete_map=color_discrete_map,
     )
 
     violin_tab, ecdf_tab, stats_tab = st.tabs(["Violin Plot", "Cumulative Distribution", "Summary Statistics"])

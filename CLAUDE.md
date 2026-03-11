@@ -345,6 +345,260 @@ st.plotly_chart(fig, config={"scrollZoom": False})
 st.plotly_chart(fig, width="stretch")
 ```
 
+### Streamlit Color Consistency
+
+**Pattern: Pre-compute categorical color mappings for session consistency**
+
+When using categorical dimensions for plot colors in Streamlit apps, colors must remain consistent throughout the session regardless of filtering. Dynamic color assignment (based on filtered data) causes confusion when legends change colors as users interact with controls.
+
+**Implementation:**
+- Use `pdstools.utils.color_mapping.create_categorical_color_mappings()` utility
+- Compute mappings once at data load time (not from filtered subsets)
+- Cache with `@cached_property` or `@st.cache_resource`
+- Pass to Plotly via `color_discrete_map` parameter
+
+**Example:**
+```python
+from pdstools.utils.color_mapping import create_categorical_color_mappings
+from pdstools.utils.pega_template import colorway
+
+@cached_property
+def color_mappings(self):
+    return create_categorical_color_mappings(
+        self.data,
+        ["Category", "Type", "Status"],
+        colorway,
+        column_mapping=self.column_mapping  # optional
+    )
+
+# In plot functions:
+fig = px.bar(
+    filtered_data,
+    x="x",
+    y="y",
+    color="Category",
+    color_discrete_map=self.color_mappings.get("Category")
+)
+```
+
+**Rationale:**
+- Users can track categories across different views/filters
+- Deterministic (alphabetically sorted values → consistent colors)
+- Minimal performance overhead (computed once, cached)
+- Plotly only colors visible values, but uses consistent assignments
+
+**User Communication:**
+Add an informational message on filter pages explaining that colors remain consistent:
+```python
+st.info(
+    "Note: Chart colors remain consistent throughout your session "
+    "based on all values in the loaded dataset, even when filters reduce visible data."
+)
+```
+
+## Plot Function Patterns
+
+### Standard Plot Function Signature
+
+All plot functions in `plots.py` should follow these conventions:
+
+```python
+def my_plot(
+    self,
+    stage: str,                                    # Required parameters first
+    scope: str = "Action",                         # Common optional parameters
+    color_by: str | None = None,                   # Optional coloring dimension
+    additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    return_df: bool = False,                       # Always include for testing
+) -> go.Figure | pl.LazyFrame:
+    """Clear description of what the plot shows.
+
+    Parameters
+    ----------
+    stage : str
+        The stage to analyze
+    scope : str, default "Action"
+        Granularity level (Issue, Group, or Action)
+    color_by : str, optional
+        Categorical dimension for coloring (e.g., "Channel", "Stage")
+    additional_filters : pl.Expr or list of pl.Expr, optional
+        Extra filters to apply before aggregation
+    return_df : bool, default False
+        If True, return the data instead of the figure (for testing)
+
+    Returns
+    -------
+    go.Figure or pl.LazyFrame
+        Plotly figure or the underlying data if return_df=True
+    """
+    # Get data from DecisionAnalyzer method (delegate business logic)
+    df = self._decision_data.get_plot_data(stage=stage, scope=scope, ...)
+
+    if return_df:
+        return df
+
+    # Use consistent colors if color_by specified
+    color_discrete_map = None
+    if color_by is not None:
+        color_discrete_map = self._decision_data.color_mappings.get(color_by)
+
+    # Create figure
+    fig = px.bar(
+        df.collect(),
+        x="x",
+        y=scope,  # Use scope parameter for display
+        color=color_by,
+        color_discrete_map=color_discrete_map,
+        template="pega",
+    )
+
+    return fig
+```
+
+### Key Principles
+
+**Scope/Granularity Parameter**: When plots display categorical hierarchies (Issue → Group → Action), accept a `scope` parameter:
+```python
+def component_drilldown(self, component_name: str, scope: str = "Action", ...):
+    # Use scope for both:
+    # 1. y-axis display
+    fig.add_trace(go.Bar(y=plot_df[scope], ...))
+
+    # 2. grouping in underlying data queries
+    df = self._decision_data.getComponentDrilldown(...)
+```
+
+**Color By Parameter**: For plots that can show breakdowns by different dimensions:
+```python
+def action_variation(self, stage: str, color_by: str | None = None, ...):
+    # Special handling for combined dimensions like "Channel/Direction"
+    if color_by == "Channel/Direction":
+        # Create synthetic column in data processing
+        distribution = distribution.with_columns(
+            pl.concat_str("Channel", "Direction", separator="/").alias("Channel/Direction")
+        )
+```
+
+**Return DataFrame for Testing**: Always include `return_df` parameter to enable data validation tests:
+```python
+def test_return_df(self, plot_instance):
+    df = plot_instance.my_plot(stage="Output", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    assert "expected_column" in df.collect_schema().names()
+```
+
+**Consistent Color Mapping**: Always check for and use cached color mappings:
+```python
+color_discrete_map = None
+if color_by is not None:
+    color_discrete_map = self._decision_data.color_mappings.get(color_by)
+
+fig = px.bar(..., color=color_by, color_discrete_map=color_discrete_map)
+```
+
+### Streamlit Wrapper Functions
+
+When plot functions need Streamlit caching, create thin wrappers in `da_streamlit_utils.py`:
+
+```python
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def st_my_plot(data: pl.LazyFrame, stage: str, color_discrete_map: dict | None = None):
+    """Cached wrapper for my_plot function.
+
+    Note: Pass color_discrete_map explicitly since @cached_property
+    objects are not hashable by Streamlit.
+    """
+    return plot_my_plot(data, stage, color_discrete_map=color_discrete_map)
+```
+
+In page files:
+```python
+# Get color mapping from cached property
+color_map = st.session_state.decision_data.color_mappings.get("Channel")
+
+# Call cached wrapper with explicit parameters
+fig = st_my_plot(
+    filtered_data,
+    stage="Arbitration",
+    color_discrete_map=color_map
+)
+st.plotly_chart(fig)
+```
+
+### Combined Dimensions (e.g., Channel/Direction)
+
+When users need to see data broken down by combinations like "Channel/Direction":
+
+**In data processing functions:**
+```python
+def get_data(self, color_by: str | None = None):
+    # Detect combined dimension request
+    needs_channel_direction = color_by == "Channel/Direction"
+
+    if needs_channel_direction:
+        # Group by individual columns
+        grouping_levels = ["Channel", "Direction", "Action"]
+    else:
+        grouping_levels = [color_by, "Action"] if color_by else ["Action"]
+
+    # Get distribution
+    df = self.getDistributionData(grouping_levels=grouping_levels).collect()
+
+    # Create synthetic combined column
+    if needs_channel_direction:
+        df = df.with_columns(
+            pl.concat_str("Channel", "Direction", separator="/").alias("Channel/Direction")
+        )
+```
+
+**In color mapping initialization:**
+```python
+# Channel/Direction is a special combined dimension
+categorical_columns = [
+    "Issue", "Group", "Action", "Channel", "Direction",
+    "Channel/Direction",  # Synthetic but needs consistent colors
+]
+
+# The color_mapping utility handles the "/" by creating mappings
+# from the full dataset's Channel × Direction combinations
+```
+
+### Testing Plot Functions
+
+Standard test structure for plot functions:
+
+```python
+class TestMyPlot:
+    """Test my_plot method."""
+
+    def test_basic_plot(self, plot_instance):
+        """Test plot creation with default parameters."""
+        fig = plot_instance.my_plot(stage="Output")
+        assert isinstance(fig, Figure)
+
+    def test_return_df(self, plot_instance):
+        """Test dataframe return for data validation."""
+        df = plot_instance.my_plot(stage="Output", return_df=True)
+        assert isinstance(df, pl.LazyFrame)
+        # Verify data structure
+        schema = df.collect_schema().names()
+        assert "expected_column" in schema
+
+    def test_with_color_by(self, plot_instance):
+        """Test plot with color dimension."""
+        fig = plot_instance.my_plot(stage="Output", color_by="Channel")
+        assert isinstance(fig, Figure)
+        # Verify legend title matches color dimension
+        assert fig.layout.legend.title.text == "Channel"
+
+    def test_with_scope(self, plot_instance):
+        """Test plot respects scope parameter."""
+        for scope in ["Issue", "Group", "Action"]:
+            fig = plot_instance.my_plot(stage="Output", scope=scope)
+            assert isinstance(fig, Figure)
+            # Verify y-axis reflects the scope
+```
+
 ### Documentation Formatting
 - Use relative links for internal docs
 - Code blocks: use appropriate language tags

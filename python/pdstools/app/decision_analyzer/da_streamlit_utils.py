@@ -684,8 +684,8 @@ def load_decision_analyzer(
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-def st_priority_component_distribution(value_data: pl.LazyFrame, component, granularity):
-    return plot_priority_component_distribution(value_data, component, granularity)
+def st_priority_component_distribution(value_data: pl.LazyFrame, component, granularity, color_discrete_map=None):
+    return plot_priority_component_distribution(value_data, component, granularity, color_discrete_map)
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)

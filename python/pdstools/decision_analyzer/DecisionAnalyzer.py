@@ -341,6 +341,49 @@ class DecisionAnalyzer:
         self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
     @cached_property
+    def color_mappings(self) -> dict[str, dict[str, str]]:
+        """Compute consistent color mappings for all categorical dimensions.
+
+        Color assignments are based on all unique values in the full dataset
+        (before sampling), sorted alphabetically. This ensures colors remain
+        consistent throughout the session regardless of filtering.
+
+        Returns
+        -------
+        dict[str, dict[str, str]]
+            Nested dictionary mapping dimension names to color dictionaries.
+            Example: {
+                "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
+            }
+
+        Notes
+        -----
+        Uses @cached_property so computation happens once on first access.
+        Colors are assigned from the Pega colorway using modulo indexing.
+
+        See Also
+        --------
+        pdstools.utils.color_mapping.create_categorical_color_mappings
+            Generic utility for creating color mappings in any Streamlit app.
+        """
+        from ..utils.color_mapping import create_categorical_color_mappings
+        from ..utils.pega_template import colorway
+
+        categorical_columns = [
+            "Issue",
+            "Group",
+            "Action",
+            "Treatment",
+            "Channel",
+            "Direction",
+            "Stage Group",
+            "Stage",
+        ]
+
+        return create_categorical_color_mappings(self.decision_data, categorical_columns, colorway)
+
+    @cached_property
     def stages_from_arbitration_down(self):
         """All stages from Arbitration onward, respecting the current level.
 
@@ -1188,46 +1231,124 @@ class DecisionAnalyzer:
         )
         return optionality_funnel
 
-    def getActionVariationData(self, stage):
-        data = pl.concat(
-            [
+    def getActionVariationData(self, stage, color_by=None):
+        """Get action variation data, optionally broken down by a categorical dimension.
+
+        Args:
+            stage: The stage to analyze
+            color_by: Optional categorical column to break down the variation by.
+                     Can use "Channel/Direction" to combine Channel and Direction columns.
+        """
+        # Handle combined Channel/Direction column
+        needs_channel_direction = color_by == "Channel/Direction"
+        if needs_channel_direction:
+            grouping_levels = ["Channel", "Direction", "Action"]
+        else:
+            grouping_levels = ["Action"] if color_by is None else [color_by, "Action"]
+
+        # Get distribution data grouped by Action (and optionally color_by dimension)
+        distribution = self.getDistributionData(
+            stage=stage,
+            grouping_levels=grouping_levels,
+        ).collect()
+
+        # Create combined Channel/Direction column if needed
+        if needs_channel_direction:
+            distribution = distribution.with_columns(
+                pl.concat_str("Channel", "Direction", separator="/").alias("Channel/Direction")
+            )
+            color_by_col = "Channel/Direction"
+        else:
+            color_by_col = color_by
+
+        # Compute cumulative stats within each group if color_by is specified
+        if color_by is not None:
+            # Define final columns to keep
+            final_columns = [
+                "ActionIndex",
+                "Action",
+                "Decisions",
+                "cumDecisions",
+                "DecisionsFraction",
+                "ActionsFraction",
+                color_by_col,
+            ]
+
+            data = (
+                distribution.sort([color_by_col, "Decisions"], descending=[False, True])
+                .with_columns(cumDecisions=pl.col("Decisions").cum_sum().over(color_by_col).cast(pl.Int32))
+                .with_columns(
+                    DecisionsFraction=(pl.col("cumDecisions") / pl.col("Decisions").sum().over(color_by_col)),
+                    Decisions=pl.col("Decisions").cast(pl.Int32),
+                )
+                .with_columns(ActionIndex=pl.int_range(pl.len()).over(color_by_col) + 1)
+                .with_columns(
+                    ActionsFraction=pl.col("ActionIndex") / pl.col("ActionIndex").max().over(color_by_col),
+                    ActionIndex=pl.col("ActionIndex").cast(pl.UInt32),
+                    Decisions=pl.col("Decisions").cast(pl.UInt32),
+                    cumDecisions=pl.col("cumDecisions").cast(pl.UInt32),
+                )
+                .select(final_columns)
+            )
+
+            # Create zero points for each unique group value
+            unique_groups = data[color_by_col].unique()
+            zero_points = (
                 pl.DataFrame(
                     {
-                        "ActionIndex": 0,
-                        "Action": "",
-                        "Decisions": 0,
-                        # self.level: stage,
-                        "cumDecisions": 0,
-                        "DecisionsFraction": 0.0,
-                        "ActionsFraction": 0.0,
+                        color_by_col: unique_groups,
+                        "ActionIndex": [0] * len(unique_groups),
+                        "Action": [""] * len(unique_groups),
+                        "Decisions": [0] * len(unique_groups),
+                        "cumDecisions": [0] * len(unique_groups),
+                        "DecisionsFraction": [0.0] * len(unique_groups),
+                        "ActionsFraction": [0.0] * len(unique_groups),
                     }
-                ).with_columns(
+                )
+                .with_columns(
                     pl.col("ActionIndex").cast(pl.UInt32),
                     pl.col("Decisions").cast(pl.UInt32),
                     pl.col("cumDecisions").cast(pl.UInt32),
-                ),
-                self.getDistributionData(
-                    # TODO generalize so it does all context keys not just pyName
-                    # use pl.struct like in first_level_stats function
-                    stage=stage,
-                    grouping_levels="Action",
                 )
-                .with_columns(cumDecisions=pl.col("Decisions").cum_sum().cast(pl.Int32))
+                .select(final_columns)
+            )
+
+            result = pl.concat([zero_points, data]).sort([color_by_col, "ActionIndex"])
+        else:
+            data = (
+                distribution.with_columns(cumDecisions=pl.col("Decisions").cum_sum().cast(pl.Int32))
                 .with_columns(
                     DecisionsFraction=(pl.col("cumDecisions") / pl.sum("Decisions")),
                     Decisions=pl.col("Decisions").cast(pl.Int32),
                 )
-                .collect()  # type: ignore[union-attribute]
                 .with_row_index("ActionIndex", 1)
                 .with_columns(
                     ActionsFraction=pl.col("ActionIndex") / pl.len(),
                     ActionIndex=pl.col("ActionIndex").cast(pl.UInt32),
                     Decisions=pl.col("Decisions").cast(pl.UInt32),
                     cumDecisions=pl.col("cumDecisions").cast(pl.UInt32),
-                ),
-            ]
-        )
-        return data.lazy()
+                )
+            )
+
+            # Single zero point for non-grouped data
+            zero_point = pl.DataFrame(
+                {
+                    "ActionIndex": 0,
+                    "Action": "",
+                    "Decisions": 0,
+                    "cumDecisions": 0,
+                    "DecisionsFraction": 0.0,
+                    "ActionsFraction": 0.0,
+                }
+            ).with_columns(
+                pl.col("ActionIndex").cast(pl.UInt32),
+                pl.col("Decisions").cast(pl.UInt32),
+                pl.col("cumDecisions").cast(pl.UInt32),
+            )
+
+            result = pl.concat([zero_point, data])
+
+        return result.lazy()
 
     # TODO: figure out how to main standard stage order, for now simply solved by sorting on counts
     def getABTestResults(self):

@@ -26,6 +26,12 @@ will reflect only the filtered data.
 choose which specific values to include in your analysis.
 """
 
+st.info(
+    "💡 **Note:** Chart colors and legends remain consistent throughout your session "
+    "based on all values in the loaded dataset, even when filters reduce the visible data. "
+    "To reset colors, reload your data."
+)
+
 ensure_data()
 
 # ── Handle pending filter reset (before any widgets render) ──────────
