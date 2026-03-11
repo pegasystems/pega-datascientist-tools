@@ -361,10 +361,15 @@ class DecisionAnalyzer:
         -----
         Uses @cached_property so computation happens once on first access.
         Colors are assigned from the Pega colorway using modulo indexing.
+
+        See Also
+        --------
+        pdstools.utils.color_mapping.create_categorical_color_mappings
+            Generic utility for creating color mappings in any Streamlit app.
         """
+        from ..utils.color_mapping import create_categorical_color_mappings
         from ..utils.pega_template import colorway
 
-        # Categorical columns that are used for plot coloring
         categorical_columns = [
             "Issue",
             "Group",
@@ -376,30 +381,7 @@ class DecisionAnalyzer:
             "Stage",
         ]
 
-        mappings = {}
-        schema = self.decision_data.collect_schema().names()
-
-        for col_name in categorical_columns:
-            # Skip if column doesn't exist in this dataset
-            if col_name not in schema:
-                continue
-
-            # Get all unique values, sorted alphabetically for determinism
-            unique_values = (
-                self.decision_data.select(pl.col(col_name).unique())
-                .collect()
-                .get_column(col_name)
-                .drop_nulls()
-                .sort()
-                .to_list()
-            )
-
-            # Assign colors from colorway using modulo indexing
-            color_map = {str(val): colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
-
-            mappings[col_name] = color_map
-
-        return mappings
+        return create_categorical_color_mappings(self.decision_data, categorical_columns, colorway)
 
     @cached_property
     def stages_from_arbitration_down(self):

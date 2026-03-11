@@ -345,6 +345,57 @@ st.plotly_chart(fig, config={"scrollZoom": False})
 st.plotly_chart(fig, width="stretch")
 ```
 
+### Streamlit Color Consistency
+
+**Pattern: Pre-compute categorical color mappings for session consistency**
+
+When using categorical dimensions for plot colors in Streamlit apps, colors must remain consistent throughout the session regardless of filtering. Dynamic color assignment (based on filtered data) causes confusion when legends change colors as users interact with controls.
+
+**Implementation:**
+- Use `pdstools.utils.color_mapping.create_categorical_color_mappings()` utility
+- Compute mappings once at data load time (not from filtered subsets)
+- Cache with `@cached_property` or `@st.cache_resource`
+- Pass to Plotly via `color_discrete_map` parameter
+
+**Example:**
+```python
+from pdstools.utils.color_mapping import create_categorical_color_mappings
+from pdstools.utils.pega_template import colorway
+
+@cached_property
+def color_mappings(self):
+    return create_categorical_color_mappings(
+        self.data,
+        ["Category", "Type", "Status"],
+        colorway,
+        column_mapping=self.column_mapping  # optional
+    )
+
+# In plot functions:
+fig = px.bar(
+    filtered_data,
+    x="x",
+    y="y",
+    color="Category",
+    color_discrete_map=self.color_mappings.get("Category")
+)
+```
+
+**Rationale:**
+- Users can track categories across different views/filters
+- Deterministic (alphabetically sorted values → consistent colors)
+- Minimal performance overhead (computed once, cached)
+- Plotly only colors visible values, but uses consistent assignments
+
+**User Communication:**
+Add an informational message on filter pages explaining that colors remain consistent:
+```python
+st.info(
+    "Note: Chart colors remain consistent throughout your session "
+    "based on all values in the loaded dataset, even when filters reduce visible data."
+)
+```
+
 ### Documentation Formatting
 - Use relative links for internal docs
 - Code blocks: use appropriate language tags
