@@ -334,11 +334,15 @@ class Plot:
                 "Insufficient data: Trend analysis requires data from multiple days. "
                 "Currently, the dataset contains information for only one day."
             )
+
+        color_discrete_map = self._decision_data.color_mappings.get(scope)
+
         fig = px.area(
             data_frame=df,
             x="day",
             y="Decisions",
             color=scope,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
 
@@ -356,9 +360,7 @@ class Plot:
         if return_df:
             return remaining_df, filter_df
 
-        unique_scope_values = filter_df.select(scope).unique().to_series().to_list()
-        colors = px.colors.qualitative.Light24
-        color_map = {val: colors[i % len(colors)] for i, val in enumerate(unique_scope_values)}
+        color_map = self._decision_data.color_mappings.get(scope)
 
         # Prepare data with formatted labels for hover
         remaining_collected = remaining_df.sort([self._decision_data.level, "action_occurrences", scope]).collect()
@@ -529,12 +531,15 @@ class Plot:
         metric: str = "Decisions",
         horizontal=False,
     ):
+        color_discrete_map = self._decision_data.color_mappings.get(breakdown)
+
         # TODO have a nice hover showing both the individual colored totals as the total bar
         fig = px.histogram(
             df.collect(),
             x=metric if horizontal else scope,
             y=scope if horizontal else metric,
             color=breakdown,
+            color_discrete_map=color_discrete_map,
             orientation="h" if horizontal else "v",
             template="pega",
         )
@@ -836,12 +841,17 @@ class Plot:
         df = self._decision_data.get_optionality_data(self._decision_data.sample)
         if return_df:
             return df
+
+        level = self._decision_data.level
+        color_discrete_map = self._decision_data.color_mappings.get(level)
+
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(
             df.collect(),
-            x=self._decision_data.level,
+            x=level,
             y="nOffers",
-            color=self._decision_data.level,
+            color=level,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
         fig.update_layout(
@@ -869,11 +879,16 @@ class Plot:
                 "Insufficient data: Trend analysis requires data from multiple days. "
                 "Currently, the dataset contains information for only one day."
             )
+
+        level = self._decision_data.level
+        color_discrete_map = self._decision_data.color_mappings.get(level)
+
         fig = px.line(
             collected_df,
             x="day",
             y="nOffers",
-            color=self._decision_data.level,
+            color=level,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
 
@@ -1130,7 +1145,9 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
 _ECDF_MAX_ROWS = 50_000
 
 
-def plot_priority_component_distribution(value_data: pl.LazyFrame, component: str, granularity: str):
+def plot_priority_component_distribution(
+    value_data: pl.LazyFrame, component: str, granularity: str, color_discrete_map: dict[str, str] | None = None
+):
     """Violin + ECDF + summary statistics for a single prioritization component.
 
     Returns
@@ -1144,6 +1161,7 @@ def plot_priority_component_distribution(value_data: pl.LazyFrame, component: st
         collected,
         x=component,
         color=granularity,
+        color_discrete_map=color_discrete_map,
         template="pega",
         box=True,
         points=False,
@@ -1159,6 +1177,7 @@ def plot_priority_component_distribution(value_data: pl.LazyFrame, component: st
         collected,
         x=component,
         color=granularity,
+        color_discrete_map=color_discrete_map,
         template="pega",
         markers=False,
     ).update_layout(

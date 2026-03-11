@@ -106,10 +106,13 @@ with st.container(border=True):
         additional_filters=channel_filter,
     )
 
+    color_discrete_map = st.session_state.decision_data.color_mappings.get(st.session_state.scope)
+
     violin_fig, ecdf_fig, stats_df = st_priority_component_distribution(
         value_data,
         component=st.session_state.prioritization_component,
         granularity=st.session_state.scope,
+        color_discrete_map=color_discrete_map,
     )
 
     violin_tab, ecdf_tab, stats_tab = st.tabs(["Violin Plot", "Cumulative Distribution", "Summary Statistics"])
