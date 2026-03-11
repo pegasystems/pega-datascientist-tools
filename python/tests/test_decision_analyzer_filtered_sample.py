@@ -69,3 +69,68 @@ def test_filtered_sample_outside_streamlit(mock_decision_analyzer, sample_data_v
     expected = sample_data_v2.lazy()
 
     assert result.collect().equals(expected.collect())
+
+
+@pytest.fixture
+def sample_data_v1():
+    """Create sample v1 data with Channel only (no Direction)."""
+    return pl.DataFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I2", "I2"],
+            "Channel": ["Web", "Web", "Email", "Email"],
+            "Action": ["A1", "A2", "A3", "A4"],
+            "Decision Time": ["2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02"],
+            "Priority": [100.0, 90.0, 85.0, 80.0],
+        }
+    ).with_columns(pl.col("Decision Time").str.strptime(pl.Datetime))
+
+
+@pytest.fixture
+def sample_data_no_channel():
+    """Create sample data without Channel or Direction columns."""
+    return pl.DataFrame(
+        {
+            "Interaction ID": ["I1", "I2"],
+            "Action": ["A1", "A2"],
+            "Decision Time": ["2024-01-01", "2024-01-02"],
+        }
+    ).with_columns(pl.col("Decision Time").str.strptime(pl.Datetime))
+
+
+def test_get_available_channel_directions_v2(sample_data_v2):
+    """Should return sorted Channel/Direction combinations for v2 data."""
+    from pdstools.app.decision_analyzer.da_streamlit_utils import (
+        get_available_channel_directions,
+    )
+
+    result = get_available_channel_directions(sample_data_v2.lazy())
+
+    expected = [
+        "Email/Outbound",
+        "Mobile/Inbound",
+        "Web/Inbound",
+    ]
+    assert result == expected
+
+
+def test_get_available_channel_directions_v1(sample_data_v1):
+    """Should return sorted Channel values for v1 data without Direction."""
+    from pdstools.app.decision_analyzer.da_streamlit_utils import (
+        get_available_channel_directions,
+    )
+
+    result = get_available_channel_directions(sample_data_v1.lazy())
+
+    expected = ["Email", "Web"]
+    assert result == expected
+
+
+def test_get_available_channel_directions_no_channel(sample_data_no_channel):
+    """Should return empty list when no Channel column exists."""
+    from pdstools.app.decision_analyzer.da_streamlit_utils import (
+        get_available_channel_directions,
+    )
+
+    result = get_available_channel_directions(sample_data_no_channel.lazy())
+
+    assert result == []

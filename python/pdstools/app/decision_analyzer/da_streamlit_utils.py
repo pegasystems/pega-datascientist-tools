@@ -581,6 +581,36 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     return pl.concat(frames, how="diagonal", rechunk=True), None
 
 
+def get_available_channel_directions(sample_df: pl.LazyFrame) -> list[str]:
+    """Get list of Channel/Direction combinations from the sample data.
+
+    Handles both v2 data (with Direction) and v1 data (Channel only).
+    Respects any filters already applied to the sample (e.g., global filters).
+
+    Parameters
+    ----------
+    sample_df : pl.LazyFrame
+        The sample data (after global filters applied).
+
+    Returns
+    -------
+    list[str]
+        Sorted list of "Channel/Direction" strings for v2 data,
+        or sorted list of "Channel" strings for v1 data,
+        or empty list if no channel data available.
+    """
+    schema = sample_df.collect_schema().names()
+
+    if "Direction" in schema:
+        combos = sample_df.select(pl.struct("Channel", "Direction")).unique().collect().to_series().to_list()
+        return sorted([f"{c['Channel']}/{c['Direction']}" for c in combos])
+    elif "Channel" in schema:
+        channels = sample_df.select("Channel").unique().collect().to_series().to_list()
+        return sorted(channels)
+    else:
+        return []
+
+
 @st.cache_resource
 def load_decision_analyzer(
     _raw_data: pl.LazyFrame,
