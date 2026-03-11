@@ -43,18 +43,11 @@ class Plot:
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
     def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: list[str]):
-        # Create consistent color mapping for the primary scope level
+        # Use consistent color mapping from the DecisionAnalyzer instance
         color_discrete_map = None
         if scope_options:
-            # Get all unique values for the primary scope across all stages to ensure consistency
             primary_scope = scope_options[0]
-            all_stages_data = self._decision_data.getPreaggregatedRemainingView
-            unique_values = (
-                all_stages_data.select(primary_scope).unique().collect().get_column(primary_scope).sort().to_list()
-            )
-
-            # Create color mapping using imported Pega colorway
-            color_discrete_map = {val: colorway[i % len(colorway)] for i, val in enumerate(unique_values)}
+            color_discrete_map = self._decision_data.color_mappings.get(primary_scope)
 
         fig = px.treemap(
             df.collect(),
