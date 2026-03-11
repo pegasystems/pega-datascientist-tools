@@ -725,6 +725,7 @@ class Plot:
     def component_drilldown(
         self,
         component_name: str,
+        scope: str = "Action",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         sort_by: str = "Filtered Decisions",
         return_df=False,
@@ -739,6 +740,8 @@ class Plot:
         ----------
         component_name : str
             The pxComponentName to drill into.
+        scope : str, default "Action"
+            The granularity level to display (Issue, Group, or Action).
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters applied before aggregation.
         sort_by : str, default "Filtered Decisions"
@@ -772,7 +775,7 @@ class Plot:
         # Primary trace: bar chart of filtered decisions
         fig.add_trace(
             go.Bar(
-                y=plot_df["Action"],
+                y=plot_df[scope],
                 x=plot_df["Filtered Decisions"],
                 orientation="h",
                 name="Filtered Decisions",

@@ -174,7 +174,7 @@ if has_components:
     # Component Drilldown
     # ---------------------------------------------------------------------------
     with st.container(border=True):
-        "## Deep Dive: Filter Details"
+        "## Deep Dive: What actions are filtered by Component"
         """
         Investigate a specific filter to see all offers it removes. Each offer shows its average
         business value, priority, and propensity score — making it easy to spot if high-value
@@ -211,6 +211,7 @@ if has_components:
             sort_by = sort_options_mapping[sort_by_display]
             drilldown_fig = st.session_state.decision_data.plot.component_drilldown(
                 component_name=selected_component,
+                scope=st.session_state.scope,
                 sort_by=sort_by,
             )
             st.plotly_chart(drilldown_fig)
