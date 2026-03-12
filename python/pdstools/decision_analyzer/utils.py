@@ -795,8 +795,19 @@ def prepare_and_save(
 
         # Perform sampling — fully lazy for hash-based, collects IDs only for random
         sampled_lf = sample_interactions(
-            df, n=n, fraction=fraction, id_column=id_column, use_random=use_random,
+            df,
+            n=n,
+            fraction=fraction,
+            id_column=id_column,
+            use_random=use_random,
         )
+
+        # Check if sampling was actually needed (when n-based sampling is requested)
+        if n is not None:
+            actual_count = sampled_lf.select(pl.n_unique(id_column)).collect().item()
+            if actual_count <= n:
+                logger.info("Data has %d interactions (≤ requested %d), skipping file write.", actual_count, n)
+                return df, None
     else:
         sampled_lf = df
 

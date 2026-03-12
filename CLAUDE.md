@@ -89,6 +89,34 @@ The Decision Analysis Tool (`decision_analyzer`) analyzes Pega decisioning data 
 - **Data utilities**: `python/pdstools/decision_analyzer/data_read_utils.py` (multi-format ingestion)
 - **Schema**: `python/pdstools/decision_analyzer/column_schema.py` (column definitions and display names)
 
+### Data Loading Architecture
+
+**Core library** (`data_read_utils.py`):
+- `read_data(path)` — Multi-format reader supporting parquet, csv, json, ndjson, arrow, zip, tar, tar.gz, tgz
+- Handles file paths, directories (including Hive-partitioned), and archives
+- Automatically extracts zip and tar archives to temp directories
+- Calls `_clean_artifacts()` after extraction to remove OS junk files (`__MACOSX`, `._*`, `.DS_Store`)
+- Returns `pl.LazyFrame` for lazy evaluation
+
+**Streamlit UI layer** (`da_streamlit_utils.py`):
+- `handle_file_upload()` — Multi-file uploader widget supporting all data formats and archives
+- `handle_data_path()` — Load from `--data-path` CLI flag with progress feedback
+- `handle_sample_data()` — Load built-in demo data (EEV2 sample)
+- `_read_uploaded_zip()`, `_read_uploaded_tar()` — Archive extraction with time estimation spinners
+- All functions use `read_data()` internally for consistency
+
+**CLI integration** (`cli.py`):
+- `--data-path` → `PDSTOOLS_DATA_PATH` env var → `get_data_path()` — Specify source file/directory
+- `--sample` → `PDSTOOLS_SAMPLE_LIMIT` env var → `get_sample_limit()` — Pre-ingestion sampling (e.g., "100k" or "10%")
+- `--temp-dir` → `PDSTOOLS_TEMP_DIR` env var → `get_temp_dir()` — Directory for sampled/cached files
+
+**Sampling flow:**
+1. CLI provides `--sample` flag (e.g., "100k" or "10%")
+2. `parse_sample_flag()` converts to `{n: 100000}` or `{fraction: 0.1}`
+3. `prepare_and_save()` calls `sample_interactions()` for deterministic hash-based sampling
+4. Sampled data written as parquet with metadata tracking source file and sample percentage
+5. If data is smaller than requested sample size, file writing is skipped and full data is used
+
 ### Design Patterns
 
 **Propensity Display**: All propensity values must be displayed as percentages (e.g., "12.345%"), not raw decimals. This applies to:

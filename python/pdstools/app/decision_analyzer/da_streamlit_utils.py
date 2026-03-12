@@ -545,9 +545,27 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     import tarfile
     import tempfile
 
+    try:
+        from pdstools.utils.progress_utils import (
+            estimate_extraction_time,
+            format_time_estimate,
+        )
+
+        file_buffer.seek(0, 2)
+        file_size = file_buffer.tell()
+        file_buffer.seek(0)
+
+        min_time, max_time = estimate_extraction_time(file_size)
+        time_msg = format_time_estimate(min_time, max_time)
+        spinner_msg = f"Extracting uploaded archive... (estimated: {time_msg})"
+    except Exception:
+        spinner_msg = "Extracting uploaded archive..."
+
     tmp_dir = tempfile.mkdtemp(prefix="da_tar_")
-    with tarfile.open(fileobj=file_buffer, mode="r:*") as tf:
-        tf.extractall(tmp_dir, filter="data")
+    with st.spinner(spinner_msg):
+        with tarfile.open(fileobj=file_buffer, mode="r:*") as tf:
+            tf.extractall(tmp_dir, filter="data")
+    _clean_artifacts(tmp_dir)
     return read_data(tmp_dir)
 
 
