@@ -483,6 +483,7 @@ def handle_data_path() -> pl.LazyFrame | None:
         with st.spinner(spinner_msg):
             with tarfile.open(p, mode="r:*") as tf:
                 tf.extractall(tmp_dir, filter="data")
+        _clean_artifacts(tmp_dir)
         return read_data(tmp_dir)
 
     return read_data(data_path)

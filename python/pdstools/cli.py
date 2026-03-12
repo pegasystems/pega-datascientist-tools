@@ -235,12 +235,11 @@ def run(args, unknown):
         os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
     if args.sample:
         os.environ["PDSTOOLS_SAMPLE_LIMIT"] = args.sample
-        # Check if polars 64-bit runtime is installed; hint if not
+        # Check if polars 64-bit index runtime is active
         try:
-            from importlib.metadata import distribution
+            import polars as _pl
 
-            distribution("polars-rt64")
-            has_rt64 = True
+            has_rt64 = _pl.get_index_type() == _pl.UInt64
         except Exception:
             has_rt64 = False
         if not has_rt64:
