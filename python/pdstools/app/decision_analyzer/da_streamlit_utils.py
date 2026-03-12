@@ -6,6 +6,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools.decision_analyzer.data_read_utils import (
+    _clean_artifacts,
     read_data,
     read_nested_zip_files,
 )
@@ -457,6 +458,7 @@ def handle_data_path() -> pl.LazyFrame | None:
         with st.spinner(spinner_msg):
             with zipfile.ZipFile(p, "r") as zf:
                 zf.extractall(tmp_dir)
+        _clean_artifacts(tmp_dir)
         return read_data(tmp_dir)
 
     # Tar archive (plain or compressed): extract first, then read contents
@@ -530,6 +532,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
         with st.spinner(spinner_msg):
             zf.extractall(tmp_dir)
 
+    _clean_artifacts(tmp_dir)
     return read_data(tmp_dir)
 
 

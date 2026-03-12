@@ -1,6 +1,7 @@
 # python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
 import os
+import shutil
 import tarfile
 import tempfile
 import zipfile
@@ -30,6 +31,28 @@ _SUPPORTED_EXTENSIONS: set[str] = {
 def _is_artifact(name: str) -> bool:
     """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
     return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
+
+
+def _clean_artifacts(directory: str) -> None:
+    """Remove OS-generated artifact files and directories after archive extraction.
+
+    Polars glob patterns (e.g. ``**/*.parquet``) cannot skip hidden files or
+    ``__MACOSX`` resource-fork directories, so we delete them from the
+    extracted tree before scanning.
+    """
+    root = Path(directory)
+    # Remove __MACOSX directories first (contains bulk of macOS resource forks)
+    for macosx_dir in root.rglob("__MACOSX"):
+        if macosx_dir.is_dir():
+            shutil.rmtree(macosx_dir, ignore_errors=True)
+    # Remove individual artifact files (._*, .DS_Store, Thumbs.db, etc.)
+    for p in list(root.rglob(".*")):
+        if p.is_file() and _is_artifact(p.name):
+            p.unlink(missing_ok=True)
+    for name in ("Thumbs.db", "desktop.ini"):
+        for p in root.rglob(name):
+            if p.is_file():
+                p.unlink(missing_ok=True)
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
@@ -160,6 +183,7 @@ def read_data(path):
     # Handle tar archives first (covers .tar, .tar.gz, .tgz, etc.)
     if not original_path.is_dir() and _is_tar_path(original_path):
         tmp_dir = _extract_tar(original_path)
+        _clean_artifacts(tmp_dir)
         return read_data(tmp_dir)
 
     if extension == ".parquet":
@@ -176,6 +200,7 @@ def read_data(path):
             tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
             with zipfile.ZipFile(original_path, "r") as zf:
                 zf.extractall(tmp_dir)
+            _clean_artifacts(tmp_dir)
             df = read_data(tmp_dir)
         else:
             # Directory of .zip files (legacy gzipped ndjson)
