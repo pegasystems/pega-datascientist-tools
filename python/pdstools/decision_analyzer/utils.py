@@ -860,8 +860,17 @@ def prepare_and_save(
             sample_percentage = fraction * 100.0
             method = "exact"
         elif n is not None:
-            # We don't know the exact total without a full scan, so approximate
-            sample_percentage = 0.0
+            # Estimate the total using 1% hash sample (same method as sample_interactions)
+            logger.info("Estimating total interaction count from 1%% sample for metadata...")
+            sample_slice = df.filter(pl.col(id_column).hash() % 100 < 1)
+            sample_unique = sample_slice.select(pl.n_unique(id_column)).collect().item()
+            estimated_total = sample_unique * 100
+
+            if estimated_total > 0:
+                sample_percentage = (processed_count / estimated_total) * 100.0
+                logger.info("Estimated %d total interactions, sample is %.2f%%", estimated_total, sample_percentage)
+            else:
+                sample_percentage = 100.0  # Avoid division by zero
             method = "approximated"
         else:
             sample_percentage = 0.0
