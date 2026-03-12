@@ -621,7 +621,38 @@ def sample_interactions(
     if id_column is None:
         id_column = _find_interaction_id_column(available)
 
-    # For fraction-based or hash-based n sampling, apply filter lazily
+    # Random sampling (for already-sampled data or when explicitly requested)
+    # This must be checked BEFORE hash-based sampling to avoid double-hashing bias
+    if use_random:
+        # Random sampling requires collecting unique IDs
+        unique_ids_df = df.select(id_column).unique().collect()
+        total = len(unique_ids_df)
+
+        if fraction is not None:
+            # Convert fraction to target count
+            if not 0.0 < fraction <= 1.0:
+                raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+            target_n = int(total * fraction)
+            if target_n >= total:
+                logger.info("Fraction %.2f yields %d >= %d total, skipping.", fraction, target_n, total)
+                return df
+            logger.info(
+                "sample_interactions: RANDOM sampling, target=%d of %d (%.1f%%)", target_n, total, fraction * 100
+            )
+            sampled_ids_df = unique_ids_df.sample(n=target_n, shuffle=True, seed=None)
+        else:
+            # n-based random sampling
+            assert n is not None
+            if total <= n:
+                logger.info("Data has %d interactions (≤ requested %d), skipping.", total, n)
+                return df
+            logger.info("sample_interactions: RANDOM sampling, target=%d of %d", n, total)
+            sampled_ids_df = unique_ids_df.sample(n=n, shuffle=True, seed=None)
+
+        return df.join(sampled_ids_df.lazy(), on=id_column, how="semi")
+
+    # Hash-based sampling (for fresh data, no double-hashing)
+    # For fraction-based sampling, apply filter lazily
     if fraction is not None:
         if not 0.0 < fraction <= 1.0:
             raise ValueError(f"fraction must be in (0, 1], got {fraction}")
@@ -633,19 +664,8 @@ def sample_interactions(
         )
         return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
-    # n-based sampling
+    # n-based hash sampling
     assert n is not None
-
-    if use_random:
-        # Random sampling requires collecting unique IDs
-        unique_ids_df = df.select(id_column).unique().collect()
-        total = len(unique_ids_df)
-        if total <= n:
-            logger.info("Data has %d interactions (≤ requested %d), skipping.", total, n)
-            return df
-        logger.info("sample_interactions: RANDOM sampling, target=%d of %d", n, total)
-        sampled_ids_df = unique_ids_df.sample(n=n, shuffle=True, seed=None)
-        return df.join(sampled_ids_df.lazy(), on=id_column, how="semi")
 
     # Deterministic hash-based sampling for n interactions
     # If we know the total, compute an exact threshold
