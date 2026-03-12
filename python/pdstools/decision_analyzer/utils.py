@@ -1062,6 +1062,16 @@ def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
         Dictionary with keys: source_file, sample_percentage, method
         Returns None if file doesn't exist, is not parquet, or lacks metadata.
     """
+    from pathlib import Path
+
+    # Skip if file doesn't exist or is not a parquet file
+    try:
+        p = Path(source_path)
+        if not p.exists() or not p.is_file() or p.suffix.lower() != ".parquet":
+            return None
+    except Exception:
+        return None
+
     try:
         metadata = pl.read_parquet_metadata(source_path)
 
@@ -1075,6 +1085,7 @@ def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
             "sample_percentage": float(metadata.get("pdstools:sample_percentage", "0")),
             "method": metadata.get("pdstools:sample_percentage_method", "unknown"),
         }
-    except Exception:
-        # File doesn't exist, not a parquet, or other read error
+    except Exception as e:
+        # File doesn't exist, not a parquet, corrupted/incomplete, or being written by another process
+        logger.debug("Could not read metadata from %s: %s", source_path, e)
         return None

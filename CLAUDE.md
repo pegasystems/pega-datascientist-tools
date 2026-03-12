@@ -117,6 +117,8 @@ The Decision Analysis Tool (`decision_analyzer`) analyzes Pega decisioning data 
 4. Sampled data written as parquet with metadata tracking source file and sample percentage
 5. If data is smaller than requested sample size, file writing is skipped and full data is used
 
+⚠️ **Concurrent access**: Running multiple Decision Analyzer instances with overlapping `--temp-dir` or `--data-path` pointing to the same files can cause race conditions. Use separate temp directories or avoid sharing sampled files between instances.
+
 ### Design Patterns
 
 **Propensity Display**: All propensity values must be displayed as percentages (e.g., "12.345%"), not raw decimals. This applies to:
