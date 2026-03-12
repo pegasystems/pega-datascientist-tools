@@ -77,12 +77,17 @@ has_existing_data = "decision_data" in st.session_state
 configured_path = get_data_path()
 configured_path_failed = False
 if raw_data is None and configured_path and not has_existing_data:
-    with st.spinner(f"Loading data from configured path: {configured_path}"):
-        raw_data = handle_data_path()
-        data_source_path = configured_path  # Capture the source
+    try:
+        with st.spinner(f"Loading data from configured path: {configured_path}"):
+            raw_data = handle_data_path()
+            data_source_path = configured_path  # Capture the source
+    except Exception as exc:
+        st.error(f"🚫 Failed to load data: {type(exc).__name__}: {exc}")
+        configured_path_failed = True
+        raw_data = None
     if raw_data is not None:
         st.info(f"📂 Loaded data from configured path: `{configured_path}`")
-    else:
+    elif not configured_path_failed:
         configured_path_failed = True
 
 has_new_data = raw_data is not None
@@ -104,6 +109,23 @@ elif configured_path_failed:
         "Please check the path and file format, or upload data using the file uploader above."
     )
     st.stop()
+
+_LARGE_DATA_HINT = (
+    "**Your data may be too large for the default polars build.** "
+    "Standard polars uses 32-bit indexing and cannot handle more than "
+    "~2 billion elements.\n\n"
+    "To fix this, install the 64-bit runtime extra:\n\n"
+    "```\nuv pip install 'polars[rt64]'\n```\n\n"
+    "Or reduce the data before loading with the `--sample` CLI flag:\n\n"
+    "```\npdstools da --sample 500000 --data-path /path/to/data\n```"
+)
+
+
+def _is_capacity_error(exc: BaseException) -> bool:
+    """Detect polars index-capacity or memory-related errors."""
+    msg = str(exc).lower()
+    return any(keyword in msg for keyword in ("capacity overflow", "index exceeds", "out of memory", "alloc"))
+
 
 # Pre-ingestion data preparation (sampling or caching)
 # Only apply --sample flag when loading from --data-path (not for file uploads)
@@ -140,14 +162,21 @@ if raw_data is not None:
         except Exception:
             pass  # Keep the simple message
 
-        with st.spinner(sampling_msg):
-            raw_data, sample_path = prepare_and_save(
-                raw_data,
-                n=sample_kwargs.get("n"),  # type: ignore[arg-type]
-                fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
-                output_dir=get_temp_dir(),
-                source_path=data_source_path,
-            )
+        try:
+            with st.spinner(sampling_msg):
+                raw_data, sample_path = prepare_and_save(
+                    raw_data,
+                    n=sample_kwargs.get("n"),  # type: ignore[arg-type]
+                    fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
+                    output_dir=get_temp_dir(),
+                    source_path=data_source_path,
+                )
+        except BaseException as exc:
+            if _is_capacity_error(exc):
+                st.error(f"🚫 Sampling failed: {type(exc).__name__}: {exc}")
+                st.info(_LARGE_DATA_HINT)
+                st.stop()
+            raise
 
         label = sample_limit_raw.strip()
         if sample_path is not None:
@@ -203,23 +232,6 @@ def _show_data_summary(da):
         st.info(
             f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`"
         )
-
-
-_LARGE_DATA_HINT = (
-    "**Your data may be too large for the default polars build.** "
-    "Standard polars uses 32-bit indexing and cannot handle more than "
-    "~2 billion elements.\n\n"
-    "To fix this, install the 64-bit runtime extra:\n\n"
-    "```\npip install 'polars[rt64]'\n```\n\n"
-    "Or reduce the data before loading with the `--sample` CLI flag:\n\n"
-    "```\npdstools da --sample 500000 --data-path /path/to/data\n```"
-)
-
-
-def _is_capacity_error(exc: BaseException) -> bool:
-    """Detect polars index-capacity or memory-related errors."""
-    msg = str(exc).lower()
-    return any(keyword in msg for keyword in ("capacity overflow", "index exceeds", "out of memory", "alloc"))
 
 
 if has_new_data and raw_data is not None:
