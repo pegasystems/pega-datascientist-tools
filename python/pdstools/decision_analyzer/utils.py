@@ -580,6 +580,7 @@ def sample_interactions(
     fraction: float | None = None,
     id_column: str | None = None,
     use_random: bool = False,
+    total_interactions: int | None = None,
 ) -> pl.LazyFrame:
     """Sample interactions from a LazyFrame before ingestion.
 
@@ -604,6 +605,9 @@ def sample_interactions(
     use_random : bool, default False
         If True, use random sampling instead of deterministic hash-based sampling.
         This should be set when sampling already-sampled data to avoid bias.
+    total_interactions : int, optional
+        Pre-computed total number of unique interactions. If provided, avoids
+        an expensive full-data scan to count them.
 
     Returns
     -------
@@ -617,39 +621,68 @@ def sample_interactions(
     if id_column is None:
         id_column = _find_interaction_id_column(available)
 
-    # Get unique interaction IDs
-    unique_ids_df = df.select(id_column).unique().collect()
-    total = len(unique_ids_df)
-
-    # Calculate target count
+    # For fraction-based or hash-based n sampling, apply filter lazily
     if fraction is not None:
         if not 0.0 < fraction <= 1.0:
             raise ValueError(f"fraction must be in (0, 1], got {fraction}")
-        target_n = int(fraction * total)
-    else:
-        if total <= n:
-            logger.info(
-                "Data has %d interactions (≤ requested %d), skipping sampling.",
-                total,
-                n,
-            )
-            return df
-        target_n = n
+        threshold = int(fraction * 10_000)
+        logger.info(
+            "sample_interactions: LAZY hash filter, fraction=%.2f, threshold=%d",
+            fraction,
+            threshold,
+        )
+        return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+
+    # n-based sampling
+    assert n is not None
 
     if use_random:
-        # Random sampling: take a random subset of interaction IDs
-        logger.info("sample_interactions: using RANDOM sampling, target=%d of %d interactions", target_n, total)
-        sampled_ids_df = unique_ids_df.sample(n=target_n, shuffle=True, seed=None)
-    else:
-        # Deterministic hash-based sampling
-        threshold = int((target_n / total) * 10_000)
-        logger.info(
-            "sample_interactions: using HASH-based sampling, threshold=%d (hash %% 10000 < %d)", threshold, threshold
-        )
-        sampled_ids_df = unique_ids_df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+        # Random sampling requires collecting unique IDs
+        unique_ids_df = df.select(id_column).unique().collect()
+        total = len(unique_ids_df)
+        if total <= n:
+            logger.info("Data has %d interactions (≤ requested %d), skipping.", total, n)
+            return df
+        logger.info("sample_interactions: RANDOM sampling, target=%d of %d", n, total)
+        sampled_ids_df = unique_ids_df.sample(n=n, shuffle=True, seed=None)
+        return df.join(sampled_ids_df.lazy(), on=id_column, how="semi")
 
-    # Filter original data to only include sampled interaction IDs (convert back to lazy for join)
-    return df.join(sampled_ids_df.lazy(), on=id_column, how="semi")
+    # Deterministic hash-based sampling for n interactions
+    # If we know the total, compute an exact threshold
+    if total_interactions is not None:
+        if total_interactions <= n:
+            logger.info("Data has %d interactions (≤ requested %d), skipping.", total_interactions, n)
+            return df
+        threshold = int((n / total_interactions) * 10_000)
+        logger.info(
+            "sample_interactions: LAZY hash filter, n=%d of %d, threshold=%d",
+            n,
+            total_interactions,
+            threshold,
+        )
+        return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+
+    # No total known — estimate unique interactions from a small sample of data.
+    # Reading a 1% hash slice is much cheaper than scanning all rows for unique IDs.
+    logger.info("Estimating interaction count from 1%% sample...")
+    sample_slice = df.filter(pl.col(id_column).hash() % 100 < 1)
+    sample_unique = sample_slice.select(pl.n_unique(id_column)).collect().item()
+    estimated_total = sample_unique * 100  # Scale up from 1% sample
+
+    if estimated_total <= n:
+        logger.info("Estimated %d interactions (≤ requested %d), skipping sampling.", estimated_total, n)
+        return df
+
+    # Add 10% buffer to threshold to compensate for estimation variance
+    raw_threshold = int((n / estimated_total) * 10_000)
+    threshold = max(1, min(int(raw_threshold * 1.1), 10_000))
+    logger.info(
+        "sample_interactions: LAZY hash filter (estimated), n=%d, est_total=%d, threshold=%d",
+        n,
+        estimated_total,
+        threshold,
+    )
+    return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
 
 def prepare_and_save(
@@ -755,64 +788,65 @@ def prepare_and_save(
 
     # Step 2: Process data based on mode
     if is_sampling:
-        # Sampling mode: calculate total if needed for n-based sampling
-        total = None
-        if n is not None:
-            total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
-            if total <= n:
-                logger.info(
-                    "Data has %d interactions (≤ requested %d), skipping sampling.",
-                    total,
-                    n,
-                )
-                return df, None
-        elif fraction is not None:
-            # For fraction-based sampling, get source size
-            total = df.select(pl.n_unique(id_column).alias("n")).collect().item()  # type: ignore[union-attribute]
-
         # Detect if source was already sampled (use random sampling to avoid hash bias)
         use_random = source_metadata is not None
         if use_random:
             logger.info("Source is already sampled - using random sampling to avoid hash-based bias")
 
-        # Perform sampling
-        sampled = sample_interactions(df, n=n, fraction=fraction, id_column=id_column, use_random=use_random)
-        processed_df = sampled.collect()  # type: ignore[union-attribute]
+        # Perform sampling — fully lazy for hash-based, collects IDs only for random
+        sampled_lf = sample_interactions(
+            df, n=n, fraction=fraction, id_column=id_column, use_random=use_random,
+        )
     else:
-        # Caching mode: collect all data (no sampling)
-        processed_df = df.collect()
+        sampled_lf = df
 
-    # Step 3: Calculate sample percentage
+    # Step 3: Determine output directory and write via sink_parquet (streaming)
+    prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
+    dest = _determine_output_directory(source_path, output_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    # Use a temporary name first, rename after we know the count
+    import uuid
+
+    tmp_name = f"{prefix}{uuid.uuid4().hex[:8]}.parquet"
+    tmp_path = dest / tmp_name
+
+    logger.info("Streaming data to %s", tmp_path)
+    try:
+        sampled_lf.sink_parquet(tmp_path)
+    except Exception:
+        # sink_parquet may not support all query plans; fall back to collect
+        logger.info("sink_parquet failed, falling back to collect + write_parquet")
+        sampled_lf.collect(streaming=True).write_parquet(tmp_path)
+
+    # Step 4: Read back to get the actual count and compute metadata
+    result_lf = pl.scan_parquet(tmp_path)
+    processed_count = result_lf.select(pl.n_unique(id_column)).collect().item()
+
+    # Calculate sample percentage (approximate for hash-based large data)
     if is_sampling:
         if fraction is not None:
-            # Fraction-based: exact percentage
             sample_percentage = fraction * 100.0
             method = "exact"
-        elif total is not None and n is not None:
-            # Count-based: we already have total, calculate exact
-            sample_percentage = (n / total) * 100.0
-            method = "exact"
+        elif n is not None:
+            # We don't know the exact total without a full scan, so approximate
+            sample_percentage = 0.0
+            method = "approximated"
         else:
-            # Fallback (shouldn't happen in normal flow)
             sample_percentage = 0.0
             method = "unknown"
     else:
-        # Caching mode: always 100%
         sample_percentage = 100.0
         method = "exact"
 
-    # Step 4: Apply inheritance if sampling a sample
+    # Step 5: Apply inheritance if sampling a sample
     if source_metadata and is_sampling:
-        # Multiply percentages for chained sampling
         source_pct = source_metadata["sample_percentage"]
-        assert isinstance(source_pct, float)  # Type narrowing
+        assert isinstance(source_pct, float)
         sample_percentage = (sample_percentage * source_pct) / 100.0
-        # Inherit method (use "approximated" if either step was approximate)
         if source_metadata["method"] == "approximated":
             method = "approximated"
 
-    # Step 5: Determine output filename with count
-    processed_count = processed_df.select(pl.n_unique(id_column)).item()  # type: ignore[union-attr]
     formatted_count = format_count_for_filename(processed_count)
     logger.info(
         "Processed %d interactions%s",
@@ -820,34 +854,27 @@ def prepare_and_save(
         f" ({sample_percentage:.1f}% of original)" if is_sampling and sample_percentage < 100 else "",
     )
 
-    # Choose prefix based on mode
-    prefix = "decision_analyzer_sample_" if is_sampling else "decision_analyzer_cache_"
-
-    # Determine output directory: prefer source file's directory if writeable
-    dest = _determine_output_directory(source_path, output_dir)
-    dest.mkdir(parents=True, exist_ok=True)
-
-    # Build output path with collision avoidance
+    # Step 6: Rename to final path with count
     base_path = dest / f"{prefix}{formatted_count}.parquet"
     out_path = base_path
-
-    # If file exists with same name, add incremental suffix to avoid overwriting
     counter = 1
     while out_path.exists():
         logger.info("File %s already exists, adding suffix", out_path.name)
         out_path = dest / f"{prefix}{formatted_count}_{counter}.parquet"
         counter += 1
 
-    # Step 6: Build metadata
+    tmp_path.rename(out_path)
+
+    # Step 7: Write metadata by re-reading and re-writing with metadata
+    # (parquet metadata can only be set at write time)
     metadata = {
         "pdstools:source_file": original_source,
         "pdstools:sample_percentage": f"{sample_percentage:.2f}",
         "pdstools:sample_percentage_method": method,
     }
-
-    # Step 7: Write with metadata
-    logger.info("Writing prepared data to %s", out_path)
-    processed_df.write_parquet(out_path, metadata=metadata)
+    logger.info("Writing metadata to %s", out_path)
+    result_df = pl.read_parquet(out_path)
+    result_df.write_parquet(out_path, metadata=metadata)
 
     return pl.scan_parquet(out_path), out_path
 

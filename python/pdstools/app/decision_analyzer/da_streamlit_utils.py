@@ -481,8 +481,11 @@ def handle_data_path() -> pl.LazyFrame | None:
 
         tmp_dir = tempfile.mkdtemp(prefix="da_path_tar_")
         with st.spinner(spinner_msg):
-            with tarfile.open(p, mode="r:*") as tf:
-                tf.extractall(tmp_dir, filter="data")
+            # Open file handle first to avoid macOS permission errors
+            # (tarfile auto-detection re-opens by name for gzip probing)
+            with open(p, "rb") as fh:
+                with tarfile.open(fileobj=fh, mode="r:*") as tf:
+                    tf.extractall(tmp_dir, filter="data")
         _clean_artifacts(tmp_dir)
         return read_data(tmp_dir)
 
