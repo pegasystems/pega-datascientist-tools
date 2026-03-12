@@ -186,8 +186,23 @@ with st.container(border=True):
 
 ## Testing Expectations
 
+### Test Coverage Requirements
+
+**Minimum coverage: 80%** for all pdstools code. CI/CD enforces this requirement.
+
+- **Patch coverage**: New code in PRs must have ≥80% coverage
+- **Overall coverage**: Entire codebase must maintain ≥80% coverage
+- **When adding features**: Write tests before or alongside implementation
+- **When fixing bugs**: Add regression tests that fail before the fix and pass after
+
+Check coverage locally (requires `pytest-cov`):
+```bash
+uv run pytest python/tests --cov=python/pdstools --cov-report=term-missing
+```
+
 ### Before Committing
 - Run pytest: `uv run pytest python/tests`
+- Verify all tests pass, including new tests for your changes
 - Build Sphinx docs: `cd python/docs && make html`
 - Smoke test apps after UI changes: `pdstools decision_analyzer`
 
