@@ -17,7 +17,14 @@ Active work items for the Decision Analysis Tool.
 - **[P2]** Medium — Important improvements, moderate UX impact
 - **[P3]** Low — Nice-to-have, minor issues, future enhancements
 
-**Total items:** 50+ across core library, app architecture, pages, and plots
+**Total items:** 45+ across core library, app architecture, pages, and plots
+
+**Recently Completed (Mar 2026):**
+- ✅ Color consistency across all plots (color_mappings property)
+- ✅ Channel/Direction filter expansion to 7+ pages
+- ✅ Component drilldown granularity selector (scope parameter)
+- ✅ Streamlit width="stretch" deprecation fix
+- ✅ Page naming consistency (Arbitration Distribution)
 
 ---
 
@@ -115,9 +122,9 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] Verify numbers across visualizations** — Bar charts and box plots sometimes show different counts for same data. **Consequence:** Users lose confidence in tool; unclear which number is correct; potential bugs in aggregation logic. **Action:** Audit all metrics computations; ensure bar charts and box plots use identical data sources; add data validation checks; show counts in both views for cross-reference.
 
-- [ ] **[P2] Consistent colors across paired charts** — Win/loss charts use different color schemes; small counts appear in pale, hard-to-see colors. **Consequence:** Hard to visually match across charts; pale colors fail accessibility standards (contrast ratio); poor UX for colorblind users. **Action:** Use shared color palette across all win/loss visualizations; ensure minimum contrast ratio 4.5:1; use patterns/shapes in addition to color for key distinctions.
+- [x] **[DONE] Consistent colors across paired charts** — ✅ Completed Mar 2026: Win/loss charts now use consistent color_mappings. Remaining: Ensure minimum contrast ratio 4.5:1 for accessibility; consider patterns/shapes for colorblind users.
 
-- [ ] **[P3] Handle many channels gracefully** — With >10 channels, charts become cluttered and slow. **Consequence:** Overlapping labels; cramped layout; slow rendering; hard to find specific channel. **Action:** Add channel filter at top of page; use faceted plots with scrolling; consider grouping low-volume channels as "Other"; add search/filter box for channel selection.
+- [x] **[PARTIAL] Handle many channels gracefully** — ✅ Completed Mar 2026: Channel/Direction filter added to 7+ pages. Remaining: Consider faceted plots with scrolling for very large channel lists; grouping low-volume channels as "Other".
 
 - [ ] **[P3] Generalize rank usage across pages** — Rank selection UI differs between Win/Loss, Sensitivity, and other pages. **Consequence:** Inconsistent UX; users must relearn controls on each page; different defaults may confuse. **Action:** Create shared rank selector component in `da_streamlit_utils.py`; standardize on data-driven default; consistent placement and labeling.
 
@@ -125,7 +132,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] Overlay propensity + priority on optionality plot** — Currently shows only counts; component distributions not visible. **Consequence:** Users can't see how propensity/priority correlate with optionality levels; miss insights about whether high-propensity actions have more options; unclear if low optionality is due to poor propensity or filtering. **Action:** Add dual-axis or faceted view showing average propensity and priority alongside optionality distribution; use color gradient for propensity; add toggle to switch between metrics.
 
-- [ ] **[P3] Consistent stage color scheme** — Different plots use different colors for same stages. **Consequence:** Cognitive load to reinterpret colors; harder to track stages across visualizations; looks unprofessional. **Action:** Define canonical stage color palette in `da_streamlit_utils.py` or `plots.py`; use consistently across all optionality plots; document in code.
+- [x] **[DONE] Consistent stage color scheme** — ✅ Completed Mar 2026: Stage colors now consistent via color_mappings property across all plots.
 
 ### Page 9 — Offer Quality Analysis
 
