@@ -1,6 +1,7 @@
 # python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
 import os
+import tarfile
 import tempfile
 import zipfile
 from io import BytesIO
@@ -20,6 +21,9 @@ _SUPPORTED_EXTENSIONS: set[str] = {
     ".jsonl",
     ".json",
     ".zip",
+    ".tar",
+    ".tgz",
+    ".gz",
 }
 
 
@@ -116,6 +120,20 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     return pl.concat(dfs, rechunk=True)
 
 
+def _is_tar_path(path: Path) -> bool:
+    """Check if a path refers to a tar archive (plain or compressed)."""
+    name = path.name.lower()
+    return name.endswith((".tar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz"))
+
+
+def _extract_tar(archive_path: Path) -> str:
+    """Extract a tar archive to a temporary directory and return the path."""
+    tmp_dir = tempfile.mkdtemp(prefix="pdstools_tar_")
+    with tarfile.open(archive_path, mode="r:*") as tf:
+        tf.extractall(tmp_dir, filter="data")
+    return tmp_dir
+
+
 def read_data(path):
     original_path = Path(path)  # save the original path
     extension = None  # Initialize extension to None
@@ -138,6 +156,12 @@ def read_data(path):
     else:
         # It's a file, so we read based on the extension
         extension = original_path.suffix
+
+    # Handle tar archives first (covers .tar, .tar.gz, .tgz, etc.)
+    if not original_path.is_dir() and _is_tar_path(original_path):
+        tmp_dir = _extract_tar(original_path)
+        return read_data(tmp_dir)
+
     if extension == ".parquet":
         df = pl.scan_parquet(path)
     elif extension == ".csv":

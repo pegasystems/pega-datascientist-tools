@@ -414,11 +414,17 @@ def handle_sample_data() -> pl.LazyFrame | None:
     )
 
 
+def _is_tar_file(p: Path) -> bool:
+    """Check if a path refers to a tar archive (plain or compressed)."""
+    name = p.name.lower()
+    return name.endswith((".tar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz"))
+
+
 def handle_data_path() -> pl.LazyFrame | None:
     """Load data from the ``--data-path`` CLI flag, if configured.
 
     Supports the same formats as the file upload: parquet, csv, json, arrow,
-    zip archives, and partitioned directories.
+    zip archives, tar archives, and partitioned directories.
     """
     data_path = get_data_path()
     if not data_path:
@@ -451,6 +457,30 @@ def handle_data_path() -> pl.LazyFrame | None:
         with st.spinner(spinner_msg):
             with zipfile.ZipFile(p, "r") as zf:
                 zf.extractall(tmp_dir)
+        return read_data(tmp_dir)
+
+    # Tar archive (plain or compressed): extract first, then read contents
+    if p.is_file() and _is_tar_file(p):
+        import tarfile
+        import tempfile
+
+        try:
+            from pdstools.utils.progress_utils import (
+                estimate_extraction_time,
+                format_time_estimate,
+            )
+
+            file_size = p.stat().st_size
+            min_time, max_time = estimate_extraction_time(file_size)
+            time_msg = format_time_estimate(min_time, max_time)
+            spinner_msg = f"Extracting archive... (estimated: {time_msg})"
+        except Exception:
+            spinner_msg = "Extracting archive..."
+
+        tmp_dir = tempfile.mkdtemp(prefix="da_path_tar_")
+        with st.spinner(spinner_msg):
+            with tarfile.open(p, mode="r:*") as tf:
+                tf.extractall(tmp_dir, filter="data")
         return read_data(tmp_dir)
 
     return read_data(data_path)
