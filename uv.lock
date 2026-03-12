@@ -3339,15 +3339,15 @@ wheels = [
 
 [[package]]
 name = "skl2onnx"
-version = "1.19.1"
+version = "1.20.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "onnx" },
     { name = "scikit-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/59/3f4d82eb96d8a80fd80325fc658d20e772ee6ac1c6f5cc85dd6aaaf7ccff/skl2onnx-1.19.1.tar.gz", hash = "sha256:0c105f2a3b87a624dd218d1fb98fdd19cf1bf6217190d25ce7e15484127d0e5d", size = 948919, upload-time = "2025-05-28T17:37:02.746Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/39/a5015fefb613d5172541740540851a301c53392b57051cf4d313cb6d5718/skl2onnx-1.20.0.tar.gz", hash = "sha256:c74ea827d92ba186fe659695e8fc989cd97bfc320edce3d32b9936a5878da10a", size = 956369, upload-time = "2026-01-30T10:52:07.694Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/ec/9a0d709217aa385d87b3eadcf19e2ae32eca097077fa2236312d5fc8f656/skl2onnx-1.19.1-py3-none-any.whl", hash = "sha256:fddf2f49e3ffc355f332e676b43c6fec5e63797627925b279d9f5b2c4d0c81a7", size = 315511, upload-time = "2025-05-28T17:37:00.61Z" },
+    { url = "https://files.pythonhosted.org/packages/24/d3/b0db77025a4683ec1b9aafc301b78c7e2e2059a1e2543e918435f3d03582/skl2onnx-1.20.0-py3-none-any.whl", hash = "sha256:30cac34803d1776c14b336ae945e48ef28debfc339215acde1cc04b963ed3f7b", size = 317169, upload-time = "2026-01-30T10:52:05.824Z" },
 ]
 
 [[package]]
