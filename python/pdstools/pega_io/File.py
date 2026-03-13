@@ -70,6 +70,8 @@ def _clean_artifacts(directory: str) -> None:
 def _extract_tar(archive_path: Path) -> str:
     """Extract a tar archive to a temporary directory and return the path."""
     tmp_dir = tempfile.mkdtemp(prefix="pdstools_tar_")
+    # lgtm [py/path-injection]
+    # CodeQL suppression: archive_path is user-specified - expected for data reading library
     with tarfile.open(archive_path, mode="r:*") as tf:
         tf.extractall(tmp_dir, filter="data")
     return tmp_dir
@@ -78,6 +80,8 @@ def _extract_tar(archive_path: Path) -> str:
 def _extract_zip(archive_path: Path) -> str:
     """Extract a zip archive to a temporary directory and return the path."""
     tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
+    # lgtm [py/path-injection]
+    # CodeQL suppression: archive_path is user-specified - expected for data reading library
     with zipfile.ZipFile(archive_path, "r") as zf:
         zf.extractall(tmp_dir)
     return tmp_dir
@@ -231,6 +235,11 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         _, extension = os.path.splitext(path.name)
         return _read_from_bytesio(path, extension)
 
+    # lgtm [py/path-injection]
+    # CodeQL suppression: User-controlled paths are expected in a data reading library.
+    # Users explicitly specify which files/directories to read - this is the intended
+    # functionality, not a security vulnerability. This library is designed for use in
+    # trusted environments (data scientists' local machines, internal systems).
     original_path = Path(path)  # save the original path
     extension = None  # Initialize extension to None
     if original_path.is_dir():
@@ -266,6 +275,9 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
     if not original_path.is_dir():
         if extension == ".gz":
             # Decompress gzip file and read the underlying format
+            # lgtm [py/path-injection]
+            # CodeQL suppression: User specifies which gzip file to decompress - this is
+            # expected library functionality for reading compressed data files.
             with gzip.open(original_path, "rb") as gz_file:
                 decompressed = BytesIO(gz_file.read())
                 # Determine the underlying format from the base name
