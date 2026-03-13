@@ -70,10 +70,20 @@ def test_file(file_path: str, sample_n: int, output_dir: str = ".") -> bool:
 
         # Get sample file details
         sample_size = sample_path.stat().st_size
-        sample_meta = sampled_df.collect_schema().metadata() or {}
         interaction_count = sampled_df.select("pxInteractionID").unique().collect().height
-        source_file = sample_meta.get("source_file", "unknown")
-        sample_pct = sample_meta.get("sample_percentage", "0.00%")
+
+        # Read parquet metadata using pyarrow
+        try:
+            import pyarrow.parquet as pq
+
+            parquet_file = pq.ParquetFile(sample_path)
+            file_metadata = parquet_file.schema_arrow.metadata or {}
+            source_file = file_metadata.get(b"source_file", b"unknown").decode("utf-8")
+            sample_pct = file_metadata.get(b"sample_percentage", b"0.00%").decode("utf-8")
+        except Exception:
+            # Fallback if metadata reading fails
+            source_file = "unknown"
+            sample_pct = "0.00%"
 
         print(f"   ✅ Sample file created: {sample_path.name}")
         print(f"   📊 Sample file size: {format_size_mb(sample_size)}")
