@@ -109,8 +109,7 @@ from pdstools.pega_io import read_data
 # Direct import (also works)
 from pdstools.pega_io.File import read_data
 
-# Legacy import (still works via re-import)
-from pdstools.decision_analyzer.data_read_utils import read_data
+# Legacy import from decision_analyzer no longer works - update to use pega_io
 ```
 
 ### read_ds_export
@@ -165,8 +164,8 @@ from pdstools.pega_io.File import _is_artifact, _clean_artifacts
 ## Migration Notes
 
 For code that was using `read_data` from decision_analyzer:
-- **No action required**: Import still works, now re-exports from pega_io.File
-- **Optional improvement**: Update imports to use `from pdstools.pega_io import read_data`
+- **Action required**: Update imports to use `from pdstools.pega_io import read_data`
+- The old import path no longer works (read_data was moved, not re-exported)
 
 For code that was using `read_ds_export`:
 - **No action required**: All existing functionality preserved
