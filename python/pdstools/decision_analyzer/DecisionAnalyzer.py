@@ -28,7 +28,7 @@ from ..pega_io.File import read_ds_export
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SAMPLE_SIZE = 50_000
+DEFAULT_SAMPLE_SIZE = 10_000
 """Default number of unique interactions to sample for resource-intensive analyses."""
 
 
@@ -1357,11 +1357,11 @@ class DecisionAnalyzer:
                 # TODO: we should include all the IA properties but they're not populated currently
                 [self.level, "Model Control Group"]
             )
-            .agg(pl.count())
+            .agg(pl.len())
             .collect()
             .pivot(
                 index=self.level,
-                values="count",
+                values="len",
                 columns=["Model Control Group"],
                 sort_columns=True,
             )
@@ -1391,17 +1391,17 @@ class DecisionAnalyzer:
         )
         thresholds_long = (
             thresholds_wide.select([self.level] + [f"n{q}" for q in quantile_range])
-            .melt(
-                id_vars=self.level,
-                value_vars=cs.numeric(),
+            .unpivot(
+                index=self.level,
+                on=cs.numeric(),
                 variable_name="Decile",
                 value_name="Count",
             )
             .with_columns(pl.col("Decile").str.replace("n", "p"))
             .join(
-                thresholds_wide.select([self.level] + [f"p{q}" for q in quantile_range]).melt(
-                    id_vars=self.level,
-                    value_vars=cs.numeric(),
+                thresholds_wide.select([self.level] + [f"p{q}" for q in quantile_range]).unpivot(
+                    index=self.level,
+                    on=cs.numeric(),
                     variable_name="Decile",
                     value_name="Threshold",
                 ),
