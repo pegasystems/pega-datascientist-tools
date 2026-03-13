@@ -39,3 +39,7 @@ scripts/
 **/.tmp/
 .dev
 .worktrees
+
+# Verification scripts with customer data references
+verify_sampling.py
+test_consolidation.py
