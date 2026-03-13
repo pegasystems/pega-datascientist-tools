@@ -534,13 +534,14 @@ def _determine_output_directory(source_path: str | None, output_dir: str | None)
 
     Priority order:
     1. If output_dir is explicitly provided, use that
-    2. Otherwise, if source_path is a file and its directory is writeable, use that
-    3. Otherwise, fall back to current directory
+    2. Otherwise, if source_path is a file, use its parent directory (if writeable)
+    3. Otherwise, if source_path is a directory, use its parent directory (if writeable)
+    4. Otherwise, fall back to current directory
 
     Parameters
     ----------
     source_path : str | None
-        Path to the source file.
+        Path to the source file or directory.
     output_dir : str | None
         Explicitly requested output directory (takes precedence if provided).
 
@@ -553,22 +554,28 @@ def _determine_output_directory(source_path: str | None, output_dir: str | None)
     if output_dir:
         return Path(output_dir)
 
-    # Try to use source file's directory if it's a file and writeable
+    # Try to use source's parent directory if writeable
     if source_path:
         source = Path(source_path)
+        parent_dir = None
+
         if source.is_file():
             parent_dir = source.parent
-            # Check if directory is writeable
-            if parent_dir.exists() and parent_dir.is_dir():
-                try:
-                    # Test writeability by checking permissions
-                    if os.access(parent_dir, os.W_OK):
-                        logger.info("Using source file directory for output: %s", parent_dir)
-                        return parent_dir
-                    else:
-                        logger.debug("Source directory %s is not writeable, using fallback", parent_dir)
-                except Exception as e:
-                    logger.debug("Error checking writeability of %s: %s", parent_dir, e)
+        elif source.is_dir():
+            # For directories, use the parent directory (where the directory itself lives)
+            parent_dir = source.parent
+
+        # Check if parent directory is writeable
+        if parent_dir and parent_dir.exists() and parent_dir.is_dir():
+            try:
+                # Test writeability by checking permissions
+                if os.access(parent_dir, os.W_OK):
+                    logger.info("Using source parent directory for output: %s", parent_dir)
+                    return parent_dir
+                else:
+                    logger.debug("Source parent directory %s is not writeable, using fallback", parent_dir)
+            except Exception as e:
+                logger.debug("Error checking writeability of %s: %s", parent_dir, e)
 
     # Fall back to current directory
     return Path(".")
@@ -905,16 +912,27 @@ def prepare_and_save(
 
     tmp_path.rename(out_path)
 
-    # Step 7: Write metadata by re-reading and re-writing with metadata
-    # (parquet metadata can only be set at write time)
-    metadata = {
-        "pdstools:source_file": original_source,
-        "pdstools:sample_percentage": f"{sample_percentage:.2f}",
-        "pdstools:sample_percentage_method": method,
-    }
+    # Step 7: Write schema metadata
+    # Note: Polars lacks native support for writing custom schema metadata.
+    # pl.DataFrame.write_parquet(metadata=...) writes column-level metadata only,
+    # not schema-level metadata. We use PyArrow for writing, but can read with
+    # pl.read_parquet_metadata() (see _read_source_metadata()) since Polars
+    # correctly reads PyArrow schema metadata and converts byte keys to strings.
     logger.info("Writing metadata to %s", out_path)
-    result_df = pl.read_parquet(out_path)
-    result_df.write_parquet(out_path, metadata=metadata)
+    import pyarrow.parquet as pq
+
+    table = pq.read_table(out_path)
+    existing_metadata = table.schema.metadata or {}
+    new_metadata = {
+        **existing_metadata,
+        b"pdstools:source_file": original_source.encode("utf-8"),
+        b"pdstools:sample_percentage": f"{sample_percentage:.2f}".encode("utf-8"),
+        b"pdstools:sample_percentage_method": method.encode("utf-8"),
+    }
+
+    new_schema = table.schema.with_metadata(new_metadata)
+    new_table = table.cast(new_schema)
+    pq.write_table(new_table, out_path)
 
     return pl.scan_parquet(out_path), out_path
 
