@@ -5,12 +5,8 @@ from pathlib import Path
 import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.data_read_utils import (
-    _clean_artifacts,
-    read_data,
-    read_nested_zip_files,
-)
-from pdstools.pega_io.File import read_ds_export
+from pdstools.decision_analyzer.data_read_utils import read_nested_zip_files
+from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
 
 from pdstools.decision_analyzer.plots import (
     plot_component_overview,
@@ -493,7 +489,7 @@ def handle_data_path() -> pl.LazyFrame | None:
 
 
 def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
-    """Read a zip file, handling both nested-gzip (EEV2) and flat archive layouts."""
+    """Read a zip file, handling both Action Analysis exports and flat archive layouts."""
     import tempfile
     import zipfile
 
@@ -510,7 +506,8 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
                 f"Expected raw decision data in csv, parquet, json, or arrow format."
             )
 
-        # If the zip contains .zip files, use the legacy gzipped-ndjson reader
+        # If the zip contains .zip files, treat as Pega Action Analysis export format
+        # (nested archive where inner ".zip" files are actually gzipped NDJSON)
         if ".zip" in inner_exts:
             file_buffer.seek(0)
             return read_nested_zip_files(file_buffer)

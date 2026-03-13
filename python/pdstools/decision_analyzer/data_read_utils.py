@@ -1,74 +1,48 @@
 # python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
-import os
-import shutil
-import tarfile
-import tempfile
 import zipfile
 from io import BytesIO
 from pathlib import Path
 
 import polars as pl
 
+from ..pega_io.File import _is_artifact, read_data  # Import unified utilities
 from .column_schema import TableConfig
 from .utils import ColumnResolver
 
-# Extensions that read_data knows how to handle.
-_SUPPORTED_EXTENSIONS: set[str] = {
-    ".parquet",
-    ".csv",
-    ".arrow",
-    ".ndjson",
-    ".jsonl",
-    ".json",
-    ".zip",
-    ".tar",
-    ".tgz",
-    ".gz",
-}
 
-
-def _is_artifact(name: str) -> bool:
-    """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
-    return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
-
-
-def _clean_artifacts(directory: str) -> None:
-    """Remove OS-generated artifact files and directories after archive extraction.
-
-    Polars glob patterns (e.g. ``**/*.parquet``) cannot skip hidden files or
-    ``__MACOSX`` resource-fork directories, so we delete them from the
-    extracted tree before scanning.
-    """
-    root = Path(directory)
-    # Remove __MACOSX directories first (contains bulk of macOS resource forks)
-    for macosx_dir in root.rglob("__MACOSX"):
-        if macosx_dir.is_dir():
-            shutil.rmtree(macosx_dir, ignore_errors=True)
-    # Remove individual artifact files (._*, .DS_Store, Thumbs.db, etc.)
-    for p in list(root.rglob(".*")):
-        if p.is_file() and _is_artifact(p.name):
-            p.unlink(missing_ok=True)
-    for name in ("Thumbs.db", "desktop.ini"):
-        for p in root.rglob(name):
-            if p.is_file():
-                p.unlink(missing_ok=True)
+# Decision Analyzer specific data reading utilities
+# Core read_data is now in pega_io.File
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
-    """Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
-    which are in fact gzipped ndjson files. Extracts, reads, and concatenates
-    them into a single Polars DataFrame.
+    """Read Pega Action Analysis export format (nested archive with gzipped NDJSON).
+
+    Pega's Action Analysis feature exports decision data as a ZIP archive containing
+    multiple inner files with `.zip` extensions. Despite the extension, these inner files
+    are **gzipped NDJSON** (not ZIP archives). This function handles this format by:
+    1. Opening the outer ZIP archive
+    2. Treating each inner `.zip` file as gzipped NDJSON
+    3. Decompressing and concatenating all data into a single DataFrame
+
+    This format is used for high-volume decision event exports where data is partitioned
+    across multiple compressed files.
 
     Parameters
     ----------
-    file_buffer : UploadedFile
-        The uploaded zip file buffer from Streamlit.
+    file_buffer : UploadedFile or BytesIO
+        ZIP archive buffer (e.g., from Streamlit file upload) containing inner
+        gzipped NDJSON files with misleading `.zip` extensions.
 
     Returns
     -------
     pl.DataFrame
-        A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+        Concatenated DataFrame from all inner files, with consistent column ordering.
+
+    Notes
+    -----
+    This is specific to Pega Action Analysis exports. Modern exports may use
+    hive-partitioned parquet directories instead, which can be read with read_data().
 
     """
     dfs: list[pl.DataFrame] = []
@@ -89,17 +63,25 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
 
 
 def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
-    """Reads gzipped ndjson data from a BytesIO object and returns a Polars DataFrame.
+    """Read a single gzipped NDJSON chunk from Pega Action Analysis export.
+
+    Helper function for read_nested_zip_files(). Reads one inner file from the
+    Action Analysis export format, decompresses the gzipped content, and parses
+    the NDJSON data.
 
     Parameters
     ----------
     data : BytesIO
-        The gzipped ndjson data.
+        Gzipped NDJSON data (from an inner file in Action Analysis export).
 
     Returns
     -------
     pl.DataFrame | None
-        The Polars DataFrame containing the data, or None if reading fails.
+        Polars DataFrame, or None if decompression/parsing fails.
+
+    Notes
+    -----
+    Returns None on errors to allow processing remaining files even if some are corrupted.
 
     """
     try:
@@ -111,20 +93,28 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
         return None
 
 
-def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
-    """Recursively finds all files with a .zip extension under the given directory,
-    treats them as gzipped ndjson files, reads, and concatenates them into a single
-    Polars DataFrame. Supports arbitrary directory depth.
+def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
+    """Read directory of Pega Action Analysis gzipped NDJSON files.
+
+    For extracted Action Analysis exports, this function recursively finds all files with
+    `.zip` extension (which are actually gzipped NDJSON, not ZIP archives) and concatenates
+    them into a single DataFrame. Useful when the outer archive has been extracted to disk.
 
     Parameters
     ----------
     path : str
-        The path to the directory containing the .zip files.
+        Path to directory containing gzipped NDJSON files with `.zip` extension
+        (from extracted Action Analysis export).
 
     Returns
     -------
     pl.DataFrame
-        A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+        Concatenated DataFrame from all files with consistent column ordering.
+
+    Notes
+    -----
+    This is specific to Pega Action Analysis exports. For normal data reading
+    (including hive-partitioned directories), use read_data() from pega_io instead.
 
     """
     dfs: list[pl.DataFrame] = []
@@ -143,74 +133,8 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     return pl.concat(dfs, rechunk=True)
 
 
-def _is_tar_path(path: Path) -> bool:
-    """Check if a path refers to a tar archive (plain or compressed)."""
-    name = path.name.lower()
-    return name.endswith((".tar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz"))
-
-
-def _extract_tar(archive_path: Path) -> str:
-    """Extract a tar archive to a temporary directory and return the path."""
-    tmp_dir = tempfile.mkdtemp(prefix="pdstools_tar_")
-    with tarfile.open(archive_path, mode="r:*") as tf:
-        tf.extractall(tmp_dir, filter="data")
-    return tmp_dir
-
-
-def read_data(path):
-    original_path = Path(path)  # save the original path
-    extension = None  # Initialize extension to None
-    if original_path.is_dir():
-        # It's a directory, possibly hive-partitioned at arbitrary depth.
-        # Find the first supported data file, skipping hidden/OS-artifact entries.
-        for dirpath, dirs, files in os.walk(str(original_path)):
-            dirs[:] = [d for d in dirs if not d.startswith(".") and not _is_artifact(d)]
-            for file in sorted(files):
-                if file.startswith(".") or _is_artifact(file):
-                    continue
-                ext = Path(file).suffix
-                if ext in _SUPPORTED_EXTENSIONS:
-                    extension = ext
-                    break
-            if extension:
-                break
-        # Use a recursive glob — works regardless of partition depth.
-        path = original_path / f"**/*{extension}"
-    else:
-        # It's a file, so we read based on the extension
-        extension = original_path.suffix
-
-    # Handle tar archives first (covers .tar, .tar.gz, .tgz, etc.)
-    if not original_path.is_dir() and _is_tar_path(original_path):
-        tmp_dir = _extract_tar(original_path)
-        _clean_artifacts(tmp_dir)
-        return read_data(tmp_dir)
-
-    if extension == ".parquet":
-        df = pl.scan_parquet(path)
-    elif extension == ".csv":
-        df = pl.scan_csv(path)
-    elif extension == ".arrow":
-        df = pl.scan_ipc(path)
-    elif extension in {".ndjson", ".jsonl", ".json"}:
-        df = pl.scan_ndjson(path)
-    elif extension == ".zip":
-        if original_path.is_file():
-            # Single zip file: extract to temp dir and read the contents
-            tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
-            with zipfile.ZipFile(original_path, "r") as zf:
-                zf.extractall(tmp_dir)
-            _clean_artifacts(tmp_dir)
-            df = read_data(tmp_dir)
-        else:
-            # Directory of .zip files (legacy gzipped ndjson)
-            df = read_gzips_with_zip_extension(str(original_path))
-    elif extension is None:
-        raise ValueError("No data files found in directory")
-    else:
-        raise ValueError(f"Unsupported file type: {extension}")
-
-    return df
+# Note: read_data and helper functions have been moved to pega_io.File for reuse
+# Import them from there: from ..pega_io.File import read_data
 
 
 def validate_columns(

@@ -15,11 +15,11 @@ from pdstools.decision_analyzer.column_schema import (  # noqa: E402
     ExplainabilityExtract,
 )
 from pdstools.decision_analyzer.data_read_utils import (  # noqa: E402
-    read_data,
     read_gzipped_data,
     read_nested_zip_files,
     validate_columns,
 )
+from pdstools.pega_io.File import read_data  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
