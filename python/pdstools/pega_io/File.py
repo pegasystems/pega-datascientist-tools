@@ -272,6 +272,10 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
     # - GZIP files (.gz, .json.gz, .csv.gz, etc.) - decompress and read
     # - TAR archives (.tar, .tar.gz, .tgz, etc.) - extract and read
     # - ZIP archives including Pega Dataset Export format - extract and read
+    # lgtm [py/path-injection]
+    # CodeQL suppression: User-controlled paths are expected in a data reading library.
+    # Users explicitly specify which files/directories to read - this is the intended
+    # functionality, not a security vulnerability.
     if not original_path.is_dir():
         if extension == ".gz":
             # Decompress gzip file and read the underlying format
