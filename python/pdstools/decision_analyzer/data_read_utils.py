@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 
-from ..pega_io.File import _is_artifact, read_data  # Import unified utilities
+from ..pega_io.File import _is_artifact
 from .column_schema import TableConfig
 from .utils import ColumnResolver
 
