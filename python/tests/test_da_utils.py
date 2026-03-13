@@ -1068,15 +1068,15 @@ class TestDetermineOutputDirectory:
         result = _determine_output_directory(str(source_file), None)
         assert result == source_file.parent
 
-    def test_falls_back_to_current_dir_when_source_is_directory(self, tmp_path):
+    def test_uses_parent_directory_when_source_is_directory_and_writeable(self, tmp_path):
         from pdstools.decision_analyzer.utils import _determine_output_directory
-        from pathlib import Path
 
         source_dir = tmp_path / "data"
         source_dir.mkdir()
 
         result = _determine_output_directory(str(source_dir), None)
-        assert result == Path(".")
+        # Should use parent directory (tmp_path) when it's writable
+        assert result == tmp_path
 
     def test_falls_back_to_current_dir_when_source_is_none(self):
         from pdstools.decision_analyzer.utils import _determine_output_directory
