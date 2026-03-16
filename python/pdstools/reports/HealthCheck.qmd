@@ -1252,14 +1252,18 @@ else:
 Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
 
 ```{python}
-# TODO: Use feature importance if available in the datamart
-# drop our own calculations of feature importance. Would be nice to
-# be able to toggle in the graph (with a tab)
-# TODO see why the categorization does not work
-# TODO consistent coloring for predictor categories
-# TODO this one may be expensive if there's a lot of configurations
-# yet cluttering them together makes no sense
-
+# TODO: Enable calculated feature importance
+# The feature_importance() function is now available in cdh_utils (issues #263, #404)
+# Implementation plan:
+# 1. Check if "FeatureImportance" exists in datamart (may be incorrect due to platform bug BUG-880410)
+# 2. If not present or to use corrected calculation, compute using:
+#    predictor_data.with_columns(
+#        cdh_utils.feature_importance(scaled=True).over("PredictorName", "ModelID")
+#    )
+# 3. Use "FeatureImportance" column in box plots below
+# 4. Add note in report about calculation method (platform stored vs calculated)
+# See: python/docs/source/articles/ADMExplained.ipynb for formula explanation
+#
 # to_plot = (
 #     "FeatureImportance"
 #     if "FeatureImportance" in datamart_all_columns

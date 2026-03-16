@@ -1045,36 +1045,144 @@ def bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]:
 def log_odds_polars(
     positives: pl.Expr | str = pl.col("Positives"),
     negatives: pl.Expr | str = pl.col("ResponseCount") - pl.col("Positives"),
-):
+) -> pl.Expr:
+    """Calculate log odds per bin with correct Laplace smoothing.
+
+    Formula (per bin i in predictor p):
+        log(pos_i + 1/nBins) - log(sum(pos) + 1)
+        - [log(neg_i + 1/nBins) - log(sum(neg) + 1)]
+
+    Laplace smoothing uses 1/nBins where nBins is the number of bins
+    for that specific predictor. This matches the platform implementation
+    in GroupedPredictor.java.
+
+    Must be used with .over() to calculate nBins per predictor group:
+        .with_columns(log_odds_polars().over("PredictorName", "ModelID"))
+
+    Parameters
+    ----------
+    positives : pl.Expr or str
+        Column with positive response counts per bin
+    negatives : pl.Expr or str
+        Column with negative response counts per bin
+
+    Returns
+    -------
+    pl.Expr
+        Log odds expression (use with .over() for correct grouping)
+
+    See Also
+    --------
+    feature_importance : Calculate predictor importance from log odds
+    bin_log_odds : Pure Python version (reference implementation)
+
+    References
+    ----------
+    - ADM Explained: Log Odds calculation section
+    - Issue #263: https://github.com/pegasystems/pega-datascientist-tools/issues/263
+    - Platform: GroupedPredictor.java lines 603-606
+
+    Examples
+    --------
+    >>> # For propensity calculation in classifier
+    >>> df.with_columns(
+    ...     log_odds_polars(
+    ...         pl.col("BinPositives"),
+    ...         pl.col("BinNegatives")
+    ...     ).over("PredictorName", "ModelID")
+    ... )
+    """
     if isinstance(positives, str):
         positives = pl.col(positives)
     if isinstance(negatives, str):
         negatives = pl.col(negatives)
 
-    N = positives.count()
+    nBins = positives.count()  # Correct when used with .over()
+
     return (
-        (
-            ((positives + 1 / N).log() - (positives.sum() + 1).log())
-            - ((negatives + 1 / N).log() - (negatives.sum() + 1).log())
-        )
-        # .round(2)
-        .alias("LogOdds")
+        ((positives + 1 / nBins).log() - (positives.sum() + 1).log())
+        - ((negatives + 1 / nBins).log() - (negatives.sum() + 1).log())
+    ).alias("LogOdds")
+
+
+def feature_importance(
+    over: list[str] | None = ["PredictorName", "ModelID"],
+    scaled: bool = True,
+) -> pl.Expr:
+    """Calculate feature importance for Naive Bayes predictors.
+
+    Feature importance represents the weighted average of absolute log odds
+    values across all bins, weighted by bin response counts. This measures
+    how strongly the predictor differentiates between positive and negative
+    outcomes.
+
+    Algorithm (matches platform GroupedPredictor.calculatePredictorImportance()):
+    1. Calculate log odds per bin with Laplace smoothing (1/nBins)
+    2. Take absolute value of each bin's log odds
+    3. Calculate weighted average: Sum(|logOdds(bin)| × binResponses) / totalResponses
+    4. Optional: Scale to 0-100 range (scaled=True, default)
+
+    This matches the Pega platform implementation in:
+    adaptive-learning-core-lib/.../GroupedPredictor.java lines 371-382
+
+    Formula:
+        Feature Importance = Σ |logOdds(bin)| × (binResponses / totalResponses)
+
+    Parameters
+    ----------
+    over : list[str], optional
+        Grouping columns, default ["PredictorName", "ModelID"]
+    scaled : bool, default True
+        If True, scale importance to 0-100 where max predictor = 100
+
+    Returns
+    -------
+    pl.Expr
+        Feature importance expression
+
+    Examples
+    --------
+    >>> df.with_columns(
+    ...     feature_importance().over("PredictorName", "ModelID")
+    ... )
+
+    Notes
+    -----
+    This implementation matches the platform calculation exactly. Issue #263
+    incorrectly suggested "diff from mean" based on R implementation, but
+    the platform actually uses weighted average of absolute log odds.
+
+    See Also
+    --------
+    log_odds_polars : Calculate per-bin log odds
+
+    References
+    ----------
+    - Issue #263: Calculation of Feature Importance incorrect
+    - Issue #404: Add feature importance explanation to ADM Explained
+    - Platform: GroupedPredictor.java calculatePredictorImportance()
+    - ADM Explained: Feature Importance section
+    """
+    # Step 1: Calculate log odds per bin (must use .over() in calling code)
+    log_odds_expr = log_odds_polars(
+        pl.col("BinPositives"),
+        pl.col("BinResponseCount") - pl.col("BinPositives"),
     )
 
+    # Step 2 & 3: Absolute value, then weighted average
+    abs_log_odds = log_odds_expr.abs()
+    importance = weighted_average_polars(abs_log_odds, pl.col("BinResponseCount"))
 
-# TODO: reconsider this. Feature importance now stored in datamart
-# perhaps we should not bother to calculate it ourselves.
-def feature_importance(over=["PredictorName", "ModelID"]):
-    var_imp = weighted_average_polars(
-        log_odds_polars(
-            pl.col("BinPositives"),
-            pl.col("BinResponseCount") - pl.col("BinPositives"),
-        ),
-        "BinResponseCount",
-    ).alias("FeatureImportance")
+    # Step 4: Optional scaling
+    if scaled:
+        importance = importance * 100.0 / importance.max()
+
+    result = importance.alias("FeatureImportance")
+
     if over is not None:
-        var_imp = var_imp.over(over)
-    return var_imp
+        result = result.over(over)
+
+    return result
 
 
 def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F:
