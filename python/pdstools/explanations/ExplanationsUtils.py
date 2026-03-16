@@ -3,7 +3,6 @@ __all__ = [
     "_TABLE_NAME",
     "_CONTRIBUTION_TYPE",
     "_COL",
-    "_DEFAULT",
     "_SPECIAL",
     "ContextInfo",
     "ContextOperations",
@@ -12,6 +11,7 @@ __all__ = [
 import json
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, TypedDict, cast
+from dataclasses import dataclass
 
 import polars as pl
 
@@ -111,13 +111,25 @@ class _SPECIAL(Enum):
     MISSING = "missing"
 
 
-class _DEFAULT(Enum):
-    TOP_N = 20
-    TOP_K = 20
-    DESCENDING = True
-    MISSING = True
-    REMAINING = True
+# class _DEFAULT(Enum):
+#     TOP_N = 20
+#     TOP_K = 20
+#     DESCENDING = True
+#     MISSING = True
+#     REMAINING = True
+#     SORT_BY = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS.value
+#     DISPLAY_BY = _CONTRIBUTION_TYPE.CONTRIBUTION.value
 
+@dataclass
+class _Defaults:
+    TOP_N: int = 20
+    TOP_K: int = 20
+    DESCENDING: bool = True
+    MISSING: bool = True
+    REMAINING: bool = True
+    SORT_BY: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+    DISPLAY_BY: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+defaults = _Defaults()
 
 ContextInfo = TypedDict("ContextInfo", {"context_key": str, "context_value": str})
 

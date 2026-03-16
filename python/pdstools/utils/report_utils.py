@@ -373,18 +373,18 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     >>> generate_zipped_report("report_2023", "/tmp/report_output")
     """
     if not os.path.isdir(folder_to_zip):
-        logger.error(f"The output path {folder_to_zip} is not a directory.")
+        logger.error("The output path %s is not a directory.", folder_to_zip)
         return
 
     if not os.path.exists(folder_to_zip):
         logger.warning(
-            f"The {folder_to_zip} directory does not exist. Skipping zip creation."
+            "The %s directory does not exist. Skipping zip creation.", folder_to_zip
         )
         return
 
     base_filename = os.path.splitext(output_filename)[0]
     zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
-    logger.info(f"created zip file...{zippy}")
+    logger.info("created zip file...%s", zippy)
 
 
 def _get_cmd_output(args: List[str]) -> List[str]:

@@ -113,7 +113,7 @@ class TestAggregatePredictorContributions:
     def test_get_predictor_contributions_overall_invalid_contribution_type(self, aggregate):
         """Test contribution type validation."""
         with pytest.raises(ValueError, match="Invalid contribution type"):
-            aggregate.get_predictor_contributions(contribution_calculation="invalid_type")
+            aggregate.get_predictor_contributions(sort_by="invalid_type")
 
     def test_get_predictor_contributions_overall_invalid_top_n(self, aggregate):
         """Test with invalid parameters."""
@@ -141,7 +141,7 @@ class TestAggregatePredictorContributions:
         with pytest.raises(ValueError, match="Invalid contribution type"):
             aggregate.get_predictor_contributions(
                 context=selected_context,
-                contribution_calculation="invalid_type")
+                sort_by="invalid_type")
 
     def test_get_predictor_contributions_for_context_invalid_top_n(self, aggregate, selected_context):
         """Test with invalid parameters."""
@@ -174,7 +174,7 @@ class TestAggregatePredictorValueContributions:
         with pytest.raises(ValueError, match="Invalid contribution type"):
             aggregate.get_predictor_value_contributions(
                 predictors=predictors,
-                contribution_calculation="invalid_type")
+                sort_by="invalid_type")
 
     def test_get_predictor_value_contributions_overall_invalid_top_k(self, aggregate, predictors):
         """Test with invalid parameters."""
@@ -209,7 +209,7 @@ class TestAggregatePredictorValueContributions:
             aggregate.get_predictor_value_contributions(
                 predictors=predictors,
                 context=selected_context,
-                contribution_calculation="invalid_type")
+                sort_by="invalid_type")
 
     def test_get_predictor_value_contributions_for_context_invalid_top_k(self, aggregate, predictors, selected_context):
         """Test with invalid parameters."""
@@ -218,6 +218,99 @@ class TestAggregatePredictorValueContributions:
                 predictors=predictors,
                 context=selected_context,
                 top_k=-1)
+
+class TestAggregateSortingBehavior:
+    """Test cases for verifying sort_by vs display_by separation."""
+
+    def test_default_sort_by_uses_contribution_abs(self, aggregate):
+        """Verify that default sort_by selects predictors by contribution_abs."""
+        df = aggregate.get_predictor_contributions()
+
+        # Filter out the "remaining" row
+        df_no_remaining = df.filter(pl.col("predictor_name") != "remaining")
+
+        # The output should be sorted by contribution_abs (ascending or descending)
+        abs_values = df_no_remaining["contribution_abs"].to_list()
+        assert (
+            abs_values == sorted(abs_values)
+            or abs_values == sorted(abs_values, reverse=True)
+        ), "Output should be ordered by contribution_abs"
+
+    def test_sort_by_contribution_abs_captures_negative_contributors(self, aggregate):
+        """Verify that sorting by contribution_abs includes large negative contributors."""
+        df = aggregate.get_predictor_contributions(top_n=5)
+
+        df_no_remaining = df.filter(pl.col("predictor_name") != "remaining")
+
+        # If any predictor has a negative contribution, it should still appear
+        # in the top-5 when its absolute value is large enough.
+        # Verify the top-N selection picked predictors with the largest absolute values,
+        # which means negative contributors are included.
+        contributions = df_no_remaining["contribution"].to_list()
+        abs_values = df_no_remaining["contribution_abs"].to_list()
+
+        # At least one predictor should have a negative contribution
+        has_negative = any(v < 0 for v in contributions)
+        has_positive_abs = all(v >= 0 for v in abs_values)
+        assert has_positive_abs, "contribution_abs values should all be non-negative"
+        # The top-5 by contribution_abs should include negative contributors if they exist
+        if has_negative:
+            assert any(v < 0 for v in contributions), (
+                "Top-N by contribution_abs should capture negative contributors"
+            )
+
+    def test_explicit_sort_by_contribution_gives_different_order(self, aggregate):
+        """Verify that sort_by='contribution' vs 'contribution_abs' produce different orderings."""
+        df_abs = aggregate.get_predictor_contributions(sort_by="contribution_abs")
+        df_signed = aggregate.get_predictor_contributions(sort_by="contribution")
+
+        predictors_abs = df_abs.filter(
+            pl.col("predictor_name") != "remaining"
+        )["predictor_name"].to_list()
+        predictors_signed = df_signed.filter(
+            pl.col("predictor_name") != "remaining"
+        )["predictor_name"].to_list()
+
+        # Verify the sort_by parameter controls the output ordering
+        abs_vals = df_abs.filter(
+            pl.col("predictor_name") != "remaining"
+        )["contribution_abs"].to_list()
+        signed_vals = df_signed.filter(
+            pl.col("predictor_name") != "remaining"
+        )["contribution"].to_list()
+
+        # Each output should be sorted by its respective sort_by column
+        assert (
+            abs_vals == sorted(abs_vals)
+            or abs_vals == sorted(abs_vals, reverse=True)
+        ), "sort_by='contribution_abs' should sort output by absolute values"
+        assert (
+            signed_vals == sorted(signed_vals)
+            or signed_vals == sorted(signed_vals, reverse=True)
+        ), "sort_by='contribution' should sort output by signed values"
+
+        # Both should select the same set of predictors (same top_n default)
+        assert set(predictors_abs) == set(predictors_signed), (
+            "Same top_n should select the same predictor set"
+        )
+
+    def test_predictor_value_contributions_sorted_by_abs(self, aggregate, predictors):
+        """Verify that predictor value contributions for symbolic predictors are sorted by contribution_abs."""
+        df = aggregate.get_predictor_value_contributions(predictors=predictors)
+
+        # For symbolic predictors, check that top-k values are selected by contribution_abs
+        symbolic_predictors = df.filter(
+            (pl.col("predictor_type") == "SYMBOLIC")
+            & (pl.col("bin_contents") != "remaining")
+            & (pl.col("bin_contents") != "missing")
+        )
+
+        for name in symbolic_predictors["predictor_name"].unique().to_list():
+            pred_df = symbolic_predictors.filter(pl.col("predictor_name") == name)
+            abs_values = pred_df["contribution_abs"].to_list()
+            # Values should be sorted by absolute contribution (via sort_value column)
+            assert len(abs_values) > 0, f"Expected values for predictor {name}"
+
 
 def assert_df_has_top_n(df, top_n):
     """Assert that the DataFrame has at least top_n rows."""

@@ -14,7 +14,7 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _DEFAULT, _CONTRIBUTION_TYPE
+from .ExplanationsUtils import defaults, _CONTRIBUTION_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,10 @@ class Reports(LazyNamespace):
     def generate(
         self,
         report_filename: str = "explanations_report.zip",
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        top_n: int = defaults.TOP_N,
+        top_k: int = defaults.TOP_K,
+        sort_by: str = defaults.SORT_BY.value,
+        display_by: str = defaults.DISPLAY_BY.value,
         zip_output: bool = False,
         verbose: bool = False,
     ):
@@ -58,6 +59,12 @@ class Reports(LazyNamespace):
                 Number of top explanations to include.
             top_k (int):
                 Number of top features to include in explanations.
+            sort_by (str):
+                Type of contribution calculation to use for sorting/selecting top predictors.
+                Default is `contribution_abs` to select most impactful predictors.
+            display_by (str):
+                Type of contribution calculation to display in plots.
+                Default is `contribution` to show signed contribution values.
             zip_output (bool):
                 Whether to zip the output report.
                 The filename will be used as the zip file name.
@@ -70,8 +77,11 @@ class Reports(LazyNamespace):
             logger.error("Validation failed: %s", e)
             raise
 
-        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
-            contribution_calculation
+        validated_sort_by = _CONTRIBUTION_TYPE.validate_and_get_type(
+            sort_by
+        )
+        validated_display_by = _CONTRIBUTION_TYPE.validate_and_get_type(
+            display_by
         )
 
         self._validate_report_dir()
@@ -88,8 +98,8 @@ class Reports(LazyNamespace):
                 top_k=top_k,
                 from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
                 to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
-                contribution_type=contribution_type.value,
-                contribution_text=contribution_type.text,
+                sort_by=validated_sort_by,
+                display_by=validated_display_by,
                 verbose=verbose,
             )
 
@@ -122,12 +132,12 @@ class Reports(LazyNamespace):
 
     def _set_params(
         self,
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
+        top_n: int = defaults.TOP_N,
+        top_k: int = defaults.TOP_K,
         from_date: str = "",
         to_date: str = "",
-        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
-        contribution_text: str = _CONTRIBUTION_TYPE.CONTRIBUTION.text,
+        sort_by: _CONTRIBUTION_TYPE = defaults.SORT_BY,
+        display_by: _CONTRIBUTION_TYPE = defaults.DISPLAY_BY,
         verbose: bool = False,
     ):
         params = {}
@@ -135,8 +145,10 @@ class Reports(LazyNamespace):
         params["top_k"] = top_k
         params["from_date"] = from_date
         params["to_date"] = to_date
-        params["contribution_type"] = contribution_type
-        params["contribution_text"] = contribution_text
+        params["sort_by"] = sort_by.value
+        params["sort_by_text"] = sort_by.text
+        params["display_by"] = display_by.value
+        params["display_by_text"] = display_by.text
         params["verbose"] = verbose
         params["data_folder"] = self.aggregate_folder.name
 

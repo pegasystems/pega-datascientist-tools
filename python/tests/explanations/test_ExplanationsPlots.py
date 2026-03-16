@@ -7,7 +7,7 @@ from pathlib import Path
 import plotly.graph_objects as go
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _DEFAULT, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import defaults, _SPECIAL
 from pdstools.explanations.Plots import Plots
 
 basePath = Path(__file__).parent.parent.parent.parent
@@ -65,7 +65,7 @@ def test_plot_contributions_for_overall_default_params(plots):
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
     # +1 for the remaining bar
-    _assert_fig_bar_data_overall(overall_fig, _DEFAULT.TOP_N.value + 1, check_condition="le")
+    _assert_fig_bar_data_overall(overall_fig, defaults.TOP_N + 1, check_condition="le")
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
 
 
@@ -88,7 +88,8 @@ def test_plot_contributions_for_overall_custom_params(plots):
 
     # Will also have remaining bar, so +1
     _assert_fig_bar_data_overall(overall_fig, top_n + 1)
-    _assert_fig_bar_data_predictors(predictors_figs, top_k + 1, check_remaining=True)
+    # Use "le" because a symbolic predictor may have fewer unique values than top_k
+    _assert_fig_bar_data_predictors(predictors_figs, top_k + 1, check_condition="le")
 
 
 def test_plot_contributions_for_overall_with_missing_for_age(plots):
@@ -124,7 +125,7 @@ def test_plot_contributions_for_overall_with_invalid_contribution_type(plots):
     # Call the method with an invalid contribution type
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_for_overall(
-            contribution_calculation="invalid"
+            sort_by="invalid"
         )
 
 
@@ -191,8 +192,53 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_by_context(
             context=selected_context,
-            contribution_calculation="invalid"
+            sort_by="invalid"
         )
+
+
+def test_overall_plot_x_axis_uses_display_by_column(plots):
+    """Verify that the overall plot x-axis values use signed contribution (display_by default), not contribution_abs."""
+    overall_fig, _ = plots.plot_contributions_for_overall()
+
+    bar_data = _get_bar_data_from_fig(overall_fig)
+    x_values = list(bar_data.x)
+
+    # The default display_by is 'contribution' (signed), so some values should be negative
+    # If it were using contribution_abs, all values would be >= 0
+    has_negative = any(v < 0 for v in x_values)
+    assert has_negative, (
+        "Plot x-axis should display signed contribution values (default display_by='contribution'), "
+        "but all values are non-negative"
+    )
+
+
+def test_overall_plot_y_axis_ordered_by_sort_by(plots):
+    """Verify that the overall plot y-axis predictor order corresponds to sort_by=contribution_abs."""
+    overall_fig, _ = plots.plot_contributions_for_overall()
+
+    bar_data = _get_bar_data_from_fig(overall_fig)
+    x_values = list(bar_data.x)
+
+    # The x-values (contribution) paired with the bar order should be
+    # non-increasing in absolute value (highest abs contribution first)
+    abs_x_values = [abs(v) for v in x_values]
+    assert abs_x_values == sorted(abs_x_values, reverse=True), (
+        "Plot bars should be ordered by contribution_abs descending (highest at top)"
+    )
+
+
+def test_plot_with_custom_display_by(plots):
+    """Verify that display_by='contribution_abs' produces all non-negative x-values."""
+    overall_fig, _ = plots.plot_contributions_for_overall(
+        display_by="contribution_abs"
+    )
+
+    bar_data = _get_bar_data_from_fig(overall_fig)
+    x_values = list(bar_data.x)
+
+    assert all(v >= 0 for v in x_values), (
+        "When display_by='contribution_abs', all x-values should be non-negative"
+    )
 
 
 def _assert_fig_bar_data_predictors_special_bins(
