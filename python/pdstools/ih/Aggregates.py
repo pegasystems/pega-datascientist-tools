@@ -76,7 +76,11 @@ class Aggregates(LazyNamespace):
         query : QUERY, optional
             Polars expression to filter data before aggregation.
         debug : bool, default False
-            If True, include debug columns (Outcomes list).
+            If True, include the Outcomes column (list of unique outcome values per interaction).
+            If False, the Outcomes column is dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
@@ -169,7 +173,11 @@ class Aggregates(LazyNamespace):
         query : QUERY, optional
             Polars expression to filter data before aggregation.
         debug : bool, default False
-            If True, include debug columns.
+            If True, include the Outcomes column (list of unique outcome values per group).
+            If False, the Outcomes column is dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
