@@ -1,3 +1,14 @@
+"""GlobalExplanations report generation script.
+
+This script generates Quarto report files from templates for model explanations analysis.
+Templates follow Quarto standards with YAML front matter, error handling, Pega styling,
+and credits sections. The generation process uses string substitution to populate
+template placeholders with user-specified parameters.
+
+Templates are located in: assets/templates/
+Generated reports are written to the current working directory.
+"""
+
 import json
 import os
 import logging
@@ -34,6 +45,20 @@ SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
 
 class ReportGenerator:
+    """Generate GlobalExplanations Quarto report files from templates.
+
+    This class reads template .qmd files, performs string substitution with
+    user parameters, and writes the final report files. Templates follow
+    established Quarto standards including:
+    - Complete YAML front matter with Pega branding
+    - Error handling around plot generation
+    - Pega template styling for visualizations
+    - Credits and version information sections
+
+    The generation process preserves the template architecture while enhancing
+    the quality and consistency of generated reports.
+    """
+
     def __init__(self):
         self.report_folder = os.getcwd()
 
@@ -114,7 +139,21 @@ Report generation initialized with the following parameters:
 
     @staticmethod
     def _read_template(template_filename: str) -> str:
-        """Read a template file and return its content."""
+        """Read a template file and return its content.
+
+        Templates contain placeholder strings (e.g., {ROOT_DIR}, {TOP_N}) that
+        will be substituted with actual values during report generation.
+
+        Parameters
+        ----------
+        template_filename : str
+            Name of the template file in the templates folder
+
+        Returns
+        -------
+        str
+            Template content with placeholders intact
+        """
         with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING) as fr:
             return fr.read()
 
