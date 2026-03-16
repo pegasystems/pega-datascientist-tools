@@ -44,7 +44,6 @@ class BinAggregator(LazyNamespace):
         aggregation: str | None = None,
         as_numeric: bool | None = None,
         return_df: bool = False,
-        verbose: bool = False,
     ) -> pl.DataFrame | Figure:
         """Roll up a predictor across all the models defined when creating the class.
 
@@ -90,8 +89,6 @@ class BinAggregator(LazyNamespace):
             which means the type is taken from the first predictor in the data.
         return_df : bool, optional
             Return the underlying binning instead of a plot.
-        verbose : bool, optional
-            Show detailed debug information while executing, by default False
 
         Returns
         -------
@@ -99,6 +96,13 @@ class BinAggregator(LazyNamespace):
             By default returns a nicely formatted plot. When 'return_df' is set
             to True, it returns the actual binning with the lift aggregated over
             all the models, optionally per predictor and per set of models.
+
+        Notes
+        -----
+        Enable debug logging to see processing progress:
+
+        >>> import logging
+        >>> logging.basicConfig(level=logging.DEBUG)
 
         """
         if not isinstance(predictors, list):
@@ -151,12 +155,11 @@ class BinAggregator(LazyNamespace):
                     .to_list()
                 )
             for topic in all_topics:
-                if verbose:
-                    print(f"Topic: {topic}, predictor: {predictor}")
-                    if is_numeric:
-                        print(empty_numeric_binning)
-                    else:
-                        print(f"Symbols: {', '.join(symbol_list or [])}")
+                logger.debug(f"Topic: {topic}, predictor: {predictor}")
+                if is_numeric:
+                    logger.debug(str(empty_numeric_binning))
+                else:
+                    logger.debug(f"Symbols: {', '.join(symbol_list or [])}")
 
                 if aggregation is None:
                     ids = (
@@ -179,14 +182,12 @@ class BinAggregator(LazyNamespace):
                         predictor,
                         ids,
                         empty_numeric_binning.clone(),  # type: ignore[union-attr]
-                        verbose=verbose,
                     )
                 else:
                     cum_binning = self.accumulate_sym_binnings(
                         predictor,
                         ids,
                         symbol_list,
-                        verbose=verbose,
                     )
 
                 cum_binning = cum_binning.with_columns(
@@ -208,44 +209,38 @@ class BinAggregator(LazyNamespace):
         predictor,
         modelids,
         target_binning,
-        verbose=False,
     ) -> pl.DataFrame:
         for id in modelids:
-            if verbose:
-                print(f"Model ID: {id}")
+            logger.debug(f"Model ID: {id}")
             source_binning = self.get_source_numbinning(predictor, id)
 
             # TODO consider quick escape if all of source binning is empty (sum of BinResponses)
 
-            if verbose:
-                print(source_binning)
+            logger.debug(str(source_binning))
 
-                # fig = self.plot_binning_attribution(source_binning, target_binning)
-                # fig.update_layout(title=f"{predictor}, model={id}")
-                # fig.show()
+            # fig = self.plot_binning_attribution(source_binning, target_binning)
+            # fig.update_layout(title=f"{predictor}, model={id}")
+            # fig.show()
 
             target_binning = self.combine_two_numbinnings(
                 source_binning,
                 target_binning,
-                verbose=verbose,
             )
 
-            if verbose:
-                print(target_binning)
-
-                # fig = self.plot_lift_binning(target_binning)
-                # fig.update_layout(width=800, height=300, showlegend=False)
-                # fig.show()
-
-        if verbose:
-            print(target_binning)
+            logger.debug(str(target_binning))
 
             # fig = self.plot_lift_binning(target_binning)
-            # fig.update_layout(
-            #     width=800,
-            #     height=300,
-            # )
+            # fig.update_layout(width=800, height=300, showlegend=False)
             # fig.show()
+
+        logger.debug(str(target_binning))
+
+        # fig = self.plot_lift_binning(target_binning)
+        # fig.update_layout(
+        #     width=800,
+        #     height=300,
+        # )
+        # fig.show()
 
         return target_binning
 
@@ -279,7 +274,6 @@ class BinAggregator(LazyNamespace):
         predictor,
         modelids,
         symbollist,
-        verbose=False,
     ) -> pl.DataFrame:
         # All the bins for the given predictor, for the given models
         symbins = (
@@ -311,9 +305,8 @@ class BinAggregator(LazyNamespace):
             on="Symbol",
         ).sort("ModelID")  # just for debugging/transparency
 
-        if verbose:
-            print("Pivot table:")
-            print(symbins_pivot)
+        logger.debug("Pivot table:")
+        logger.debug(str(symbins_pivot))
 
         # Add columns for symbols that may be missing completely (must-have symbols not present in the models)
         symbins_pivot = symbins_pivot.with_columns(
@@ -329,9 +322,8 @@ class BinAggregator(LazyNamespace):
             ],
         )
 
-        if verbose:
-            print("Pivot table with additional columns and residuals filled in:")
-            print(symbins_pivot)
+        logger.debug("Pivot table with additional columns and residuals filled in:")
+        logger.debug(str(symbins_pivot))
 
         # melt the pivot back to long form, but now all symbols are present for all models
         molten = symbins_pivot.unpivot(
@@ -613,7 +605,6 @@ class BinAggregator(LazyNamespace):
         self,
         source: pl.DataFrame,
         target: pl.DataFrame,
-        verbose=False,
     ) -> pl.DataFrame:
         class Interval:
             def __init__(self, lo, hi):
@@ -648,15 +639,14 @@ class BinAggregator(LazyNamespace):
                 target[target_index, "BinResponses"] = target_binresponses + source_fraction * source_binresponses
                 target[target_index, "BinCoverage"] = target_total_attribution + target_attribution
 
-                if verbose:
-                    print(
-                        f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: lift attribution={target_attribution} response attribution={source_fraction}",
-                    )
-                    # print(
-                    #     f"(({target_total_attribution} * {target_lift}) + ({target_attribution} * {source_lift})) / ({target_total_attribution} + {target_attribution}) = {target[target_index, 'Lift']}"
-                    # )
-            elif verbose:
-                print(
+                logger.debug(
+                    f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: lift attribution={target_attribution} response attribution={source_fraction}",
+                )
+                # logger.debug(
+                #     f"(({target_total_attribution} * {target_lift}) + ({target_attribution} * {source_lift})) / ({target_total_attribution} + {target_attribution}) = {target[target_index, 'Lift']}"
+                # )
+            else:
+                logger.debug(
                     f"Attribution from {source[source_index, 'ModelID']}:{source[source_index, 'BinIndex']} {Interval(source_lo, source_hi)} to {target[target_index, 'BinIndex']} {Interval(target_lo, target_hi)}: None",
                 )
 
