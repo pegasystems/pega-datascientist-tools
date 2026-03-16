@@ -43,3 +43,46 @@ class TestTemplateFiles:
         """Test all_context_content.qmd template exists."""
         template_path = get_template_path("all_context_content.qmd")
         assert template_path.exists(), f"Template not found: {template_path}"
+
+
+class TestGettingStartedTemplate:
+    """Test getting-started.qmd meets Quarto standards."""
+
+    def test_has_yaml_frontmatter(self):
+        """Test template has complete YAML front matter."""
+        template_path = get_template_path("getting-started.qmd")
+        content = template_path.read_text()
+
+        # Check for required YAML elements
+        assert "title-block-banner: true" in content
+        assert 'author: "Pega Data Scientist tools"' in content
+        assert "date: today" in content
+        assert "code-fold: true" in content
+        assert "css: assets/pega-report-overrides.css" in content
+
+    def test_has_credits_section(self):
+        """Test template has credits section."""
+        template_path = get_template_path("getting-started.qmd")
+        content = template_path.read_text()
+
+        assert "# Credits" in content
+        assert "report_utils.show_credits" in content
+        assert "show_versions.show_versions" in content
+
+    def test_has_interactive_plot_disclaimer(self):
+        """Test template has interactive plot disclaimer."""
+        template_path = get_template_path("getting-started.qmd")
+        content = template_path.read_text()
+
+        assert ".callout-tip" in content
+        assert "Plotly" in content
+        assert "interactive plots" in content
+
+    def test_preserves_placeholders(self):
+        """Test template preserves all original placeholders."""
+        template_path = get_template_path("getting-started.qmd")
+        content = template_path.read_text()
+
+        placeholders = ["{DATE_INFO}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TEXT}", "{MODEL_CONTEXT_LIMIT}"]
+        for placeholder in placeholders:
+            assert placeholder in content, f"Missing placeholder: {placeholder}"

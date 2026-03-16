@@ -1,16 +1,32 @@
 ---
-title: "Getting started"
-date: now
+title: "Getting Started"
+title-block-banner: true
+author: "Pega Data Scientist tools"
+date: today
 published-title: "Report generated on"
+format:
+  html:
+    page-layout: full
+    code-fold: true
+    standalone: true
+    toc: true
+    theme:
+      light: flatly
+    css: assets/pega-report-overrides.css
 ---
 
 ## Introduction
 
 This report contains a break down of the {CONTRIBUTION_TEXT} for each predictor made to model predictions. The report is generated over the aggregated explanations data {DATE_INFO}.
 
+::: {.callout-tip}
+Charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/).
+These interactive plots do not render well in portals like Sharepoint or Box. View from a browser for best experience.
+:::
+
 ### Model Overview
 
-The model overview page shows `top-{TOP_N}` predictors that, on average, had the heighest contribution to the model predictions.
+The model overview page shows `top-{TOP_N}` predictors that, on average, had the highest contribution to the model predictions.
 In addition to the {CONTRIBUTION_TEXT} for those `top-{TOP_N}` predictors, the overview page also shows the {CONTRIBUTION_TEXT} for each predictor values. For symbolic predictors, the `top-{TOP_K}` predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles. The model overview will be generated over all model contexts.
 
 ### By model context
@@ -18,3 +34,22 @@ In addition to the {CONTRIBUTION_TEXT} for those `top-{TOP_N}` predictors, the o
 The **By Model Context** section displays the same information as in the model overview section, but for explanations aggregated within a specific model context. So instead of showing the {CONTRIBUTION_TEXT} of predictors, you can see the {CONTRIBUTION_TEXT} of predictors for a given a pyName, pyOutcome, pyIssue, etc.
 
 *Note*: The model context plots are generated for the `top-{MODEL_CONTEXT_LIMIT}` model contexts sorted by frequency of samples.
+
+# Credits
+
+```{python}
+# | echo: false
+from pdstools.utils import show_versions
+report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/GlobalExplanations/assets/templates/getting-started.qmd")
+show_versions.show_versions(include_dependencies=False)
+```
+
+::: {.callout-note collapse="true"}
+## Expand for detailed version information
+```{python}
+# | echo: false
+show_versions.show_versions()
+```
+:::
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
