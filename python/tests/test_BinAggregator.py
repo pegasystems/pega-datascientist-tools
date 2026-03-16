@@ -1,5 +1,6 @@
 """Testing the functionality of the BinAggregator"""
 
+import logging
 import polars as pl
 import pytest
 from pdstools import datasets
@@ -257,16 +258,23 @@ def test_plot_binning_lift(cdhsample_binaggregator):
     )
 
 
-@pytest.mark.skip(reason="no way of currently testing this")
-def test_verbose_mode(cdhsample_binaggregator: BinAggregator, capsys):
-    cdhsample_binaggregator.roll_up(
-        ["Customer.Prefix", "Customer.Age"],
-        n=6,
-        aggregation="Group",
-        verbose=True,
-    )
-    captured = capsys.readouterr()
-    assert "Pivot table:" in captured
+def test_logging_output(cdhsample_binaggregator: BinAggregator, caplog):
+    """Test that operations produce debug logs when logging enabled."""
+    with caplog.at_level(logging.DEBUG):
+        cdhsample_binaggregator.roll_up(
+            ["Customer.MaritalStatus", "Customer.AnnualIncome"],
+            n=6,
+            aggregation="Group",
+            return_df=True,
+        )
+
+    # Should have debug messages about topics and predictors
+    assert any("Topic:" in record.message for record in caplog.records)
+    assert any("Model ID:" in record.message for record in caplog.records)
+    # For symbolic predictors
+    assert any("Symbols:" in record.message for record in caplog.records)
+    # For symbolic pivot table
+    assert any("Pivot table:" in record.message for record in caplog.records)
 
 
 # then test a roll up over Group

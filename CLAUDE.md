@@ -676,6 +676,82 @@ This project supports Python 3.10+. Use modern type hint syntax:
 
 **Do not** import `Optional`, `Union`, `List`, `Dict` from `typing` — use built-in generics and `|` unions.
 
+## Logging Standards
+
+### When to Use Logging vs Debug Parameters
+
+PDS Tools uses Python's `logging` module for diagnostic output. Use logging for:
+- Progress messages during long-running operations
+- Diagnostic information about data transformations
+- Error messages in library code
+- Warnings about deprecated features or unexpected data
+
+**Do NOT use print statements in library code.** Print statements are only acceptable in:
+- CLI code for user-facing output (prompts, menus, results)
+- Interactive notebook examples
+- Test debugging (temporary only)
+
+### Parameter Naming Conventions
+
+**`debug` parameter**: Use when the parameter changes the **return value** (e.g., returns additional columns, more detailed data structure). This is NOT for logging.
+
+Example:
+```python
+def summary_by_channel(self, ..., debug: bool = False) -> pl.LazyFrame:
+    """
+    ...
+    debug : bool, default False
+        If True, include extra columns (ModelTechnique, Configurations) in output.
+    """
+    result = result.group_by(...).agg(...)
+    if debug:
+        return result  # Keep all columns
+    return result.drop("ModelTechnique", "Configurations")  # Hide internal columns
+```
+
+**`verbose` parameter**: REMOVED. Never use this pattern. If you find a `verbose` parameter in code:
+1. Remove the parameter from the function signature completely
+2. Replace `if verbose: print(...)` with unconditional `logger.debug(...)`
+3. Update docstrings to remove the parameter and mention logging configuration
+4. Remove verbose from all function calls in the codebase
+
+### Logging Pattern
+
+Every module should have a module-level logger:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+class MyClass:
+    def my_method(self, data):
+        logger.debug(f"Processing {len(data)} records")
+        try:
+            result = self._compute(data)
+            logger.debug(f"Computation complete: {result.shape}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to compute: {e}")
+            raise
+```
+
+### Testing Logging
+
+Test logging output using pytest's `caplog` fixture:
+
+```python
+import logging
+
+def test_my_method_logging(caplog):
+    with caplog.at_level(logging.DEBUG):
+        obj = MyClass()
+        obj.my_method(data)
+
+    assert "Processing" in caplog.text
+    assert any(r.levelname == "DEBUG" for r in caplog.records)
+```
+
 ## Type Checker Noise
 
 When the IDE reports type errors after a file save, distinguish between **pre-existing** issues (already present before the edit) and **newly introduced** issues. For pre-existing type errors, ask the user whether to include a fix in the current change rather than silently fixing or ignoring them. This avoids scope creep while still surfacing opportunities.

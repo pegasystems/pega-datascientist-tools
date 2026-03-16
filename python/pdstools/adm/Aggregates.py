@@ -571,8 +571,12 @@ class Aggregates:
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
         custom_channels : dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include diagnostic columns (ResponseCount, Positives) in output.
+            If False, these intermediate calculation columns are dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
@@ -919,8 +923,12 @@ class Aggregates:
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include diagnostic columns (ResponseCount, Positives) in output.
+            If False, these intermediate calculation columns are dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
