@@ -24,6 +24,8 @@ from polars._typing import PolarsTemporalType
 
 from .types import QUERY
 
+logger = logging.getLogger(__name__)
+
 F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
 if TYPE_CHECKING:  # pragma: no cover
     try:
@@ -1305,7 +1307,7 @@ def process_files_to_bytes(
             with path_list[0].open("rb") as file:
                 return file.read(), base_file_name.name
         except OSError as e:
-            print(f"Error reading file {path_list[0]}: {e}")
+            logger.error(f"Error reading file {path_list[0]}: {e}")
             return b"", ""
 
     # Multiple files
@@ -1319,7 +1321,7 @@ def process_files_to_bytes(
                     compress_type=zipfile.ZIP_DEFLATED,
                 )
             except OSError as e:
-                print(f"Error adding file {file_path} to zip: {e}")
+                logger.error(f"Error adding file {file_path} to zip: {e}")
 
     time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
     zip_file_name = f"{base_file_name.stem}_{time}.zip"
