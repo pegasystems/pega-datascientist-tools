@@ -200,6 +200,12 @@ data loading and sampling. All options can also be set via environment variables
    Defaults to the current working directory.
    *(env var:* ``PDSTOOLS_TEMP_DIR`` *)*
 
+.. warning::
+   **Concurrent Access:** Running multiple instances of the Decision Analysis Tool
+   simultaneously with shared temp directories can cause race conditions when
+   reading/writing cached files. If you need to run multiple instances concurrently,
+   use separate ``--temp-dir`` paths for each instance.
+
 **Examples:**
 
 .. code-block:: bash

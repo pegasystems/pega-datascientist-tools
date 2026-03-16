@@ -230,7 +230,7 @@ def _show_data_summary(da):
         source_file = sample_metadata.get("source_file", "unknown")
 
         st.info(
-            f"📊 This data represents **{sample_pct:.1f}%** of the original dataset. Original source: `{source_file}`"
+            f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. Original source: `{source_file}`"
         )
 
 
