@@ -14,14 +14,6 @@ from importlib import resources
 
 from pdstools import __version__
 
-# Configure logging from environment variable
-log_level = os.getenv("PDSTOOLS_LOG_LEVEL", "WARNING").upper()
-valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-if log_level in valid_levels:
-    logging.basicConfig(
-        level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
 # App configuration with display names and paths
 APPS = {
     "health_check": {
