@@ -1,7 +1,11 @@
+import gzip
 import logging
 import os
 import pathlib
 import re
+import shutil
+import tarfile
+import tempfile
 import warnings
 import zipfile
 from collections.abc import Iterable
@@ -19,74 +23,372 @@ from ..utils.cdh_utils import from_prpc_date_time
 logger = logging.getLogger(__name__)
 
 
+# Extensions that read_data knows how to handle.
+_SUPPORTED_EXTENSIONS: set[str] = {
+    ".parquet",
+    ".csv",
+    ".arrow",
+    ".feather",  # Alias for .arrow/.ipc
+    ".ipc",  # Arrow IPC format
+    ".ndjson",
+    ".jsonl",
+    ".json",
+    ".zip",
+    ".tar",
+    ".tgz",
+    ".gz",
+}
+
+
+def _is_artifact(name: str) -> bool:
+    """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
+    return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
+
+
+def _clean_artifacts(directory: str) -> None:
+    """Remove OS-generated artifact files and directories after archive extraction.
+
+    Polars glob patterns (e.g. ``**/*.parquet``) cannot skip hidden files or
+    ``__MACOSX`` resource-fork directories, so we delete them from the
+    extracted tree before scanning.
+    """
+    root = Path(directory)
+    # Remove __MACOSX directories first (contains bulk of macOS resource forks)
+    for macosx_dir in root.rglob("__MACOSX"):
+        if macosx_dir.is_dir():
+            shutil.rmtree(macosx_dir, ignore_errors=True)
+    # Remove individual artifact files (._*, .DS_Store, Thumbs.db, etc.)
+    for p in list(root.rglob(".*")):
+        if p.is_file() and _is_artifact(p.name):
+            p.unlink(missing_ok=True)
+    for name in ("Thumbs.db", "desktop.ini"):
+        for p in root.rglob(name):
+            if p.is_file():
+                p.unlink(missing_ok=True)
+
+
+def _extract_tar(archive_path: Path) -> str:
+    """Extract a tar archive to a temporary directory and return the path."""
+    tmp_dir = tempfile.mkdtemp(prefix="pdstools_tar_")
+    # lgtm [py/path-injection]
+    # CodeQL suppression: archive_path is user-specified - expected for data reading library
+    with tarfile.open(archive_path, mode="r:*") as tf:
+        tf.extractall(tmp_dir, filter="data")
+    return tmp_dir
+
+
+def _extract_zip(archive_path: Path) -> str:
+    """Extract a zip archive to a temporary directory and return the path."""
+    tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
+    # lgtm [py/path-injection]
+    # CodeQL suppression: archive_path is user-specified - expected for data reading library
+    with zipfile.ZipFile(archive_path, "r") as zf:
+        zf.extractall(tmp_dir)
+    return tmp_dir
+
+
+def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
+    """Read data from a BytesIO object (e.g., from Streamlit file upload).
+
+    Parameters
+    ----------
+    file : BytesIO
+        The BytesIO object containing file data.
+    extension : str
+        The file extension (e.g., '.csv', '.json', '.zip', '.gz').
+
+    Returns
+    -------
+    pl.LazyFrame
+        Lazy DataFrame ready for processing.
+    """
+    file.seek(0)  # Ensure we're at the start
+
+    # Handle .gz decompression
+    if extension == ".gz":
+        # Decompress and determine the underlying format
+        decompressed = BytesIO(gzip.decompress(file.read()))
+        if hasattr(file, "name"):
+            # Extract the extension before .gz (e.g., file.json.gz → .json)
+            base_name = os.path.splitext(file.name)[0]
+            extension = os.path.splitext(base_name)[1] or ".json"  # Default to .json
+        else:
+            extension = ".json"  # Default assumption
+        file = decompressed
+        file.seek(0)
+
+    # Handle .zip archives (extract data.json)
+    if extension == ".zip":
+        with zipfile.ZipFile(file, "r") as zf:
+            if "data.json" in zf.namelist():
+                with zf.open("data.json") as data_file:
+                    return pl.read_ndjson(BytesIO(data_file.read())).lazy()
+            # Try to find data.json in subdirectories
+            for name in zf.namelist():
+                if name.endswith("data.json"):
+                    with zf.open(name) as data_file:
+                        return pl.read_ndjson(BytesIO(data_file.read())).lazy()
+        raise FileNotFoundError("Cannot find 'data.json' in zip archive")
+
+    # Read based on extension
+    if extension == ".parquet":
+        return pl.read_parquet(file).lazy()
+    elif extension == ".csv":
+        return pl.read_csv(file).lazy()
+    elif extension in {".arrow", ".feather", ".ipc"}:
+        return pl.read_ipc(file).lazy()
+    elif extension in {".json", ".ndjson", ".jsonl"}:
+        return pl.read_ndjson(file).lazy()
+    else:
+        raise ValueError(f"Unsupported file type for BytesIO: {extension}")
+
+
+def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
+    """Read data from various file formats and sources.
+
+    Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, zip, tar, tar.gz, tgz, gz.
+    Handles both individual files and directories (including Hive-partitioned structures).
+    Archives (zip, tar) are automatically extracted to temporary directories.
+    Gzip files (.gz) are automatically decompressed.
+
+    Parameters
+    ----------
+    path : str, Path, or BytesIO
+        Path to a data file, archive, directory, or BytesIO object.
+        When using BytesIO (e.g., from Streamlit file uploads), the object must have
+        a 'name' attribute indicating the file extension.
+        Supported formats:
+        - Parquet files or directories
+        - CSV files
+        - Arrow/IPC/Feather files
+        - NDJSON/JSONL files
+        - GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)
+        - ZIP archives including Pega Dataset Export format (extracted automatically)
+        - TAR archives including .tar.gz and .tgz (extracted automatically)
+        - Hive-partitioned directories (scanned recursively)
+
+    Returns
+    -------
+    pl.LazyFrame
+        Lazy DataFrame ready for processing. Use `.collect()` to materialize.
+
+    Raises
+    ------
+    ValueError
+        If no supported data files are found in a directory, or if the file
+        type is not supported.
+
+    Examples
+    --------
+    Read a parquet file:
+
+    >>> df = read_data("data.parquet")
+
+    Read from a ZIP archive:
+
+    >>> df = read_data("export.zip")
+
+    Read from a TAR archive:
+
+    >>> df = read_data("export.tar.gz")
+
+    Read from a Hive-partitioned directory:
+
+    >>> df = read_data("pxDecisionTime_day=08/")
+
+    Read a Pega Dataset Export file:
+
+    >>> df = read_data("Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip")
+
+    Read a gzip-compressed file:
+
+    >>> df = read_data("export.json.gz")
+    >>> df = read_data("data.csv.gz")
+
+    Read from a BytesIO object (e.g., Streamlit upload):
+
+    >>> from io import BytesIO
+    >>> uploaded_file = ...  # BytesIO with 'name' attribute
+    >>> df = read_data(uploaded_file)
+
+    Read a Feather file:
+
+    >>> df = read_data("data.feather")
+
+    Notes
+    -----
+    **Pega Dataset Export Support:**
+    This function fully supports Pega Dataset Export format (e.g., Data-Decision-ADM-*.zip,
+    Data-DM-*.zip). These are zip archives containing a data.json file (NDJSON format) and
+    optionally a META-INF/MANIFEST.mf metadata file. The function automatically extracts
+    and reads the data.json file.
+
+    **Other Notes:**
+    - Archives are extracted to temporary directories with automatic cleanup
+    - OS artifacts (__MACOSX, .DS_Store, ._* files) are automatically removed
+    - For directories, the first supported file type found determines the format
+    """
+    # Handle BytesIO objects (e.g., from Streamlit file uploads)
+    if isinstance(path, BytesIO):
+        if not hasattr(path, "name"):
+            raise ValueError("BytesIO object must have a 'name' attribute indicating file extension")
+        _, extension = os.path.splitext(path.name)
+        return _read_from_bytesio(path, extension)
+
+    # lgtm [py/path-injection]
+    # CodeQL suppression: User-controlled paths are expected in a data reading library.
+    # Users explicitly specify which files/directories to read - this is the intended
+    # functionality, not a security vulnerability. This library is designed for use in
+    # trusted environments (data scientists' local machines, internal systems).
+    original_path = Path(path)  # save the original path
+    extension = None  # Initialize extension to None
+    if original_path.is_dir():
+        # It's a directory, possibly hive-partitioned at arbitrary depth.
+        # Find the first supported data file, skipping hidden/OS-artifact entries.
+        for dirpath, dirs, files in os.walk(str(original_path)):
+            dirs[:] = [d for d in dirs if not d.startswith(".") and not _is_artifact(d)]
+            for file in sorted(files):
+                if file.startswith(".") or _is_artifact(file):
+                    continue
+                ext = Path(file).suffix
+                if ext in _SUPPORTED_EXTENSIONS:
+                    extension = ext
+                    break
+            if extension:
+                break
+        # Use a recursive glob — works regardless of partition depth.
+        path = original_path / f"**/*{extension}"
+    else:
+        # It's a file, so we read based on the extension
+        # For tar files, normalize multi-part extensions (.tar.gz → .tar) for consistent handling
+        name_lower = original_path.name.lower()
+        if name_lower.endswith((".tar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz")):
+            extension = ".tar"
+        else:
+            extension = original_path.suffix
+
+    # Handle compressed and archive files early
+    # This includes:
+    # - GZIP files (.gz, .json.gz, .csv.gz, etc.) - decompress and read
+    # - TAR archives (.tar, .tar.gz, .tgz, etc.) - extract and read
+    # - ZIP archives including Pega Dataset Export format - extract and read
+    # lgtm [py/path-injection]
+    # CodeQL suppression: User-controlled paths are expected in a data reading library.
+    # Users explicitly specify which files/directories to read - this is the intended
+    # functionality, not a security vulnerability.
+    if not original_path.is_dir():
+        if extension == ".gz":
+            # Decompress gzip file and read the underlying format
+            # lgtm [py/path-injection]
+            # CodeQL suppression: User specifies which gzip file to decompress - this is
+            # expected library functionality for reading compressed data files.
+            with gzip.open(original_path, "rb") as gz_file:
+                decompressed = BytesIO(gz_file.read())
+                # Determine the underlying format from the base name
+                base_name = original_path.stem  # e.g., "file.json.gz" → "file.json"
+                inner_ext = os.path.splitext(base_name)[1] or ".json"  # Default to .json
+                if hasattr(decompressed, "name"):
+                    decompressed.name = str(original_path)
+                else:
+                    # Create a fake name attribute for extension detection
+                    object.__setattr__(decompressed, "name", base_name)
+                return _read_from_bytesio(decompressed, inner_ext)
+        elif extension == ".tar":
+            tmp_dir = _extract_tar(original_path)
+            _clean_artifacts(tmp_dir)
+            return read_data(tmp_dir)
+        elif extension == ".zip":
+            tmp_dir = _extract_zip(original_path)
+            _clean_artifacts(tmp_dir)
+            return read_data(tmp_dir)
+
+    if extension == ".parquet":
+        df = pl.scan_parquet(path)
+    elif extension == ".csv":
+        df = pl.scan_csv(path)
+    elif extension in {".arrow", ".feather", ".ipc"}:
+        df = pl.scan_ipc(path)
+    elif extension in {".ndjson", ".jsonl", ".json"}:
+        df = pl.scan_ndjson(path)
+    elif extension is None:
+        raise ValueError("No data files found in directory")
+    else:
+        raise ValueError(f"Unsupported file type: {extension}")
+
+    return df
+
+
 def read_ds_export(
     filename: str | os.PathLike | BytesIO,
     path: str | os.PathLike = ".",
     verbose: bool = False,
     **reading_opts,
 ) -> pl.LazyFrame | None:
-    """Read in most out of the box Pega dataset export formats
-    Accepts one of the following formats:
-    - .csv
-    - .json
-    - .zip (zipped json or CSV)
-    - .feather
-    - .ipc
-    - .parquet
+    """Read Pega dataset exports with additional capabilities.
 
-    It automatically infers the default file names for both model data as well as predictor data.
-    If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
-    If you supply the full name of the file in the 'path' directory, it will import that instead.
-    Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
+    This function extends read_data() with:
+    - Smart file finding: accepts 'modelData' or 'predictorData' and searches for matching files (ADM-specific)
+    - URL downloads: fetches remote files when local paths are not found (useful for demos and examples)
+    - Schema overrides: applies Pega-specific type corrections (e.g., PYMODELID as string)
+
+    For simple file reading without these features, use read_data() instead.
 
     Parameters
     ----------
-    filename : Union[str, os.PathLike, BytesIO]
-        Can be one of the following:
-        - A string with the full path to the file
-        - A PathLike object with the path to the file
-        - A string with the name of the file (to be searched in the given path)
-        - A BytesIO object containing the file data (e.g., from an uploaded file in a webapp)
-    path : Union[str, os.PathLike], default = '.'
-        The location of the file
-    verbose : bool, default = False
-        Whether to print out which file will be imported
-    infer_schema_length : int, default = 10000
-        Number of rows to scan when inferring the schema for CSV/JSON files.
-        For large production datasets, increase this value (e.g., 200000) if columns
-        are not being detected correctly. Higher values use more memory but provide
-        more accurate schema detection.
+    filename : str, os.PathLike, or BytesIO
+        File identifier. Can be:
+        - Full file path
+        - Generic name like 'modelData' or 'predictorData' (triggers smart search)
+        - BytesIO object (delegates to read_data)
+    path : str or os.PathLike, default='.'
+        Directory to search for files (ignored for BytesIO or full paths)
+    verbose : bool, default=False
+        Print file selection details
     **reading_opts
-        Additional arguments passed to the Polars scan_* functions.
+        Additional Polars scan_* options. Common options include:
+        - infer_schema_length (int, default=10000): Rows to scan for schema inference
+        - separator (str): CSV delimiter
+        - ignore_errors (bool): Continue on parse errors
 
     Returns
     -------
-    pl.LazyFrame
-        The (lazy) dataframe
+    pl.LazyFrame or None
+        Lazy dataframe, or None if file not found
 
     Examples
     --------
-    >>> df = read_ds_export(filename='full/path/to/ModelSnapshot.json')
-    >>> df = read_ds_export(filename='ModelSnapshot.json', path='data/ADMData')
-    >>> df = read_ds_export(filename=uploaded_file)  # Where uploaded_file is a BytesIO object
+    Smart file finding:
 
-    >>> # For large datasets with schema detection issues:
-    >>> df = read_ds_export(filename='large_export.csv', infer_schema_length=200000)
+    >>> df = read_ds_export('modelData', path='data/ADMData')
+
+    Specific file:
+
+    >>> df = read_ds_export('ModelSnapshot_20210101.json', path='data')
+
+    URL download:
+
+    >>> df = read_ds_export('ModelSnapshot.zip', path='https://example.com/exports')
+
+    Schema control:
+
+    >>> df = read_ds_export('export.csv', infer_schema_length=200000)
 
     """
     file: str | BytesIO
     # If the data is a BytesIO object, such as an uploaded file
-    # in certain webapps, then we can simply return the object
-    # as is, while extracting the extension as well.
+    # in certain webapps, delegate directly to read_data
     if isinstance(filename, BytesIO):
-        logger.debug("Filename is of type BytesIO, importing that directly")
-        _, extension = os.path.splitext(filename.name)
-        return import_file(filename, extension, **reading_opts)
+        logger.debug("Filename is of type BytesIO, delegating to read_data")
+        # NOTE: read_data doesn't support **reading_opts yet, so warn if provided
+        if reading_opts:
+            logger.warning("reading_opts not supported when using BytesIO with read_ds_export, ignoring")
+        return read_data(filename)
 
     # Convert PathLike to string for processing
     filename_str = str(filename) if isinstance(filename, os.PathLike) else filename
     path_str = str(path) if isinstance(path, os.PathLike) else path
 
+    # ADM-specific: Smart file finding for modelData/predictorData patterns
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
@@ -99,6 +401,7 @@ def read_ds_export(
         logger.debug("File not found in directory, scanning for latest file")
         file = get_latest_file(path_str, filename_str)  # type: ignore[assignment]
 
+    # ADM-specific: URL download support
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
@@ -116,6 +419,8 @@ def read_ds_export(
                 file = f"{path_str}/{filename_str}"
                 file = BytesIO(response.content)
                 _, extension = os.path.splitext(filename_str)
+                # Delegate to import_file for Pega-specific handling
+                return import_file(file, extension, **reading_opts)
 
         except ImportError:
             warnings.warn(
@@ -136,11 +441,11 @@ def read_ds_export(
             logger.info(f"File not found: {path_str}/{filename_str}")
             return None
 
+    # For local files, use import_file for Pega-specific schema handling
     if "extension" not in vars() and not isinstance(file, BytesIO):
         _, extension = os.path.splitext(file)
 
-    # Now we should either have a full path to a file, or a
-    # BytesIO wrapper around the file. Polars can read those both.
+    # Delegate to import_file which handles Pega-specific features like schema overrides
     return import_file(file, extension, **reading_opts)
 
 
@@ -149,19 +454,24 @@ def import_file(
     extension: str,
     **reading_opts,
 ) -> pl.LazyFrame:
-    """Imports a file using Polars
+    """Import a file with Pega-specific schema handling.
+
+    Applies ADM-specific type corrections and schema overrides during import.
+    Used internally by read_ds_export() for backward compatibility with legacy code.
 
     Parameters
     ----------
-    File: str
-        The path to the file, passed directly to the read functions
-    extension: str
-        The extension of the file, used to determine which function to use
+    file : str or BytesIO
+        File path or BytesIO object
+    extension : str
+        File extension (e.g., '.csv', '.json', '.parquet')
+    **reading_opts
+        Polars reading options (infer_schema_length, separator, ignore_errors, etc.)
 
     Returns
     -------
     pl.LazyFrame
-        The (imported) lazy dataframe
+        Lazy dataframe with schema corrections applied
 
     """
     if extension == ".zip":

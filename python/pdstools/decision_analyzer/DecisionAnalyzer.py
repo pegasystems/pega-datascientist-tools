@@ -28,7 +28,7 @@ from ..pega_io.File import read_ds_export
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SAMPLE_SIZE = 50_000
+DEFAULT_SAMPLE_SIZE = 10_000
 """Default number of unique interactions to sample for resource-intensive analyses."""
 
 
@@ -1357,11 +1357,11 @@ class DecisionAnalyzer:
                 # TODO: we should include all the IA properties but they're not populated currently
                 [self.level, "Model Control Group"]
             )
-            .agg(pl.count())
+            .agg(pl.len())
             .collect()
             .pivot(
                 index=self.level,
-                values="count",
+                values="len",
                 columns=["Model Control Group"],
                 sort_columns=True,
             )
@@ -1391,17 +1391,17 @@ class DecisionAnalyzer:
         )
         thresholds_long = (
             thresholds_wide.select([self.level] + [f"n{q}" for q in quantile_range])
-            .melt(
-                id_vars=self.level,
-                value_vars=cs.numeric(),
+            .unpivot(
+                index=self.level,
+                on=cs.numeric(),
                 variable_name="Decile",
                 value_name="Count",
             )
             .with_columns(pl.col("Decile").str.replace("n", "p"))
             .join(
-                thresholds_wide.select([self.level] + [f"p{q}" for q in quantile_range]).melt(
-                    id_vars=self.level,
-                    value_vars=cs.numeric(),
+                thresholds_wide.select([self.level] + [f"p{q}" for q in quantile_range]).unpivot(
+                    index=self.level,
+                    on=cs.numeric(),
                     variable_name="Decile",
                     value_name="Threshold",
                 ),
@@ -1653,7 +1653,14 @@ class DecisionAnalyzer:
 
     @cached_property
     def get_overview_stats(self):
-        """Creates an overview from sampled data"""
+        """Creates an overview from the full (filtered) dataset.
+
+        Aggregate metrics (Decisions, Customers, Actions, Channels, Duration)
+        are computed over ``decision_data`` so they reflect the true counts.
+        Only the average-offers-per-stage KPI uses the sample (it requires
+        interaction-level optionality analysis that would be too expensive on
+        the full data).
+        """
 
         nOffersPerStage = (
             self.get_optionality_data(self.sample)
@@ -1669,6 +1676,9 @@ class DecisionAnalyzer:
                 if stage in stage_values
                 else 0
             )
+
+        # Use the full dataset for headline counts (not the sample)
+        full_data = self.decision_data
 
         kpis = (
             (
@@ -1687,10 +1697,10 @@ class DecisionAnalyzer:
             )
             .collect()
             .hstack(
-                self.sample.select(
+                full_data.select(
                     (
                         pl.n_unique("Subject ID")
-                        if "Subject ID" in self.sample.collect_schema().names()
+                        if "Subject ID" in full_data.collect_schema().names()
                         else pl.n_unique("Interaction ID")
                     ).alias("Customers"),
                     pl.n_unique("Interaction ID").alias("Decisions"),

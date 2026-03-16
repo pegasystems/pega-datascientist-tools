@@ -5,11 +5,8 @@ from pathlib import Path
 import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.data_read_utils import (
-    read_data,
-    read_nested_zip_files,
-)
-from pdstools.pega_io.File import read_ds_export
+from pdstools.decision_analyzer.data_read_utils import read_nested_zip_files
+from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
 
 from pdstools.decision_analyzer.plots import (
     plot_component_overview,
@@ -414,11 +411,17 @@ def handle_sample_data() -> pl.LazyFrame | None:
     )
 
 
+def _is_tar_file(p: Path) -> bool:
+    """Check if a path refers to a tar archive (plain or compressed)."""
+    name = p.name.lower()
+    return name.endswith((".tar", ".tar.gz", ".tar.bz2", ".tar.xz", ".tgz"))
+
+
 def handle_data_path() -> pl.LazyFrame | None:
     """Load data from the ``--data-path`` CLI flag, if configured.
 
     Supports the same formats as the file upload: parquet, csv, json, arrow,
-    zip archives, and partitioned directories.
+    zip archives, tar archives, and partitioned directories.
     """
     data_path = get_data_path()
     if not data_path:
@@ -451,13 +454,42 @@ def handle_data_path() -> pl.LazyFrame | None:
         with st.spinner(spinner_msg):
             with zipfile.ZipFile(p, "r") as zf:
                 zf.extractall(tmp_dir)
+        _clean_artifacts(tmp_dir)
+        return read_data(tmp_dir)
+
+    # Tar archive (plain or compressed): extract first, then read contents
+    if p.is_file() and _is_tar_file(p):
+        import tarfile
+        import tempfile
+
+        try:
+            from pdstools.utils.progress_utils import (
+                estimate_extraction_time,
+                format_time_estimate,
+            )
+
+            file_size = p.stat().st_size
+            min_time, max_time = estimate_extraction_time(file_size)
+            time_msg = format_time_estimate(min_time, max_time)
+            spinner_msg = f"Extracting archive... (estimated: {time_msg})"
+        except Exception:
+            spinner_msg = "Extracting archive..."
+
+        tmp_dir = tempfile.mkdtemp(prefix="da_path_tar_")
+        with st.spinner(spinner_msg):
+            # Open file handle first to avoid macOS permission errors
+            # (tarfile auto-detection re-opens by name for gzip probing)
+            with open(p, "rb") as fh:
+                with tarfile.open(fileobj=fh, mode="r:*") as tf:
+                    tf.extractall(tmp_dir, filter="data")
+        _clean_artifacts(tmp_dir)
         return read_data(tmp_dir)
 
     return read_data(data_path)
 
 
 def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
-    """Read a zip file, handling both nested-gzip (EEV2) and flat archive layouts."""
+    """Read a zip file, handling both Action Analysis exports and flat archive layouts."""
     import tempfile
     import zipfile
 
@@ -474,7 +506,8 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
                 f"Expected raw decision data in csv, parquet, json, or arrow format."
             )
 
-        # If the zip contains .zip files, use the legacy gzipped-ndjson reader
+        # If the zip contains .zip files, treat as Pega Action Analysis export format
+        # (nested archive where inner ".zip" files are actually gzipped NDJSON)
         if ".zip" in inner_exts:
             file_buffer.seek(0)
             return read_nested_zip_files(file_buffer)
@@ -500,6 +533,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
         with st.spinner(spinner_msg):
             zf.extractall(tmp_dir)
 
+    _clean_artifacts(tmp_dir)
     return read_data(tmp_dir)
 
 
@@ -508,9 +542,27 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
     import tarfile
     import tempfile
 
+    try:
+        from pdstools.utils.progress_utils import (
+            estimate_extraction_time,
+            format_time_estimate,
+        )
+
+        file_buffer.seek(0, 2)
+        file_size = file_buffer.tell()
+        file_buffer.seek(0)
+
+        min_time, max_time = estimate_extraction_time(file_size)
+        time_msg = format_time_estimate(min_time, max_time)
+        spinner_msg = f"Extracting uploaded archive... (estimated: {time_msg})"
+    except Exception:
+        spinner_msg = "Extracting uploaded archive..."
+
     tmp_dir = tempfile.mkdtemp(prefix="da_tar_")
-    with tarfile.open(fileobj=file_buffer, mode="r:*") as tf:
-        tf.extractall(tmp_dir, filter="data")
+    with st.spinner(spinner_msg):
+        with tarfile.open(fileobj=file_buffer, mode="r:*") as tf:
+            tf.extractall(tmp_dir, filter="data")
+    _clean_artifacts(tmp_dir)
     return read_data(tmp_dir)
 
 

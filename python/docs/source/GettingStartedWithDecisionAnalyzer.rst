@@ -180,7 +180,7 @@ data loading and sampling. All options can also be set via environment variables
 
 ``--data-path PATH``
    Path to a data file or directory to load on startup.
-   Supports parquet, csv, json, arrow, zip, and partitioned folders.
+   Supports parquet, csv, json, arrow, zip, tar (including .tar.gz, .tgz), and partitioned folders.
    When provided, the app loads that data automatically instead of falling
    back to the built-in sample dataset. You can still override it by
    uploading a file through the UI.

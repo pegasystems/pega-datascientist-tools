@@ -235,6 +235,20 @@ def run(args, unknown):
         os.environ["PDSTOOLS_DATA_PATH"] = args.data_path
     if args.sample:
         os.environ["PDSTOOLS_SAMPLE_LIMIT"] = args.sample
+        # Check if polars 64-bit index runtime is active
+        try:
+            import polars as _pl
+
+            has_rt64 = _pl.get_index_type() == _pl.UInt64
+        except Exception:
+            has_rt64 = False
+        if not has_rt64:
+            print(
+                "\n💡 Tip: For very large datasets (>2 billion elements), "
+                "install the polars 64-bit runtime:\n"
+                "   uv pip install 'polars[rt64]'\n",
+                file=sys.stderr,
+            )
     if args.temp_dir:
         os.environ["PDSTOOLS_TEMP_DIR"] = args.temp_dir
 

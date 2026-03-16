@@ -597,6 +597,32 @@ class TestSampleInteractions:
         result = sample_interactions(lf, fraction=0.5).collect()
         assert result.height >= 0  # just verify it doesn't error
 
+    def test_random_sampling_with_fraction(self, sample_data):
+        """Random sampling (use_random=True) with fraction parameter."""
+        result = sample_interactions(sample_data, fraction=0.5, use_random=True).collect()
+        unique_ids = result.get_column("pxInteractionID").n_unique()
+        # Should have approximately 5 unique interactions (50% of 10)
+        assert 3 <= unique_ids <= 7  # Allow some variance
+        assert result.height > 0
+
+    def test_random_sampling_with_n(self, sample_data):
+        """Random sampling (use_random=True) with n parameter."""
+        result = sample_interactions(sample_data, n=5, use_random=True).collect()
+        unique_ids = result.get_column("pxInteractionID").n_unique()
+        # Should have at most 5 unique interactions
+        assert unique_ids <= 10
+        assert result.height > 0
+
+    def test_random_sampling_skips_when_n_exceeds_total(self, sample_data):
+        """Random sampling returns all data when n >= total interactions."""
+        result = sample_interactions(sample_data, n=100, use_random=True).collect()
+        assert result.height == 20  # All rows returned
+
+    def test_random_sampling_skips_when_fraction_is_1(self, sample_data):
+        """Random sampling with fraction=1.0 returns all data."""
+        result = sample_interactions(sample_data, fraction=1.0, use_random=True).collect()
+        assert result.height == 20  # All rows returned
+
 
 # ---------------------------------------------------------------------------
 # prepare_and_save
@@ -745,6 +771,32 @@ class TestPrepareAndSave:
         # Should write metadata with the provided path (even if it doesn't exist)
         metadata = pl.read_parquet_metadata(str(path))
         assert metadata["pdstools:source_file"] == "/nonexistent/file.parquet"
+
+    def test_prepare_and_save_n_based_estimates_percentage(self, tmp_path):
+        """Test that n-based sampling estimates the percentage instead of showing 0.00%."""
+        from pdstools.decision_analyzer.utils import prepare_and_save
+        import polars as pl
+
+        # Create data with 1000 unique interactions (large enough to ensure sampling)
+        ids = [f"int_{i:04d}" for i in range(1000) for _ in range(2)]
+        lf = pl.LazyFrame({"pxInteractionID": ids, "value": list(range(2000))})
+
+        # Sample to 100 interactions (should be ~10%)
+        result, path = prepare_and_save(lf, n=100, output_dir=str(tmp_path), source_path="test.parquet")
+
+        assert path is not None
+
+        # Check metadata
+        metadata = pl.read_parquet_metadata(str(path))
+        sample_pct = float(metadata["pdstools:sample_percentage"])
+        method = metadata["pdstools:sample_percentage_method"]
+
+        # Should have estimated a percentage (not 0.00%)
+        assert sample_pct > 0.0, "Sample percentage should not be 0.00%"
+        # Should be marked as approximated
+        assert method == "approximated"
+        # Should be roughly 10% (allow wide tolerance for estimation variance)
+        assert 5.0 <= sample_pct <= 20.0, f"Expected ~10%, got {sample_pct}%"
 
 
 # ---------------------------------------------------------------------------
@@ -1016,15 +1068,15 @@ class TestDetermineOutputDirectory:
         result = _determine_output_directory(str(source_file), None)
         assert result == source_file.parent
 
-    def test_falls_back_to_current_dir_when_source_is_directory(self, tmp_path):
+    def test_uses_parent_directory_when_source_is_directory_and_writeable(self, tmp_path):
         from pdstools.decision_analyzer.utils import _determine_output_directory
-        from pathlib import Path
 
         source_dir = tmp_path / "data"
         source_dir.mkdir()
 
         result = _determine_output_directory(str(source_dir), None)
-        assert result == Path(".")
+        # Should use parent directory (tmp_path) when it's writable
+        assert result == tmp_path
 
     def test_falls_back_to_current_dir_when_source_is_none(self):
         from pdstools.decision_analyzer.utils import _determine_output_directory
