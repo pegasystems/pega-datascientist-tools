@@ -86,3 +86,64 @@ class TestGettingStartedTemplate:
         placeholders = ["{DATE_INFO}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TEXT}", "{MODEL_CONTEXT_LIMIT}"]
         for placeholder in placeholders:
             assert placeholder in content, f"Missing placeholder: {placeholder}"
+
+
+class TestOverviewTemplate:
+    """Test overview.qmd meets Quarto standards."""
+
+    def test_has_yaml_frontmatter(self):
+        """Test template has complete YAML front matter."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        assert "title-block-banner: true" in content
+        assert 'author: "Pega Data Scientist tools"' in content
+        assert "css: assets/pega-report-overrides.css" in content
+
+    def test_has_import_block(self):
+        """Test template has proper import block."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        assert "from pdstools.utils import report_utils" in content
+        assert "echo: false" in content
+
+    def test_has_error_handling(self):
+        """Test template wraps plots in try/except."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        assert "try:" in content
+        assert "except Exception as e:" in content
+        assert "report_utils.quarto_plot_exception" in content
+
+    def test_has_pega_template(self):
+        """Test template applies Pega styling to plots."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        assert 'template="pega"' in content or "template='pega'" in content
+
+    def test_has_credits_section(self):
+        """Test template has credits section."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        assert "# Credits" in content
+        assert "report_utils.show_credits" in content
+
+    def test_preserves_placeholders(self):
+        """Test template preserves all original placeholders."""
+        template_path = get_template_path("overview.qmd")
+        content = template_path.read_text()
+
+        placeholders = [
+            "{ROOT_DIR}",
+            "{DATA_FOLDER}",
+            "{TOP_N}",
+            "{TOP_K}",
+            "{CONTRIBUTION_TYPE}",
+            "{CONTRIBUTION_TEXT}",
+        ]
+        for placeholder in placeholders:
+            assert placeholder in content, f"Missing placeholder: {placeholder}"

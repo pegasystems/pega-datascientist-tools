@@ -1,22 +1,44 @@
 ---
-title: "Overview"
+title: "Model Overview"
+title-block-banner: true
+author: "Pega Data Scientist tools"
+date: today
+format:
+  html:
+    page-layout: full
+    code-fold: true
+    standalone: true
+    toc: true
+    theme:
+      light: flatly
+    css: assets/pega-report-overrides.css
 ---
+
+```{{python}}
+# | echo: false
+# | output: false
+from pdstools.explanations import Explanations
+from pdstools.utils import report_utils, show_versions
+```
 
 ## Predictor contributions at model level
 
 The top-{TOP_N} predictors over the entire model, selected by their {CONTRIBUTION_TEXT} to predictions
 
 ```{{python}}
-from pdstools.explanations import Explanations
-
 explanations = Explanations(root_dir="{ROOT_DIR}")
 explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
-overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
-    top_n={TOP_N},
-    top_k={TOP_K},
-    contribution_calculation="{CONTRIBUTION_TYPE}"
-)
-overall_plot.show()
+
+try:
+    overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
+        top_n={TOP_N},
+        top_k={TOP_K},
+        contribution_calculation="{CONTRIBUTION_TYPE}"
+    )
+    overall_plot.update_layout(template="pega")
+    overall_plot.show()
+except Exception as e:
+    report_utils.quarto_plot_exception("Overall Predictor Contributions", e)
 ```
 
 ## Predictor value contributions at model level
@@ -24,11 +46,32 @@ overall_plot.show()
 The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their {CONTRIBUTION_TEXT} to predictions.
 
 ```{{python}}
-#| output: asis
-from IPython.display import display, Markdown
-for plot in predictor_plots:
-    title = plot.layout['title']['text']
-    plot.layout['title']['text'] = ''
-    display(Markdown(f'### {{title}}'), plot)
-
+# | output: asis
+try:
+    from IPython.display import display, Markdown
+    for plot in predictor_plots:
+        title = plot.layout['title']['text']
+        plot.layout['title']['text'] = ''
+        plot.update_layout(template="pega")
+        display(Markdown(f'### {{title}}'), plot)
+except Exception as e:
+    report_utils.quarto_plot_exception("Predictor Value Contributions", e)
 ```
+
+# Credits
+
+```{{python}}
+# | echo: false
+report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/GlobalExplanations/assets/templates/overview.qmd")
+show_versions.show_versions(include_dependencies=False)
+```
+
+::: {{.callout-note collapse="true"}}
+## Expand for detailed version information
+```{{python}}
+# | echo: false
+show_versions.show_versions()
+```
+:::
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
