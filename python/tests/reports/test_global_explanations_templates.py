@@ -147,3 +147,31 @@ class TestOverviewTemplate:
         ]
         for placeholder in placeholders:
             assert placeholder in content, f"Missing placeholder: {placeholder}"
+
+
+class TestContextTemplate:
+    """Test context.qmd meets minimal Quarto standards."""
+
+    def test_has_yaml_frontmatter(self):
+        """Test template has minimal YAML front matter."""
+        template_path = get_template_path("context.qmd")
+        content = template_path.read_text()
+
+        assert "format: html" in content
+
+    def test_preserves_embed_syntax(self):
+        """Test template preserves Quarto embed syntax."""
+        template_path = get_template_path("context.qmd")
+        content = template_path.read_text()
+
+        assert "{{{{< embed" in content
+        assert ">}}}}" in content
+
+    def test_preserves_placeholders(self):
+        """Test template preserves all original placeholders."""
+        template_path = get_template_path("context.qmd")
+        content = template_path.read_text()
+
+        placeholders = ["{CONTEXT_STR}", "{EMBED_PATH_FOR_BATCH}", "{CONTEXT_LABEL}", "{TOP_N}", "{CONTRIBUTION_TEXT}"]
+        for placeholder in placeholders:
+            assert placeholder in content, f"Missing placeholder: {placeholder}"
