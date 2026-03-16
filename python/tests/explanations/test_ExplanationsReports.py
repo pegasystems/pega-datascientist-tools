@@ -1,5 +1,6 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
+import logging
 import os
 import shutil
 from datetime import datetime
@@ -73,11 +74,23 @@ def test_set_params(reports):
     """Test the _set_params method."""
     reports._validate_report_dir()
     reports._copy_report_resources()
-    reports._set_params(top_n=5, top_k=3, verbose=True)
+    reports._set_params(top_n=5, top_k=3)
 
     with open(reports.params_file, encoding="Utf-8") as f:
         params = f.read()
 
     assert "top_n: 5" in params
     assert "top_k: 3" in params
-    assert "verbose: true" in params
+
+
+def test_reports_logging(reports, caplog):
+    """Test that report operations produce debug logs when logging enabled."""
+    reports._validate_report_dir()
+
+    with caplog.at_level(logging.DEBUG):
+        reports._copy_report_resources()
+        reports._set_params(top_n=5, top_k=3)
+
+    # Should have debug messages from the operations
+    debug_messages = [r.message for r in caplog.records if r.levelname == "DEBUG"]
+    assert len(debug_messages) > 0, "Expected debug log messages"

@@ -49,22 +49,25 @@ class Reports(LazyNamespace):
         top_k: int = _DEFAULT.TOP_K.value,
         contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
         zip_output: bool = False,
-        verbose: bool = False,
     ):
         """Generate the explanations report.
 
-        Args:
-            report_filename (str):
-                Name of the output report file.
-            top_n (int):
-                Number of top explanations to include.
-            top_k (int):
-                Number of top features to include in explanations.
-            zip_output (bool):
-                Whether to zip the output report.
-                The filename will be used as the zip file name.
-            verbose (bool):
-                Whether to print verbose output during report generation.
+        Parameters
+        ----------
+        report_filename : str
+            Name of the output report file.
+        top_n : int
+            Number of top explanations to include.
+        top_k : int
+            Number of top features to include in explanations.
+        zip_output : bool
+            Whether to zip the output report.
+            The filename will be used as the zip file name.
+
+        Notes
+        -----
+        Progress and diagnostic information is logged at DEBUG level.
+        Enable debug logging to see detailed report generation steps.
 
         """
         try:
@@ -93,13 +96,11 @@ class Reports(LazyNamespace):
                 to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
                 contribution_type=contribution_type.value,
                 contribution_text=contribution_type.text,
-                verbose=verbose,
             )
 
         try:
             return_code = run_quarto(
                 temp_dir=Path(self.report_folderpath),
-                verbose=verbose,
                 output_type=None,
             )
         except subprocess.CalledProcessError as e:
@@ -118,6 +119,7 @@ class Reports(LazyNamespace):
             os.makedirs(self.report_folderpath, exist_ok=True)
 
     def _copy_report_resources(self):
+        logger.debug(f"Copying report resources to {self.report_folderpath}")
         copy_report_resources(
             resource_dict=[
                 ("GlobalExplanations", self.report_folderpath),
@@ -133,17 +135,16 @@ class Reports(LazyNamespace):
         to_date: str = "",
         contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
         contribution_text: str = _CONTRIBUTION_TYPE.CONTRIBUTION.text,
-        verbose: bool = False,
     ):
-        params: dict[str, str | int | bool] = {}
+        params: dict[str, str | int] = {}
         params["top_n"] = top_n
         params["top_k"] = top_k
         params["from_date"] = from_date
         params["to_date"] = to_date
         params["contribution_type"] = contribution_type
         params["contribution_text"] = contribution_text
-        params["verbose"] = verbose
         params["data_folder"] = self.aggregate_folder.name
 
+        logger.debug(f"Writing report parameters to {self.params_file}")
         with open(self.params_file, "w", encoding="utf-8") as file:
             yaml.safe_dump(params, file)
