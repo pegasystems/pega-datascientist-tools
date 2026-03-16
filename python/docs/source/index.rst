@@ -13,6 +13,7 @@ Welcome to the PDS Tools Python documentation
    GettingStarted
    GettingStartedWithTheStandAloneApplication
    GettingStartedWithDecisionAnalyzer
+   logging
 
 .. toctree::
    :maxdepth: 1
