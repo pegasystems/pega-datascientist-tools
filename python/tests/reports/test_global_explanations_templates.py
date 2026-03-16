@@ -204,3 +204,32 @@ class TestAllContextHeaderTemplate:
         placeholders = ["{ROOT_DIR}", "{DATA_FOLDER}", "{DATA_PATTERN}", "{TOP_N}", "{CONTRIBUTION_TEXT}"]
         for placeholder in placeholders:
             assert placeholder in content, f"Missing placeholder: {placeholder}"
+
+
+class TestAllContextContentTemplate:
+    """Test all_context_content.qmd meets Quarto standards."""
+
+    def test_has_error_handling(self):
+        """Test template wraps plots in try/except."""
+        template_path = get_template_path("all_context_content.qmd")
+        content = template_path.read_text()
+
+        assert "try:" in content
+        assert "except Exception as e:" in content
+        assert "report_utils.quarto_plot_exception" in content
+
+    def test_has_pega_template(self):
+        """Test template applies Pega styling to plots."""
+        template_path = get_template_path("all_context_content.qmd")
+        content = template_path.read_text()
+
+        assert 'template="pega"' in content or "template='pega'" in content
+
+    def test_preserves_placeholders(self):
+        """Test template preserves all original placeholders."""
+        template_path = get_template_path("all_context_content.qmd")
+        content = template_path.read_text()
+
+        placeholders = ["{CONTEXT_DICT}", "{CONTEXT_LABEL}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TYPE}"]
+        for placeholder in placeholders:
+            assert placeholder in content, f"Missing placeholder: {placeholder}"
