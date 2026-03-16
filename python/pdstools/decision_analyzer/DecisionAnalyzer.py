@@ -1653,7 +1653,14 @@ class DecisionAnalyzer:
 
     @cached_property
     def get_overview_stats(self):
-        """Creates an overview from sampled data"""
+        """Creates an overview from the full (filtered) dataset.
+
+        Aggregate metrics (Decisions, Customers, Actions, Channels, Duration)
+        are computed over ``decision_data`` so they reflect the true counts.
+        Only the average-offers-per-stage KPI uses the sample (it requires
+        interaction-level optionality analysis that would be too expensive on
+        the full data).
+        """
 
         nOffersPerStage = (
             self.get_optionality_data(self.sample)
@@ -1669,6 +1676,9 @@ class DecisionAnalyzer:
                 if stage in stage_values
                 else 0
             )
+
+        # Use the full dataset for headline counts (not the sample)
+        full_data = self.decision_data
 
         kpis = (
             (
@@ -1687,10 +1697,10 @@ class DecisionAnalyzer:
             )
             .collect()
             .hstack(
-                self.sample.select(
+                full_data.select(
                     (
                         pl.n_unique("Subject ID")
-                        if "Subject ID" in self.sample.collect_schema().names()
+                        if "Subject ID" in full_data.collect_schema().names()
                         else pl.n_unique("Interaction ID")
                     ).alias("Customers"),
                     pl.n_unique("Interaction ID").alias("Decisions"),
