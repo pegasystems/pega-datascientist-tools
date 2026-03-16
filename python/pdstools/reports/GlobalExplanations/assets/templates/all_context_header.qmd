@@ -6,10 +6,19 @@ skip_exec: true
 The top-{TOP_N} predictor's {CONTRIBUTION_TEXT} per context.
 
 ```{{python}}
+# | echo: false
+# | output: false
+import logging
 from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
 
-explanations = Explanations(root_dir="{ROOT_DIR}")
-explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
-explanations.aggregate.data_pattern = "{DATA_PATTERN}"
+logger = logging.getLogger(__name__)
+
+try:
+    explanations = Explanations(root_dir="{ROOT_DIR}")
+    explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
+    explanations.aggregate.data_pattern = "{DATA_PATTERN}"
+except Exception as e:
+    logger.error(f"Failed to initialize Explanations: {{e}}")
+    raise
 ```
