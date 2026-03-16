@@ -233,3 +233,50 @@ class TestAllContextContentTemplate:
         placeholders = ["{CONTEXT_DICT}", "{CONTEXT_LABEL}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TYPE}"]
         for placeholder in placeholders:
             assert placeholder in content, f"Missing placeholder: {placeholder}"
+
+
+class TestTemplatePlaceholders:
+    """Test that all templates handle placeholders correctly."""
+
+    def test_no_hardcoded_values(self):
+        """Test templates use placeholders, not hardcoded values."""
+        templates = [
+            "getting-started.qmd",
+            "overview.qmd",
+            "all_context_header.qmd",
+            "all_context_content.qmd",
+        ]
+
+        for template_name in templates:
+            template_path = get_template_path(template_name)
+            content = template_path.read_text()
+
+            # Should not have hardcoded paths
+            assert "/absolute/path/" not in content, f"{template_name} has hardcoded absolute path"
+            assert "C:\\" not in content, f"{template_name} has hardcoded Windows path"
+
+
+class TestTemplateConsistency:
+    """Test consistency across templates."""
+
+    def test_all_main_templates_have_credits(self):
+        """Test main templates include credits sections."""
+        main_templates = ["getting-started.qmd", "overview.qmd"]
+
+        for template_name in main_templates:
+            template_path = get_template_path(template_name)
+            content = template_path.read_text()
+
+            assert "# Credits" in content, f"{template_name} missing credits header"
+            assert "show_credits" in content, f"{template_name} missing show_credits call"
+
+    def test_all_code_templates_have_error_handling(self):
+        """Test templates with plot code include error handling."""
+        code_templates = ["overview.qmd", "all_context_content.qmd"]
+
+        for template_name in code_templates:
+            template_path = get_template_path(template_name)
+            content = template_path.read_text()
+
+            assert "try:" in content, f"{template_name} missing try block"
+            assert "except Exception as e:" in content, f"{template_name} missing except block"
