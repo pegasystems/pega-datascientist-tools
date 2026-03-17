@@ -748,16 +748,18 @@ In the detailed analyses after the model overview, the following channels that h
         GT(unused_channels.sort(["Channel","Direction"])).tab_options(table_font_size=8)
     )
 
-    reset_datamart(
-        ADMDatamart(
-            model_df=datamart.model_data.join(
-                unused_channels.lazy(),
-                on=["Channel", "Direction"],
-                how="anti"
-            ),
-            predictor_df=datamart.predictor_data,
-        )
+    # Filter out unused channels from datamart
+    datamart = ADMDatamart(
+        model_df=datamart.model_data.join(
+            unused_channels.lazy(),
+            on=["Channel", "Direction"],
+            how="anti"
+        ),
+        predictor_df=datamart.predictor_data,
     )
+
+    # Regenerate formatted data for report display
+    last_data = datamart.get_last_data_for_report()
 ```
 
 ```{python}
@@ -1003,14 +1005,16 @@ if (unused_configurations.shape[0] > 0) and (
     (unused_configurations.shape[0] != all_configurations.shape[0])
 ):
 
-    reset_datamart(
-        ADMDatamart(
-            model_df=datamart.model_data.join(
-                unused_configurations.lazy(), on=["Configuration"], how="anti"
-            ),
-            predictor_df=datamart.predictor_data,
-        )
+    # Filter out unused configurations from datamart
+    datamart = ADMDatamart(
+        model_df=datamart.model_data.join(
+            unused_configurations.lazy(), on=["Configuration"], how="anti"
+        ),
+        predictor_df=datamart.predictor_data,
     )
+
+    # Regenerate formatted data for report display
+    last_data = datamart.get_last_data_for_report()
 ```
 
 ## Model Performance {#model-performance}
