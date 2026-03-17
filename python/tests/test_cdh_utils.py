@@ -487,6 +487,47 @@ def test_feature_importance_scaled(feature_importance_test_data):
     assert result["FeatureImportance"][0] == pytest.approx(100.0, abs=1e-4)
 
 
+def test_feature_importance_scaled_multiple_predictors():
+    """Test scaling works correctly across multiple predictors.
+
+    Regression test for bug where all predictors showed 100.0 due to
+    .max() being evaluated within each predictor group instead of globally.
+    """
+    # Create data with three predictors having clearly different importance levels
+    data = pl.DataFrame(
+        {
+            # High importance: very strong differentiation between bins
+            "PredictorName": ["High"] * 3 + ["Medium"] * 3 + ["Low"] * 3,
+            "ModelID": ["m1"] * 9,
+            "BinPositives": [95, 5, 50] + [70, 40, 50] + [52, 50, 48],  # High varies a lot, Low is uniform
+            "BinNegatives": [5, 95, 50] + [30, 60, 50] + [48, 50, 52],
+            "BinResponseCount": [100, 100, 100] * 3,
+        }
+    )
+
+    result = (
+        data.with_columns(cdh_utils.feature_importance(scaled=True))
+        .group_by("PredictorName")
+        .agg(pl.first("FeatureImportance").alias("ScaledImportance"))
+        .sort("ScaledImportance", descending=True)
+    )
+
+    scaled_values = result["ScaledImportance"].to_list()
+
+    # Verify scaling produces varying values (not all 100.0)
+    assert len(set(scaled_values)) == 3, f"Expected 3 unique values but got {len(set(scaled_values))}: {scaled_values}"
+
+    # Maximum predictor should be scaled to 100.0
+    assert scaled_values[0] == pytest.approx(100.0, abs=1e-4)
+
+    # Other predictors should have proportionally lower values
+    assert 0 < scaled_values[1] < 100.0
+    assert 0 < scaled_values[2] < 100.0
+
+    # Values should be ordered correctly
+    assert scaled_values[0] > scaled_values[1] > scaled_values[2]
+
+
 def test_log_odds_polars_laplace_smoothing():
     """Test log odds uses correct Laplace smoothing (1/nBins)."""
     data = pl.DataFrame(
