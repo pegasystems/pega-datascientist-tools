@@ -1178,7 +1178,118 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def response_gain(self) -> None: ...  # TODO: more generic plot_gains function?
+    def gains_chart(
+        self,
+        value: str,
+        *,
+        index: str | None = None,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Generate a gains chart showing cumulative distribution of a metric.
+
+        Creates a gains/lift chart to visualize model response skewness. Shows what
+        percentage of the total value (e.g., responses, positives) is driven by what
+        percentage of models. Useful for identifying if a small number of models
+        drive most of the volume.
+
+        Parameters
+        ----------
+        value : str
+            Column name containing the metric to compute gains for (e.g., "ResponseCount", "Positives")
+        index : str, optional
+            Column name to normalize by (e.g., population size). If None, uses model count.
+        by : str | list[str], optional
+            Column(s) to group by for separate gain curves (e.g., "Channel" or ["Channel", "Direction"])
+        query : QUERY, optional
+            Optional query to filter the data before computing gains
+        title : str, optional
+            Chart title. If None, uses "Gains Chart"
+        return_df : bool, default False
+            If True, return the gains data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing the gains chart, or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Single gains curve for response count
+        >>> fig = datamart.plot.gains_chart(value="ResponseCount")
+
+        >>> # Gains curves by channel for positives
+        >>> fig = datamart.plot.gains_chart(
+        ...     value="Positives",
+        ...     by=["Channel", "Direction"],
+        ...     title="Cumulative Positives by Channel"
+        ... )
+        """
+        from ..utils import report_utils, cdh_utils
+
+        # Get the last snapshot of data
+        df = self.datamart.aggregates.last()
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Calculate gains
+        gains_data = report_utils.gains_table(df, value=value, index=index, by=by)
+
+        if return_df:
+            return gains_data.lazy()
+
+        # Create the plot
+        if by is None:
+            fig = px.area(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                title=title or "Gains Chart",
+                template="pega",
+            )
+        else:
+            by_as_list = by if isinstance(by, list) else [by]
+            # Create a combined label for the legend
+            legend_col = gains_data.select(pl.concat_str(by_as_list, separator="/").alias("By"))["By"]
+
+            fig = px.line(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                color=legend_col,
+                title=title or "Gains Chart",
+                template="pega",
+            )
+            fig = fig.update_layout(legend_title="/".join(by_as_list))
+
+        # Add diagonal reference line (represents perfect equality)
+        fig.add_shape(
+            type="line",
+            line=dict(color="grey", dash="dash"),
+            x0=0,
+            x1=1,
+            y0=0,
+            y1=1,
+        )
+
+        # Configure axes and layout
+        fig = (
+            fig.update_yaxes(scaleanchor="x", scaleratio=1)
+            .update_layout(
+                autosize=False,
+                width=400,
+                height=400,
+            )
+            .update_yaxes(constrain="domain", title="% of Responders")
+            .update_xaxes(tickformat=",.0%", constrain="domain", title="% of Population")
+            .update_yaxes(tickformat=",.0%")
+        )
+
+        return fig
 
     def tree_map(
         self,

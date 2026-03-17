@@ -1001,6 +1001,90 @@ def deserialize_query(serialized_query: dict | None) -> QUERY | None:
     raise ValueError(f"Unknown query type: {serialized_query['type']}")
 
 
+def gains_table(
+    df: pl.LazyFrame | pl.DataFrame,
+    value: str,
+    index: str | None = None,
+    by: str | list[str] | None = None,
+) -> pl.DataFrame:
+    """Calculate cumulative gains for visualization.
+
+    Computes cumulative distribution of a value metric, sorted by the ratio
+    of value to index (or by value alone if no index). Used for gains charts
+    to show model response skewness.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame | pl.DataFrame
+        Input data containing the value and optional index columns
+    value : str
+        Column name containing the metric to compute gains for (e.g., "ResponseCount")
+    index : str, optional
+        Column name to normalize by (e.g., population size). If None, uses row count.
+    by : str | list[str], optional
+        Column(s) to group by for separate gain curves. If None, computes single curve.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with columns:
+        - cum_x: Cumulative proportion of index (or models)
+        - cum_y: Cumulative proportion of value
+        - by columns: if `by` is specified
+
+    Examples
+    --------
+    >>> # Single gains curve for response count
+    >>> gains = gains_table(df, value="ResponseCount")
+
+    >>> # Gains curves by channel, normalized by population
+    >>> gains = gains_table(df, value="Positives", index="Population", by="Channel")
+    """
+    # Determine sorting expression
+    sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+
+    # Determine index expression for cumulative x-axis
+    if index is None:
+        index_expr = pl.int_range(1, pl.len() + 1) / pl.len()
+    else:
+        index_expr = pl.cum_sum(index) / pl.sum(index)
+
+    if by is None:
+        # Single gains curve
+        gains_df = pl.concat(
+            [
+                pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
+                df.lazy()
+                .sort(sort_expr, descending=True)
+                .select(
+                    index_expr.cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
+                ),
+            ]
+        )
+    else:
+        # Multiple gains curves grouped by column(s)
+        by_as_list = by if isinstance(by, list) else [by]
+        sort_expr_with_by = by_as_list + [sort_expr]
+        gains_df = (
+            df.lazy()
+            .sort(sort_expr_with_by, descending=True)
+            .select(
+                by_as_list
+                + [
+                    index_expr.over(by).cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
+                ]
+            )
+        )
+        # Add entry for the (0,0) point for each group
+        gains_df = pl.concat([gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]).sort(
+            by_as_list + ["cum_x"]
+        )
+
+    return gains_df.collect()
+
+
 def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> str:
     """Remove duplicate script tags from HTML to reduce file size.
 

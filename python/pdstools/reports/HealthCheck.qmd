@@ -129,45 +129,26 @@ report_utils.quarto_print(
 # | tags: [initialization]
 # | echo: false
 
-def reset_datamart(dm):
-    global datamart
-    global last_data
-    global datamart_all_columns
-
-    datamart = dm
-    last_data = (
-        dm.aggregates.last()
-        .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
-        .with_columns(
-            [
-                pl.col(pl.Utf8).fill_null("NA"), # Hmmm would prefer to keep 'em as None
-                pl.col(pl.Null).fill_null("NA"),
-                pl.col("SuccessRate").fill_nan(0).fill_null(0),
-                pl.col("Performance").fill_nan(0).fill_null(0),
-                pl.col("ResponseCount").fill_null(0),
-                (pl.concat_str("Channel/Direction".split("/"), separator="/")).alias(
-                    "Channel/Direction"
-                ),
-            ]
-        )
-    ).collect()
-    if dm.predictor_data is not None:
-        datamart_all_columns = dm.combined_data.collect_schema().names()
-    else:
-        datamart_all_columns = dm.model_data.collect_schema().names()
-
+# Load datamart
 if model_file_path is not None:
-    reset_datamart(
-        ADMDatamart.from_ds_export(
-            model_filename=model_file_path,
-            predictor_filename=predictor_file_path,
-            base_path=".",
-            query=query
-        )
+    datamart = ADMDatamart.from_ds_export(
+        model_filename=model_file_path,
+        predictor_filename=predictor_file_path,
+        base_path=".",
+        query=query
     )
 else:
     # fall back to sample data
-    reset_datamart(datasets.cdh_sample())
+    datamart = datasets.cdh_sample()
+
+# Get formatted data for report display
+last_data = datamart.get_last_data_for_report()
+
+# Determine available columns
+if datamart.predictor_data is not None:
+    datamart_all_columns = datamart.combined_data.collect_schema().names()
+else:
+    datamart_all_columns = datamart.model_data.collect_schema().names()
 
 # We're now using the "LastUpdate" column to filter out models that have
 # not been updated for a while. We set a threshold date based on the last
@@ -250,18 +231,9 @@ In a typical Next Best Action Designer setup, treatments for a channels are mode
 
 ```{python}
 df_channel_overview = (
-    datamart.aggregates.summary_by_channel(query=active_models_filter_expr)
-    .with_columns(
-        NBAD=pl.when(pl.col("usesNBAD").is_null())
-        .then(pl.lit("?"))
-        .when(pl.col("usesNBAD"))
-        .then(pl.lit("Yes"))
-        .otherwise(pl.lit("No")),
-        AGB=pl.when(pl.col("usesAGB").is_null())
-        .then(pl.lit("?"))
-        .when(pl.col("usesAGB"))
-        .then(pl.lit("Yes"))
-        .otherwise(pl.lit("No")),
+    datamart.aggregates.summary_by_channel(
+        query=active_models_filter_expr,
+        format_flags=True
     )
     .drop(
         [
@@ -1739,130 +1711,32 @@ Very skewed results may be caused by prioritization elements like levers and wei
 
 ::: {layout-ncol="2"}
 ```{python}
-# TODO move gains_table to PDS tools utils
-# TODO a corresponding GINI calculation would be nice
-
-
-def gains_table(df, value: str, index=None, by=None):
-    sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-    indexExpr = (
-        (pl.int_range(1, pl.len() + 1) / pl.len())
-        if index is None
-        else (pl.cum_sum(index) / pl.sum(index))
-    )
-
-    if by is None:
-        gains_df = pl.concat(
-            [
-                pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
-                df.lazy()
-                .sort(sortExpr, descending=True)
-                .select(
-                    indexExpr.cast(pl.Float64).alias("cum_x"),
-                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
-                ),
-            ]
-        )
-    else:
-        by_as_list = by if isinstance(by, list) else [by]
-        sortExpr = by_as_list + [sortExpr]
-        gains_df = (
-            df.lazy()
-            .sort(sortExpr, descending=True)
-            .select(
-                by_as_list
-                + [
-                    indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
-                    (pl.cum_sum(value) / pl.sum(value))
-                    .over(by)
-                    .cast(pl.Float64)
-                    .alias("cum_y"),
-                ]
-            )
-        )
-        # Add entry for the (0,0) point
-        gains_df = pl.concat(
-            [gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]
-        ).sort(by_as_list + ["cum_x"])
-
-    return gains_df.collect()
-
-
-# TODO move plot code to PDS tools plots
-
-
-def plot_gains(df, value: str, index=None, by=None):
-    gains_data = gains_table(df, value, index, by)
-
-    if by is None:
-        fig = px.area(gains_data, x="cum_x", y="cum_y", title="Gains", template="pega")
-    else:
-        by_as_list = by if isinstance(by, list) else [by]
-        fig = px.line(
-            gains_data,
-            x="cum_x",
-            y="cum_y",
-            color=gains_data.select(
-                pl.concat_str(by_as_list, separator="/").alias("By")
-            )["By"],
-            title="Gains",
-            template="pega",
-        )
-        fig = fig.update_layout(legend_title="/".join(by_as_list))
-
-    fig.add_shape(
-        type="line", line=dict(color="grey", dash="dash"), x0=0, x1=1, y0=0, y1=1
-    )
-    fig = (
-        fig.update_yaxes(scaleanchor="x", scaleratio=1)
-        .update_layout(
-            autosize=False,
-            width=400,
-            height=400,
-        )
-        .update_yaxes(constrain="domain", title="% of Responders")
-        .update_xaxes(tickformat=",.0%")
-        .update_yaxes(tickformat=",.0%")
-        .update_xaxes(constrain="domain", title="% of Population")
-    )
-
-    return fig
-
-
 try:
-    fig = plot_gains(
-        datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"]
+    fig = datamart.plot.gains_chart(
+        value="ResponseCount",
+        by=["Channel", "Direction"],
+        title="Cumulative Responses"
     )
     fig = (
-        fig.update_layout(title="Cumulative Responses")
-        .update_yaxes(title="% of Responses")
+        fig.update_yaxes(title="% of Responses")
         .update_xaxes(title="Percentage of Models")
     )
-
-    # .update_layout(legend=dict(
-    #     orientation="h",
-    #     yanchor="bottom",
-    #     y=1.02,
-    #     xanchor="right",
-    #     x=1
-    # ))
-    # cdh_utils.legend_color_order(fig).show() # why?
-
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Responses", e)
-
 ```
 
 ```{python}
 try:
-    fig = plot_gains(datamart.aggregates.last(), "Positives", by=["Channel", "Direction"])
+    fig = datamart.plot.gains_chart(
+        value="Positives",
+        by=["Channel", "Direction"],
+        title="Cumulative Positives"
+    )
     fig = (
-        fig.update_layout(title="Cumulative Positives")
-        .update_yaxes(title="% of Positives")
+        fig.update_yaxes(title="% of Positives")
         .update_xaxes(title="Percentage of Models")
     )
-
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)

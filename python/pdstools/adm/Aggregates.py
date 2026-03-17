@@ -554,6 +554,7 @@ class Aggregates:
         every: str | None = None,
         custom_channels: dict[str, str] | None = None,
         debug: bool = False,
+        format_flags: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
 
@@ -577,6 +578,9 @@ class Aggregates:
 
             This parameter affects the return value structure, not logging output.
             For debug logging, use logging.basicConfig(level=logging.DEBUG).
+        format_flags : bool, default False
+            If True, format boolean flag columns (usesNBAD, usesAGB) as "Yes"/"No"/"?" strings
+            for display in reports. If False, keeps original boolean/null values.
 
         Returns
         -------
@@ -672,7 +676,7 @@ class Aggregates:
             .explode(["Channel", "Direction", "OmniChannel"])
         )
 
-        return (
+        result = (
             summary_by_channel.drop(["AllActions"])
             .join(
                 omni_channel_summary,
@@ -692,6 +696,27 @@ class Aggregates:
             .sort("Channel", "Direction", "DateRange Min")
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
+
+        # Format boolean flags as strings if requested
+        if format_flags:
+            result = result.with_columns(
+                [
+                    pl.when(pl.col("usesNBAD").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesNBAD"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("NBAD"),
+                    pl.when(pl.col("usesAGB").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesAGB"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("AGB"),
+                ]
+            )
+
+        return result
 
     def summary_by_configuration(self) -> pl.LazyFrame:
         """Generates a summary of the ADM model configurations.
