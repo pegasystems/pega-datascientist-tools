@@ -1046,8 +1046,12 @@ try:
     if n_configs > configurations_max:
         # Too many configurations - drop Configuration, keep ModelTechnique (if available)
         if has_model_technique:
-            # Count actual facet combinations with ModelTechnique
-            n_facets = all_facets.select([
+            # Count actual facet combinations with ModelTechnique (excluding nulls)
+            n_facets = all_facets.filter(
+                pl.col("Channel").is_not_null() &
+                pl.col("Direction").is_not_null() &
+                pl.col("ModelTechnique").is_not_null()
+            ).select([
                 pl.col("Channel"),
                 pl.col("Direction"),
                 pl.col("ModelTechnique"),
@@ -1065,8 +1069,11 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
                 separator="/"
             ).alias("Facet")
         else:
-            # ModelTechnique is all null - just use Channel/Direction
-            n_facets = all_facets.select([
+            # ModelTechnique is all null - just use Channel/Direction (excluding nulls)
+            n_facets = all_facets.filter(
+                pl.col("Channel").is_not_null() &
+                pl.col("Direction").is_not_null()
+            ).select([
                 pl.col("Channel"),
                 pl.col("Direction"),
             ]).unique().shape[0]
@@ -1090,7 +1097,10 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
             separator="/"
         ).alias("Facet")
 
-    fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
+    # Filter out models with null Channel/Direction to avoid empty facets
+    facet_filter = active_models_filter_expr & pl.col("Channel").is_not_null() & pl.col("Direction").is_not_null()
+
+    fig = datamart.plot.bubble_chart(facet=facet, query=facet_filter)
     fig = (
         fig_update_facet(fig)
         .update_layout(
