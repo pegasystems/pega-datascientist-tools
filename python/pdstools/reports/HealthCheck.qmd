@@ -1025,61 +1025,25 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 
 ```{python}
 try:
-    # Check how many unique facet combinations we would have
-    potential_facets = (
-        datamart.model_data
-        .filter(active_models_filter_expr)
-        .select(
-            pl.concat_str(
-                pl.col("Configuration"),
-                pl.col("Channel"),
-                pl.col("Direction"),
-                separator="/"
-            ).alias("facet")
-        )
-        .unique()
-        .collect()
-    )
+    # Check number of configurations (similar to predictor importance section)
+    n_configs = len(datamart.unique_configurations)
 
-    n_facets = len(potential_facets)
-    max_facets = 15  # Limit to avoid rendering issues
-
-    if n_facets > max_facets:
-        # Too many facets - find top N configurations by response count
-        top_configs = (
-            datamart.model_data
-            .filter(active_models_filter_expr)
-            .group_by("Configuration")
-            .agg(pl.sum("ResponseCount").alias("TotalResponses"))
-            .sort("TotalResponses", descending=True)
-            .head(5)  # Top 5 configurations
-            .select("Configuration")
-            .collect()["Configuration"]
-            .to_list()
-        )
-
-        report_utils.quarto_print(
+    if n_configs > 10:
+        # Too many configurations - drop Configuration, keep ModelTechnique
+        report_utils.quarto_callout_info(
             f"""
-**Note**: This dataset has {n_facets} Configuration/Channel/Direction combinations.
-To ensure readable charts, showing only the top 5 configurations by response count:
-{', '.join([str(c) for c in top_configs if c is not None])}
+The data contains many ({n_configs}) model configurations. To limit the size of the generated report we show bubble charts per Channel/Direction/Model Technique. In order to view details per configuration, we suggest you filter the data or generate separate reports per configuration.
 """
         )
-
-        # Filter to top configurations only
-        config_filter = pl.col("Configuration").is_in(top_configs)
         facet = pl.concat_str(
-            pl.col("Configuration"),
             pl.col("Channel"),
             pl.col("Direction"),
+            pl.col("ModelTechnique"),
             separator="/"
         )
-        fig = datamart.plot.bubble_chart(
-            facet=facet,
-            query=active_models_filter_expr & config_filter
-        )
+        fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
     else:
-        # Reasonable number of facets - use all
+        # Reasonable number of configurations - include all dimensions
         facet = pl.concat_str(
             pl.col("Configuration"),
             pl.col("Channel"),
