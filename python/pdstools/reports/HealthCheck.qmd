@@ -1025,14 +1025,29 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 
 ```{python}
 try:
-    # Check number of configurations (similar to predictor importance section)
-    n_configs = len(datamart.unique_configurations)
+    # Check number of unique Configuration/Channel/Direction/ModelTechnique combinations
+    all_facets = (
+        datamart.model_data
+        .filter(active_models_filter_expr)
+        .select([
+            pl.col("Configuration"),
+            pl.col("Channel"),
+            pl.col("Direction"),
+            pl.col("ModelTechnique"),
+        ])
+        .unique()
+        .collect()
+    )
 
+    n_configs = all_facets["Configuration"].n_unique()
+    n_total_facets_with_config = len(all_facets)
+
+    # Use same threshold as predictor plots
     if n_configs > 10:
         # Too many configurations - drop Configuration, keep ModelTechnique
         report_utils.quarto_callout_info(
             f"""
-The data contains many ({n_configs}) model configurations. To limit the size of the generated report we show bubble charts per Channel/Direction/Model Technique. In order to view details per configuration, we suggest you filter the data or generate separate reports per configuration.
+The data contains many ({n_configs}) model configurations ({n_total_facets_with_config} total combinations). To limit the size of the generated report we show bubble charts per Channel/Direction/Model Technique. In order to view details per configuration, we suggest you filter the data or generate separate reports per configuration.
 """
         )
         facet = pl.concat_str(
@@ -1041,7 +1056,6 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
             pl.col("ModelTechnique"),
             separator="/"
         )
-        fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
     else:
         # Reasonable number of configurations - include all dimensions
         facet = pl.concat_str(
@@ -1050,8 +1064,8 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
             pl.col("Direction"),
             separator="/"
         )
-        fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
 
+    fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr)
     fig = (
         fig_update_facet(fig)
         .update_layout(
