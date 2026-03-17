@@ -1173,14 +1173,15 @@ def feature_importance(
     abs_log_odds = log_odds_expr.abs()
     importance = weighted_average_polars(abs_log_odds, pl.col("BinResponseCount"))
 
-    # Step 4: Optional scaling
-    if scaled:
-        importance = importance * 100.0 / importance.max()
-
     result = importance.alias("FeatureImportance")
 
+    # Apply grouping for per-predictor aggregation
     if over is not None:
         result = result.over(over)
+
+    # Step 4: Optional scaling (must happen AFTER .over() to scale across all predictors)
+    if scaled:
+        result = result * 100.0 / result.max()
 
     return result
 
