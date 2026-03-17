@@ -86,9 +86,9 @@ configuration_responses_threshold = 10000
 
 threshold_updated_days = 30  # if no responses in this nr of days assume not active
 
-# considering this as a parameter : if there are more than this
+# if there are more than this number of configurations
 # we report at aggregate level (not arbitrary selecting configurations)
-# configurations_max = 10
+configurations_max = 10
 ```
 
 ```{python}
@@ -1042,7 +1042,7 @@ try:
     n_configs = all_facets["Configuration"].n_unique()
 
     # Use same threshold as predictor plots
-    if n_configs > 10:
+    if n_configs > configurations_max:
         # Too many configurations - drop Configuration, keep ModelTechnique
         # Count actual facet combinations without Configuration
         n_facets = all_facets.select([
@@ -1297,7 +1297,7 @@ if datamart.predictor_data is not None:
     main_title = "Predictor Importance per Model Configuration"
     # If there's too many configurations, drop this from
     # the partitioning.
-    if len(facets) > 20:
+    if len(facets) > configurations_max:
         report_utils.quarto_callout_info(f"""
 The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
 """)
