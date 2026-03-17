@@ -29,7 +29,6 @@ jupyter: python3
 import logging, sys
 
 logging.disable()
-import traceback
 
 from IPython.display import display, Markdown
 
@@ -1046,8 +1045,6 @@ try:
     fig.layout.coloraxis.colorscale = pega_template.success
     fig.show()
 
-except ValueError as e:
-    print(f"Error {str(e)}\nPossibly no valid data.")
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance vs Action Success Rates", e)
 
@@ -1690,8 +1687,7 @@ try:
 
     response_counts.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Number of Responses over time plot: {e}")
+    report_utils.quarto_plot_exception("Number of Responses over Time", e)
 
 ```
 
@@ -1754,68 +1750,14 @@ The plot below shows this relation. Horizontally the model performance (the AUC,
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
 
 ```{python}
-# | error: true
-df = (
-    datamart
-    .model_data
-    .with_columns(
-        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)],left_closed=True).alias("PerformanceBinned"),
-        pl.format(
-            "{}/{}",
-            pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
-            .then(pl.col("Channel"))
-            .otherwise(pl.lit("")),
-            pl.when(
-                pl.col("Direction").is_not_null() & (pl.col("Direction") != "")
-            )
-            .then(pl.col("Direction"))
-            .otherwise(pl.lit("")),
-        ).alias("ChannelDirection"),
-    )
-    .group_by(["ChannelDirection", "PerformanceBinned"]).agg(
-        pl.sum("ResponseCount"),
-        (pl.min("Performance")*100).round(2).alias("break_label"),
-    )
-    .with_columns((
-        pl.col("ResponseCount") / (pl.col("ResponseCount").sum().over("ChannelDirection"))).alias("Proportion")
-    )
-    .sort(["ChannelDirection", "PerformanceBinned", "Proportion"])
-    .collect()
-)
-
-channels = df["ChannelDirection"].unique().sort()
-
 try:
-    fig = go.Figure()
-    for channel_num, channel in enumerate(channels):
-        channel_df = df.filter(pl.col("ChannelDirection") == channel)
-        fig.add_traces(
-            go.Scatter(
-                x=channel_df["PerformanceBinned"],
-                y=channel_df["Proportion"],
-                line_shape="spline",
-                name=channel,
-            )
-        )
-
-    fig = (
-        fig
-        .update_yaxes(tickformat=",.0%")
-        .update_xaxes(
-            type='category',
-            categoryorder='array',
-            categoryarray=df['PerformanceBinned'].unique().sort().to_list())
-        .update_layout(
-            template="pega",
-            title="Performance vs Volume",
-            xaxis_title="Model Performance",
-            yaxis_title="Percentage of Responses",
-        )
+    fig = datamart.plot.performance_volume_distribution(
+        by=["Channel", "Direction"],
+        title="Performance vs Volume"
     )
-
-    cdh_utils.legend_color_order(fig).show()
+    fig.show()
 except Exception as e:
-    report_utils.quarto_plot_exception("Analysis of Performance vs Volume", e)
+    report_utils.quarto_plot_exception("Performance vs Volume", e)
 ```
 
 # Credits

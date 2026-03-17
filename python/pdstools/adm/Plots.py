@@ -1291,6 +1291,153 @@ class Plots(LazyNamespace):
 
         return fig
 
+    def performance_volume_distribution(
+        self,
+        *,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        bin_width: int = 3,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Generate a performance vs volume distribution chart.
+
+        Shows how response volume is distributed across different model performance
+        ranges. Helps identify if volume is driven by high-performing or low-performing
+        models. Ideally, most volume should be in the 60-80 AUC range.
+
+        Parameters
+        ----------
+        by : str | list[str], optional
+            Column(s) to group by for separate curves (e.g., "Channel" or ["Channel", "Direction"])
+            If None, creates a single curve for all data
+        query : QUERY, optional
+            Optional query to filter the data before analysis
+        bin_width : int, default 3
+            Width of performance bins in AUC points (default creates bins of 3: 50-53, 53-56, etc.)
+        title : str, optional
+            Chart title. If None, uses "Performance vs Volume"
+        return_df : bool, default False
+            If True, return the binned data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing performance distribution, or LazyFrame if return_df=True
+
+        Notes
+        -----
+        Performance is binned from 50-100 using the specified bin_width. The chart shows
+        what percentage of responses fall into each performance bin, grouped by the `by`
+        parameter if provided.
+
+        Examples
+        --------
+        >>> # Single curve for all channels
+        >>> fig = datamart.plot.performance_volume_distribution()
+
+        >>> # Separate curves per channel
+        >>> fig = datamart.plot.performance_volume_distribution(
+        ...     by=["Channel", "Direction"],
+        ...     title="Performance Distribution by Channel"
+        ... )
+        """
+        from ..utils import cdh_utils
+
+        # Get model data
+        df = self.datamart.model_data
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Determine grouping columns
+        group_cols = []
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            group_cols = by_list.copy()
+
+        # Create combined grouping column if needed
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            df = df.with_columns(pl.concat_str(by_list, separator="/").alias("_GroupBy"))
+            group_cols = ["_GroupBy"]
+
+        # Bin performance and aggregate
+        df = (
+            df.with_columns(
+                (pl.col("Performance") * 100)
+                .cut(breaks=[p for p in range(50, 100, bin_width)], left_closed=True)
+                .alias("PerformanceBinned"),
+            )
+            .group_by(group_cols + ["PerformanceBinned"])
+            .agg(
+                pl.sum("ResponseCount"),
+                (pl.min("Performance") * 100).round(2).alias("break_label"),
+            )
+        )
+
+        # Calculate proportions within each group
+        if group_cols:
+            df = df.with_columns(
+                (pl.col("ResponseCount") / pl.col("ResponseCount").sum().over(group_cols[0])).alias("Proportion")
+            )
+        else:
+            df = df.with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum()).alias("Proportion"))
+
+        df = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
+
+        if return_df:
+            return df.lazy()
+
+        # Create the plot
+        fig = go.Figure()
+
+        if group_cols:
+            # Multiple curves
+            groups = df[group_cols[0]].unique().sort()
+            for group in groups:
+                group_df = df.filter(pl.col(group_cols[0]) == group)
+                fig.add_trace(
+                    go.Scatter(
+                        x=group_df["PerformanceBinned"],
+                        y=group_df["Proportion"],
+                        line_shape="spline",
+                        name=group,
+                    )
+                )
+        else:
+            # Single curve
+            fig.add_trace(
+                go.Scatter(
+                    x=df["PerformanceBinned"],
+                    y=df["Proportion"],
+                    line_shape="spline",
+                    name="All Channels",
+                )
+            )
+
+        # Configure layout
+        fig = (
+            fig.update_yaxes(tickformat=",.0%")
+            .update_xaxes(
+                type="category",
+                categoryorder="array",
+                categoryarray=df["PerformanceBinned"].unique().sort().to_list(),
+            )
+            .update_layout(
+                template="pega",
+                title=title or "Performance vs Volume",
+                xaxis_title="Model Performance",
+                yaxis_title="Percentage of Responses",
+            )
+        )
+
+        # Apply legend color ordering
+        fig = cdh_utils.legend_color_order(fig)
+
+        return fig
+
     def tree_map(
         self,
         metric: Literal[
