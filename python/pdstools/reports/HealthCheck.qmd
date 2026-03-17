@@ -1040,14 +1040,20 @@ try:
     )
 
     n_configs = all_facets["Configuration"].n_unique()
-    n_total_facets_with_config = len(all_facets)
 
     # Use same threshold as predictor plots
     if n_configs > 10:
         # Too many configurations - drop Configuration, keep ModelTechnique
+        # Count actual facet combinations without Configuration
+        n_facets = all_facets.select([
+            pl.col("Channel"),
+            pl.col("Direction"),
+            pl.col("ModelTechnique"),
+        ]).unique().shape[0]
+
         report_utils.quarto_callout_info(
             f"""
-The data contains many ({n_configs}) model configurations ({n_total_facets_with_config} total combinations). To limit the size of the generated report we show bubble charts per Channel/Direction/Model Technique. In order to view details per configuration, we suggest you filter the data or generate separate reports per configuration.
+The data contains many ({n_configs}) model configurations. To limit the size of the generated report we show {n_facets} bubble chart{"s" if n_facets > 1 else ""} per Channel/Direction/Model Technique. In order to view details per configuration, we suggest you filter the data or generate separate reports per configuration.
 """
         )
         facet = pl.concat_str(
