@@ -647,20 +647,32 @@ def create_metric_itable(
             expanded_mapping[key] = value
 
     format_dict = {}
+    # When rag_source is provided, source_table may contain pre-formatted strings;
+    # use the numeric source for column detection and sort values, but only
+    # populate format_dict for columns that are still numeric in source_table.
+    numeric_source = rag_source if rag_source is not None else source_table
+    numeric_cols = []
     for col in source_table.columns:
-        if not source_table[col].dtype.is_numeric():
+        if not numeric_source[col].dtype.is_numeric():
             continue
+        numeric_cols.append(col)
         metric_id = expanded_mapping.get(col, col)
         if isinstance(metric_id, tuple):
             metric_id = metric_id[0]
         if isinstance(metric_id, str):
-            metric_fmt = MetricFormats.get(metric_id)
-            if metric_fmt is not None:
+            metric_fmt = MetricFormats.get(metric_id) or MetricFormats.DEFAULT_FORMAT
+            if source_table[col].dtype.is_numeric():
                 format_dict[col] = metric_fmt.to_pandas_format()
-            else:
-                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
         else:
-            format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
+            if source_table[col].dtype.is_numeric():
+                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
+
+    # Add hidden sort columns for all formatted numeric columns so that
+    # DataTables can sort by the raw numeric value instead of the display string
+    # (e.g. "4K" < "500" or "100%" < "2%" lexicographically without this).
+    sort_col_map = {col: f"__sort__{col}" for col in numeric_cols}
+    for col, sort_col in sort_col_map.items():
+        pdf[sort_col] = numeric_source[col].to_pandas()
 
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
@@ -675,6 +687,21 @@ def create_metric_itable(
         "show_dtypes": False,
     }
     default_kwargs.update(itable_kwargs)
+
+    if sort_col_map:
+        final_cols = list(pdf.columns)
+        sort_defs = []
+        for orig_col, sort_col in sort_col_map.items():
+            display_name = column_rename.get(orig_col, orig_col)
+            display_idx = final_cols.index(display_name)
+            sort_idx = final_cols.index(sort_col)
+            sort_defs.extend(
+                [
+                    {"targets": display_idx, "orderData": [sort_idx]},
+                    {"targets": sort_idx, "visible": False, "searchable": False},
+                ]
+            )
+        default_kwargs["columnDefs"] = default_kwargs.get("columnDefs", []) + sort_defs
 
     return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
 
