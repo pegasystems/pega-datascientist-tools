@@ -432,9 +432,9 @@ def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
     df = sample.plot.performance_volume_distribution(bin_width=5, return_df=True)
     assert isinstance(df, pl.LazyFrame)
     collected = df.collect()
-    # Verify binning created multiple bins (actual count depends on data range)
+    # Verify binning created expected number of bins
     num_bins = collected["PerformanceBinned"].n_unique()
-    assert num_bins > 1  # Should have multiple bins
+    assert num_bins == 6  # Performance range 50-80 with bin_width=5 produces 6 bins
 
 
 def test_performance_volume_distribution_with_query(sample: ADMDatamart):
