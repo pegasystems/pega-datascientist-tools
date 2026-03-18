@@ -25,7 +25,6 @@ try:
         top_k={TOP_K},
         contribution_calculation="{CONTRIBUTION_TYPE}"
     )
-    overall_plot.update_layout()
     overall_plot.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Overall Predictor Contributions", e)
@@ -42,26 +41,7 @@ try:
     for plot in predictor_plots:
         title = plot.layout['title']['text']
         plot.layout['title']['text'] = ''
-        plot.update_layout()
         display(Markdown(f'### {{title}}'), plot)
 except Exception as e:
     report_utils.quarto_plot_exception("Predictor Value Contributions", e)
 ```
-
-# Credits
-
-```{{python}}
-# | echo: false
-report_utils.show_credits()
-show_versions.show_versions(include_dependencies=False)
-```
-
-::: {{.callout-note collapse="true"}}
-## Expand for detailed version information
-```{{python}}
-# | echo: false
-show_versions.show_versions()
-```
-:::
-
-For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

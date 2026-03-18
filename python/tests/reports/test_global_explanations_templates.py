@@ -6,12 +6,7 @@ import re
 import pytest
 
 TEMPLATES_DIR = (
-    Path(__file__).parent.parent.parent
-    / "pdstools"
-    / "reports"
-    / "GlobalExplanations"
-    / "assets"
-    / "templates"
+    Path(__file__).parent.parent.parent / "pdstools" / "reports" / "GlobalExplanations" / "assets" / "templates"
 )
 
 TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
@@ -119,22 +114,16 @@ class TestGettingStartedTemplate:
 class TestTemplatePlaceholders:
     """Test placeholder correctness across all templates."""
 
-    @pytest.mark.parametrize(
-        "template_name", list(TEMPLATE_PLACEHOLDERS.keys())
-    )
+    @pytest.mark.parametrize("template_name", list(TEMPLATE_PLACEHOLDERS.keys()))
     def test_contains_expected_placeholders(self, template_name):
         """Test each template contains all its expected placeholders."""
         content = get_template_path(template_name).read_text()
         expected = TEMPLATE_PLACEHOLDERS[template_name]
 
         for placeholder in expected:
-            assert placeholder in content, (
-                f"{template_name} missing placeholder: {placeholder}"
-            )
+            assert placeholder in content, f"{template_name} missing placeholder: {placeholder}"
 
-    @pytest.mark.parametrize(
-        "template_name", list(TEMPLATE_PLACEHOLDERS.keys())
-    )
+    @pytest.mark.parametrize("template_name", list(TEMPLATE_PLACEHOLDERS.keys()))
     def test_no_unexpected_placeholders(self, template_name):
         """Test each template contains only its expected placeholders."""
         content = get_template_path(template_name).read_text()
@@ -142,9 +131,7 @@ class TestTemplatePlaceholders:
         found = set(re.findall(r"\{[A-Z_]+\}", content))
 
         unexpected = found - expected
-        assert not unexpected, (
-            f"{template_name} has unexpected placeholders: {unexpected}"
-        )
+        assert not unexpected, f"{template_name} has unexpected placeholders: {unexpected}"
 
 
 class TestCommonComponents:
@@ -158,15 +145,9 @@ class TestCommonComponents:
         """Test templates have YAML front matter with title, date, and published-title."""
         content = get_template_path(template_name).read_text()
 
-        assert f"title: {expected_title}" in content, (
-            f"{template_name} missing expected title: {expected_title}"
-        )
-        assert "date: today" in content, (
-            f"{template_name} missing 'date: today'"
-        )
-        assert 'published-title: "Report generated on"' in content, (
-            f"{template_name} missing published-title"
-        )
+        assert f"title: {expected_title}" in content, f"{template_name} missing expected title: {expected_title}"
+        assert "date: today" in content, f"{template_name} missing 'date: today'"
+        assert 'published-title: "Report generated on"' in content, f"{template_name} missing published-title"
 
     @pytest.mark.parametrize(
         "template_name",
@@ -177,30 +158,20 @@ class TestCommonComponents:
         content = get_template_path(template_name).read_text()
 
         assert "# Credits" in content, f"{template_name} missing credits header"
-        assert (
-            "from pdstools.utils import report_utils, show_versions" in content
-        ), f"{template_name} missing credits imports"
-        assert (
-            "report_utils.show_credits" in content
-        ), f"{template_name} missing show_credits call"
-        assert (
-            "show_versions.show_versions" in content
-        ), f"{template_name} missing show_versions call"
+        assert "from pdstools.utils import report_utils, show_versions" in content, (
+            f"{template_name} missing credits imports"
+        )
+        assert "report_utils.show_credits" in content, f"{template_name} missing show_credits call"
+        assert "show_versions.show_versions" in content, f"{template_name} missing show_versions call"
 
-
-    @pytest.mark.parametrize(
-        "template_name", TEMPLATES_WITH_PYTHON_BLOCKS
-    )
+    @pytest.mark.parametrize("template_name", TEMPLATES_WITH_PYTHON_BLOCKS)
     def test_python_blocks_use_double_braces(self, template_name):
         """Test python code blocks use Quarto template syntax ``{{python}}``."""
         content = get_template_path(template_name).read_text()
 
-        assert "```{{python}}" in content, (
-            f"{template_name} has no ```{{{{python}}}}` blocks"
-        )
+        assert "```{{python}}" in content, f"{template_name} has no ```{{{{python}}}}` blocks"
         assert "```{python}" not in content, (
-            f"{template_name} uses single-brace ```{{python}}` "
-            "instead of double-brace ```{{{{python}}}}`"
+            f"{template_name} uses single-brace ```{{python}}` instead of double-brace ```{{{{{{{{python}}}}}}}}`"
         )
 
 

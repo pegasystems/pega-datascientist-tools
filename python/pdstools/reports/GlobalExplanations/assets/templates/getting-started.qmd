@@ -33,12 +33,4 @@ report_utils.show_credits()
 show_versions.show_versions(include_dependencies=False)
 ```
 
-::: {{.callout-note collapse="true"}}
-## Expand for detailed version information
-```{{python}}
-# | echo: false
-show_versions.show_versions()
-```
-:::
-
 For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

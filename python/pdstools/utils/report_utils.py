@@ -947,13 +947,17 @@ def show_credits(quarto_source: str | None = None):
 
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-    lines = [f"Document created at: {timestamp_str}",]
+    lines = [
+        f"Document created at: {timestamp_str}",
+    ]
     if quarto_source:
         lines.append(f"This notebook: {quarto_source}")
-    lines.extend([
-        f"Quarto runtime: {quarto_version}",
-        f"Pandoc: {pandoc_version}",
-    ])
+    lines.extend(
+        [
+            f"Quarto runtime: {quarto_version}",
+            f"Pandoc: {pandoc_version}",
+        ]
+    )
 
     quarto_print("\n\n    ".join([""] + lines) + "\n\n    ")
 

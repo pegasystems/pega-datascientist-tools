@@ -1,7 +1,7 @@
 """Pre-render script for the GlobalExplanations Quarto website project.
 
-This script is executed by Quarto as a pre-render step (configured in _quarto.yml) before the website is built. 
-It reads .qmd templates from assets/templates/, substitutes parameter placeholders (e.g. {TOP_N}, {SORT_BY_TYPE}) 
+This script is executed by Quarto as a pre-render step (configured in _quarto.yml) before the website is built.
+It reads .qmd templates from assets/templates/, substitutes parameter placeholders (e.g. {TOP_N}, {SORT_BY_TYPE})
 with values from params.yml, and writes the final .qmd files that Quarto then renders into the website.
 
 Templates are located in: assets/templates/
