@@ -239,9 +239,7 @@ def _assert_compact_sort_wired(captured, col: str, raw_values: list):
     ],
     ids=["numeric_source", "preformatted_with_rag_source", "callable_metric"],
 )
-def test_create_metric_itable_compact_sort(
-    capture_itable, source_table, rag_source, extra_kwargs
-):
+def test_create_metric_itable_compact_sort(capture_itable, source_table, rag_source, extra_kwargs):
     """Compact-formatted columns sort numerically, not lexicographically.
 
     Without the fix, "4K" sorts before "500" because "4" < "5" as strings.
