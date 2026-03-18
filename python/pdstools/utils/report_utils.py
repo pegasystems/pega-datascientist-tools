@@ -1085,6 +1085,73 @@ def gains_table(
     return gains_df.collect()
 
 
+def check_report_for_errors(html_path: str | Path) -> list[str]:
+    """Check generated report HTML for error indicators.
+
+    Scans the HTML file for error patterns that indicate plot rendering failures
+    or exceptions during report generation. These errors are typically hidden in
+    collapsed callout sections but should be caught in testing.
+
+    Parameters
+    ----------
+    html_path : str or Path
+        Path to the HTML file to check
+
+    Returns
+    -------
+    list[str]
+        List of error descriptions found (empty if no errors)
+
+    Raises
+    ------
+    FileNotFoundError
+        If the HTML file does not exist
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import check_report_for_errors
+    >>> errors = check_report_for_errors("HealthCheck.html")
+    >>> if errors:
+    ...     print(f"Found {len(errors)} error(s):")
+    ...     for error in errors:
+    ...         print(f"  - {error}")
+    """
+    html_path = Path(html_path)
+
+    if not html_path.exists():
+        raise FileNotFoundError(f"HTML file not found: {html_path}")
+
+    try:
+        content = html_path.read_text(encoding="utf-8")
+    except Exception as e:
+        raise IOError(f"Failed to read HTML file: {e}")
+
+    errors = []
+
+    # Common error patterns in HTML output from quarto_plot_exception
+    error_patterns = [
+        ("Error rendering", "Plot rendering error"),
+        ("Traceback (most recent call last)", "Python traceback"),
+        ("ValueError:", "ValueError exception"),
+        ("TypeError:", "TypeError exception"),
+        ("KeyError:", "KeyError exception"),
+        ("AttributeError:", "AttributeError exception"),
+        ("NameError:", "NameError exception"),
+        ("Exception:", "Generic exception"),
+        ("The given query resulted in an empty dataframe", "Empty dataframe error"),
+    ]
+
+    for pattern, description in error_patterns:
+        if pattern in content:
+            count = content.count(pattern)
+            if count > 1:
+                errors.append(f"{description} (found {count} times)")
+            else:
+                errors.append(description)
+
+    return errors
+
+
 def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> str:
     """Remove duplicate script tags from HTML to reduce file size.
 

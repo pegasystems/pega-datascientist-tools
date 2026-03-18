@@ -39,6 +39,7 @@ from pathlib import Path
 from datetime import datetime
 import polars as pl
 from pdstools import ADMDatamart
+from pdstools.utils.report_utils import check_report_for_errors
 
 
 # Default file name patterns
@@ -170,53 +171,6 @@ def get_file_size_mb(file_path: Path | None) -> float:
     return 0.0
 
 
-def scan_html_for_errors(html_path: Path) -> list[str]:
-    """Scan generated HTML file for error indicators.
-
-    Parameters
-    ----------
-    html_path : Path
-        Path to the HTML file to scan
-
-    Returns
-    -------
-    list[str]
-        List of error descriptions found (empty if no errors)
-    """
-    if not html_path.exists():
-        return ["HTML file not found"]
-
-    try:
-        content = html_path.read_text(encoding="utf-8")
-    except Exception as e:
-        return [f"Failed to read HTML: {e}"]
-
-    errors = []
-
-    # Common error patterns in HTML output
-    error_patterns = [
-        ("Error rendering", "Plot rendering error"),
-        ("Traceback (most recent call last)", "Python traceback"),
-        ("ValueError:", "ValueError exception"),
-        ("TypeError:", "TypeError exception"),
-        ("KeyError:", "KeyError exception"),
-        ("AttributeError:", "AttributeError exception"),
-        ("NameError:", "NameError exception"),
-        ("Exception:", "Generic exception"),
-        ("The given query resulted in an empty dataframe", "Empty dataframe error"),
-    ]
-
-    for pattern, description in error_patterns:
-        if pattern in content:
-            count = content.count(pattern)
-            if count > 1:
-                errors.append(f"{description} (found {count} times)")
-            else:
-                errors.append(description)
-
-    return errors
-
-
 def process_dataset(
     dataset: dict,
     output_dir: Path,
@@ -296,7 +250,7 @@ def process_dataset(
 
         # Scan HTML for errors
         print("  → Scanning HTML for errors...")
-        html_errors = scan_html_for_errors(html_path)
+        html_errors = check_report_for_errors(html_path)
         if html_errors:
             result["HTML_Errors"] = "; ".join(html_errors)
             result["Status"] = "Success (with errors)"
