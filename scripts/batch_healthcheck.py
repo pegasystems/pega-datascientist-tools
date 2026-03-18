@@ -370,10 +370,16 @@ For more information, see:
 
     # Process all datasets
     results = []
+    summary_file = args.output / "summary.csv"
     for i, dataset in enumerate(datasets_to_process, 1):
         print(f"\n[{i}/{len(datasets_to_process)}]")
         result = process_dataset(dataset, args.output)
         results.append(result)
+
+        # Update summary CSV after each dataset
+        df_incremental = pl.DataFrame(results)
+        df_incremental.write_csv(summary_file)
+        print(f"  ✓ Summary updated: {summary_file}")
 
     # Create summary table
     print(f"\n{'=' * 60}")
@@ -406,10 +412,8 @@ For more information, see:
             for error in row["HTML_Errors"].split("; "):
                 print(f"  - {error}")
 
-    # Save full summary to CSV
-    summary_file = args.output / "summary.csv"
-    df.write_csv(summary_file)
-    print(f"\n✓ Summary saved to: {summary_file}")
+    # Summary CSV already saved incrementally during processing
+    print(f"\n✓ Final summary: {summary_file}")
 
     # Print statistics
     success_count = (df["Status"] == "Success").sum()
