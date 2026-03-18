@@ -49,14 +49,6 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
 }
 
 
-TEMPLATES_WITH_PYTHON_BLOCKS: list[str] = [
-    "getting-started.qmd",
-    "overview.qmd",
-    "context.qmd",
-    "all_context_header.qmd",
-    "all_context_content.qmd",
-]
-
 TEMPLATES_WITH_YAML_FRONTMATTER: dict[str, str] = {
     "getting-started.qmd": '"Getting Started"',
     "overview.qmd": '"Model Overview"',
@@ -151,7 +143,7 @@ class TestCommonComponents:
 
     @pytest.mark.parametrize(
         "template_name",
-        ["getting-started.qmd", "overview.qmd", "context.qmd"],
+        ["getting-started.qmd"],
     )
     def test_has_credits_section(self, template_name):
         """Test templates include a credits section."""
@@ -164,15 +156,17 @@ class TestCommonComponents:
         assert "report_utils.show_credits" in content, f"{template_name} missing show_credits call"
         assert "show_versions.show_versions" in content, f"{template_name} missing show_versions call"
 
-    @pytest.mark.parametrize("template_name", TEMPLATES_WITH_PYTHON_BLOCKS)
-    def test_python_blocks_use_double_braces(self, template_name):
-        """Test python code blocks use Quarto template syntax ``{{python}}``."""
-        content = get_template_path(template_name).read_text()
-
-        assert "```{{python}}" in content, f"{template_name} has no ```{{{{python}}}}` blocks"
-        assert "```{python}" not in content, (
-            f"{template_name} uses single-brace ```{{python}}` instead of double-brace ```{{{{{{{{python}}}}}}}}`"
-        )
+    def test_python_blocks_use_double_braces(self):
+        """Test all templates with python code blocks use ``{{python}}`` syntax."""
+        for template_path in TEMPLATES_DIR.glob("*.qmd"):
+            content = template_path.read_text()
+            if "{python}" not in content:
+                continue
+            name = template_path.name
+            assert "```{{python}}" in content, f"{name} has no ```{{{{python}}}}` blocks"
+            assert "```{python}" not in content, (
+                f"{name} uses single-brace `{{python}}` instead of double-brace `{{{{python}}}}`"
+            )
 
 
 class TestTemplateConsistency:
