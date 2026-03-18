@@ -53,6 +53,7 @@ import numpy as np
 import json
 import io
 import datetime
+import math
 
 ```
 
@@ -121,6 +122,46 @@ report_utils.quarto_print(
 
 """
 )
+
+```
+
+```{python}
+# | echo: false
+
+def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
+    """Calculate facet_col_wrap that prevents excessive rows in faceted plots.
+
+    This prevents Plotly layout errors when there are too many facets.
+    Instead of using sqrt(n_facets) which can create many rows, we calculate
+    the minimum number of columns needed to keep rows under max_rows.
+
+    Parameters
+    ----------
+    n_facets : int
+        Number of unique facet values
+    max_rows : int, default 15
+        Maximum number of rows to allow in the facet grid
+
+    Returns
+    -------
+    int
+        Number of columns for facet_col_wrap parameter
+
+    Examples
+    --------
+    >>> safe_facet_col_wrap(46, max_rows=15)
+    4  # Creates 12 rows instead of 7 rows with sqrt formula
+
+    >>> safe_facet_col_wrap(10, max_rows=15)
+    2  # Small number of facets uses minimum columns
+    """
+    if n_facets <= max_rows:
+        # For small numbers, use minimum columns
+        return max(2, int(n_facets ** 0.5))
+    else:
+        # For large numbers, calculate columns to limit rows
+        # rows = ceil(n_facets / cols), so cols = ceil(n_facets / max_rows)
+        return max(2, math.ceil(n_facets / max_rows))
 
 ```
 
@@ -868,10 +909,14 @@ except Exception as e:
 Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
 
 ```{python}
-# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
-# TODO consider query argument, passing in query=active_models_filter_expr
-facets = datamart.unique_configurations
-facet_col_wrap = max(2, int(len(facets) ** 0.5))
+# Count unique ModelTechnique values for safe facet layout
+n_model_techniques = (
+    datamart.model_data
+    .select(pl.col("ModelTechnique").n_unique())
+    .collect()
+    .item()
+)
+facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
 by = pl.concat_str(["Channel", "Direction"], separator="/")
 try:
     fig = datamart.plot.over_time(
@@ -1144,7 +1189,14 @@ The trend chart shows how model performance evolves over time. Note that ADM is 
 by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
     "Channel/Direction"
 )
-facet_col_wrap = max(2, int(len(facets) ** 0.5))
+# Count unique ModelTechnique values for safe facet layout
+n_model_techniques = (
+    datamart.model_data
+    .select(pl.col("ModelTechnique").n_unique())
+    .collect()
+    .item()
+)
+facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
 try:
     fig = datamart.plot.over_time(metric="Performance", facet="ModelTechnique", by=by)
     fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
@@ -1158,7 +1210,7 @@ try:
     fig.show()
 except ValueError as e:
     print(
-        f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
+        f"Error {str(e)}\nPossibly too many ModelTechnique facets: {n_model_techniques} with {facet_col_wrap} columns."
     )
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance over Time", e)
