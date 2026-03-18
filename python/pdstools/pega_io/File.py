@@ -452,10 +452,13 @@ def read_ds_export(
 def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
     """Fill nulls in context fields to prevent issues in downstream operations.
 
-    Context fields (Channel, Direction, Issue, Group, Name, Treatment) often have
-    nulls in source data which can cause errors in group_by, transpose, and concat_str
+    Context fields (Channel, Direction, Issue, Group, Name) often have nulls in
+    source data which can cause errors in group_by, transpose, and concat_str
     operations. This function fills nulls with "Unknown" to ensure these operations
     work correctly.
+
+    Note: Treatment is intentionally NOT filled because null Treatment has semantic
+    meaning (no treatment variation exists for that action).
 
     Parameters
     ----------
@@ -468,7 +471,7 @@ def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
         Dataframe with nulls filled in context fields
 
     """
-    context_fields = ["Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
+    context_fields = ["Channel", "Direction", "Issue", "Group", "Name"]
 
     # Only fill nulls for columns that exist in the dataframe
     existing_context_fields = [col for col in context_fields if col in df.collect_schema().names()]
