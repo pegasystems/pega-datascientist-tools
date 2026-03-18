@@ -191,7 +191,7 @@ def capture_itable(monkeypatch):
     return captured
 
 
-def _assert_compact_sort_wired(captured, col: str, raw_values: list):
+def _assert_numeric_sort_wired(captured, col: str, raw_values: list):
     """Assert that a hidden sort column and matching columnDefs are present."""
     sort_col = f"__sort__{col}"
     df = captured["df"]
@@ -239,11 +239,12 @@ def _assert_compact_sort_wired(captured, col: str, raw_values: list):
     ],
     ids=["numeric_source", "preformatted_with_rag_source", "callable_metric"],
 )
-def test_create_metric_itable_compact_sort(capture_itable, source_table, rag_source, extra_kwargs):
-    """Compact-formatted columns sort numerically, not lexicographically.
+def test_create_metric_itable_numeric_sort(capture_itable, source_table, rag_source, extra_kwargs):
+    """All formatted numeric columns sort numerically, not lexicographically.
 
-    Without the fix, "4K" sorts before "500" because "4" < "5" as strings.
-    A hidden raw-value column is added and DataTables is configured to sort by it.
+    Pandas Styler converts numbers to display strings, which DataTables would
+    otherwise sort as text (e.g. "4K" < "500", "100%" < "2%"). A hidden
+    raw-value column is added and DataTables is configured to sort by it.
     Covers a plain numeric source, a pre-formatted source with rag_source, and a
     numeric column mapped to a callable RAG function (the else branch).
     """
@@ -253,15 +254,15 @@ def test_create_metric_itable_compact_sort(capture_itable, source_table, rag_sou
         strict_metric_validation=False,
         **extra_kwargs,
     )
-    _assert_compact_sort_wired(capture_itable, "Count", [500, 4000, 200])
+    _assert_numeric_sort_wired(capture_itable, "Count", [500, 4000, 200])
 
 
 def test_create_metric_itable_rag_source_no_format_error(monkeypatch):
-    """No ValueError when source_table has pre-formatted strings for non-compact columns.
+    """No ValueError when source_table has pre-formatted strings.
 
     format_dict must only be populated for columns that are still numeric in
-    source_table. Non-compact format strings (e.g. ModelPerformance -> '{:,.2f}')
-    must not be applied to string values or pandas raises a ValueError.
+    source_table. Format strings (e.g. ModelPerformance -> '{:,.2f}') must not
+    be applied to string values or pandas raises a ValueError.
     """
     numeric_df = pl.DataFrame({"Model": ["A", "B"], "Performance": [0.72, 0.58]})
     display_df = pl.DataFrame({"Model": ["A", "B"], "Performance": ["72.00", "58.00"]})
@@ -299,6 +300,29 @@ def test_create_metric_itable_user_columndefs_preserved(capture_itable):
     final_cols = list(capture_itable["df"].columns)
     sort_idx = final_cols.index(sort_col)
     assert any(d.get("targets") == sort_idx for d in col_defs)
+
+
+def test_create_metric_itable_percentage_sort(capture_itable):
+    """Percentage-formatted columns must sort numerically, not lexicographically.
+
+    Without the fix, "100.000%" sorts before "2.000%" because "1" < "2" as strings.
+    Uses OmniChannelPercentage (scale_by=100, suffix="%") as a representative
+    non-compact percentage metric.
+    """
+    df = pl.DataFrame(
+        {
+            "Name": ["A", "B", "C"],
+            # OmniChannelPercentage: scale_by=100, suffix="%", decimals=1
+            # formats to "2.0%", "100.0%", "50.0%" — "100.0%" < "2.0%" lexicographically
+            "OmniChannelPercentage": [0.02, 1.0, 0.5],
+        }
+    )
+    report_utils.create_metric_itable(
+        df,
+        column_to_metric={"OmniChannelPercentage": "OmniChannelPercentage"},
+        strict_metric_validation=True,
+    )
+    _assert_numeric_sort_wired(capture_itable, "OmniChannelPercentage", [0.02, 1.0, 0.5])
 
 
 def test_create_metric_gttable_without_column_descriptions():

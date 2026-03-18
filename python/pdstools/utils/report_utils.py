@@ -647,39 +647,32 @@ def create_metric_itable(
             expanded_mapping[key] = value
 
     format_dict = {}
-    compact_cols = []
     # When rag_source is provided, source_table may contain pre-formatted strings;
-    # use the numeric source for compact detection and sort values, but only
+    # use the numeric source for column detection and sort values, but only
     # populate format_dict for columns that are still numeric in source_table.
     numeric_source = rag_source if rag_source is not None else source_table
+    numeric_cols = []
     for col in source_table.columns:
         if not numeric_source[col].dtype.is_numeric():
             continue
+        numeric_cols.append(col)
         metric_id = expanded_mapping.get(col, col)
         if isinstance(metric_id, tuple):
             metric_id = metric_id[0]
         if isinstance(metric_id, str):
-            metric_fmt = MetricFormats.get(metric_id)
-            if metric_fmt is None:
-                metric_fmt = MetricFormats.DEFAULT_FORMAT
+            metric_fmt = MetricFormats.get(metric_id) or MetricFormats.DEFAULT_FORMAT
             if source_table[col].dtype.is_numeric():
                 format_dict[col] = metric_fmt.to_pandas_format()
-            if metric_fmt.compact:
-                compact_cols.append(col)
         else:
             if source_table[col].dtype.is_numeric():
                 format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
-            if MetricFormats.DEFAULT_FORMAT.compact:
-                compact_cols.append(col)
 
-    # Add hidden sort columns for compact-formatted numeric columns so that
+    # Add hidden sort columns for all formatted numeric columns so that
     # DataTables can sort by the raw numeric value instead of the display string
-    # (e.g. "4K" would otherwise sort before "500" lexicographically).
-    sort_col_map = {}
-    for col in compact_cols:
-        sort_col = f"__sort__{col}"
+    # (e.g. "4K" < "500" or "100%" < "2%" lexicographically without this).
+    sort_col_map = {col: f"__sort__{col}" for col in numeric_cols}
+    for col, sort_col in sort_col_map.items():
         pdf[sort_col] = numeric_source[col].to_pandas()
-        sort_col_map[col] = sort_col
 
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
