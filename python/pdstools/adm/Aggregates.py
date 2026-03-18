@@ -125,6 +125,15 @@ class Aggregates:
             query,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
+
+        # Handle case where there are no predictors
+        if len(unique_predictors) == 0:
+            if isinstance(by, str):
+                by_name = by
+            else:
+                by_name = by.meta.output_name()
+            return pl.LazyFrame({by_name: []})
+
         if isinstance(by, str):
             by_col = pl.col(by)
             by_name = by
@@ -132,6 +141,8 @@ class Aggregates:
             by_col = by
             by_name = by.meta.output_name()
         action_predictor = by_col.meta.root_names() + ["PredictorName"]
+
+        # Filter out null values in the grouping column to avoid transpose errors
         q = (
             (
                 df.filter(pl.col("ResponseCount") > 0)
@@ -147,7 +158,10 @@ class Aggregates:
                     ),
                 )
             )
-            .group_by(by_col)
+            # Materialize the by_col expression first, then filter nulls
+            .with_columns(by_col)
+            .filter(pl.col(by_name).is_not_null())
+            .group_by(by_name)  # Use by_name since by_col is now materialized
             .agg(
                 [
                     (

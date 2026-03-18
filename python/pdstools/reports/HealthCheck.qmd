@@ -1380,8 +1380,11 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 if datamart.predictor_data is not None:
     try:
         fig = datamart.plot.predictor_category_performance()
-        fig.update_layout(title="Univariate Predictor Performance")
-        fig.show()
+        if fig is not None:
+            fig.update_layout(title="Univariate Predictor Performance")
+            fig.show()
+        else:
+            report_utils.quarto_print("No predictor category data available to plot.")
     except Exception as e:
         report_utils.quarto_plot_exception("Importance by Predictor Category", e)
 else:
@@ -1477,31 +1480,43 @@ index_cols = report_utils.polars_subset_to_existing_cols(
 
 if datamart.predictor_data is not None:
     try:
+        # Build the "by" expression based on available columns
+        # Use at least one column (Name is required by @requires decorator)
+        action_hierarchy_cols = [col for col in ["Issue", "Group", "Name"] if col in index_cols]
+
+        if len(action_hierarchy_cols) > 1:
+            by_expr = pl.concat_str(
+                *[pl.col(col) for col in action_hierarchy_cols], separator="/"
+            ).alias("Action")
+        else:
+            # Fall back to just Name if Issue/Group are missing
+            by_expr = "Name"
+
         fig = datamart.plot.predictor_performance_heatmap(
             top_predictors=barchart_max_bars,
             top_groups=barchart_max_bars,
-            by=pl.concat_str(
-                pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
-            ).alias("Action"),
+            by=by_expr,
         )
-        fig.update_layout(
-            # TODO: make this a proper call to some abbreviation function
-            xaxis={
-                "tickmode": "array",
-                "tickvals": fig.data[0]["x"],
-                "ticktext": [
-                    "..." + tick[-25:] if len(tick) > 25 else tick
-                    for tick in fig.data[0]["x"]
-                ],
-            },
-            font=dict(size=8),
-            title=f"Top predictors per Action<br>Globally, across all models and channels",
-        )
-        fig.update_yaxes(dtick=1, automargin=True)
-        fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
-        fig.update(layout_coloraxis_showscale=False)
-
-        fig.show()
+        if fig is not None:
+            fig.update_layout(
+                # TODO: make this a proper call to some abbreviation function
+                xaxis={
+                    "tickmode": "array",
+                    "tickvals": fig.data[0]["x"],
+                    "ticktext": [
+                        "..." + tick[-25:] if len(tick) > 25 else tick
+                        for tick in fig.data[0]["x"]
+                    ],
+                },
+                font=dict(size=8),
+                title=f"Top predictors per Action<br>Globally, across all models and channels",
+            )
+            fig.update_yaxes(dtick=1, automargin=True)
+            fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
+            fig.update(layout_coloraxis_showscale=False)
+            fig.show()
+        else:
+            report_utils.quarto_print("No predictor performance data available for heatmap after filtering.")
 
     except ValueError as e:
         print(f'Plot error: "{e}"')

@@ -372,6 +372,10 @@ class Plots(LazyNamespace):
             grouping_columns.append(facet)
         df = df.with_columns(by).set_sorted("SnapshotTime")
 
+        # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
+        null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
+        df = df.filter(pl.all_horizontal(null_filters))
+
         agg_expr = [
             (
                 metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
@@ -1152,7 +1156,17 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
-        collected = df.collect().transpose(
+        # Filter out rows with null values in the grouping column before transpose
+        # to avoid "Column with new names can't have null values" error
+        filtered_df = df.filter(pl.col(by_name).is_not_null()).collect()
+
+        # Check if dataframe is empty after filtering
+        if filtered_df.height == 0:
+            if return_df:
+                return pl.LazyFrame({by_name: []})
+            return None
+
+        collected = filtered_df.transpose(
             include_header=True,
             header_name=by_name,
             column_names=by_name,
