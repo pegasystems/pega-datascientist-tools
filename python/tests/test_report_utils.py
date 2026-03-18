@@ -1,5 +1,6 @@
 """Tests for the report_utils module."""
 
+import itables
 import polars as pl
 import pytest
 from pdstools.utils import report_utils
@@ -154,8 +155,6 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
         # The styled_df is a pandas Styler, get the underlying DataFrame
         captured_df = styled_df.data
 
-    import itables
-
     monkeypatch.setattr(itables, "show", mock_show)
 
     report_utils.create_metric_itable(
@@ -177,6 +176,117 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
     # Channel was not in column_descriptions, so should not have tooltip
     channel_col = [c for c in captured_df.columns if "Channel" in c][0]
     assert channel_col == "Channel"  # unchanged
+
+
+@pytest.fixture()
+def capture_itable(monkeypatch):
+    """Capture the styled DataFrame and kwargs passed to itables.show."""
+    captured = {}
+
+    def mock_show(styled_df, **kwargs):
+        captured["df"] = styled_df.data
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(itables, "show", mock_show)
+    return captured
+
+
+def _assert_compact_sort_wired(captured, col: str, raw_values: list):
+    """Assert that a hidden sort column and matching columnDefs are present."""
+    sort_col = f"__sort__{col}"
+    df = captured["df"]
+    col_defs = captured["kwargs"].get("columnDefs", [])
+    final_cols = list(df.columns)
+
+    assert sort_col in final_cols, f"Hidden sort column {sort_col!r} not found"
+    assert list(df[sort_col]) == raw_values
+
+    display_idx = final_cols.index(col)
+    sort_idx = final_cols.index(sort_col)
+
+    order_def = next((d for d in col_defs if d.get("targets") == display_idx), None)
+    assert order_def is not None, f"No columnDef found for display column {col!r}"
+    assert order_def["orderData"] == [sort_idx]
+
+    hidden_def = next((d for d in col_defs if d.get("targets") == sort_idx), None)
+    assert hidden_def is not None, f"No columnDef found for sort column {sort_col!r}"
+    assert hidden_def["visible"] is False
+    assert hidden_def["searchable"] is False
+
+
+@pytest.mark.parametrize(
+    "source_table, rag_source",
+    [
+        # source_table is already numeric
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            None,
+        ),
+        # source_table has pre-formatted strings (e.g. after apply_display_formatting),
+        # rag_source holds the raw numerics
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": ["500", "4K", "200"]}),
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+        ),
+    ],
+    ids=["numeric_source", "preformatted_with_rag_source"],
+)
+def test_create_metric_itable_compact_sort(capture_itable, source_table, rag_source):
+    """Compact-formatted columns sort numerically, not lexicographically.
+
+    Without the fix, "4K" sorts before "500" because "4" < "5" as strings.
+    A hidden raw-value column is added and DataTables is configured to sort by it.
+    Covers both a plain numeric source_table and one pre-formatted with rag_source.
+    """
+    report_utils.create_metric_itable(
+        source_table, rag_source=rag_source, strict_metric_validation=False
+    )
+    _assert_compact_sort_wired(capture_itable, "Count", [500, 4000, 200])
+
+
+def test_create_metric_itable_rag_source_no_format_error(monkeypatch):
+    """No ValueError when source_table has pre-formatted strings for non-compact columns.
+
+    format_dict must only be populated for columns that are still numeric in
+    source_table. Non-compact format strings (e.g. ModelPerformance -> '{:,.2f}')
+    must not be applied to string values or pandas raises a ValueError.
+    """
+    numeric_df = pl.DataFrame({"Model": ["A", "B"], "Performance": [0.72, 0.58]})
+    display_df = pl.DataFrame({"Model": ["A", "B"], "Performance": ["72.00", "58.00"]})
+
+    def mock_show(styled_df, **kwargs):
+        # Force rendering so any format errors surface here
+        styled_df.to_html()
+
+    monkeypatch.setattr(itables, "show", mock_show)
+
+    report_utils.create_metric_itable(
+        display_df,
+        column_to_metric={"Performance": "ModelPerformance"},
+        rag_source=numeric_df,
+        strict_metric_validation=True,
+    )
+
+
+def test_create_metric_itable_user_columndefs_preserved(capture_itable):
+    """User-provided columnDefs are merged with, not replaced by, sort defs."""
+    df = pl.DataFrame({"Group": ["A", "A", "B"], "Count": [500, 4000, 200]})
+    user_col_defs = [{"targets": 0, "visible": False}]
+
+    report_utils.create_metric_itable(
+        df,
+        strict_metric_validation=False,
+        columnDefs=user_col_defs,
+    )
+
+    col_defs = capture_itable["kwargs"].get("columnDefs", [])
+    # User's def must still be present
+    assert {"targets": 0, "visible": False} in col_defs
+    # Sort defs must also be present
+    sort_col = "__sort__Count"
+    final_cols = list(capture_itable["df"].columns)
+    sort_idx = final_cols.index(sort_col)
+    assert any(d.get("targets") == sort_idx for d in col_defs)
 
 
 def test_create_metric_gttable_without_column_descriptions():
