@@ -215,31 +215,45 @@ def _assert_compact_sort_wired(captured, col: str, raw_values: list):
 
 
 @pytest.mark.parametrize(
-    "source_table, rag_source",
+    "source_table, rag_source, extra_kwargs",
     [
-        # source_table is already numeric
+        # source_table is already numeric, metric resolved via string ID
         (
             pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
             None,
+            {},
         ),
         # source_table has pre-formatted strings (e.g. after apply_display_formatting),
         # rag_source holds the raw numerics
         (
             pl.DataFrame({"Name": ["A", "B", "C"], "Count": ["500", "4K", "200"]}),
             pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            {},
+        ),
+        # metric_id is a callable (else branch): numeric column with custom RAG function
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            None,
+            {"column_to_metric": {"Count": lambda v: "GREEN" if v > 300 else "RED"}},
         ),
     ],
-    ids=["numeric_source", "preformatted_with_rag_source"],
+    ids=["numeric_source", "preformatted_with_rag_source", "callable_metric"],
 )
-def test_create_metric_itable_compact_sort(capture_itable, source_table, rag_source):
+def test_create_metric_itable_compact_sort(
+    capture_itable, source_table, rag_source, extra_kwargs
+):
     """Compact-formatted columns sort numerically, not lexicographically.
 
     Without the fix, "4K" sorts before "500" because "4" < "5" as strings.
     A hidden raw-value column is added and DataTables is configured to sort by it.
-    Covers both a plain numeric source_table and one pre-formatted with rag_source.
+    Covers a plain numeric source, a pre-formatted source with rag_source, and a
+    numeric column mapped to a callable RAG function (the else branch).
     """
     report_utils.create_metric_itable(
-        source_table, rag_source=rag_source, strict_metric_validation=False
+        source_table,
+        rag_source=rag_source,
+        strict_metric_validation=False,
+        **extra_kwargs,
     )
     _assert_compact_sort_wired(capture_itable, "Count", [500, 4000, 200])
 
