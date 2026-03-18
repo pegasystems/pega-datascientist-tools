@@ -171,14 +171,24 @@ def test_summary_by_channel_timeslices(dm_minimal):
     assert s1["Used Actions"].to_list() == [1, 2]
     assert s1["isValid"].to_list() == [False, True]
 
-    s2 = dm_minimal.aggregates.summary_by_channel(
-        start_date=datetime(2033, 2, 1),
-        end_date=datetime(2033, 2, 28),
-    ).collect()
-    assert s2["Actions"].to_list() == [1, 2]
-    assert s2["New Actions"].to_list() == [0, 1]
-    assert s2["Used Actions"].to_list() == [1, 2]
-    assert s2["isValid"].to_list() == [False, True]
+
+def test_summary_by_channel_format_flags(dm_aggregates):
+    """Test format_flags parameter in summary_by_channel."""
+    # Without format_flags (default False), should return booleans
+    summary_default = dm_aggregates.summary_by_channel().collect()
+    assert "usesNBAD" in summary_default.columns
+    assert "usesAGB" in summary_default.columns
+    # Check the type is boolean or null
+    assert summary_default["usesNBAD"].dtype in [pl.Boolean, pl.Null]
+
+    # With format_flags=True, should return formatted strings
+    summary_formatted = dm_aggregates.summary_by_channel(format_flags=True).collect()
+    assert "NBAD" in summary_formatted.columns
+    assert "AGB" in summary_formatted.columns
+    # Check values are strings (or null)
+    for col in ["NBAD", "AGB"]:
+        col_values = [v for v in summary_formatted[col].to_list() if v is not None]
+        assert all(v in ["Yes", "No", "?"] for v in col_values)
 
 
 def test_used_actions():

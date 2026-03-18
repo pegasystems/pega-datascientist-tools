@@ -240,3 +240,35 @@ def test_predictor_categorization_dictionary_regexps(sample):
         .to_list()
     )
     assert "XGBoost Model" in cats
+
+
+def test_get_last_data_for_report(sample: ADMDatamart):
+    """Test get_last_data_for_report formatting."""
+    report_data = sample.get_last_data_for_report()
+
+    # Should return a collected DataFrame
+    assert isinstance(report_data, pl.DataFrame)
+    assert report_data.height > 0
+
+    # Check that nulls are filled with "NA" for string columns
+    string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
+    for col in string_cols:
+        # Should not have null values in string columns
+        if col in ["Channel", "Direction", "Configuration"]:
+            assert report_data[col].null_count() == 0
+
+    # Check SuccessRate and Performance are filled with 0 for null/nan
+    if "SuccessRate" in report_data.columns:
+        success_rates = report_data["SuccessRate"].to_list()
+        assert all(v is not None or v == 0 for v in success_rates)
+
+    if "Performance" in report_data.columns:
+        performances = report_data["Performance"].to_list()
+        assert all(v is not None or v == 0 for v in performances)
+
+    # Check Channel/Direction concatenated column exists
+    assert "Channel/Direction" in report_data.columns
+
+    # Verify no categorical columns remain (all should be cast to string)
+    for col in report_data.columns:
+        assert report_data[col].dtype != pl.Categorical

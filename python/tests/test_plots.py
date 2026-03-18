@@ -348,3 +348,95 @@ def test_partitioned_plot(sample: ADMDatamart):
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
     assert all(isinstance(plot, Figure) for plot in plots)
+
+
+def test_gains_chart_basic(sample: ADMDatamart):
+    """Test basic gains chart creation."""
+    fig = sample.plot.gains_chart(value="ResponseCount")
+    assert isinstance(fig, Figure)
+    assert fig.layout.xaxis.title.text == "% of Population"
+    assert fig.layout.yaxis.title.text == "% of Responders"
+
+
+def test_gains_chart_return_df(sample: ADMDatamart):
+    """Test gains chart data return."""
+    df = sample.plot.gains_chart(value="ResponseCount", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    schema = df.collect_schema().names()
+    assert "cum_x" in schema
+    assert "cum_y" in schema
+
+    # Verify data makes sense
+    collected = df.collect()
+    assert collected.height > 0
+    # Cumulative y should end at 1.0 (100%)
+    assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+
+def test_gains_chart_with_grouping(sample: ADMDatamart):
+    """Test gains chart with by parameter."""
+    fig = sample.plot.gains_chart(value="ResponseCount", by="Channel")
+    assert isinstance(fig, Figure)
+    # Should have multiple traces, one per Channel
+    assert len(fig.data) > 1
+
+
+def test_gains_chart_with_index(sample: ADMDatamart):
+    """Test gains chart with index parameter."""
+    df = sample.plot.gains_chart(value="Positives", index="ResponseCount", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    # Verify index column is used for sorting
+    collected = df.collect()
+    assert collected.height > 0
+
+
+def test_gains_chart_with_query(sample: ADMDatamart):
+    """Test gains chart with query filter."""
+    df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Performance") > 60, return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    # Should still return data for filtered subset
+    assert df.collect().height > 0
+
+
+def test_performance_volume_distribution_basic(sample: ADMDatamart):
+    """Test basic performance volume distribution chart."""
+    fig = sample.plot.performance_volume_distribution()
+    assert isinstance(fig, Figure)
+
+
+def test_performance_volume_distribution_return_df(sample: ADMDatamart):
+    """Test performance volume distribution data return."""
+    df = sample.plot.performance_volume_distribution(return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    schema = df.collect_schema().names()
+    assert "Performance_Bin" in schema
+    assert "ResponseCount" in schema
+
+    # Verify binning worked
+    collected = df.collect()
+    assert collected.height > 0
+
+
+def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
+    """Test performance volume distribution with by parameter."""
+    fig = sample.plot.performance_volume_distribution(by="Channel")
+    assert isinstance(fig, Figure)
+    # Should have multiple traces for different channels
+    assert len(fig.data) > 1
+
+
+def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
+    """Test performance volume distribution with custom bin width."""
+    df = sample.plot.performance_volume_distribution(bin_width=5, return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    collected = df.collect()
+    # With bin_width=5, we should have ~10 bins (50-100 range)
+    num_bins = collected["Performance_Bin"].n_unique()
+    assert 8 <= num_bins <= 12  # Allow some tolerance
+
+
+def test_performance_volume_distribution_with_query(sample: ADMDatamart):
+    """Test performance volume distribution with query filter."""
+    df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    assert df.collect().height > 0
