@@ -3,6 +3,7 @@ import pathlib
 import pytest
 from openpyxl import load_workbook
 from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
+from pdstools.utils.report_utils import check_report_for_errors
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -34,6 +35,21 @@ def test_GenerateHealthCheck(sample: ADMDatamart):
     assert pathlib.Path(hc).exists()
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
+
+
+def test_HealthCheck_NoErrors(sample: ADMDatamart, tmp_path):
+    """Test that HealthCheck report generates without errors."""
+    hc = sample.generate.health_check(output_dir=tmp_path, name="error_check")
+    assert pathlib.Path(hc).exists()
+
+    # Check for errors in the generated HTML
+    errors = check_report_for_errors(hc)
+
+    # Clean up
+    pathlib.Path(hc).unlink()
+
+    # Assert no errors were found
+    assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
 @pytest.mark.slow

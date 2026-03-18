@@ -471,3 +471,205 @@ class TestDeserializeQuery:
         """Deserializing an unknown type raises ValueError."""
         with pytest.raises(ValueError, match="Unknown query type"):
             report_utils.deserialize_query({"type": "unknown"})
+
+
+class TestGainsTable:
+    """Tests for gains_table utility function."""
+
+    def test_basic_gains_calculation(self):
+        """Test basic gains table with simple data."""
+        df = pl.DataFrame(
+            {
+                "ModelID": ["A", "B", "C", "D"],
+                "ResponseCount": [100, 200, 50, 150],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="ResponseCount")
+
+        assert isinstance(result, pl.DataFrame)
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+
+        # Cumulative y should end at 1.0 (100%)
+        assert result["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+        # Should include (0,0) starting point plus 4 data points
+        assert result.height == 5
+
+    def test_gains_with_index(self):
+        """Test gains table with index parameter for normalization."""
+        df = pl.DataFrame(
+            {
+                "Action": ["A", "B", "C"],
+                "Positives": [100, 200, 50],
+                "ResponseCount": [1000, 2000, 500],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="Positives", index="ResponseCount")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 4  # 3 data points + (0,0)
+        # Should sort by Positives/ResponseCount ratio
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+        assert result["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_with_grouping(self):
+        """Test gains table with by parameter for grouping."""
+        df = pl.DataFrame(
+            {
+                "Channel": ["Web", "Web", "Email", "Email"],
+                "Action": ["A", "B", "C", "D"],
+                "ResponseCount": [100, 200, 150, 50],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="ResponseCount", by="Channel")
+
+        assert isinstance(result, pl.DataFrame)
+        # Should have data for both channels
+        assert "Channel" in result.columns
+        channels = result["Channel"].unique().to_list()
+        assert set(channels) == {"Web", "Email"}
+
+        # Each channel should have cumulative y ending at 1.0
+        for channel in channels:
+            channel_data = result.filter(pl.col("Channel") == channel)
+            last_y = channel_data["cum_y"][-1]
+            assert last_y == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_single_row(self):
+        """Test gains table with single row edge case."""
+        df = pl.DataFrame({"Model": ["A"], "Value": [100]}).lazy()
+
+        result = report_utils.gains_table(df, value="Value")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 2  # (0,0) + 1 data point
+        assert result["cum_y"][1] == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_zero_values(self):
+        """Test gains table with zero values."""
+        df = pl.DataFrame(
+            {
+                "Model": ["A", "B", "C"],
+                "Value": [0, 100, 200],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="Value")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 4  # (0,0) + 3 data points
+        # Should handle zeros gracefully
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+
+
+class TestCheckReportForErrors:
+    """Tests for check_report_for_errors utility function."""
+
+    def test_clean_report(self, tmp_path):
+        """Test that a clean HTML report returns no errors."""
+        html_file = tmp_path / "clean_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <head><title>Test Report</title></head>
+                <body>
+                    <h1>Health Check Report</h1>
+                    <p>Everything is working correctly.</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert errors == []
+
+    def test_report_with_rendering_error(self, tmp_path):
+        """Test detection of plot rendering errors."""
+        html_file = tmp_path / "error_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <div class="callout-important">
+                        <p>Error rendering Model Performance plot: ValueError</p>
+                    </div>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) > 0
+        assert any("Plot rendering error" in e for e in errors)
+
+    def test_report_with_traceback(self, tmp_path):
+        """Test detection of Python tracebacks."""
+        html_file = tmp_path / "traceback_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <pre>
+                    Traceback (most recent call last):
+                      File "test.py", line 10, in function
+                        raise ValueError("Something went wrong")
+                    ValueError: Something went wrong
+                    </pre>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) >= 2  # Should catch both "Traceback" and "ValueError:"
+        assert any("Python traceback" in e for e in errors)
+        assert any("ValueError" in e for e in errors)
+
+    def test_report_with_multiple_errors(self, tmp_path):
+        """Test counting of multiple occurrences of the same error."""
+        html_file = tmp_path / "multi_error_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <p>Error rendering Chart 1: TypeError</p>
+                    <p>Error rendering Chart 2: TypeError</p>
+                    <p>Error rendering Chart 3: TypeError</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        # Should report count of errors
+        assert any("found 3 times" in e for e in errors)
+
+    def test_nonexistent_file(self, tmp_path):
+        """Test that nonexistent file raises FileNotFoundError."""
+        html_file = tmp_path / "does_not_exist.html"
+
+        with pytest.raises(FileNotFoundError):
+            report_utils.check_report_for_errors(html_file)
+
+    def test_empty_dataframe_error(self, tmp_path):
+        """Test detection of empty dataframe error."""
+        html_file = tmp_path / "empty_df_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <p>The given query resulted in an empty dataframe</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) > 0
+        assert any("Empty dataframe error" in e for e in errors)

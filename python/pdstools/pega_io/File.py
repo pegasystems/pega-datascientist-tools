@@ -449,6 +449,39 @@ def read_ds_export(
     return import_file(file, extension, **reading_opts)
 
 
+def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Fill nulls in context fields to prevent issues in downstream operations.
+
+    Context fields (Channel, Direction, Issue, Group, Name) often have nulls in
+    source data which can cause errors in group_by, transpose, and concat_str
+    operations. This function fills nulls with "Unknown" to ensure these operations
+    work correctly.
+
+    Note: Treatment is intentionally NOT filled because null Treatment has semantic
+    meaning (no treatment variation exists for that action).
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Input dataframe
+
+    Returns
+    -------
+    pl.LazyFrame
+        Dataframe with nulls filled in context fields
+
+    """
+    context_fields = ["Channel", "Direction", "Issue", "Group", "Name"]
+
+    # Only fill nulls for columns that exist in the dataframe
+    existing_context_fields = [col for col in context_fields if col in df.collect_schema().names()]
+
+    if existing_context_fields:
+        return df.with_columns([pl.col(col).fill_null("Unknown") for col in existing_context_fields])
+
+    return df
+
+
 def import_file(
     file: str | BytesIO,
     extension: str,
@@ -502,11 +535,11 @@ def import_file(
             ignore_errors=reading_opts.get("ignore_errors", False),
         )
         if isinstance(file, BytesIO):
-            return pl.read_csv(
-                file,
-                **csv_opts,
-            ).lazy()
-        return pl.scan_csv(file, **csv_opts)
+            df = pl.read_csv(file, **csv_opts).lazy()
+        else:
+            df = pl.scan_csv(file, **csv_opts)
+        # Fill nulls in context fields to prevent issues in downstream operations
+        return _fill_context_field_nulls(df)
 
     if extension == ".json":
         try:
@@ -519,29 +552,37 @@ def import_file(
             #         )
             #     )
             # else:
-            return pl.scan_ndjson(
+            df = pl.scan_ndjson(
                 file,
                 infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
             )
         except Exception:  # pragma: no cover
             try:
-                return pl.read_json(file).lazy()
+                df = pl.read_json(file).lazy()
             except Exception:
                 import json
 
                 with open(file) as f:  # type: ignore[arg-type]
-                    return pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
+                    df = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
+        # Fill nulls in context fields to prevent issues in downstream operations
+        return _fill_context_field_nulls(df)
 
     if extension == ".parquet":
         if isinstance(file, BytesIO):
             file.seek(0)
-            return pl.read_parquet(file).lazy()
-        return pl.scan_parquet(file)
+            df = pl.read_parquet(file).lazy()
+        else:
+            df = pl.scan_parquet(file)
+        # Fill nulls in context fields to prevent issues in downstream operations
+        return _fill_context_field_nulls(df)
 
     if extension.casefold() in {".feather", ".ipc", ".arrow"}:
         if isinstance(file, BytesIO):
-            return pl.read_ipc(file).lazy()
-        return pl.scan_ipc(file)
+            df = pl.read_ipc(file).lazy()
+        else:
+            df = pl.scan_ipc(file)
+        # Fill nulls in context fields to prevent issues in downstream operations
+        return _fill_context_field_nulls(df)
 
     raise ValueError(f"Could not import file: {file}, with extension {extension}")
 

@@ -125,6 +125,15 @@ class Aggregates:
             query,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
+
+        # Handle case where there are no predictors
+        if len(unique_predictors) == 0:
+            if isinstance(by, str):
+                by_name = by
+            else:
+                by_name = by.meta.output_name()
+            return pl.LazyFrame({by_name: []})
+
         if isinstance(by, str):
             by_col = pl.col(by)
             by_name = by
@@ -132,6 +141,8 @@ class Aggregates:
             by_col = by
             by_name = by.meta.output_name()
         action_predictor = by_col.meta.root_names() + ["PredictorName"]
+
+        # Filter out null values in the grouping column to avoid transpose errors
         q = (
             (
                 df.filter(pl.col("ResponseCount") > 0)
@@ -147,7 +158,10 @@ class Aggregates:
                     ),
                 )
             )
-            .group_by(by_col)
+            # Materialize the by_col expression first, then filter nulls
+            .with_columns(by_col)
+            .filter(pl.col(by_name).is_not_null())
+            .group_by(by_name)  # Use by_name since by_col is now materialized
             .agg(
                 [
                     (
@@ -554,6 +568,7 @@ class Aggregates:
         every: str | None = None,
         custom_channels: dict[str, str] | None = None,
         debug: bool = False,
+        format_flags: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
 
@@ -577,6 +592,9 @@ class Aggregates:
 
             This parameter affects the return value structure, not logging output.
             For debug logging, use logging.basicConfig(level=logging.DEBUG).
+        format_flags : bool, default False
+            If True, format boolean flag columns (usesNBAD, usesAGB) as "Yes"/"No"/"?" strings
+            for display in reports. If False, keeps original boolean/null values.
 
         Returns
         -------
@@ -672,7 +690,7 @@ class Aggregates:
             .explode(["Channel", "Direction", "OmniChannel"])
         )
 
-        return (
+        result = (
             summary_by_channel.drop(["AllActions"])
             .join(
                 omni_channel_summary,
@@ -692,6 +710,27 @@ class Aggregates:
             .sort("Channel", "Direction", "DateRange Min")
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
+
+        # Format boolean flags as strings if requested
+        if format_flags:
+            result = result.with_columns(
+                [
+                    pl.when(pl.col("usesNBAD").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesNBAD"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("NBAD"),
+                    pl.when(pl.col("usesAGB").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesAGB"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("AGB"),
+                ]
+            )
+
+        return result
 
     def summary_by_configuration(self) -> pl.LazyFrame:
         """Generates a summary of the ADM model configurations.

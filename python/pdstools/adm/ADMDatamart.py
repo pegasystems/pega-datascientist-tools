@@ -754,6 +754,46 @@ class ADMDatamart:
             .collect()["PredictorCategory"],
         )
 
+    def get_last_data_for_report(self) -> pl.DataFrame:
+        """Get the last snapshot of data formatted for report display.
+
+        This method provides a standardized view of the most recent model data
+        with formatting suitable for Health Check reports and other documents.
+        It handles null values, type conversions, and creates useful combined
+        columns like "Channel/Direction".
+
+        Returns
+        -------
+        pl.DataFrame
+            Collected DataFrame with the following transformations applied:
+            - Categorical columns cast to strings
+            - String and Null columns filled with "NA"
+            - SuccessRate and Performance filled with 0 for nulls/NaNs
+            - ResponseCount filled with 0 for nulls
+            - Channel/Direction combined column created
+
+        Examples
+        --------
+        >>> datamart = ADMDatamart.from_ds_export(model_filename="models.csv")
+        >>> last_data = datamart.get_last_data_for_report()
+        >>> # Use in reports without additional processing
+        >>> active_models = last_data.filter(pl.col("ResponseCount") > 1000)
+        """
+        return (
+            self.aggregates.last()
+            .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+            .with_columns(
+                [
+                    pl.col(pl.Utf8).fill_null("NA"),
+                    pl.col(pl.Null).fill_null("NA"),
+                    pl.col("SuccessRate").fill_nan(0).fill_null(0),
+                    pl.col("Performance").fill_nan(0).fill_null(0),
+                    pl.col("ResponseCount").fill_null(0),
+                    (pl.concat_str("Channel/Direction".split("/"), separator="/")).alias("Channel/Direction"),
+                ]
+            )
+        ).collect()
+
     # min and max score (sum of log odds) per model, plus some extra summary statistics per model
     @classmethod
     def _minMaxScoresPerModel(cls, bin_data: pl.LazyFrame) -> pl.LazyFrame:
