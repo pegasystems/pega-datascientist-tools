@@ -1,6 +1,7 @@
 ---
 title: "{CONTEXT_STR}"
-format: html
+date: today
+published-title: "Report generated on"
 ---
 
 ## Model context info
@@ -18,3 +19,23 @@ The top-{TOP_N} predictors for the context, selected by their {CONTRIBUTION_TEXT
 The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their {CONTRIBUTION_TEXT} to predictions.
 
 {{{{< embed {EMBED_PATH_FOR_BATCH}#{CONTEXT_LABEL}-predictors >}}}}
+
+
+# Credits
+
+```{{python}}
+# | echo: false
+from pdstools.utils import report_utils, show_versions
+report_utils.show_credits()
+show_versions.show_versions(include_dependencies=False)
+```
+
+::: {{.callout-note collapse="true"}}
+## Expand for detailed version information
+```{{python}}
+# | echo: false
+show_versions.show_versions()
+```
+:::
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

@@ -1,25 +1,14 @@
 ---
 title: "Getting Started"
-title-block-banner: true
-author: "Pega Data Scientist tools"
 date: today
 published-title: "Report generated on"
-format:
-  html:
-    page-layout: full
-    code-fold: true
-    standalone: true
-    toc: true
-    theme:
-      light: flatly
-    css: assets/pega-report-overrides.css
 ---
 
 ## Introduction
 
 This report contains a break down of the {CONTRIBUTION_TEXT} for each predictor made to model predictions. The report is generated over the aggregated explanations data {DATE_INFO}.
 
-::: {.callout-tip}
+::: {{.callout-tip}}
 Charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/).
 These interactive plots do not render well in portals like Sharepoint or Box. View from a browser for best experience.
 :::
@@ -37,16 +26,16 @@ The **By Model Context** section displays the same information as in the model o
 
 # Credits
 
-```{python}
+```{{python}}
 # | echo: false
-from pdstools.utils import show_versions
-report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/GlobalExplanations/assets/templates/getting-started.qmd")
+from pdstools.utils import report_utils, show_versions
+report_utils.show_credits()
 show_versions.show_versions(include_dependencies=False)
 ```
 
-::: {.callout-note collapse="true"}
+::: {{.callout-note collapse="true"}}
 ## Expand for detailed version information
-```{python}
+```{{python}}
 # | echo: false
 show_versions.show_versions()
 ```

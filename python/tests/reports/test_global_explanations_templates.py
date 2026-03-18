@@ -1,19 +1,77 @@
 """Tests for GlobalExplanations template validation."""
 
 from pathlib import Path
+import re
+
+import pytest
+
+TEMPLATES_DIR = (
+    Path(__file__).parent.parent.parent
+    / "pdstools"
+    / "reports"
+    / "GlobalExplanations"
+    / "assets"
+    / "templates"
+)
+
+TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
+    "getting-started.qmd": {
+        "{DATE_INFO}",
+        "{TOP_N}",
+        "{TOP_K}",
+        "{CONTRIBUTION_TEXT}",
+        "{MODEL_CONTEXT_LIMIT}",
+    },
+    "overview.qmd": {
+        "{ROOT_DIR}",
+        "{DATA_FOLDER}",
+        "{TOP_N}",
+        "{TOP_K}",
+        "{CONTRIBUTION_TYPE}",
+        "{CONTRIBUTION_TEXT}",
+    },
+    "context.qmd": {
+        "{CONTEXT_STR}",
+        "{EMBED_PATH_FOR_BATCH}",
+        "{CONTEXT_LABEL}",
+        "{TOP_N}",
+        "{CONTRIBUTION_TEXT}",
+    },
+    "all_context_header.qmd": {
+        "{ROOT_DIR}",
+        "{DATA_FOLDER}",
+        "{DATA_PATTERN}",
+        "{TOP_N}",
+        "{CONTRIBUTION_TEXT}",
+    },
+    "all_context_content.qmd": {
+        "{CONTEXT_DICT}",
+        "{CONTEXT_LABEL}",
+        "{TOP_N}",
+        "{TOP_K}",
+        "{CONTRIBUTION_TYPE}",
+    },
+}
+
+
+TEMPLATES_WITH_PYTHON_BLOCKS: list[str] = [
+    "getting-started.qmd",
+    "overview.qmd",
+    "context.qmd",
+    "all_context_header.qmd",
+    "all_context_content.qmd",
+]
+
+TEMPLATES_WITH_YAML_FRONTMATTER: dict[str, str] = {
+    "getting-started.qmd": '"Getting Started"',
+    "overview.qmd": '"Model Overview"',
+    "context.qmd": '"{CONTEXT_STR}"',
+}
 
 
 def get_template_path(filename: str) -> Path:
     """Get path to a GlobalExplanations template file."""
-    return (
-        Path(__file__).parent.parent.parent
-        / "pdstools"
-        / "reports"
-        / "GlobalExplanations"
-        / "assets"
-        / "templates"
-        / filename
-    )
+    return TEMPLATES_DIR / filename
 
 
 class TestTemplateFiles:
@@ -48,27 +106,6 @@ class TestTemplateFiles:
 class TestGettingStartedTemplate:
     """Test getting-started.qmd meets Quarto standards."""
 
-    def test_has_yaml_frontmatter(self):
-        """Test template has complete YAML front matter."""
-        template_path = get_template_path("getting-started.qmd")
-        content = template_path.read_text()
-
-        # Check for required YAML elements
-        assert "title-block-banner: true" in content
-        assert 'author: "Pega Data Scientist tools"' in content
-        assert "date: today" in content
-        assert "code-fold: true" in content
-        assert "css: assets/pega-report-overrides.css" in content
-
-    def test_has_credits_section(self):
-        """Test template has credits section."""
-        template_path = get_template_path("getting-started.qmd")
-        content = template_path.read_text()
-
-        assert "# Credits" in content
-        assert "report_utils.show_credits" in content
-        assert "show_versions.show_versions" in content
-
     def test_has_interactive_plot_disclaimer(self):
         """Test template has interactive plot disclaimer."""
         template_path = get_template_path("getting-started.qmd")
@@ -78,197 +115,97 @@ class TestGettingStartedTemplate:
         assert "Plotly" in content
         assert "interactive plots" in content
 
-    def test_preserves_placeholders(self):
-        """Test template preserves all original placeholders."""
-        template_path = get_template_path("getting-started.qmd")
-        content = template_path.read_text()
-
-        placeholders = ["{DATE_INFO}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TEXT}", "{MODEL_CONTEXT_LIMIT}"]
-        for placeholder in placeholders:
-            assert placeholder in content, f"Missing placeholder: {placeholder}"
-
-
-class TestOverviewTemplate:
-    """Test overview.qmd meets Quarto standards."""
-
-    def test_has_yaml_frontmatter(self):
-        """Test template has complete YAML front matter."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        assert "title-block-banner: true" in content
-        assert 'author: "Pega Data Scientist tools"' in content
-        assert "css: assets/pega-report-overrides.css" in content
-
-    def test_has_import_block(self):
-        """Test template has proper import block."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        assert "from pdstools.utils import report_utils" in content
-        assert "echo: false" in content
-
-    def test_has_error_handling(self):
-        """Test template wraps plots in try/except."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        assert "try:" in content
-        assert "except Exception as e:" in content
-        assert "report_utils.quarto_plot_exception" in content
-
-    def test_has_pega_template(self):
-        """Test template applies Pega styling to plots."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        assert 'template="pega"' in content or "template='pega'" in content
-
-    def test_has_credits_section(self):
-        """Test template has credits section."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        assert "# Credits" in content
-        assert "report_utils.show_credits" in content
-
-    def test_preserves_placeholders(self):
-        """Test template preserves all original placeholders."""
-        template_path = get_template_path("overview.qmd")
-        content = template_path.read_text()
-
-        placeholders = [
-            "{ROOT_DIR}",
-            "{DATA_FOLDER}",
-            "{TOP_N}",
-            "{TOP_K}",
-            "{CONTRIBUTION_TYPE}",
-            "{CONTRIBUTION_TEXT}",
-        ]
-        for placeholder in placeholders:
-            assert placeholder in content, f"Missing placeholder: {placeholder}"
-
-
-class TestContextTemplate:
-    """Test context.qmd meets minimal Quarto standards."""
-
-    def test_has_yaml_frontmatter(self):
-        """Test template has minimal YAML front matter."""
-        template_path = get_template_path("context.qmd")
-        content = template_path.read_text()
-
-        assert "format: html" in content
-
-    def test_preserves_embed_syntax(self):
-        """Test template preserves Quarto embed syntax."""
-        template_path = get_template_path("context.qmd")
-        content = template_path.read_text()
-
-        assert "{{{{< embed" in content
-        assert ">}}}}" in content
-
-    def test_preserves_placeholders(self):
-        """Test template preserves all original placeholders."""
-        template_path = get_template_path("context.qmd")
-        content = template_path.read_text()
-
-        placeholders = ["{CONTEXT_STR}", "{EMBED_PATH_FOR_BATCH}", "{CONTEXT_LABEL}", "{TOP_N}", "{CONTRIBUTION_TEXT}"]
-        for placeholder in placeholders:
-            assert placeholder in content, f"Missing placeholder: {placeholder}"
-
-
-class TestAllContextHeaderTemplate:
-    """Test all_context_header.qmd meets Quarto standards."""
-
-    def test_has_error_handling(self):
-        """Test template wraps initialization in try/except."""
-        template_path = get_template_path("all_context_header.qmd")
-        content = template_path.read_text()
-
-        assert "try:" in content
-        assert "except Exception as e:" in content
-        assert "logger.error" in content or "report_utils" in content
-
-    def test_has_import_block(self):
-        """Test template has proper import block."""
-        template_path = get_template_path("all_context_header.qmd")
-        content = template_path.read_text()
-
-        assert "from pdstools.explanations import Explanations" in content
-
-    def test_preserves_placeholders(self):
-        """Test template preserves all original placeholders."""
-        template_path = get_template_path("all_context_header.qmd")
-        content = template_path.read_text()
-
-        placeholders = ["{ROOT_DIR}", "{DATA_FOLDER}", "{DATA_PATTERN}", "{TOP_N}", "{CONTRIBUTION_TEXT}"]
-        for placeholder in placeholders:
-            assert placeholder in content, f"Missing placeholder: {placeholder}"
-
-
-class TestAllContextContentTemplate:
-    """Test all_context_content.qmd meets Quarto standards."""
-
-    def test_has_error_handling(self):
-        """Test template wraps plots in try/except."""
-        template_path = get_template_path("all_context_content.qmd")
-        content = template_path.read_text()
-
-        assert "try:" in content
-        assert "except Exception as e:" in content
-        assert "report_utils.quarto_plot_exception" in content
-
-    def test_has_pega_template(self):
-        """Test template applies Pega styling to plots."""
-        template_path = get_template_path("all_context_content.qmd")
-        content = template_path.read_text()
-
-        assert 'template="pega"' in content or "template='pega'" in content
-
-    def test_preserves_placeholders(self):
-        """Test template preserves all original placeholders."""
-        template_path = get_template_path("all_context_content.qmd")
-        content = template_path.read_text()
-
-        placeholders = ["{CONTEXT_DICT}", "{CONTEXT_LABEL}", "{TOP_N}", "{TOP_K}", "{CONTRIBUTION_TYPE}"]
-        for placeholder in placeholders:
-            assert placeholder in content, f"Missing placeholder: {placeholder}"
-
 
 class TestTemplatePlaceholders:
-    """Test that all templates handle placeholders correctly."""
+    """Test placeholder correctness across all templates."""
 
-    def test_no_hardcoded_values(self):
-        """Test templates use placeholders, not hardcoded values."""
-        templates = [
-            "getting-started.qmd",
-            "overview.qmd",
-            "all_context_header.qmd",
-            "all_context_content.qmd",
-        ]
+    @pytest.mark.parametrize(
+        "template_name", list(TEMPLATE_PLACEHOLDERS.keys())
+    )
+    def test_contains_expected_placeholders(self, template_name):
+        """Test each template contains all its expected placeholders."""
+        content = get_template_path(template_name).read_text()
+        expected = TEMPLATE_PLACEHOLDERS[template_name]
 
-        for template_name in templates:
-            template_path = get_template_path(template_name)
-            content = template_path.read_text()
+        for placeholder in expected:
+            assert placeholder in content, (
+                f"{template_name} missing placeholder: {placeholder}"
+            )
 
-            # Should not have hardcoded paths
-            assert "/absolute/path/" not in content, f"{template_name} has hardcoded absolute path"
-            assert "C:\\" not in content, f"{template_name} has hardcoded Windows path"
+    @pytest.mark.parametrize(
+        "template_name", list(TEMPLATE_PLACEHOLDERS.keys())
+    )
+    def test_no_unexpected_placeholders(self, template_name):
+        """Test each template contains only its expected placeholders."""
+        content = get_template_path(template_name).read_text()
+        expected = TEMPLATE_PLACEHOLDERS[template_name]
+        found = set(re.findall(r"\{[A-Z_]+\}", content))
+
+        unexpected = found - expected
+        assert not unexpected, (
+            f"{template_name} has unexpected placeholders: {unexpected}"
+        )
+
+
+class TestCommonComponents:
+    """Test common components shared across multiple templates."""
+
+    @pytest.mark.parametrize(
+        "template_name,expected_title",
+        list(TEMPLATES_WITH_YAML_FRONTMATTER.items()),
+    )
+    def test_has_yaml_frontmatter(self, template_name, expected_title):
+        """Test templates have YAML front matter with title, date, and published-title."""
+        content = get_template_path(template_name).read_text()
+
+        assert f"title: {expected_title}" in content, (
+            f"{template_name} missing expected title: {expected_title}"
+        )
+        assert "date: today" in content, (
+            f"{template_name} missing 'date: today'"
+        )
+        assert 'published-title: "Report generated on"' in content, (
+            f"{template_name} missing published-title"
+        )
+
+    @pytest.mark.parametrize(
+        "template_name",
+        ["getting-started.qmd", "overview.qmd", "context.qmd"],
+    )
+    def test_has_credits_section(self, template_name):
+        """Test templates include a credits section."""
+        content = get_template_path(template_name).read_text()
+
+        assert "# Credits" in content, f"{template_name} missing credits header"
+        assert (
+            "from pdstools.utils import report_utils, show_versions" in content
+        ), f"{template_name} missing credits imports"
+        assert (
+            "report_utils.show_credits" in content
+        ), f"{template_name} missing show_credits call"
+        assert (
+            "show_versions.show_versions" in content
+        ), f"{template_name} missing show_versions call"
+
+
+    @pytest.mark.parametrize(
+        "template_name", TEMPLATES_WITH_PYTHON_BLOCKS
+    )
+    def test_python_blocks_use_double_braces(self, template_name):
+        """Test python code blocks use Quarto template syntax ``{{python}}``."""
+        content = get_template_path(template_name).read_text()
+
+        assert "```{{python}}" in content, (
+            f"{template_name} has no ```{{{{python}}}}` blocks"
+        )
+        assert "```{python}" not in content, (
+            f"{template_name} uses single-brace ```{{python}}` "
+            "instead of double-brace ```{{{{python}}}}`"
+        )
 
 
 class TestTemplateConsistency:
     """Test consistency across templates."""
-
-    def test_all_main_templates_have_credits(self):
-        """Test main templates include credits sections."""
-        main_templates = ["getting-started.qmd", "overview.qmd"]
-
-        for template_name in main_templates:
-            template_path = get_template_path(template_name)
-            content = template_path.read_text()
-
-            assert "# Credits" in content, f"{template_name} missing credits header"
-            assert "show_credits" in content, f"{template_name} missing show_credits call"
 
     def test_all_code_templates_have_error_handling(self):
         """Test templates with plot code include error handling."""

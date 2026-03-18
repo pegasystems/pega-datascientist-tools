@@ -1,17 +1,7 @@
 ---
 title: "Model Overview"
-title-block-banner: true
-author: "Pega Data Scientist tools"
 date: today
-format:
-  html:
-    page-layout: full
-    code-fold: true
-    standalone: true
-    toc: true
-    theme:
-      light: flatly
-    css: assets/pega-report-overrides.css
+published-title: "Report generated on"
 ---
 
 ```{{python}}
@@ -35,7 +25,7 @@ try:
         top_k={TOP_K},
         contribution_calculation="{CONTRIBUTION_TYPE}"
     )
-    overall_plot.update_layout(template="pega")
+    overall_plot.update_layout()
     overall_plot.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Overall Predictor Contributions", e)
@@ -52,7 +42,7 @@ try:
     for plot in predictor_plots:
         title = plot.layout['title']['text']
         plot.layout['title']['text'] = ''
-        plot.update_layout(template="pega")
+        plot.update_layout()
         display(Markdown(f'### {{title}}'), plot)
 except Exception as e:
     report_utils.quarto_plot_exception("Predictor Value Contributions", e)
@@ -62,7 +52,7 @@ except Exception as e:
 
 ```{{python}}
 # | echo: false
-report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/GlobalExplanations/assets/templates/overview.qmd")
+report_utils.show_credits()
 show_versions.show_versions(include_dependencies=False)
 ```
 

@@ -11,7 +11,7 @@ try:
         contribution_calculation="{CONTRIBUTION_TYPE}"
     )
 
-    header_tbl.update_layout(title="", template="pega")
+    header_tbl.update_layout(title="")
     header_tbl.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Context Header Table", e)
@@ -21,7 +21,7 @@ except Exception as e:
 #| label: {CONTEXT_LABEL}-overall
 
 try:
-    overall_fig.update_layout(title="", template="pega")
+    overall_fig.update_layout(title="")
     overall_fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Context Overall Figure", e)
@@ -33,7 +33,6 @@ except Exception as e:
 try:
     for plot in predictor_figs:
         title = plot.layout['title']['text']
-        plot.update_layout(template="pega")
         display(Markdown(f'### {{title}}'), plot)
 except Exception as e:
     report_utils.quarto_plot_exception("Context Predictor Figures", e)

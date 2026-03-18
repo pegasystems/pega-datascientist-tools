@@ -929,24 +929,33 @@ def sample_values(dm, all_dm_cols, fld, n=6):
     )
 
 
-def show_credits(quarto_source: str):
+def show_credits(quarto_source: str | None = None):
+    """Display a credits section with build metadata at the end of a report.
+
+    Prints a formatted block containing the generation timestamp, Quarto and
+    Pandoc versions, and optionally the source notebook path.
+
+    Parameters
+    ----------
+    quarto_source : str, optional
+        Path or identifier of the source .qmd file. Include this for
+        standalone reports where knowing the source is useful. Omit for
+        Quarto website projects where pages are generated from templates.
+    """
     _, quarto_version = get_quarto_with_version(verbose=False)
     _, pandoc_version = get_pandoc_with_version(verbose=False)
 
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-    quarto_print(
-        f"""
+    lines = [f"Document created at: {timestamp_str}",]
+    if quarto_source:
+        lines.append(f"This notebook: {quarto_source}")
+    lines.extend([
+        f"Quarto runtime: {quarto_version}",
+        f"Pandoc: {pandoc_version}",
+    ])
 
-    Document created at: {timestamp_str}
-
-    This notebook: {quarto_source}
-
-    Quarto runtime: {quarto_version}
-    Pandoc: {pandoc_version}
-
-    """,
-    )
+    quarto_print("\n\n    ".join([""] + lines) + "\n\n    ")
 
 
 def serialize_query(query: QUERY | None) -> dict | None:

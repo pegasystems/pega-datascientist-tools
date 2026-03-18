@@ -212,16 +212,32 @@ class TestReportGeneration:
         assert "---" in context_content
         assert "embed" in context_content
 
-    def test_template_string_substitution(self, mock_templates):
-        """Test that _read_template reads template content correctly."""
-        # This test verifies the template reading mechanism with mocked templates
-        template_content = mock_templates["getting-started.qmd"]
 
-        # Verify template has placeholders (not substituted yet)
-        assert "{TOP_N}" in template_content
-        assert "{TOP_K}" in template_content
-        assert "{DATE_INFO}" in template_content
+class TestReadParams:
+    """Test _read_params loads values from file or applies defaults."""
 
-        # Verify template has YAML front matter
-        assert template_content.startswith("---")
-        assert "title:" in template_content
+    def test_params_from_file(self, temp_report_dir, params_file, monkeypatch):
+        """Test parameters are read from an existing params.yml."""
+        monkeypatch.chdir(temp_report_dir)
+        generator = ReportGenerator()
+
+        assert generator.top_n == 15
+        assert generator.top_k == 10
+        assert generator.from_date == "2026-01-01"
+        assert generator.to_date == "2026-01-31"
+        assert generator.contribution_type == "contribution"
+        assert generator.contribution_text == "average contribution"
+        assert generator.data_folder.endswith("aggregated_data")
+
+    def test_params_defaults_when_no_file(self, temp_report_dir, monkeypatch):
+        """Test default values are applied when params.yml does not exist."""
+        monkeypatch.chdir(temp_report_dir)
+        generator = ReportGenerator()
+
+        assert generator.top_n == 20
+        assert generator.top_k == 20
+        assert generator.from_date == "N/A"
+        assert generator.to_date == "N/A"
+        assert generator.contribution_type == "contribution"
+        assert generator.contribution_text == "average contribution"
+        assert generator.data_folder.endswith("aggregated_data")
