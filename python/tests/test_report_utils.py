@@ -471,3 +471,51 @@ class TestDeserializeQuery:
         """Deserializing an unknown type raises ValueError."""
         with pytest.raises(ValueError, match="Unknown query type"):
             report_utils.deserialize_query({"type": "unknown"})
+
+
+class TestShowCredits:
+    """Tests for show_credits output formatting."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_dependencies(self, monkeypatch):
+        """Mock external dependencies for deterministic output."""
+        monkeypatch.setattr(
+            report_utils,
+            "get_quarto_with_version",
+            lambda verbose=False: (None, "1.4.0"),
+        )
+        monkeypatch.setattr(
+            report_utils,
+            "get_pandoc_with_version",
+            lambda verbose=False: (None, "3.1.0"),
+        )
+        self.printed_text = ""
+
+        def capture_print(text):
+            self.printed_text = text
+
+        monkeypatch.setattr(report_utils, "quarto_print", capture_print)
+
+    def test_with_source(self):
+        """Test output includes notebook path when quarto_source is provided."""
+        report_utils.show_credits("reports/HealthCheck.qmd")
+
+        assert "Document created at:" in self.printed_text
+        assert "This notebook: reports/HealthCheck.qmd" in self.printed_text
+        assert "Quarto runtime: 1.4.0" in self.printed_text
+        assert "Pandoc: 3.1.0" in self.printed_text
+
+    def test_without_source(self):
+        """Test output omits notebook line when quarto_source is None."""
+        report_utils.show_credits()
+
+        assert "Document created at:" in self.printed_text
+        assert "This notebook" not in self.printed_text
+        assert "Quarto runtime: 1.4.0" in self.printed_text
+        assert "Pandoc: 3.1.0" in self.printed_text
+
+    def test_with_empty_string_source(self):
+        """Test empty string source is treated as no source."""
+        report_utils.show_credits("")
+
+        assert "This notebook" not in self.printed_text
