@@ -1,4 +1,4 @@
-name: Health Check tests
+name: Quarto report tests
 
 on:
   push:
@@ -22,9 +22,9 @@ permissions:
   checks: write
 
 jobs:
-  HealthCheck-Test:
+  Quarto-Report-Tests:
     runs-on: ubuntu-latest
-    name: Test Health Check
+    name: Quarto report tests
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
 
     steps:
@@ -49,10 +49,10 @@ jobs:
             **/pyproject.toml
 
       - name: Install the project
-        run: uv sync --extra healthcheck --extra tests
+        run: uv sync --extra healthcheck --extra explanations --extra tests
 
       - name: Set up Pandoc
         run: sudo apt-get install -y pandoc
 
-      - name: Run Health Check
-        run: uv run pytest python/tests/test_healthcheck.py
+      - name: Run Quarto report tests
+        run: uv run pytest python/tests/test_healthcheck.py python/tests/test_explanations_report.py
