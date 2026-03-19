@@ -665,6 +665,8 @@ class TestShowCredits:
         report_utils.show_credits("")
 
         assert "This notebook" not in self.printed_text
+
+
 class TestGainsTable:
     """Tests for gains_table utility function."""
 
