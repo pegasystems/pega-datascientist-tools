@@ -372,6 +372,10 @@ class Plots(LazyNamespace):
             grouping_columns.append(facet)
         df = df.with_columns(by).set_sorted("SnapshotTime")
 
+        # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
+        null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
+        df = df.filter(pl.all_horizontal(null_filters))
+
         agg_expr = [
             (
                 metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
@@ -1152,7 +1156,17 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
-        collected = df.collect().transpose(
+        # Filter out rows with null values in the grouping column before transpose
+        # to avoid "Column with new names can't have null values" error
+        filtered_df = df.filter(pl.col(by_name).is_not_null()).collect()
+
+        # Check if dataframe is empty after filtering
+        if filtered_df.height == 0:
+            if return_df:
+                return pl.LazyFrame({by_name: []})
+            return None
+
+        collected = filtered_df.transpose(
             include_header=True,
             header_name=by_name,
             column_names=by_name,
@@ -1178,7 +1192,265 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def response_gain(self) -> None: ...  # TODO: more generic plot_gains function?
+    def gains_chart(
+        self,
+        value: str,
+        *,
+        index: str | None = None,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Generate a gains chart showing cumulative distribution of a metric.
+
+        Creates a gains/lift chart to visualize model response skewness. Shows what
+        percentage of the total value (e.g., responses, positives) is driven by what
+        percentage of models. Useful for identifying if a small number of models
+        drive most of the volume.
+
+        Parameters
+        ----------
+        value : str
+            Column name containing the metric to compute gains for (e.g., "ResponseCount", "Positives")
+        index : str, optional
+            Column name to normalize by (e.g., population size). If None, uses model count.
+        by : str | list[str], optional
+            Column(s) to group by for separate gain curves (e.g., "Channel" or ["Channel", "Direction"])
+        query : QUERY, optional
+            Optional query to filter the data before computing gains
+        title : str, optional
+            Chart title. If None, uses "Gains Chart"
+        return_df : bool, default False
+            If True, return the gains data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing the gains chart, or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Single gains curve for response count
+        >>> fig = datamart.plot.gains_chart(value="ResponseCount")
+
+        >>> # Gains curves by channel for positives
+        >>> fig = datamart.plot.gains_chart(
+        ...     value="Positives",
+        ...     by=["Channel", "Direction"],
+        ...     title="Cumulative Positives by Channel"
+        ... )
+        """
+        from ..utils import report_utils, cdh_utils
+
+        # Get the last snapshot of data
+        df = self.datamart.aggregates.last()
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Calculate gains
+        gains_data = report_utils.gains_table(df, value=value, index=index, by=by)
+
+        if return_df:
+            return gains_data.lazy()
+
+        # Create the plot
+        if by is None:
+            fig = px.area(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                title=title or "Gains Chart",
+                template="pega",
+            )
+        else:
+            by_as_list = by if isinstance(by, list) else [by]
+            # Create a combined label for the legend
+            legend_col = gains_data.select(pl.concat_str(by_as_list, separator="/").alias("By"))["By"]
+
+            fig = px.line(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                color=legend_col,
+                title=title or "Gains Chart",
+                template="pega",
+            )
+            fig = fig.update_layout(legend_title="/".join(by_as_list))
+
+        # Add diagonal reference line (represents perfect equality)
+        fig.add_shape(
+            type="line",
+            line=dict(color="grey", dash="dash"),
+            x0=0,
+            x1=1,
+            y0=0,
+            y1=1,
+        )
+
+        # Configure axes and layout
+        fig = (
+            fig.update_yaxes(scaleanchor="x", scaleratio=1)
+            .update_layout(
+                autosize=False,
+                width=400,
+                height=400,
+            )
+            .update_yaxes(constrain="domain", title="% of Responders")
+            .update_xaxes(tickformat=",.0%", constrain="domain", title="% of Population")
+            .update_yaxes(tickformat=",.0%")
+        )
+
+        return fig
+
+    def performance_volume_distribution(
+        self,
+        *,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        bin_width: int = 3,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Generate a performance vs volume distribution chart.
+
+        Shows how response volume is distributed across different model performance
+        ranges. Helps identify if volume is driven by high-performing or low-performing
+        models. Ideally, most volume should be in the 60-80 AUC range.
+
+        Parameters
+        ----------
+        by : str | list[str], optional
+            Column(s) to group by for separate curves (e.g., "Channel" or ["Channel", "Direction"])
+            If None, creates a single curve for all data
+        query : QUERY, optional
+            Optional query to filter the data before analysis
+        bin_width : int, default 3
+            Width of performance bins in AUC points (default creates bins of 3: 50-53, 53-56, etc.)
+        title : str, optional
+            Chart title. If None, uses "Performance vs Volume"
+        return_df : bool, default False
+            If True, return the binned data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing performance distribution, or LazyFrame if return_df=True
+
+        Notes
+        -----
+        Performance is binned from 50-100 using the specified bin_width. The chart shows
+        what percentage of responses fall into each performance bin, grouped by the `by`
+        parameter if provided.
+
+        Examples
+        --------
+        >>> # Single curve for all channels
+        >>> fig = datamart.plot.performance_volume_distribution()
+
+        >>> # Separate curves per channel
+        >>> fig = datamart.plot.performance_volume_distribution(
+        ...     by=["Channel", "Direction"],
+        ...     title="Performance Distribution by Channel"
+        ... )
+        """
+        from ..utils import cdh_utils
+
+        # Get model data
+        df = self.datamart.model_data
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Determine grouping columns
+        group_cols = []
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            group_cols = by_list.copy()
+
+        # Create combined grouping column if needed
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            df = df.with_columns(pl.concat_str(by_list, separator="/").alias("_GroupBy"))
+            group_cols = ["_GroupBy"]
+
+        # Bin performance and aggregate
+        df = (
+            df.with_columns(
+                (pl.col("Performance") * 100)
+                .cut(breaks=[p for p in range(50, 100, bin_width)], left_closed=True)
+                .alias("PerformanceBinned"),
+            )
+            .group_by(group_cols + ["PerformanceBinned"])
+            .agg(
+                pl.sum("ResponseCount"),
+                (pl.min("Performance") * 100).round(2).alias("break_label"),
+            )
+        )
+
+        # Calculate proportions within each group
+        if group_cols:
+            df = df.with_columns(
+                (pl.col("ResponseCount") / pl.col("ResponseCount").sum().over(group_cols[0])).alias("Proportion")
+            )
+        else:
+            df = df.with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum()).alias("Proportion"))
+
+        df = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
+
+        if return_df:
+            return df.lazy()
+
+        # Create the plot
+        fig = go.Figure()
+
+        if group_cols:
+            # Multiple curves
+            groups = df[group_cols[0]].unique().sort()
+            for group in groups:
+                group_df = df.filter(pl.col(group_cols[0]) == group)
+                fig.add_trace(
+                    go.Scatter(
+                        x=group_df["PerformanceBinned"],
+                        y=group_df["Proportion"],
+                        line_shape="spline",
+                        name=group,
+                    )
+                )
+        else:
+            # Single curve
+            fig.add_trace(
+                go.Scatter(
+                    x=df["PerformanceBinned"],
+                    y=df["Proportion"],
+                    line_shape="spline",
+                    name="All Channels",
+                )
+            )
+
+        # Configure layout
+        fig = (
+            fig.update_yaxes(tickformat=",.0%")
+            .update_xaxes(
+                type="category",
+                categoryorder="array",
+                categoryarray=df["PerformanceBinned"].unique().sort().to_list(),
+            )
+            .update_layout(
+                template="pega",
+                title=title or "Performance vs Volume",
+                xaxis_title="Model Performance",
+                yaxis_title="Percentage of Responses",
+            )
+        )
+
+        # Apply legend color ordering
+        fig = cdh_utils.legend_color_order(fig)
+
+        return fig
 
     def tree_map(
         self,

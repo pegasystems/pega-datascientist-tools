@@ -1,5 +1,6 @@
 """Tests for the report_utils module."""
 
+import itables
 import polars as pl
 import pytest
 from pdstools.utils import report_utils
@@ -154,8 +155,6 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
         # The styled_df is a pandas Styler, get the underlying DataFrame
         captured_df = styled_df.data
 
-    import itables
-
     monkeypatch.setattr(itables, "show", mock_show)
 
     report_utils.create_metric_itable(
@@ -177,6 +176,153 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
     # Channel was not in column_descriptions, so should not have tooltip
     channel_col = [c for c in captured_df.columns if "Channel" in c][0]
     assert channel_col == "Channel"  # unchanged
+
+
+@pytest.fixture()
+def capture_itable(monkeypatch):
+    """Capture the styled DataFrame and kwargs passed to itables.show."""
+    captured = {}
+
+    def mock_show(styled_df, **kwargs):
+        captured["df"] = styled_df.data
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(itables, "show", mock_show)
+    return captured
+
+
+def _assert_numeric_sort_wired(captured, col: str, raw_values: list):
+    """Assert that a hidden sort column and matching columnDefs are present."""
+    sort_col = f"__sort__{col}"
+    df = captured["df"]
+    col_defs = captured["kwargs"].get("columnDefs", [])
+    final_cols = list(df.columns)
+
+    assert sort_col in final_cols, f"Hidden sort column {sort_col!r} not found"
+    assert list(df[sort_col]) == raw_values
+
+    display_idx = final_cols.index(col)
+    sort_idx = final_cols.index(sort_col)
+
+    order_def = next((d for d in col_defs if d.get("targets") == display_idx), None)
+    assert order_def is not None, f"No columnDef found for display column {col!r}"
+    assert order_def["orderData"] == [sort_idx]
+
+    hidden_def = next((d for d in col_defs if d.get("targets") == sort_idx), None)
+    assert hidden_def is not None, f"No columnDef found for sort column {sort_col!r}"
+    assert hidden_def["visible"] is False
+    assert hidden_def["searchable"] is False
+
+
+@pytest.mark.parametrize(
+    "source_table, rag_source, extra_kwargs",
+    [
+        # source_table is already numeric, metric resolved via string ID
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            None,
+            {},
+        ),
+        # source_table has pre-formatted strings (e.g. after apply_display_formatting),
+        # rag_source holds the raw numerics
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": ["500", "4K", "200"]}),
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            {},
+        ),
+        # metric_id is a callable (else branch): numeric column with custom RAG function
+        (
+            pl.DataFrame({"Name": ["A", "B", "C"], "Count": [500, 4000, 200]}),
+            None,
+            {"column_to_metric": {"Count": lambda v: "GREEN" if v > 300 else "RED"}},
+        ),
+    ],
+    ids=["numeric_source", "preformatted_with_rag_source", "callable_metric"],
+)
+def test_create_metric_itable_numeric_sort(capture_itable, source_table, rag_source, extra_kwargs):
+    """All formatted numeric columns sort numerically, not lexicographically.
+
+    Pandas Styler converts numbers to display strings, which DataTables would
+    otherwise sort as text (e.g. "4K" < "500", "100%" < "2%"). A hidden
+    raw-value column is added and DataTables is configured to sort by it.
+    Covers a plain numeric source, a pre-formatted source with rag_source, and a
+    numeric column mapped to a callable RAG function (the else branch).
+    """
+    report_utils.create_metric_itable(
+        source_table,
+        rag_source=rag_source,
+        strict_metric_validation=False,
+        **extra_kwargs,
+    )
+    _assert_numeric_sort_wired(capture_itable, "Count", [500, 4000, 200])
+
+
+def test_create_metric_itable_rag_source_no_format_error(monkeypatch):
+    """No ValueError when source_table has pre-formatted strings.
+
+    format_dict must only be populated for columns that are still numeric in
+    source_table. Format strings (e.g. ModelPerformance -> '{:,.2f}') must not
+    be applied to string values or pandas raises a ValueError.
+    """
+    numeric_df = pl.DataFrame({"Model": ["A", "B"], "Performance": [0.72, 0.58]})
+    display_df = pl.DataFrame({"Model": ["A", "B"], "Performance": ["72.00", "58.00"]})
+
+    def mock_show(styled_df, **kwargs):
+        # Force rendering so any format errors surface here
+        styled_df.to_html()
+
+    monkeypatch.setattr(itables, "show", mock_show)
+
+    report_utils.create_metric_itable(
+        display_df,
+        column_to_metric={"Performance": "ModelPerformance"},
+        rag_source=numeric_df,
+        strict_metric_validation=True,
+    )
+
+
+def test_create_metric_itable_user_columndefs_preserved(capture_itable):
+    """User-provided columnDefs are merged with, not replaced by, sort defs."""
+    df = pl.DataFrame({"Group": ["A", "A", "B"], "Count": [500, 4000, 200]})
+    user_col_defs = [{"targets": 0, "visible": False}]
+
+    report_utils.create_metric_itable(
+        df,
+        strict_metric_validation=False,
+        columnDefs=user_col_defs,
+    )
+
+    col_defs = capture_itable["kwargs"].get("columnDefs", [])
+    # User's def must still be present
+    assert {"targets": 0, "visible": False} in col_defs
+    # Sort defs must also be present
+    sort_col = "__sort__Count"
+    final_cols = list(capture_itable["df"].columns)
+    sort_idx = final_cols.index(sort_col)
+    assert any(d.get("targets") == sort_idx for d in col_defs)
+
+
+def test_create_metric_itable_percentage_sort(capture_itable):
+    """Percentage-formatted columns must sort numerically, not lexicographically.
+
+    Without the fix, "100.000%" sorts before "2.000%" because "1" < "2" as strings.
+    Uses OmniChannelPercentage (scale_by=100, suffix="%") as a representative
+    non-compact percentage metric.
+    """
+    df = pl.DataFrame(
+        {
+            "Name": ["A", "B", "C"],
+            # OmniChannelPercentage: scale_by=100, suffix="%", decimals=1
+            # formats to "2.0%", "100.0%", "50.0%" — "100.0%" < "2.0%" lexicographically
+            "OmniChannelPercentage": [0.02, 1.0, 0.5],
+        }
+    )
+    report_utils.create_metric_itable(
+        df,
+        column_to_metric={"OmniChannelPercentage": "OmniChannelPercentage"},
+        strict_metric_validation=True,
+    )
+    _assert_numeric_sort_wired(capture_itable, "OmniChannelPercentage", [0.02, 1.0, 0.5])
 
 
 def test_create_metric_gttable_without_column_descriptions():
@@ -519,3 +665,203 @@ class TestShowCredits:
         report_utils.show_credits("")
 
         assert "This notebook" not in self.printed_text
+class TestGainsTable:
+    """Tests for gains_table utility function."""
+
+    def test_basic_gains_calculation(self):
+        """Test basic gains table with simple data."""
+        df = pl.DataFrame(
+            {
+                "ModelID": ["A", "B", "C", "D"],
+                "ResponseCount": [100, 200, 50, 150],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="ResponseCount")
+
+        assert isinstance(result, pl.DataFrame)
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+
+        # Cumulative y should end at 1.0 (100%)
+        assert result["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+        # Should include (0,0) starting point plus 4 data points
+        assert result.height == 5
+
+    def test_gains_with_index(self):
+        """Test gains table with index parameter for normalization."""
+        df = pl.DataFrame(
+            {
+                "Action": ["A", "B", "C"],
+                "Positives": [100, 200, 50],
+                "ResponseCount": [1000, 2000, 500],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="Positives", index="ResponseCount")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 4  # 3 data points + (0,0)
+        # Should sort by Positives/ResponseCount ratio
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+        assert result["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_with_grouping(self):
+        """Test gains table with by parameter for grouping."""
+        df = pl.DataFrame(
+            {
+                "Channel": ["Web", "Web", "Email", "Email"],
+                "Action": ["A", "B", "C", "D"],
+                "ResponseCount": [100, 200, 150, 50],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="ResponseCount", by="Channel")
+
+        assert isinstance(result, pl.DataFrame)
+        # Should have data for both channels
+        assert "Channel" in result.columns
+        channels = result["Channel"].unique().to_list()
+        assert set(channels) == {"Web", "Email"}
+
+        # Each channel should have cumulative y ending at 1.0
+        for channel in channels:
+            channel_data = result.filter(pl.col("Channel") == channel)
+            last_y = channel_data["cum_y"][-1]
+            assert last_y == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_single_row(self):
+        """Test gains table with single row edge case."""
+        df = pl.DataFrame({"Model": ["A"], "Value": [100]}).lazy()
+
+        result = report_utils.gains_table(df, value="Value")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 2  # (0,0) + 1 data point
+        assert result["cum_y"][1] == pytest.approx(1.0, abs=0.01)
+
+    def test_gains_zero_values(self):
+        """Test gains table with zero values."""
+        df = pl.DataFrame(
+            {
+                "Model": ["A", "B", "C"],
+                "Value": [0, 100, 200],
+            }
+        ).lazy()
+
+        result = report_utils.gains_table(df, value="Value")
+
+        assert isinstance(result, pl.DataFrame)
+        assert result.height == 4  # (0,0) + 3 data points
+        # Should handle zeros gracefully
+        assert "cum_x" in result.columns
+        assert "cum_y" in result.columns
+
+
+class TestCheckReportForErrors:
+    """Tests for check_report_for_errors utility function."""
+
+    def test_clean_report(self, tmp_path):
+        """Test that a clean HTML report returns no errors."""
+        html_file = tmp_path / "clean_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <head><title>Test Report</title></head>
+                <body>
+                    <h1>Health Check Report</h1>
+                    <p>Everything is working correctly.</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert errors == []
+
+    def test_report_with_rendering_error(self, tmp_path):
+        """Test detection of plot rendering errors."""
+        html_file = tmp_path / "error_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <div class="callout-important">
+                        <p>Error rendering Model Performance plot: ValueError</p>
+                    </div>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) > 0
+        assert any("Plot rendering error" in e for e in errors)
+
+    def test_report_with_traceback(self, tmp_path):
+        """Test detection of Python tracebacks."""
+        html_file = tmp_path / "traceback_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <pre>
+                    Traceback (most recent call last):
+                      File "test.py", line 10, in function
+                        raise ValueError("Something went wrong")
+                    ValueError: Something went wrong
+                    </pre>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) >= 2  # Should catch both "Traceback" and "ValueError:"
+        assert any("Python traceback" in e for e in errors)
+        assert any("ValueError" in e for e in errors)
+
+    def test_report_with_multiple_errors(self, tmp_path):
+        """Test counting of multiple occurrences of the same error."""
+        html_file = tmp_path / "multi_error_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <p>Error rendering Chart 1: TypeError</p>
+                    <p>Error rendering Chart 2: TypeError</p>
+                    <p>Error rendering Chart 3: TypeError</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        # Should report count of errors
+        assert any("found 3 times" in e for e in errors)
+
+    def test_nonexistent_file(self, tmp_path):
+        """Test that nonexistent file raises FileNotFoundError."""
+        html_file = tmp_path / "does_not_exist.html"
+
+        with pytest.raises(FileNotFoundError):
+            report_utils.check_report_for_errors(html_file)
+
+    def test_empty_dataframe_error(self, tmp_path):
+        """Test detection of empty dataframe error."""
+        html_file = tmp_path / "empty_df_report.html"
+        html_file.write_text(
+            """
+            <html>
+                <body>
+                    <p>The given query resulted in an empty dataframe</p>
+                </body>
+            </html>
+            """
+        )
+
+        errors = report_utils.check_report_for_errors(html_file)
+        assert len(errors) > 0
+        assert any("Empty dataframe error" in e for e in errors)

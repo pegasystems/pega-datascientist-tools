@@ -647,20 +647,32 @@ def create_metric_itable(
             expanded_mapping[key] = value
 
     format_dict = {}
+    # When rag_source is provided, source_table may contain pre-formatted strings;
+    # use the numeric source for column detection and sort values, but only
+    # populate format_dict for columns that are still numeric in source_table.
+    numeric_source = rag_source if rag_source is not None else source_table
+    numeric_cols = []
     for col in source_table.columns:
-        if not source_table[col].dtype.is_numeric():
+        if not numeric_source[col].dtype.is_numeric():
             continue
+        numeric_cols.append(col)
         metric_id = expanded_mapping.get(col, col)
         if isinstance(metric_id, tuple):
             metric_id = metric_id[0]
         if isinstance(metric_id, str):
-            metric_fmt = MetricFormats.get(metric_id)
-            if metric_fmt is not None:
+            metric_fmt = MetricFormats.get(metric_id) or MetricFormats.DEFAULT_FORMAT
+            if source_table[col].dtype.is_numeric():
                 format_dict[col] = metric_fmt.to_pandas_format()
-            else:
-                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
         else:
-            format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
+            if source_table[col].dtype.is_numeric():
+                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
+
+    # Add hidden sort columns for all formatted numeric columns so that
+    # DataTables can sort by the raw numeric value instead of the display string
+    # (e.g. "4K" < "500" or "100%" < "2%" lexicographically without this).
+    sort_col_map = {col: f"__sort__{col}" for col in numeric_cols}
+    for col, sort_col in sort_col_map.items():
+        pdf[sort_col] = numeric_source[col].to_pandas()
 
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
@@ -675,6 +687,21 @@ def create_metric_itable(
         "show_dtypes": False,
     }
     default_kwargs.update(itable_kwargs)
+
+    if sort_col_map:
+        final_cols = list(pdf.columns)
+        sort_defs = []
+        for orig_col, sort_col in sort_col_map.items():
+            display_name = column_rename.get(orig_col, orig_col)
+            display_idx = final_cols.index(display_name)
+            sort_idx = final_cols.index(sort_col)
+            sort_defs.extend(
+                [
+                    {"targets": display_idx, "orderData": [sort_idx]},
+                    {"targets": sort_idx, "visible": False, "searchable": False},
+                ]
+            )
+        default_kwargs["columnDefs"] = default_kwargs.get("columnDefs", []) + sort_defs
 
     return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
 
@@ -1012,6 +1039,157 @@ def deserialize_query(serialized_query: dict | None) -> QUERY | None:
         return serialized_query["data"]
 
     raise ValueError(f"Unknown query type: {serialized_query['type']}")
+
+
+def gains_table(
+    df: pl.LazyFrame | pl.DataFrame,
+    value: str,
+    index: str | None = None,
+    by: str | list[str] | None = None,
+) -> pl.DataFrame:
+    """Calculate cumulative gains for visualization.
+
+    Computes cumulative distribution of a value metric, sorted by the ratio
+    of value to index (or by value alone if no index). Used for gains charts
+    to show model response skewness.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame | pl.DataFrame
+        Input data containing the value and optional index columns
+    value : str
+        Column name containing the metric to compute gains for (e.g., "ResponseCount")
+    index : str, optional
+        Column name to normalize by (e.g., population size). If None, uses row count.
+    by : str | list[str], optional
+        Column(s) to group by for separate gain curves. If None, computes single curve.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with columns:
+        - cum_x: Cumulative proportion of index (or models)
+        - cum_y: Cumulative proportion of value
+        - by columns: if `by` is specified
+
+    Examples
+    --------
+    >>> # Single gains curve for response count
+    >>> gains = gains_table(df, value="ResponseCount")
+
+    >>> # Gains curves by channel, normalized by population
+    >>> gains = gains_table(df, value="Positives", index="Population", by="Channel")
+    """
+    # Determine sorting expression
+    sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+
+    # Determine index expression for cumulative x-axis
+    if index is None:
+        index_expr = pl.int_range(1, pl.len() + 1) / pl.len()
+    else:
+        index_expr = pl.cum_sum(index) / pl.sum(index)
+
+    if by is None:
+        # Single gains curve
+        gains_df = pl.concat(
+            [
+                pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
+                df.lazy()
+                .sort(sort_expr, descending=True)
+                .select(
+                    index_expr.cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
+                ),
+            ]
+        )
+    else:
+        # Multiple gains curves grouped by column(s)
+        by_as_list = by if isinstance(by, list) else [by]
+        sort_expr_with_by = by_as_list + [sort_expr]
+        gains_df = (
+            df.lazy()
+            .sort(sort_expr_with_by, descending=True)
+            .select(
+                by_as_list
+                + [
+                    index_expr.over(by).cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
+                ]
+            )
+        )
+        # Add entry for the (0,0) point for each group
+        gains_df = pl.concat([gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]).sort(
+            by_as_list + ["cum_x"]
+        )
+
+    return gains_df.collect()
+
+
+def check_report_for_errors(html_path: str | Path) -> list[str]:
+    """Check generated report HTML for error indicators.
+
+    Scans the HTML file for error patterns that indicate plot rendering failures
+    or exceptions during report generation. These errors are typically hidden in
+    collapsed callout sections but should be caught in testing.
+
+    Parameters
+    ----------
+    html_path : str or Path
+        Path to the HTML file to check
+
+    Returns
+    -------
+    list[str]
+        List of error descriptions found (empty if no errors)
+
+    Raises
+    ------
+    FileNotFoundError
+        If the HTML file does not exist
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import check_report_for_errors
+    >>> errors = check_report_for_errors("HealthCheck.html")
+    >>> if errors:
+    ...     print(f"Found {len(errors)} error(s):")
+    ...     for error in errors:
+    ...         print(f"  - {error}")
+    """
+    html_path = Path(html_path)
+
+    if not html_path.exists():
+        raise FileNotFoundError(f"HTML file not found: {html_path}")
+
+    try:
+        content = html_path.read_text(encoding="utf-8")
+    except Exception as e:
+        raise IOError(f"Failed to read HTML file: {e}")
+
+    errors = []
+
+    # Common error patterns in HTML output from quarto_plot_exception
+    error_patterns = [
+        ("Error rendering", "Plot rendering error"),
+        ("Traceback (most recent call last)", "Python traceback"),
+        ("ValueError:", "ValueError exception"),
+        ("TypeError:", "TypeError exception"),
+        ("KeyError:", "KeyError exception"),
+        ("AttributeError:", "AttributeError exception"),
+        ("NameError:", "NameError exception"),
+        ("Exception:", "Generic exception"),
+        ("The given query resulted in an empty dataframe", "Empty dataframe error"),
+    ]
+
+    for pattern, description in error_patterns:
+        if pattern in content:
+            count = content.count(pattern)
+            if count > 1:
+                errors.append(f"{description} (found {count} times)")
+            else:
+                errors.append(description)
+
+    return errors
 
 
 def remove_duplicate_html_scripts(html_content: str, verbose: bool = False) -> str:
