@@ -5,15 +5,27 @@ on the system PATH. They are run in the 'Quarto report tests' CI
 workflow alongside other quarto report generation tests.
 """
 
-import pathlib
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
 from pdstools.explanations import Explanations
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = Path(__file__).parent.parent.parent
+
+
+def clean_up(root_dir):
+    _root_dir = Path(f"{basePath}/{root_dir}")
+    if _root_dir.exists():
+        for file in _root_dir.iterdir():
+            if file.is_file():
+                file.unlink()
+            elif file.is_dir():
+                # Remove subdirectories recursively
+                shutil.rmtree(file)
+        _root_dir.rmdir()
 
 
 @pytest.fixture(scope="module")
@@ -33,9 +45,8 @@ def explanations():
     yield exp
 
     # Cleanup generated .tmp directory
-    root = pathlib.Path(exp.root_dir)
-    if root.exists():
-        shutil.rmtree(root, ignore_errors=True)
+    # cleanup .tmp folder
+    clean_up(exp.root_dir)
 
 
 def test_GenerateExplanationsReport(explanations: Explanations):
@@ -46,7 +57,7 @@ def test_GenerateExplanationsReport(explanations: Explanations):
         zip_output=False,
     )
 
-    output_dir = pathlib.Path(explanations.report.report_output_dir)
+    output_dir = Path(explanations.report.report_output_dir)
     assert output_dir.exists(), f"Report output directory not found: {output_dir}"
 
     html_files = list(output_dir.rglob("*.html"))
@@ -69,7 +80,7 @@ def test_GenerateExplanationsReport_Zipped(explanations: Explanations):
     )
 
     # generate_zipped_report creates the zip in the current working directory
-    zip_path = pathlib.Path(zip_filename)
+    zip_path = Path(zip_filename)
     assert zip_path.exists(), f"Zipped report not found: {zip_path}"
     assert zip_path.stat().st_size > 0, "Zipped report is empty"
 
