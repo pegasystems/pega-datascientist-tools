@@ -131,6 +131,67 @@ def load_vbd_from_upload(uploaded_file, outcome_labels_json: str | None = None) 
     return load_vbd_from_path(path, outcome_labels_json=outcome_labels_json)
 
 
+def _outcome_aliases_filename(source_path: str) -> str:
+    """Return the sidecar filename for persisted outcome aliases."""
+    return Path(source_path).name + ".outcome_aliases.json"
+
+
+def _outcome_aliases_candidates(source_path: str) -> list[Path]:
+    """Return candidate sidecar paths: next to source first, then current dir."""
+    filename = _outcome_aliases_filename(source_path)
+    return [
+        Path(source_path).parent / filename,
+        Path.cwd() / filename,
+    ]
+
+
+def save_outcome_aliases(source_path: str, config: dict | None) -> Path | None:
+    """Save outcome alias config to a sidecar JSON file.
+
+    Tries to write next to the data source first; falls back to the current
+    working directory if the source directory is not writable.
+
+    If config is None, removes sidecar files (revert to defaults).
+
+    Returns the path where the file was saved, or None if removed/failed.
+    """
+    import json
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    candidates = _outcome_aliases_candidates(source_path)
+
+    if config is None:
+        for candidate in candidates:
+            candidate.unlink(missing_ok=True)
+        return None
+
+    for candidate in candidates:
+        try:
+            candidate.write_text(json.dumps(config, indent=2))
+            logger.debug("Saved outcome aliases to %s", candidate)
+            return candidate
+        except OSError:
+            continue
+
+    logger.warning("Could not save outcome aliases for %s", source_path)
+    return None
+
+
+def load_outcome_aliases(source_path: str) -> dict | None:
+    """Load outcome alias config from a sidecar JSON file if it exists.
+
+    Checks next to the data source first, then the current working directory.
+    """
+    import json
+
+    for candidate in _outcome_aliases_candidates(source_path):
+        if candidate.exists():
+            return json.loads(candidate.read_text())
+    return None
+
+
 def discover_vbd_outcomes(ia: ImpactAnalyzer) -> dict[str, list[str]]:
     """Return {channel: [unique outcome values]} from already-loaded VBD ia_data.
 
@@ -156,13 +217,22 @@ def discover_vbd_outcomes(ia: ImpactAnalyzer) -> dict[str, list[str]]:
     return result
 
 
-def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
+def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None) -> dict | None:
     """Show per-channel outcome alias configuration UI for VBD data.
 
     Returns the outcome_labels dict to pass to from_vbd(), or None if
     the user has not made any changes from the defaults.
 
     Only renders for VBD data (when Outcome column is present).
+
+    Parameters
+    ----------
+    ia : ImpactAnalyzer
+        The loaded ImpactAnalyzer instance.
+    source_path : str or None, optional
+        Path to the data source file. When provided, aliases are persisted
+        to a sidecar JSON file alongside the data so they are automatically
+        loaded on the next session.
     """
     import json
 
@@ -172,6 +242,9 @@ def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
 
     default_impressions = ImpactAnalyzer.outcome_labels["Impressions"]
     default_accepts = ImpactAnalyzer.outcome_labels["Accepts"]
+
+    # Use persisted aliases (from sidecar file or session state) as widget defaults
+    saved_config = st.session_state.get("ia_outcome_labels")
 
     with st.expander("Configure outcome aliases (VBD data)", expanded=False):
         st.caption(
@@ -187,8 +260,13 @@ def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
             st.markdown(f"**{channel}**")
             col1, col2 = st.columns(2)
 
-            default_imp = [o for o in outcomes if o in default_impressions]
-            default_acc = [o for o in outcomes if o in default_accepts]
+            # Use saved config for defaults if available, otherwise fall back to class defaults
+            if saved_config and channel in saved_config:
+                default_imp = [o for o in saved_config[channel].get("Impressions", []) if o in outcomes]
+                default_acc = [o for o in saved_config[channel].get("Accepts", []) if o in outcomes]
+            else:
+                default_imp = [o for o in outcomes if o in default_impressions]
+                default_acc = [o for o in outcomes if o in default_accepts]
 
             with col1:
                 impressions = st.multiselect(
@@ -205,7 +283,10 @@ def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
                     key=f"outcome_acc_{channel}",
                 )
 
-            if sorted(impressions) != sorted(default_imp) or sorted(accepts) != sorted(default_acc):
+            # Compare against class defaults (not saved config) to detect non-default state
+            class_default_imp = [o for o in outcomes if o in default_impressions]
+            class_default_acc = [o for o in outcomes if o in default_accepts]
+            if sorted(impressions) != sorted(class_default_imp) or sorted(accepts) != sorted(class_default_acc):
                 any_non_default = True
 
             per_channel_config[channel] = {"Impressions": impressions, "Accepts": accepts}
@@ -214,6 +295,10 @@ def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
             config = per_channel_config if any_non_default else None
             st.session_state["ia_outcome_labels"] = config
             st.session_state["ia_outcome_labels_json"] = json.dumps(config) if config else None
+            # Persist to sidecar file if source path is known
+            _path = source_path or st.session_state.get("ia_data_source_path")
+            if _path:
+                save_outcome_aliases(_path, config)
             # Clear existing IA so next upload/path reload uses the new config
             st.session_state.pop("impact_analyzer", None)
             st.session_state.pop("ia_is_sample_data", None)
@@ -226,7 +311,10 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
     """Load IA data from the ``--data-path`` CLI flag.
 
     Auto-detects format (JSON/NDJSON for PDC, ZIP for VBD).
+    Automatically loads persisted outcome aliases from sidecar file if present.
     """
+    import json
+
     data_path = get_data_path()
     if not data_path:
         return None
@@ -240,7 +328,13 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
     if suffix in {".json", ".ndjson"}:
         return load_pdc_from_paths((str(p),))
     elif suffix == ".zip":
-        return load_vbd_from_path(str(p))
+        # Auto-load persisted outcome aliases from sidecar file
+        persisted = load_outcome_aliases(str(p))
+        outcome_labels_json = json.dumps(persisted) if persisted else None
+        if persisted:
+            st.session_state["ia_outcome_labels"] = persisted
+            st.session_state["ia_outcome_labels_json"] = outcome_labels_json
+        return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     else:
         st.error(f"Unsupported file type: {suffix}. Use JSON/NDJSON (PDC) or ZIP (VBD).")
         return None

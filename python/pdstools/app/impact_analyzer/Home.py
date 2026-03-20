@@ -256,6 +256,8 @@ if impact_analyzer is not None and sample_limit_raw:
 if impact_analyzer is not None:
     st.session_state["impact_analyzer"] = impact_analyzer
     st.session_state["ia_is_sample_data"] = is_sample_data
+    if data_source_path:
+        st.session_state["ia_data_source_path"] = data_source_path
     _show_data_summary(impact_analyzer, is_sample_data=is_sample_data)
 elif "impact_analyzer" in st.session_state:
     # Show summary for previously loaded data (only if no upload was attempted)
