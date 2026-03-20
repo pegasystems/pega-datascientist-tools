@@ -99,32 +99,127 @@ def _detect_file_format(uploaded_file) -> str:
     return "unknown"
 
 
-def load_from_upload_auto(uploaded_file) -> ImpactAnalyzer | None:
+def load_from_upload_auto(uploaded_file, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
     """Load Impact Analyzer data with automatic format detection."""
     format_type = _detect_file_format(uploaded_file)
 
     if format_type == "pdc":
         return load_pdc_from_uploads([uploaded_file])
     elif format_type == "vbd":
-        return load_vbd_from_upload(uploaded_file)
+        return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
     else:
         # Fall back to extension-based detection
         suffix = Path(uploaded_file.name).suffix.lower()
         if suffix == ".zip":
-            return load_vbd_from_upload(uploaded_file)
+            return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
         else:
             # Try PDC as default for .json/.ndjson
             return load_pdc_from_uploads([uploaded_file])
 
 
 @st.cache_resource
-def load_vbd_from_path(path: str) -> ImpactAnalyzer | None:
-    return ImpactAnalyzer.from_vbd(path)
+def load_vbd_from_path(path: str, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
+    """Load VBD data. outcome_labels_json is a JSON-serialized outcome_labels dict (hashable for cache)."""
+    import json
+
+    outcome_labels = json.loads(outcome_labels_json) if outcome_labels_json else None
+    return ImpactAnalyzer.from_vbd(path, outcome_labels=outcome_labels)
 
 
-def load_vbd_from_upload(uploaded_file) -> ImpactAnalyzer | None:
+def load_vbd_from_upload(uploaded_file, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
     path = _write_uploaded_file(uploaded_file)
-    return load_vbd_from_path(path)
+    return load_vbd_from_path(path, outcome_labels_json=outcome_labels_json)
+
+
+def discover_vbd_outcomes(ia: ImpactAnalyzer) -> dict[str, list[str]]:
+    """Return {channel: [unique outcome values]} from already-loaded VBD ia_data.
+
+    Relies on the Outcome list column kept for debugging in from_vbd().
+    Returns empty dict if Outcome column is absent (e.g., PDC data).
+    """
+
+    schema = ia.ia_data.collect_schema()
+    if "Outcome" not in schema.names():
+        return {}
+
+    rows = (
+        ia.ia_data.select("Channel", "Outcome")
+        .explode("Outcome")
+        .select("Channel", "Outcome")
+        .unique()
+        .sort("Channel", "Outcome")
+        .collect()
+    )
+    result: dict[str, list[str]] = {}
+    for channel, outcome in rows.iter_rows():
+        result.setdefault(channel, []).append(outcome)
+    return result
+
+
+def show_outcome_alias_config(ia: ImpactAnalyzer) -> dict | None:
+    """Show per-channel outcome alias configuration UI for VBD data.
+
+    Returns the outcome_labels dict to pass to from_vbd(), or None if
+    the user has not made any changes from the defaults.
+
+    Only renders for VBD data (when Outcome column is present).
+    """
+    import json
+
+    outcomes_by_channel = discover_vbd_outcomes(ia)
+    if not outcomes_by_channel:
+        return None  # PDC data or no Outcome column — skip
+
+    default_impressions = ImpactAnalyzer.outcome_labels["Impressions"]
+    default_accepts = ImpactAnalyzer.outcome_labels["Accepts"]
+
+    with st.expander("Configure outcome aliases (VBD data)", expanded=False):
+        st.caption(
+            "Map channel-specific outcome values to **Impressions** and **Accepts**. "
+            "Channels not configured here use the default mapping. "
+            "Click **Apply** after making changes to reload the data."
+        )
+
+        per_channel_config: dict = {}
+        any_non_default = False
+
+        for channel, outcomes in outcomes_by_channel.items():
+            st.markdown(f"**{channel}**")
+            col1, col2 = st.columns(2)
+
+            default_imp = [o for o in outcomes if o in default_impressions]
+            default_acc = [o for o in outcomes if o in default_accepts]
+
+            with col1:
+                impressions = st.multiselect(
+                    "Impressions",
+                    options=outcomes,
+                    default=default_imp,
+                    key=f"outcome_imp_{channel}",
+                )
+            with col2:
+                accepts = st.multiselect(
+                    "Accepts",
+                    options=outcomes,
+                    default=default_acc,
+                    key=f"outcome_acc_{channel}",
+                )
+
+            if sorted(impressions) != sorted(default_imp) or sorted(accepts) != sorted(default_acc):
+                any_non_default = True
+
+            per_channel_config[channel] = {"Impressions": impressions, "Accepts": accepts}
+
+        if st.button("Apply outcome aliases"):
+            config = per_channel_config if any_non_default else None
+            st.session_state["ia_outcome_labels"] = config
+            st.session_state["ia_outcome_labels_json"] = json.dumps(config) if config else None
+            # Clear existing IA so next upload/path reload uses the new config
+            st.session_state.pop("impact_analyzer", None)
+            st.session_state.pop("ia_is_sample_data", None)
+            st.rerun()
+
+    return st.session_state.get("ia_outcome_labels")
 
 
 def handle_data_path_ia() -> ImpactAnalyzer | None:
