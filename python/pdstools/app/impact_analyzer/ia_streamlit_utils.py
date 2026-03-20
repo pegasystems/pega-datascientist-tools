@@ -127,8 +127,19 @@ def load_vbd_from_path(path: str, outcome_labels_json: str | None = None) -> Imp
 
 
 def load_vbd_from_upload(uploaded_file, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
+    import json
+
     path = _write_uploaded_file(uploaded_file)
-    st.session_state["ia_data_source_path"] = path
+    # Use the original filename in cwd for sidecar persistence (not the temp path)
+    logical_path = str(Path.cwd() / uploaded_file.name)
+    st.session_state["ia_data_source_path"] = logical_path
+    # Auto-load persisted aliases from a previous session
+    if not outcome_labels_json:
+        persisted = load_outcome_aliases(logical_path)
+        if persisted:
+            outcome_labels_json = json.dumps(persisted)
+            st.session_state["ia_outcome_labels"] = persisted
+            st.session_state["ia_outcome_labels_json"] = outcome_labels_json
     return load_vbd_from_path(path, outcome_labels_json=outcome_labels_json)
 
 
