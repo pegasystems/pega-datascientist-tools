@@ -140,6 +140,9 @@ def load_vbd_from_upload(uploaded_file, outcome_labels_json: str | None = None) 
             outcome_labels_json = json.dumps(persisted)
             st.session_state["ia_outcome_labels"] = persisted
             st.session_state["ia_outcome_labels_json"] = outcome_labels_json
+            # Find which sidecar file was loaded for UI feedback
+            loaded_from = next((p for p in _outcome_aliases_candidates(logical_path) if p.exists()), None)
+            st.session_state["ia_outcome_aliases_loaded_from"] = str(loaded_from) if loaded_from else logical_path
     return load_vbd_from_path(path, outcome_labels_json=outcome_labels_json)
 
 
@@ -258,6 +261,10 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
     # Use persisted aliases (from sidecar file or session state) as widget defaults
     saved_config = st.session_state.get("ia_outcome_labels")
 
+    loaded_from = st.session_state.pop("ia_outcome_aliases_loaded_from", None)
+    if loaded_from:
+        st.info(f"Applied previously stored outcome aliases from `{loaded_from}`")
+
     with st.expander("Configure outcome aliases (VBD data)", expanded=False):
         st.caption(
             "Map channel-specific outcome values to **Impressions** and **Accepts**. "
@@ -364,6 +371,8 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
         if persisted:
             st.session_state["ia_outcome_labels"] = persisted
             st.session_state["ia_outcome_labels_json"] = outcome_labels_json
+            loaded_from = next((c for c in _outcome_aliases_candidates(str(p)) if c.exists()), None)
+            st.session_state["ia_outcome_aliases_loaded_from"] = str(loaded_from) if loaded_from else str(p)
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     else:
         st.error(f"Unsupported file type: {suffix}. Use JSON/NDJSON (PDC) or ZIP (VBD).")
