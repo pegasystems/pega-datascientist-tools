@@ -298,11 +298,28 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
             # Persist to sidecar file if source path is known
             _path = source_path or st.session_state.get("ia_data_source_path")
             if _path:
-                save_outcome_aliases(_path, config)
+                saved_to = save_outcome_aliases(_path, config)
+                if saved_to:
+                    st.session_state["ia_outcome_aliases_saved_to"] = str(saved_to)
+                else:
+                    st.session_state.pop("ia_outcome_aliases_saved_to", None)
             # Clear existing IA so next upload/path reload uses the new config
             st.session_state.pop("impact_analyzer", None)
             st.session_state.pop("ia_is_sample_data", None)
             st.rerun()
+
+        # Show sidecar file location
+        _path = source_path or st.session_state.get("ia_data_source_path")
+        if _path:
+            existing = _outcome_aliases_candidates(_path)
+            saved_file = next((p for p in existing if p.exists()), None)
+            if saved_file:
+                st.caption(f"Aliases saved to `{saved_file}`")
+            else:
+                target = existing[0]  # preferred location
+                st.caption(f"Aliases will be saved to `{target}`")
+        elif st.session_state.get("ia_outcome_aliases_saved_to"):
+            st.caption(f"Aliases saved to `{st.session_state['ia_outcome_aliases_saved_to']}`")
 
     return st.session_state.get("ia_outcome_labels")
 
