@@ -26,8 +26,7 @@ execute:
 format:
   html:
     theme:
-    - cosmo
-    - brand
+      light: flatly
     toc: true
     toc-depth: 4
     css: assets/pega-report-overrides.css

@@ -33,7 +33,7 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
         with:
-          version: 1.3.450
+          version: 1.7.23
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
