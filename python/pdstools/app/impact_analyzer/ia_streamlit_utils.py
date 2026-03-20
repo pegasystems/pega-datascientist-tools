@@ -207,16 +207,22 @@ def load_outcome_aliases(source_path: str) -> dict | None:
     return None
 
 
-def discover_vbd_outcomes(ia: ImpactAnalyzer) -> dict[str, list[str]]:
-    """Return {channel: [unique outcome values]} from already-loaded VBD ia_data.
+def discover_vbd_outcomes(ia: ImpactAnalyzer) -> tuple[dict[str, list[str]], dict[str, int]]:
+    """Return outcome values and record counts per channel from VBD ia_data.
 
     Relies on the Outcome list column kept for debugging in from_vbd().
-    Returns empty dict if Outcome column is absent (e.g., PDC data).
+    Returns empty dicts if Outcome column is absent (e.g., PDC data).
+
+    Returns
+    -------
+    tuple[dict[str, list[str]], dict[str, int]]
+        (outcomes_by_channel, records_by_channel)
     """
+    import polars as pl
 
     schema = ia.ia_data.collect_schema()
     if "Outcome" not in schema.names():
-        return {}
+        return {}, {}
 
     rows = (
         ia.ia_data.select("Channel", "Outcome")
@@ -226,10 +232,14 @@ def discover_vbd_outcomes(ia: ImpactAnalyzer) -> dict[str, list[str]]:
         .sort("Channel", "Outcome")
         .collect()
     )
-    result: dict[str, list[str]] = {}
+    outcomes: dict[str, list[str]] = {}
     for channel, outcome in rows.iter_rows():
-        result.setdefault(channel, []).append(outcome)
-    return result
+        outcomes.setdefault(channel, []).append(outcome)
+
+    counts = ia.ia_data.group_by("Channel").agg(pl.len().alias("n")).sort("Channel").collect()
+    records: dict[str, int] = dict(counts.iter_rows())
+
+    return outcomes, records
 
 
 def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None) -> dict | None:
@@ -251,7 +261,7 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
     """
     import json
 
-    outcomes_by_channel = discover_vbd_outcomes(ia)
+    outcomes_by_channel, records_by_channel = discover_vbd_outcomes(ia)
     if not outcomes_by_channel:
         return None  # PDC data or no Outcome column — skip
 
@@ -276,7 +286,8 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
         any_non_default = False
 
         for channel, outcomes in outcomes_by_channel.items():
-            st.markdown(f"**{channel}**")
+            n = records_by_channel.get(channel, 0)
+            st.markdown(f"**{channel}** <small>({n:,} records)</small>", unsafe_allow_html=True)
             col1, col2 = st.columns(2)
 
             # Use saved config for defaults if available, otherwise fall back to class defaults
