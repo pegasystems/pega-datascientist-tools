@@ -22,6 +22,8 @@ seasonal patterns, and the stability of your experiment results.
 
 def _is_valid_granularity(value: str) -> bool:
     """Validate Polars duration syntax accepted by group_by_dynamic()."""
+    if not value or len(value) > 30:
+        return False
     return bool(GRANULARITY_PATTERN.fullmatch(value))
 
 

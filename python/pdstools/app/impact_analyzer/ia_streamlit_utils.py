@@ -287,7 +287,7 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
 
         for channel, outcomes in outcomes_by_channel.items():
             n = records_by_channel.get(channel, 0)
-            st.markdown(f"**{channel}** <small>({n:,} records)</small>", unsafe_allow_html=True)
+            st.markdown(f"**{channel}** *({n:,} records)*")
             col1, col2 = st.columns(2)
 
             # Use saved config for defaults if available, otherwise fall back to class defaults
