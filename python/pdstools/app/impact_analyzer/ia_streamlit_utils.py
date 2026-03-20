@@ -128,6 +128,7 @@ def load_vbd_from_path(path: str, outcome_labels_json: str | None = None) -> Imp
 
 def load_vbd_from_upload(uploaded_file, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
     path = _write_uploaded_file(uploaded_file)
+    st.session_state["ia_data_source_path"] = path
     return load_vbd_from_path(path, outcome_labels_json=outcome_labels_json)
 
 
@@ -346,6 +347,7 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
         return load_pdc_from_paths((str(p),))
     elif suffix == ".zip":
         # Auto-load persisted outcome aliases from sidecar file
+        st.session_state["ia_data_source_path"] = str(p)
         persisted = load_outcome_aliases(str(p))
         outcome_labels_json = json.dumps(persisted) if persisted else None
         if persisted:
