@@ -620,6 +620,24 @@ def sample_interactions(
     -------
     pl.LazyFrame
         Filtered LazyFrame containing only the sampled interactions.
+
+    Examples
+    --------
+    Sample ~50 000 interactions from a large export and save to parquet:
+
+    >>> from pdstools.pega_io.File import read_ds_export
+    >>> from pdstools.decision_analyzer.utils import sample_interactions
+    >>> df = read_ds_export("big_export.zip")
+    >>> sampled = sample_interactions(df, n=50_000)
+    >>> sampled.collect().write_parquet("my_sample.parquet")
+
+    Sample 10 % of interactions (lazy — no full scan needed):
+
+    >>> sampled = sample_interactions(df, fraction=0.10)
+
+    See Also
+    --------
+    prepare_and_save : Sample *and* persist as parquet with source metadata.
     """
     if (n is None) == (fraction is None):
         raise ValueError("Exactly one of 'n' or 'fraction' must be provided.")
@@ -764,7 +782,20 @@ def prepare_and_save(
 
     Examples
     --------
-    Sample data and save with metadata:
+    Sample ~50 000 interactions from a large zip and save as parquet
+    (equivalent to ``pdstools da --data-path big_export.zip --sample 50000``
+    but usable without the Streamlit app):
+
+    >>> from pdstools.pega_io.File import read_ds_export
+    >>> from pdstools.decision_analyzer.utils import prepare_and_save
+    >>> df = read_ds_export("big_export.zip")
+    >>> sampled, path = prepare_and_save(
+    ...     df, n=50_000, source_path="big_export.zip"
+    ... )
+    >>> print(path)
+    decision_analyzer_sample_50k.parquet
+
+    Sample from a parquet file:
 
     >>> df = pl.scan_parquet("large_data.parquet")
     >>> sampled, path = prepare_and_save(
@@ -772,27 +803,23 @@ def prepare_and_save(
     ...     n=100000,
     ...     source_path="large_data.parquet"
     ... )
-    >>> print(path)
-    decision_analyzer_sample_100k.parquet
 
-    Cache non-parquet data:
+    Cache non-parquet data (no sampling, just convert to parquet):
 
-    >>> df = pl.scan_csv("export.csv")
-    >>> cached, path = prepare_and_save(
-    ...     df,
-    ...     source_path="export.csv"
-    ... )
-    >>> print(path)
-    decision_analyzer_cache_87k.parquet
+    >>> df = read_ds_export("export.csv")
+    >>> cached, path = prepare_and_save(df, source_path="export.csv")
 
     Read metadata from a prepared file:
 
-    >>> import polars as pl
-    >>> metadata = pl.read_parquet_metadata("decision_analyzer_sample_100k.parquet")
+    >>> metadata = pl.read_parquet_metadata("decision_analyzer_sample_50k.parquet")
     >>> print(metadata["pdstools:source_file"])
-    large_data.parquet
+    big_export.zip
     >>> print(metadata["pdstools:sample_percentage"])
-    10.0
+    5.0
+
+    See Also
+    --------
+    sample_interactions : Lower-level sampling without file persistence.
     """
     # Determine mode: sampling or caching
     is_sampling = (n is not None) or (fraction is not None)
