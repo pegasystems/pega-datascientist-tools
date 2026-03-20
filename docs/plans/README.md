@@ -3,7 +3,7 @@
 This folder stores planning artifacts with different retention levels.
 
 - Keep canonical design documents: `*-design.md`
-- Keep active backlog files: `decision-analyzer-TODO.md` and `impact-analyzer-TODO.md`
+- Keep active backlog files: `decision-analyzer-TODO.md`, `health-check-TODO.md`, and `impact-analyzer-TODO.md`
 - Remove implementation notes, execution logs, and temporary status summaries once work is merged
 
 When adding a new plan:
