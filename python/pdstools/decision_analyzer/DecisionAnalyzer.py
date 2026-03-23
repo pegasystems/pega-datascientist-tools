@@ -11,6 +11,7 @@ import polars.selectors as cs
 
 from .data_read_utils import validate_columns
 from .plots import Plot
+from .stage_grouping import get_display_name
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
     ExplainabilityExtract as ExplainabilityExtract_TD,
@@ -802,6 +803,16 @@ class DecisionAnalyzer:
                 .then(pl.lit("OUTPUT"))
                 .otherwise(pl.lit("FILTERED_OUT"))
                 .alias("Record Type"),
+            )
+
+        # Apply user-friendly display names to stage columns
+        stage_cols = [c for c in ("Stage Group", "Stage") if c in available]
+        if stage_cols:
+            df = df.with_columns(
+                [
+                    pl.col(c).cast(pl.Utf8).map_elements(get_display_name, return_dtype=pl.Utf8).cast(pl.Categorical)
+                    for c in stage_cols
+                ]
             )
 
         preproc_df = (
