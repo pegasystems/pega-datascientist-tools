@@ -238,16 +238,27 @@ class TestDecisionFunnel:
     """Test decision_funnel method."""
 
     def test_funnel_plots(self, plot_v2):
-        """Test funnel plots - returns both remaining and filtered figures."""
-        remaining_fig, filtered_fig = plot_v2.decision_funnel(scope="Action")
-        assert isinstance(remaining_fig, Figure)
+        """Returns passing and filtered figures."""
+        passing_fig, filtered_fig = plot_v2.decision_funnel(scope="Action")
+        assert isinstance(passing_fig, Figure)
         assert isinstance(filtered_fig, Figure)
 
     def test_return_df(self, plot_v2):
-        """Test with return_df - returns both dataframes."""
-        remaining_df, filtered_df = plot_v2.decision_funnel(scope="Action", return_df=True)
-        assert isinstance(remaining_df, pl.LazyFrame)
+        """With return_df returns all three dataframes."""
+        available_df, passing_df, filtered_df = plot_v2.decision_funnel(scope="Action", return_df=True)
+        assert isinstance(available_df, pl.LazyFrame)
+        assert isinstance(passing_df, pl.DataFrame)
         assert isinstance(filtered_df, pl.DataFrame)
+
+    def test_decisions_without_actions_plot(self, plot_v2):
+        """decisions_without_actions_plot returns a Figure."""
+        fig = plot_v2.decisions_without_actions_plot()
+        assert isinstance(fig, Figure)
+
+    def test_decisions_without_actions_return_df(self, plot_v2):
+        df = plot_v2.decisions_without_actions_plot(return_df=True)
+        assert isinstance(df, pl.DataFrame)
+        assert "decisions_without_actions" in df.columns
 
 
 class TestFilteringComponents:
@@ -398,16 +409,25 @@ class TestOptionalityPerStage:
 class TestOptionalityTrend:
     """Test optionality_trend method."""
 
-    @pytest.mark.skip(reason="get_optionality_data returns different structure than expected by optionality_trend")
+    def _build_trend_df(self, da_v2):
+        level = da_v2.level
+        return (
+            da_v2.get_optionality_data_with_trend(da_v2.sample)
+            .group_by(["day", level])
+            .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
+            .sort("day")
+        )
+
     def test_trend_plot(self, plot_v2, da_v2):
         """Test optionality trend plot."""
-        # The method expects aggregated optionality data by day
-        pass
+        trend_df = self._build_trend_df(da_v2)
+        fig, _ = plot_v2.optionality_trend(trend_df)
+        assert isinstance(fig, Figure)
 
     def test_return_df(self, plot_v2, da_v2):
         """Test with return_df."""
-        optionality_data = da_v2.get_optionality_data(da_v2.sample)
-        result = plot_v2.optionality_trend(optionality_data, return_df=True)
+        trend_df = self._build_trend_df(da_v2)
+        result = plot_v2.optionality_trend(trend_df, return_df=True)
         assert isinstance(result, pl.LazyFrame)
 
 

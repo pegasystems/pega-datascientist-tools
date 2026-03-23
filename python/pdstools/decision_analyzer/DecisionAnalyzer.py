@@ -1124,6 +1124,7 @@ class DecisionAnalyzer:
     def getComponentDrilldown(
         self,
         component_name: str,
+        scope: str = "Action",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
@@ -1139,14 +1140,16 @@ class DecisionAnalyzer:
         ----------
         component_name : str
             The pxComponentName to drill into.
+        scope : str, default "Action"
+            Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters to apply before aggregation.
 
         Returns
         -------
         pl.DataFrame
-            Columns: pyIssue, pyGroup, pyName, Filtered Decisions,
-            avg_Priority, avg_Value, avg_Propensity, pxComponentType (if
+            Columns include scope columns, Filtered Decisions,
+            avg_Priority, avg_Value, avg_Propensity, Component Type (if
             available). Sorted by Filtered Decisions descending.
         """
         base = apply_filter(self.decision_data, additional_filters)
@@ -1157,7 +1160,11 @@ class DecisionAnalyzer:
             (pl.col("Record Type") == "FILTERED_OUT") & (pl.col("Component Name") == component_name)
         )
 
-        group_cols = ["Issue", "Group", "Action"]
+        scope_hierarchy = ["Issue", "Group", "Action"]
+        scope_idx = scope_hierarchy.index(scope) if scope in scope_hierarchy else 2
+        scope_cols = scope_hierarchy[: scope_idx + 1]
+
+        group_cols = [c for c in scope_cols if c in available]
         agg_exprs = [pl.len().alias("Filtered Decisions")]
         if "Component Type" in available:
             group_cols.append("Component Type")
@@ -1170,15 +1177,13 @@ class DecisionAnalyzer:
 
         if present_scores:
             score_aggs = [pl.col(c).mean().alias(f"avg_{c}") for c in present_scores]
+            join_cols = [c for c in scope_cols if c in available]
             reference_scores = (
-                base.filter(pl.col("Priority").is_not_null())
-                .group_by(["Issue", "Group", "Action"])
-                .agg(score_aggs)
-                .collect()
+                base.filter(pl.col("Priority").is_not_null()).group_by(join_cols).agg(score_aggs).collect()
             )
             result = filtered_agg.join(
                 reference_scores,
-                on=["Issue", "Group", "Action"],
+                on=join_cols,
                 how="left",
             )
         else:

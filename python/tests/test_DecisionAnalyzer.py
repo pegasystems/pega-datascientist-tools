@@ -832,6 +832,25 @@ class TestComponentDrilldown:
         if available_scores:
             assert len(avg_cols) > 0
 
+    def test_drilldown_respects_scope(self, da_v2):
+        """Drilldown should group at the requested scope level."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        name = components[0]
+        for scope in ["Issue", "Group", "Action"]:
+            df = da_v2.getComponentDrilldown(component_name=name, scope=scope)
+            assert scope in df.columns
+
 
 # ---------------------------------------------------------------------------
 # Utility functions
