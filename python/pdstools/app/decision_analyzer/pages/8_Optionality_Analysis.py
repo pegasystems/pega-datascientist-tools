@@ -77,14 +77,14 @@ with st.container(border=True):
     "## Optionality Trend"
 
     st.caption(
-        "Showing the number of unique actions over time - so you can spot significant "
-        "changes in the number of available actions."
+        "Average number of actions available per customer over time - so you can spot "
+        "significant changes in available optionality."
     )
 
     optionality_data_with_trend_per_stage = (
         st.session_state.decision_data.get_optionality_data_with_trend(df=filtered_data)
         .group_by(["day", st.session_state.decision_data.level])
-        .agg(nOffers=pl.col("nOffers").max())
+        .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
         .sort("day")
     )
 
