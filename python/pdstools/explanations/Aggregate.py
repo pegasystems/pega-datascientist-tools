@@ -240,7 +240,7 @@ class Aggregate(LazyNamespace):
         # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
-            aggregate_frequency_over=[_COL.PARTITON.value],
+            frequency_over=[_COL.PARTITON.value],
             aggregate_over=[
                 _COL.PARTITON.value,
                 _COL.PREDICTOR_NAME.value,
@@ -271,6 +271,7 @@ class Aggregate(LazyNamespace):
                     _COL.PREDICTOR_NAME.value,
                     _COL.PREDICTOR_TYPE.value,
                 ],
+                frequency_over=[_COL.PARTITON.value],
                 aggregate_over=[_COL.PARTITON.value],
             )
             df_top_predictors = pl.concat(
@@ -307,7 +308,7 @@ class Aggregate(LazyNamespace):
         # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
-            aggregate_frequency_over=[
+            frequency_over=[
                 _COL.PARTITON.value,
                 _COL.PREDICTOR_NAME.value,
                 _COL.PREDICTOR_TYPE.value,
@@ -358,6 +359,11 @@ class Aggregate(LazyNamespace):
                     _COL.PREDICTOR_TYPE.value,
                     _COL.BIN_ORDER.value,
                     _COL.BIN_CONTENTS.value,
+                ],
+                frequency_over=[
+                    _COL.PARTITON.value,
+                    _COL.PREDICTOR_NAME.value,
+                    _COL.PREDICTOR_TYPE.value,
                 ],
                 aggregate_over=[
                     _COL.PARTITON.value,
@@ -509,90 +515,100 @@ class Aggregate(LazyNamespace):
         self,
         df_all: pl.LazyFrame,
         df_anti: pl.LazyFrame,
-        aggregate_over: list[str],
         anti_on: list[str],
+        frequency_over: list[str],
+        aggregate_over: list[str],
     ) -> pl.LazyFrame:
-        # Needed for calculating the weighted contributions
-        df_frequencies = df_all.group_by(aggregate_over).agg(
-            pl.col(_COL.FREQUENCY.value).sum().alias(_SPECIAL.TOTAL_FREQUENCY.value),
-        )
+        """Anti-join to isolate non-top rows, aggregate, and label as 'remaining'."""
+        df_remaining = df_all.join(df_anti, on=anti_on, how="anti")
+        df_remaining = self._calculate_aggregates(df_remaining, frequency_over, aggregate_over)
+        return self._label_remaining(df_remaining, aggregate_over)
 
-        # Get the remaining contributions by anti-joining the top predictors with the overall data
-        # Join on the total frequencies previously calculated
-        df_remaining = df_all.join(
-            df_anti,
-            on=anti_on,
-            how="anti",
-        ).join(
-            df_frequencies,
-            on=aggregate_over,
-        )
-
-        aggregate_by_list = [
-            pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
-            pl.col(_COL.CONTRIBUTION_ABS.value).mean().alias(_COL.CONTRIBUTION_ABS.value),
-            (
-                (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
-                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
-            ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
-            (
-                (pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)).mean()
-                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
-            ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
-            pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
-            pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
-            pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
-        ]
-
-        # Aggregate the remaining contributions
-        df_remaining = df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
-
-        # If we only aggregate over partition, there will be no bin contents or bin order
+    @staticmethod
+    def _label_remaining(df: pl.LazyFrame, aggregate_over: list[str]) -> pl.LazyFrame:
+        """Add 'remaining' labels based on aggregation granularity."""
         if len(aggregate_over) == 1 and aggregate_over[0] == _COL.PARTITON.value:
-            df_remaining = df_remaining.with_columns(
+            return df.with_columns(
                 pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
                 pl.lit(_PREDICTOR_TYPE.SYMBOLIC).alias(_COL.PREDICTOR_TYPE.value),
             )
-        # if we aggregate over partition and predictor name,
-        # we need to add the bin contents and bin order
-        else:
-            df_remaining = df_remaining.with_columns(
-                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
-                pl.lit(0).cast(pl.Int64).alias(_COL.BIN_ORDER.value),
-            )
-
-        return df_remaining
+        return df.with_columns(
+            pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
+            pl.lit(0).cast(pl.Int64).alias(_COL.BIN_ORDER.value),
+        )
 
     def _calculate_aggregates(
         self,
         df: pl.LazyFrame,
-        aggregate_frequency_over: list[str],
+        frequency_over: list[str],
         aggregate_over: list[str],
     ) -> pl.LazyFrame:
-        # Needed for calculating the weighted contributions
-        df_frequencies = df.group_by(aggregate_frequency_over).agg(
-            pl.col(_COL.FREQUENCY.value).sum().alias(_SPECIAL.TOTAL_FREQUENCY.value),
+        """Enrich with total_frequency at frequency_over level, then aggregate at aggregate_over level."""
+        data = self._add_total_frequency_to_df(df, frequency_over)
+        return self._agg_over_columns_in_df(data, aggregate_over)
+
+    @staticmethod
+    def _add_total_frequency_to_df(df, group_by):
+        df_grouped = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
+
+        return df_grouped.join(df, on=group_by, how="left")
+
+    def add_frequency_pct_to_df(self, df, group_by):
+        """Add a frequency percentage column to the dataframe based on the total frequency per group."""
+
+        df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
+        return df_with_total_frequency.with_columns(
+            pl.when(pl.col(_SPECIAL.TOTAL_FREQUENCY.value) == 0)
+            .then(0.0)
+            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col(_SPECIAL.TOTAL_FREQUENCY.value) * 100).round(1))
+            .alias("frequency_pct")
         )
 
-        df_remaining = df.join(
-            df_frequencies,
-            on=aggregate_frequency_over,
-        )
+    @staticmethod
+    def _get_mean_aggregates():
+        """Get mean contribution aggregates."""
 
-        aggregate_by_list = [
-            pl.col(_COL.CONTRIBUTION.value).mean().alias(_COL.CONTRIBUTION.value),
-            pl.col(_COL.CONTRIBUTION_ABS.value).mean().alias(_COL.CONTRIBUTION_ABS.value),
-            (
-                (pl.col(_COL.CONTRIBUTION.value) * pl.col(_COL.FREQUENCY.value)).mean()
-                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
-            ).alias(_COL.CONTRIBUTION_WEIGHTED.value),
-            (
-                (pl.col(_COL.CONTRIBUTION_ABS.value) * pl.col(_COL.FREQUENCY.value)).mean()
-                / (pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first())
-            ).alias(_COL.CONTRIBUTION_WEIGHTED_ABS.value),
-            pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value),
+        def _apply(col):
+            return pl.col(col).mean().alias(col)
+
+        return [
+            _apply(_COL.CONTRIBUTION.value),
+            _apply(_COL.CONTRIBUTION_ABS.value),
+        ]
+
+    @staticmethod
+    def _get_weighted_aggregates():
+        """Get frequency-weighted contribution aggregates normalized by total frequency."""
+
+        def _apply(col, alias):
+            return (
+                (pl.col(col) * pl.col(_COL.FREQUENCY.value)).mean() / pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first()
+            ).alias(alias)
+
+        return [
+            _apply(_COL.CONTRIBUTION.value, _COL.CONTRIBUTION_WEIGHTED.value),
+            _apply(_COL.CONTRIBUTION_ABS.value, _COL.CONTRIBUTION_WEIGHTED_ABS.value),
+        ]
+
+    @staticmethod
+    def _get_frequency_aggregate():
+        """Get frequency sum aggregate."""
+        return [pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value)]
+
+    @staticmethod
+    def _get_bounds_aggregates():
+        """Get min and max contribution bounds."""
+        return [
             pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
             pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
         ]
 
-        return df_remaining.group_by(aggregate_over).agg(aggregate_by_list)
+    def _agg_over_columns_in_df(self, df, group_by):
+        """Aggregate contribution metrics over specified columns."""
+        aggregate_by_list = [
+            *self._get_mean_aggregates(),
+            *self._get_weighted_aggregates(),
+            *self._get_frequency_aggregate(),
+            *self._get_bounds_aggregates(),
+        ]
+        return df.group_by(group_by).agg(aggregate_by_list)
