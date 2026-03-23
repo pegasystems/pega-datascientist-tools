@@ -273,20 +273,20 @@ class TestGetFirstLevelStats:
         stats = get_first_level_stats(interaction_data_with_id)
         assert stats["Actions"] == 4
         assert stats["Rows"] == 4
-        assert stats["Interactions"] == 3
+        assert stats["Decisions"] == 3
 
     def test_stats_without_interaction_id(self, interaction_data_no_id):
         stats = get_first_level_stats(interaction_data_no_id)
         assert stats["Actions"] == 3
         assert stats["Rows"] == 3
-        assert "Interactions" not in stats
+        assert "Decisions" not in stats
 
     def test_stats_with_filter(self, interaction_data_with_id):
         filt = pl.col("Issue") == "Sales"
         stats = get_first_level_stats(interaction_data_with_id, filters=filt)
         assert stats["Actions"] == 2
         assert stats["Rows"] == 2
-        assert stats["Interactions"] == 1
+        assert stats["Decisions"] == 1
 
 
 # ---------------------------------------------------------------------------
