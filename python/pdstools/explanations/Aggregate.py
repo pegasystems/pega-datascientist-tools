@@ -200,13 +200,21 @@ class Aggregate(LazyNamespace):
 
         context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
 
-        self.df_contextual = pl.scan_parquet(context_).select(selected_columns).sort(by=_COL.PREDICTOR_NAME.value)
+        self.df_contextual = (
+            pl.scan_parquet(context_)
+            .select(selected_columns)
+            .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
+            .sort(by=_COL.PREDICTOR_NAME.value)
+        )
+        self.df_contextual = self._filter_single_bin_numeric_predictors(self.df_contextual)
 
         self.df_overall = (
             pl.scan_parquet(f"{self.data_folderpath}/*_OVERALL.parquet")
             .select(selected_columns)
+            .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
+        self.df_overall = self._filter_single_bin_numeric_predictors(self.df_overall)
 
         self.initialized = True
 
@@ -612,3 +620,22 @@ class Aggregate(LazyNamespace):
             *self._get_bounds_aggregates(),
         ]
         return df.group_by(group_by).agg(aggregate_by_list)
+
+    @staticmethod
+    def _filter_single_bin_numeric_predictors(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Remove numeric predictors that have only a single non-missing bin."""
+        single_bin_predictors = (
+            df.filter(
+                (pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
+                & (pl.col(_COL.BIN_CONTENTS.value) != _SPECIAL.MISSING.name)
+            )
+            .group_by([_COL.PARTITON.value, _COL.PREDICTOR_NAME.value])
+            .agg(pl.col(_COL.BIN_ORDER.value).n_unique().alias("bin_count"))
+            .filter(pl.col("bin_count") <= 1)
+            .select([_COL.PARTITON.value, _COL.PREDICTOR_NAME.value])
+        )
+        return df.join(
+            single_bin_predictors,
+            on=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value],
+            how="anti",
+        )
