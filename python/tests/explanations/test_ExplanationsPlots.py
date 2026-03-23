@@ -138,7 +138,7 @@ def test_plot_contributions_for_overall_with_invalid_contribution_type(plots):
     # Call the method with an invalid contribution type
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_for_overall(
-            contribution_calculation="invalid",
+            sort_by="invalid",
         )
 
 
@@ -206,7 +206,7 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_by_context(
             context=selected_context,
-            contribution_calculation="invalid",
+            sort_by="invalid",
         )
 
 

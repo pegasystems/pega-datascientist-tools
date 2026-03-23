@@ -63,8 +63,10 @@ def params_file(temp_report_dir):
         "top_k": 10,
         "from_date": "2026-01-01",
         "to_date": "2026-01-31",
-        "contribution_type": "contribution",
-        "contribution_text": "average contribution",
+        "sort_by": "contribution_abs",
+        "sort_by_text": "absolute average contribution",
+        "display_by": "contribution",
+        "display_by_text": "average contribution",
         "data_folder": "aggregated_data",
     }
     with open(params_path, "w") as f:
@@ -85,7 +87,7 @@ for data {DATE_INFO}.
 
 Model context limit: {MODEL_CONTEXT_LIMIT}
 
-Contribution text: {CONTRIBUTION_TEXT}
+Sort by text: {SORT_BY_TEXT}
 """,
         "overview.qmd": """---
 title: "Overview"
@@ -94,8 +96,9 @@ title: "Overview"
 Analysis using TOP_N={TOP_N}, TOP_K={TOP_K}
 Root dir: {ROOT_DIR}
 Data folder: {DATA_FOLDER}
-Contribution type: {CONTRIBUTION_TYPE}
-Contribution text: {CONTRIBUTION_TEXT}
+Sort by: {SORT_BY}
+Sort by text: {SORT_BY_TEXT}
+Display by: {DISPLAY_BY}
 """,
         "all_context_header.qmd": """---
 title: "All Context Header"
@@ -105,7 +108,7 @@ Root: {ROOT_DIR}
 Data: {DATA_FOLDER}
 Pattern: {DATA_PATTERN}
 Top N: {TOP_N}
-Contribution: {CONTRIBUTION_TEXT}
+Sort by text: {SORT_BY_TEXT}
 """,
         "all_context_content.qmd": """
 ## Context: {CONTEXT_LABEL}
@@ -113,7 +116,8 @@ Contribution: {CONTRIBUTION_TEXT}
 Context dict: {CONTEXT_DICT}
 Top N: {TOP_N}
 Top K: {TOP_K}
-Type: {CONTRIBUTION_TYPE}
+Sort by: {SORT_BY}
+Display by: {DISPLAY_BY}
 """,
         "context.qmd": """---
 title: "{CONTEXT_STR}"
@@ -123,7 +127,7 @@ title: "{CONTEXT_STR}"
 
 Context: {CONTEXT_LABEL}
 Top N: {TOP_N}
-Contribution: {CONTRIBUTION_TEXT}
+Sort by text: {SORT_BY_TEXT}
 """,
     }
     return templates
@@ -143,8 +147,10 @@ class TestReportGeneration:
         assert generator.top_k == 10
         assert generator.from_date == "2026-01-01"
         assert generator.to_date == "2026-01-31"
-        assert generator.contribution_type == "contribution"
-        assert generator.contribution_text == "average contribution"
+        assert generator.sort_by == "contribution_abs"
+        assert generator.sort_by_text == "absolute average contribution"
+        assert generator.display_by == "contribution"
+        assert generator.display_by_text == "average contribution"
 
     def test_generate_getting_started(self, temp_report_dir, params_file, monkeypatch):
         """Test generation of getting-started.qmd file."""
@@ -184,7 +190,7 @@ class TestReportGeneration:
         # Verify parameter substitution
         assert "15" in content  # TOP_N
         assert "10" in content  # TOP_K
-        assert "contribution" in content  # CONTRIBUTION_TYPE
+        assert "contribution_abs" in content  # SORT_BY
 
     def test_generate_by_context_qmds(self, temp_report_dir, params_file, monkeypatch):
         """Test generation of by-context QMD files."""
@@ -225,8 +231,10 @@ class TestReadParams:
         assert generator.top_k == 10
         assert generator.from_date == "2026-01-01"
         assert generator.to_date == "2026-01-31"
-        assert generator.contribution_type == "contribution"
-        assert generator.contribution_text == "average contribution"
+        assert generator.sort_by == "contribution_abs"
+        assert generator.sort_by_text == "absolute average contribution"
+        assert generator.display_by == "contribution"
+        assert generator.display_by_text == "average contribution"
         assert generator.data_folder.endswith("aggregated_data")
 
     def test_params_defaults_when_no_file(self, temp_report_dir, monkeypatch):
@@ -238,6 +246,8 @@ class TestReadParams:
         assert generator.top_k == 20
         assert generator.from_date == "N/A"
         assert generator.to_date == "N/A"
-        assert generator.contribution_type == "contribution"
-        assert generator.contribution_text == "average contribution"
+        assert generator.sort_by == "contribution_abs"
+        assert generator.sort_by_text == "absolute average contribution"
+        assert generator.display_by == "contribution"
+        assert generator.display_by_text == "average contribution"
         assert generator.data_folder.endswith("aggregated_data")

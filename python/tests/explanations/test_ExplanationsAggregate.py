@@ -116,7 +116,7 @@ class TestAggregatePredictorContributions:
         """Test contribution type validation."""
         with pytest.raises(ValueError, match="Invalid contribution type"):
             aggregate.get_predictor_contributions(
-                contribution_calculation="invalid_type",
+                sort_by="invalid_type",
             )
 
     def test_get_predictor_contributions_overall_invalid_top_n(self, aggregate):
@@ -153,7 +153,7 @@ class TestAggregatePredictorContributions:
         with pytest.raises(ValueError, match="Invalid contribution type"):
             aggregate.get_predictor_contributions(
                 context=selected_context,
-                contribution_calculation="invalid_type",
+                sort_by="invalid_type",
             )
 
     def test_get_predictor_contributions_for_context_invalid_top_n(
@@ -198,7 +198,7 @@ class TestAggregatePredictorValueContributions:
         with pytest.raises(ValueError, match="Invalid contribution type"):
             aggregate.get_predictor_value_contributions(
                 predictors=predictors,
-                contribution_calculation="invalid_type",
+                sort_by="invalid_type",
             )
 
     def test_get_predictor_value_contributions_overall_invalid_top_k(
@@ -250,7 +250,7 @@ class TestAggregatePredictorValueContributions:
             aggregate.get_predictor_value_contributions(
                 predictors=predictors,
                 context=selected_context,
-                contribution_calculation="invalid_type",
+                sort_by="invalid_type",
             )
 
     def test_get_predictor_value_contributions_for_context_invalid_top_k(

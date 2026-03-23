@@ -43,6 +43,11 @@ class Aggregate(LazyNamespace):
         self._load_data()
         return self.df_contextual  # type: ignore[return-value]
 
+    def get_df_overall(self) -> pl.LazyFrame:
+        """Get the overall dataframe, loading it if not already loaded."""
+        self._load_data()
+        return self.df_overall  # type: ignore[return-value]
+
     def get_predictor_contributions(
         self,
         context: dict[str, str] | None = None,
@@ -50,7 +55,7 @@ class Aggregate(LazyNamespace):
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
-        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
     ):
         """Get the top-n predictor contributions for a given context or overall.
 
@@ -66,15 +71,13 @@ class Aggregate(LazyNamespace):
                 Whether to include contributions for missing predictor values.
             remaining (bool):
                 Whether to include contributions for remaining predictors outside the top-n.
-            contribution_calculation (str):
-                Method to calculate contributions. Some options are
+            sort_by (str):
+                Method to sort/select top contributions. Options include
                 `contribution`, `contribution_abs`, `contribution_weighted`.
-                Default is `contribution` which is the average contributions to predictions.
-
+                Default is `contribution_abs` which sorts by absolute average contributions.
         """
-        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
-            contribution_calculation,
-        )
+
+        validated_sort_by = _CONTRIBUTION_TYPE.validate_and_get_type(sort_by)
 
         try:
             validate(top_n=top_n)
@@ -90,7 +93,7 @@ class Aggregate(LazyNamespace):
             descending=descending,
             missing=missing,
             remaining=remaining,
-            contribution_type=contribution_type.value,
+            sort_by=validated_sort_by.value,
         )
 
     def get_predictor_value_contributions(
@@ -101,7 +104,7 @@ class Aggregate(LazyNamespace):
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
-        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
     ):
         """Get the top-k predictor value contributions for a given context or overall.
 
@@ -119,15 +122,13 @@ class Aggregate(LazyNamespace):
                 Whether to include contributions for missing predictor values.
             remaining (bool):
                 Whether to include contributions for remaining predictors outside the top-n.
-            contribution_calculation (str):
-                Method to calculate contributions. Some options are
+            sort_by (str):
+                Method to sort/select top contributions. Options include
                 `contribution`, `contribution_abs`, `contribution_weighted`.
-                Default is `contribution` which is the average contributions to predictions.
-
+                Default is `contribution_abs` which sorts by absolute average contributions.
         """
-        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
-            contribution_calculation,
-        )
+
+        validated_sort_by = _CONTRIBUTION_TYPE.validate_and_get_type(sort_by)
 
         try:
             validate(top_k=top_k)
@@ -144,7 +145,7 @@ class Aggregate(LazyNamespace):
             descending=descending,
             missing=missing,
             remaining=remaining,
-            contribution_type=contribution_type.value,
+            sort_by=validated_sort_by.value,
         )
 
     def validate_folder(self):
@@ -217,7 +218,7 @@ class Aggregate(LazyNamespace):
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
-        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
     ) -> pl.DataFrame:
         contexts = contexts or []
         predictors = predictors or []
@@ -247,10 +248,10 @@ class Aggregate(LazyNamespace):
             ],
         )
 
-        # Take the top predictors per partition, sorted by contribution type
+        # Take the top predictors per partition, sorted by sort_by
         df_top_predictors = self._get_df_with_top_limit(
             df,
-            contribution_type=contribution_type,
+            sort_by=sort_by,
             over=[_COL.PARTITON.value],
             limit=limit,
             descending=descending,
@@ -276,9 +277,9 @@ class Aggregate(LazyNamespace):
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictors]
             )
 
-        # Ensure all predictors are unique and sorted by contribution type
+        # Ensure all predictors are unique and sorted by sort_by
         df_out = df_top_predictors.unique()
-        df_out = df_out.sort(by=contribution_type)
+        df_out = df_out.sort(by=sort_by, descending=descending)
 
         return df_out.collect()
 
@@ -290,7 +291,7 @@ class Aggregate(LazyNamespace):
         descending: bool = _DEFAULT.DESCENDING.value,
         missing: bool = _DEFAULT.MISSING.value,
         remaining: bool = _DEFAULT.REMAINING.value,
-        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
     ) -> pl.DataFrame:
         # if no contexts are provided, then we return the overall data
         # if contexts are provided, then we generate the context filters
@@ -324,13 +325,13 @@ class Aggregate(LazyNamespace):
         # finding the top predictors, but are used for logically sorting the final output
         # e.g.:
         # - numeric predictors are sorted by bin order
-        # - symbolic predictors are sorted by contribution type
-        df = self._get_df_with_sort_info(df, sort_by_column=contribution_type)
+        # - symbolic predictors are sorted by sort_by
+        df = self._get_df_with_sort_info(df, sort_by=sort_by)
 
-        # Take the top predictors per partition, sorted by contribution type
+        # Take the top predictors per partition, sorted by sort_by
         df_top_predictor_values = self._get_df_with_top_limit(
             df,
-            contribution_type=contribution_type,
+            sort_by=sort_by,
             over=[
                 _COL.PARTITON.value,
                 _COL.PREDICTOR_NAME.value,
@@ -368,7 +369,7 @@ class Aggregate(LazyNamespace):
             # Add sort information and concat with the top predictor values
             df_remaining = self._get_df_with_sort_info(
                 df_remaining,
-                sort_by_column=contribution_type,
+                sort_by=sort_by,
             )
             df_top_predictor_values = pl.concat(
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictor_values]
@@ -384,7 +385,7 @@ class Aggregate(LazyNamespace):
     def _get_df_with_sort_info(
         self,
         df: pl.LazyFrame,
-        sort_by_column: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
     ) -> pl.LazyFrame:
         """Add a sort column and value to the dataframe based on the predictor type.
         # Sort logic:
@@ -394,11 +395,11 @@ class Aggregate(LazyNamespace):
         return df.with_columns(
             pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
             .then(pl.lit(_COL.BIN_ORDER.value))
-            .otherwise(pl.lit(sort_by_column))
+            .otherwise(pl.lit(sort_by))
             .alias("sort_column"),
             pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
             .then(pl.col(_COL.BIN_ORDER.value))
-            .otherwise(pl.col(sort_by_column).abs())
+            .otherwise(pl.col(sort_by))
             .alias("sort_value"),
         )
 
@@ -416,13 +417,29 @@ class Aggregate(LazyNamespace):
         self,
         df: pl.LazyFrame,
         over: list[str],
-        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        sort_by: str = _DEFAULT.SORT_BY.value.value,
         limit: int = _DEFAULT.TOP_K.value,
-        descending: bool = True,
+        descending: bool = _DEFAULT.DESCENDING.value,
     ) -> pl.LazyFrame:
+        """Return the top `limit` rows per group, ranked by `sort_by`.
+
+        For each unique combination of values in `over`, keeps only the `limit`
+        rows with the highest (or lowest) value in `sort_by`.
+
+        When `descending=True` (the default), the rows with the **largest**
+        values are kept — i.e. the most impactful contributions rise to the top.
+        When `descending=False`, the rows with the **smallest** values are kept
+        instead, which is useful when selecting the least influential predictors.
+
+        Note: Polars' `top_k_by` uses a `reverse` parameter whose semantics are
+        the **opposite** of `descending`. `reverse=False` returns the k largest
+        values, while `reverse=True` returns the k smallest. To keep the
+        caller-facing API intuitive (`descending=True` → largest values), we
+        pass `reverse=not descending` to Polars internally.
+        """
         return df.select(
             pl.all()
-            .top_k_by(contribution_type, k=limit, reverse=descending)
+            .top_k_by(sort_by, k=limit, reverse=not descending)
             .over(
                 over,
                 mapping_strategy="explode",

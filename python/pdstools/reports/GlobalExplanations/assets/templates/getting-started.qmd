@@ -6,7 +6,7 @@ published-title: "Report generated on"
 
 ## Introduction
 
-This report contains a break down of the {CONTRIBUTION_TEXT} for each predictor made to model predictions. The report is generated over the aggregated explanations data {DATE_INFO}.
+This report contains a break down of the {SORT_BY_TEXT} for each predictor made to model predictions. Predictors are sorted and selected by their {SORT_BY_TEXT}. The report is generated over the aggregated explanations data {DATE_INFO}.
 
 ::: {{.callout-tip}}
 Charts are built with [Plotly](https://plotly.com/python/) and have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/).
@@ -16,11 +16,11 @@ These interactive plots do not render well in portals like Sharepoint or Box. Vi
 ### Model Overview
 
 The model overview page shows `top-{TOP_N}` predictors that, on average, had the highest contribution to the model predictions.
-In addition to the {CONTRIBUTION_TEXT} for those `top-{TOP_N}` predictors, the overview page also shows the {CONTRIBUTION_TEXT} for each predictor values. For symbolic predictors, the `top-{TOP_K}` predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles. The model overview will be generated over all model contexts.
+In addition to the {SORT_BY_TEXT} for those `top-{TOP_N}` predictors, the overview page also shows the {SORT_BY_TEXT} for each predictor values. For symbolic predictors, the `top-{TOP_K}` predictor values are shown. For numeric predictors, the predictor values are binned according to the contribution deciles. The model overview will be generated over all model contexts.
 
 ### By model context
 
-The **By Model Context** section displays the same information as in the model overview section, but for explanations aggregated within a specific model context. So instead of showing the {CONTRIBUTION_TEXT} of predictors, you can see the {CONTRIBUTION_TEXT} of predictors for a given a pyName, pyOutcome, pyIssue, etc.
+The **By Model Context** section displays the same information as in the model overview section, but for explanations aggregated within a specific model context. So instead of showing the {SORT_BY_TEXT} of predictors, you can see the {SORT_BY_TEXT} of predictors for a given a pyName, pyOutcome, pyIssue, etc.
 
 *Note*: The model context plots are generated for the `top-{MODEL_CONTEXT_LIMIT}` model contexts sorted by frequency of samples.
 
