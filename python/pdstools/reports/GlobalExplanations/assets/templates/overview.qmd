@@ -13,7 +13,7 @@ from pdstools.utils import report_utils, show_versions
 
 ## Predictor contributions at model level
 
-The top-{TOP_N} predictors over the entire model, selected by their {CONTRIBUTION_TEXT} to predictions
+The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEXT} to predictions
 
 ```{{python}}
 explanations = Explanations(root_dir="{ROOT_DIR}")
@@ -23,7 +23,8 @@ try:
     overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
         top_n={TOP_N},
         top_k={TOP_K},
-        contribution_calculation="{CONTRIBUTION_TYPE}"
+        sort_by="{SORT_BY}",
+        display_by="{DISPLAY_BY}"
     )
     overall_plot.show()
 except Exception as e:
@@ -32,7 +33,7 @@ except Exception as e:
 
 ## Predictor value contributions at model level
 
-The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their {CONTRIBUTION_TEXT} to predictions.
+The predictor value contributions for the top-{TOP_N} predictors. Similar to above, the predictor values are selected by their {SORT_BY_TEXT} to predictions.
 
 ```{{python}}
 # | output: asis

@@ -3,7 +3,7 @@ title: "By context"
 skip_exec: true
 ---
 
-The top-{TOP_N} predictor's {CONTRIBUTION_TEXT} per context.
+The top-{TOP_N} predictor's {SORT_BY_TEXT} per context.
 
 ```{{python}}
 # | echo: false

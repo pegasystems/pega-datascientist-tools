@@ -8,7 +8,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import yaml
 from pdstools.explanations import Explanations
+from pdstools.explanations.ExplanationsUtils import _CONTRIBUTION_TYPE, defaults
 
 basePath = Path(__file__).parent.parent.parent.parent
 
@@ -71,16 +73,51 @@ def test_copy_report_resources_raises_on_error(reports):
 
 
 def test_set_params(reports):
-    """Test the _set_params method."""
+    """Test _set_params writes all parameters including sort_by and display_by."""
     reports._validate_report_dir()
     reports._copy_report_resources()
-    reports._set_params(top_n=5, top_k=3)
+    reports._set_params(top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
 
-    with open(reports.params_file, encoding="Utf-8") as f:
-        params = f.read()
+    with open(reports.params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
 
-    assert "top_n: 5" in params
-    assert "top_k: 3" in params
+    assert params["top_n"] == 5
+    assert params["top_k"] == 3
+    assert params["from_date"] == "2026-01-01"
+    assert params["to_date"] == "2026-01-31"
+    assert params["sort_by"] == defaults.sort_by.value
+    assert params["sort_by_text"] == defaults.sort_by.text
+    assert params["display_by"] == defaults.display_by.value
+    assert params["display_by_text"] == defaults.display_by.text
+    assert params["data_folder"] == reports.aggregate_folder.name
+
+
+def test_set_params_custom_contribution_types(reports):
+    """Test _set_params writes custom sort_by and display_by values."""
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+
+    sort_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+    display_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+
+    reports._set_params(
+        top_n=10,
+        top_k=5,
+        from_date="2026-03-01",
+        to_date="2026-03-31",
+        sort_by=sort_by,
+        display_by=display_by,
+    )
+
+    with open(reports.params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    assert params["top_n"] == 10
+    assert params["top_k"] == 5
+    assert params["sort_by"] == sort_by.value
+    assert params["sort_by_text"] == sort_by.text
+    assert params["display_by"] == display_by.value
+    assert params["display_by_text"] == display_by.text
 
 
 def test_reports_logging(reports, caplog):

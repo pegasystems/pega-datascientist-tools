@@ -8,7 +8,8 @@ try:
         {CONTEXT_DICT},
         top_n = {TOP_N},
         top_k = {TOP_K},
-        contribution_calculation="{CONTRIBUTION_TYPE}"
+        sort_by="{SORT_BY}",
+        display_by="{DISPLAY_BY}"
     )
 
     header_tbl.update_layout(title="")
@@ -24,7 +25,7 @@ try:
     overall_fig.update_layout(title="")
     overall_fig.show()
 except Exception as e:
-    report_utils.quarto_plot_exception("Context Overall Figure", e)
+    report_utils.quarto_plot_exception("Context Overall Contributions", e)
 ```
 
 ```{{python}}
@@ -35,5 +36,6 @@ try:
         title = plot.layout['title']['text']
         display(Markdown(f'### {{title}}'), plot)
 except Exception as e:
-    report_utils.quarto_plot_exception("Context Predictor Figures", e)
+    report_utils.quarto_plot_exception("Context Predictor Contributions", e)
+
 ```

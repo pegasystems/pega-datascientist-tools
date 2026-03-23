@@ -3,11 +3,12 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import plotly.graph_objects as go
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _DEFAULT, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import _SPECIAL, defaults
 from pdstools.explanations.Plots import Plots
 
 basePath = Path(__file__).parent.parent.parent.parent
@@ -66,7 +67,7 @@ def test_plot_contributions_for_overall_default_params(plots):
     # +1 for the remaining bar
     _assert_fig_bar_data_overall(
         overall_fig,
-        _DEFAULT.TOP_N.value + 1,
+        defaults.top_n + 1,
         check_condition="le",
     )
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
@@ -138,7 +139,7 @@ def test_plot_contributions_for_overall_with_invalid_contribution_type(plots):
     # Call the method with an invalid contribution type
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_for_overall(
-            contribution_calculation="invalid",
+            sort_by="invalid",
         )
 
 
@@ -206,7 +207,7 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_by_context(
             context=selected_context,
-            contribution_calculation="invalid",
+            sort_by="invalid",
         )
 
 
@@ -285,4 +286,53 @@ def _get_bar_data_from_fig(fig):
 
 
 def _get_predictor_type_from_fig(fig):
-    return _get_bar_data_from_fig(fig).customdata[0]
+    """Extract predictor type from customdata (column index 1)."""
+    return _get_bar_data_from_fig(fig).customdata[0][1]
+
+
+# --- Tests for contributions() dispatcher ---
+
+
+@patch.object(go.Figure, "show")
+def test_contributions_no_context(mock_show, plots):
+    """Test contributions() dispatches to overall when no context selected."""
+    context_plot, plot_list = plots.contributions()
+    assert context_plot is None
+    assert isinstance(plot_list, list)
+    assert all(isinstance(fig, go.Figure) for fig in plot_list)
+    assert mock_show.call_count == len(plot_list)
+
+
+@patch.object(go.Figure, "show")
+def test_contributions_with_context(mock_show, plots):
+    """Test contributions() dispatches to by-context when context selected."""
+    context = {
+        "pyChannel": "PegaBatch",
+        "pyDirection": "E2E Test",
+        "pyGroup": "E2E Test",
+        "pyIssue": "Batch",
+        "pyName": "P1",
+    }
+    with (
+        patch.object(plots.explanations.filter, "is_context_selected", return_value=True),
+        patch.object(plots.explanations.filter, "get_selected_context", return_value=context),
+    ):
+        context_plot, plot_list = plots.contributions()
+
+    assert isinstance(context_plot, go.Figure)
+    assert isinstance(plot_list, list)
+    assert all(isinstance(fig, go.Figure) for fig in plot_list)
+    # context_plot + overall + predictor plots all get .show()
+    assert mock_show.call_count == 1 + len(plot_list)
+
+
+def test_contributions_invalid_sort_by(plots):
+    """Test contributions() validates sort_by parameter."""
+    with pytest.raises(ValueError, match="Invalid contribution type"):
+        plots.contributions(sort_by="invalid")
+
+
+def test_contributions_invalid_display_by(plots):
+    """Test contributions() validates display_by parameter."""
+    with pytest.raises(ValueError, match="Invalid contribution type"):
+        plots.contributions(display_by="invalid")

@@ -1,15 +1,16 @@
 __all__ = [
     "_COL",
     "_CONTRIBUTION_TYPE",
-    "_DEFAULT",
     "_PREDICTOR_TYPE",
     "_SPECIAL",
     "_TABLE_NAME",
     "ContextInfo",
     "ContextOperations",
+    "defaults",
 ]
 
 import json
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, TypedDict, cast
 
@@ -110,12 +111,18 @@ class _SPECIAL(Enum):
     MISSING = "missing"
 
 
-class _DEFAULT(Enum):
-    TOP_N = 20
-    TOP_K = 20
-    DESCENDING = True
-    MISSING = True
-    REMAINING = True
+@dataclass(frozen=True)
+class _Defaults:
+    top_n: int = 20
+    top_k: int = 20
+    descending: bool = True
+    missing: bool = True
+    remaining: bool = True
+    sort_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+    display_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION
+
+
+defaults = _Defaults()
 
 
 class ContextInfo(TypedDict):
