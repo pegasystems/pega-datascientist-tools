@@ -25,6 +25,9 @@ Active work items for the Decision Analysis Tool.
 - ✅ Component drilldown granularity selector (scope parameter)
 - ✅ Streamlit width="stretch" deprecation fix
 - ✅ Page naming consistency (Arbitration Distribution)
+- ✅ Action Funnel redesign — three tabs (Passing, Filtered, Decisions w/o Actions), funnel summary table, unified component analysis
+- ✅ Design principle: decisions shown as % of total, actions as avg/decision, "Interactions" → "Decisions" throughout UI
+- ✅ Offer Variation section moved from Optionality to Offer Quality page
 
 ---
 
@@ -103,6 +106,10 @@ Active work items for the Decision Analysis Tool.
 ### Page 5 — Action Funnel
 
 - [ ] **[P2] "Decisions w/o Actions" view** — The Pega product's funnel analysis includes a "Decisions w/o Actions" view that shows, per stage, the number of decisions ending in zero actions. The app's funnel currently shows "Average Actions per Interaction" and "Reach" (% of interactions with ≥1 action) but lacks a dedicated view counting interactions where *all* actions have been filtered out by a given stage. **Consequence:** Users cannot quickly see how many decisions result in no actions at all — a critical indicator of over-filtering. The "Reach" metric is related (100% − Reach ≈ % with no actions) but is a percentage buried in hover text, not an explicit count per stage. **Action:** Add a "Decisions w/o Actions" tab or toggle in the funnel page. For each stage, compute the number of unique interactions with zero `REMAINING` records at that stage. Display as a bar chart showing how the zero-action count grows through stages. Implementation: use `aggregate_remaining_per_stage` grouped by `Interaction ID`, then count interactions whose action count is 0 at each stage. This helps users pinpoint exactly which stages cause the most decisions to lose all their actions.
+
+- [ ] **[P2] Restore funnel-shaped view for Passing Actions** — The classic funnel visualisation (narrowing bars showing how actions pass through each stage) is missing. The current bar chart shows average actions per decision per stage but doesn't convey the funnel shape intuitively. **Action:** Redesign the Passing Actions tab to use a proper funnel chart (or waterfall) so the narrowing across stages is visually obvious.
+
+- [ ] **[P2] Rethink Filter Impact Details table** — The summary table currently shows avg actions per decision and % decisions with actions. Consider whether absolute counts (Available/Passing/Filtered actions and raw decision count per stage) are more useful or whether a mixed display (both absolute and relative) serves users better. **Action:** User research or A/B test; decide on final column set.
 
 - [ ] **[P2] Toggle between Passing and Filtered perspective** — Currently shows only actions passing through stages (remaining after filters). **Consequence:** Hard to see filter impact; users can't visualize what was removed; unclear which filters are most restrictive. **Action:** Add toggle "Show: Remaining / Filtered Out / Both" to switch between perspectives; use contrasting colors for passed vs filtered; show filter-specific impact.
 
