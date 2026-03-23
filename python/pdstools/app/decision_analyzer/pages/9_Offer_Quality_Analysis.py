@@ -135,8 +135,10 @@ with st.container(border=True):
     "## Offer Variation"
 
     st.caption(
-        "How much variation is there in the offers? Does everyone get the same few actions or "
-        "is there a lot of variation in what we are offering? Shown across all channels and directions."
+        "Actions ranked from most to least frequently selected in final decisions. "
+        "The curve shows how many actions are needed to cover a given fraction of decisions — "
+        "a steep curve means a few actions dominate, while a flatter curve indicates broader variety. "
+        "Broken out by Channel/Direction to reveal whether concentration differs across channels."
     )
 
     # Offer Variation uses Output stage and is intentionally shown across all channels
@@ -149,6 +151,7 @@ with st.container(border=True):
     )
     action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
     st.caption(
-        f"{action_variability_stats['n90']} actions win in 90% of the final decisions made. "
-        f"The personalization index is **{round(action_variability_stats['gini'], 3)}**."
+        f"**{action_variability_stats['n90']}** actions account for 90% of final decisions. "
+        f"The personalization index is **{round(action_variability_stats['gini'], 3)}** "
+        f"(0 = all actions equally frequent, 1 = one action wins everything)."
     )
