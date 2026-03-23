@@ -298,7 +298,6 @@ def show_outcome_labels_section(ia: ImpactAnalyzer, source_path: str | None = No
     st.dataframe(
         pl.DataFrame(rows),
         hide_index=True,
-        use_container_width=True,
     )
 
     if any(
