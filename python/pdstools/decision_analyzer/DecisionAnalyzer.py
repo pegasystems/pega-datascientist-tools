@@ -881,30 +881,46 @@ class DecisionAnalyzer:
     # @st.cache_data
     def getFunnelData(
         self, scope, additional_filters: pl.Expr | list[pl.Expr] | None = None
-    ) -> tuple[pl.LazyFrame, pl.DataFrame]:
-        # Apply filtering once to the pre-aggregated view
+    ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters).select("Interaction ID").unique().count()
         )
 
-        # Compute remaining actions funnel
-        # Count total action occurrences (not unique interactions) for granularity-independent metric
-        funnelData = self.aggregate_remaining_per_stage(
+        # Available: actions entering each stage (existing logic)
+        available_data = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
             aggregations=[
-                pl.sum("Decisions").alias("action_occurrences"),  # Total action occurrences for this scope value
-                pl.col("Interaction_IDs")
-                .flatten()
-                .unique()
-                .count()
-                .alias("interaction_count_for_scope"),  # Unique interactions with this scope value
+                pl.sum("Decisions").alias("action_occurrences"),
+                pl.col("Interaction_IDs").flatten().unique().count().alias("interaction_count_for_scope"),
             ],
         ).filter(pl.col("action_occurrences") > 0)
 
-        # Compute filtered funnel view
+        # Passing: actions exiting each stage (shift by one — use next stage's remaining set)
+        stages = self.AvailableNBADStages
+
+        def _passing_at_stage(i: int, stage: str) -> pl.DataFrame:
+            # For stage i, passing = actions remaining at stage i+1.
+            # For the last stage (Output), passing = available (nothing filters there).
+            next_stages = stages[i + 1 :] if i + 1 < len(stages) else [stage]
+            return (
+                filtered_df.filter(pl.col(self.level).is_in(next_stages))
+                .group_by([scope])
+                .agg(
+                    action_occurrences=pl.sum("Decisions"),
+                    interaction_count_for_scope=pl.col("Interaction_IDs").flatten().unique().count(),
+                )
+                .with_columns(pl.lit(stage).alias(self.level))
+                .collect()
+            )
+
+        passing_data = pl.concat([_passing_at_stage(i, stage) for i, stage in enumerate(stages)]).filter(
+            pl.col("action_occurrences") > 0
+        )
+
+        # Filtered: actions removed at each stage (existing logic, unchanged)
         filtered_funnel = (
             filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
             .group_by([self.level, scope])
@@ -916,16 +932,116 @@ class DecisionAnalyzer:
         )
 
         interaction_count = interaction_count_expr.collect().item()
-        # Calculate metrics:
-        # - actions_per_interaction: total action occurrences / total interactions (granularity-independent)
-        # - penetration_pct: percentage of interactions that have at least one action of this scope value
         metrics_expr = (
             pl.lit(interaction_count).alias("interaction_count"),
             (pl.col("action_occurrences") / pl.lit(interaction_count)).alias("actions_per_interaction"),
             ((pl.col("interaction_count_for_scope") / pl.lit(interaction_count)) * 100).alias("penetration_pct"),
         )
 
-        return funnelData.with_columns(metrics_expr), filtered_funnel.with_columns(metrics_expr)
+        return (
+            available_data.with_columns(metrics_expr),
+            passing_data.with_columns(metrics_expr),
+            filtered_funnel.with_columns(metrics_expr),
+        )
+
+    def get_decisions_without_actions_data(
+        self, additional_filters: pl.Expr | list[pl.Expr] | None = None
+    ) -> pl.DataFrame:
+        """Per-stage count of interactions with no remaining actions.
+
+        Returns a DataFrame with columns [self.level, "decisions_without_actions"],
+        sorted in pipeline order. For each stage X, the value is:
+        total_interactions - unique_interactions_still_in_pipeline_at_X.
+        """
+        filter_view = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+        total_interactions = (
+            apply_filter(self.decision_data, additional_filters)
+            .select("Interaction ID")
+            .unique()
+            .count()
+            .collect()
+            .item()
+        )
+        rows = []
+        for i, stage in enumerate(self.AvailableNBADStages):
+            remaining_stages = self.AvailableNBADStages[i:]
+            remaining = (
+                filter_view.filter(pl.col(self.level).is_in(remaining_stages))
+                .select(pl.col("Interaction_IDs").flatten().unique().count())
+                .collect()
+                .item()
+            )
+            rows.append(
+                {
+                    self.level: stage,
+                    "decisions_without_actions": total_interactions - remaining,
+                }
+            )
+        return pl.DataFrame(rows)
+
+    def get_funnel_summary(
+        self,
+        available_df: pl.LazyFrame,
+        passing_df: pl.DataFrame,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.DataFrame:
+        """Per-stage summary: Available, Passing, Filtered actions and Decisions.
+
+        Parameters
+        ----------
+        available_df : pl.LazyFrame
+            First element returned by ``getFunnelData`` (actions entering each stage).
+        passing_df : pl.DataFrame
+            Second element returned by ``getFunnelData`` (actions exiting each stage).
+        additional_filters : optional
+            Same filters used when calling ``getFunnelData``.
+
+        Returns
+        -------
+        pl.DataFrame
+            One row per stage/stage-group in pipeline order with columns:
+            [self.level, Available Actions, Passing Actions, Filtered Actions,
+            % of total filtered, Decisions].
+        """
+        level = self.level
+        available_by_stage = (
+            available_df.collect()
+            .with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("Available Actions"))
+        )
+        passing_by_stage = (
+            passing_df.with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("Passing Actions"))
+        )
+        without_actions = self.get_decisions_without_actions_data(additional_filters)
+        total_interactions = (
+            apply_filter(self.decision_data, additional_filters)
+            .select("Interaction ID")
+            .unique()
+            .count()
+            .collect()
+            .item()
+        )
+        decisions_by_stage = without_actions.with_columns(
+            (pl.lit(total_interactions) - pl.col("decisions_without_actions")).alias("Decisions")
+        ).select([level, "Decisions"])
+
+        stage_order = {s: i for i, s in enumerate(self.AvailableNBADStages)}
+        summary = (
+            available_by_stage.join(passing_by_stage, on=level, how="left")
+            .join(decisions_by_stage, on=level, how="left")
+            .fill_null(0)
+            .with_columns((pl.col("Available Actions") - pl.col("Passing Actions")).alias("Filtered Actions"))
+            .with_columns(
+                (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
+                .round(1)
+                .alias("% of total filtered")
+            )
+            .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
+        )
+        return summary
 
     def getFilterComponentData(self, top_n, additional_filters: pl.Expr | list[pl.Expr] | None = None) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]

@@ -383,15 +383,111 @@ class TestDistributionData:
 
 
 class TestFunnelData:
-    def test_v2_funnel_returns_two_frames(self, da_v2):
-        remaining, filtered = da_v2.getFunnelData(scope="Issue")
-        assert isinstance(remaining, pl.LazyFrame)
+    def test_v2_funnel_returns_three_frames(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
 
-    def test_v1_funnel_returns_two_frames(self, da_v1):
-        remaining, filtered = da_v1.getFunnelData(scope="Issue")
-        assert isinstance(remaining, pl.LazyFrame)
+    def test_v1_funnel_returns_three_frames(self, da_v1):
+        available, passing, filtered = da_v1.getFunnelData(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
+
+    def test_passing_lte_available(self, da_v2):
+        """Passing actions at each stage must be <= available actions."""
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        level = da_v2.level
+        avail_df = (
+            available.collect()
+            .with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("avail"))
+        )
+        pass_df = (
+            passing.with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("pass"))
+        )
+        joined = avail_df.join(pass_df, on=level, how="left").fill_null(0)
+        assert (joined["pass"] <= joined["avail"]).all()
+
+    def test_passing_has_required_columns(self, da_v2):
+        """Passing df must have same columns as filtered df."""
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        for col in [
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]:
+            assert col in passing.columns
+            assert col in filtered.columns
+
+    def test_decisions_without_actions_shape(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert isinstance(result, pl.DataFrame)
+        assert da_v2.level in result.columns
+        assert "decisions_without_actions" in result.columns
+        assert len(result) == len(da_v2.AvailableNBADStages)
+
+    def test_decisions_without_actions_non_negative(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert (result["decisions_without_actions"] >= 0).all()
+
+    def test_decisions_without_actions_increases_through_funnel(self, da_v2):
+        """Later stages should have more interactions without actions."""
+        result = da_v2.get_decisions_without_actions_data()
+        stage_order = {s: i for i, s in enumerate(da_v2.AvailableNBADStages)}
+        sorted_result = result.sort(
+            pl.col(da_v2.level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32)
+        )
+        counts = sorted_result["decisions_without_actions"].to_list()
+        assert all(counts[i] <= counts[i + 1] for i in range(len(counts) - 1))
+
+
+# ---------------------------------------------------------------------------
+# Funnel summary
+# ---------------------------------------------------------------------------
+
+
+class TestFunnelSummary:
+    def test_summary_columns(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        expected_cols = {
+            da_v2.level,
+            "Available Actions",
+            "Passing Actions",
+            "Filtered Actions",
+            "% of total filtered",
+            "Decisions",
+        }
+        assert expected_cols.issubset(set(result.columns))
+
+    def test_summary_row_count(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        assert len(result) == len(da_v2.AvailableNBADStages)
+
+    def test_filtered_is_difference(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        diff = result["Available Actions"] - result["Passing Actions"]
+        assert (result["Filtered Actions"] == diff).all()
+
+    def test_pct_sums_to_100(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        total_pct = result["% of total filtered"].sum()
+        assert abs(total_pct - 100.0) < 0.5  # rounding tolerance
+
+    def test_decisions_non_negative(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        assert (result["Decisions"] >= 0).all()
 
 
 # ---------------------------------------------------------------------------
