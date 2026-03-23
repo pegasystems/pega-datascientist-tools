@@ -96,25 +96,3 @@ with st.container(border=True):
     st.plotly_chart(
         fig,
     )
-
-with st.container(border=True):
-    "## Offer Variation"
-
-    st.caption(
-        "How much variation is there in the offers? Does everyone get the same few actions or "
-        "is there a lot of variation in what we are offering?"
-    )
-
-    # Offer Variation uses Output stage and is intentionally excluded from
-    # channel filtering to show global variation, colored by Channel/Direction.
-    st.plotly_chart(
-        st.session_state.decision_data.plot.action_variation(
-            stage="Output",
-            color_by="Channel/Direction",
-        ),
-    )
-    action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
-    st.caption(
-        f"{action_variability_stats['n90']} actions win in 90% of the final decisions made. "
-        f"The personalization index is **{round(action_variability_stats['gini'], 3)}**."
-    )
