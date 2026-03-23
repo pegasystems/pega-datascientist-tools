@@ -110,9 +110,7 @@ def show_version_header(check_latest: bool = True):
         warning when the installed version is outdated.
 
     """
-    st.caption(
-        f"pdstools {pdstools_version} · Keep up to date",
-    )
+    st.caption(f"pdstools {pdstools_version}")
 
     if check_latest:
         latest = st_get_latest_pdstools_version()

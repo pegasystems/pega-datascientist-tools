@@ -10,6 +10,7 @@ from pdstools.app.impact_analyzer.ia_streamlit_utils import (
     load_pdc_from_uploads,
     load_sample_pdc,
     prepare_and_save_random,
+    show_outcome_labels_section,
 )
 from pdstools.utils.streamlit_utils import (
     get_data_path,
@@ -176,9 +177,10 @@ if uploaded_files:
 
         # Single file: use auto-detection
         if len(filtered_files) == 1:
+            _outcome_labels_json = st.session_state.get("ia_outcome_labels_json")
             with st.spinner("Loading data (auto-detecting format)..."):
                 impact_analyzer = _load_with_warning(
-                    lambda: load_from_upload_auto(filtered_files[0]),
+                    lambda: load_from_upload_auto(filtered_files[0], outcome_labels_json=_outcome_labels_json),
                     "uploaded",
                     expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
                 )
@@ -254,8 +256,15 @@ if impact_analyzer is not None and sample_limit_raw:
 if impact_analyzer is not None:
     st.session_state["impact_analyzer"] = impact_analyzer
     st.session_state["ia_is_sample_data"] = is_sample_data
+    if data_source_path:
+        st.session_state["ia_data_source_path"] = data_source_path
     _show_data_summary(impact_analyzer, is_sample_data=is_sample_data)
 elif "impact_analyzer" in st.session_state:
     # Show summary for previously loaded data (only if no upload was attempted)
     was_sample = st.session_state.get("ia_is_sample_data", False)
     _show_data_summary(st.session_state["impact_analyzer"], is_sample_data=was_sample)
+
+# For VBD data: show outcome labels and handle reload
+_active_ia = impact_analyzer or st.session_state.get("impact_analyzer")
+if _active_ia is not None:
+    show_outcome_labels_section(_active_ia)

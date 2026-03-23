@@ -10,6 +10,7 @@ import polars as pl
 import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.cdh_utils import (
     _apply_query,
     _polars_capitalize,
@@ -70,6 +71,7 @@ class ImpactAnalyzer:
     """
 
     ia_data: pl.LazyFrame
+    outcome_labels_used: dict | None
 
     default_ia_experiments = {
         "NBA vs Random": ("NBAPrioritization", "NBA"),
@@ -155,6 +157,7 @@ class ImpactAnalyzer:
             raise ValueError(f"Missing required columns: {missing_cols}")
 
         self.ia_data = raw_data
+        self.outcome_labels_used = None
 
     # When return_wide_df=True, always returns LazyFrame
     @classmethod
@@ -277,11 +280,49 @@ class ImpactAnalyzer:
         return ImpactAnalyzer(normalized_ia_data)
 
     @classmethod
+    def _build_outcome_filter(
+        cls,
+        metric: str,
+        outcome_labels: dict | None,
+    ) -> pl.Expr:
+        """Return a boolean Polars expression for the given metric.
+
+        Parameters
+        ----------
+        metric : str
+            "Impressions" or "Accepts"
+        outcome_labels : dict or None
+            ``{"Impressions": [...], "Accepts": [...]}`` → global override applied to all channels.
+            ``{"Channel/Dir": {"Impressions": [...], "Accepts": [...]}, ...}`` → per-channel.
+            Channels absent from a per-channel config return False for this metric.
+        """
+        is_per_channel = outcome_labels is not None and any(isinstance(v, dict) for v in outcome_labels.values())
+
+        if not is_per_channel:
+            labels = (outcome_labels or cls.outcome_labels).get(metric, [])
+            return pl.col("Outcome").is_in(labels)
+
+        # Per-channel mode: start from class defaults as the fallback expression
+        default_labels = cls.outcome_labels.get(metric, [])
+        expr: pl.Expr = pl.col("Outcome").is_in(default_labels)
+
+        for channel, channel_labels in outcome_labels.items():
+            if metric in channel_labels:
+                expr = (
+                    pl.when(pl.col("Channel") == channel)
+                    .then(pl.col("Outcome").is_in(channel_labels[metric]))
+                    .otherwise(expr)
+                )
+
+        return expr
+
+    @classmethod
     @overload
     def from_vbd(
         cls,
         vbd_source: os.PathLike | str,
         *,
+        outcome_labels: dict | None = None,
         return_df: Literal[True],
     ) -> pl.LazyFrame | None: ...
 
@@ -291,13 +332,16 @@ class ImpactAnalyzer:
     def from_vbd(
         cls,
         vbd_source: os.PathLike | str,
-    ) -> Optional["ImpactAnalyzer"]: ...
+        *,
+        outcome_labels: dict | None = None,
+    ) -> "ImpactAnalyzer | None": ...
 
     @classmethod
     def from_vbd(
         cls,
         vbd_source: os.PathLike | str,
         *,
+        outcome_labels: dict | None = None,
         return_df: bool = False,
     ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
         """Create an ImpactAnalyzer instance from VBD data.
@@ -313,6 +357,24 @@ class ImpactAnalyzer:
         ----------
         vbd_source : Union[os.PathLike, str]
             Path to VBD export file (parquet, csv, ndjson, or zip).
+        outcome_labels : dict or None, optional
+            Outcome value mappings for Impressions and Accepts. Accepts two formats:
+
+            **Global override** — replaces class defaults for all channels::
+
+                {"Impressions": ["Sent"], "Accepts": ["Click", "Clicked"]}
+
+            **Per-channel** — overrides per channel; unconfigured channels fall back
+            to the class-level defaults::
+
+                {
+                    "Email/Outbound": {
+                        "Impressions": ["Sent"],
+                        "Accepts": ["Click", "Clicked"],
+                    }
+                }
+
+            Default is None (use :attr:`outcome_labels` class attribute).
         return_df : bool, optional
             If True, return processed data as LazyFrame instead of
             ImpactAnalyzer instance. Default is False.
@@ -333,17 +395,28 @@ class ImpactAnalyzer:
         if vbd_data is None:
             return None
 
+        # Compute Channel/Direction early so we can scan available outcomes.
+        raw = _polars_capitalize(vbd_data).with_columns(
+            Channel=pl.concat_str(
+                "Channel",
+                "Direction",
+                separator="/",
+                ignore_nulls=True,
+            ),
+        )
+
+        # Resolve outcome labels — always explicit, never implicit.
+        # When caller provides None: derive channel-aware defaults from the data.
+        if outcome_labels is None:
+            channel_outcome_scan = (
+                raw.select("Channel", "Outcome").unique().group_by("Channel").agg(pl.col("Outcome").sort()).collect()
+            )
+            outcome_labels = _resolve_outcome_labels({row[0]: row[1] for row in channel_outcome_scan.iter_rows()})
+
         ia_data = (
-            _polars_capitalize(vbd_data)
-            .with_columns(
+            raw.with_columns(
                 SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
                     "1d",
-                ),
-                Channel=pl.concat_str(
-                    "Channel",
-                    "Direction",
-                    separator="/",
-                    ignore_nulls=True,
                 ),
             )
             .group_by(
@@ -359,24 +432,18 @@ class ImpactAnalyzer:
             )
             .agg(
                 pl.col("AggregateCount")
-                .filter(pl.col("Outcome").is_in(cls.outcome_labels["Impressions"]))
+                .filter(cls._build_outcome_filter("Impressions", outcome_labels))
                 .sum()
                 .alias("Impressions"),
                 pl.col("AggregateCount")
-                .filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"]))
+                .filter(cls._build_outcome_filter("Accepts", outcome_labels))
                 .sum()
                 .alias("Accepts"),
                 (
-                    pl.col("Value").filter(pl.col("Outcome").is_in(cls.outcome_labels["Accepts"])).sum()
-                    / (
-                        pl.col("AggregateCount")
-                        .filter(
-                            pl.col("Outcome").is_in(cls.outcome_labels["Impressions"]),
-                        )
-                        .sum()
-                    )
+                    pl.col("Value").filter(cls._build_outcome_filter("Accepts", outcome_labels)).sum()
+                    / pl.col("AggregateCount").filter(cls._build_outcome_filter("Impressions", outcome_labels)).sum()
                 ).alias("ValuePerImpression"),
-                # rest just for debugging
+                # kept for debugging and UI discovery
                 pl.col("AggregateCount", "Value", "Outcome"),
             )
             .filter(pl.col("Accepts") <= pl.col("Impressions"))
@@ -398,7 +465,9 @@ class ImpactAnalyzer:
         if return_df:
             return ia_data
 
-        return ImpactAnalyzer(ia_data)
+        instance = ImpactAnalyzer(ia_data)
+        instance.outcome_labels_used = outcome_labels
+        return instance
 
     @classmethod
     @overload

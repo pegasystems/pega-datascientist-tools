@@ -357,6 +357,124 @@ def test_plot_with_every_parameter(simple_ia):
     assert "ControlGroup" in control_groups_data.columns
 
 
+def _make_vbd_parquet(outcomes_by_channel: dict[str, list]) -> str:
+    """Helper: write minimal VBD parquet for testing outcome label scenarios.
+
+    outcomes_by_channel: {"Web/Inbound": ["Impression", "Accepted"], "Email/Outbound": ["Sent", "Click"]}
+    Each channel gets 100 aggregated rows per outcome.
+    """
+    import tempfile
+
+    rows = []
+    for channel_dir, outcomes in outcomes_by_channel.items():
+        channel, direction = channel_dir.split("/")
+        for outcome in outcomes:
+            rows.append(
+                {
+                    "pyOutcomeTime": "2024-01-01 10:00:00",
+                    "pyChannel": channel,
+                    "pyDirection": direction,
+                    "pxMktValue": None,
+                    "pyReason": "Test",
+                    "pxMktType": None,
+                    "pyApplication": "App1",
+                    "pxApplicationVersion": "1.0",
+                    "pyIssue": "Sales",
+                    "pyGroup": "Cards",
+                    "pyName": "GoldCard",
+                    "pyTreatment": "Default",
+                    "pyOutcome": outcome,
+                    "pxAggregateCount": 100,
+                    "pyValue": 0.0,
+                }
+            )
+
+    df = pl.DataFrame(rows).cast({"pxMktValue": pl.String, "pxMktType": pl.String})
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
+        df.write_parquet(f.name)
+        return f.name
+
+
+def test_from_vbd_default_outcome_labels():
+    """Default outcome labels count standard outcomes correctly per channel."""
+    path = _make_vbd_parquet(
+        {
+            "Web/Inbound": ["Impression", "Clicked", "UnknownOutcome"],
+        }
+    )
+    ia = ImpactAnalyzer.from_vbd(path)
+    collected = ia.ia_data.collect()
+    # Web channel-aware defaults: "Impression" → impressions; "Clicked" → accepts
+    assert collected["Impressions"].sum() == 100
+    assert collected["Accepts"].sum() == 100
+
+
+def test_from_vbd_global_outcome_labels_override():
+    """Custom global outcome_labels replace the class defaults entirely."""
+    path = _make_vbd_parquet(
+        {
+            "Web/Inbound": ["Sent", "Click"],
+        }
+    )
+    # Without override: Sent and Click are not in defaults → zero counts
+    ia_default = ImpactAnalyzer.from_vbd(path)
+    assert ia_default.ia_data.collect()["Impressions"].sum() == 0
+
+    # With global override
+    ia_custom = ImpactAnalyzer.from_vbd(
+        path,
+        outcome_labels={"Impressions": ["Sent"], "Accepts": ["Click"]},
+    )
+    collected = ia_custom.ia_data.collect()
+    assert collected["Impressions"].sum() == 100
+    assert collected["Accepts"].sum() == 100
+
+
+def test_from_vbd_per_channel_outcome_labels():
+    """Per-channel outcome_labels applied per channel; others fall back to class defaults."""
+    path = _make_vbd_parquet(
+        {
+            "Email/Outbound": ["Sent", "Click"],  # custom channel
+            "Web/Inbound": ["Impression", "Accepted"],  # uses class defaults
+        }
+    )
+    per_channel = {
+        "Email/Outbound": {
+            "Impressions": ["Sent"],
+            "Accepts": ["Click"],
+        }
+        # Web/Inbound not configured → class defaults apply
+    }
+    ia = ImpactAnalyzer.from_vbd(path, outcome_labels=per_channel)
+    collected = ia.ia_data.collect()
+
+    email_rows = collected.filter(pl.col("Channel") == "Email/Outbound")
+    web_rows = collected.filter(pl.col("Channel") == "Web/Inbound")
+
+    assert email_rows["Impressions"].sum() == 100  # "Sent" mapped
+    assert email_rows["Accepts"].sum() == 100  # "Click" mapped
+    assert web_rows["Impressions"].sum() == 100  # "Impression" via defaults
+    assert web_rows["Accepts"].sum() == 100  # "Accepted" via defaults
+
+
+def test_from_vbd_per_channel_fallback_for_unconfigured_channel():
+    """A channel not in per-channel config uses class-level defaults."""
+    path = _make_vbd_parquet(
+        {
+            "SMS/Outbound": ["Impression", "Accepted"],
+        }
+    )
+    # Configure only Email, not SMS
+    per_channel = {
+        "Email/Outbound": {"Impressions": ["Sent"], "Accepts": ["Click"]},
+    }
+    ia = ImpactAnalyzer.from_vbd(path, outcome_labels=per_channel)
+    sms_rows = ia.ia_data.collect().filter(pl.col("Channel") == "SMS/Outbound")
+    # SMS falls back to class defaults: "Impression" and "Accepted"
+    assert sms_rows["Impressions"].sum() == 100
+    assert sms_rows["Accepts"].sum() == 100
+
+
 def test_from_vbd():
     """Test from_vbd constructor and methods"""
     import tempfile
@@ -442,3 +560,86 @@ def test_from_vbd():
 
         df = ImpactAnalyzer.from_vbd(f.name, return_df=True)
         assert isinstance(df, pl.LazyFrame)
+
+
+@pytest.fixture
+def minimal_vbd_parquet(tmp_path):
+    """Minimal VBD data with Web and Call Center channels."""
+    data = pl.DataFrame(
+        {
+            "outcometime": [
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+            ],
+            "mktvalue": [
+                "NBAHealth_NBA",
+                "NBAHealth_NBA",
+                "NBAHealth_NBAPrioritization",
+                "NBAHealth_NBAPrioritization",
+                "NBAHealth_NBA",
+                "NBAHealth_NBA",
+            ],
+            "application": ["App"] * 6,
+            "applicationversion": ["1.0"] * 6,
+            "channel": ["Web", "Web", "Web", "Web", "Call Center", "Call Center"],
+            "direction": ["Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound"],
+            "issue": ["Sales"] * 6,
+            "group": ["Cards"] * 6,
+            "name": ["Action1"] * 6,
+            "treatment": ["T1"] * 6,
+            "aggregatecount": [1000, 50, 900, 40, 800, 30],
+            "value": [0.0, 5000.0, 0.0, 4500.0, 0.0, 3000.0],
+            "outcome": [
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Accepted",
+            ],
+        }
+    )
+    path = tmp_path / "vbd_test.parquet"
+    data.write_parquet(path)
+    return str(path)
+
+
+def test_from_vbd_sets_outcome_labels_used(minimal_vbd_parquet):
+    """from_vbd always sets outcome_labels_used — no implicit defaults."""
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
+
+    assert hasattr(ia, "outcome_labels_used")
+    assert ia.outcome_labels_used is not None
+    assert isinstance(ia.outcome_labels_used, dict)
+
+
+def test_from_vbd_resolves_channel_aware_defaults(minimal_vbd_parquet):
+    """Web channel uses Clicked; Call Center uses Accepted."""
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
+
+    assert "Web/Inbound" in ia.outcome_labels_used
+    assert ia.outcome_labels_used["Web/Inbound"]["Impressions"] == ["Impression"]
+    assert ia.outcome_labels_used["Web/Inbound"]["Accepts"] == ["Clicked"]
+
+    assert "Call Center/Inbound" in ia.outcome_labels_used
+    assert ia.outcome_labels_used["Call Center/Inbound"]["Impressions"] == ["Impression"]
+    assert ia.outcome_labels_used["Call Center/Inbound"]["Accepts"] == ["Accepted"]
+
+
+def test_from_vbd_explicit_labels_preserved(minimal_vbd_parquet):
+    """Explicitly provided outcome_labels are stored as-is in outcome_labels_used."""
+    custom = {
+        "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+    }
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet, outcome_labels=custom)
+
+    assert ia.outcome_labels_used == custom
+
+
+def test_from_pdc_does_not_set_outcome_labels_used(simple_ia):
+    """PDC instances have no outcome_labels_used (pre-aggregated data, no raw outcomes)."""
+    assert simple_ia.outcome_labels_used is None

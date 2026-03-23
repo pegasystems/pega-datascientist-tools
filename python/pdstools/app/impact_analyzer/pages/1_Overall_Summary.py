@@ -15,26 +15,16 @@ View lift metrics aggregated across all channels. This page shows the overall
 impact of your experiments, comparing treatment vs control groups.
 """
 
-with st.container(border=True):
-    "## Display Options"
+facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
 
-    st.caption(
-        "Select which metric to visualize. CTR Lift shows the relative improvement "
-        "in click-through rates, while Value Lift shows the impact on business value."
-    )
+with st.container(border=True):
+    "## Lift Overview"
 
     metric = st.selectbox(
         "Metric",
         options=["CTR_Lift", "Value_Lift"],
         index=0,
     )
-
-facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
-
-with st.container(border=True):
-    "## Lift Overview"
-
-    st.caption("Interactive chart showing lift metrics. Hover for details, click and drag to zoom.")
 
     fig = ia.plot.overview(metric=metric, facet=facet)
     st.plotly_chart(fig)

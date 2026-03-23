@@ -366,28 +366,36 @@ Page description...
 ensure_data()  # Guard for pages requiring loaded data
 ```
 
-### Streamlit Chart Display
+### Streamlit Widget Sizing
 
-Do not pass `width="stretch"` or other extra keyword arguments to `st.plotly_chart()`.
+`use_container_width` is deprecated across Streamlit widgets and will be removed.
+The replacement is the `width` parameter (default: `"stretch"`). Since stretch is
+the default, omit both parameters for full-width display.
+
+**`st.plotly_chart`**: Do not pass `width="stretch"` or other extra keyword arguments.
 Streamlit 1.50 deprecated `**kwargs` on `plotly_chart`; any unrecognized keyword triggers
-a deprecation warning. Since `use_container_width=True` is the default, omit it for
-full-width charts. Use `use_container_width=False` only when you need content-width.
-
+a deprecation warning. Use `use_container_width=False` only when you need content-width.
 For Plotly configuration options (e.g., disabling scroll zoom), use the explicit `config` parameter.
+
+**`st.dataframe`**: Do not pass `use_container_width=True` (deprecated) or
+`width="stretch"` (already the default). Omit both for full-width tables.
 
 **Example**:
 ```python
-# Good — full width (default)
+# Good — full width (default for both)
 st.plotly_chart(fig)
+st.dataframe(df)
 
 # Good — content width
 st.plotly_chart(fig, use_container_width=False)
+st.dataframe(df, width="content")
 
 # Good — Plotly config
 st.plotly_chart(fig, config={"scrollZoom": False})
 
-# Avoid — triggers deprecation warning
+# Avoid — deprecated or redundant
 st.plotly_chart(fig, width="stretch")
+st.dataframe(df, use_container_width=True)
 ```
 
 ### Streamlit Color Consistency
