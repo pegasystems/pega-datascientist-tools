@@ -396,15 +396,15 @@ def _make_vbd_parquet(outcomes_by_channel: dict[str, list]) -> str:
 
 
 def test_from_vbd_default_outcome_labels():
-    """Default outcome labels count standard outcomes correctly."""
+    """Default outcome labels count standard outcomes correctly per channel."""
     path = _make_vbd_parquet(
         {
-            "Web/Inbound": ["Impression", "Accepted", "UnknownOutcome"],
+            "Web/Inbound": ["Impression", "Clicked", "UnknownOutcome"],
         }
     )
     ia = ImpactAnalyzer.from_vbd(path)
     collected = ia.ia_data.collect()
-    # Standard "Impression" → 100 impressions; "Accepted" → 100 accepts; "UnknownOutcome" ignored
+    # Web channel-aware defaults: "Impression" → impressions; "Clicked" → accepts
     assert collected["Impressions"].sum() == 100
     assert collected["Accepts"].sum() == 100
 
@@ -560,3 +560,86 @@ def test_from_vbd():
 
         df = ImpactAnalyzer.from_vbd(f.name, return_df=True)
         assert isinstance(df, pl.LazyFrame)
+
+
+@pytest.fixture
+def minimal_vbd_parquet(tmp_path):
+    """Minimal VBD data with Web and Call Center channels."""
+    data = pl.DataFrame(
+        {
+            "outcometime": [
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+                "20240115T120000.000 GMT",
+            ],
+            "mktvalue": [
+                "NBAHealth_NBA",
+                "NBAHealth_NBA",
+                "NBAHealth_NBAPrioritization",
+                "NBAHealth_NBAPrioritization",
+                "NBAHealth_NBA",
+                "NBAHealth_NBA",
+            ],
+            "application": ["App"] * 6,
+            "applicationversion": ["1.0"] * 6,
+            "channel": ["Web", "Web", "Web", "Web", "Call Center", "Call Center"],
+            "direction": ["Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound"],
+            "issue": ["Sales"] * 6,
+            "group": ["Cards"] * 6,
+            "name": ["Action1"] * 6,
+            "treatment": ["T1"] * 6,
+            "aggregatecount": [1000, 50, 900, 40, 800, 30],
+            "value": [0.0, 5000.0, 0.0, 4500.0, 0.0, 3000.0],
+            "outcome": [
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Accepted",
+            ],
+        }
+    )
+    path = tmp_path / "vbd_test.parquet"
+    data.write_parquet(path)
+    return str(path)
+
+
+def test_from_vbd_sets_outcome_labels_used(minimal_vbd_parquet):
+    """from_vbd always sets outcome_labels_used — no implicit defaults."""
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
+
+    assert hasattr(ia, "outcome_labels_used")
+    assert ia.outcome_labels_used is not None
+    assert isinstance(ia.outcome_labels_used, dict)
+
+
+def test_from_vbd_resolves_channel_aware_defaults(minimal_vbd_parquet):
+    """Web channel uses Clicked; Call Center uses Accepted."""
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
+
+    assert "Web/Inbound" in ia.outcome_labels_used
+    assert ia.outcome_labels_used["Web/Inbound"]["Impressions"] == ["Impression"]
+    assert ia.outcome_labels_used["Web/Inbound"]["Accepts"] == ["Clicked"]
+
+    assert "Call Center/Inbound" in ia.outcome_labels_used
+    assert ia.outcome_labels_used["Call Center/Inbound"]["Impressions"] == ["Impression"]
+    assert ia.outcome_labels_used["Call Center/Inbound"]["Accepts"] == ["Accepted"]
+
+
+def test_from_vbd_explicit_labels_preserved(minimal_vbd_parquet):
+    """Explicitly provided outcome_labels are stored as-is in outcome_labels_used."""
+    custom = {
+        "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+    }
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet, outcome_labels=custom)
+
+    assert ia.outcome_labels_used == custom
+
+
+def test_from_pdc_does_not_set_outcome_labels_used(simple_ia):
+    """PDC instances have no outcome_labels_used (pre-aggregated data, no raw outcomes)."""
+    assert simple_ia.outcome_labels_used is None

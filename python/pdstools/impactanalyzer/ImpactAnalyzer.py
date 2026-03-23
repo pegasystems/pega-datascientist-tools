@@ -10,6 +10,7 @@ import polars as pl
 import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.cdh_utils import (
     _apply_query,
     _polars_capitalize,
@@ -70,6 +71,7 @@ class ImpactAnalyzer:
     """
 
     ia_data: pl.LazyFrame
+    outcome_labels_used: dict | None
 
     default_ia_experiments = {
         "NBA vs Random": ("NBAPrioritization", "NBA"),
@@ -155,6 +157,7 @@ class ImpactAnalyzer:
             raise ValueError(f"Missing required columns: {missing_cols}")
 
         self.ia_data = raw_data
+        self.outcome_labels_used = None
 
     # When return_wide_df=True, always returns LazyFrame
     @classmethod
@@ -289,10 +292,9 @@ class ImpactAnalyzer:
         metric : str
             "Impressions" or "Accepts"
         outcome_labels : dict or None
-            None → use class defaults.
-            ``{"Impressions": [...], "Accepts": [...]}`` → global override.
+            ``{"Impressions": [...], "Accepts": [...]}`` → global override applied to all channels.
             ``{"Channel/Dir": {"Impressions": [...], "Accepts": [...]}, ...}`` → per-channel.
-            Channels absent from per-channel config fall back to the class defaults.
+            Channels absent from a per-channel config return False for this metric.
         """
         is_per_channel = outcome_labels is not None and any(isinstance(v, dict) for v in outcome_labels.values())
 
@@ -393,17 +395,28 @@ class ImpactAnalyzer:
         if vbd_data is None:
             return None
 
+        # Compute Channel/Direction early so we can scan available outcomes.
+        raw = _polars_capitalize(vbd_data).with_columns(
+            Channel=pl.concat_str(
+                "Channel",
+                "Direction",
+                separator="/",
+                ignore_nulls=True,
+            ),
+        )
+
+        # Resolve outcome labels — always explicit, never implicit.
+        # When caller provides None: derive channel-aware defaults from the data.
+        if outcome_labels is None:
+            channel_outcome_scan = (
+                raw.select("Channel", "Outcome").unique().group_by("Channel").agg(pl.col("Outcome").sort()).collect()
+            )
+            outcome_labels = _resolve_outcome_labels({row[0]: row[1] for row in channel_outcome_scan.iter_rows()})
+
         ia_data = (
-            _polars_capitalize(vbd_data)
-            .with_columns(
+            raw.with_columns(
                 SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
                     "1d",
-                ),
-                Channel=pl.concat_str(
-                    "Channel",
-                    "Direction",
-                    separator="/",
-                    ignore_nulls=True,
                 ),
             )
             .group_by(
@@ -430,7 +443,7 @@ class ImpactAnalyzer:
                     pl.col("Value").filter(cls._build_outcome_filter("Accepts", outcome_labels)).sum()
                     / pl.col("AggregateCount").filter(cls._build_outcome_filter("Impressions", outcome_labels)).sum()
                 ).alias("ValuePerImpression"),
-                # rest just for debugging
+                # kept for debugging and UI discovery
                 pl.col("AggregateCount", "Value", "Outcome"),
             )
             .filter(pl.col("Accepts") <= pl.col("Impressions"))
@@ -452,7 +465,9 @@ class ImpactAnalyzer:
         if return_df:
             return ia_data
 
-        return ImpactAnalyzer(ia_data)
+        instance = ImpactAnalyzer(ia_data)
+        instance.outcome_labels_used = outcome_labels
+        return instance
 
     @classmethod
     @overload

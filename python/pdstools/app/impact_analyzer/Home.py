@@ -10,7 +10,7 @@ from pdstools.app.impact_analyzer.ia_streamlit_utils import (
     load_pdc_from_uploads,
     load_sample_pdc,
     prepare_and_save_random,
-    show_outcome_alias_config,
+    show_outcome_labels_section,
 )
 from pdstools.utils.streamlit_utils import (
     get_data_path,
@@ -264,7 +264,7 @@ elif "impact_analyzer" in st.session_state:
     was_sample = st.session_state.get("ia_is_sample_data", False)
     _show_data_summary(st.session_state["impact_analyzer"], is_sample_data=was_sample)
 
-# For VBD data: show outcome alias config and handle reload
+# For VBD data: show outcome labels and handle reload
 _active_ia = impact_analyzer or st.session_state.get("impact_analyzer")
 if _active_ia is not None:
-    show_outcome_alias_config(_active_ia)
+    show_outcome_labels_section(_active_ia)

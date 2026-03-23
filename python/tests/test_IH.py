@@ -167,13 +167,12 @@ def test_summary_success_rates_with_query(ih):
     assert result_complex.height > 0
     assert result_complex.height <= result_web.height
 
-    # Verify that the query affects the data
+    # Verify that the query affects the data — use Conversion (global metric,
+    # not channel-aware) since both Web and Email contribute to it.
     all_results = ih.aggregates.summary_success_rates().collect()
-    # In the mock data, the summary is aggregated to a single row regardless of query
-    # So we check that the values are different instead of the row count
     assert (
-        result_web["Positives_Engagement"].item() != all_results["Positives_Engagement"].item()
-        or result_web["Negatives_Engagement"].item() != all_results["Negatives_Engagement"].item()
+        result_web["Positives_Conversion"].item() != all_results["Positives_Conversion"].item()
+        or result_web["Negatives_Conversion"].item() != all_results["Negatives_Conversion"].item()
     )
 
 
@@ -305,6 +304,105 @@ def test_summary_outcomes_complex(ih):
                 or (result[i - 1, "OutcomeTime"] != result[i, "OutcomeTime"])
                 or (result[i - 1, "Outcome"] != result[i, "Outcome"])
             )
+
+
+@pytest.fixture
+def ih_discriminating():
+    """IH data where channel-aware and global Engagement labels differ.
+
+    I001 — Web/Inbound + Accepted:
+        Global labels say POSITIVE (Accepted is in positive_outcome_labels).
+        Channel-aware says NEGATIVE (Web uses Clicked, not Accepted).
+
+    I002 — Call Center/Inbound + Clicked:
+        Global labels say POSITIVE (Clicked is in positive_outcome_labels).
+        Channel-aware says NEGATIVE (Call Center uses Accepted, not Clicked).
+
+    I003 — Web/Inbound + Clicked:
+        Both global and channel-aware say POSITIVE.
+
+    I004 — Call Center/Inbound + Accepted:
+        Both global and channel-aware say POSITIVE.
+    """
+    return pl.DataFrame(
+        {
+            "pxInteractionID": [
+                "I001",
+                "I001",
+                "I002",
+                "I002",
+                "I003",
+                "I003",
+                "I004",
+                "I004",
+            ],
+            "pyChannel": ["Web", "Web", "Call Center", "Call Center", "Web", "Web", "Call Center", "Call Center"],
+            "pyDirection": ["Inbound"] * 8,
+            "pyName": ["Action1"] * 8,
+            "pyTreatment": ["T1"] * 8,
+            "pyIssue": ["Sales"] * 8,
+            "pyGroup": ["Cards"] * 8,
+            "pyOutcome": [
+                "Impression",
+                "Accepted",
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Clicked",
+                "Impression",
+                "Accepted",
+            ],
+            "pxOutcomeTime": ["20240115T120000.000 GMT"] * 8,
+            "pyPropensity": [0.1] * 8,
+            "pyModelTechnique": ["NaiveBayes"] * 8,
+            "ExperimentGroup": ["Test"] * 8,
+            "pyInteractionID": ["I001", "I001", "I002", "I002", "I003", "I003", "I004", "I004"],
+        }
+    ).lazy()
+
+
+def test_ih_from_mock_data_sets_outcome_labels_used():
+    """from_mock_data always resolves and stores outcome_labels_used."""
+    ih = IH.from_mock_data(n=1000)
+    assert hasattr(ih, "outcome_labels_used")
+    assert ih.outcome_labels_used is not None
+    assert isinstance(ih.outcome_labels_used, dict)
+
+
+def test_ih_outcome_labels_used_channel_aware():
+    """Web uses Clicked; Call Center uses Accepted."""
+    ih = IH.from_mock_data(n=1000)
+    labels = ih.outcome_labels_used
+    web_key = next((k for k in labels if k.startswith("Web/")), None)
+    assert web_key is not None
+    assert "Clicked" in labels[web_key]["Accepts"]
+    assert "Accepted" not in labels[web_key]["Accepts"]
+
+
+def test_ih_channel_aware_engagement_web_accepted_not_positive(ih_discriminating):
+    """Web + Accepted is NOT positive for Engagement with channel-aware labels."""
+    ih = IH(ih_discriminating)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i001 = result.filter(pl.col("InteractionID") == "I001")
+    assert i001["Interaction_Outcome_Engagement"].item() is not True
+
+
+def test_ih_channel_aware_engagement_call_center_clicked_not_positive(ih_discriminating):
+    """Call Center + Clicked is NOT positive for Engagement with channel-aware labels."""
+    ih = IH(ih_discriminating)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i002 = result.filter(pl.col("InteractionID") == "I002")
+    assert i002["Interaction_Outcome_Engagement"].item() is not True
+
+
+def test_ih_channel_aware_engagement_correct_positives(ih_discriminating):
+    """Web + Clicked and Call Center + Accepted are positive for Engagement."""
+    ih = IH(ih_discriminating)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i003 = result.filter(pl.col("InteractionID") == "I003")
+    i004 = result.filter(pl.col("InteractionID") == "I004")
+    assert i003["Interaction_Outcome_Engagement"].item() is True
+    assert i004["Interaction_Outcome_Engagement"].item() is True
 
 
 def test_plots(ih):

@@ -10,6 +10,7 @@ import polars as pl
 import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.cdh_utils import (
     _apply_query,
     _polars_capitalize,
@@ -56,6 +57,7 @@ class IH:
     """
 
     data: pl.LazyFrame
+    outcome_labels_used: dict | None
 
     positive_outcome_labels: dict[str, list[str]] = {
         "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
@@ -87,8 +89,26 @@ class IH:
 
         """
         self.data = _polars_capitalize(data)
+        self.outcome_labels_used = self._scan_outcome_labels()
         self.aggregates = Aggregates(ih=self)
         self.plot = Plots(ih=self)
+
+    def _scan_outcome_labels(self) -> dict | None:
+        """Scan data for channel/outcome combinations and resolve defaults.
+
+        Returns None if the required columns are not present.
+        """
+        schema_names = self.data.collect_schema().names()
+        if not {"Channel", "Direction", "Outcome"}.issubset(schema_names):
+            return None
+        scan = (
+            self.data.select("Channel", "Direction", "Outcome")
+            .unique()
+            .group_by("Channel", "Direction")
+            .agg(pl.col("Outcome").sort())
+            .collect()
+        )
+        return _resolve_outcome_labels({f"{row[0]}/{row[1]}": row[2] for row in scan.iter_rows()})
 
     @classmethod
     def from_ds_export(

@@ -242,90 +242,164 @@ def discover_vbd_outcomes(ia: ImpactAnalyzer) -> tuple[dict[str, list[str]], dic
     return outcomes, records
 
 
-def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None) -> dict | None:
-    """Show per-channel outcome alias configuration UI for VBD data.
+def show_outcome_labels_section(ia: ImpactAnalyzer, source_path: str | None = None) -> dict | None:
+    """Show outcome label transparency table and optional per-channel editor for VBD data.
 
-    Returns the outcome_labels dict to pass to from_vbd(), or None if
-    the user has not made any changes from the defaults.
+    Always renders a summary table of the active Impressions/Accepts mapping.
+    An edit section is available in a collapsed expander below the table.
 
-    Only renders for VBD data (when Outcome column is present).
+    Only renders for VBD data (when outcome_labels_used is set on the instance).
 
     Parameters
     ----------
     ia : ImpactAnalyzer
         The loaded ImpactAnalyzer instance.
     source_path : str or None, optional
-        Path to the data source file. When provided, aliases are persisted
-        to a sidecar JSON file alongside the data so they are automatically
-        loaded on the next session.
+        Path to the data source file for sidecar persistence.
     """
     import json
 
+    import polars as pl
+
+    outcome_labels_used = getattr(ia, "outcome_labels_used", None)
+    if not outcome_labels_used:
+        return None  # PDC data — no raw outcome labels
+
     outcomes_by_channel, records_by_channel = discover_vbd_outcomes(ia)
-    if not outcomes_by_channel:
-        return None  # PDC data or no Outcome column — skip
-
-    default_impressions = ImpactAnalyzer.outcome_labels["Impressions"]
-    default_accepts = ImpactAnalyzer.outcome_labels["Accepts"]
-
-    # Use persisted aliases (from sidecar file or session state) as widget defaults
-    saved_config = st.session_state.get("ia_outcome_labels")
 
     loaded_from = st.session_state.pop("ia_outcome_aliases_loaded_from", None)
     if loaded_from:
         st.info(f"Applied previously stored outcome aliases from `{loaded_from}`")
 
-    with st.expander("Configure outcome aliases (VBD data)", expanded=False):
-        st.caption(
-            "Map channel-specific outcome values to **Impressions** and **Accepts**. "
-            "Channels not configured here use the default mapping. "
-            "Click **Apply** after making changes to reload the data."
+    "### Outcome labels"
+    st.caption(
+        "These outcome values are counted as **Impressions** (denominator) and "
+        "**Accepts** (numerator) for each channel. "
+        "Verify they match your Pega configuration before analyzing results."
+    )
+
+    # Always-visible summary table
+    rows = []
+    for channel in sorted(outcome_labels_used):
+        labels = outcome_labels_used[channel]
+        imp_vals = labels.get("Impressions", [])
+        acc_vals = labels.get("Accepts", [])
+        imp_str = ", ".join(imp_vals) if imp_vals else "⚠ none matched"
+        acc_str = ", ".join(acc_vals) if acc_vals else "⚠ none matched"
+        rows.append(
+            {
+                "Channel": channel,
+                "Records": records_by_channel.get(channel, 0),
+                "Impressions": imp_str,
+                "Accepts": acc_str,
+            }
         )
 
+    st.dataframe(
+        pl.DataFrame(rows),
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    if any(
+        not outcome_labels_used[ch].get("Impressions") or not outcome_labels_used[ch].get("Accepts")
+        for ch in outcome_labels_used
+    ):
+        st.warning(
+            "One or more channels have no matching outcome values for Impressions or Accepts. "
+            "Those channels will show zero counts. Edit the labels below to fix this."
+        )
+
+    # Collapsed edit section
+    saved_config = st.session_state.get("ia_outcome_labels")
+
+    with st.expander("Edit outcome labels", expanded=False):
+        st.caption(
+            "Select which outcome values count as Impressions and Accepts for each channel. "
+            "The selectable values are the distinct outcomes found in your data. "
+            "The defaults shown next to each label are the Pega CDH standard outcomes "
+            "for that channel type. If your data uses custom outcome names, "
+            "select the appropriate values manually. "
+            "Click **Apply** to reload with the new mapping."
+        )
+
+        # Upload a previously saved outcome definitions file
+        uploaded_def = st.file_uploader(
+            "Upload outcome definitions file",
+            type=["json"],
+            help=(
+                "Upload a previously saved `.outcome_aliases.json` file to apply "
+                "its definitions. Useful when the outcome mapping is client- or "
+                "application-specific but the VBD export filename changes between downloads."
+            ),
+            key="ia_outcome_def_upload",
+        )
+        if uploaded_def is not None:
+            # Guard: only process each upload once (file_id changes per upload)
+            upload_id = f"{uploaded_def.name}_{uploaded_def.size}"
+            if st.session_state.get("_ia_last_def_upload_id") != upload_id:
+                try:
+                    uploaded_config = json.loads(uploaded_def.getvalue())
+                    if isinstance(uploaded_config, dict) and all(isinstance(v, dict) for v in uploaded_config.values()):
+                        st.session_state["_ia_last_def_upload_id"] = upload_id
+                        st.session_state["ia_outcome_labels"] = uploaded_config
+                        st.session_state["ia_outcome_labels_json"] = json.dumps(uploaded_config)
+                        _path = source_path or st.session_state.get("ia_data_source_path")
+                        if _path:
+                            save_outcome_aliases(_path, uploaded_config)
+                        st.session_state.pop("impact_analyzer", None)
+                        st.session_state.pop("ia_is_sample_data", None)
+                        st.rerun()
+                    else:
+                        st.error(
+                            "Invalid format. Expected a JSON object mapping channels to "
+                            '`{"Impressions": [...], "Accepts": [...]}`.'
+                        )
+                except json.JSONDecodeError:
+                    st.error("Could not parse the uploaded file as JSON.")
+
+        st.divider()
+
+        from pdstools.utils.pega_outcomes import get_channel_defaults
+
         per_channel_config: dict = {}
-        any_non_default = False
 
         for channel, outcomes in outcomes_by_channel.items():
             n = records_by_channel.get(channel, 0)
             st.markdown(f"**{channel}** *({n:,} records)*")
             col1, col2 = st.columns(2)
 
-            # Use saved config for defaults if available, otherwise fall back to class defaults
-            if saved_config and channel in saved_config:
-                default_imp = [o for o in saved_config[channel].get("Impressions", []) if o in outcomes]
-                default_acc = [o for o in saved_config[channel].get("Accepts", []) if o in outcomes]
-            else:
-                default_imp = [o for o in outcomes if o in default_impressions]
-                default_acc = [o for o in outcomes if o in default_accepts]
+            current = (saved_config or outcome_labels_used).get(channel, {})
+            default_imp = [o for o in current.get("Impressions", []) if o in outcomes]
+            default_acc = [o for o in current.get("Accepts", []) if o in outcomes]
+
+            ch_defaults = get_channel_defaults(channel)
+            imp_hint = ", ".join(ch_defaults["Impressions"])
+            acc_hint = ", ".join(ch_defaults["Accepts"])
+            imp_label = f"Impressions (default: {imp_hint})" if imp_hint else "Impressions"
+            acc_label = f"Accepts (default: {acc_hint})" if acc_hint else "Accepts"
 
             with col1:
                 impressions = st.multiselect(
-                    "Impressions",
+                    imp_label,
                     options=outcomes,
                     default=default_imp,
                     key=f"outcome_imp_{channel}",
                 )
             with col2:
                 accepts = st.multiselect(
-                    "Accepts",
+                    acc_label,
                     options=outcomes,
                     default=default_acc,
                     key=f"outcome_acc_{channel}",
                 )
 
-            # Compare against class defaults (not saved config) to detect non-default state
-            class_default_imp = [o for o in outcomes if o in default_impressions]
-            class_default_acc = [o for o in outcomes if o in default_accepts]
-            if sorted(impressions) != sorted(class_default_imp) or sorted(accepts) != sorted(class_default_acc):
-                any_non_default = True
-
             per_channel_config[channel] = {"Impressions": impressions, "Accepts": accepts}
 
-        if st.button("Apply outcome aliases"):
-            config = per_channel_config if any_non_default else None
+        if st.button("Apply outcome labels"):
+            config = per_channel_config
             st.session_state["ia_outcome_labels"] = config
-            st.session_state["ia_outcome_labels_json"] = json.dumps(config) if config else None
-            # Persist to sidecar file if source path is known
+            st.session_state["ia_outcome_labels_json"] = json.dumps(config)
             _path = source_path or st.session_state.get("ia_data_source_path")
             if _path:
                 saved_to = save_outcome_aliases(_path, config)
@@ -333,12 +407,10 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
                     st.session_state["ia_outcome_aliases_saved_to"] = str(saved_to)
                 else:
                     st.session_state.pop("ia_outcome_aliases_saved_to", None)
-            # Clear existing IA so next upload/path reload uses the new config
             st.session_state.pop("impact_analyzer", None)
             st.session_state.pop("ia_is_sample_data", None)
             st.rerun()
 
-        # Show sidecar file location
         _path = source_path or st.session_state.get("ia_data_source_path")
         if _path:
             existing = _outcome_aliases_candidates(_path)
@@ -346,7 +418,7 @@ def show_outcome_alias_config(ia: ImpactAnalyzer, source_path: str | None = None
             if saved_file:
                 st.caption(f"Aliases saved to `{saved_file}`")
             else:
-                target = existing[0]  # preferred location
+                target = existing[0]
                 st.caption(f"Aliases will be saved to `{target}`")
         elif st.session_state.get("ia_outcome_aliases_saved_to"):
             st.caption(f"Aliases saved to `{st.session_state['ia_outcome_aliases_saved_to']}`")
