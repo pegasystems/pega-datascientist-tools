@@ -1037,8 +1037,13 @@ class DecisionAnalyzer:
             .with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
                 .round(2)
-                .alias("% of total filtered")
+                .alias("% of total filtered"),
+                (pl.col("Available Actions") / pl.lit(total_interactions)).round(2).alias("Avg Available/Decision"),
+                (pl.col("Passing Actions") / pl.lit(total_interactions)).round(2).alias("Avg Passing/Decision"),
+                (pl.col("Filtered Actions") / pl.lit(total_interactions)).round(2).alias("Avg Filtered/Decision"),
+                (pl.col("Decisions") / pl.lit(total_interactions) * 100).round(1).alias("% Decisions with Actions"),
             )
+            .drop("Available Actions", "Passing Actions", "Filtered Actions", "Decisions")
             .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
         )
         return summary

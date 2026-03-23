@@ -457,11 +457,11 @@ class TestFunnelSummary:
         result = da_v2.get_funnel_summary(available, passing)
         expected_cols = {
             da_v2.level,
-            "Available Actions",
-            "Passing Actions",
-            "Filtered Actions",
+            "Avg Available/Decision",
+            "Avg Passing/Decision",
+            "Avg Filtered/Decision",
             "% of total filtered",
-            "Decisions",
+            "% Decisions with Actions",
         }
         assert expected_cols.issubset(set(result.columns))
 
@@ -473,8 +473,9 @@ class TestFunnelSummary:
     def test_filtered_is_difference(self, da_v2):
         available, passing, filtered = da_v2.getFunnelData(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        diff = result["Available Actions"] - result["Passing Actions"]
-        assert (result["Filtered Actions"] == diff).all()
+        diff = result["Avg Available/Decision"] - result["Avg Passing/Decision"]
+        # Allow 0.01 rounding tolerance since each column is independently rounded
+        assert ((result["Avg Filtered/Decision"] - diff).abs() <= 0.01).all()
 
     def test_pct_sums_to_100(self, da_v2):
         available, passing, filtered = da_v2.getFunnelData(scope="Issue")
@@ -482,10 +483,11 @@ class TestFunnelSummary:
         total_pct = result["% of total filtered"].sum()
         assert abs(total_pct - 100.0) < 0.5  # rounding tolerance
 
-    def test_decisions_non_negative(self, da_v2):
+    def test_decisions_pct_in_range(self, da_v2):
         available, passing, filtered = da_v2.getFunnelData(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        assert (result["Decisions"] >= 0).all()
+        assert (result["% Decisions with Actions"] >= 0).all()
+        assert (result["% Decisions with Actions"] <= 100.1).all()  # rounding tolerance
 
 
 # ---------------------------------------------------------------------------

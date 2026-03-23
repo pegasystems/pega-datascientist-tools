@@ -97,8 +97,8 @@ with st.container(border=True):
 
     with passing_tab:
         st.caption(
-            "Actions passing **out of** each stage. Funnel height shows **Average Actions per Interaction**; "
-            "**Reach** shows the percentage of interactions with at least one offer. Use **Granularity** "
+            "Actions passing **out of** each stage. Funnel height shows **Average Actions per Decision**; "
+            "**Reach** shows the percentage of decisions with at least one offer. Use **Granularity** "
             "(sidebar) to break down by Issue, Group, or individual Action."
         )
         st.plotly_chart(passing_fig)
@@ -109,7 +109,7 @@ with st.container(border=True):
 
     with without_tab:
         st.caption(
-            "Interactions with **no remaining actions** at each stage — i.e. decisions where all offers "
+            "Decisions with **no remaining actions** at each stage — i.e. decisions where all offers "
             "have been filtered out by that point in the pipeline."
         )
         without_fig = decisions_without_actions_plot(
@@ -121,8 +121,8 @@ with st.container(border=True):
 """
 ## Filter Impact Details
 
-For each stage, shows total actions available entering the stage, how many pass through,
-how many are filtered out, and how many unique decisions remain.
+For each stage, shows average actions per decision entering the stage, how many pass through,
+how many are filtered out, and the percentage of decisions with at least one action.
 """
 
 summary_df = funnel_summary(

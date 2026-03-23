@@ -268,8 +268,7 @@ class Plot:
                     stackgroup="one",
                     name=f"{action_count} {'Action' if action_count == '1' else 'Actions'}",
                     line=dict(width=0.5, color=colors[i]),
-                    hovertemplate="%{customdata} interactions (%{y:.1f}%)<br>with %{meta}<extra></extra>",
-                    customdata=df_with_percent["Interactions"],
+                    hovertemplate="%{y:.1f}% of decisions<br>with %{meta}<extra></extra>",
                     meta=[
                         f"{action_count} {'action' if action_count == '1' else 'actions'}"
                         for _ in range(len(df_with_percent))
@@ -279,7 +278,7 @@ class Plot:
 
         fig.update_layout(
             xaxis_title="Funnel Stage",
-            yaxis_title="Percentage of Interactions",
+            yaxis_title="% of Decisions",
             legend_title="Available Actions",
             hovermode="x unified",
             legend=dict(traceorder="reversed"),
@@ -387,11 +386,12 @@ class Plot:
         passing_collected = passing_df.sort([self._decision_data.level, "action_occurrences", scope])
 
         passing_fig = (
-            px.funnel(
+            px.bar(
                 passing_collected,
                 x=self._decision_data.level,
                 y="actions_per_interaction",
                 color=scope,
+                barmode="stack",
                 labels={
                     self._decision_data.level: "Stage",
                     "actions_per_interaction": "Average Actions per Interaction",
@@ -406,13 +406,12 @@ class Plot:
                 texttemplate="%{y:.1f}",
                 hovertemplate="<b>%{fullData.name}</b><br>"
                 + "Average Actions per Interaction: %{y:.1f}<br>"
-                + "Reach: %{customdata[0]:.1f}% of interactions<br>"
+                + "Reach: %{customdata[0]:.1f}% of decisions<br>"
                 + "Total Action Occurrences: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
                 customdata=passing_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
             )
             .update_layout(
-                funnelmode="stack",
                 showlegend=True,
                 xaxis_title="",
                 yaxis_title="Average Actions per Interaction",
@@ -459,23 +458,32 @@ class Plot:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        """Bar chart showing interactions with no remaining actions per stage."""
+        """Bar chart showing decisions with no remaining actions per stage, as % of total."""
         df = self._decision_data.get_decisions_without_actions_data(additional_filters)
         if return_df:
             return df
 
+        total_decisions = (
+            apply_filter(self._decision_data.getPreaggregatedFilterView, additional_filters)
+            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .collect()
+            .item()
+        )
+        df = df.with_columns((pl.col("decisions_without_actions") / total_decisions * 100).alias("pct_without_actions"))
+
         return px.bar(
             df,
-            x="decisions_without_actions",
+            x="pct_without_actions",
             y=self._decision_data.level,
             labels={
                 self._decision_data.level: "Stage group" if self._decision_data.level == "Stage Group" else "Stage",
-                "decisions_without_actions": "Decisions without Actions",
+                "pct_without_actions": "% of Decisions without Actions",
             },
             category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
             template="plotly_white",
         ).update_layout(
-            xaxis_title="Decisions without Actions",
+            xaxis_title="% of Decisions without Actions",
+            xaxis_ticksuffix="%",
             yaxis_title="",
         )
 
@@ -742,9 +750,9 @@ class Plot:
         fig.update_xaxes(matches=None, title="")
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
-            height=max(400, 120 * min(top_n, 10)),
+            height=max(200, 50 * min(top_n, 10)),
             showlegend=False,
-            bargap=0.5,
+            bargap=0.6,
         )
         return fig
 
