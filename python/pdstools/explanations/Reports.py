@@ -15,7 +15,7 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _CONTRIBUTION_TYPE, _DEFAULT
+from .ExplanationsUtils import _CONTRIBUTION_TYPE, defaults
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,10 @@ class Reports(LazyNamespace):
     def generate(
         self,
         report_filename: str = "explanations_report.zip",
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
-        display_by: str = _DEFAULT.DISPLAY_BY.value.value,
+        top_n: int = defaults.top_n,
+        top_k: int = defaults.top_k,
+        sort_by: str = defaults.sort_by.value,
+        display_by: str = defaults.display_by.value,
         zip_output: bool = False,
     ):
         """Generate the explanations report.
@@ -133,12 +133,12 @@ class Reports(LazyNamespace):
 
     def _set_params(
         self,
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
+        top_n: int = defaults.top_n,
+        top_k: int = defaults.top_k,
         from_date: str = "",
         to_date: str = "",
-        sort_by: _CONTRIBUTION_TYPE = _DEFAULT.SORT_BY.value,
-        display_by: _CONTRIBUTION_TYPE = _DEFAULT.DISPLAY_BY.value,
+        sort_by: _CONTRIBUTION_TYPE = defaults.sort_by,
+        display_by: _CONTRIBUTION_TYPE = defaults.display_by,
     ):
         params: dict[str, str | int] = {}
         params["top_n"] = top_n

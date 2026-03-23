@@ -7,7 +7,7 @@ from pathlib import Path
 import plotly.graph_objects as go
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _DEFAULT, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import _SPECIAL, defaults
 from pdstools.explanations.Plots import Plots
 
 basePath = Path(__file__).parent.parent.parent.parent
@@ -66,7 +66,7 @@ def test_plot_contributions_for_overall_default_params(plots):
     # +1 for the remaining bar
     _assert_fig_bar_data_overall(
         overall_fig,
-        _DEFAULT.TOP_N.value + 1,
+        defaults.top_n + 1,
         check_condition="le",
     )
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")

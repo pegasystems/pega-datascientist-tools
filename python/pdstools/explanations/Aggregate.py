@@ -10,11 +10,11 @@ from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
     _CONTRIBUTION_TYPE,
-    _DEFAULT,
     _PREDICTOR_TYPE,
     _SPECIAL,
     ContextInfo,
     ContextOperations,
+    defaults,
     validate,
 )
 
@@ -51,11 +51,11 @@ class Aggregate(LazyNamespace):
     def get_predictor_contributions(
         self,
         context: dict[str, str] | None = None,
-        top_n: int = _DEFAULT.TOP_N.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
+        top_n: int = defaults.top_n,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
     ):
         """Get the top-n predictor contributions for a given context or overall.
 
@@ -100,11 +100,11 @@ class Aggregate(LazyNamespace):
         self,
         predictors: list[str],
         context: dict[str, str] | None = None,
-        top_k: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
+        top_k: int = defaults.top_k,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
     ):
         """Get the top-k predictor value contributions for a given context or overall.
 
@@ -214,11 +214,11 @@ class Aggregate(LazyNamespace):
         self,
         contexts: list[ContextInfo] | None = None,
         predictors: list[str] | None = None,
-        limit: int = _DEFAULT.TOP_N.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
+        limit: int = defaults.top_n,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
     ) -> pl.DataFrame:
         contexts = contexts or []
         predictors = predictors or []
@@ -287,11 +287,11 @@ class Aggregate(LazyNamespace):
         self,
         contexts: list[ContextInfo] | None = None,
         predictors: list[str] | None = None,
-        limit: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
+        limit: int = defaults.top_k,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
     ) -> pl.DataFrame:
         # if no contexts are provided, then we return the overall data
         # if contexts are provided, then we generate the context filters
@@ -385,7 +385,7 @@ class Aggregate(LazyNamespace):
     def _get_df_with_sort_info(
         self,
         df: pl.LazyFrame,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
+        sort_by: str = defaults.sort_by.value,
     ) -> pl.LazyFrame:
         """Add a sort column and value to the dataframe based on the predictor type.
         # Sort logic:
@@ -417,9 +417,9 @@ class Aggregate(LazyNamespace):
         self,
         df: pl.LazyFrame,
         over: list[str],
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
-        limit: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
+        sort_by: str = defaults.sort_by.value,
+        limit: int = defaults.top_k,
+        descending: bool = defaults.descending,
     ) -> pl.LazyFrame:
         """Return the top `limit` rows per group, ranked by `sort_by`.
 

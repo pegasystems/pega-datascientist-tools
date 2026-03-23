@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import _COL, _CONTRIBUTION_TYPE, _DEFAULT, _SPECIAL, ContextInfo
+from .ExplanationsUtils import _COL, _CONTRIBUTION_TYPE, _SPECIAL, ContextInfo, defaults
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +33,13 @@ class Plots(LazyNamespace):
 
     def contributions(
         self,
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
-        display_by: str = _DEFAULT.DISPLAY_BY.value.value,
+        top_n: int = defaults.top_n,
+        top_k: int = defaults.top_k,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
+        display_by: str = defaults.display_by.value,
     ):
         """Plots contributions for the overall model or a selected context.
 
@@ -110,13 +110,13 @@ class Plots(LazyNamespace):
 
     def plot_contributions_for_overall(
         self,
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
-        display_by: str = _DEFAULT.DISPLAY_BY.value.value,
+        top_n: int = defaults.top_n,
+        top_k: int = defaults.top_k,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
+        display_by: str = defaults.display_by.value,
     ) -> tuple[go.Figure, list[go.Figure]]:
         validated_sort_by = _CONTRIBUTION_TYPE.validate_and_get_type(sort_by)
         validated_display_by = _CONTRIBUTION_TYPE.validate_and_get_type(display_by)
@@ -164,13 +164,13 @@ class Plots(LazyNamespace):
     def plot_contributions_by_context(
         self,
         context: dict[str, str],
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        descending: bool = _DEFAULT.DESCENDING.value,
-        missing: bool = _DEFAULT.MISSING.value,
-        remaining: bool = _DEFAULT.REMAINING.value,
-        sort_by: str = _DEFAULT.SORT_BY.value.value,
-        display_by: str = _DEFAULT.DISPLAY_BY.value.value,
+        top_n: int = defaults.top_n,
+        top_k: int = defaults.top_k,
+        descending: bool = defaults.descending,
+        missing: bool = defaults.missing,
+        remaining: bool = defaults.remaining,
+        sort_by: str = defaults.sort_by.value,
+        display_by: str = defaults.display_by.value,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]]:
         validated_sort_by = _CONTRIBUTION_TYPE.validate_and_get_type(sort_by)
         validated_display_by = _CONTRIBUTION_TYPE.validate_and_get_type(display_by)
