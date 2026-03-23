@@ -15,7 +15,7 @@ Active work items for the Impact Analyzer tool.
 - **[P2]** Medium — Important improvements, moderate UX impact
 - **[P3]** Low — Nice-to-have, minor issues, future enhancements
 
-**Total items:** 3 across core library and app architecture
+**Total items:** 2 open across core library
 
 ---
 
