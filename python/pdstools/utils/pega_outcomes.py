@@ -5,7 +5,8 @@ Pega CDH standard outcomes documentation. Designed for use by any pdstools
 component that maps raw Pega outcome strings to business metrics.
 
 The Impact Analyzer uses this for Impressions/Accepts per Channel/Direction.
-The IH class (future) can use it for per-channel engagement rate denominators.
+The IH class uses it for per-channel Engagement labels and direction-aware
+OpenRate applicability.
 """
 
 from __future__ import annotations
@@ -93,3 +94,33 @@ def get_channel_defaults(channel: str) -> dict[str, list[str]]:
     prefix = channel.split("/")[0]
     default_imp, default_acc = _CHANNEL_OUTCOME_DEFAULTS.get(prefix, (_DEFAULT_IMPRESSIONS, _DEFAULT_ACCEPTS))
     return {"Impressions": list(default_imp), "Accepts": list(default_acc)}
+
+
+# OpenRate outcomes — only meaningful for outbound channels (Email, SMS, Push, etc.).
+# Both old-style (Open) and new-style (Opened) variants included.
+_OPENRATE_POSITIVE: list[str] = ["Opened", "Open"]
+_OPENRATE_NEGATIVE: list[str] = ["Impression", "Pending"]
+
+
+def get_openrate_labels(channel: str) -> dict[str, list[str]] | None:
+    """Return OpenRate outcome labels if applicable for this channel.
+
+    OpenRate (whether a pushed message was opened) only applies to outbound
+    channels. Returns None for inbound channels or channels without a
+    direction component.
+
+    Parameters
+    ----------
+    channel : str
+        Channel in "Channel/Direction" format (e.g. "Email/Outbound").
+
+    Returns
+    -------
+    dict[str, list[str]] or None
+        ``{"positive": [...], "negative": [...]}`` for outbound channels,
+        None for inbound or unknown direction.
+    """
+    parts = channel.split("/", 1)
+    if len(parts) < 2 or parts[1] != "Outbound":
+        return None
+    return {"positive": list(_OPENRATE_POSITIVE), "negative": list(_OPENRATE_NEGATIVE)}

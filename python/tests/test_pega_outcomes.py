@@ -1,6 +1,6 @@
 """Tests for the pega_outcomes shared utility."""
 
-from pdstools.utils.pega_outcomes import resolve_outcome_labels
+from pdstools.utils.pega_outcomes import get_openrate_labels, resolve_outcome_labels
 
 
 class TestResolveOutcomeLabels:
@@ -56,3 +56,25 @@ class TestResolveOutcomeLabels:
 
     def test_empty_input_returns_empty_dict(self):
         assert resolve_outcome_labels({}) == {}
+
+
+class TestGetOpenrateLabels:
+    def test_outbound_returns_labels(self):
+        result = get_openrate_labels("Email/Outbound")
+        assert result is not None
+        assert result["positive"] == ["Opened", "Open"]
+        assert result["negative"] == ["Impression", "Pending"]
+
+    def test_inbound_returns_none(self):
+        assert get_openrate_labels("Web/Inbound") is None
+
+    def test_call_center_inbound_returns_none(self):
+        assert get_openrate_labels("Call Center/Inbound") is None
+
+    def test_sms_outbound_returns_labels(self):
+        result = get_openrate_labels("SMS/Outbound")
+        assert result is not None
+        assert "Opened" in result["positive"]
+
+    def test_no_direction_returns_none(self):
+        assert get_openrate_labels("Web") is None
