@@ -405,6 +405,63 @@ def test_ih_channel_aware_engagement_correct_positives(ih_discriminating):
     assert i004["Interaction_Outcome_Engagement"].item() is True
 
 
+@pytest.fixture
+def ih_openrate():
+    """IH data testing OpenRate direction awareness.
+
+    I010 — Email/Outbound + Opened: outbound open -> OpenRate True
+    I011 — Web/Inbound + Opened: inbound open -> OpenRate null (not applicable)
+    I012 — Email/Outbound + Impression only: outbound no open -> OpenRate False
+    """
+    return pl.DataFrame(
+        {
+            "pxInteractionID": [
+                "I010",
+                "I010",
+                "I011",
+                "I011",
+                "I012",
+            ],
+            "pyChannel": ["Email", "Email", "Web", "Web", "Email"],
+            "pyDirection": ["Outbound", "Outbound", "Inbound", "Inbound", "Outbound"],
+            "pyName": ["Action1"] * 5,
+            "pyTreatment": ["T1"] * 5,
+            "pyIssue": ["Sales"] * 5,
+            "pyGroup": ["Cards"] * 5,
+            "pyOutcome": ["Impression", "Opened", "Impression", "Opened", "Impression"],
+            "pxOutcomeTime": ["20240115T120000.000 GMT"] * 5,
+            "pyPropensity": [0.1] * 5,
+            "pyModelTechnique": ["NaiveBayes"] * 5,
+            "ExperimentGroup": ["Test"] * 5,
+            "pyInteractionID": ["I010", "I010", "I011", "I011", "I012"],
+        }
+    ).lazy()
+
+
+def test_openrate_outbound_opened_is_positive(ih_openrate):
+    """Email/Outbound + Opened -> OpenRate True."""
+    ih = IH(ih_openrate)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i010 = result.filter(pl.col("InteractionID") == "I010")
+    assert i010["Interaction_Outcome_OpenRate"].item() is True
+
+
+def test_openrate_inbound_opened_is_null(ih_openrate):
+    """Web/Inbound + Opened -> OpenRate null (not applicable)."""
+    ih = IH(ih_openrate)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i011 = result.filter(pl.col("InteractionID") == "I011")
+    assert i011["Interaction_Outcome_OpenRate"].item() is None
+
+
+def test_openrate_outbound_no_open_is_false(ih_openrate):
+    """Email/Outbound with only Impression -> OpenRate False."""
+    ih = IH(ih_openrate)
+    result = ih.aggregates.summarize_by_interaction().collect()
+    i012 = result.filter(pl.col("InteractionID") == "I012")
+    assert i012["Interaction_Outcome_OpenRate"].item() is False
+
+
 def test_plots(ih):
     assert isinstance(ih.plot.overall_gauges(condition="ExperimentGroup"), Figure)
     assert isinstance(ih.plot.response_count_tree_map(), Figure)

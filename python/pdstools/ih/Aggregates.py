@@ -7,6 +7,7 @@ import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.pega_outcomes import get_openrate_labels as _get_openrate_labels
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:
@@ -139,9 +140,29 @@ class Aggregates(LazyNamespace):
                     pos_eng = pos_eng | (ch_cond & pl.col("Outcome").is_in(labels["Accepts"]))
                 if labels.get("Impressions"):
                     neg_eng = neg_eng | (ch_cond & pl.col("Outcome").is_in(labels["Impressions"]))
+
+            # OpenRate: only applicable to outbound channels.
+            # TODO: reconsider null vs False for non-applicable channel/metric combinations
+            pos_or: pl.Expr = pl.lit(False)
+            neg_or: pl.Expr = pl.lit(False)
+            for channel_dir, labels in channel_aware.items():
+                or_labels = _get_openrate_labels(channel_dir)
+                if or_labels is None:
+                    continue  # inbound — both stay False → null after agg
+                parts = channel_dir.split("/", 1)
+                ch_cond = (
+                    (pl.col("Channel") == parts[0]) & (pl.col("Direction") == parts[1])
+                    if len(parts) == 2
+                    else (pl.col("Channel") == parts[0])
+                )
+                pos_or = pos_or | (ch_cond & pl.col("Outcome").is_in(or_labels["positive"]))
+                neg_or = neg_or | (ch_cond & pl.col("Outcome").is_in(or_labels["negative"]))
+
             source = source.with_columns(
                 _IsPositiveEngagement=pos_eng,
                 _IsNegativeEngagement=neg_eng,
+                _IsPositiveOpenRate=pos_or,
+                _IsNegativeOpenRate=neg_or,
             )
 
         engagement_agg: pl.Expr = (
@@ -162,6 +183,24 @@ class Aggregates(LazyNamespace):
             )
         )
 
+        openrate_agg: pl.Expr = (
+            (
+                pl.when(pl.col("_IsPositiveOpenRate").any())
+                .then(pl.lit(True))
+                .when(pl.col("_IsNegativeOpenRate").any())
+                .then(pl.lit(False))
+                .alias("Interaction_Outcome_OpenRate")
+            )
+            if channel_aware
+            else (
+                pl.when(pl.col.Outcome.is_in(self.ih.positive_outcome_labels["OpenRate"]).any())
+                .then(pl.lit(True))
+                .when(pl.col.Outcome.is_in(self.ih.negative_outcome_labels["OpenRate"]).any())
+                .then(pl.lit(False))
+                .alias("Interaction_Outcome_OpenRate")
+            )
+        )
+
         other_agg = [
             pl.when(pl.col.Outcome.is_in(self.ih.positive_outcome_labels[metric]).any())
             .then(pl.lit(True))
@@ -169,7 +208,7 @@ class Aggregates(LazyNamespace):
             .then(pl.lit(False))
             .alias(f"Interaction_Outcome_{metric}")
             for metric in self.ih.positive_outcome_labels.keys()
-            if metric != "Engagement"
+            if metric not in ("Engagement", "OpenRate")
         ]
 
         interactions = (
@@ -178,7 +217,7 @@ class Aggregates(LazyNamespace):
                 (group_by_clause + ["InteractionID"]) if group_by_clause is not None else ["InteractionID"],
             )
             .agg(
-                [engagement_agg] + other_agg,
+                [engagement_agg, openrate_agg] + other_agg,
                 Propensity=pl.col.Propensity.last(),
                 # for debugging
                 Outcomes=pl.col.Outcome.unique().sort(),
