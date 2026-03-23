@@ -285,4 +285,5 @@ def _get_bar_data_from_fig(fig):
 
 
 def _get_predictor_type_from_fig(fig):
-    return _get_bar_data_from_fig(fig).customdata[0]
+    """Extract predictor type from customdata (column index 1)."""
+    return _get_bar_data_from_fig(fig).customdata[0][1]

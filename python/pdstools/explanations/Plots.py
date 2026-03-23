@@ -230,7 +230,35 @@ class Plots(LazyNamespace):
         return header_fig, overall_fig, predictors_figs
 
     @staticmethod
+    def _build_hover_customdata(
+        df: pl.DataFrame,
+        x_col: str,
+    ):
+        """Build customdata array and hovertemplate for contribution plots.
+
+        Expects df to contain a ``frequency_pct`` column.
+
+        Returns (customdata, hovertemplate) with columns:
+        predictor_name, predictor_type, contribution (x_col value), frequency_pct.
+        """
+        customdata = df.select(
+            _COL.PREDICTOR_NAME.value,
+            _COL.PREDICTOR_TYPE.value,
+            pl.col(x_col).alias("contribution"),
+            "frequency_pct",
+        ).to_numpy()
+
+        hovertemplate = (
+            "predictor_name: %{customdata[0]}<br>"
+            "predictor_type: %{customdata[1]}<br>"
+            "contribution: %{customdata[2]:.8f}<br>"
+            "frequency: %{customdata[3]}%"
+            "<extra></extra>"
+        )
+        return customdata, hovertemplate
+
     def _plot_overall_contributions(
+        self,
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
@@ -244,12 +272,16 @@ class Plots(LazyNamespace):
         else:
             title += "-".join([f"{v}" for k, v in context.items()])
 
+        df_with_pct = self.aggregate.add_frequency_pct_to_df(df, group_by=[_COL.PARTITON.value])
+        customdata, hovertemplate = self._build_hover_customdata(df_with_pct, x_col)
+
         fig = go.Figure(
             data=[
                 go.Bar(
                     x=df[x_col].to_list(),
                     y=df[y_col].to_list(),
                     orientation="h",
+                    customdata=customdata,
                 ),
             ],
         )
@@ -264,34 +296,40 @@ class Plots(LazyNamespace):
                 colorscale="RdBu_r",
                 cmid=0.0,
             ),
+            hovertemplate=hovertemplate,
         )
         fig.update_layout(xaxis_title=x_title, yaxis_title=y_title, height=600)
         return fig
 
-    @staticmethod
     def _plot_predictor_contributions(
+        self,
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
         x_title: str = X_AXIS_TITLE_DEFAULT,
         y_title: str = Y_AXIS_TITLE_DEFAULT,
     ) -> list[go.Figure]:
-        predictors = df.select(_COL.PREDICTOR_NAME.value).unique().to_series().to_list()
+        df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
+            df, group_by=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+        )
+
+        predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()
 
         plots = []
-        for predictor in predictors:
-            predictor_df = df.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+        for predictor, predictor_type in predictor_info.iter_rows():
+            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
-            predictor_type = predictor_df.select(_COL.PREDICTOR_TYPE.value).to_series()[0]
+            customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
+
             fig = go.Figure(
                 data=[
                     go.Bar(
                         x=predictor_df[x_col].to_list(),
                         y=predictor_df[y_col].to_list(),
                         orientation="h",
-                        customdata=[predictor_type],
-                    ),
-                ],
+                        customdata=customdata,
+                    )
+                ]
             )
 
             colors_values = predictor_df.select(pl.col(x_col)).to_series().to_list()
@@ -301,12 +339,12 @@ class Plots(LazyNamespace):
                     colorscale="RdBu_r",
                     cmid=0.0,
                 ),
-                hovertemplate="Value: %{y}<br>PredictorType: %{customdata[0]}<extra></extra>",
+                hovertemplate=hovertemplate,
             )
             fig.update_layout(
                 xaxis_title=x_title,
                 yaxis_title=predictor,
-                title=predictor,
+                title=f"{predictor}<br><sup><span style='color:gray'>{predictor_type}</span></sup>",
             )
             plots.append(fig)
         return plots
