@@ -1,6 +1,4 @@
 # python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py
-import io
-
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
@@ -135,22 +133,6 @@ summary_df = funnel_summary(
 st.dataframe(summary_df)
 
 
-@st.cache_data
-def convert_polars_df(df):
-    buffer = io.StringIO()
-    df.write_csv(buffer)
-    buffer.seek(0)
-    return buffer.getvalue().encode("utf-8")
-
-
-csv = convert_polars_df(summary_df)
-st.download_button(
-    label="Download as CSV",
-    file_name="filter_impact_analysis.csv",
-    data=csv,
-    help="Download the complete filter impact analysis as a CSV file",
-)
-
 # ---------------------------------------------------------------------------
 # Component Analysis (replaces former "Filter Impact by Offer" + "Deep Dive")
 # ---------------------------------------------------------------------------
@@ -168,7 +150,7 @@ if has_components:
         col1, col2 = st.columns(2)
         with col1:
             stage_selectbox(
-                label="Stage:",
+                label=f"{da.level}:",
                 key="component_stage",
             )
         with col2:

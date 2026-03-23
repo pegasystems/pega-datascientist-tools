@@ -383,13 +383,14 @@ class Plot:
 
         color_map = self._decision_data.color_mappings.get(scope)
 
+        stage_order = list(self._decision_data.AvailableNBADStages)
         passing_collected = passing_df.sort([self._decision_data.level, "action_occurrences", scope])
 
         passing_fig = (
             px.funnel(
                 passing_collected,
-                y="actions_per_interaction",
-                x=self._decision_data.level,
+                x="actions_per_interaction",
+                y=self._decision_data.level,
                 color=scope,
                 labels={
                     self._decision_data.level: "Stage",
@@ -399,21 +400,21 @@ class Plot:
                 },
                 template="pega",
                 color_discrete_map=color_map,
+                category_orders={self._decision_data.level: list(reversed(stage_order))},
             )
             .update_traces(
-                texttemplate="%{y:.1f}",
+                texttemplate="%{x:.1f}",
                 hovertemplate="<b>%{fullData.name}</b><br>"
-                + "Average Actions per Interaction: %{y:.1f}<br>"
+                + "Average Actions per Interaction: %{x:.1f}<br>"
                 + "Reach: %{customdata[0]:.1f}% of interactions<br>"
                 + "Total Action Occurrences: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
                 customdata=passing_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
             )
-            .update_xaxes(categoryorder="array")
             .update_layout(
                 showlegend=True,
-                xaxis_title="",
-                yaxis_title="Average Actions per Interaction",
+                xaxis_title="Average Actions per Interaction",
+                yaxis_title="",
                 legend=dict(traceorder="reversed"),
             )
         )
@@ -722,14 +723,8 @@ class Plot:
             fig.add_annotation(text="No filter data available", showarrow=False)
             return fig
 
-        # Use the scope column for the y-axis label
         y_col = scope if scope in plot_df.columns else "Action"
-        # Determine a color column (one level above scope in hierarchy)
-        color_col = None
-        if scope == "Action" and "Issue" in plot_df.columns:
-            color_col = "Issue"
-        elif scope == "Group" and "Issue" in plot_df.columns:
-            color_col = "Issue"
+        color_discrete_map = self._decision_data.color_mappings.get(y_col)
 
         fig = px.bar(
             plot_df,
@@ -738,7 +733,8 @@ class Plot:
             orientation="h",
             facet_col="Component Name",
             facet_col_wrap=2,
-            color=color_col,
+            color=y_col,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
         fig.update_yaxes(matches=None, automargin=True, title="")
@@ -746,7 +742,7 @@ class Plot:
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
             height=max(400, 120 * min(top_n, 10)),
-            showlegend=color_col is not None,
+            showlegend=False,
         )
         return fig
 

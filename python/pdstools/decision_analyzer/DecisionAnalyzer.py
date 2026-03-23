@@ -947,36 +947,33 @@ class DecisionAnalyzer:
     def get_decisions_without_actions_data(
         self, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> pl.DataFrame:
-        """Per-stage count of interactions with no remaining actions.
+        """Per-stage count of interactions newly knocked out at each stage.
 
         Returns a DataFrame with columns [self.level, "decisions_without_actions"],
-        sorted in pipeline order. For each stage X, the value is:
-        total_interactions - unique_interactions_still_in_pipeline_at_X.
+        sorted in pipeline order. For each stage X, the value is the number of
+        interactions that had actions entering stage X but none exiting it — i.e.
+        the delta between unique interactions at stage X and stage X+1.
         """
         filter_view = apply_filter(self.getPreaggregatedFilterView, additional_filters)
-        total_interactions = (
-            apply_filter(self.decision_data, additional_filters)
-            .select("Interaction ID")
-            .unique()
-            .count()
-            .collect()
-            .item()
-        )
-        rows = []
-        for i, stage in enumerate(self.AvailableNBADStages):
-            remaining_stages = self.AvailableNBADStages[i:]
-            remaining = (
-                filter_view.filter(pl.col(self.level).is_in(remaining_stages))
+
+        def count_from(stages):
+            return (
+                filter_view.filter(pl.col(self.level).is_in(stages))
                 .select(pl.col("Interaction_IDs").flatten().unique().count())
                 .collect()
                 .item()
             )
-            rows.append(
-                {
-                    self.level: stage,
-                    "decisions_without_actions": total_interactions - remaining,
-                }
-            )
+
+        stage_counts = [count_from(self.AvailableNBADStages[i:]) for i in range(len(self.AvailableNBADStages))]
+
+        rows = [
+            {
+                self.level: stage,
+                "decisions_without_actions": stage_counts[i]
+                - (stage_counts[i + 1] if i + 1 < len(stage_counts) else 0),
+            }
+            for i, stage in enumerate(self.AvailableNBADStages)
+        ]
         return pl.DataFrame(rows)
 
     def get_funnel_summary(
@@ -1036,7 +1033,7 @@ class DecisionAnalyzer:
             .with_columns((pl.col("Available Actions") - pl.col("Passing Actions")).alias("Filtered Actions"))
             .with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
-                .round(1)
+                .round(2)
                 .alias("% of total filtered")
             )
             .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
