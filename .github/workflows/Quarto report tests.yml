@@ -1,0 +1,160 @@
+name: Quarto report tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - python/**
+      - reports/*.qmd
+      - .github/workflows/**
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - python/**
+      - reports/*.qmd
+      - .github/workflows/**
+      - uv.lock
+      - pyproject.toml
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  QUARTO_VERSION: "1.7.23"
+  PANDOC_VERSION: "3.1.11"
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  # ── Step 1: Cache Quarto and Pandoc binaries ─────────────────────────
+  prepare-tools:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    outputs:
+      cache-key-tools: ${{ steps.cache-keys.outputs.tools }}
+    steps:
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "tools=tools-quarto-${{ env.QUARTO_VERSION }}-pandoc-${{ env.PANDOC_VERSION }}-py${{ env.PYTHON_VERSION }}-${{ runner.os }}-${{ runner.arch }}" >> $GITHUB_OUTPUT
+
+      - name: Cache tool installations
+        id: cache-tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ steps.cache-keys.outputs.tools }}
+
+      - name: Install uv
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install tools
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$HOME/quarto" "$HOME/pandoc"
+
+          echo "Installing Python ${PYTHON_VERSION}..."
+          uv python install ${{ env.PYTHON_VERSION }}
+
+          echo "Installing Quarto ${QUARTO_VERSION}..."
+          wget -q "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "quarto-${QUARTO_VERSION}-linux-amd64.tar.gz" -C "$HOME/quarto" --strip-components=1
+
+          echo "Installing Pandoc ${PANDOC_VERSION}..."
+          wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -C "$HOME/pandoc" --strip-components=1
+
+          chmod +x "$HOME/quarto/bin/quarto" "$HOME/pandoc/bin/pandoc"
+          "$HOME/quarto/bin/quarto" --version
+          "$HOME/pandoc/bin/pandoc" --version
+
+  # ── Step 2a: Healthcheck report tests ────────────────────────────────
+  healthcheck-tests:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Healthcheck report tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra healthcheck --extra tests
+
+      - name: Verify tools
+        run: |
+          quarto --version
+          pandoc --version
+          uv run python --version
+
+      - name: Run healthcheck report tests
+        run: uv run pytest python/tests/test_healthcheck.py
+
+  # ── Step 2b: Explanations report tests ───────────────────────────────
+  explanations-tests:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Explanations report tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra explanations --extra tests
+
+      - name: Verify tools
+        run: |
+          quarto --version
+          pandoc --version
+          uv run python --version
+
+      - name: Run explanations report tests
+        run: uv run pytest python/tests/test_explanations_report.py

@@ -18,15 +18,15 @@ website:
     - text: "Model Overview"
       href: overview.qmd
     - auto: "by-model-context/plt-*.qmd"
-
+author:
+  name: Pega Data Scientist tools
 execute:
   echo: false
   eval: true
 format:
   html:
     theme:
-    - cosmo
-    - brand
+      light: flatly
     toc: true
     toc-depth: 4
     css: assets/pega-report-overrides.css

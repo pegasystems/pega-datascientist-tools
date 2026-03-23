@@ -1,12 +1,11 @@
-"""GlobalExplanations report generation script.
+"""Pre-render script for the GlobalExplanations Quarto website project.
 
-This script generates Quarto report files from templates for model explanations analysis.
-Templates follow Quarto standards with YAML front matter, error handling, Pega styling,
-and credits sections. The generation process uses string substitution to populate
-template placeholders with user-specified parameters.
+This script is executed by Quarto as a pre-render step (configured in _quarto.yml) before the website is built.
+It reads .qmd templates from assets/templates/, substitutes parameter placeholders (e.g. {TOP_N}, {SORT_BY_TYPE})
+with values from params.yml, and writes the final .qmd files that Quarto then renders into the website.
 
 Templates are located in: assets/templates/
-Generated reports are written to the current working directory.
+Generated .qmd files are written to the project root for Quarto to render.
 """
 
 import json
@@ -26,7 +25,6 @@ FROM_DATE_DEFAULT = "N/A"
 TO_DATE_DEFAULT = "N/A"
 CONTRIBUTION_TYPE_DEFAULT = "contribution"
 CONTRIBUTION_TEXT_DEFAULT = "average contribution"
-VERBOSE_DEFAULT = False
 DATA_FOLDER = "aggregated_data"
 UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
 
@@ -45,18 +43,12 @@ SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
 
 class ReportGenerator:
-    """Generate GlobalExplanations Quarto report files from templates.
-
-    This class reads template .qmd files, performs string substitution with
-    user parameters, and writes the final report files. Templates follow
-    established Quarto standards including:
-    - Complete YAML front matter with Pega branding
-    - Error handling around plot generation
-    - Pega template styling for visualizations
-    - Credits and version information sections
-
-    The generation process preserves the template architecture while enhancing
-    the quality and consistency of generated reports.
+    """Quarto pre-render generator for the GlobalExplanations website project.
+    Reads .qmd templates from assets/templates/, substitutes parameter
+    placeholders with values from params.yml, and writes the rendered .qmd
+    files for Quarto to build. Shared configuration (front matter, theme,
+    branding) is inherited from _quarto.yml; templates only contain
+    page-specific content and code cells.
     """
 
     def __init__(self):
@@ -82,18 +74,27 @@ class ReportGenerator:
         self._read_params()
 
     def _log_params(self):
-        logger.info(f"""
-Report generation initialized with the following parameters:
-- Aggregations folder: {self.data_folder}
-- Report folder: {self.report_folder}
-- Context folder: {self.by_context_folder}
-- Plots for batch, filepath basename: {self.plots_for_batch_filepath}
-- Top N: {self.top_n}
-- Top K: {self.top_k}
-- From_date: {self.from_date}
-- To_date: {self.to_date}
-- Contribution type: {self.contribution_type}
-        """)
+        logger.debug(
+            "Report generation initialized with the following parameters:\n"
+            "- Aggregations folder: %s\n"
+            "- Report folder: %s\n"
+            "- Context folder: %s\n"
+            "- Plots for batch, filepath basename: %s\n"
+            "- Top N: %s\n"
+            "- Top K: %s\n"
+            "- From_date: %s\n"
+            "- To_date: %s\n"
+            "- Contribution type: %s",
+            self.data_folder,
+            self.report_folder,
+            self.by_context_folder,
+            self.plots_for_batch_filepath,
+            self.top_n,
+            self.top_k,
+            self.from_date,
+            self.to_date,
+            self.contribution_type,
+        )
 
     def _read_params(self):
         params_file = os.path.join(self.report_folder, "scripts", PARAMS_FILENAME)
@@ -101,7 +102,6 @@ Report generation initialized with the following parameters:
         if not os.path.exists(params_file):
             self.top_n = TOP_N
             self.top_k = TOP_K
-            self.verbose = VERBOSE_DEFAULT
             self.data_folder = DATA_FOLDER
             self.from_date = FROM_DATE_DEFAULT
             self.to_date = TO_DATE_DEFAULT
@@ -115,7 +115,6 @@ Report generation initialized with the following parameters:
                 params = yaml.safe_load(file)
                 self.top_n = params.get("top_n", TOP_N)
                 self.top_k = params.get("top_k", TOP_K)
-                self.verbose = params.get("verbose", VERBOSE_DEFAULT)
                 self.data_folder = params.get("data_folder", DATA_FOLDER)
                 self.from_date = params.get("from_date", FROM_DATE_DEFAULT)
                 self.to_date = params.get("to_date", TO_DATE_DEFAULT)
@@ -127,8 +126,7 @@ Report generation initialized with the following parameters:
         self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
         logger.info("Using data folder: %s", self.data_folder)
 
-        if self.verbose:
-            self._log_params()
+        self._log_params()
 
     @staticmethod
     def _get_context_dict(context_info: str) -> dict:
