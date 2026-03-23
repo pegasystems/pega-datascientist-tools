@@ -1,12 +1,9 @@
 # python/pdstools/app/impact_analyzer/pages/2_Trend.py
-import re
-
 import streamlit as st
 
 from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
+from pdstools.utils.cdh_utils import is_valid_polars_duration
 from pdstools.utils.streamlit_utils import standard_page_config
-
-GRANULARITY_PATTERN = re.compile(r"(?:[1-9]\d*(?:ns|us|ms|s|m|h|d|w|mo|q|y))+")
 
 standard_page_config(page_title="Impact Analyzer · Trend")
 
@@ -18,13 +15,6 @@ ia = ensure_impact_analyzer()
 Explore how lift metrics change over time. Use this page to identify trends,
 seasonal patterns, and the stability of your experiment results.
 """
-
-
-def _is_valid_granularity(value: str) -> bool:
-    """Validate Polars duration syntax accepted by group_by_dynamic()."""
-    if not value or len(value) > 30:
-        return False
-    return bool(GRANULARITY_PATTERN.fullmatch(value))
 
 
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
@@ -50,7 +40,7 @@ with st.container(border=True):
             .lower()
         )
 
-    if not _is_valid_granularity(granularity):
+    if not is_valid_polars_duration(granularity):
         st.warning(
             "Invalid granularity. Use one or more positive integer + unit segments: "
             "`y`, `mo`, `q`, `w`, `d`, `h`, `m`, `s`, `ms`, `us`, or `ns` "

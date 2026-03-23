@@ -36,6 +36,50 @@ if TYPE_CHECKING:  # pragma: no cover
         Figure = Any
 
 
+# Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")
+# Used by dt.truncate(), group_by_dynamic(), and other time-grouping operations
+# Bounded quantifiers prevent ReDoS attacks (polynomial regex backtracking)
+POLARS_DURATION_PATTERN = re.compile(r"(?:[1-9]\d{0,9}(?:ns|us|ms|s|m|h|d|w|mo|q|y)){1,10}")
+
+
+def is_valid_polars_duration(value: str, max_length: int = 30) -> bool:
+    """Validate Polars duration syntax.
+
+    Checks if a string is a valid Polars duration (e.g., "1d", "1w", "1mo", "1h30m").
+    Used to validate user input before passing to Polars methods like dt.truncate()
+    or group_by_dynamic().
+
+    Parameters
+    ----------
+    value : str
+        The duration string to validate.
+    max_length : int, default 30
+        Maximum allowed string length (prevents excessive input).
+
+    Returns
+    -------
+    bool
+        True if the string is a valid Polars duration, False otherwise.
+
+    Examples
+    --------
+    >>> is_valid_polars_duration("1d")
+    True
+    >>> is_valid_polars_duration("1w")
+    True
+    >>> is_valid_polars_duration("1h30m")
+    True
+    >>> is_valid_polars_duration("invalid")
+    False
+    >>> is_valid_polars_duration("")
+    False
+
+    """
+    if not value or len(value) > max_length:
+        return False
+    return bool(POLARS_DURATION_PATTERN.fullmatch(value))
+
+
 @overload
 def _apply_query(
     df: pl.LazyFrame,

@@ -1270,3 +1270,63 @@ def test_lift_with_string_columns():
     expr_result = df.with_columns(cdh_utils.lift()).select("Lift")
     str_result = df.with_columns(cdh_utils.lift(pos_col="BinPositives", neg_col="BinNegatives")).select("Lift")
     assert expr_result.equals(str_result)
+
+
+# ── Tests for Polars duration validation ────────────────────────────────────
+
+
+def test_is_valid_polars_duration_valid_inputs():
+    """Test that valid Polars duration strings are accepted."""
+    # Single unit durations
+    assert cdh_utils.is_valid_polars_duration("1d")
+    assert cdh_utils.is_valid_polars_duration("1w")
+    assert cdh_utils.is_valid_polars_duration("1mo")
+    assert cdh_utils.is_valid_polars_duration("1y")
+    assert cdh_utils.is_valid_polars_duration("1h")
+    assert cdh_utils.is_valid_polars_duration("1m")
+    assert cdh_utils.is_valid_polars_duration("1s")
+    assert cdh_utils.is_valid_polars_duration("1ms")
+    assert cdh_utils.is_valid_polars_duration("1us")
+    assert cdh_utils.is_valid_polars_duration("1ns")
+    assert cdh_utils.is_valid_polars_duration("1q")
+
+    # Multi-digit numbers
+    assert cdh_utils.is_valid_polars_duration("10d")
+    assert cdh_utils.is_valid_polars_duration("365d")
+    assert cdh_utils.is_valid_polars_duration("2mo")
+
+    # Compound durations
+    assert cdh_utils.is_valid_polars_duration("1h30m")
+    assert cdh_utils.is_valid_polars_duration("1d12h")
+    assert cdh_utils.is_valid_polars_duration("1y2mo3w")
+    assert cdh_utils.is_valid_polars_duration("1h30m15s")
+
+
+def test_is_valid_polars_duration_invalid_inputs():
+    """Test that invalid inputs are rejected."""
+    # Empty or whitespace
+    assert not cdh_utils.is_valid_polars_duration("")
+    assert not cdh_utils.is_valid_polars_duration("   ")
+
+    # Invalid format
+    assert not cdh_utils.is_valid_polars_duration("invalid")
+    assert not cdh_utils.is_valid_polars_duration("1")  # No unit
+    assert not cdh_utils.is_valid_polars_duration("d")  # No number
+    assert not cdh_utils.is_valid_polars_duration("0d")  # Zero not allowed
+    assert not cdh_utils.is_valid_polars_duration("-1d")  # Negative not allowed
+
+    # Too long (default max_length=30)
+    assert not cdh_utils.is_valid_polars_duration("1" * 31 + "d")
+
+    # Invalid units
+    assert not cdh_utils.is_valid_polars_duration("1x")
+    assert not cdh_utils.is_valid_polars_duration("1day")
+
+
+def test_is_valid_polars_duration_custom_max_length():
+    """Test custom max_length parameter."""
+    # Should accept with larger limit
+    assert cdh_utils.is_valid_polars_duration("1d", max_length=10)
+
+    # Should reject with smaller limit
+    assert not cdh_utils.is_valid_polars_duration("1d", max_length=1)
