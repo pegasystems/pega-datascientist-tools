@@ -166,14 +166,6 @@ if has_components:
         stage_filter = pl.col(da.level) == st.session_state.component_stage
         combined_filters = [f for f in [channel_filter, stage_filter] if f is not None]
 
-        impact_fig = da.plot.component_action_impact(
-            top_n=impact_top_n,
-            scope=st.session_state.scope,
-            additional_filters=combined_filters,
-        )
-        st.plotly_chart(impact_fig)
-
-        # Component detail section
         component_names = (
             da.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .filter(stage_filter)
@@ -185,52 +177,51 @@ if has_components:
             .to_list()
         )
 
-        if component_names:
-            st.divider()
+        if not component_names:
+            st.info("No filter components found at this stage.")
+        else:
+            sort_options_display = [
+                "Filtered Decisions",
+                "Average Value",
+                "Average Priority",
+                "Average Propensity",
+            ]
+            sort_options_mapping = {
+                "Filtered Decisions": "Filtered Decisions",
+                "Average Value": "avg_Value",
+                "Average Priority": "avg_Priority",
+                "Average Propensity": "avg_Propensity",
+            }
 
-            col_a, col_b = st.columns(2)
-            with col_a:
+            col3, col4 = st.columns(2)
+            with col3:
                 selected_component = st.selectbox(
                     "Drill into component:",
                     options=component_names,
                     key="drilldown_component",
                 )
-            with col_b:
-                sort_options_display = [
-                    "Filtered Decisions",
-                    "Average Value",
-                    "Average Priority",
-                    "Average Propensity",
-                ]
-                sort_options_mapping = {
-                    "Filtered Decisions": "Filtered Decisions",
-                    "Average Value": "avg_Value",
-                    "Average Priority": "avg_Priority",
-                    "Average Propensity": "avg_Propensity",
-                }
+            with col4:
                 sort_by_display = st.selectbox(
                     "Sort by:",
                     options=sort_options_display,
                     key="drilldown_sort",
                 )
-                sort_by = sort_options_mapping[sort_by_display]
+            sort_by = sort_options_mapping[sort_by_display]
 
-            drilldown_fig = da.plot.component_drilldown(
-                component_name=selected_component,
+            impact_fig = da.plot.component_action_impact(
+                top_n=impact_top_n,
                 scope=st.session_state.scope,
-                sort_by=sort_by,
                 additional_filters=combined_filters,
             )
-            st.plotly_chart(drilldown_fig)
+            st.plotly_chart(impact_fig)
 
             drilldown_df = da.getComponentDrilldown(
                 component_name=selected_component,
                 scope=st.session_state.scope,
                 additional_filters=combined_filters,
+                sort_by=sort_by,
             )
             display_df = drilldown_df.rename(
                 {c: c.replace("avg_", "Average ") for c in drilldown_df.columns if c.startswith("avg_")}
             )
             st.dataframe(display_df)
-        else:
-            st.info("No filter components found at this stage.")

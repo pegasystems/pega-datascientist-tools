@@ -389,8 +389,8 @@ class Plot:
         passing_fig = (
             px.funnel(
                 passing_collected,
-                x="actions_per_interaction",
-                y=self._decision_data.level,
+                x=self._decision_data.level,
+                y="actions_per_interaction",
                 color=scope,
                 labels={
                     self._decision_data.level: "Stage",
@@ -400,21 +400,22 @@ class Plot:
                 },
                 template="pega",
                 color_discrete_map=color_map,
-                category_orders={self._decision_data.level: list(reversed(stage_order))},
+                category_orders={self._decision_data.level: stage_order},
             )
             .update_traces(
-                texttemplate="%{x:.1f}",
+                texttemplate="%{y:.1f}",
                 hovertemplate="<b>%{fullData.name}</b><br>"
-                + "Average Actions per Interaction: %{x:.1f}<br>"
+                + "Average Actions per Interaction: %{y:.1f}<br>"
                 + "Reach: %{customdata[0]:.1f}% of interactions<br>"
                 + "Total Action Occurrences: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
                 customdata=passing_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
             )
             .update_layout(
+                funnelmode="stack",
                 showlegend=True,
-                xaxis_title="Average Actions per Interaction",
-                yaxis_title="",
+                xaxis_title="",
+                yaxis_title="Average Actions per Interaction",
                 legend=dict(traceorder="reversed"),
             )
         )
@@ -743,6 +744,7 @@ class Plot:
         fig.update_layout(
             height=max(400, 120 * min(top_n, 10)),
             showlegend=False,
+            bargap=0.5,
         )
         return fig
 

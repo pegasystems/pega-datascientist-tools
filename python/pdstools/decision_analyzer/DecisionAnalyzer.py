@@ -899,7 +899,8 @@ class DecisionAnalyzer:
         ).filter(pl.col("action_occurrences") > 0)
 
         # Passing: actions exiting each stage (shift by one — use next stage's remaining set)
-        stages = self.AvailableNBADStages
+        # Output is the result, not a filtering stage, so exclude it from funnel views
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
 
         def _passing_at_stage(i: int, stage: str) -> pl.DataFrame:
             # For stage i, passing = actions remaining at stage i+1.
@@ -964,7 +965,9 @@ class DecisionAnalyzer:
                 .item()
             )
 
-        stage_counts = [count_from(self.AvailableNBADStages[i:]) for i in range(len(self.AvailableNBADStages))]
+        # Output is the result, not a filtering stage — exclude from this view
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        stage_counts = [count_from(stages[i:]) for i in range(len(stages))]
 
         rows = [
             {
@@ -972,7 +975,7 @@ class DecisionAnalyzer:
                 "decisions_without_actions": stage_counts[i]
                 - (stage_counts[i + 1] if i + 1 < len(stage_counts) else 0),
             }
-            for i, stage in enumerate(self.AvailableNBADStages)
+            for i, stage in enumerate(stages)
         ]
         return pl.DataFrame(rows)
 
@@ -1123,6 +1126,7 @@ class DecisionAnalyzer:
         component_name: str,
         scope: str = "Action",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        sort_by: str = "Filtered Decisions",
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
         their potential value.
@@ -1141,13 +1145,15 @@ class DecisionAnalyzer:
             Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters to apply before aggregation.
+        sort_by : str, default "Filtered Decisions"
+            Column to sort results by (descending).
 
         Returns
         -------
         pl.DataFrame
             Columns include scope columns, Filtered Decisions,
             avg_Priority, avg_Value, avg_Propensity, Component Type (if
-            available). Sorted by Filtered Decisions descending.
+            available).
         """
         base = apply_filter(self.decision_data, additional_filters)
         available = set(base.collect_schema().names())
@@ -1186,7 +1192,8 @@ class DecisionAnalyzer:
         else:
             result = filtered_agg
 
-        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort("Filtered Decisions", descending=True)
+        sort_col = sort_by if sort_by in result.columns else "Filtered Decisions"
+        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(sort_col, descending=True)
 
     def reRank(
         self,

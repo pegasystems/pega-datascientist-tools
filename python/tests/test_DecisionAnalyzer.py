@@ -431,21 +431,19 @@ class TestFunnelData:
         assert isinstance(result, pl.DataFrame)
         assert da_v2.level in result.columns
         assert "decisions_without_actions" in result.columns
-        assert len(result) == len(da_v2.AvailableNBADStages)
+        expected_stages = [s for s in da_v2.AvailableNBADStages if s != "Output"]
+        assert len(result) == len(expected_stages)
+        assert "Output" not in result[da_v2.level].to_list()
 
     def test_decisions_without_actions_non_negative(self, da_v2):
         result = da_v2.get_decisions_without_actions_data()
         assert (result["decisions_without_actions"] >= 0).all()
 
-    def test_decisions_without_actions_increases_through_funnel(self, da_v2):
-        """Later stages should have more interactions without actions."""
+    def test_decisions_without_actions_per_stage(self, da_v2):
+        """Each value is the count newly knocked out at that stage (delta), not cumulative."""
         result = da_v2.get_decisions_without_actions_data()
-        stage_order = {s: i for i, s in enumerate(da_v2.AvailableNBADStages)}
-        sorted_result = result.sort(
-            pl.col(da_v2.level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32)
-        )
-        counts = sorted_result["decisions_without_actions"].to_list()
-        assert all(counts[i] <= counts[i + 1] for i in range(len(counts) - 1))
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        assert result["decisions_without_actions"].sum() <= total
 
 
 # ---------------------------------------------------------------------------
