@@ -420,13 +420,13 @@ class Plot:
                 for row in trace_df.iter_rows(named=True)
             }
 
-            y_values = stage_order
-            x_values: list[float] = []
+            stage_values = stage_order
+            metric_values: list[float] = []
             custom_values: list[list[float]] = []
             text_values: list[str] = []
-            for stage in y_values:
+            for stage in stage_values:
                 x_val, reach_val, occ_val = metrics_by_stage.get(stage, (0.0, 0.0, 0.0))
-                x_values.append(x_val)
+                metric_values.append(x_val)
                 custom_values.append([reach_val, occ_val])
                 text_values.append(f"{x_val:.1f}" if x_val > 0 else "")
 
@@ -439,16 +439,16 @@ class Plot:
             passing_fig.add_trace(
                 go.Funnel(
                     name=str(scope_value),
-                    orientation="h",
-                    y=y_values,
-                    x=x_values,
+                    orientation="v",
+                    x=stage_values,
+                    y=metric_values,
                     customdata=custom_values,
                     text=text_values,
                     texttemplate="%{text}",
                     marker={"color": trace_color},
                     connector={"visible": True, "line": {"width": 1}},
                     hovertemplate="<b>%{fullData.name}</b><br>"
-                    + "Average Actions per Interaction: %{x:.1f}<br>"
+                    + "Average Actions per Interaction: %{y:.1f}<br>"
                     + "Reach: %{customdata[0]:.1f}% of decisions<br>"
                     + "Total Action Occurrences: %{customdata[1]:,}<br>"
                     + "<extra></extra>",
@@ -459,11 +459,11 @@ class Plot:
             template="pega",
             funnelmode="stack",
             showlegend=True,
-            xaxis_title="Average Actions per Interaction",
-            yaxis_title="",
+            xaxis_title="",
+            yaxis_title="Average Actions per Interaction",
             legend=dict(traceorder="reversed", title_text=scope),
         )
-        passing_fig.update_yaxes(categoryorder="array", categoryarray=stage_order)
+        passing_fig.update_xaxes(categoryorder="array", categoryarray=stage_order)
 
         filter_fig = (
             px.bar(
