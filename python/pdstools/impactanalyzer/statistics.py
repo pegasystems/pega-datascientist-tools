@@ -159,9 +159,7 @@ def calculate_lift(test: float, control: float) -> float:
     return (test - control) / control
 
 
-def error_propagation(
-    test: float, control: float, ci_test: float, ci_control: float
-) -> float:
+def error_propagation(test: float, control: float, ci_test: float, ci_control: float) -> float:
     """Error-propagated CI for the lift ratio via the delta method.
 
     .. important::
@@ -287,9 +285,7 @@ def calculate_value_lift(
     vpi_control = value_control / impr_control if impr_control > 0 else 0.0
 
     ci_test = Z_95 * math.sqrt(vpi_test / impr_test) if impr_test > 0 else 0.0
-    ci_control = (
-        Z_95 * math.sqrt(vpi_control / impr_control) if impr_control > 0 else 0.0
-    )
+    ci_control = Z_95 * math.sqrt(vpi_control / impr_control) if impr_control > 0 else 0.0
 
     lift = calculate_lift(vpi_test, vpi_control)
     ci = error_propagation(vpi_test, vpi_control, ci_test, ci_control)

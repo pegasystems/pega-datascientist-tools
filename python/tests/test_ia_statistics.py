@@ -10,8 +10,6 @@ Test categories
 4. Edge cases & robustness
 """
 
-import math
-
 import pytest
 
 from pdstools.impactanalyzer.statistics import (
@@ -217,8 +215,7 @@ class TestPDCEngagementLiftValidation:
         impr_test, acc_test, impr_ctrl, acc_ctrl = PDC_RAW[(experiment, channel)]
         result = calculate_engagement_lift(acc_test, impr_test, acc_ctrl, impr_ctrl)
         assert abs(result.lift - expected_lift) < 1e-6, (
-            f"{experiment}/{channel}: expected {expected_lift:.9f}, "
-            f"got {result.lift:.9f}"
+            f"{experiment}/{channel}: expected {expected_lift:.9f}, got {result.lift:.9f}"
         )
 
 
@@ -281,8 +278,7 @@ class TestOPBankVBDValidation:
         impr_test, acc_test, impr_ctrl, acc_ctrl = OPBANK_RAW[(experiment, channel)]
         result = calculate_engagement_lift(acc_test, impr_test, acc_ctrl, impr_ctrl)
         assert abs(result.lift - expected_lift) < 1e-5, (
-            f"OPBank {experiment}/{channel}: "
-            f"expected {expected_lift:+.6f}, got {result.lift:+.6f}"
+            f"OPBank {experiment}/{channel}: expected {expected_lift:+.6f}, got {result.lift:+.6f}"
         )
 
 
