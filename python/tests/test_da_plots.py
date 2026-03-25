@@ -242,6 +242,9 @@ class TestDecisionFunnel:
         passing_fig, filtered_fig = plot_v2.decision_funnel(scope="Action")
         assert isinstance(passing_fig, Figure)
         assert isinstance(filtered_fig, Figure)
+        assert len(passing_fig.data) >= 1
+        assert all(trace.type == "funnel" for trace in passing_fig.data)
+        assert all(getattr(trace, "orientation", None) == "h" for trace in passing_fig.data)
 
     def test_return_df(self, plot_v2):
         """With return_df returns all three dataframes."""

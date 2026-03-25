@@ -383,41 +383,87 @@ class Plot:
         color_map = self._decision_data.color_mappings.get(scope)
 
         stage_order = list(self._decision_data.AvailableNBADStages)
-        passing_collected = passing_df.sort([self._decision_data.level, "action_occurrences", scope])
+        passing_collected = passing_df.with_columns(
+            pl.col(self._decision_data.level).cast(pl.Utf8),
+            pl.col(scope).cast(pl.Utf8),
+        ).sort([self._decision_data.level, "action_occurrences", scope])
 
-        passing_fig = (
-            px.bar(
-                passing_collected,
-                x=self._decision_data.level,
-                y="actions_per_interaction",
-                color=scope,
-                barmode="stack",
-                labels={
-                    self._decision_data.level: "Stage",
-                    "actions_per_interaction": "Average Actions per Interaction",
-                    "action_occurrences": "Total Action Occurrences",
-                    "penetration_pct": "Reach (%)",
-                },
-                template="pega",
-                color_discrete_map=color_map,
-                category_orders={self._decision_data.level: stage_order},
+        stage_rank = {stage: idx for idx, stage in enumerate(stage_order)}
+
+        scope_values = passing_collected.get_column(scope).unique().to_list()
+        if color_map is not None:
+            ordered_in_map = [val for val in color_map if val in scope_values]
+            scope_values = ordered_in_map + [val for val in scope_values if val not in ordered_in_map]
+
+        passing_fig = go.Figure()
+        for idx, scope_value in enumerate(scope_values):
+            trace_df = (
+                passing_collected.filter(pl.col(scope) == scope_value)
+                .with_columns(
+                    pl.col(self._decision_data.level)
+                    .map_elements(lambda s: stage_rank.get(s, 999), return_dtype=pl.Int32)
+                    .alias("_stage_rank")
+                )
+                .sort("_stage_rank")
+                .drop("_stage_rank")
             )
-            .update_traces(
-                texttemplate="%{y:.1f}",
-                hovertemplate="<b>%{fullData.name}</b><br>"
-                + "Average Actions per Interaction: %{y:.1f}<br>"
-                + "Reach: %{customdata[0]:.1f}% of decisions<br>"
-                + "Total Action Occurrences: %{customdata[1]:,}<br>"
-                + "<extra></extra>",
-                customdata=passing_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
+
+            if trace_df.height == 0:
+                continue
+
+            metrics_by_stage = {
+                row[self._decision_data.level]: (
+                    float(row["actions_per_interaction"]),
+                    float(row["penetration_pct"]),
+                    float(row["action_occurrences"]),
+                )
+                for row in trace_df.iter_rows(named=True)
+            }
+
+            y_values = stage_order
+            x_values: list[float] = []
+            custom_values: list[list[float]] = []
+            text_values: list[str] = []
+            for stage in y_values:
+                x_val, reach_val, occ_val = metrics_by_stage.get(stage, (0.0, 0.0, 0.0))
+                x_values.append(x_val)
+                custom_values.append([reach_val, occ_val])
+                text_values.append(f"{x_val:.1f}" if x_val > 0 else "")
+
+            trace_color = None
+            if color_map is not None:
+                trace_color = color_map.get(scope_value)
+            if trace_color is None:
+                trace_color = colorway[idx % len(colorway)]
+
+            passing_fig.add_trace(
+                go.Funnel(
+                    name=str(scope_value),
+                    orientation="h",
+                    y=y_values,
+                    x=x_values,
+                    customdata=custom_values,
+                    text=text_values,
+                    texttemplate="%{text}",
+                    marker={"color": trace_color},
+                    connector={"visible": True, "line": {"width": 1}},
+                    hovertemplate="<b>%{fullData.name}</b><br>"
+                    + "Average Actions per Interaction: %{x:.1f}<br>"
+                    + "Reach: %{customdata[0]:.1f}% of decisions<br>"
+                    + "Total Action Occurrences: %{customdata[1]:,}<br>"
+                    + "<extra></extra>",
+                )
             )
-            .update_layout(
-                showlegend=True,
-                xaxis_title="",
-                yaxis_title="Average Actions per Interaction",
-                legend=dict(traceorder="reversed"),
-            )
+
+        passing_fig.update_layout(
+            template="pega",
+            funnelmode="stack",
+            showlegend=True,
+            xaxis_title="Average Actions per Interaction",
+            yaxis_title="",
+            legend=dict(traceorder="reversed", title_text=scope),
         )
+        passing_fig.update_yaxes(categoryorder="array", categoryarray=stage_order)
 
         filter_fig = (
             px.bar(
