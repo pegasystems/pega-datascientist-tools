@@ -244,7 +244,28 @@ class TestDecisionFunnel:
         assert isinstance(filtered_fig, Figure)
         assert len(passing_fig.data) >= 1
         assert all(trace.type == "funnel" for trace in passing_fig.data)
-        assert all(getattr(trace, "orientation", None) == "h" for trace in passing_fig.data)
+        assert all(getattr(trace, "orientation", None) == "v" for trace in passing_fig.data)
+
+        # Passing view includes a synthetic first stage for actions entering stage 1.
+        first_trace_x = list(passing_fig.data[0].x)
+        assert first_trace_x[0] == "Available Actions"
+        assert "Output" not in set(str(v) for v in first_trace_x)
+
+        # Filtered view remains a stacked bar chart (product-aligned) and should
+        # not inherit Passing-only synthetic stage semantics.
+        assert len(filtered_fig.data) >= 1
+        assert all(trace.type == "bar" for trace in filtered_fig.data)
+
+        y_categories: set[str] = set()
+        for trace in filtered_fig.data:
+            if trace.y is not None:
+                y_categories.update(str(v) for v in trace.y)
+        assert "Available Actions" not in y_categories
+
+        expected_stage_order = tuple(plot_v2._decision_data.AvailableNBADStages)
+        actual_stage_order = tuple(filtered_fig.layout.yaxis.categoryarray)
+        assert actual_stage_order == expected_stage_order[::-1]
+        assert "Output" in actual_stage_order
 
     def test_return_df(self, plot_v2):
         """With return_df returns all three dataframes."""
@@ -257,11 +278,15 @@ class TestDecisionFunnel:
         """decisions_without_actions_plot returns a Figure."""
         fig = plot_v2.decisions_without_actions_plot()
         assert isinstance(fig, Figure)
+        assert len(fig.data) >= 1
+        assert all(trace.type == "bar" for trace in fig.data)
 
     def test_decisions_without_actions_return_df(self, plot_v2):
         df = plot_v2.decisions_without_actions_plot(return_df=True)
         assert isinstance(df, pl.DataFrame)
         assert "decisions_without_actions" in df.columns
+        assert (df["decisions_without_actions"] >= 0).all()
+        assert "Output" not in df[plot_v2._decision_data.level].to_list()
 
 
 class TestFilteringComponents:

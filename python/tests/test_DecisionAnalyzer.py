@@ -440,10 +440,22 @@ class TestFunnelData:
         assert (result["decisions_without_actions"] >= 0).all()
 
     def test_decisions_without_actions_per_stage(self, da_v2):
-        """Each value is the count newly knocked out at that stage (delta), not cumulative."""
+        """Values are stage deltas and total knockouts should be bounded by total decisions."""
         result = da_v2.get_decisions_without_actions_data()
         total = da_v2.decision_data.select("Interaction ID").unique().collect().height
         assert result["decisions_without_actions"].sum() <= total
+
+    def test_decisions_without_actions_last_stage_uses_output_survivors(self, da_v2):
+        """Sum of stage deltas equals total decisions minus Output survivors."""
+        result = da_v2.get_decisions_without_actions_data()
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        output_survivors = (
+            da_v2.getPreaggregatedFilterView.filter(pl.col(da_v2.level) == "Output")
+            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .collect()
+            .item()
+        )
+        assert result["decisions_without_actions"].sum() == total - output_survivors
 
 
 # ---------------------------------------------------------------------------

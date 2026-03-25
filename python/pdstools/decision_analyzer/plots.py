@@ -382,7 +382,30 @@ class Plot:
 
         color_map = self._decision_data.color_mappings.get(scope)
 
-        stage_order = list(self._decision_data.AvailableNBADStages)
+        # Product behavior: funnel views stop at the last filtering stage (no Output stage).
+        stage_order = [s for s in self._decision_data.AvailableNBADStages if s != "Output"]
+        synthetic_first_stage = "Available Actions"
+        passing_stage_order = stage_order
+        if stage_order and stage_order[0] != synthetic_first_stage:
+            passing_stage_order = [synthetic_first_stage] + stage_order
+
+        available_collected = available_df.with_columns(
+            pl.col(self._decision_data.level).cast(pl.Utf8),
+            pl.col(scope).cast(pl.Utf8),
+        ).collect()
+
+        first_real_stage = stage_order[0] if stage_order else None
+        available_at_first_stage: dict[str, tuple[float, float, float]] = {}
+        if first_real_stage is not None:
+            for row in available_collected.filter(pl.col(self._decision_data.level) == first_real_stage).iter_rows(
+                named=True
+            ):
+                available_at_first_stage[str(row[scope])] = (
+                    float(row["actions_per_interaction"]),
+                    float(row["penetration_pct"]),
+                    float(row["action_occurrences"]),
+                )
+
         passing_collected = passing_df.with_columns(
             pl.col(self._decision_data.level).cast(pl.Utf8),
             pl.col(scope).cast(pl.Utf8),
@@ -419,8 +442,12 @@ class Plot:
                 )
                 for row in trace_df.iter_rows(named=True)
             }
+            if passing_stage_order and passing_stage_order[0] == synthetic_first_stage:
+                metrics_by_stage[synthetic_first_stage] = available_at_first_stage.get(
+                    str(scope_value), (0.0, 0.0, 0.0)
+                )
 
-            stage_values = stage_order
+            stage_values = passing_stage_order
             metric_values: list[float] = []
             custom_values: list[list[float]] = []
             text_values: list[str] = []
@@ -463,7 +490,7 @@ class Plot:
             yaxis_title="Average Actions per Interaction",
             legend=dict(traceorder="reversed", title_text=scope),
         )
-        passing_fig.update_xaxes(categoryorder="array", categoryarray=stage_order)
+        passing_fig.update_xaxes(categoryorder="array", categoryarray=passing_stage_order)
 
         filter_fig = (
             px.bar(

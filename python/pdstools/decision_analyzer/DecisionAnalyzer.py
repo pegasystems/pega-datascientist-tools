@@ -948,12 +948,11 @@ class DecisionAnalyzer:
     def get_decisions_without_actions_data(
         self, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> pl.DataFrame:
-        """Per-stage count of interactions newly knocked out at each stage.
+        """Per-stage count of interactions newly left with no remaining actions.
 
         Returns a DataFrame with columns [self.level, "decisions_without_actions"],
         sorted in pipeline order. For each stage X, the value is the number of
-        interactions that had actions entering stage X but none exiting it — i.e.
-        the delta between unique interactions at stage X and stage X+1.
+        interactions that lose their final remaining action at stage X.
         """
         filter_view = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
@@ -965,18 +964,39 @@ class DecisionAnalyzer:
                 .item()
             )
 
+        total_interactions = (
+            apply_filter(self.decision_data, additional_filters)
+            .select("Interaction ID")
+            .unique()
+            .count()
+            .collect()
+            .item()
+        )
+
         # Output is the result, not a filtering stage — exclude from this view
         stages = [s for s in self.AvailableNBADStages if s != "Output"]
-        stage_counts = [count_from(stages[i:]) for i in range(len(stages))]
+        has_output = "Output" in self.AvailableNBADStages
 
-        rows = [
-            {
-                self.level: stage,
-                "decisions_without_actions": stage_counts[i]
-                - (stage_counts[i + 1] if i + 1 < len(stage_counts) else 0),
-            }
-            for i, stage in enumerate(stages)
-        ]
+        cumulative_without_actions: list[float] = []
+        for i, _stage in enumerate(stages):
+            successor_stages = list(stages[i + 1 :])
+            # Include Output in every successor set so survivor sets remain nested,
+            # even when some interactions skip optional intermediate stages.
+            if has_output:
+                successor_stages.append("Output")
+            survivors_after_stage = count_from(successor_stages) if successor_stages else 0
+            cumulative_without_actions.append(float(total_interactions - survivors_after_stage))
+
+        rows = []
+        for i, stage in enumerate(stages):
+            prev_cumulative = cumulative_without_actions[i - 1] if i > 0 else 0.0
+            rows.append(
+                {
+                    self.level: stage,
+                    "decisions_without_actions": cumulative_without_actions[i] - prev_cumulative,
+                }
+            )
+
         return pl.DataFrame(rows)
 
     def get_funnel_summary(
@@ -1024,9 +1044,14 @@ class DecisionAnalyzer:
             .collect()
             .item()
         )
-        decisions_by_stage = without_actions.with_columns(
-            (pl.lit(total_interactions) - pl.col("decisions_without_actions")).alias("Decisions")
-        ).select([level, "Decisions"])
+        stage_order_no_output = {s: i for i, s in enumerate(self.AvailableNBADStages) if s != "Output"}
+        decisions_by_stage = (
+            without_actions.with_columns(pl.col(level).cast(pl.Utf8))
+            .sort(pl.col(level).map_elements(lambda s: stage_order_no_output.get(s, 999), return_dtype=pl.Int32))
+            .with_columns(pl.col("decisions_without_actions").cum_sum().alias("_cumulative_without_actions"))
+            .with_columns((pl.lit(total_interactions) - pl.col("_cumulative_without_actions")).alias("Decisions"))
+            .select([level, "Decisions"])
+        )
 
         stage_order = {s: i for i, s in enumerate(self.AvailableNBADStages)}
         summary = (
