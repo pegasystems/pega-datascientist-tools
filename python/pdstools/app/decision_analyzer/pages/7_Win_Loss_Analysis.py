@@ -42,17 +42,23 @@ facetting = "pyChannel/pyDirection"
 with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     filtered_data = st.session_state.decision_data.filtered_sample
+    comparison_filter_columns = [
+        c
+        for c in st.session_state.decision_data.getAvailableFieldsForFiltering(
+            categoricalOnly=True,
+        )
+        if c != "Stage"
+    ]
 
     "### Define a Comparison Group"
 
     st.session_state["local_filters"] = get_data_filters(
         filtered_data,
-        columns=st.session_state.decision_data.getAvailableFieldsForFiltering(
-            categoricalOnly=True,
-        ),
+        columns=comparison_filter_columns,
         queries=[],
         filter_type="local",
         default_select_all_categories=False,
+        selector_label="Compare offers by",
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
@@ -66,13 +72,6 @@ with st.session_state["sidebar"]:
     else:
         st.warning("No comparison group defined")
 
-    top_k = st.number_input(
-        "Top N elements to show",
-        min_value=1,
-        max_value=30,  # TODO this is a generic session, make common across many pages
-        value=10,
-    )
-
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Select Scope",
@@ -81,6 +80,15 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
+
+    top_k = None
+    if st.session_state.scope == "Action":
+        top_k = st.number_input(
+            "Top N elements to show",
+            min_value=1,
+            max_value=30,  # TODO this is a generic session, make common across many pages
+            value=10,
+        )
 
     channel_direction_selector()
 
@@ -211,7 +219,8 @@ if st.session_state.local_filters != []:
         reference=st.session_state["local_filters"],
         additional_filters=channel_filter,
     )
-    if warning_message:
+    sample_warning = "Showing a representative sample of"
+    if warning_message and not warning_message.startswith(sample_warning):
         st.warning(warning_message)
     if fig is not None:
         st.plotly_chart(

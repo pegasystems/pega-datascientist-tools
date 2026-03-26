@@ -216,16 +216,22 @@ def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
                 del st.session_state[key]
 
 
-def _render_column_selector(df: pl.LazyFrame, columns: list[str], filter_type: str) -> list[str]:
+def _render_column_selector(
+    df: pl.LazyFrame,
+    columns: list[str],
+    filter_type: str,
+    selector_label: str = "Filter data on",
+) -> list[str]:
     """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
         st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
+    sorted_columns = sorted(columns, key=str.casefold)
     st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(f"{filter_type}multiselect", [])
     return st.multiselect(
-        "Filter data on",
-        columns,
+        selector_label,
+        sorted_columns,
         key=f"{filter_type}_multiselect",
         on_change=_save_multiselect,
     )
@@ -246,7 +252,8 @@ def _render_categorical_filter(
     """
     categories_key = f"{filter_type}categories_{column}"
     if categories_key not in st.session_state:
-        st.session_state[categories_key] = df.select(pl.col(column).unique()).collect().to_series().to_list()
+        categories = df.select(pl.col(column).cast(pl.Utf8).drop_nulls().unique()).collect().to_series().to_list()
+        st.session_state[categories_key] = sorted(categories, key=str.casefold)
 
     widget_key = f"{filter_type}_selected_{column}"
     persisted_key = f"{filter_type}selected_{column}"
@@ -368,6 +375,7 @@ def get_data_filters(
     queries=None,
     filter_type="local",
     default_select_all_categories: bool = True,
+    selector_label: str = "Filter data on",
 ) -> list[pl.Expr]:
     """Build filter expressions via interactive Streamlit widgets.
 
@@ -386,13 +394,15 @@ def get_data_filters(
         Controls default categorical selection behavior. If True, all
         categories are selected initially (non-restrictive). If False,
         categorical selections start empty and users add values explicitly.
+    selector_label : str, default "Filter data on"
+        Label shown above the column selector multiselect.
     """
     if columns is None:
         columns = df.collect_schema().names()
     if queries is None:
         queries = []
 
-    to_filter_columns = _render_column_selector(df, columns, filter_type)
+    to_filter_columns = _render_column_selector(df, columns, filter_type, selector_label)
 
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
