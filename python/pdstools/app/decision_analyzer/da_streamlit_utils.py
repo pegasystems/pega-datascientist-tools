@@ -237,6 +237,7 @@ def _render_categorical_filter(
     container,
     filter_type: str,
     queries: list[pl.Expr],
+    default_select_all_categories: bool,
 ):
     """Render filter UI for a categorical/string column.
 
@@ -255,7 +256,8 @@ def _render_categorical_filter(
     categories = st.session_state[categories_key]
 
     if len(categories) < 200:
-        default = st.session_state.get(persisted_key, categories)
+        default_selection = categories if default_select_all_categories else []
+        default = st.session_state.get(persisted_key, default_selection)
         st.session_state[widget_key] = default
         selected = container.multiselect(
             f"Values for {column}",
@@ -264,8 +266,9 @@ def _render_categorical_filter(
             on_change=_persist_widget_value,
             kwargs={"filter_type": filter_type, "column": column},
         )
+        st.session_state[persisted_key] = selected
         if selected != categories:
-            queries.append(pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key]))
+            queries.append(pl.col(column).cast(pl.Utf8).is_in(selected))
     else:
         # Too many unique values — use regex input instead
         if widget_key in st.session_state:
@@ -359,7 +362,13 @@ def _render_temporal_filter(
         queries.append(pl.col(column).is_between(*user_date_input))
 
 
-def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="local") -> list[pl.Expr]:
+def get_data_filters(
+    df: pl.LazyFrame,
+    columns=None,
+    queries=None,
+    filter_type="local",
+    default_select_all_categories: bool = True,
+) -> list[pl.Expr]:
     """Build filter expressions via interactive Streamlit widgets.
 
     Parameters
@@ -373,6 +382,10 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
     filter_type : str
         Prefix for session-state keys, allowing independent filter sets
         (e.g. ``"global"`` vs ``"local"``).
+    default_select_all_categories : bool, default True
+        Controls default categorical selection behavior. If True, all
+        categories are selected initially (non-restrictive). If False,
+        categorical selections start empty and users add values explicitly.
     """
     if columns is None:
         columns = df.collect_schema().names()
@@ -387,7 +400,14 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
 
         col_dtype = df.collect_schema()[column]
         if col_dtype in (pl.Categorical, pl.Utf8):
-            _render_categorical_filter(df, column, right, filter_type, queries)
+            _render_categorical_filter(
+                df,
+                column,
+                right,
+                filter_type,
+                queries,
+                default_select_all_categories,
+            )
         elif col_dtype.is_numeric():
             _render_numeric_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_temporal():

@@ -76,6 +76,7 @@ with st.session_state["sidebar"]:
         ),
         queries=[],
         filter_type="local",
+        default_select_all_categories=False,
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
