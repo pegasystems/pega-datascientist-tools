@@ -1130,31 +1130,99 @@ class DecisionAnalyzer:
 
         return rank_df
 
-    # TODO consider making his more generic, dropping the win_rank argument and
-    # creating a larger result set for all possible ranks, with filtering only
-    # in the UI.
-    def get_win_loss_distribution_data(self, level, win_rank, additional_filters=None):
-        win_col = f"Win_at_rank{win_rank}"
-        group_level_win_losses = (
-            apply_filter(self.getPreaggregatedRemainingView, additional_filters)
-            .filter(pl.col(self.level) == "Arbitration")
-            .group_by(level)
-            .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
-            .with_columns(Losses=pl.col("Decisions") - pl.col("Wins"))
-            .with_columns(
-                Wins=pl.col("Wins") / pl.sum("Wins"),
-                Losses=pl.col("Losses") / pl.sum("Losses"),
-            )
+    def get_selected_group_rank_boundaries(
+        self,
+        group_filter: pl.Expr | list[pl.Expr],
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
+        """Compute selected-group rank boundaries per interaction.
+
+        For each interaction where the selected comparison group is present,
+        returns the best (lowest) and worst (highest) rank observed for the
+        selected rows in arbitration-relevant stages.
+        """
+        selected_rows = (
+            apply_filter(apply_filter(self.sample, additional_filters), group_filter)
+            .filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
+            .select(["Interaction ID", "Rank"])
         )
 
-        group_level_win_losses = group_level_win_losses.unpivot(
-            index=level,
-            on=["Wins", "Losses"],
-            variable_name="Status",
-            value_name="Percentage",
-        ).sort(["Status", "Percentage"], descending=True)
+        return selected_rows.group_by("Interaction ID").agg(
+            selected_group_best_rank=pl.col("Rank").min(),
+            selected_group_worst_rank=pl.col("Rank").max(),
+            selected_group_row_count=pl.len(),
+        )
 
-        return group_level_win_losses
+    # TODO consider making this more generic by returning all rank views in one pass.
+    def get_win_loss_distribution_data(
+        self,
+        level,
+        win_rank,
+        additional_filters=None,
+        group_filter: pl.Expr | list[pl.Expr] | None = None,
+        status: Literal["Wins", "Losses"] | None = None,
+        top_k: int | None = None,
+    ):
+        if group_filter is None:
+            win_col = f"Win_at_rank{win_rank}"
+            group_level_win_losses = (
+                apply_filter(self.getPreaggregatedRemainingView, additional_filters)
+                .filter(pl.col(self.level) == "Arbitration")
+                .group_by(level)
+                .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
+                .with_columns(Losses=pl.col("Decisions") - pl.col("Wins"))
+                .with_columns(
+                    Wins=pl.col("Wins") / pl.sum("Wins"),
+                    Losses=pl.col("Losses") / pl.sum("Losses"),
+                )
+            )
+
+            group_level_win_losses = group_level_win_losses.unpivot(
+                index=level,
+                on=["Wins", "Losses"],
+                variable_name="Status",
+                value_name="Percentage",
+            ).sort(["Status", "Percentage"], descending=True)
+
+            return group_level_win_losses
+
+        if status not in {"Wins", "Losses"}:
+            raise ValueError("When group_filter is provided, status must be either 'Wins' or 'Losses'.")
+
+        selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+            group_filter=group_filter,
+            additional_filters=additional_filters,
+        )
+
+        stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+
+        if status == "Wins":
+            # Actions beaten by the selected group are ranked below the selected worst rank.
+            comparison_rows = stage_filtered_data.join(
+                selected_group_rank_boundaries,
+                on="Interaction ID",
+                how="inner",
+            ).filter(pl.col("Rank") > pl.col("selected_group_worst_rank"))
+        else:
+            # Actions that beat the selected group are ranked above the selected best rank.
+            comparison_rows = stage_filtered_data.join(
+                selected_group_rank_boundaries,
+                on="Interaction ID",
+                how="inner",
+            ).filter(pl.col("Rank") < pl.col("selected_group_best_rank"))
+
+        distribution = (
+            comparison_rows.group_by(level)
+            .agg(Decisions=pl.len())
+            .filter(pl.col("Decisions") > 0)
+            .sort("Decisions", descending=True)
+        )
+        if top_k is not None:
+            distribution = distribution.head(top_k)
+
+        return distribution
 
     def get_optionality_data(self, df):
         """
@@ -1821,23 +1889,53 @@ class DecisionAnalyzer:
         }
 
     def get_winning_or_losing_interactions(self, win_rank, group_filter, win: bool, additional_filters=None):
+        selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+            group_filter=group_filter,
+            additional_filters=additional_filters,
+        )
+        stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+
         if win:
-            rank_filter = pl.col("Rank") <= win_rank
+            interaction_filter = pl.col("Rank") > pl.col("selected_group_worst_rank")
         else:
-            rank_filter = pl.col("Rank") > win_rank
+            interaction_filter = pl.col("Rank") < pl.col("selected_group_best_rank")
+
         return (
-            apply_filter(apply_filter(self.sample, additional_filters), group_filter)
-            .filter(rank_filter & (pl.col(self.level).is_in(self.stages_from_arbitration_down)))
+            stage_filtered_data.join(selected_group_rank_boundaries, on="Interaction ID", how="inner")
+            .filter(interaction_filter)
             .select(pl.col("Interaction ID").unique())
         )
 
-    def winning_from(self, interactions, win_rank, groupby_cols, top_k, additional_filters=None):
+    def winning_from(
+        self,
+        interactions,
+        win_rank,
+        groupby_cols,
+        top_k,
+        additional_filters=None,
+        group_filter: pl.Expr | list[pl.Expr] | None = None,
+    ):
+        stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+
+        if group_filter is None:
+            comparison_rows = stage_filtered_data.filter(pl.col("Rank") > win_rank)
+        else:
+            selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+                group_filter=group_filter,
+                additional_filters=additional_filters,
+            )
+            comparison_rows = stage_filtered_data.join(
+                selected_group_rank_boundaries,
+                on="Interaction ID",
+                how="inner",
+            ).filter(pl.col("Rank") > pl.col("selected_group_worst_rank"))
+
         winning_from = (
-            apply_filter(self.sample, additional_filters)
-            .filter(
-                pl.col("Rank") > win_rank
-            )  # TODO generalize this to any stage from Arbitration up but excluding Final
-            .join(
+            comparison_rows.join(
                 interactions,
                 on="Interaction ID",
                 how="inner",
@@ -1850,11 +1948,34 @@ class DecisionAnalyzer:
         )
         return winning_from
 
-    def losing_to(self, interactions, win_rank, groupby_cols, top_k, additional_filters=None):
+    def losing_to(
+        self,
+        interactions,
+        win_rank,
+        groupby_cols,
+        top_k,
+        additional_filters=None,
+        group_filter: pl.Expr | list[pl.Expr] | None = None,
+    ):
+        stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+
+        if group_filter is None:
+            comparison_rows = stage_filtered_data.filter(pl.col("Rank") < win_rank)
+        else:
+            selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+                group_filter=group_filter,
+                additional_filters=additional_filters,
+            )
+            comparison_rows = stage_filtered_data.join(
+                selected_group_rank_boundaries,
+                on="Interaction ID",
+                how="inner",
+            ).filter(pl.col("Rank") < pl.col("selected_group_best_rank"))
+
         return (
-            apply_filter(self.sample, additional_filters)
-            .filter(pl.col("Rank") <= win_rank)
-            .join(
+            comparison_rows.join(
                 interactions,
                 on="Interaction ID",
                 how="inner",

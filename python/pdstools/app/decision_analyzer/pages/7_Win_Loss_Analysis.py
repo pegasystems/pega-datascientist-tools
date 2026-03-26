@@ -41,6 +41,13 @@ facetting = "pyChannel/pyDirection"
 # )
 with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
+    filtered_data = st.session_state.decision_data.filtered_sample
+
+    max_rank_in_sample = filtered_data.select(pl.col("Rank").max()).collect().item()
+    if max_rank_in_sample is None:
+        max_rank_in_sample = 1
+    max_rank_in_sample = max(1, int(max_rank_in_sample))
+    default_win_rank = min(st.session_state.get("win_rank", 1), max_rank_in_sample)
 
     top_k = st.number_input(
         "Top N elements to show",
@@ -51,8 +58,8 @@ with st.session_state["sidebar"]:
     st.number_input(
         "Top-N actions that define Winning",
         min_value=1,
-        max_value=10,  # TODO why restrict to 10, lets use the upper bound from the data.
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
+        max_value=max_rank_in_sample,
+        value=default_win_rank,
         key="win_rank",
     )
     scope_index = get_current_index(scope_options, "scope")
@@ -63,9 +70,6 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
-
-    # Apply channel filter to sample data
-    filtered_data = st.session_state.decision_data.filtered_sample
 
     "### Define a Comparison Group"
 
@@ -130,10 +134,11 @@ if st.session_state.local_filters != []:
         win=True,
         additional_filters=channel_filter,
     )
-    winning_from = st.session_state.decision_data.winning_from(
-        interactions=interactions_where_comparison_group_wins,
+    winning_from = st.session_state.decision_data.get_win_loss_distribution_data(
+        level=groupby_cols,
         win_rank=st.session_state.win_rank,
-        groupby_cols=groupby_cols,
+        group_filter=st.session_state["local_filters"],
+        status="Wins",
         top_k=top_k,
         additional_filters=channel_filter,
     )
@@ -143,10 +148,11 @@ if st.session_state.local_filters != []:
         win=False,
         additional_filters=channel_filter,
     )
-    losing_to = st.session_state.decision_data.losing_to(
-        interactions=interactions_where_comparison_group_loses,
+    losing_to = st.session_state.decision_data.get_win_loss_distribution_data(
+        level=groupby_cols,
         win_rank=st.session_state.win_rank,
-        groupby_cols=groupby_cols,
+        group_filter=st.session_state["local_filters"],
+        status="Losses",
         top_k=top_k,
         additional_filters=channel_filter,
     )
