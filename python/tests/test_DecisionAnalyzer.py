@@ -11,6 +11,7 @@ data cleanup, ranking, pre-aggregation, sampling, and analysis methods.
 """
 
 import pathlib
+from datetime import datetime
 
 import polars as pl
 import pytest
@@ -442,6 +443,128 @@ class TestWinLoss:
         for status in ["Wins", "Losses"]:
             total = df.filter(pl.col("Status") == status)["Percentage"].sum()
             assert abs(total - 1.0) < 0.01, f"{status} percentages sum to {total}"
+
+
+@pytest.fixture(scope="module")
+def da_win_loss_boundary_tiny():
+    """Tiny deterministic dataset to verify selected-group rank boundary semantics."""
+    tiny_data = pl.LazyFrame(
+        {
+            "pySubjectID": ["S1", "S1", "S1", "S1", "S2", "S2", "S2"],
+            "pxInteractionID": ["I1", "I1", "I1", "I1", "I2", "I2", "I2"],
+            "pxDecisionTime": [
+                datetime(2024, 1, 1, 0, 0, 0),
+                datetime(2024, 1, 1, 0, 0, 1),
+                datetime(2024, 1, 1, 0, 0, 2),
+                datetime(2024, 1, 1, 0, 0, 3),
+                datetime(2024, 1, 1, 0, 1, 0),
+                datetime(2024, 1, 1, 0, 1, 1),
+                datetime(2024, 1, 1, 0, 1, 2),
+            ],
+            "pyIssue": ["Issue1", "Issue1", "Issue1", "Issue1", "Issue2", "Issue2", "Issue2"],
+            "pyGroup": ["Other", "Selected", "Other", "Selected", "Selected", "Other", "Other"],
+            "pyName": ["A", "B", "D", "C", "E", "F", "G"],
+            "pyChannel": ["Web", "Web", "Web", "Web", "Web", "Web", "Web"],
+            "pyDirection": ["Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound"],
+            "Value": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "ContextWeight": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "Weight": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "pyPropensity": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+            "FinalPropensity": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+            "Priority": [0.9, 0.8, 0.7, 0.6, 0.9, 0.8, 0.7],
+            "ModelControlGroup": ["N", "N", "N", "N", "N", "N", "N"],
+        }
+    )
+    return DecisionAnalyzer(tiny_data, sample_size=10)
+
+
+class TestSelectedGroupRankBoundariesWinLoss:
+    def test_selected_group_rank_boundaries_are_computed_per_interaction(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        boundaries = (
+            da_win_loss_boundary_tiny.get_selected_group_rank_boundaries(
+                group_filter=selected_group_filter,
+            )
+            .sort("Interaction ID")
+            .collect()
+        )
+
+        expected = pl.DataFrame(
+            {
+                "Interaction ID": ["I1", "I2"],
+                "selected_group_best_rank": [2, 1],
+                "selected_group_worst_rank": [4, 1],
+                "selected_group_row_count": [2, 1],
+            }
+        )
+
+        assert boundaries.rows(named=True) == expected.rows(named=True)
+
+    def test_selected_group_wins_and_losses_use_rank_boundaries(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        losses_to_selected = (
+            da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=True,
+            )
+            .sort("Interaction ID")
+            .collect()
+            .get_column("Interaction ID")
+            .to_list()
+        )
+        wins_against_selected = (
+            da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=False,
+            )
+            .sort("Interaction ID")
+            .collect()
+            .get_column("Interaction ID")
+            .to_list()
+        )
+
+        assert losses_to_selected == ["I2"]
+        assert wins_against_selected == ["I1"]
+
+    def test_group_filter_status_distributions_match_expected_actions(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        beaten_by_selected = (
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=selected_group_filter,
+                status="Wins",
+            )
+            .sort("Action")
+            .collect()
+        )
+        beating_selected = (
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=selected_group_filter,
+                status="Losses",
+            )
+            .sort("Action")
+            .collect()
+        )
+
+        assert beaten_by_selected.select("Action").to_series().to_list() == ["F", "G"]
+        assert beaten_by_selected.select("Decisions").to_series().to_list() == [1, 1]
+        assert beating_selected.select("Action").to_series().to_list() == ["A"]
+        assert beating_selected.select("Decisions").to_series().to_list() == [1]
+
+    def test_group_filter_paths_validate_required_arguments(self, da_win_loss_boundary_tiny):
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(level="Action")
+
+        with pytest.raises(ValueError, match="status must be either 'Wins' or 'Losses'"):
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=pl.col("Group") == "Selected",
+                status=None,
+            )
 
 
 # ---------------------------------------------------------------------------
