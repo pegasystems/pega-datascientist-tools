@@ -566,6 +566,188 @@ class TestSelectedGroupRankBoundariesWinLoss:
                 status=None,
             )
 
+    def test_group_filter_distribution_with_top_k(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+            level="Action",
+            group_filter=selected_group_filter,
+            status="Wins",
+            top_k=1,
+        ).collect()
+        assert result.height == 1
+
+    def test_winning_from_with_group_filter(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        )
+        result = da_win_loss_boundary_tiny.winning_from(
+            interactions=interactions,
+            groupby_cols=["Action"],
+            top_k=10,
+            group_filter=selected_group_filter,
+        ).collect()
+
+        assert result.height > 0
+        assert "Action" in result.columns
+        assert "Decisions" in result.columns
+
+    def test_losing_to_with_group_filter(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        )
+        result = da_win_loss_boundary_tiny.losing_to(
+            interactions=interactions,
+            groupby_cols=["Action"],
+            top_k=10,
+            group_filter=selected_group_filter,
+        ).collect()
+
+        assert result.height > 0
+        assert "Action" in result.columns
+        assert "Decisions" in result.columns
+
+    def test_winning_from_with_win_rank(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        )
+        result = da_win_loss_boundary_tiny.winning_from(
+            interactions=interactions,
+            groupby_cols=["Action"],
+            top_k=10,
+            win_rank=1,
+        ).collect()
+
+        assert "Action" in result.columns
+        assert "Decisions" in result.columns
+
+    def test_losing_to_with_win_rank(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        )
+        result = da_win_loss_boundary_tiny.losing_to(
+            interactions=interactions,
+            groupby_cols=["Action"],
+            top_k=10,
+            win_rank=2,
+        ).collect()
+
+        assert "Action" in result.columns
+        assert "Decisions" in result.columns
+
+    def test_winning_from_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
+        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.winning_from(
+                interactions=interactions,
+                groupby_cols=["Action"],
+                top_k=10,
+            )
+
+    def test_losing_to_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
+        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.losing_to(
+                interactions=interactions,
+                groupby_cols=["Action"],
+                top_k=10,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Boxplot point cap and sampling in plots
+# ---------------------------------------------------------------------------
+
+
+class TestBoxplotPointCapAndSampling:
+    def test_boxplot_point_cap_returns_sample_size(self, da_v1):
+        assert da_v1.plot._boxplot_point_cap() == da_v1.sample_size
+
+    def test_boxplot_point_cap_returns_default_when_no_sample_size(self, da_v1):
+        from pdstools.decision_analyzer.plots import DEFAULT_BOXPLOT_POINT_CAP
+
+        original = da_v1.sample_size
+        da_v1.sample_size = None
+        try:
+            assert da_v1.plot._boxplot_point_cap() == DEFAULT_BOXPLOT_POINT_CAP
+        finally:
+            da_v1.sample_size = original
+
+    def test_prio_factor_boxplots_returns_tuple(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        result = da_v1.plot.prio_factor_boxplots(
+            reference=pl.col("Action") == first_action,
+        )
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+
+    def test_prio_factor_boxplots_return_df(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        df = da_v1.plot.prio_factor_boxplots(
+            reference=pl.col("Action") == first_action,
+            return_df=True,
+        )
+        assert isinstance(df, pl.DataFrame)
+        assert "segment" in df.columns
+
+    def test_prio_factor_boxplots_sampling_caps_rows(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 100
+        try:
+            df = da_v1.plot.prio_factor_boxplots(
+                reference=pl.col("Action") == first_action,
+                return_df=True,
+            )
+            assert df.height == 100
+        finally:
+            da_v1.sample_size = original
+
+    def test_prio_factor_boxplots_warning_message(self, da_v1):
+        """When data exceeds point cap but both segments survive, return sampling warning."""
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 5000
+        try:
+            result = da_v1.plot.prio_factor_boxplots(
+                reference=pl.col("Action") == first_action,
+            )
+            fig, warning = result
+            if fig is not None:
+                assert warning is not None
+                assert "sample" in warning.lower()
+        finally:
+            da_v1.sample_size = original
+
+    def test_rank_boxplot_returns_figure(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        fig = da_v1.plot.rank_boxplot(
+            reference=pl.col("Action") == first_action,
+        )
+        assert hasattr(fig, "update_layout")
+
+    def test_rank_boxplot_sampling_with_low_cap(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 10
+        try:
+            fig = da_v1.plot.rank_boxplot(
+                reference=pl.col("Action") == first_action,
+            )
+            assert hasattr(fig, "update_layout")
+        finally:
+            da_v1.sample_size = original
+
 
 # ---------------------------------------------------------------------------
 # Overview stats

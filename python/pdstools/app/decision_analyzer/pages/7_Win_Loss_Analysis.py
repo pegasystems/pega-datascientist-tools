@@ -12,6 +12,38 @@ from pdstools.decision_analyzer.utils import (
     get_first_level_stats,
 )
 
+MAX_COMPARISON_LABEL_LEN = 80
+
+
+def _describe_comparison_group() -> str:
+    """Build a human-readable label from the active comparison filter selections.
+
+    Examples:
+        Issue: Service
+        Issue: Service, Sales
+        Issue: Service and Group: Cards
+        (falls back to "comparison group" when too long or nothing selected)
+    """
+    columns = st.session_state.get("localmultiselect", [])
+    if not columns:
+        return "comparison group"
+
+    parts: list[str] = []
+    for col in columns:
+        values = st.session_state.get(f"localselected_{col}", [])
+        if not values:
+            continue
+        parts.append(f"{col}: {', '.join(values)}")
+
+    if not parts:
+        return "comparison group"
+
+    label = " and ".join(parts)
+    if len(label) > MAX_COMPARISON_LABEL_LEN:
+        return "comparison group"
+    return label
+
+
 # TODO: the rank of winning may not be used or not properly in the analyses shown
 # TODO: double check the numbers - I sometimes can't intuitively relate the bar charts to the box plots
 # TODO: generalize and relabel the arbitration properties - they're repeated all over the place and may not even be the actual property names (just from my mock data)
@@ -154,10 +186,9 @@ if st.session_state.local_filters != []:
         win_count = interactions_where_comparison_group_wins.collect().shape[0]
 
         st.info(
-            # TODO these numbers may not be correct
-            f"The action(s) in the comparison group win {win_count} times",
+            f"**{_describe_comparison_group()}** wins {win_count} times",
         )
-        f"""Distribution of the {st.session_state.scope}s that the comparison group wins from in Arbitration"""
+        f"""Distribution of the {st.session_state.scope}s that **{_describe_comparison_group()}** wins from in Arbitration"""
 
         st.plotly_chart(
             st.session_state.decision_data.plot.distribution(
@@ -174,9 +205,9 @@ if st.session_state.local_filters != []:
     with col2:
         """## Loss Analysis"""
         st.info(
-            f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
+            f"**{_describe_comparison_group()}** loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
         )
-        f"""Distribution of the {st.session_state.scope}s that the comparison group loses to in Arbitration"""
+        f"""Distribution of the {st.session_state.scope}s that **{_describe_comparison_group()}** loses to in Arbitration"""
 
         st.plotly_chart(
             st.session_state.decision_data.plot.distribution(
@@ -191,14 +222,14 @@ if st.session_state.local_filters != []:
 
     "## Why Do These Offers Win?"
 
-    """
-    See which factors drive your comparison group to the top. The chart shows how many
+    f"""
+    See which factors drive **{_describe_comparison_group()}** to the top. The chart shows how many
     additional wins each factor contributes. If an offer wins 600 times now but only
     200 times without considering value, then value is adding 400 wins — pushing this
     offer ahead of others.
     """
     if win_count == 0:
-        st.warning("The selected comparison Group never wins in the arbitration")
+        st.warning(f"**{_describe_comparison_group()}** never wins in the arbitration")
     else:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
