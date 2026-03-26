@@ -212,7 +212,7 @@ def get_first_level_stats(interaction_data: pl.LazyFrame, filters: list[pl.Expr]
         "Rows": counts.get_column("row_count").item(),
     }
     if has_interaction_id:
-        stats["Interactions"] = counts.get_column("interaction_count").item()
+        stats["Decisions"] = counts.get_column("interaction_count").item()
     return stats
 
 

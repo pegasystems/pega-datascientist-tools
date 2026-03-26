@@ -55,7 +55,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
                     if df is not None and columns == []:
-                        columns = df.columns
+                        columns = df.collect_schema().names()
                     if df is not None:
                         dfs.append(df.select(columns))
 

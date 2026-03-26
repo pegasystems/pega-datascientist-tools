@@ -123,6 +123,8 @@ def get_groupby_columns(scope_options, current_scope_key):
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
 
+    total_decisions = filtered_data.select(pl.n_unique("Interaction ID")).collect().item()
+
     interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
         win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
@@ -154,10 +156,11 @@ if st.session_state.local_filters != []:
     with col1:
         """## Win Analysis"""
         win_count = interactions_where_comparison_group_wins.collect().shape[0]
+        win_pct = win_count / total_decisions * 100 if total_decisions > 0 else 0.0
 
         st.info(
             # TODO these numbers may not be correct
-            f"The action(s) in the comparison group win {win_count} times",
+            f"The action(s) in the comparison group win in {win_pct:.1f}% of decisions",
         )
         f"""Distribution of the {st.session_state.scope}s that the comparison group wins from in Arbitration"""
 
@@ -175,8 +178,10 @@ if st.session_state.local_filters != []:
 
     with col2:
         """## Loss Analysis"""
+        lose_count = interactions_where_comparison_group_loses.collect().shape[0]
+        lose_pct = lose_count / total_decisions * 100 if total_decisions > 0 else 0.0
         st.info(
-            f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
+            f"The action(s) in the comparison group lose in {lose_pct:.1f}% of decisions",
         )
         f"""Distribution of the {st.session_state.scope}s that the comparison group loses to in Arbitration"""
 
