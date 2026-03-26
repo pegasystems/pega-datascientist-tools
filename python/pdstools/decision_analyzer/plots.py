@@ -8,6 +8,8 @@ import polars as pl
 from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
 
+MAX_BOXPLOT_POINTS = 20000
+
 
 class Plot:
     def __init__(self, decision_data):
@@ -589,6 +591,12 @@ class Plot:
                 .otherwise(pl.lit("Others"))
             ).select(prio_factors + ["segment"])
         ).collect()
+        warning_message = None
+        if segmented_df.height > MAX_BOXPLOT_POINTS:
+            segmented_df = segmented_df.sample(n=MAX_BOXPLOT_POINTS, shuffle=True, seed=1)
+            warning_message = (
+                f"Showing a representative sample of {MAX_BOXPLOT_POINTS:,} rows to keep the chart responsive."
+            )
         if return_df:
             return segmented_df
 
@@ -625,7 +633,7 @@ class Plot:
         fig.update_layout(height=800, width=600, showlegend=False)
         fig.update_yaxes(automargin=True)
 
-        return fig, None
+        return fig, warning_message
 
     def rank_boxplot(
         self,
@@ -642,6 +650,9 @@ class Plot:
             .select("Rank")
             .collect()
         )
+        if ranks.height > MAX_BOXPLOT_POINTS:
+            ranks = ranks.sample(n=MAX_BOXPLOT_POINTS, shuffle=True, seed=1)
+
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="Rank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
