@@ -8,12 +8,18 @@ import polars as pl
 from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
 
-MAX_BOXPLOT_POINTS = 20000
+DEFAULT_BOXPLOT_POINT_CAP = 20000
 
 
 class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
+
+    def _boxplot_point_cap(self) -> int:
+        sample_size = getattr(self._decision_data, "sample_size", None)
+        if isinstance(sample_size, int) and sample_size > 0:
+            return sample_size
+        return DEFAULT_BOXPLOT_POINT_CAP
 
     def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
         df = self._decision_data.getThresholdingData(thresholding_on)
@@ -582,6 +588,7 @@ class Plot:
         return_df=False,
         additional_filters=None,
     ) -> tuple[go.Figure, str | None]:
+        point_cap = self._boxplot_point_cap()
         df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
         prio_factors = PRIO_FACTORS
         segmented_df = (
@@ -592,11 +599,9 @@ class Plot:
             ).select(prio_factors + ["segment"])
         ).collect()
         warning_message = None
-        if segmented_df.height > MAX_BOXPLOT_POINTS:
-            segmented_df = segmented_df.sample(n=MAX_BOXPLOT_POINTS, shuffle=True, seed=1)
-            warning_message = (
-                f"Showing a representative sample of {MAX_BOXPLOT_POINTS:,} rows to keep the chart responsive."
-            )
+        if segmented_df.height > point_cap:
+            segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)
+            warning_message = f"Showing a representative sample of {point_cap:,} rows to keep the chart responsive."
         if return_df:
             return segmented_df
 
@@ -641,6 +646,7 @@ class Plot:
         return_df=False,
         additional_filters=None,
     ):
+        point_cap = self._boxplot_point_cap()
         df = apply_filter(self._decision_data.sample, additional_filters)
         if return_df:
             return df
@@ -650,8 +656,8 @@ class Plot:
             .select("Rank")
             .collect()
         )
-        if ranks.height > MAX_BOXPLOT_POINTS:
-            ranks = ranks.sample(n=MAX_BOXPLOT_POINTS, shuffle=True, seed=1)
+        if ranks.height > point_cap:
+            ranks = ranks.sample(n=point_cap, shuffle=True, seed=1)
 
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="Rank", orientation="h", template="pega")

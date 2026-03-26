@@ -43,34 +43,6 @@ with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     filtered_data = st.session_state.decision_data.filtered_sample
 
-    max_rank_in_sample = filtered_data.select(pl.col("Rank").max()).collect().item()
-    if max_rank_in_sample is None:
-        max_rank_in_sample = 1
-    max_rank_in_sample = max(1, int(max_rank_in_sample))
-    default_win_rank = min(st.session_state.get("win_rank", 1), max_rank_in_sample)
-
-    top_k = st.number_input(
-        "Top N elements to show",
-        min_value=1,
-        max_value=30,  # TODO this is a generic session, make common across many pages
-        value=10,
-    )
-    st.number_input(
-        "Top-N actions that define Winning",
-        min_value=1,
-        max_value=max_rank_in_sample,
-        value=default_win_rank,
-        key="win_rank",
-    )
-    scope_index = get_current_index(scope_options, "scope")
-    st.selectbox(
-        "Select Scope",
-        options=scope_options,
-        # column names are already friendly
-        index=scope_index,
-        key="scope",
-    )
-
     "### Define a Comparison Group"
 
     st.session_state["local_filters"] = get_data_filters(
@@ -93,6 +65,22 @@ with st.session_state["sidebar"]:
         show_filtered_counts(statsBeforeExtraFilter, statsAfterExtraFilter)
     else:
         st.warning("No comparison group defined")
+
+    top_k = st.number_input(
+        "Top N elements to show",
+        min_value=1,
+        max_value=30,  # TODO this is a generic session, make common across many pages
+        value=10,
+    )
+
+    scope_index = get_current_index(scope_options, "scope")
+    st.selectbox(
+        "Select Scope",
+        options=scope_options,
+        # column names are already friendly
+        index=scope_index,
+        key="scope",
+    )
 
     channel_direction_selector()
 
@@ -127,30 +115,25 @@ def get_groupby_columns(scope_options, current_scope_key):
 
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
-
     interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
-        win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         win=True,
         additional_filters=channel_filter,
     )
     winning_from = st.session_state.decision_data.get_win_loss_distribution_data(
         level=groupby_cols,
-        win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         status="Wins",
         top_k=top_k,
         additional_filters=channel_filter,
     )
     interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
-        win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         win=False,
         additional_filters=channel_filter,
     )
     losing_to = st.session_state.decision_data.get_win_loss_distribution_data(
         level=groupby_cols,
-        win_rank=st.session_state.win_rank,
         group_filter=st.session_state["local_filters"],
         status="Losses",
         top_k=top_k,

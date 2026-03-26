@@ -1157,13 +1157,15 @@ class DecisionAnalyzer:
     def get_win_loss_distribution_data(
         self,
         level,
-        win_rank,
+        win_rank: int | None = None,
         additional_filters=None,
         group_filter: pl.Expr | list[pl.Expr] | None = None,
         status: Literal["Wins", "Losses"] | None = None,
         top_k: int | None = None,
     ):
         if group_filter is None:
+            if win_rank is None:
+                raise ValueError("win_rank must be provided when group_filter is None.")
             win_col = f"Win_at_rank{win_rank}"
             group_level_win_losses = (
                 apply_filter(self.getPreaggregatedRemainingView, additional_filters)
@@ -1888,7 +1890,7 @@ class DecisionAnalyzer:
             ),
         }
 
-    def get_winning_or_losing_interactions(self, win_rank, group_filter, win: bool, additional_filters=None):
+    def get_winning_or_losing_interactions(self, group_filter, win: bool, additional_filters=None):
         selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
             group_filter=group_filter,
             additional_filters=additional_filters,
@@ -1911,17 +1913,19 @@ class DecisionAnalyzer:
     def winning_from(
         self,
         interactions,
-        win_rank,
         groupby_cols,
         top_k,
         additional_filters=None,
         group_filter: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int | None = None,
     ):
         stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
             pl.col(self.level).is_in(self.stages_from_arbitration_down)
         )
 
         if group_filter is None:
+            if win_rank is None:
+                raise ValueError("win_rank must be provided when group_filter is None.")
             comparison_rows = stage_filtered_data.filter(pl.col("Rank") > win_rank)
         else:
             selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
@@ -1951,17 +1955,19 @@ class DecisionAnalyzer:
     def losing_to(
         self,
         interactions,
-        win_rank,
         groupby_cols,
         top_k,
         additional_filters=None,
         group_filter: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int | None = None,
     ):
         stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
             pl.col(self.level).is_in(self.stages_from_arbitration_down)
         )
 
         if group_filter is None:
+            if win_rank is None:
+                raise ValueError("win_rank must be provided when group_filter is None.")
             comparison_rows = stage_filtered_data.filter(pl.col("Rank") < win_rank)
         else:
             selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
