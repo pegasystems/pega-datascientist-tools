@@ -118,21 +118,22 @@ with st.container(border=True):
     "## Impact Summary"
 
     st.caption(
-        "Shows how many offers meet your threshold criteria. **Decisions without actions** "
-        "indicates customer interactions where no offers qualify — these customers would "
+        "Shows how many offers meet your threshold criteria. **% Decisions without actions** "
+        "indicates decisions where no offers qualify — these customers would "
         "receive nothing."
     )
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Actions", f"{total_action_appearances:,.0f}")
-    c2.metric("Above Both Thresholds", f"{above_actions:,.0f}")
+    avg_actions = total_action_appearances / total_interactions if total_interactions > 0 else 0.0
+    avg_qualifying = above_actions / total_interactions if total_interactions > 0 else 0.0
+    c1.metric("Avg Actions per Decision", f"{avg_actions:.1f}")
+    c2.metric("Avg Qualifying per Decision", f"{avg_qualifying:.1f}")
     c3.metric("% Actions Filtered", f"{pct_filtered:.1f}%")
     c4.metric(
-        "Decisions without Actions",
-        f"{empty_interactions:,}",
-        delta=f"{empty_pct:.1f}% of {total_interactions:,}",
+        "% Decisions without Actions",
+        f"{empty_pct:.1f}%",
         delta_color="inverse",
-        help="Interactions where no action survives both thresholds — these decisions would have nothing to present.",
+        help="Decisions where no action survives both thresholds — these decisions would have nothing to present.",
     )
 
 # ---------------------------------------------------------------------------

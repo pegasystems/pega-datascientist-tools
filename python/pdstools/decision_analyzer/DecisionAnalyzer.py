@@ -881,30 +881,47 @@ class DecisionAnalyzer:
     # @st.cache_data
     def getFunnelData(
         self, scope, additional_filters: pl.Expr | list[pl.Expr] | None = None
-    ) -> tuple[pl.LazyFrame, pl.DataFrame]:
-        # Apply filtering once to the pre-aggregated view
+    ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
         filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters).select("Interaction ID").unique().count()
         )
 
-        # Compute remaining actions funnel
-        # Count total action occurrences (not unique interactions) for granularity-independent metric
-        funnelData = self.aggregate_remaining_per_stage(
+        # Available: actions entering each stage (existing logic)
+        available_data = self.aggregate_remaining_per_stage(
             df=filtered_df,
             group_by_columns=[scope],
             aggregations=[
-                pl.sum("Decisions").alias("action_occurrences"),  # Total action occurrences for this scope value
-                pl.col("Interaction_IDs")
-                .flatten()
-                .unique()
-                .count()
-                .alias("interaction_count_for_scope"),  # Unique interactions with this scope value
+                pl.sum("Decisions").alias("action_occurrences"),
+                pl.col("Interaction_IDs").flatten().unique().count().alias("interaction_count_for_scope"),
             ],
         ).filter(pl.col("action_occurrences") > 0)
 
-        # Compute filtered funnel view
+        # Passing: actions exiting each stage (shift by one — use next stage's remaining set)
+        # Output is the result, not a filtering stage, so exclude it from funnel views
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
+
+        def _passing_at_stage(i: int, stage: str) -> pl.DataFrame:
+            # For stage i, passing = actions remaining at stage i+1.
+            # For the last stage (Output), passing = available (nothing filters there).
+            next_stages = stages[i + 1 :] if i + 1 < len(stages) else [stage]
+            return (
+                filtered_df.filter(pl.col(self.level).is_in(next_stages))
+                .group_by([scope])
+                .agg(
+                    action_occurrences=pl.sum("Decisions"),
+                    interaction_count_for_scope=pl.col("Interaction_IDs").flatten().unique().count(),
+                )
+                .with_columns(pl.lit(stage).alias(self.level))
+                .collect()
+            )
+
+        passing_data = pl.concat([_passing_at_stage(i, stage) for i, stage in enumerate(stages)]).filter(
+            pl.col("action_occurrences") > 0
+        )
+
+        # Filtered: actions removed at each stage (existing logic, unchanged)
         filtered_funnel = (
             filtered_df.filter(pl.col("Record Type") == "FILTERED_OUT")
             .group_by([self.level, scope])
@@ -916,16 +933,145 @@ class DecisionAnalyzer:
         )
 
         interaction_count = interaction_count_expr.collect().item()
-        # Calculate metrics:
-        # - actions_per_interaction: total action occurrences / total interactions (granularity-independent)
-        # - penetration_pct: percentage of interactions that have at least one action of this scope value
         metrics_expr = (
             pl.lit(interaction_count).alias("interaction_count"),
             (pl.col("action_occurrences") / pl.lit(interaction_count)).alias("actions_per_interaction"),
             ((pl.col("interaction_count_for_scope") / pl.lit(interaction_count)) * 100).alias("penetration_pct"),
         )
 
-        return funnelData.with_columns(metrics_expr), filtered_funnel.with_columns(metrics_expr)
+        return (
+            available_data.with_columns(metrics_expr),
+            passing_data.with_columns(metrics_expr),
+            filtered_funnel.with_columns(metrics_expr),
+        )
+
+    def get_decisions_without_actions_data(
+        self, additional_filters: pl.Expr | list[pl.Expr] | None = None
+    ) -> pl.DataFrame:
+        """Per-stage count of interactions newly left with no remaining actions.
+
+        Returns a DataFrame with columns [self.level, "decisions_without_actions"],
+        sorted in pipeline order. For each stage X, the value is the number of
+        interactions that lose their final remaining action at stage X.
+        """
+        filter_view = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+
+        def count_from(stages):
+            return (
+                filter_view.filter(pl.col(self.level).is_in(stages))
+                .select(pl.col("Interaction_IDs").flatten().unique().count())
+                .collect()
+                .item()
+            )
+
+        total_interactions = (
+            apply_filter(self.decision_data, additional_filters)
+            .select("Interaction ID")
+            .unique()
+            .count()
+            .collect()
+            .item()
+        )
+
+        # Output is the result, not a filtering stage — exclude from this view
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        has_output = "Output" in self.AvailableNBADStages
+
+        cumulative_without_actions: list[float] = []
+        for i, _stage in enumerate(stages):
+            successor_stages = list(stages[i + 1 :])
+            # Include Output in every successor set so survivor sets remain nested,
+            # even when some interactions skip optional intermediate stages.
+            if has_output:
+                successor_stages.append("Output")
+            survivors_after_stage = count_from(successor_stages) if successor_stages else 0
+            cumulative_without_actions.append(float(total_interactions - survivors_after_stage))
+
+        rows = []
+        for i, stage in enumerate(stages):
+            prev_cumulative = cumulative_without_actions[i - 1] if i > 0 else 0.0
+            rows.append(
+                {
+                    self.level: stage,
+                    "decisions_without_actions": cumulative_without_actions[i] - prev_cumulative,
+                }
+            )
+
+        return pl.DataFrame(rows)
+
+    def get_funnel_summary(
+        self,
+        available_df: pl.LazyFrame,
+        passing_df: pl.DataFrame,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.DataFrame:
+        """Per-stage summary: Available, Passing, Filtered actions and Decisions.
+
+        Parameters
+        ----------
+        available_df : pl.LazyFrame
+            First element returned by ``getFunnelData`` (actions entering each stage).
+        passing_df : pl.DataFrame
+            Second element returned by ``getFunnelData`` (actions exiting each stage).
+        additional_filters : optional
+            Same filters used when calling ``getFunnelData``.
+
+        Returns
+        -------
+        pl.DataFrame
+            One row per stage/stage-group in pipeline order with columns:
+            [self.level, Available Actions, Passing Actions, Filtered Actions,
+            % of total filtered, Decisions].
+        """
+        level = self.level
+        available_by_stage = (
+            available_df.collect()
+            .with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("Available Actions"))
+        )
+        passing_by_stage = (
+            passing_df.with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("Passing Actions"))
+        )
+        without_actions = self.get_decisions_without_actions_data(additional_filters)
+        total_interactions = (
+            apply_filter(self.decision_data, additional_filters)
+            .select("Interaction ID")
+            .unique()
+            .count()
+            .collect()
+            .item()
+        )
+        stage_order_no_output = {s: i for i, s in enumerate(self.AvailableNBADStages) if s != "Output"}
+        decisions_by_stage = (
+            without_actions.with_columns(pl.col(level).cast(pl.Utf8))
+            .sort(pl.col(level).map_elements(lambda s: stage_order_no_output.get(s, 999), return_dtype=pl.Int32))
+            .with_columns(pl.col("decisions_without_actions").cum_sum().alias("_cumulative_without_actions"))
+            .with_columns((pl.lit(total_interactions) - pl.col("_cumulative_without_actions")).alias("Decisions"))
+            .select([level, "Decisions"])
+        )
+
+        stage_order = {s: i for i, s in enumerate(self.AvailableNBADStages)}
+        summary = (
+            available_by_stage.join(passing_by_stage, on=level, how="left")
+            .join(decisions_by_stage, on=level, how="left")
+            .fill_null(0)
+            .with_columns((pl.col("Available Actions") - pl.col("Passing Actions")).alias("Filtered Actions"))
+            .with_columns(
+                (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
+                .round(2)
+                .alias("% of total filtered"),
+                (pl.col("Available Actions") / pl.lit(total_interactions)).round(2).alias("Avg Available/Decision"),
+                (pl.col("Passing Actions") / pl.lit(total_interactions)).round(2).alias("Avg Passing/Decision"),
+                (pl.col("Filtered Actions") / pl.lit(total_interactions)).round(2).alias("Avg Filtered/Decision"),
+                (pl.col("Decisions") / pl.lit(total_interactions) * 100).round(1).alias("% Decisions with Actions"),
+            )
+            .drop("Available Actions", "Passing Actions", "Filtered Actions", "Decisions")
+            .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
+        )
+        return summary
 
     def getFilterComponentData(self, top_n, additional_filters: pl.Expr | list[pl.Expr] | None = None) -> pl.DataFrame:
         group_cols = [self.level, "Component Name"]
@@ -1008,7 +1154,9 @@ class DecisionAnalyzer:
     def getComponentDrilldown(
         self,
         component_name: str,
+        scope: str = "Action",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        sort_by: str = "Filtered Decisions",
     ) -> pl.DataFrame:
         """Deep-dive into a single filter component showing dropped actions and
         their potential value.
@@ -1023,15 +1171,19 @@ class DecisionAnalyzer:
         ----------
         component_name : str
             The pxComponentName to drill into.
+        scope : str, default "Action"
+            Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters to apply before aggregation.
+        sort_by : str, default "Filtered Decisions"
+            Column to sort results by (descending).
 
         Returns
         -------
         pl.DataFrame
-            Columns: pyIssue, pyGroup, pyName, Filtered Decisions,
-            avg_Priority, avg_Value, avg_Propensity, pxComponentType (if
-            available). Sorted by Filtered Decisions descending.
+            Columns include scope columns, Filtered Decisions,
+            avg_Priority, avg_Value, avg_Propensity, Component Type (if
+            available).
         """
         base = apply_filter(self.decision_data, additional_filters)
         available = set(base.collect_schema().names())
@@ -1041,7 +1193,11 @@ class DecisionAnalyzer:
             (pl.col("Record Type") == "FILTERED_OUT") & (pl.col("Component Name") == component_name)
         )
 
-        group_cols = ["Issue", "Group", "Action"]
+        scope_hierarchy = ["Issue", "Group", "Action"]
+        scope_idx = scope_hierarchy.index(scope) if scope in scope_hierarchy else 2
+        scope_cols = scope_hierarchy[: scope_idx + 1]
+
+        group_cols = [c for c in scope_cols if c in available]
         agg_exprs = [pl.len().alias("Filtered Decisions")]
         if "Component Type" in available:
             group_cols.append("Component Type")
@@ -1054,21 +1210,20 @@ class DecisionAnalyzer:
 
         if present_scores:
             score_aggs = [pl.col(c).mean().alias(f"avg_{c}") for c in present_scores]
+            join_cols = [c for c in scope_cols if c in available]
             reference_scores = (
-                base.filter(pl.col("Priority").is_not_null())
-                .group_by(["Issue", "Group", "Action"])
-                .agg(score_aggs)
-                .collect()
+                base.filter(pl.col("Priority").is_not_null()).group_by(join_cols).agg(score_aggs).collect()
             )
             result = filtered_agg.join(
                 reference_scores,
-                on=["Issue", "Group", "Action"],
+                on=join_cols,
                 how="left",
             )
         else:
             result = filtered_agg
 
-        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort("Filtered Decisions", descending=True)
+        sort_col = sort_by if sort_by in result.columns else "Filtered Decisions"
+        return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(sort_col, descending=True)
 
     def reRank(
         self,

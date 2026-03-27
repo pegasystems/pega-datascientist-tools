@@ -384,15 +384,123 @@ class TestDistributionData:
 
 
 class TestFunnelData:
-    def test_v2_funnel_returns_two_frames(self, da_v2):
-        remaining, filtered = da_v2.getFunnelData(scope="Issue")
-        assert isinstance(remaining, pl.LazyFrame)
+    def test_v2_funnel_returns_three_frames(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
 
-    def test_v1_funnel_returns_two_frames(self, da_v1):
-        remaining, filtered = da_v1.getFunnelData(scope="Issue")
-        assert isinstance(remaining, pl.LazyFrame)
+    def test_v1_funnel_returns_three_frames(self, da_v1):
+        available, passing, filtered = da_v1.getFunnelData(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
+
+    def test_passing_lte_available(self, da_v2):
+        """Passing actions at each stage must be <= available actions."""
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        level = da_v2.level
+        avail_df = (
+            available.collect()
+            .with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("avail"))
+        )
+        pass_df = (
+            passing.with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("pass"))
+        )
+        joined = avail_df.join(pass_df, on=level, how="left").fill_null(0)
+        assert (joined["pass"] <= joined["avail"]).all()
+
+    def test_passing_has_required_columns(self, da_v2):
+        """Passing df must have same columns as filtered df."""
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        for col in [
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]:
+            assert col in passing.columns
+            assert col in filtered.columns
+
+    def test_decisions_without_actions_shape(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert isinstance(result, pl.DataFrame)
+        assert da_v2.level in result.columns
+        assert "decisions_without_actions" in result.columns
+        expected_stages = [s for s in da_v2.AvailableNBADStages if s != "Output"]
+        assert len(result) == len(expected_stages)
+        assert "Output" not in result[da_v2.level].to_list()
+
+    def test_decisions_without_actions_non_negative(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert (result["decisions_without_actions"] >= 0).all()
+
+    def test_decisions_without_actions_per_stage(self, da_v2):
+        """Values are stage deltas and total knockouts should be bounded by total decisions."""
+        result = da_v2.get_decisions_without_actions_data()
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        assert result["decisions_without_actions"].sum() <= total
+
+    def test_decisions_without_actions_last_stage_uses_output_survivors(self, da_v2):
+        """Sum of stage deltas equals total decisions minus Output survivors."""
+        result = da_v2.get_decisions_without_actions_data()
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        output_survivors = (
+            da_v2.getPreaggregatedFilterView.filter(pl.col(da_v2.level) == "Output")
+            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .collect()
+            .item()
+        )
+        assert result["decisions_without_actions"].sum() == total - output_survivors
+
+
+# ---------------------------------------------------------------------------
+# Funnel summary
+# ---------------------------------------------------------------------------
+
+
+class TestFunnelSummary:
+    def test_summary_columns(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        expected_cols = {
+            da_v2.level,
+            "Avg Available/Decision",
+            "Avg Passing/Decision",
+            "Avg Filtered/Decision",
+            "% of total filtered",
+            "% Decisions with Actions",
+        }
+        assert expected_cols.issubset(set(result.columns))
+
+    def test_summary_row_count(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        assert len(result) == len(da_v2.AvailableNBADStages)
+
+    def test_filtered_is_difference(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        diff = result["Avg Available/Decision"] - result["Avg Passing/Decision"]
+        # Allow 0.01 rounding tolerance since each column is independently rounded
+        assert ((result["Avg Filtered/Decision"] - diff).abs() <= 0.01).all()
+
+    def test_pct_sums_to_100(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        total_pct = result["% of total filtered"].sum()
+        assert abs(total_pct - 100.0) < 0.5  # rounding tolerance
+
+    def test_decisions_pct_in_range(self, da_v2):
+        available, passing, filtered = da_v2.getFunnelData(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        assert (result["% Decisions with Actions"] >= 0).all()
+        assert (result["% Decisions with Actions"] <= 100.1).all()  # rounding tolerance
 
 
 # ---------------------------------------------------------------------------
@@ -1040,6 +1148,25 @@ class TestComponentDrilldown:
         )
         if available_scores:
             assert len(avg_cols) > 0
+
+    def test_drilldown_respects_scope(self, da_v2):
+        """Drilldown should group at the requested scope level."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        name = components[0]
+        for scope in ["Issue", "Group", "Action"]:
+            df = da_v2.getComponentDrilldown(component_name=name, scope=scope)
+            assert scope in df.columns
 
 
 # ---------------------------------------------------------------------------

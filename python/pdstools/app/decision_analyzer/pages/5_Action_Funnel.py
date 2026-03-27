@@ -1,6 +1,4 @@
-# python/pdstools/app/decision_analyzer/pages/4_Action_Funnel.py
-import io
-
+# python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
@@ -10,13 +8,8 @@ from da_streamlit_utils import (
     get_current_index,
     polars_lazyframe_hashing,
     stage_level_selector,
+    stage_selectbox,
 )
-
-# TODO Have a toggle to look at it both from a Passing and Filtered perspective like in Dennis' designs
-# TODO Later, the concept of stages should be generalized - there are many more and we should not be restrictive - can we pick up from the data?
-# TODO coloring of the component filtering can be used better, now a little boring - but perhaps there will be a type, now only prop filters but there may be when rules as well
-# TODO the coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
-# TODO be ready for the many stages - see Dennis' designs
 
 "# Action Funnel"
 
@@ -36,16 +29,28 @@ ensure_funnel()
 
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-def decision_funnel(
-    scope,
-    level=None,
-    return_df=False,
-    channel_filter=None,
-):
+def decision_funnel(scope, level=None, channel_filter=None):
     return st.session_state.decision_data.plot.decision_funnel(
         scope=scope,
-        return_df=return_df,
         additional_filters=channel_filter,
+    )
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def decisions_without_actions_plot(level=None, channel_filter=None):
+    return st.session_state.decision_data.plot.decisions_without_actions_plot(
+        additional_filters=channel_filter,
+    )
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def funnel_summary(scope, level=None, channel_filter=None):
+    available_df, passing_df, filtered_df = st.session_state.decision_data.getFunnelData(
+        scope=scope,
+        additional_filters=channel_filter,
+    )
+    return st.session_state.decision_data.get_funnel_summary(
+        available_df, passing_df, additional_filters=channel_filter
     )
 
 
@@ -66,10 +71,8 @@ with st.session_state["sidebar"]:
     )
     channel_direction_selector()
 
-# Apply channel filter to sample data
 filtered_data = st.session_state.decision_data.filtered_sample
 
-# Check for empty results when a specific channel is selected
 if st.session_state.get("page_channel_filter", "Any") != "Any":
     filtered_count = filtered_data.select(pl.len()).collect().item()
     if filtered_count == 0:
@@ -82,106 +85,93 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
 channel_filter = st.session_state.get("page_channel_expr")
 
 with st.container(border=True):
-    remaining_tab, filtered_tab = st.tabs(["Remaining", "Filtered"])
-    with remaining_tab:
+    passing_tab, filtered_tab, without_tab = st.tabs(
+        ["Passing Actions", "Filtered Actions", "Decisions without Actions"]
+    )
+
+    passing_fig, filtered_fig = decision_funnel(
+        scope=st.session_state.scope,
+        level=st.session_state.decision_data.level,
+        channel_filter=channel_filter,
+    )
+
+    with passing_tab:
         st.caption(
-            "Track offers entering each stage. Funnel height shows **Average Actions per Interaction**, "
-            "while **Reach** shows percentage of interactions with at least one offer. Use **Granularity** "
-            "(sidebar) to analyze from high-level categories down to individual actions."
+            "Actions passing **out of** each stage. The first column (**Available Actions**) is a synthetic "
+            "entry baseline showing what goes **into** stage 1. Funnel height shows **Average Actions per Decision**; "
+            "**Reach** shows the percentage of decisions with at least one offer."
         )
-        remanining_funnel, filtered_funnel = decision_funnel(
-            scope=st.session_state.scope,
+        st.plotly_chart(passing_fig)
+
+    with filtered_tab:
+        st.caption(
+            "Actions **removed** at each stage. Large bars indicate stages with high filtering impact. "
+            "This view includes all product stages in order."
+        )
+        st.plotly_chart(filtered_fig)
+
+    with without_tab:
+        st.caption(
+            "Percentage of decisions that **newly lose all remaining actions** at each stage — i.e. "
+            "the stage where a decision first becomes zero-action."
+        )
+        without_fig = decisions_without_actions_plot(
             level=st.session_state.decision_data.level,
             channel_filter=channel_filter,
         )
-        st.plotly_chart(
-            remanining_funnel,
-        )
-
-    with filtered_tab:
-        st.plotly_chart(
-            filtered_funnel,
-        )
+        st.plotly_chart(without_fig)
 
 """
 ## Filter Impact Details
 
-See exactly which business rules are removing offers, at which stage, and how frequently.
-This table shows all filter components ranked by impact, helping you identify rules that
-may need adjustment.
+For each stage, shows average actions per decision entering the stage, how many pass through,
+how many are filtered out, and the percentage of decisions with at least one action.
 """
 
-data = (
-    st.session_state.decision_data.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
-    .group_by(["Stage Order", "Stage Group", "Stage", "Component Name"])
-    .agg(pl.len().alias("filter count"))
-    .with_columns(
-        (
-            pl.format(
-                "{}%",
-                ((pl.col("filter count") / pl.sum("filter count")) * 100).round(1),
-            )
-        ).alias("percent of all filters")
-    )
-    .collect()
-    .sort("filter count", descending=True)
+summary_df = funnel_summary(
+    scope=st.session_state.scope,
+    level=st.session_state.decision_data.level,
+    channel_filter=channel_filter,
 )
-st.dataframe(data)
+st.dataframe(summary_df)
 
-
-@st.cache_data
-def convert_polars_df(df):
-    buffer = io.StringIO()
-    df.write_csv(buffer)
-    buffer.seek(0)
-    return buffer.getvalue().encode("utf-8")
-
-
-csv = convert_polars_df(data)
-st.download_button(
-    label="Download as CSV",
-    file_name="filter_impact_analysis.csv",
-    data=csv,
-    help="Download the complete filter impact analysis as a CSV file",
-)
 
 # ---------------------------------------------------------------------------
-# Component → Action Impact
+# Component Analysis (replaces former "Filter Impact by Offer" + "Deep Dive")
 # ---------------------------------------------------------------------------
 has_components = "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 if has_components:
-    with st.container(border=True):
-        "## Filter Impact by Offer"
-        """
-        Discover which offers are most affected by each business rule. Identify if critical
-        offers are being blocked unintentionally and understand which filters have the
-        strongest impact on your offer portfolio.
-        """
-        impact_top_n = st.number_input(
-            "Actions per component:",
-            min_value=1,
-            max_value=30,
-            value=5,
-            key="impact_top_n",
-        )
-        impact_fig = st.session_state.decision_data.plot.component_action_impact(
-            top_n=impact_top_n,
-            scope=st.session_state.scope,
-        )
-        st.plotly_chart(impact_fig)
+    da = st.session_state.decision_data
 
-    # ---------------------------------------------------------------------------
-    # Component Drilldown
-    # ---------------------------------------------------------------------------
     with st.container(border=True):
-        "## Deep Dive: What actions are filtered by Component"
-        """
-        Investigate a specific filter to see all offers it removes. Each offer shows its average
-        business value, priority, and propensity score — making it easy to spot if high-value
-        offers are being filtered out. Sort by value to identify the most impactful removals.
-        """
+        "## Component Analysis"
+        st.caption(
+            "Drill into which filter components remove the most offers at a specific stage. "
+            "Select a stage below, then explore individual components and the offers they filter."
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            stage_selectbox(
+                label=f"{da.level}:",
+                key="component_stage",
+            )
+        with col2:
+            impact_top_n = st.number_input(
+                "Top items per component:",
+                min_value=1,
+                max_value=30,
+                value=5,
+                key="impact_top_n",
+            )
+
+        # Build filters: combine channel filter with stage filter
+        stage_filter = pl.col(da.level) == st.session_state.component_stage
+        combined_filters = [f for f in [channel_filter, stage_filter] if f is not None]
+
         component_names = (
-            st.session_state.decision_data.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            da.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .filter(stage_filter)
             .select("Component Name")
             .unique()
             .collect()
@@ -189,45 +179,52 @@ if has_components:
             .sort()
             .to_list()
         )
-        if component_names:
-            selected_component = st.selectbox(
-                "Select component:",
-                options=component_names,
-                key="drilldown_component",
-            )
-            # Readable sort options with mapping to internal column names
-            sort_options_display = ["Filtered Decisions", "Average Value", "Average Priority", "Average Propensity"]
+
+        if not component_names:
+            st.info("No filter components found at this stage.")
+        else:
+            sort_options_display = [
+                "Filtered Decisions",
+                "Average Value",
+                "Average Priority",
+                "Average Propensity",
+            ]
             sort_options_mapping = {
                 "Filtered Decisions": "Filtered Decisions",
                 "Average Value": "avg_Value",
                 "Average Priority": "avg_Priority",
                 "Average Propensity": "avg_Propensity",
             }
-            sort_by_display = st.selectbox(
-                "Sort by:",
-                options=sort_options_display,
-                key="drilldown_sort",
-            )
+
+            col3, col4 = st.columns(2)
+            with col3:
+                selected_component = st.selectbox(
+                    "Drill into component:",
+                    options=component_names,
+                    key="drilldown_component",
+                )
+            with col4:
+                sort_by_display = st.selectbox(
+                    "Sort by:",
+                    options=sort_options_display,
+                    key="drilldown_sort",
+                )
             sort_by = sort_options_mapping[sort_by_display]
-            drilldown_fig = st.session_state.decision_data.plot.component_drilldown(
+
+            impact_fig = da.plot.component_action_impact(
+                top_n=impact_top_n,
+                scope=st.session_state.scope,
+                additional_filters=combined_filters,
+            )
+            st.plotly_chart(impact_fig)
+
+            drilldown_df = da.getComponentDrilldown(
                 component_name=selected_component,
                 scope=st.session_state.scope,
+                additional_filters=combined_filters,
                 sort_by=sort_by,
             )
-            st.plotly_chart(drilldown_fig)
-
-            # Also show the raw data table with readable column names
-            drilldown_df = st.session_state.decision_data.getComponentDrilldown(
-                component_name=selected_component,
-            )
-            # Rename columns for display
             display_df = drilldown_df.rename(
-                {
-                    "avg_Priority": "Average Priority",
-                    "avg_Value": "Average Value",
-                    "avg_Propensity": "Average Propensity",
-                }
+                {c: c.replace("avg_", "Average ") for c in drilldown_df.columns if c.startswith("avg_")}
             )
             st.dataframe(display_df)
-        else:
-            st.warning("No filter components found in the data.")
