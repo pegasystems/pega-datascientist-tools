@@ -570,7 +570,7 @@ class Plot:
             fig = (
                 fig.update_xaxes(automargin=True, title=metric)
                 .update_yaxes(title="")
-                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count")
+                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text=metric)
             )
         else:
             fig = (

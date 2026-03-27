@@ -79,7 +79,7 @@ with st.session_state["sidebar"]:
         for c in st.session_state.decision_data.getAvailableFieldsForFiltering(
             categoricalOnly=True,
         )
-        if c != "Stage"
+        if c not in {"Stage", "Channel", "Direction"}
     ]
 
     "### Define a Comparison Group"
@@ -91,6 +91,7 @@ with st.session_state["sidebar"]:
         filter_type="local",
         default_select_all_categories=False,
         selector_label="Compare offers by",
+        sort_columns=False,
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
@@ -155,21 +156,11 @@ def get_groupby_columns(scope_options, current_scope_key):
 
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
-    interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
-        group_filter=st.session_state["local_filters"],
-        win=True,
-        additional_filters=channel_filter,
-    )
     winning_from = st.session_state.decision_data.get_win_loss_distribution_data(
         level=groupby_cols,
         group_filter=st.session_state["local_filters"],
         status="Wins",
         top_k=top_k,
-        additional_filters=channel_filter,
-    )
-    interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
-        group_filter=st.session_state["local_filters"],
-        win=False,
         additional_filters=channel_filter,
     )
     losing_to = st.session_state.decision_data.get_win_loss_distribution_data(
@@ -180,56 +171,75 @@ if st.session_state.local_filters != []:
         additional_filters=channel_filter,
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        """## Win Analysis"""
-        win_count = interactions_where_comparison_group_wins.collect().shape[0]
+    comparison_label = _describe_comparison_group()
+    scope_label = " and ".join(groupby_cols)
 
-        st.info(
-            f"**{_describe_comparison_group()}** wins {win_count} times",
-        )
-        f"""Distribution of the {st.session_state.scope}s that **{_describe_comparison_group()}** wins from in Arbitration"""
-
-        st.plotly_chart(
-            st.session_state.decision_data.plot.distribution(
-                winning_from,
-                st.session_state.scope,
-                groupby_cols[1] if len(groupby_cols) > 1 else None,
-                "Decisions",
-                horizontal=True,
-                # models=models,
-            ),
-            key="win_distribution_chart",
+    with st.container(border=True):
+        win_rank = st.number_input(
+            "Define winning: rank in top N",
+            min_value=1,
+            value=1,
+            help="A win means at least one offer from the comparison group ranks N or better.",
         )
 
-    with col2:
-        """## Loss Analysis"""
-        st.info(
-            f"**{_describe_comparison_group()}** loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
+        counts = st.session_state.decision_data.get_win_loss_counts(
+            group_filter=st.session_state["local_filters"],
+            win_rank=win_rank,
+            additional_filters=channel_filter,
         )
-        f"""Distribution of the {st.session_state.scope}s that **{_describe_comparison_group()}** loses to in Arbitration"""
+        win_count = counts["wins"]
+        loss_count = counts["losses"]
+        total = counts["total"]
+        win_pct = (win_count / total * 100) if total > 0 else 0
+        loss_pct = (loss_count / total * 100) if total > 0 else 0
 
-        st.plotly_chart(
-            st.session_state.decision_data.plot.distribution(
-                losing_to,
-                st.session_state.scope,
-                groupby_cols[1] if len(groupby_cols) > 1 else None,
-                "Decisions",
-                horizontal=True,
-            ),
-            key="loss_distribution_chart",
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            """## Win Analysis"""
+            st.info(
+                f"**{comparison_label}** wins **{win_count}** out of **{total}** decisions (**{win_pct:.1f}%**)",
+            )
+            f"""Distribution of the {scope_label} the comparison group wins from"""
+
+            st.plotly_chart(
+                st.session_state.decision_data.plot.distribution(
+                    winning_from,
+                    st.session_state.scope,
+                    groupby_cols[1] if len(groupby_cols) > 1 else None,
+                    "Avg per Decision",
+                    horizontal=True,
+                ),
+                key="win_distribution_chart",
+            )
+
+        with col2:
+            """## Loss Analysis"""
+            st.info(
+                f"**{comparison_label}** loses **{loss_count}** out of **{total}** decisions (**{loss_pct:.1f}%**)",
+            )
+            f"""Distribution of the {scope_label} the comparison group loses to"""
+
+            st.plotly_chart(
+                st.session_state.decision_data.plot.distribution(
+                    losing_to,
+                    st.session_state.scope,
+                    groupby_cols[1] if len(groupby_cols) > 1 else None,
+                    "Avg per Decision",
+                    horizontal=True,
+                ),
+                key="loss_distribution_chart",
+            )
 
     "## Why Do These Offers Win?"
 
     f"""
-    See which factors drive **{_describe_comparison_group()}** to the top. The chart shows how many
+    See which factors drive **{comparison_label}** to the top. The chart shows how many
     additional wins each factor contributes. If an offer wins 600 times now but only
     200 times without considering value, then value is adding 400 wins — pushing this
     offer ahead of others.
     """
     if win_count == 0:
-        st.warning(f"**{_describe_comparison_group()}** never wins in the arbitration")
+        st.warning(f"**{comparison_label}** never wins in the arbitration")
     else:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(

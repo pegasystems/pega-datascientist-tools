@@ -577,91 +577,91 @@ class TestSelectedGroupRankBoundariesWinLoss:
         ).collect()
         assert result.height == 1
 
-    def test_winning_from_with_group_filter(self, da_win_loss_boundary_tiny):
+    def test_win_loss_distributions_with_group_filter(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
 
-        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+        interactions_win = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
             group_filter=selected_group_filter,
             win=True,
         )
-        result = da_win_loss_boundary_tiny.winning_from(
-            interactions=interactions,
-            groupby_cols=["Action"],
-            top_k=10,
-            group_filter=selected_group_filter,
-        ).collect()
-
-        assert result.height > 0
-        assert "Action" in result.columns
-        assert "Decisions" in result.columns
-
-    def test_losing_to_with_group_filter(self, da_win_loss_boundary_tiny):
-        selected_group_filter = pl.col("Group") == "Selected"
-
-        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+        interactions_loss = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
             group_filter=selected_group_filter,
             win=False,
         )
-        result = da_win_loss_boundary_tiny.losing_to(
-            interactions=interactions,
+        winning_from, losing_to = da_win_loss_boundary_tiny.get_win_loss_distributions(
+            interactions_win=interactions_win,
+            interactions_loss=interactions_loss,
             groupby_cols=["Action"],
             top_k=10,
             group_filter=selected_group_filter,
-        ).collect()
+        )
+        win_result = winning_from.collect()
+        loss_result = losing_to.collect()
 
-        assert result.height > 0
-        assert "Action" in result.columns
-        assert "Decisions" in result.columns
+        assert win_result.height > 0
+        assert "Action" in win_result.columns
+        assert "Decisions" in win_result.columns
+        assert loss_result.height > 0
+        assert "Action" in loss_result.columns
+        assert "Decisions" in loss_result.columns
 
-    def test_winning_from_with_win_rank(self, da_win_loss_boundary_tiny):
+    def test_win_loss_distributions_with_win_rank(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
-        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+        interactions_win = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
             group_filter=selected_group_filter,
             win=True,
         )
-        result = da_win_loss_boundary_tiny.winning_from(
-            interactions=interactions,
+        interactions_loss = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        )
+        winning_from, losing_to = da_win_loss_boundary_tiny.get_win_loss_distributions(
+            interactions_win=interactions_win,
+            interactions_loss=interactions_loss,
             groupby_cols=["Action"],
             top_k=10,
             win_rank=1,
-        ).collect()
-
-        assert "Action" in result.columns
-        assert "Decisions" in result.columns
-
-    def test_losing_to_with_win_rank(self, da_win_loss_boundary_tiny):
-        selected_group_filter = pl.col("Group") == "Selected"
-        interactions = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
-            group_filter=selected_group_filter,
-            win=False,
         )
-        result = da_win_loss_boundary_tiny.losing_to(
-            interactions=interactions,
-            groupby_cols=["Action"],
-            top_k=10,
+
+        assert "Action" in winning_from.collect().columns
+        assert "Action" in losing_to.collect().columns
+
+    def test_win_loss_distributions_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
+        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.get_win_loss_distributions(
+                interactions_win=interactions,
+                interactions_loss=interactions,
+                groupby_cols=["Action"],
+                top_k=10,
+            )
+
+    def test_win_loss_counts_at_rank_1(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+            group_filter=selected_group_filter,
+            win_rank=1,
+        )
+        # I2: best_rank=1 → win. I1: best_rank=2 → loss.
+        assert counts == {"wins": 1, "losses": 1, "total": 2}
+
+    def test_win_loss_counts_at_rank_2(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+            group_filter=selected_group_filter,
             win_rank=2,
-        ).collect()
+        )
+        # I1: best_rank=2 → win. I2: best_rank=1 → win. Both win.
+        assert counts == {"wins": 2, "losses": 0, "total": 2}
 
-        assert "Action" in result.columns
-        assert "Decisions" in result.columns
-
-    def test_winning_from_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
-        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
-        with pytest.raises(ValueError, match="win_rank must be provided"):
-            da_win_loss_boundary_tiny.winning_from(
-                interactions=interactions,
-                groupby_cols=["Action"],
-                top_k=10,
+    def test_win_loss_counts_sum_equals_total(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        for n in [1, 2, 3, 10]:
+            counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+                group_filter=selected_group_filter,
+                win_rank=n,
             )
-
-    def test_losing_to_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
-        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
-        with pytest.raises(ValueError, match="win_rank must be provided"):
-            da_win_loss_boundary_tiny.losing_to(
-                interactions=interactions,
-                groupby_cols=["Action"],
-                top_k=10,
-            )
+            assert counts["wins"] + counts["losses"] == counts["total"]
 
 
 # ---------------------------------------------------------------------------

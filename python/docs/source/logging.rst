@@ -88,3 +88,28 @@ If you're extending pdstools or writing custom analysis code, follow the same pa
         logger.info("Analysis complete")
         logger.warning("Found unexpected values in column X")
         logger.error("Failed to compute metric Y")
+
+
+Streamlit Live Reload
+---------------------
+
+By default, Streamlit's "Source file changed" banner only appears when page
+files are edited. During development in an editable install, you usually
+also want the banner to trigger when library or data-class code changes.
+
+The repository includes a ``.streamlit/config.toml`` that extends the file
+watcher to cover the entire ``python/pdstools`` tree:
+
+.. code-block:: toml
+
+    [server]
+    folderWatchList = ["./python/pdstools"]
+
+This takes effect automatically when you launch an app from the repository
+root (e.g. ``pdstools decision_analyzer``). If you run from a different
+working directory, point the path to the absolute location of your checkout
+or pass it on the command line:
+
+.. code-block:: bash
+
+    pdstools decision_analyzer -- --server.folderWatchList '["<path>/python/pdstools"]'

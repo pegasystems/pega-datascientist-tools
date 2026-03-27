@@ -221,17 +221,18 @@ def _render_column_selector(
     columns: list[str],
     filter_type: str,
     selector_label: str = "Filter data on",
+    sort_columns: bool = True,
 ) -> list[str]:
     """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
         st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
-    sorted_columns = sorted(columns, key=str.casefold)
+    options = sorted(columns, key=str.casefold) if sort_columns else columns
     st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(f"{filter_type}multiselect", [])
     return st.multiselect(
         selector_label,
-        sorted_columns,
+        options,
         key=f"{filter_type}_multiselect",
         on_change=_save_multiselect,
     )
@@ -376,6 +377,7 @@ def get_data_filters(
     filter_type="local",
     default_select_all_categories: bool = True,
     selector_label: str = "Filter data on",
+    sort_columns: bool = True,
 ) -> list[pl.Expr]:
     """Build filter expressions via interactive Streamlit widgets.
 
@@ -396,13 +398,22 @@ def get_data_filters(
         categorical selections start empty and users add values explicitly.
     selector_label : str, default "Filter data on"
         Label shown above the column selector multiselect.
+    sort_columns : bool, default True
+        If True, columns are sorted alphabetically. If False, the order
+        of *columns* is preserved.
     """
     if columns is None:
         columns = df.collect_schema().names()
     if queries is None:
         queries = []
 
-    to_filter_columns = _render_column_selector(df, columns, filter_type, selector_label)
+    to_filter_columns = _render_column_selector(
+        df,
+        columns,
+        filter_type,
+        selector_label,
+        sort_columns=sort_columns,
+    )
 
     for column in to_filter_columns:
         left, right = st.columns((1, 20))

@@ -1215,6 +1215,8 @@ class DecisionAnalyzer:
                 how="inner",
             ).filter(pl.col("Rank") < pl.col("selected_group_best_rank"))
 
+        n_interactions = comparison_rows.select(pl.n_unique("Interaction ID")).collect().item()
+
         distribution = (
             comparison_rows.group_by(level)
             .agg(Decisions=pl.len())
@@ -1223,6 +1225,15 @@ class DecisionAnalyzer:
         )
         if top_k is not None:
             distribution = distribution.head(top_k)
+
+        if n_interactions > 0:
+            distribution = distribution.with_columns(
+                (pl.col("Decisions") / pl.lit(n_interactions)).round(1).alias("Avg per Decision"),
+            )
+        else:
+            distribution = distribution.with_columns(
+                pl.lit(0.0).alias("Avg per Decision"),
+            )
 
         return distribution
 
@@ -1910,15 +1921,93 @@ class DecisionAnalyzer:
             .select(pl.col("Interaction ID").unique())
         )
 
-    def winning_from(
+    def get_win_loss_counts(
         self,
-        interactions,
-        groupby_cols,
-        top_k,
-        additional_filters=None,
+        group_filter: pl.Expr | list[pl.Expr],
+        win_rank: int = 1,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> dict[str, int]:
+        """Count wins and losses for the comparison group at a given rank threshold.
+
+        A **win** is an interaction where at least one member of the comparison
+        group achieves a rank of *win_rank* or better (lower). A **loss** is
+        any interaction where the group participates but none rank that high.
+
+        Parameters
+        ----------
+        group_filter
+            Filter expression(s) defining the comparison group.
+        win_rank
+            Rank threshold. The group "wins" when its best rank <= win_rank.
+        additional_filters
+            Optional extra filters (e.g. channel/direction).
+
+        Returns
+        -------
+        dict with keys ``"wins"``, ``"losses"``, ``"total"``.
+        """
+        boundaries = self.get_selected_group_rank_boundaries(
+            group_filter=group_filter,
+            additional_filters=additional_filters,
+        )
+        counts = boundaries.select(
+            wins=(pl.col("selected_group_best_rank") <= win_rank).sum(),
+            losses=(pl.col("selected_group_best_rank") > win_rank).sum(),
+            total=pl.len(),
+        ).collect()
+
+        row = counts.row(0, named=True)
+        return {"wins": row["wins"], "losses": row["losses"], "total": row["total"]}
+
+    def get_win_loss_distributions(
+        self,
+        interactions_win: pl.LazyFrame,
+        interactions_loss: pl.LazyFrame,
+        groupby_cols: list[str],
+        top_k: int,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         group_filter: pl.Expr | list[pl.Expr] | None = None,
         win_rank: int | None = None,
-    ):
+    ) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+        """Distribution of actions the comparison group wins from and loses to.
+
+        Computes two aggregated distributions in a single pass over the
+        stage-filtered data:
+
+        * **winning_from**: actions ranked below the comparison group (i.e.
+          actions it beats).
+        * **losing_to**: actions ranked above the comparison group (i.e.
+          actions that beat it).
+
+        Either *group_filter* or *win_rank* must be provided to define the
+        rank boundary.  When *group_filter* is given the boundary is the
+        per-interaction best/worst rank of the selected group.  When only
+        *win_rank* is given a fixed rank threshold is used instead.
+
+        Parameters
+        ----------
+        interactions_win
+            Interaction IDs where the comparison group wins (from
+            ``get_winning_or_losing_interactions(win=True)``).
+        interactions_loss
+            Interaction IDs where the comparison group loses (from
+            ``get_winning_or_losing_interactions(win=False)``).
+        groupby_cols
+            Columns to group by (e.g. ``["Action"]``).
+        top_k
+            Return only the top-k entries per distribution.
+        additional_filters
+            Optional extra filters (e.g. channel/direction).
+        group_filter
+            Filter expression(s) defining the comparison group.
+        win_rank
+            Fixed rank threshold. Required when *group_filter* is ``None``.
+
+        Returns
+        -------
+        tuple of (winning_from, losing_to), both ``pl.LazyFrame`` with
+        columns from *groupby_cols* plus ``Decisions``.
+        """
         stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
             pl.col(self.level).is_in(self.stages_from_arbitration_down)
         )
@@ -1926,72 +2015,28 @@ class DecisionAnalyzer:
         if group_filter is None:
             if win_rank is None:
                 raise ValueError("win_rank must be provided when group_filter is None.")
-            comparison_rows = stage_filtered_data.filter(pl.col("Rank") > win_rank)
+            win_rows = stage_filtered_data.filter(pl.col("Rank") > win_rank)
+            loss_rows = stage_filtered_data.filter(pl.col("Rank") < win_rank)
         else:
-            selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+            boundaries = self.get_selected_group_rank_boundaries(
                 group_filter=group_filter,
                 additional_filters=additional_filters,
             )
-            comparison_rows = stage_filtered_data.join(
-                selected_group_rank_boundaries,
-                on="Interaction ID",
-                how="inner",
-            ).filter(pl.col("Rank") > pl.col("selected_group_worst_rank"))
+            joined = stage_filtered_data.join(boundaries, on="Interaction ID", how="inner")
+            win_rows = joined.filter(pl.col("Rank") > pl.col("selected_group_worst_rank"))
+            loss_rows = joined.filter(pl.col("Rank") < pl.col("selected_group_best_rank"))
 
-        winning_from = (
-            comparison_rows.join(
-                interactions,
-                on="Interaction ID",
-                how="inner",
+        def _aggregate(rows: pl.LazyFrame, interactions: pl.LazyFrame) -> pl.LazyFrame:
+            return (
+                rows.join(interactions, on="Interaction ID", how="inner")
+                .group_by(groupby_cols)
+                .agg(Decisions=pl.len())
+                .sort("Decisions", descending=True)
+                .filter(pl.col("Decisions") > 0)
+                .head(top_k)
             )
-            .group_by(groupby_cols)
-            .agg(Decisions=pl.len())
-            .sort("Decisions", descending=True)
-            .filter(pl.col("Decisions") > 0)
-            .head(top_k)
-        )
-        return winning_from
 
-    def losing_to(
-        self,
-        interactions,
-        groupby_cols,
-        top_k,
-        additional_filters=None,
-        group_filter: pl.Expr | list[pl.Expr] | None = None,
-        win_rank: int | None = None,
-    ):
-        stage_filtered_data = apply_filter(self.sample, additional_filters).filter(
-            pl.col(self.level).is_in(self.stages_from_arbitration_down)
-        )
-
-        if group_filter is None:
-            if win_rank is None:
-                raise ValueError("win_rank must be provided when group_filter is None.")
-            comparison_rows = stage_filtered_data.filter(pl.col("Rank") < win_rank)
-        else:
-            selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
-                group_filter=group_filter,
-                additional_filters=additional_filters,
-            )
-            comparison_rows = stage_filtered_data.join(
-                selected_group_rank_boundaries,
-                on="Interaction ID",
-                how="inner",
-            ).filter(pl.col("Rank") < pl.col("selected_group_best_rank"))
-
-        return (
-            comparison_rows.join(
-                interactions,
-                on="Interaction ID",
-                how="inner",
-            )
-            .group_by(groupby_cols)
-            .agg(Decisions=pl.len())
-            .sort("Decisions", descending=True)
-            .filter(pl.col("Decisions") > 0)
-            .head(top_k)
-        )
+        return _aggregate(win_rows, interactions_win), _aggregate(loss_rows, interactions_loss)
 
     def get_win_distribution_data(
         self,
