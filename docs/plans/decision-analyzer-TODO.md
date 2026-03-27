@@ -28,6 +28,11 @@ Active work items for the Decision Analysis Tool.
 - ✅ Action Funnel redesign — three tabs (Passing, Filtered, Decisions w/o Actions), funnel summary table, unified component analysis
 - ✅ Design principle: decisions shown as % of total, actions as avg/decision, "Interactions" → "Decisions" throughout UI
 - ✅ Offer Variation section moved from Optionality to Offer Quality page
+- ✅ Docstrings and type annotations for all public methods
+- ✅ Rename `get_overview_stats` → `overview_stats` (cached_property, backward-compat alias)
+- ✅ Merge `get_optionality_data` + `get_optionality_data_with_trend` into single method with `by_day` param
+- ✅ Privatize `winning_from`/`losing_to` → `_winning_from`/`_losing_to`
+- ✅ Standardize `get_sensitivity` parameter `filters` → `group_filter`
 
 ---
 
@@ -48,6 +53,10 @@ Active work items for the Decision Analysis Tool.
 - [ ] **[P1] Handle Mandatory Actions** — Mandatory actions use special arbitration priority (4999999+) that bypasses normal ranking. **Consequence:** Sensitivity analyses are skewed because mandatory actions never change rank regardless of lever adjustments; win/loss distributions are misleading (mandatory wins look like normal wins); users cannot distinguish mandatory from competitive arbitration outcomes; lever recommendations may be wrong. **Status:** `DecisionAnalyzer` already accepts a `mandatory_expr` parameter to tag issue/group/action combinations as mandatory at init time, and ranking sorts by `is_mandatory` field before Priority. **Remaining work:** (1) Auto-detect from priority value in data (instead of requiring explicit expression), (2) Flag/annotate mandatory actions in all UI visualizations with distinct color/marker, (3) Exclude from sensitivity analysis or show separately, (4) Consider separate treatment in component distributions and win/loss analyses. See [Pega docs: NBA Strategy Arbitration](https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/nba-strategy-arbitration.html).
 
 - [ ] **[P2] Distinct propensity display names** — `column_schema.py` maps model propensity and (final) propensity to same display name. **Consequence:** Users cannot distinguish between raw model output and arbitration-adjusted propensity in UI; confusing for lever analysis where the distinction matters (model propensity is input, final propensity is after lever adjustments); charts and tables ambiguous. **Action:** Use "Model Propensity" for raw model output vs "Final Propensity" for arbitration-adjusted value, update `column_schema.py` and all PVCL references.
+
+- [ ] **[P2] Rename camelCase methods to snake_case** — Several public methods still use camelCase (`getDistributionData`, `getFunnelData`, `getThresholdingData`, `getPreaggregatedFilterView`, `getPreaggregatedRemainingView`, `getActionVariationData`, `reRank`, etc.). **Consequence:** Inconsistent API surface — newer methods use snake_case, older ones use camelCase; violates PEP 8; confusing for contributors and users. **Action:** Rename each to snake_case equivalent (e.g. `get_distribution_data`), add backward-compat aliases with deprecation warnings, update all callers (app pages, plots, tests, notebooks). Do in a single focused PR to control blast radius.
+
+- [ ] **[P2] Consolidate win/loss methods** — Win/loss analysis currently has four related methods with overlapping responsibilities: `_winning_from`, `_losing_to` (per-direction helpers), `get_win_loss_distribution_data` (rank-based distributions), and `get_win_loss_distributions` (combined wrapper using group-filter boundaries). **Consequence:** Callers must choose between multiple APIs that do similar things; `_winning_from`/`_losing_to` duplicate most of their logic (only the rank comparison operator differs); confusing for contributors. **Action:** Merge `_winning_from`/`_losing_to` into a single private helper with a `direction` parameter; review whether `get_win_loss_distribution_data` and `get_win_loss_distributions` can be unified or whether they serve genuinely different use cases (fixed rank vs group-filter boundaries); simplify the public API to at most two methods.
 
 ### Low Priority
 
