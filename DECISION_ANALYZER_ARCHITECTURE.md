@@ -214,7 +214,7 @@ getComponentDrilldown(component_name, additional_filters) → pl.DataFrame
 getComponentActionImpact(top_n, scope, additional_filters) → pl.DataFrame
 
 # Analysis data
-get_overview_stats() → dict[str, ...]
+overview_stats → dict[str, ...]  (also available as get_overview_stats for backward compat)
 get_win_loss_distribution_data(level, win_rank, additional_filters) → pl.LazyFrame
 get_optionality_data(df) → dict[str, ...]
 get_optionality_funnel(df) → ...

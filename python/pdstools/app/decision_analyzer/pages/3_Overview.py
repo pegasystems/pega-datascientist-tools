@@ -64,7 +64,7 @@ with col1:
     )
     st.caption(f"Data format: **{format_label}**")
 
-    overview = st.session_state.decision_data.get_overview_stats
+    overview = st.session_state.decision_data.overview_stats
 
     f"""
     In total, there are **{overview["Actions"]} actions** available in **{overview["Channels"]} channels**. The data

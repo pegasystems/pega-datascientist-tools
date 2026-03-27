@@ -209,7 +209,7 @@ def _show_data_summary(da):
         else "**Action Analysis / EEV2 (v2)** — full pipeline"
     )
 
-    overview = da.get_overview_stats
+    overview = da.overview_stats
     rows = da.decision_data.select(pl.len()).collect().item()
     summary = (
         f"Data loaded successfully. Detected format: {format_label}\n\n"

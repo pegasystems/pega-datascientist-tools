@@ -63,7 +63,7 @@ class DecisionAnalyzer:
     --------
     >>> from pdstools import DecisionAnalyzer
     >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
-    >>> da.get_overview_stats
+    >>> da.overview_stats
     >>> da.plot.sensitivity()
     """
 
@@ -542,7 +542,8 @@ class DecisionAnalyzer:
         return warnings[0] if warnings else None
 
     @cached_property
-    def arbitration_stage(self):
+    def arbitration_stage(self) -> pl.LazyFrame:
+        """Sample rows remaining at or after the Arbitration stage."""
         return self.sample.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
 
     @property
@@ -573,15 +574,25 @@ class DecisionAnalyzer:
         self._thresholding_cache.clear()
         self._sensitivity_cache.clear()
 
-    def applyGlobalDataFilters(self, filters: pl.Expr | list[pl.Expr] | None = None):
-        """
-        Apply a global set of filters
+    def applyGlobalDataFilters(self, filters: pl.Expr | list[pl.Expr] | None = None) -> None:
+        """Apply global filters to the decision data.
+
+        Replaces ``decision_data`` with a filtered subset of
+        ``unfiltered_raw_decision_data`` and invalidates all cached
+        properties so downstream queries reflect the new filter.
+
+        Parameters
+        ----------
+        filters : pl.Expr or list of pl.Expr, optional
+            Filter expression(s) applied to the raw data.
+            If ``None``, no change is made.
         """
         self._invalidate_cached_properties()
         if filters is not None:
             self.decision_data = apply_filter(self.unfiltered_raw_decision_data, filters)
 
-    def resetGlobalDataFilters(self):
+    def resetGlobalDataFilters(self) -> None:
+        """Remove all global filters, restoring the full dataset."""
         self.decision_data = self.unfiltered_raw_decision_data
         self._invalidate_cached_properties()
 
@@ -756,7 +767,14 @@ class DecisionAnalyzer:
 
         return self.sample
 
-    def getAvailableFieldsForFiltering(self, categoricalOnly=False):
+    def getAvailableFieldsForFiltering(self, categoricalOnly=False) -> list[str]:
+        """Return column names available for data filtering.
+
+        Parameters
+        ----------
+        categoricalOnly : bool, default False
+            If True, return only string/categorical columns.
+        """
         if not categoricalOnly:
             return list(self.fields_for_data_filtering)
 
@@ -826,11 +844,13 @@ class DecisionAnalyzer:
         )
         return preproc_df
 
-    def getPossibleScopeValues(self):
+    def getPossibleScopeValues(self) -> list[str]:
+        """Return scope hierarchy columns present in the data (e.g. Issue, Group, Action)."""
         available = set(self.decision_data.collect_schema().names())
         return [col for col in SCOPE_HIERARCHY if col in available]
 
-    def getPossibleStageValues(self):
+    def getPossibleStageValues(self) -> list[str]:
+        """Return the list of available stage values for the current level."""
         options = self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
         # [
@@ -866,6 +886,22 @@ class DecisionAnalyzer:
         grouping_levels: str | list[str],
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
+        """Distribution of decisions by grouping columns at a given stage.
+
+        Parameters
+        ----------
+        stage : str
+            Stage to filter on.
+        grouping_levels : str or list of str
+            Column(s) to group by (e.g. ``"Action"`` or ``["Channel", "Action"]``).
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Columns from *grouping_levels* plus ``Decisions``, sorted descending.
+        """
         distribution_data = (
             apply_filter(self.getPreaggregatedRemainingView, additional_filters)
             .filter(pl.col(self.level) == stage)
@@ -1073,7 +1109,24 @@ class DecisionAnalyzer:
         )
         return summary
 
-    def getFilterComponentData(self, top_n, additional_filters: pl.Expr | list[pl.Expr] | None = None) -> pl.DataFrame:
+    def getFilterComponentData(
+        self, top_n: int, additional_filters: pl.Expr | list[pl.Expr] | None = None
+    ) -> pl.DataFrame:
+        """Top-N filter components per stage, ranked by filtered-decision count.
+
+        Parameters
+        ----------
+        top_n : int
+            Maximum number of components to return per stage.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns include the stage level, Component Name, and
+            Filtered Decisions.
+        """
         group_cols = [self.level, "Component Name"]
         available = set(self.getPreaggregatedFilterView.collect_schema().names())
         if "Component Type" in available:
@@ -1230,8 +1283,26 @@ class DecisionAnalyzer:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         overrides: list[pl.Expr] = [],
     ) -> pl.LazyFrame:
-        """
-        Calculates prio and rank for all PVCL combinations
+        """Recalculate priority and rank for all PVCL component combinations.
+
+        Computes five alternative priority scores by selectively dropping one
+        component at a time (Propensity, Value, Context Weight, Levers) and
+        ranks actions within each interaction for each variant.  This is the
+        foundation for sensitivity analysis.
+
+        Parameters
+        ----------
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Filters applied to the sample before ranking.
+        overrides : list of pl.Expr, optional
+            Column override expressions applied before priority calculation
+            (e.g. to simulate lever adjustments).
+
+        Returns
+        -------
+        pl.LazyFrame
+            Sample data augmented with ``prio_*`` and ``rank_*`` columns
+            for each PVCL variant.
         """
         rank_exprs = [
             pl.struct(
@@ -1311,13 +1382,42 @@ class DecisionAnalyzer:
     # TODO consider making this more generic by returning all rank views in one pass.
     def get_win_loss_distribution_data(
         self,
-        level,
+        level: str | list[str],
         win_rank: int | None = None,
-        additional_filters=None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
         group_filter: pl.Expr | list[pl.Expr] | None = None,
         status: Literal["Wins", "Losses"] | None = None,
         top_k: int | None = None,
-    ):
+    ) -> pl.LazyFrame:
+        """Win/loss distribution at a given scope level.
+
+        Operates in two modes depending on whether *group_filter* is provided:
+
+        * **Without group_filter** (rank-based): uses pre-aggregated data and
+          a fixed *win_rank* threshold to split wins/losses.
+        * **With group_filter** (group-based): uses sample data and
+          per-interaction rank boundaries of the selected group to identify
+          actions it beats (*Wins*) or loses to (*Losses*).
+
+        Parameters
+        ----------
+        level : str or list of str
+            Column(s) to group the distribution by (e.g. ``"Action"``).
+        win_rank : int, optional
+            Fixed rank threshold (required when *group_filter* is ``None``).
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied before aggregation.
+        group_filter : pl.Expr or list of pl.Expr, optional
+            Filter defining the comparison group.
+        status : {"Wins", "Losses"}, optional
+            Required when *group_filter* is provided.
+        top_k : int, optional
+            Limit the number of rows returned (group_filter mode only).
+
+        Returns
+        -------
+        pl.LazyFrame
+        """
         if group_filter is None:
             if win_rank is None:
                 raise ValueError("win_rank must be provided when group_filter is None.")
@@ -1544,7 +1644,21 @@ class DecisionAnalyzer:
         return optionality_data
 
     # @cached_property
-    def get_optionality_funnel(self, df=None):
+    def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
+        """Optionality funnel: interaction counts bucketed by available-action count.
+
+        Buckets action counts into 0–6 and 7+, then counts interactions per
+        stage and bucket.  Used by the optionality funnel chart.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame, optional
+            Input data.  Defaults to :attr:`sample`.
+
+        Returns
+        -------
+        pl.LazyFrame
+        """
         if df is None:
             df = self.sample
         optionality_funnel = (
@@ -1683,8 +1797,16 @@ class DecisionAnalyzer:
 
         return result.lazy()
 
-    # TODO: figure out how to main standard stage order, for now simply solved by sorting on counts
-    def getABTestResults(self):
+    # TODO: figure out how to maintain standard stage order, for now simply solved by sorting on counts
+    def getABTestResults(self) -> pl.DataFrame:
+        """A/B test summary: control vs test counts and control percentage per stage.
+
+        Returns
+        -------
+        pl.DataFrame
+            One row per stage with columns for Control, Test counts and
+            Control Percentage.
+        """
         tbl = (
             self.getPreaggregatedRemainingView.group_by(
                 # TODO: we should include all the IA properties but they're not populated currently
@@ -1703,7 +1825,25 @@ class DecisionAnalyzer:
         )
         return tbl
 
-    def getThresholdingData(self, fld, quantile_range=range(10, 100, 10)):
+    def getThresholdingData(self, fld: str, quantile_range=range(10, 100, 10)) -> pl.DataFrame:
+        """Quantile-based thresholding analysis at Arbitration.
+
+        Computes counts and threshold values at each quantile for the given
+        field (*fld*).  Results are cached per ``(fld, quantile_range)``.
+
+        Parameters
+        ----------
+        fld : str
+            Column name to compute quantiles for (e.g. ``"Propensity"``).
+        quantile_range : range, default ``range(10, 100, 10)``
+            Percentile breakpoints to compute.
+
+        Returns
+        -------
+        pl.DataFrame
+            Long-format table with columns ``Decile``, ``Count``,
+            ``Threshold``, and the stage-level column.
+        """
         cache_key = (fld, tuple(quantile_range))
         if cache_key in self._thresholding_cache:
             return self._thresholding_cache[cache_key]
@@ -1903,22 +2043,26 @@ class DecisionAnalyzer:
         ]
         return df.group_by(groupby_cols).agg(no_of_offers=pl.count("Action"), *propensity_classifying_expr)
 
-    def get_offer_quality(self, df, group_by):
-        """
-        Given a dataframe with filtered action counts at stages.
-        Flips it to usual VF view by doing a rolling sum over stages.
+    def get_offer_quality(self, df: pl.LazyFrame, group_by: str | list[str]) -> pl.LazyFrame:
+        """Cumulative offer-quality breakdown across stages.
+
+        Takes a filtered-action-counts frame (from :meth:`filtered_action_counts`)
+        and converts it to a remaining-per-stage view, joining in customers
+        that have zero actions so they are counted as well.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            Decision Analyzer style filtered action counts dataframe.
-        groupby_cols : list
-            The list of column names to group by([self.level, "Interaction ID"]).
+            Filtered action counts with columns ``no_of_offers``,
+            ``new_models``, ``poor_propensity_offers``, etc.
+        group_by : str or list of str
+            Columns to group by (e.g. ``["Interaction ID"]``).
 
         Returns
         -------
         pl.LazyFrame
-            Value Finder style, available action counts per group_by category
+            Per-stage quality classification with boolean flag columns
+            (``has_no_offers``, ``atleast_one_relevant_action``, etc.).
         """
         # Get all unique customers/interactions from the sample to ensure we count those with no actions
         if isinstance(group_by, str):
@@ -1985,7 +2129,7 @@ class DecisionAnalyzer:
         return stage_df
 
     @cached_property
-    def get_overview_stats(self):
+    def overview_stats(self) -> dict[str, object]:
         """Creates an overview from the full (filtered) dataset.
 
         Aggregate metrics (Decisions, Customers, Actions, Channels, Duration)
@@ -2050,6 +2194,11 @@ class DecisionAnalyzer:
         )
 
         return {k: kpis[k].item() for k in kpis.columns}
+
+    @property
+    def get_overview_stats(self) -> dict[str, object]:
+        """Backward-compatible alias for :attr:`overview_stats`."""
+        return self.overview_stats
 
     def get_sensitivity(self, win_rank=1, filters=None, additional_filters=None):
         """Global or local sensitivity of the prioritization factors.
@@ -2126,7 +2275,20 @@ class DecisionAnalyzer:
                 self._sensitivity_cache[win_rank] = sensitivity
         return sensitivity
 
-    def get_offer_variability_stats(self, stage):
+    def get_offer_variability_stats(self, stage: str) -> dict[str, float]:
+        """Summary statistics for action variation at a stage.
+
+        Parameters
+        ----------
+        stage : str
+            Stage to analyse.
+
+        Returns
+        -------
+        dict
+            ``n90`` — number of actions covering 90 % of decisions.
+            ``gini`` — Gini coefficient of decision concentration.
+        """
         offer_variability_data = self.getActionVariationData(stage)
         return {
             "n90": bisect_left(
@@ -2142,7 +2304,31 @@ class DecisionAnalyzer:
             ),
         }
 
-    def get_winning_or_losing_interactions(self, group_filter, win: bool, additional_filters=None):
+    def get_winning_or_losing_interactions(
+        self,
+        group_filter: pl.Expr | list[pl.Expr],
+        win: bool,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
+        """Interaction IDs where the comparison group wins or loses.
+
+        Parameters
+        ----------
+        group_filter : pl.Expr or list of pl.Expr
+            Filter defining the comparison group.
+        win : bool
+            If True, return interactions where the group wins (there are
+            lower-ranked actions outside the group).  If False, return
+            interactions where the group loses (there are higher-ranked
+            actions outside the group).
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters (e.g. channel filter).
+
+        Returns
+        -------
+        pl.LazyFrame
+            Single-column frame of unique ``Interaction ID`` values.
+        """
         selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
             group_filter=group_filter,
             additional_filters=additional_filters,
@@ -2436,6 +2622,22 @@ class DecisionAnalyzer:
         scope: Literal["Group", "Issue", "Action"] | None = "Group",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.DataFrame:
+        """Daily trend of unique decisions from a given stage onward.
+
+        Parameters
+        ----------
+        stage : str, default "AvailableActions"
+            Starting stage; all stages from this point onward are included.
+        scope : {"Group", "Issue", "Action"} or None, default "Group"
+            Optional grouping dimension.  If ``None``, returns totals by day.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Extra filters applied to the sample.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns: ``day``, optionally *scope*, and ``Decisions``.
+        """
         stages = self.AvailableNBADStages[self.AvailableNBADStages.index(stage) :]
         group_by = ["day"] if scope is None else ["day", scope]
 
