@@ -1,0 +1,1367 @@
+---
+title: "ADM Health Check"
+subtitle: "Agent-Ready Format"
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+    wrap: none
+jupyter: python3
+execute:
+  echo: false
+---
+
+```{python}
+#| output: false
+
+import logging, sys, math, datetime
+
+logging.disable()
+
+from pdstools import datasets, ADMDatamart, Prediction, read_ds_export
+from pdstools.utils import report_utils, cdh_utils
+from pdstools.utils.metric_limits import MetricLimits
+import polars as pl
+import polars.selectors as cs
+```
+
+```{python}
+#| tags: [parameters]
+#| output: false
+
+title = "ADM Model Overview"
+disclaimer = ""
+subtitle = "Sample Data"
+
+model_file_path = None
+predictor_file_path = None
+prediction_file_path = None
+query = None
+
+tables_max_rows = 200
+barchart_max_bars = 20
+responsecount_analysis_threshold = 100
+predictor_analysis_threshold = 200
+configuration_responses_threshold = 10000
+threshold_updated_days = 30
+```
+
+```{python}
+#| output: false
+
+# ── Handle YAML string "None" ──────────────────────────────────────────────
+if model_file_path and model_file_path == "None":
+    model_file_path = None
+if predictor_file_path and predictor_file_path == "None":
+    predictor_file_path = None
+if prediction_file_path and prediction_file_path == "None":
+    prediction_file_path = None
+if query and query == "None":
+    query = None
+
+query = report_utils.deserialize_query(query)
+
+
+# ── Formatting helpers ──────────────────────────────────────────────────────
+
+def fmt_pct(v, decimals=3):
+    if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+        return "N/A"
+    return f"{v * 100:.{decimals}f}%"
+
+
+def fmt_perf(v):
+    if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+        return "N/A"
+    return f"{v * 100:.1f}"
+
+
+def fmt_int(v):
+    if v is None:
+        return "N/A"
+    return f"{int(v):,}"
+
+
+def fmt_val(v):
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return "Yes" if v else "No"
+    if isinstance(v, float):
+        if math.isnan(v) or math.isinf(v):
+            return ""
+        if abs(v) >= 10000:
+            return f"{v:,.0f}"
+        if abs(v) >= 1:
+            return f"{v:,.2f}"
+        if v == 0:
+            return "0"
+        return f"{v:.4f}"
+    if isinstance(v, list):
+        return ", ".join(str(x) for x in v[:5])
+    if isinstance(v, datetime.date):
+        return v.strftime("%d-%b-%Y")
+    return str(v)
+
+
+def df_to_md(df, max_rows=100):
+    """Convert Polars DataFrame to a markdown table."""
+    if df is None or df.height == 0:
+        return "*No data available.*\n"
+    truncated = df.height > max_rows
+    show_df = df.head(max_rows) if truncated else df
+    cols = show_df.columns
+    header = "| " + " | ".join(cols) + " |"
+    sep = "| " + " | ".join("---" for _ in cols) + " |"
+    rows = []
+    for row in show_df.iter_rows():
+        rows.append("| " + " | ".join(fmt_val(v) for v in row) + " |")
+    result = "\n".join([header, sep] + rows)
+    if truncated:
+        result += f"\n\n*Showing first {max_rows} of {df.height} rows.*"
+    return result + "\n"
+
+
+def rag_icon(metric_id, value):
+    status = MetricLimits.evaluate_metric_rag(metric_id, value)
+    return {"RED": "❌", "AMBER": "⚠️", "GREEN": "✅"}.get(status, "—")
+
+
+from pdstools.adm.Analysis import _gini as gini
+
+
+# ── Data loading ────────────────────────────────────────────────────────────
+
+def reset_datamart(dm):
+    global datamart, last_data, datamart_all_columns
+    datamart = dm
+    last_data = (
+        dm.aggregates.last()
+        .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+        .with_columns(
+            [
+                pl.col(pl.Utf8).fill_null("NA"),
+                pl.col(pl.Null).fill_null("NA"),
+                pl.col("SuccessRate").fill_nan(0).fill_null(0),
+                pl.col("Performance").fill_nan(0).fill_null(0),
+                pl.col("ResponseCount").fill_null(0),
+                pl.concat_str(
+                    "Channel/Direction".split("/"), separator="/"
+                ).alias("Channel/Direction"),
+            ]
+        )
+    ).collect()
+    if dm.predictor_data is not None:
+        datamart_all_columns = dm.combined_data.collect_schema().names()
+    else:
+        datamart_all_columns = dm.model_data.collect_schema().names()
+
+
+if model_file_path is not None:
+    reset_datamart(
+        ADMDatamart.from_ds_export(
+            model_filename=model_file_path,
+            predictor_filename=predictor_file_path,
+            base_path=".",
+            query=query,
+        )
+    )
+else:
+    reset_datamart(datasets.cdh_sample())
+
+# Load prediction data
+prediction = None
+if prediction_file_path:
+    prediction_data = read_ds_export(prediction_file_path)
+    schema = prediction_data.collect_schema()
+    if "pyModelType" in schema.names():
+        prediction = Prediction(prediction_data)
+    else:
+        prediction = Prediction.from_processed_data(prediction_data)
+
+# Active models threshold
+active_models_threshold_date_expr = (
+    pl.col("LastUpdate").max() - datetime.timedelta(days=threshold_updated_days)
+)
+active_models_filter_expr = (
+    pl.col("LastUpdate") > active_models_threshold_date_expr
+).fill_null(True)
+
+active_models_threshold_date_string = (
+    datamart.model_data.select(
+        active_models_threshold_date_expr.dt.strftime("%v")
+    )
+    .collect()
+    .item()
+    .strip()
+)
+
+responsecount_analysis_query = (
+    pl.col("ResponseCount") > responsecount_analysis_threshold
+)
+predictor_analysis_query = (
+    pl.col("ResponseCountBin") > predictor_analysis_threshold
+)
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# EXECUTIVE SUMMARY
+# ════════════════════════════════════════════════════════════════════════════
+
+total_models = last_data.select(pl.col("ModelID").n_unique()).item()
+active_models = (
+    last_data.filter(active_models_filter_expr)
+    .select(pl.col("ModelID").n_unique())
+    .item()
+)
+total_responses = int(last_data.select(pl.sum("ResponseCount")).item())
+total_positives = int(last_data.select(pl.sum("Positives")).item())
+overall_ctr = total_positives / total_responses if total_responses > 0 else 0
+avg_performance = (
+    last_data.filter(active_models_filter_expr)
+    .select(
+        cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+    )
+    .item()
+)
+n_channels = report_utils.n_unique_values(
+    datamart, datamart_all_columns, ["Channel", "Direction"]
+)
+n_actions = report_utils.n_unique_values(datamart, datamart_all_columns, "Name")
+n_treatments = report_utils.n_unique_values(
+    datamart, datamart_all_columns, "Treatment"
+)
+has_predictors = datamart.predictor_data is not None
+has_predictions = prediction is not None
+
+date_range = datamart.model_data.select(
+    pl.col("SnapshotTime").min().alias("start"),
+    pl.col("SnapshotTime").max().alias("end"),
+).collect()
+date_start = date_range["start"].item()
+date_end = date_range["end"].item()
+
+print(f"# {title}\n")
+if subtitle:
+    print(f"## {subtitle}\n")
+if disclaimer:
+    print(f"> **⚠️ {disclaimer}**\n")
+
+print("## Executive Summary\n")
+print(f"| Metric | Value | Status |")
+print(f"| --- | --- | --- |")
+print(f"| Total Models (latest snapshot) | {fmt_int(total_models)} | |")
+print(f"| Active Models (updated since {active_models_threshold_date_string}) | {fmt_int(active_models)} | |")
+print(f"| Channels | {n_channels} | |")
+print(f"| Actions | {fmt_int(n_actions)} | {rag_icon('ActionCount', n_actions)} |")
+print(f"| Treatments | {fmt_int(n_treatments)} | |")
+print(f"| Total Responses | {fmt_int(total_responses)} | |")
+print(f"| Total Positives | {fmt_int(total_positives)} | |")
+print(f"| Overall CTR | {fmt_pct(overall_ctr)} | |")
+print(f"| Average Model Performance (AUC) | {fmt_perf(avg_performance)} | {rag_icon('ModelPerformance', avg_performance)} |")
+date_start_str = date_start.strftime("%d-%b-%Y") if date_start else "N/A"
+date_end_str = date_end.strftime("%d-%b-%Y") if date_end else "N/A"
+print(f"| Data Period | {date_start_str} to {date_end_str} | |")
+print(f"| Predictor Data Available | {'Yes' if has_predictors else 'No'} | |")
+print(f"| Prediction Data Available | {'Yes' if has_predictions else 'No'} | |")
+print(f"| Inactive Threshold | {threshold_updated_days} days | |")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# AUTOMATED FINDINGS (via datamart.analysis)
+# ════════════════════════════════════════════════════════════════════════════
+
+all_findings = datamart.analysis.findings(
+    active_filter=active_models_filter_expr,
+    active_threshold_days=threshold_updated_days,
+    prediction=prediction,
+)
+
+critical = [f for f in all_findings if f.severity == "critical"]
+warnings = [f for f in all_findings if f.severity == "warning"]
+info = [f for f in all_findings if f.severity == "info"]
+
+print("## Automated Findings\n")
+print(f"*{len(all_findings)} findings across {len(set(f.category for f in all_findings))} categories.*\n")
+print("> **Status indicators:** ❌ = critical, ⚠️ = warning, ℹ️ = observation\n")
+
+if critical:
+    print("### ❌ Critical Issues\n")
+    for f in critical:
+        print(f"- **{f.title}** — {f.detail}")
+    print()
+
+if warnings:
+    print("### ⚠️ Warnings\n")
+    for f in warnings:
+        print(f"- **{f.title}** — {f.detail}")
+    print()
+
+if info:
+    print("### ℹ️ Observations\n")
+    for f in info:
+        print(f"- **{f.title}** — {f.detail}")
+    print()
+
+if not critical and not warnings:
+    print("✅ No critical issues or warnings detected.\n")
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# CHANNEL OVERVIEW
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Channel Overview\n")
+print(
+    f"*Active models updated since {active_models_threshold_date_string}. "
+    f"Channels marked invalid (no responses or no positives) are excluded from subsequent analyses.*\n"
+)
+
+df_channel_overview = (
+    datamart.aggregates.summary_by_channel(query=active_models_filter_expr)
+    .with_columns(
+        NBAD=pl.when(pl.col("usesNBAD").is_null())
+        .then(pl.lit("?"))
+        .when(pl.col("usesNBAD"))
+        .then(pl.lit("Yes"))
+        .otherwise(pl.lit("No")),
+        AGB=pl.when(pl.col("usesAGB").is_null())
+        .then(pl.lit("?"))
+        .when(pl.col("usesAGB"))
+        .then(pl.lit("Yes"))
+        .otherwise(pl.lit("No")),
+    )
+    .collect()
+)
+
+available = df_channel_overview.columns
+select_cols = ["Channel", "Direction"]
+
+ch_display = df_channel_overview.clone()
+
+# Scale performance and CTR for display
+if "Performance" in available:
+    ch_display = ch_display.with_columns(
+        (pl.col("Performance") * 100).round(1).alias("Avg Perf (AUC)")
+    )
+if "CTR" in available:
+    ch_display = ch_display.with_columns(
+        (pl.col("CTR") * 100).round(3).alias("CTR (%)")
+    )
+
+for col in [
+    "Positives",
+    "Responses",
+    "Avg Perf (AUC)",
+    "CTR (%)",
+    "Configuration",
+    "Actions",
+    "Used Actions",
+    "Treatments",
+    "Used Treatments",
+    "Issues",
+    "Groups",
+    "NBAD",
+    "AGB",
+    "OmniChannel",
+    "isValid",
+]:
+    if col in ch_display.columns:
+        select_cols.append(col)
+
+ch_display = ch_display.select(select_cols).sort(["Channel", "Direction"])
+print(df_to_md(ch_display))
+
+print("> **Interpretation:**")
+print("> - Default configurations (e.g., 'Default_Inbound_Model') should be renamed to channel-specific names")
+print("> - OmniChannel % shows cross-channel action overlap (higher = more shared actions across channels)")
+print("> - isValid=false channels have no responses or no positives and will be excluded below")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# EXCLUDE UNUSED CHANNELS
+# ════════════════════════════════════════════════════════════════════════════
+
+unused_channels = (
+    df_channel_overview.filter(pl.col("isValid").not_())
+    .select(["Channel", "Direction", "Configuration"])
+    .with_columns(cs.string().cast(pl.Categorical))
+)
+
+if unused_channels.height > 0:
+    print("### Excluded Channels\n")
+    print("The following channels are excluded from subsequent analyses:\n")
+    print(df_to_md(unused_channels.with_columns(cs.by_dtype(pl.Categorical).cast(pl.Utf8))))
+
+    reset_datamart(
+        ADMDatamart(
+            model_df=datamart.model_data.join(
+                unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
+            ),
+            predictor_df=datamart.predictor_data,
+        )
+    )
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# CROSS-CHANNEL ACTION OVERLAP
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Cross-Channel Action Overlap\n")
+print("Shows the percentage of overlapping actions between any two channels. ")
+print("Higher overlap indicates more cross-channel (omni-channel) action coverage.\n")
+
+try:
+    overlap_df = datamart.plot.action_overlap(
+        group_col=["Channel", "Direction"],
+        overlap_col="Name",
+        query=active_models_filter_expr,
+        return_df=True,
+    )
+    if isinstance(overlap_df, pl.LazyFrame):
+        overlap_df = overlap_df.collect()
+    print(df_to_md(overlap_df))
+except Exception as e:
+    print(f"*Could not compute action overlap: {e}*\n")
+
+print("> **Interpretation:** Ideally there is significant overlap — the same actions available across multiple channels with channel-specific treatments.\n")
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# PREDICTIONS OVERVIEW
+# ════════════════════════════════════════════════════════════════════════════
+
+if prediction is not None:
+    print("## Predictions Overview\n")
+    print("Predictions measure engagement lift: how much better the model-driven group performs vs a random control group.\n")
+    print("$$Lift = (CTR_{test} - CTR_{control}) / CTR_{control}$$\n")
+
+    try:
+        secs_per_day = 60 * 60 * 24
+        pred_overview = prediction.summary_by_channel().collect()
+        pred_overview = pred_overview.with_columns(
+            pl.format(
+                "{}d",
+                (pl.col("Duration") / secs_per_day).round().cast(pl.Int64),
+            ).alias("Duration")
+        )
+
+        display_cols = []
+        for col in [
+            "Prediction",
+            "Channel",
+            "Direction",
+            "DateRange Min",
+            "Duration",
+            "Performance",
+            "Positives",
+            "Responses",
+            "CTR",
+            "CTR_Test",
+            "CTR_Control",
+            "Lift",
+            "TestPercentage",
+            "ControlPercentage",
+        ]:
+            if col in pred_overview.columns:
+                display_cols.append(col)
+
+        pred_display = pred_overview.select(display_cols)
+
+        # Scale metrics for display
+        scale_cols = [
+            c
+            for c in ["Performance", "CTR", "CTR_Test", "CTR_Control", "Lift",
+                       "TestPercentage", "ControlPercentage"]
+            if c in pred_display.columns
+        ]
+        for c in scale_cols:
+            if c == "Performance":
+                pred_display = pred_display.with_columns(
+                    (pl.col(c) * 100).round(1).alias(c)
+                )
+            elif c == "Lift":
+                pred_display = pred_display.with_columns(
+                    (pl.col(c) * 100).round(0).alias(c)
+                )
+            else:
+                pred_display = pred_display.with_columns(
+                    (pl.col(c) * 100).round(3).alias(c)
+                )
+
+        print(df_to_md(pred_display))
+    except Exception as e:
+        print(f"*Could not compute prediction overview: {e}*\n")
+
+    print("> **Interpretation:**")
+    print("> - Lift should always be > 0. Negative lift means models are hurting rather than helping.")
+    print("> - Lift should be reasonably stable over time, not highly volatile.")
+    print("> - Default prediction names (e.g., 'PredictInboundDefaultPropensity') indicate a configuration issue.")
+    print()
+else:
+    print("## Predictions Overview\n")
+    print("*Prediction data is not available. Export Prediction Studio data to include prediction lift analysis.*\n")
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# ACTION OVERVIEW
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Action Overview\n")
+print("Counts of actions, treatments, issues and groups compared to recommended cloud service limits.\n")
+
+items = [
+    ("Overall Number of Actions", report_utils.n_unique_values(datamart, datamart_all_columns, "Name"), "ActionCount"),
+    ("Max Actions within an Issue/Group", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Name", ["Issue", "Group"]), "ActionsPerGroupMaximum"),
+    ("Number of Treatments", report_utils.n_unique_values(datamart, datamart_all_columns, "Treatment"), "TreatmentCount"),
+    ("Max Treatments per Channel", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Treatment", ["Channel", "Direction"]), "TreatmentsPerChannelAverage"),
+    ("Unique Issues", report_utils.n_unique_values(datamart, datamart_all_columns, "Issue"), "IssueCount"),
+    ("Avg Groups per Issue", report_utils.avg_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]), "AverageGroupsPerIssue"),
+    ("Number of Channels", report_utils.n_unique_values(datamart, datamart_all_columns, ["Channel", "Direction"]), "ChannelsUsingADM"),
+]
+
+print("| Item | Value | Best Practice Min | Cloud Service Max | Status |")
+print("| --- | --- | --- | --- | --- |")
+for label, value, metric_id in items:
+    bp_min = MetricLimits.best_practice_min(metric_id)
+    bp_max = MetricLimits.best_practice_max(metric_id)
+    bp_min_str = fmt_int(int(bp_min)) if bp_min is not None else "—"
+    bp_max_str = fmt_int(int(bp_max)) if bp_max is not None else "—"
+    icon = rag_icon(metric_id, value)
+    val_str = f"{value:.1f}" if isinstance(value, float) else fmt_int(value)
+    print(f"| {label} | {val_str} | {bp_min_str} | {bp_max_str} | {icon} |")
+print()
+
+# Show examples of actions, issues, groups
+print("### Sample Values\n")
+sample_items = [
+    ("Actions", "Name"),
+    ("Issues", "Issue"),
+    ("Groups", "Group"),
+    ("Channels", ["Channel", "Direction"]),
+]
+for label, field in sample_items:
+    samples = report_utils.sample_values(datamart, datamart_all_columns, field)
+    if isinstance(samples, list):
+        print(f"- **{label}:** {', '.join(str(s) for s in samples)}")
+    else:
+        print(f"- **{label}:** {samples}")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# ISSUE/GROUP HIERARCHY
+# ════════════════════════════════════════════════════════════════════════════
+
+if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
+    print("### Issue/Group Hierarchy\n")
+
+    hierarchy = (
+        datamart.model_data.group_by(["Issue", "Group"])
+        .agg(
+            pl.col("ModelID").n_unique().alias("Models"),
+            pl.col("Name").unique().sort().head(5).alias("Example Actions"),
+        )
+        .sort(["Issue", "Group"])
+        .collect()
+    )
+
+    print(df_to_md(hierarchy))
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# SUCCESS RATES BY CHANNEL
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Success Rates\n")
+print(
+    f"Top {barchart_max_bars} actions by success rate per channel, "
+    f"limited to models with ≥{responsecount_analysis_threshold} responses.\n"
+)
+
+try:
+    hover_columns = report_utils.polars_subset_to_existing_cols(
+        datamart_all_columns, ["Issue", "Group", "Name", "Treatment"]
+    )
+
+    df_success = (
+        last_data.lazy()
+        .filter(pl.col("ResponseCount") > responsecount_analysis_threshold)
+        .select(
+            hover_columns
+            + ["ModelID", "Channel/Direction", "SuccessRate", "Performance", "ResponseCount"]
+        )
+        .with_columns(pl.col("SuccessRate").round(6))
+        .sort(["Channel/Direction", "SuccessRate"], descending=True)
+        .group_by("Channel/Direction")
+        .head(barchart_max_bars)
+        .collect()
+    )
+
+    for channel_dir in df_success["Channel/Direction"].unique().sort():
+        ch_data = df_success.filter(pl.col("Channel/Direction") == channel_dir)
+        print(f"### {channel_dir}\n")
+
+        display_cols = [
+            c
+            for c in hover_columns
+            + ["SuccessRate", "Performance", "ResponseCount"]
+            if c in ch_data.columns
+        ]
+        ch_display = ch_data.select(display_cols).with_columns(
+            (pl.col("SuccessRate") * 100).round(3).alias("Success Rate (%)"),
+            (pl.col("Performance") * 100).round(1).alias("Perf (AUC)"),
+        ).drop(["SuccessRate", "Performance"])
+
+        print(df_to_md(ch_display))
+
+except Exception as e:
+    print(f"*Could not compute success rates: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Actions with far higher success rates than others should be checked with business — is this expected?")
+print("> - Very low success rates may indicate unattractive propositions or broken response mechanisms.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# MODEL OVERVIEW BY CONFIGURATION
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Model Overview by Configuration\n")
+
+try:
+    model_overview = (
+        datamart.aggregates.summary_by_configuration()
+        .with_columns(
+            NBAD=pl.when(pl.col("usesNBAD").is_null())
+            .then(pl.lit("?"))
+            .when(pl.col("usesNBAD"))
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No")),
+            AGB=pl.when(pl.col("usesAGB").is_null())
+            .then(pl.lit("?"))
+            .when(pl.col("usesAGB"))
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("No")),
+        )
+        .drop("usesNBAD", "usesAGB")
+        .collect()
+    )
+
+    display_cols = [
+        c for c in [
+            "Configuration", "Channel", "Direction", "ModelID",
+            "Actions", "Unique Treatments", "Positives", "ResponseCount",
+            "Performance", "ModelsPerAction", "NBAD", "AGB",
+        ] if c in model_overview.columns
+    ]
+
+    mo_display = model_overview.select(display_cols)
+    if "Performance" in mo_display.columns:
+        mo_display = mo_display.with_columns(
+            (pl.col("Performance") * 100).round(1).alias("Avg Perf (AUC)")
+        ).drop("Performance")
+    if "ModelID" in mo_display.columns:
+        mo_display = mo_display.rename({"ModelID": "Nr Models"})
+
+    print(df_to_md(mo_display))
+except Exception as e:
+    print(f"*Could not compute model overview: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Default configuration names should be renamed to channel-specific names.")
+print("> - Each channel typically has 1-2 configurations. More may indicate complexity.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# EXCLUDE UNUSED CONFIGURATIONS
+# ════════════════════════════════════════════════════════════════════════════
+
+configuration_overview = (
+    datamart.aggregates.last(table="model_data")
+    .group_by("Configuration")
+    .agg(
+        pl.sum("ResponseCount").alias("Responses"),
+        pl.sum("Positives"),
+    )
+).collect()
+
+all_configurations = configuration_overview.select(["Configuration"]).unique()
+
+unused_configurations = (
+    configuration_overview.filter(
+        (pl.col("Responses") < configuration_responses_threshold)
+        | (pl.col("Positives") == 0)
+    )
+    .select(["Configuration", "Responses", "Positives"])
+    .unique()
+)
+
+if (unused_configurations.height > 0) and (
+    unused_configurations.height != all_configurations.height
+):
+    print("### Excluded Configurations\n")
+    print(
+        f"Configurations with <{fmt_int(configuration_responses_threshold)} responses "
+        "or 0 positives are excluded from subsequent analyses:\n"
+    )
+    print(df_to_md(unused_configurations.sort("Configuration")))
+
+    reset_datamart(
+        ADMDatamart(
+            model_df=datamart.model_data.join(
+                unused_configurations.lazy(),
+                on=["Configuration"],
+                how="anti",
+            ),
+            predictor_df=datamart.predictor_data,
+        )
+    )
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# MODEL PERFORMANCE DISTRIBUTION
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Model Performance Analysis\n")
+print("### Performance Distribution by Channel\n")
+print("Quantile statistics of model performance (AUC, 50-100 scale) for active models.\n")
+
+try:
+    active_data = last_data.filter(active_models_filter_expr).lazy()
+
+    perf_stats = (
+        active_data.group_by("Channel/Direction")
+        .agg(
+            pl.col("ModelID").n_unique().alias("Models"),
+            (pl.col("Performance").min() * 100).round(1).alias("Min"),
+            (pl.col("Performance").quantile(0.25) * 100).round(1).alias("P25"),
+            (pl.col("Performance").median() * 100).round(1).alias("Median"),
+            (pl.col("Performance").quantile(0.75) * 100).round(1).alias("P75"),
+            (pl.col("Performance").max() * 100).round(1).alias("Max"),
+            (
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+                * 100
+            )
+            .round(1)
+            .alias("Weighted Avg"),
+            (pl.col("SuccessRate").median() * 100)
+            .round(3)
+            .alias("Median CTR (%)"),
+            pl.col("ResponseCount").median().round(0).alias("Median Responses"),
+        )
+        .sort("Channel/Direction")
+        .collect()
+    )
+
+    print(df_to_md(perf_stats))
+except Exception as e:
+    print(f"*Could not compute performance distribution: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Median AUC below 55 suggests insufficient predictor data or data quality issues.")
+print("> - A wide P25-P75 range is normal — different actions have different predictability.")
+print("> - Very high AUC (>90) for many models may indicate outcome leakers or very few positives.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# MODEL PERFORMANCE TREND
+# ════════════════════════════════════════════════════════════════════════════
+
+print("### Performance Trend\n")
+print("How average model performance has evolved over the data period.\n")
+
+try:
+    by_expr = pl.concat_str(
+        pl.col("Channel"), pl.col("Direction"), separator="/"
+    ).alias("Channel/Direction")
+
+    trend_data = (
+        datamart.model_data.with_columns(by_expr)
+        .group_by(["SnapshotTime", "Channel/Direction"])
+        .agg(
+            (
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+                * 100
+            )
+            .round(1)
+            .alias("Avg Perf (AUC)"),
+            pl.sum("ResponseCount").alias("Total Responses"),
+        )
+        .sort(["Channel/Direction", "SnapshotTime"])
+        .collect()
+    )
+
+    # Show first and last snapshot per channel for trend summary
+    trend_summary = (
+        trend_data.lazy()
+        .with_columns(
+            pl.col("Avg Perf (AUC)")
+            .first()
+            .over("Channel/Direction")
+            .alias("Start Perf"),
+            pl.col("Avg Perf (AUC)")
+            .last()
+            .over("Channel/Direction")
+            .alias("End Perf"),
+            pl.col("SnapshotTime")
+            .min()
+            .over("Channel/Direction")
+            .alias("Start Date"),
+            pl.col("SnapshotTime")
+            .max()
+            .over("Channel/Direction")
+            .alias("End Date"),
+        )
+        .group_by("Channel/Direction")
+        .agg(
+            pl.col("Start Date").first(),
+            pl.col("End Date").first(),
+            pl.col("Start Perf").first(),
+            pl.col("End Perf").first(),
+            (pl.col("End Perf").first() - pl.col("Start Perf").first()).alias(
+                "Change"
+            ),
+            pl.col("Avg Perf (AUC)").min().alias("Period Min"),
+            pl.col("Avg Perf (AUC)").max().alias("Period Max"),
+        )
+        .sort("Channel/Direction")
+        .collect()
+    )
+
+    # Add trend indicator
+    trend_summary = trend_summary.with_columns(
+        pl.when(pl.col("Change") > 1)
+        .then(pl.lit("⬆️"))
+        .when(pl.col("Change") < -1)
+        .then(pl.lit("⬇️"))
+        .otherwise(pl.lit("➡️"))
+        .alias("Trend")
+    )
+
+    print(df_to_md(trend_summary))
+
+except Exception as e:
+    print(f"*Could not compute performance trend: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Gradual upward trends are healthy — models are learning over time.")
+print("> - Abrupt drops may indicate data issues, model resets, or configuration changes.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# MODEL MATURITY
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Model Maturity\n")
+print(
+    "Models categorized by their maturity level based on response counts and performance. "
+    "Models need sufficient positive responses (≥200) to be considered mature.\n"
+)
+
+bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
+min_perf = MetricLimits.minimum("ModelPerformance")
+
+maturity_criteria = {
+    "Total models in latest snapshot": True,
+    "Never used (0 responses)": (
+        pl.col("ResponseCount") < MetricLimits.minimum("TotalResponseCount")
+    ),
+    "Used but no positives": (
+        (pl.col("Positives") < MetricLimits.minimum("TotalPositiveCount"))
+        & (pl.col("ResponseCount") >= MetricLimits.minimum("TotalResponseCount"))
+    ),
+    f"Immature (positives < {int(bp_min_positives)})": (
+        (pl.col("Positives") < bp_min_positives)
+        & (pl.col("Positives") >= MetricLimits.minimum("TotalPositiveCount"))
+    ),
+    "Mature but AUC=50 (stuck)": (
+        (pl.col("Performance") == 0.5)
+        & (pl.col("Positives") >= bp_min_positives)
+    ),
+    f"Mature but low AUC (<{min_perf * 100:.0f})": (
+        (pl.col("Performance") > 0.5)
+        & (pl.col("Performance") < min_perf)
+        & (pl.col("Positives") >= bp_min_positives)
+    ),
+    f"Mature with decent performance (AUC ≥{min_perf * 100:.0f})": (
+        (pl.col("Performance") >= min_perf)
+        & (pl.col("Positives") >= bp_min_positives)
+    ),
+}
+
+try:
+    maturity_rows = []
+    for name, filter_expression in maturity_criteria.items():
+        if filter_expression is True:
+            count = last_data.height
+            avg_perf = (
+                last_data.select(
+                    cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+                    * 100
+                ).item()
+            )
+        else:
+            filtered = last_data.filter(filter_expression)
+            count = filtered.height
+            if count > 0:
+                avg_perf = (
+                    filtered.select(
+                        cdh_utils.weighted_average_polars(
+                            "Performance", "ResponseCount"
+                        )
+                        * 100
+                    ).item()
+                )
+            else:
+                avg_perf = None
+
+        pct = count / last_data.height * 100 if last_data.height > 0 else 0
+        maturity_rows.append(
+            {
+                "Category": name,
+                "Models": count,
+                "% of Total": round(pct, 1),
+                "Avg Performance (AUC)": (
+                    round(avg_perf, 1) if avg_perf is not None else None
+                ),
+            }
+        )
+
+    maturity_df = pl.DataFrame(maturity_rows)
+    print(df_to_md(maturity_df))
+except Exception as e:
+    print(f"*Could not compute model maturity: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - A small percentage of 'Never used' and 'Immature' models is normal with regular new action introductions.")
+print("> - 'Mature but AUC=50' models may have data quality issues or insufficient predictor variation.")
+print("> - The majority of models should be in the 'Mature with decent performance' category.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# PREDICTOR ANALYSIS
+# ════════════════════════════════════════════════════════════════════════════
+
+if datamart.predictor_data is not None:
+    print("## Predictor Analysis\n")
+
+    # ── Predictors per category ──
+    print("### Predictors per Category\n")
+    print(
+        "Number of unique predictors by source category and configuration. "
+        "Recommended: 200-700 total predictors, with some IH predictors but not more than ~100.\n"
+    )
+    try:
+        preds_by_cat = (
+            datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
+            .group_by(["Configuration", "PredictorCategory"])
+            .agg(pl.col("PredictorName").n_unique().alias("Count"))
+            .sort(["Configuration", "PredictorCategory"])
+            .collect()
+            .pivot(
+                values="Count",
+                index="Configuration",
+                on="PredictorCategory",
+                maintain_order=True,
+            )
+            .fill_null(0)
+        )
+        print(df_to_md(preds_by_cat))
+    except Exception as e:
+        print(f"*Could not compute predictor categories: {e}*\n")
+
+    # ── Top predictors ──
+    print("### Top Predictors by Performance\n")
+    print("Predictors with the highest median univariate AUC performance across all models.\n")
+    try:
+        predictor_overview = (
+            datamart.aggregates.predictors_global_overview().collect()
+        )
+
+        top_predictors = (
+            predictor_overview.sort("Mean", descending=True)
+            .head(barchart_max_bars)
+            .select(
+                [
+                    c
+                    for c in [
+                        "PredictorName",
+                        "Min",
+                        "Mean",
+                        "Median",
+                        "Max",
+                        "Response Count Min",
+                        "Response Count Max",
+                    ]
+                    if c in predictor_overview.columns
+                ]
+            )
+        )
+        print(df_to_md(top_predictors))
+    except Exception as e:
+        print(f"*Could not compute top predictors: {e}*\n")
+
+    # ── Poor predictors ──
+    print("### Poor Predictors\n")
+    print(
+        f"Predictors with mean performance below minimum threshold "
+        f"({MetricLimits.minimum('ModelPerformance') * 100:.0f} AUC).\n"
+    )
+    try:
+        poor_predictors = predictor_overview.filter(
+            pl.col("Mean") < (MetricLimits.minimum("ModelPerformance") * 100)
+        ).sort("Mean")
+
+        if poor_predictors.height > 0:
+            poor_display = poor_predictors.select(
+                [
+                    c
+                    for c in [
+                        "PredictorName",
+                        "Min",
+                        "Mean",
+                        "Median",
+                        "Max",
+                        "Response Count Min",
+                        "Response Count Max",
+                    ]
+                    if c in poor_predictors.columns
+                ]
+            ).head(barchart_max_bars)
+            print(df_to_md(poor_display))
+        else:
+            print("*No predictors below minimum threshold.*\n")
+    except Exception as e:
+        print(f"*Could not compute poor predictors: {e}*\n")
+
+    # ── Missing predictor data ──
+    print("### Missing Predictor Data\n")
+    print("Predictors with >10% missing values (excluding IH predictors). High missing rates may indicate data sourcing problems.\n")
+    try:
+        gb_cols = report_utils.polars_subset_to_existing_cols(
+            datamart_all_columns, ["PredictorCategory", "PredictorName"]
+        )
+
+        missing = (
+            datamart.aggregates.last(table="predictor_data")
+            .filter(pl.col("PredictorName") != "Classifier")
+            .filter(pl.col("PredictorCategory") != "IH")
+            .group_by(gb_cols)
+            .agg(
+                pl.col("BinResponseCount")
+                .filter(pl.col("BinSymbol") == "MISSING")
+                .sum()
+                .alias("MissingCount"),
+                pl.sum("BinResponseCount").alias("TotalResponses"),
+            )
+            .with_columns(
+                (pl.col("MissingCount") / pl.col("TotalResponses"))
+                .round(3)
+                .alias("Missing %")
+            )
+            .filter(~pl.col("Missing %").is_nan())
+            .filter(pl.col("Missing %") > 0.1)
+            .sort("Missing %", descending=True)
+            .collect()
+        )
+
+        if missing.height > 0:
+            missing_display = missing.with_columns(
+                (pl.col("Missing %") * 100).round(1).alias("Missing %")
+            ).head(barchart_max_bars)
+            print(df_to_md(missing_display))
+        else:
+            print("*No predictors with >10% missing values (excluding IH).*\n")
+    except Exception as e:
+        print(f"*Could not compute missing data: {e}*\n")
+
+    print("> **Interpretation:**")
+    print("> - Predictors that consistently perform poorly could potentially be removed, but be cautious — they may be valuable for other actions.")
+    print("> - High missing rates may indicate data pipeline issues worth investigating.")
+    print("> - A mix of predictor categories (Customer, IH, Param, etc.) in the top performers is ideal.")
+    print()
+
+else:
+    print("## Predictor Analysis\n")
+    print("*Predictor data is not available. Export predictor snapshot data to include predictor analysis.*\n")
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# RESPONSE VOLUME ANALYSIS
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Response Volume Analysis\n")
+
+# ── Response trend ──
+print("### Response Trend\n")
+print("Weekly response counts over the data period.\n")
+
+try:
+    trend = datamart.aggregates.overall_summary(every="1w").collect()
+
+    trend_cols = [
+        c
+        for c in [
+            "DateRange Min",
+            "Actions",
+            "New Actions",
+            "Used Actions",
+            "Positives",
+            "Responses",
+        ]
+        if c in trend.columns
+    ]
+
+    # Show first 3 and last 3 weeks
+    if trend.height > 8:
+        trend_display = pl.concat(
+            [trend.select(trend_cols).head(3), trend.select(trend_cols).tail(3)]
+        )
+        print(f"*Showing first 3 and last 3 of {trend.height} weekly periods:*\n")
+    else:
+        trend_display = trend.select(trend_cols)
+
+    print(df_to_md(trend_display))
+except Exception as e:
+    print(f"*Could not compute response trend: {e}*\n")
+
+# ── Distribution skewness ──
+print("### Response Distribution Skewness\n")
+print(
+    "How concentrated responses are across models. "
+    "A Gini coefficient near 0 means equal distribution; near 1 means a few models dominate.\n"
+)
+
+try:
+    active_last = last_data.filter(active_models_filter_expr)
+
+    channels = active_last["Channel/Direction"].unique().sort().to_list()
+    skew_rows = []
+    for ch in channels:
+        ch_data = active_last.filter(pl.col("Channel/Direction") == ch)
+        resp = ch_data["ResponseCount"].to_list()
+        pos = ch_data["Positives"].to_list()
+        n_models = ch_data.height
+
+        resp_sorted = sorted(resp, reverse=True)
+        top_10_pct = max(1, int(n_models * 0.1))
+        top_20_pct = max(1, int(n_models * 0.2))
+        total_resp = sum(resp_sorted)
+
+        skew_rows.append(
+            {
+                "Channel/Direction": ch,
+                "Models": n_models,
+                "Gini (Responses)": round(gini(resp), 2),
+                "Gini (Positives)": round(gini(pos), 2),
+                "Top 10% drive": (
+                    f"{sum(resp_sorted[:top_10_pct]) / total_resp * 100:.0f}%"
+                    if total_resp > 0
+                    else "N/A"
+                ),
+                "Top 20% drive": (
+                    f"{sum(resp_sorted[:top_20_pct]) / total_resp * 100:.0f}%"
+                    if total_resp > 0
+                    else "N/A"
+                ),
+            }
+        )
+
+    skew_df = pl.DataFrame(skew_rows)
+    print(df_to_md(skew_df))
+except Exception as e:
+    print(f"*Could not compute response skewness: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Gini > 0.9 means responses are extremely concentrated on a few models.")
+print("> - Some skewness is expected (certain actions are more popular), but extreme values may indicate over-leveraging.")
+print("> - Sudden drops in response counts over time may indicate model resets.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# PERFORMANCE VS VOLUME
+# ════════════════════════════════════════════════════════════════════════════
+
+print("### Performance vs Volume\n")
+print(
+    "What percentage of total responses are driven by models at each performance level? "
+    "Ideally, most volume comes from models with good performance (AUC 60-80).\n"
+)
+
+try:
+    perf_vol = (
+        datamart.model_data.with_columns(
+            (pl.col("Performance") * 100)
+            .cut(breaks=[p for p in range(50, 100, 5)], left_closed=True)
+            .alias("AUC Range"),
+            pl.format(
+                "{}/{}",
+                pl.when(
+                    pl.col("Channel").is_not_null()
+                    & (pl.col("Channel") != "")
+                )
+                .then(pl.col("Channel"))
+                .otherwise(pl.lit("")),
+                pl.when(
+                    pl.col("Direction").is_not_null()
+                    & (pl.col("Direction") != "")
+                )
+                .then(pl.col("Direction"))
+                .otherwise(pl.lit("")),
+            ).alias("Channel/Direction"),
+        )
+        .group_by(["Channel/Direction", "AUC Range"])
+        .agg(pl.sum("ResponseCount").alias("Responses"))
+        .with_columns(
+            (
+                pl.col("Responses")
+                / pl.col("Responses").sum().over("Channel/Direction")
+                * 100
+            )
+            .round(1)
+            .alias("% of Responses")
+        )
+        .sort(["Channel/Direction", "AUC Range"])
+        .collect()
+    )
+
+    # Pivot to show channels as columns
+    perf_vol_pivot = perf_vol.pivot(
+        values="% of Responses",
+        index="AUC Range",
+        on="Channel/Direction",
+        maintain_order=True,
+    ).fill_null(0)
+
+    print(df_to_md(perf_vol_pivot))
+
+except Exception as e:
+    print(f"*Could not compute performance vs volume: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Volume concentrated in the first bin (AUC 50-55) means many immature models are being used — sub-optimal targeting.")
+print("> - Ideally, the peak is in the 60-80 range, showing that mature, predictive models drive the most engagement.")
+print("> - Very high AUC (>90) bins with significant volume may indicate data leakage or overfitting.")
+print()
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# INTERPRETATION GUIDELINES
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Interpretation Guidelines\n")
+print(
+    """This section provides guidance for interpreting the metrics in this report.
+
+### Key Metrics
+
+- **Model Performance (AUC):** Ranges from 50 (no predictive power) to 100 (perfect).
+  Values above 55 indicate the model is learning. Typical good range: 60-80.
+- **Success Rate / CTR:** The proportion of positive responses out of all responses.
+  Higher is generally better but unusually high rates should be investigated.
+- **Engagement Lift:** How much better the model-driven group performs vs random.
+  Should always be positive.
+- **OmniChannel %:** Action overlap between channels. Higher means more cross-channel
+  action reuse, which is generally recommended.
+- **Gini Coefficient:** Measures response concentration. 0 = perfectly equal,
+  1 = all responses to one model.
+
+### Common Issues and Remedies
+
+| Issue | Possible Cause | Recommended Action |
+| --- | --- | --- |
+| Many models with AUC=50 | Insufficient data or poor predictors | Review predictor availability and data quality |
+| No positive responses | Broken response loop | Check outcome label configuration |
+| Very high AUC (>95) | Outcome leaker or very few responses | Investigate predictor data for leakage |
+| Negative engagement lift | Model misconfiguration | Review prediction and arbitration setup |
+| High missing predictor data | Data pipeline issues | Check data sourcing for affected predictors |
+| Default configuration names | Not customized after deployment | Rename to channel-specific names |
+"""
+)
+```
+
+```{python}
+#| output: asis
+
+# ════════════════════════════════════════════════════════════════════════════
+# CREDITS
+# ════════════════════════════════════════════════════════════════════════════
+
+print("## Credits\n")
+print("Generated by [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).")
+print(f"Report format: Agent-Ready Markdown (GFM)\n")
+
+try:
+    from pdstools.utils import show_versions
+    import pdstools
+
+    print(f"- **pdstools version:** {pdstools.__version__}")
+except Exception:
+    pass
+
+print(f"- **Report generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print()
+```
