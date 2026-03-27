@@ -102,6 +102,9 @@ python -m build --sdist --wheel --outdir dist/ .
 - Order: stdlib, third-party, local (`pdstools...`).
 - Prefer explicit imports; avoid wildcard imports.
 - Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
+- **Optional dependencies**: use lazy imports inside the method that needs
+  them (see `local_model_utils.py` for the pattern). Do not use
+  module-level `try/except ImportError` blocks.
 
 ### Formatting
 - Use ruff-format (black-compatible). Do not hand-format.
@@ -118,12 +121,21 @@ python -m build --sdist --wheel --outdir dist/ .
 - Classes: `PascalCase`.
 - Constants: `UPPER_SNAKE_CASE`.
 - Private helpers: prefix with `_`.
+- **Don't leak external naming into Python APIs.** When a downstream
+  system uses a different naming scheme (e.g. Pega's `pyCreatedBy`),
+  keep the Python-facing field name Pythonic (`created_by`) and handle
+  the translation in the serialization layer — use Pydantic
+  `serialization_alias` / `alias`, a custom encoder, or a `to_json()`
+  method.
 
 ### Error handling
 - Raise specific exceptions; provide actionable messages.
 - For optional dependencies, use `MissingDependenciesException` patterns.
 - Prefer `ValueError`/`TypeError` for argument validation.
 - Use `pytest.skip` for environment-dependent tests (e.g., Quarto).
+- **Package-manager neutral messages**: do not hardcode `pip install`
+  or `uv pip install` in error text. Name the missing package and let
+  the user choose their tool.
 
 ### Logging
 - Use module-level `logger = logging.getLogger(__name__)`.
@@ -221,6 +233,52 @@ sidebar logo and title (sub-pages re-apply it automatically).
   for dynamic content.
 - Keep heavy computation out of page scripts; delegate to cached
   functions or the library layer.
+
+## Design principles for new functionality
+
+These principles apply when adding new features, modules, or classes —
+whether in a PR or an agentic edit.
+
+### Extend before you create
+Before adding a new class or module, search the codebase for existing
+models or utilities that already cover similar ground. Add methods,
+fields, or class-methods to the existing code rather than building a
+parallel hierarchy. Duplicate abstractions create maintenance burden and
+confuse users about which entry point to use.
+
+### Earn your abstractions
+Don't introduce design patterns (Builder, Factory, Registry, etc.)
+unless the complexity genuinely demands them. If a Pydantic model gives
+you validation, defaults, and serialization for free, use its
+constructor directly. A fluent builder that only assigns fields and
+calls a constructor adds indirection without benefit.
+
+### One concern per PR
+Keep pull requests focused on a single, well-defined change. If a
+feature touches multiple independent areas (e.g. conversion + security +
+optimization), split them into separate PRs so each can be reviewed and
+merged on its own merits.
+
+### Right-size your validation and security
+Validate inputs and enforce sensible limits (allow-lists, size caps,
+type checks). But don't add threat mitigations that don't map to a real
+attack surface — e.g. scanning for SQL injection in values that are
+never executed as SQL, or HTML-sanitising strings that are never
+rendered in a browser. Keep security code proportional to the actual
+risk; otherwise it creates false confidence and false-positive noise.
+
+### Prefer thin, valuable wrappers
+When wrapping a third-party library, add genuine value: compatibility
+fixes, sane defaults, validation, or integration with pdstools
+conventions. Don't wrap standard calls with layers of config objects
+and result models just for the sake of wrapping — if calling the
+library directly is clear enough, let users do that.
+
+### Keep the Python API Pythonic
+Public APIs should feel natural to a Python developer. Translate
+between external naming conventions (Pega property names, JSON key
+schemes) at the serialization boundary, not in field names or
+function signatures. See the naming-conventions section above.
 
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
