@@ -25,6 +25,14 @@ Active work items for the Decision Analysis Tool.
 - ✅ Component drilldown granularity selector (scope parameter)
 - ✅ Streamlit width="stretch" deprecation fix
 - ✅ Page naming consistency (Arbitration Distribution)
+- ✅ Action Funnel redesign — three tabs (Passing, Filtered, Decisions w/o Actions), funnel summary table, unified component analysis
+- ✅ Design principle: decisions shown as % of total, actions as avg/decision, "Interactions" → "Decisions" throughout UI
+- ✅ Offer Variation section moved from Optionality to Offer Quality page
+- ✅ Docstrings and type annotations for all public methods
+- ✅ Rename `get_overview_stats` → `overview_stats` (cached_property, backward-compat alias)
+- ✅ Merge `get_optionality_data` + `get_optionality_data_with_trend` into single method with `by_day` param
+- ✅ Privatize `winning_from`/`losing_to` → `_winning_from`/`_losing_to`
+- ✅ Standardize `get_sensitivity` parameter `filters` → `group_filter`
 
 ---
 
@@ -32,7 +40,7 @@ Active work items for the Decision Analysis Tool.
 
 ### High Priority
 
-- [ ] **[P1] Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Consequence:** Users cannot get representative distributions across groups; sampling only provides one data point per group regardless of group size, potentially missing important variation patterns in small-volume groups. **Root cause:** With multiple samples per group, `.explode()` in `getThresholdingData` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing quantile calculations toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
+- [ ] **[P1] Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Consequence:** Users cannot get representative distributions across groups; sampling only provides one data point per group regardless of group size, potentially missing important variation patterns in small-volume groups. **Root cause:** With multiple samples per group, `.explode()` in `get_thresholding_data` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing quantile calculations toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
 
 ### Medium Priority
 
@@ -46,6 +54,10 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] Distinct propensity display names** — `column_schema.py` maps model propensity and (final) propensity to same display name. **Consequence:** Users cannot distinguish between raw model output and arbitration-adjusted propensity in UI; confusing for lever analysis where the distinction matters (model propensity is input, final propensity is after lever adjustments); charts and tables ambiguous. **Action:** Use "Model Propensity" for raw model output vs "Final Propensity" for arbitration-adjusted value, update `column_schema.py` and all PVCL references.
 
+- [x] **[DONE] Rename camelCase methods to snake_case** — ✅ Completed: All 16 camelCase methods renamed to snake_case equivalents (e.g., `getDistributionData` → `get_distribution_data`, `getFunnelData` → `get_funnel_data`, etc.). Backward-compat aliases added. All callers (app pages, plots, tests, notebooks, docs) updated.
+
+- [ ] **[P2] Consolidate win/loss methods** — Win/loss analysis currently has four related methods with overlapping responsibilities: `_winning_from`, `_losing_to` (per-direction helpers), `get_win_loss_distribution_data` (rank-based distributions), and `get_win_loss_distributions` (combined wrapper using group-filter boundaries). **Consequence:** Callers must choose between multiple APIs that do similar things; `_winning_from`/`_losing_to` duplicate most of their logic (only the rank comparison operator differs); confusing for contributors. **Action:** Merge `_winning_from`/`_losing_to` into a single private helper with a `direction` parameter; review whether `get_win_loss_distribution_data` and `get_win_loss_distributions` can be unified or whether they serve genuinely different use cases (fixed rank vs group-filter boundaries); simplify the public API to at most two methods.
+
 ### Low Priority
 
 - [ ] **[P3] Pre-aggregated data visualization** — The Infinity Action Analysis feature exports pre-computed results (sensitivity, funnel data) rather than raw interactions. **Consequence:** Missed opportunity for faster load times with pre-aggregated data; users must run full pipeline even when Infinity has already done the work. **Action:** Add data loader branch that detects pre-aggregated format and bypasses `DecisionAnalyzer` aggregation, directly feeds plots module.
@@ -54,7 +66,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P3] Customer-level aggregates** — Per-customer statistics and trends. **Consequence:** Cannot analyze customer-level patterns (e.g., "do high-value customers see different action mixes?"); limited to interaction-level view. **Status:** Postponed; current sample data not representative of real customer distributions. **Action:** Wait for representative multi-customer dataset, then design customer aggregation methods.
 
-- [ ] **[P3] AB test: include IA properties** — `getABTestResults` doesn't include Impact Analyzer properties when populated in data. **Consequence:** Users running A/B tests cannot see treatment effects on business outcomes (CTR, conversion, revenue) that IA would provide; limited to arbitration metrics only. **Action:** Extend method to join IA properties when available, add to output dataframe.
+- [ ] **[P3] AB test: include IA properties** — `get_ab_test_results` doesn't include Impact Analyzer properties when populated in data. **Consequence:** Users running A/B tests cannot see treatment effects on business outcomes (CTR, conversion, revenue) that IA would provide; limited to arbitration metrics only. **Action:** Extend method to join IA properties when available, add to output dataframe.
 
 - [ ] **[P3] Optimize thresholding quantiles** — Current implementation is verbose and potentially slow on large datasets. **Consequence:** Slight performance overhead in thresholding analysis; code harder to maintain. **Action:** Profile performance, refactor to use vectorized polars operations if measurably faster.
 
@@ -62,7 +74,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P3] Scale up counts in UI after sampling** — When sampling is applied, displayed counts are actual sample counts, not estimates of true volumes. **Consequence:** Users see artificially low numbers that don't reflect reality; can't estimate production impact from sample analysis. **Status:** Metadata infrastructure now in place to track sample fraction. **Action:** Add UI toggle to show "Estimated Full Volume" by multiplying counts by inverse of sample fraction; clearly indicate estimates vs actuals.
 
-- [ ] **[P3] Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on full dataset before aggregation. **Consequence:** Memory pressure on GB-scale datasets; potential OOM crashes; slower than necessary. **Action:** Investigate polars streaming mode or chunked processing to aggregate without full materialization; benchmark memory and speed improvements.
+- [ ] **[P3] Streaming pre-aggregation** — `preaggregated_filter_view` calls `.collect()` on full dataset before aggregation. **Consequence:** Memory pressure on GB-scale datasets; potential OOM crashes; slower than necessary. **Action:** Investigate polars streaming mode or chunked processing to aggregate without full materialization; benchmark memory and speed improvements.
 
 ---
 
@@ -106,11 +118,19 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] "Decisions w/o Actions" view** — The Pega product's funnel analysis includes a "Decisions w/o Actions" view that shows, per stage, the number of decisions ending in zero actions. The app's funnel currently shows "Average Actions per Interaction" and "Reach" (% of interactions with ≥1 action) but lacks a dedicated view counting interactions where *all* actions have been filtered out by a given stage. **Consequence:** Users cannot quickly see how many decisions result in no actions at all — a critical indicator of over-filtering. The "Reach" metric is related (100% − Reach ≈ % with no actions) but is a percentage buried in hover text, not an explicit count per stage. **Action:** Add a "Decisions w/o Actions" tab or toggle in the funnel page. For each stage, compute the number of unique interactions with zero `REMAINING` records at that stage. Display as a bar chart showing how the zero-action count grows through stages. Implementation: use `aggregate_remaining_per_stage` grouped by `Interaction ID`, then count interactions whose action count is 0 at each stage. This helps users pinpoint exactly which stages cause the most decisions to lose all their actions.
 
+- [ ] **[P2] Restore funnel-shaped view for Passing Actions** — The classic funnel visualisation (narrowing bars showing how actions pass through each stage) is missing. The current bar chart shows average actions per decision per stage but doesn't convey the funnel shape intuitively. **Action:** Redesign the Passing Actions tab to use a proper funnel chart (or waterfall) so the narrowing across stages is visually obvious.
+
+- [ ] **[P2] Rethink Filter Impact Details table** — The summary table currently shows avg actions per decision and % decisions with actions. Consider whether absolute counts (Available/Passing/Filtered actions and raw decision count per stage) are more useful or whether a mixed display (both absolute and relative) serves users better. **Action:** User research or A/B test; decide on final column set.
+
+- [ ] **[P2] Filter Impact Details parity with funnel entry stage** — The Passing Actions view includes a synthetic **Available Actions** entry stage (actions entering stage 1), but the Filter Impact Details table does not make that baseline explicit. **Consequence:** Users cannot easily reconcile the first funnel column with the table; confusion when cross-checking stage-by-stage numbers against product. **Action:** Add the same synthetic "Available Actions" baseline to the table (or an explicit first row/section), and ensure stage ordering/definitions match the visual.
+
+- [ ] **[P2] Filter Impact Details headers + metric mode** — Current headers emphasize averages and percentages, while users often need raw counts for reconciliation. **Consequence:** Hard to compare with product exports/screenshots; ambiguity about what each column represents; extra manual conversion. **Action:** Clarify headers (explicit units and definitions) and add a display mode choice for **Averages** vs **Absolute counts** (toggle/segmented control), with consistent CSV export semantics.
+
 - [ ] **[P2] Toggle between Passing and Filtered perspective** — Currently shows only actions passing through stages (remaining after filters). **Consequence:** Hard to see filter impact; users can't visualize what was removed; unclear which filters are most restrictive. **Action:** Add toggle "Show: Remaining / Filtered Out / Both" to switch between perspectives; use contrasting colors for passed vs filtered; show filter-specific impact.
 
 - [ ] **[P2] Better coloring for filter components** — All filters use similar colors regardless of type. **Consequence:** Hard to distinguish engagement filters from eligibility filters from suitability filters; cognitive load to parse charts. **Action:** Use consistent color scheme by filter category (e.g., blue for eligibility, orange for suitability, green for engagement); add legend; consider icons for common filter types.
 
-- [ ] **[P2] Align funnel filter view with product (show post-stage counts)** — The filter view in the funnel is shifted with respect to the Pega product: it currently shows incoming counts rather than the results after each stage. **Consequence:** Mismatch with the product’s funnel confuses users who cross-reference; harder to compare tool output against Pega’s built-in analysis; “remaining” numbers don’t match expectations when reading stage-by-stage. **Action:** Shift displayed counts so each stage shows results *after* that stage’s filters have been applied, aligning with the product’s convention; verify against product screenshots; update labels to make the perspective unambiguous.
+- [x] **[DONE] Align funnel filter view with product (show post-stage counts)** — ✅ Completed Mar 2026: Funnel now shows post-stage counts aligned with the Pega product convention.
 
 - [ ] **[P3] Move top-N control from sidebar to section** — Top-N action selector is in sidebar, far from affected charts. **Consequence:** Poor UX (control separated from effect); unclear what top-N applies to; sidebar cluttered. **Action:** Move control to inline position above affected charts; make scope clear with label "Show top N actions by final volume".
 
@@ -133,6 +153,10 @@ Active work items for the Decision Analysis Tool.
 - [x] **[PARTIAL] Handle many channels gracefully** — ✅ Completed Mar 2026: Channel/Direction filter added to 7+ pages. Remaining: Consider faceted plots with scrolling for very large channel lists; grouping low-volume channels as "Other".
 
 - [ ] **[P3] Generalize rank usage across pages** — Rank selection UI differs between Win/Loss, Sensitivity, and other pages. **Consequence:** Inconsistent UX; users must relearn controls on each page; different defaults may confuse. **Action:** Create shared rank selector component in `da_streamlit_utils.py`; standardize on data-driven default; consistent placement and labeling.
+
+- [x] **[DONE] Add additive comparison-group selection** — ✅ Completed Mar 2026: Additive include-first selection mode added for comparison group.
+
+- [ ] **[P2] Win/Loss deep-dive selectors for specific opponents** — Deep-dive analysis is currently global across all counterpart items. **Consequence:** Users cannot inspect why a selected comparison group wins/loses against specific counterpart items; insights become diluted. **Action:** Add selectors for the specific items the comparison group is winning to / losing from, and scope deep-dive charts/tables to those selected counterpart sets.
 
 ### Page 8 — Optionality Analysis
 

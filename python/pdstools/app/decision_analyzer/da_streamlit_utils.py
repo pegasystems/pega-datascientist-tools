@@ -84,12 +84,12 @@ def stage_selectbox(
         the first option when the default is not available.
     options : list[str], optional
         Explicit list of stage values to show. When provided, overrides
-        ``da.getPossibleStageValues()``.
+        ``da.get_possible_stage_values()``.
     **kwargs
         Extra keyword arguments forwarded to ``st.selectbox``.
     """
     da = st.session_state.decision_data
-    stage_options = options if options is not None else da.getPossibleStageValues()
+    stage_options = options if options is not None else da.get_possible_stage_values()
     mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
 
     if mapping:
@@ -134,7 +134,7 @@ def ensure_funnel():
         st.stop()
 
 
-def ensure_getFilterComponentData():
+def ensure_get_filter_component_data():
     return "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 
 
@@ -216,16 +216,23 @@ def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
                 del st.session_state[key]
 
 
-def _render_column_selector(df: pl.LazyFrame, columns: list[str], filter_type: str) -> list[str]:
+def _render_column_selector(
+    df: pl.LazyFrame,
+    columns: list[str],
+    filter_type: str,
+    selector_label: str = "Filter data on",
+    sort_columns: bool = True,
+) -> list[str]:
     """Render the multiselect widget for choosing which columns to filter on."""
 
     def _save_multiselect():
         st.session_state[f"{filter_type}multiselect"] = st.session_state[f"{filter_type}_multiselect"]
 
+    options = sorted(columns, key=str.casefold) if sort_columns else columns
     st.session_state[f"{filter_type}_multiselect"] = st.session_state.get(f"{filter_type}multiselect", [])
     return st.multiselect(
-        "Filter data on",
-        columns,
+        selector_label,
+        options,
         key=f"{filter_type}_multiselect",
         on_change=_save_multiselect,
     )
@@ -237,6 +244,7 @@ def _render_categorical_filter(
     container,
     filter_type: str,
     queries: list[pl.Expr],
+    default_select_all_categories: bool,
 ):
     """Render filter UI for a categorical/string column.
 
@@ -245,7 +253,8 @@ def _render_categorical_filter(
     """
     categories_key = f"{filter_type}categories_{column}"
     if categories_key not in st.session_state:
-        st.session_state[categories_key] = df.select(pl.col(column).unique()).collect().to_series().to_list()
+        categories = df.select(pl.col(column).cast(pl.Utf8).drop_nulls().unique()).collect().to_series().to_list()
+        st.session_state[categories_key] = sorted(categories, key=str.casefold)
 
     widget_key = f"{filter_type}_selected_{column}"
     persisted_key = f"{filter_type}selected_{column}"
@@ -255,7 +264,8 @@ def _render_categorical_filter(
     categories = st.session_state[categories_key]
 
     if len(categories) < 200:
-        default = st.session_state.get(persisted_key, categories)
+        default_selection = categories if default_select_all_categories else []
+        default = st.session_state.get(persisted_key, default_selection)
         st.session_state[widget_key] = default
         selected = container.multiselect(
             f"Values for {column}",
@@ -264,8 +274,9 @@ def _render_categorical_filter(
             on_change=_persist_widget_value,
             kwargs={"filter_type": filter_type, "column": column},
         )
+        st.session_state[persisted_key] = selected
         if selected != categories:
-            queries.append(pl.col(column).cast(pl.Utf8).is_in(st.session_state[persisted_key]))
+            queries.append(pl.col(column).cast(pl.Utf8).is_in(selected))
     else:
         # Too many unique values — use regex input instead
         if widget_key in st.session_state:
@@ -359,7 +370,15 @@ def _render_temporal_filter(
         queries.append(pl.col(column).is_between(*user_date_input))
 
 
-def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="local") -> list[pl.Expr]:
+def get_data_filters(
+    df: pl.LazyFrame,
+    columns=None,
+    queries=None,
+    filter_type="local",
+    default_select_all_categories: bool = True,
+    selector_label: str = "Filter data on",
+    sort_columns: bool = True,
+) -> list[pl.Expr]:
     """Build filter expressions via interactive Streamlit widgets.
 
     Parameters
@@ -373,13 +392,28 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
     filter_type : str
         Prefix for session-state keys, allowing independent filter sets
         (e.g. ``"global"`` vs ``"local"``).
+    default_select_all_categories : bool, default True
+        Controls default categorical selection behavior. If True, all
+        categories are selected initially (non-restrictive). If False,
+        categorical selections start empty and users add values explicitly.
+    selector_label : str, default "Filter data on"
+        Label shown above the column selector multiselect.
+    sort_columns : bool, default True
+        If True, columns are sorted alphabetically. If False, the order
+        of *columns* is preserved.
     """
     if columns is None:
         columns = df.collect_schema().names()
     if queries is None:
         queries = []
 
-    to_filter_columns = _render_column_selector(df, columns, filter_type)
+    to_filter_columns = _render_column_selector(
+        df,
+        columns,
+        filter_type,
+        selector_label,
+        sort_columns=sort_columns,
+    )
 
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
@@ -387,7 +421,14 @@ def get_data_filters(df: pl.LazyFrame, columns=None, queries=None, filter_type="
 
         col_dtype = df.collect_schema()[column]
         if col_dtype in (pl.Categorical, pl.Utf8):
-            _render_categorical_filter(df, column, right, filter_type, queries)
+            _render_categorical_filter(
+                df,
+                column,
+                right,
+                filter_type,
+                queries,
+                default_select_all_categories,
+            )
         elif col_dtype.is_numeric():
             _render_numeric_filter(df, column, right, filter_type, queries)
         elif col_dtype.is_temporal():

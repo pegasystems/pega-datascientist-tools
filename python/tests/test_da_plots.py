@@ -89,19 +89,19 @@ class TestDistributionAsTreemap:
     def test_treemap_with_scope(self, plot_v2, da_v2):
         """Test treemap with scope options."""
         # Use Stage Group since Stage column doesn't exist in pre-aggregated view
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=["Action"])
         assert isinstance(fig, Figure)
 
     def test_treemap_multiple_scopes(self, plot_v2, da_v2):
         """Test treemap with multiple scope levels."""
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=["Channel", "Action"])
         assert isinstance(fig, Figure)
 
     def test_treemap_empty_scope(self, plot_v2, da_v2):
         """Test treemap with no scope options."""
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=[])
         assert isinstance(fig, Figure)
 
@@ -131,11 +131,31 @@ class TestSensitivity:
         """Test local sensitivity with reference group."""
         # Get a valid action name from the data
         action_name = (
-            plot_v2._decision_data.getPreaggregatedRemainingView.select("Action").collect().get_column("Action")[0]
+            plot_v2._decision_data.preaggregated_remaining_view.select("Action").collect().get_column("Action")[0]
         )
         # reference_group needs to be a pl.Expr
         fig = plot_v2.sensitivity(win_rank=1, reference_group=pl.col("Action") == action_name)
         assert isinstance(fig, Figure)
+
+    def test_sensitivity_with_total_decisions(self, plot_v2):
+        """Test sensitivity with total_decisions shows percentage axis."""
+        fig = plot_v2.sensitivity(win_rank=1, total_decisions=1000)
+        assert isinstance(fig, Figure)
+        assert fig.layout.xaxis.title.text == "% of Decisions"
+        assert fig.layout.xaxis.ticksuffix == "%"
+
+    def test_local_sensitivity_with_total_decisions(self, plot_v2):
+        """Test local sensitivity with total_decisions."""
+        action_name = (
+            plot_v2._decision_data.preaggregated_remaining_view.select("Action").collect().get_column("Action")[0]
+        )
+        fig = plot_v2.sensitivity(
+            win_rank=1,
+            reference_group=pl.col("Action") == action_name,
+            total_decisions=500,
+        )
+        assert isinstance(fig, Figure)
+        assert fig.layout.xaxis.title.text == "% of Decisions"
 
 
 class TestGlobalWinlossDistribution:
@@ -238,16 +258,55 @@ class TestDecisionFunnel:
     """Test decision_funnel method."""
 
     def test_funnel_plots(self, plot_v2):
-        """Test funnel plots - returns both remaining and filtered figures."""
-        remaining_fig, filtered_fig = plot_v2.decision_funnel(scope="Action")
-        assert isinstance(remaining_fig, Figure)
+        """Returns passing and filtered figures."""
+        passing_fig, filtered_fig = plot_v2.decision_funnel(scope="Action")
+        assert isinstance(passing_fig, Figure)
         assert isinstance(filtered_fig, Figure)
+        assert len(passing_fig.data) >= 1
+        assert all(trace.type == "funnel" for trace in passing_fig.data)
+        assert all(getattr(trace, "orientation", None) == "v" for trace in passing_fig.data)
+
+        # Passing view includes a synthetic first stage for actions entering stage 1.
+        first_trace_x = list(passing_fig.data[0].x)
+        assert first_trace_x[0] == "Available Actions"
+        assert "Output" not in set(str(v) for v in first_trace_x)
+
+        # Filtered view remains a stacked bar chart (product-aligned) and should
+        # not inherit Passing-only synthetic stage semantics.
+        assert len(filtered_fig.data) >= 1
+        assert all(trace.type == "bar" for trace in filtered_fig.data)
+
+        y_categories: set[str] = set()
+        for trace in filtered_fig.data:
+            if trace.y is not None:
+                y_categories.update(str(v) for v in trace.y)
+        assert "Available Actions" not in y_categories
+
+        expected_stage_order = tuple(plot_v2._decision_data.AvailableNBADStages)
+        actual_stage_order = tuple(filtered_fig.layout.yaxis.categoryarray)
+        assert actual_stage_order == expected_stage_order[::-1]
+        assert "Output" in actual_stage_order
 
     def test_return_df(self, plot_v2):
-        """Test with return_df - returns both dataframes."""
-        remaining_df, filtered_df = plot_v2.decision_funnel(scope="Action", return_df=True)
-        assert isinstance(remaining_df, pl.LazyFrame)
+        """With return_df returns all three dataframes."""
+        available_df, passing_df, filtered_df = plot_v2.decision_funnel(scope="Action", return_df=True)
+        assert isinstance(available_df, pl.LazyFrame)
+        assert isinstance(passing_df, pl.DataFrame)
         assert isinstance(filtered_df, pl.DataFrame)
+
+    def test_decisions_without_actions_plot(self, plot_v2):
+        """decisions_without_actions_plot returns a Figure."""
+        fig = plot_v2.decisions_without_actions_plot()
+        assert isinstance(fig, Figure)
+        assert len(fig.data) >= 1
+        assert all(trace.type == "bar" for trace in fig.data)
+
+    def test_decisions_without_actions_return_df(self, plot_v2):
+        df = plot_v2.decisions_without_actions_plot(return_df=True)
+        assert isinstance(df, pl.DataFrame)
+        assert "decisions_without_actions" in df.columns
+        assert (df["decisions_without_actions"] >= 0).all()
+        assert "Output" not in df[plot_v2._decision_data.level].to_list()
 
 
 class TestFilteringComponents:
@@ -281,7 +340,7 @@ class TestDistribution:
     def test_distribution_plot(self, plot_v2, da_v2):
         """Test distribution plot - smoke test to ensure it runs."""
         # Get pre-aggregated data like the UI does
-        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_filter_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution(
             df=df,
             scope="Action",
@@ -292,7 +351,7 @@ class TestDistribution:
 
     def test_distribution_horizontal(self, plot_v2, da_v2):
         """Test distribution with horizontal orientation."""
-        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_filter_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution(
             df=df,
             scope="Channel",
@@ -334,7 +393,7 @@ class TestComponentActionImpact:
 
     def test_component_impact(self, plot_v2):
         """Test component action impact plot - smoke test."""
-        # This calls getComponentActionImpact internally
+        # This calls get_component_action_impact internally
         fig = plot_v2.component_action_impact(top_n=5, scope="Action")
         assert isinstance(fig, Figure)
 
@@ -398,16 +457,25 @@ class TestOptionalityPerStage:
 class TestOptionalityTrend:
     """Test optionality_trend method."""
 
-    @pytest.mark.skip(reason="get_optionality_data returns different structure than expected by optionality_trend")
+    def _build_trend_df(self, da_v2):
+        level = da_v2.level
+        return (
+            da_v2.get_optionality_data_with_trend(da_v2.sample)
+            .group_by(["day", level])
+            .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
+            .sort("day")
+        )
+
     def test_trend_plot(self, plot_v2, da_v2):
         """Test optionality trend plot."""
-        # The method expects aggregated optionality data by day
-        pass
+        trend_df = self._build_trend_df(da_v2)
+        fig, _ = plot_v2.optionality_trend(trend_df)
+        assert isinstance(fig, Figure)
 
     def test_return_df(self, plot_v2, da_v2):
         """Test with return_df."""
-        optionality_data = da_v2.get_optionality_data(da_v2.sample)
-        result = plot_v2.optionality_trend(optionality_data, return_df=True)
+        trend_df = self._build_trend_df(da_v2)
+        result = plot_v2.optionality_trend(trend_df, return_df=True)
         assert isinstance(result, pl.LazyFrame)
 
 

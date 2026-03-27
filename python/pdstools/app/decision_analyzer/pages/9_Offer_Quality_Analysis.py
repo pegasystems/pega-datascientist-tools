@@ -44,8 +44,8 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100]))
-priority_th = _safe_thresholds(st.session_state.decision_data.getThresholdingData("Priority", [0, 10, 100]))
+propensity_th = _safe_thresholds(st.session_state.decision_data.get_thresholding_data("Propensity", [0, 10, 100]))
+priority_th = _safe_thresholds(st.session_state.decision_data.get_thresholding_data("Priority", [0, 10, 100]))
 
 if propensity_th is None or priority_th is None:
     st.warning(
@@ -129,4 +129,29 @@ with st.container(border=True):
 
     st.plotly_chart(
         getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
+    )
+
+with st.container(border=True):
+    "## Offer Variation"
+
+    st.caption(
+        "Actions ranked from most to least frequently selected in final decisions. "
+        "The curve shows how many actions are needed to cover a given fraction of decisions — "
+        "a steep curve means a few actions dominate, while a flatter curve indicates broader variety. "
+        "Broken out by Channel/Direction to reveal whether concentration differs across channels."
+    )
+
+    # Offer Variation uses Output stage and is intentionally shown across all channels
+    # to give a global view of action concentration, colored by Channel/Direction.
+    st.plotly_chart(
+        st.session_state.decision_data.plot.action_variation(
+            stage="Output",
+            color_by="Channel/Direction",
+        ),
+    )
+    action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
+    st.caption(
+        f"**{action_variability_stats['n90']}** actions account for 90% of final decisions. "
+        f"The personalization index is **{round(action_variability_stats['gini'], 3)}** "
+        f"(0 = all actions equally frequent, 1 = one action wins everything)."
     )

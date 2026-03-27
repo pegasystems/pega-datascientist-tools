@@ -64,7 +64,7 @@ with col1:
     )
     st.caption(f"Data format: **{format_label}**")
 
-    overview = st.session_state.decision_data.get_overview_stats
+    overview = st.session_state.decision_data.overview_stats
 
     f"""
     In total, there are **{overview["Actions"]} actions** available in **{overview["Channels"]} channels**. The data
@@ -125,8 +125,8 @@ with col2:
         """
 
         # Use 10th percentile thresholds (same defaults as Offer Quality page)
-        propensity_th = st.session_state.decision_data.getThresholdingData("Propensity", [0, 10, 100])
-        priority_th = st.session_state.decision_data.getThresholdingData("Priority", [0, 10, 100])
+        propensity_th = st.session_state.decision_data.get_thresholding_data("Propensity", [0, 10, 100])
+        priority_th = st.session_state.decision_data.get_thresholding_data("Priority", [0, 10, 100])
 
         prop_values = propensity_th["Threshold"].to_list()
         prio_values = priority_th["Threshold"].to_list()

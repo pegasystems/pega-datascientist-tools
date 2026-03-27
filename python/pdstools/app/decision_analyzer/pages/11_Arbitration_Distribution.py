@@ -33,7 +33,7 @@ ensure_data()
 
 st.session_state["sidebar"] = st.sidebar
 
-scope_options = st.session_state.decision_data.getPossibleScopeValues()
+scope_options = st.session_state.decision_data.get_possible_scope_values()
 
 # Determine which components are actually present in the data
 available_cols = set(st.session_state.decision_data.sample.collect_schema().names())

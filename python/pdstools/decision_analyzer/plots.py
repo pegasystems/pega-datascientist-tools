@@ -8,13 +8,21 @@ import polars as pl
 from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
 
+DEFAULT_BOXPLOT_POINT_CAP = 20000
+
 
 class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
 
+    def _boxplot_point_cap(self) -> int:
+        sample_size = getattr(self._decision_data, "sample_size", None)
+        if isinstance(sample_size, int) and sample_size > 0:
+            return sample_size
+        return DEFAULT_BOXPLOT_POINT_CAP
+
     def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
-        df = self._decision_data.getThresholdingData(thresholding_on)
+        df = self._decision_data.get_thresholding_data(thresholding_on)
         if return_df:
             return df
 
@@ -67,32 +75,72 @@ class Plot:
         return_df=False,
         reference_group=None,
         additional_filters=None,
+        total_decisions: int | None = None,
     ):
-        """
-        If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group.
+        """Sensitivity of the prioritization factors.
 
+        If reference_group is None, this works as global sensitivity,
+        otherwise it is local sensitivity where the focus is on the
+        reference_group.
+
+        When *total_decisions* is provided the x-axis shows percentages
+        relative to that number and the hover includes both the absolute
+        influence count and the total decisions.
         """
-        df = self._decision_data.get_sensitivity(win_rank, reference_group, additional_filters=additional_filters)
+        df = self._decision_data.get_sensitivity(
+            win_rank, group_filter=reference_group, additional_filters=additional_filters
+        )
         if return_df:
             return df
         n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
-        plotData = df.with_columns(pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias("Relative"))
+
+        if total_decisions and total_decisions > 0:
+            plotData = df.with_columns(
+                (100.0 * pl.col("Influence") / total_decisions).round(2).alias("Percentage"),
+            )
+        else:
+            plotData = df.with_columns(
+                (100.0 * pl.col("Influence") / n).round(2).alias("Percentage"),
+            )
+
+        plotData = plotData.with_columns(
+            pl.format("{}%", pl.col("Percentage")).alias("PercentageLabel"),
+        )
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
         plotData = plotData.collect()
-        range_color = [0, max(0, max(plotData["Influence"]))]
+
+        use_pct_axis = total_decisions is not None and total_decisions > 0
+        x_col = "Percentage" if use_pct_axis else "Influence"
+        range_color = [0, max(0, max(plotData[x_col]))]
+
         fig = px.bar(
             data_frame=plotData,
             y="Factor",
-            x="Influence",
-            text="Relative",
-            color="Influence",
+            x=x_col,
+            text="PercentageLabel",
+            color=x_col,
             color_continuous_scale="RdYlGn",
             range_color=range_color,
             orientation="h",
             template="pega",
+            custom_data=["Influence", "Percentage"],
         )
+
+        if use_pct_axis:
+            hover_template = (
+                "<b>%{y}</b><br>"
+                "Influence: %{customdata[0]} decisions<br>"
+                f"of {total_decisions:,} total decisions<br>"
+                "Percentage: %{customdata[1]:.2f}%"
+                "<extra></extra>"
+            )
+        else:
+            hover_template = (
+                "<b>%{y}</b><br>Influence: %{customdata[0]} decisions<br>Relative: %{customdata[1]:.2f}%<extra></extra>"
+            )
+        fig.update_traces(hovertemplate=hover_template)
 
         layout_args = {
             "showlegend": False,
@@ -103,12 +151,13 @@ class Plot:
             ),
         }
 
+        x_title = "% of Decisions" if use_pct_axis else "Decisions"
         fig.update_yaxes(
             autorange="reversed",
             title="Prioritization Factor",
         ).update_xaxes(
-            title="Decisions",
-            # tickformat="",
+            title=x_title,
+            ticksuffix="%" if use_pct_axis else "",
         ).update(layout_coloraxis_showscale=False).update_layout(**layout_args)
 
         return fig
@@ -182,6 +231,8 @@ class Plot:
         if return_df:
             return plotData
         plotData = plotData.collect()
+        total_interactions = plotData["Interactions"].sum()
+        plotData = plotData.with_columns((pl.col("Interactions") / total_interactions * 100).alias("PctInteractions"))
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         bar_colors = ["#cd001f" if n == 0 else colorway[0] for n in plotData["nOffers"]]
@@ -191,19 +242,18 @@ class Plot:
 
         # Build hover template for bars
         if has_propensity:
-            # Include propensity in hover when available
             bar_customdata = plotData.select(["AverageBestPropensity"]).to_numpy()
             bar_hovertemplate = (
-                "Optionality = %{x}<br>Decisions = %{y:,.0f}<br>Avg Propensity = %{customdata[0]:.3%}<extra></extra>"
+                "Optionality = %{x}<br>Decisions = %{y:.1f}%<br>Avg Propensity = %{customdata[0]:.3%}<extra></extra>"
             )
         else:
             bar_customdata = None
-            bar_hovertemplate = "Optionality = %{x}<br>Decisions = %{y:,.0f}<extra></extra>"
+            bar_hovertemplate = "Optionality = %{x}<br>Decisions = %{y:.1f}%<extra></extra>"
 
         fig.add_trace(
             go.Bar(
                 x=plotData["nOffers"],
-                y=plotData["Interactions"],
+                y=plotData["PctInteractions"],
                 name="Optionality",
                 marker_color=bar_colors,
                 customdata=bar_customdata,
@@ -226,8 +276,9 @@ class Plot:
         fig.update_layout(
             template="pega",
             xaxis_title="Number of Actions per Customer",
-            yaxis_title="Decisions",
+            yaxis_title="% of Decisions",
         )
+        fig.layout.yaxis.ticksuffix = "%"
         if has_propensity:
             fig.update_yaxes(title_text="Propensity", secondary_y=True)
             fig.layout.yaxis2.tickformat = ",.3%"
@@ -266,8 +317,7 @@ class Plot:
                     stackgroup="one",
                     name=f"{action_count} {'Action' if action_count == '1' else 'Actions'}",
                     line=dict(width=0.5, color=colors[i]),
-                    hovertemplate="%{customdata} interactions (%{y:.1f}%)<br>with %{meta}<extra></extra>",
-                    customdata=df_with_percent["Interactions"],
+                    hovertemplate="%{y:.1f}% of decisions<br>with %{meta}<extra></extra>",
                     meta=[
                         f"{action_count} {'action' if action_count == '1' else 'actions'}"
                         for _ in range(len(df_with_percent))
@@ -277,7 +327,7 @@ class Plot:
 
         fig.update_layout(
             xaxis_title="Funnel Stage",
-            yaxis_title="Percentage of Interactions",
+            yaxis_title="% of Decisions",
             legend_title="Available Actions",
             hovermode="x unified",
             legend=dict(traceorder="reversed"),
@@ -300,7 +350,7 @@ class Plot:
             color_by: Optional dimension to color by (e.g., "Channel/Direction")
             return_df: If True, return the data instead of the figure
         """
-        df = self._decision_data.getActionVariationData(stage, color_by=color_by)
+        df = self._decision_data.get_action_variation_data(stage, color_by=color_by)
         if return_df:
             return df
 
@@ -370,54 +420,130 @@ class Plot:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        remaining_df, filter_df = self._decision_data.getFunnelData(scope, additional_filters)
+        """Return (passing_fig, filtered_fig) for the Action Funnel tabs.
+
+        passing_fig shows actions that exit each stage (Passing Actions tab).
+        filtered_fig shows actions removed at each stage (Filtered Actions tab).
+        """
+        available_df, passing_df, filtered_df = self._decision_data.get_funnel_data(scope, additional_filters)
         if return_df:
-            return remaining_df, filter_df
+            return available_df, passing_df, filtered_df
 
         color_map = self._decision_data.color_mappings.get(scope)
 
-        # Prepare data with formatted labels for hover
-        remaining_collected = remaining_df.sort([self._decision_data.level, "action_occurrences", scope]).collect()
+        # Product behavior: funnel views stop at the last filtering stage (no Output stage).
+        stage_order = [s for s in self._decision_data.AvailableNBADStages if s != "Output"]
+        synthetic_first_stage = "Available Actions"
+        passing_stage_order = stage_order
+        if stage_order and stage_order[0] != synthetic_first_stage:
+            passing_stage_order = [synthetic_first_stage] + stage_order
 
-        # Funnel height always shows actions per interaction (granularity-independent)
-        # Segments are colored/grouped by the selected scope for breakdown
-        remaining_fig = (
-            px.funnel(
-                remaining_collected,
-                y="actions_per_interaction",
-                x=self._decision_data.level,
-                color=scope,
-                labels={
-                    self._decision_data.level: "Stage",
-                    "actions_per_interaction": "Average Actions per Interaction",
-                    "action_occurrences": "Total Action Occurrences",
-                    "penetration_pct": "Reach (%)",
-                },
-                template="pega",
-                color_discrete_map=color_map,
+        available_collected = available_df.with_columns(
+            pl.col(self._decision_data.level).cast(pl.Utf8),
+            pl.col(scope).cast(pl.Utf8),
+        ).collect()
+
+        first_real_stage = stage_order[0] if stage_order else None
+        available_at_first_stage: dict[str, tuple[float, float, float]] = {}
+        if first_real_stage is not None:
+            for row in available_collected.filter(pl.col(self._decision_data.level) == first_real_stage).iter_rows(
+                named=True
+            ):
+                available_at_first_stage[str(row[scope])] = (
+                    float(row["actions_per_interaction"]),
+                    float(row["penetration_pct"]),
+                    float(row["action_occurrences"]),
+                )
+
+        passing_collected = passing_df.with_columns(
+            pl.col(self._decision_data.level).cast(pl.Utf8),
+            pl.col(scope).cast(pl.Utf8),
+        ).sort([self._decision_data.level, "action_occurrences", scope])
+
+        stage_rank = {stage: idx for idx, stage in enumerate(stage_order)}
+
+        scope_values = passing_collected.get_column(scope).unique().to_list()
+        if color_map is not None:
+            ordered_in_map = [val for val in color_map if val in scope_values]
+            scope_values = ordered_in_map + [val for val in scope_values if val not in ordered_in_map]
+
+        passing_fig = go.Figure()
+        for idx, scope_value in enumerate(scope_values):
+            trace_df = (
+                passing_collected.filter(pl.col(scope) == scope_value)
+                .with_columns(
+                    pl.col(self._decision_data.level)
+                    .map_elements(lambda s: stage_rank.get(s, 999), return_dtype=pl.Int32)
+                    .alias("_stage_rank")
+                )
+                .sort("_stage_rank")
+                .drop("_stage_rank")
             )
-            .update_traces(
-                texttemplate="%{y:.1f}",
-                hovertemplate="<b>%{fullData.name}</b><br>"
-                + "Average Actions per Interaction: %{y:.1f}<br>"
-                + "Reach: %{customdata[0]:.1f}% of interactions<br>"
-                + "Total Action Occurrences: %{customdata[1]:,}<br>"
-                + "<extra></extra>",
-                customdata=remaining_collected.select(["penetration_pct", "action_occurrences"]).to_numpy(),
+
+            if trace_df.height == 0:
+                continue
+
+            metrics_by_stage = {
+                row[self._decision_data.level]: (
+                    float(row["actions_per_interaction"]),
+                    float(row["penetration_pct"]),
+                    float(row["action_occurrences"]),
+                )
+                for row in trace_df.iter_rows(named=True)
+            }
+            if passing_stage_order and passing_stage_order[0] == synthetic_first_stage:
+                metrics_by_stage[synthetic_first_stage] = available_at_first_stage.get(
+                    str(scope_value), (0.0, 0.0, 0.0)
+                )
+
+            stage_values = passing_stage_order
+            metric_values: list[float] = []
+            custom_values: list[list[float]] = []
+            text_values: list[str] = []
+            for stage in stage_values:
+                x_val, reach_val, occ_val = metrics_by_stage.get(stage, (0.0, 0.0, 0.0))
+                metric_values.append(x_val)
+                custom_values.append([reach_val, occ_val])
+                text_values.append(f"{x_val:.1f}" if x_val > 0 else "")
+
+            trace_color = None
+            if color_map is not None:
+                trace_color = color_map.get(scope_value)
+            if trace_color is None:
+                trace_color = colorway[idx % len(colorway)]
+
+            passing_fig.add_trace(
+                go.Funnel(
+                    name=str(scope_value),
+                    orientation="v",
+                    x=stage_values,
+                    y=metric_values,
+                    customdata=custom_values,
+                    text=text_values,
+                    texttemplate="%{text}",
+                    marker={"color": trace_color},
+                    connector={"visible": True, "line": {"width": 1}},
+                    hovertemplate="<b>%{fullData.name}</b><br>"
+                    + "Average Actions per Interaction: %{y:.1f}<br>"
+                    + "Reach: %{customdata[0]:.1f}% of decisions<br>"
+                    + "Total Action Occurrences: %{customdata[1]:,}<br>"
+                    + "<extra></extra>",
+                )
             )
-            .update_xaxes(
-                categoryorder="array",
-            )
-            .update_layout(
-                showlegend=True,
-                xaxis_title="",
-                yaxis_title="Average Actions per Interaction",
-                legend=dict(traceorder="reversed"),
-            )
+
+        passing_fig.update_layout(
+            template="pega",
+            funnelmode="stack",
+            showlegend=True,
+            xaxis_title="",
+            yaxis_title="Average Actions per Interaction",
+            legend=dict(traceorder="reversed", title_text=scope),
         )
+        passing_fig.update_xaxes(categoryorder="array", categoryarray=passing_stage_order)
+
         filter_fig = (
             px.bar(
-                filter_df,
+                filtered_df,
                 x="actions_per_interaction",
                 y=self._decision_data.level,
                 color=scope,
@@ -438,7 +564,7 @@ class Plot:
                 + "Filtered Reach: %{customdata[0]:.1f}%<br>"
                 + "Total Filtered: %{customdata[1]:,}<br>"
                 + "<extra></extra>",
-                customdata=filter_df.select(["penetration_pct", "action_occurrences"]).to_numpy(),
+                customdata=filtered_df.select(["penetration_pct", "action_occurrences"]).to_numpy(),
             )
             .update_layout(
                 template="plotly_white",
@@ -447,7 +573,41 @@ class Plot:
             )
         )
 
-        return remaining_fig, filter_fig
+        return passing_fig, filter_fig
+
+    def decisions_without_actions_plot(
+        self,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        return_df=False,
+    ):
+        """Bar chart showing decisions with no remaining actions per stage, as % of total."""
+        df = self._decision_data.get_decisions_without_actions_data(additional_filters)
+        if return_df:
+            return df
+
+        total_decisions = (
+            apply_filter(self._decision_data.preaggregated_filter_view, additional_filters)
+            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .collect()
+            .item()
+        )
+        df = df.with_columns((pl.col("decisions_without_actions") / total_decisions * 100).alias("pct_without_actions"))
+
+        return px.bar(
+            df,
+            x="pct_without_actions",
+            y=self._decision_data.level,
+            labels={
+                self._decision_data.level: "Stage group" if self._decision_data.level == "Stage Group" else "Stage",
+                "pct_without_actions": "% of Decisions without Actions",
+            },
+            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
+            template="plotly_white",
+        ).update_layout(
+            xaxis_title="% of Decisions without Actions",
+            xaxis_ticksuffix="%",
+            yaxis_title="",
+        )
 
     def filtering_components(
         self,
@@ -457,7 +617,7 @@ class Plot:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        df = self._decision_data.getFilterComponentData(top_n, additional_filters)
+        df = self._decision_data.get_filter_component_data(top_n, additional_filters)
         if return_df:
             return df
         top_n_actions_dict = {}
@@ -562,7 +722,7 @@ class Plot:
             fig = (
                 fig.update_xaxes(automargin=True, title=metric)
                 .update_yaxes(title="")
-                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count")
+                .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title_text=metric)
             )
         else:
             fig = (
@@ -579,32 +739,39 @@ class Plot:
         reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
         additional_filters=None,
+        others_filter: pl.Expr | list[pl.Expr] | None = None,
     ) -> tuple[go.Figure, str | None]:
+        point_cap = self._boxplot_point_cap()
         df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
         prio_factors = PRIO_FACTORS
-        segmented_df = (
-            df.with_columns(
-                segment=pl.when(reference)  # pl.col("Action").is_in(models)
-                .then(pl.lit("Selected Actions"))
-                .otherwise(pl.lit("Others"))
-            ).select(prio_factors + ["segment"])
-        ).collect()
+        tagged = df.with_columns(
+            segment=pl.when(reference).then(pl.lit("Comparison Group")).otherwise(pl.lit("Other Offers"))
+        )
+        if others_filter is not None:
+            keep_selected = pl.col("segment") == "Comparison Group"
+            others_match = others_filter if isinstance(others_filter, pl.Expr) else pl.all_horizontal(others_filter)
+            tagged = tagged.filter(keep_selected | others_match)
+        segmented_df = tagged.select(prio_factors + ["segment"]).collect()
+        warning_message = None
+        if segmented_df.height > point_cap:
+            segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)
+            warning_message = f"Showing a representative sample of {point_cap:,} rows to keep the chart responsive."
         if return_df:
             return segmented_df
 
         if segmented_df.select(pl.col("segment").n_unique()).row(0)[0] == 1:
-            warning_message = "Action in selected group never survives to Arbitration"
+            warning_message = "Comparison group never survives to Arbitration"
             return None, warning_message
 
         colors = {
-            "Selected Actions": "rgba(76, 120, 168, 0.5)",
-            "Others": "rgba(165, 170, 175, 0.5)",
+            "Comparison Group": "rgba(76, 120, 168, 0.5)",
+            "Other Offers": "rgba(165, 170, 175, 0.5)",
         }
 
         fig = make_subplots(rows=len(prio_factors), cols=1, subplot_titles=prio_factors)
 
         for i, metric in enumerate(prio_factors, start=1):
-            for _, segment in enumerate(["Selected Actions", "Others"]):
+            for _, segment in enumerate(["Comparison Group", "Other Offers"]):
                 prio_factor_values = segmented_df.filter(segment=segment).get_column(metric).to_list()
                 fig.add_trace(
                     go.Box(
@@ -625,7 +792,7 @@ class Plot:
         fig.update_layout(height=800, width=600, showlegend=False)
         fig.update_yaxes(automargin=True)
 
-        return fig, None
+        return fig, warning_message
 
     def rank_boxplot(
         self,
@@ -633,6 +800,7 @@ class Plot:
         return_df=False,
         additional_filters=None,
     ):
+        point_cap = self._boxplot_point_cap()
         df = apply_filter(self._decision_data.sample, additional_filters)
         if return_df:
             return df
@@ -642,6 +810,9 @@ class Plot:
             .select("Rank")
             .collect()
         )
+        if ranks.height > point_cap:
+            ranks = ranks.sample(n=point_cap, shuffle=True, seed=1)
+
         # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
         fig = px.box(ranks, x="Rank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
@@ -674,7 +845,7 @@ class Plot:
         -------
         go.Figure or pl.DataFrame
         """
-        df = self._decision_data.getComponentActionImpact(
+        df = self._decision_data.get_component_action_impact(
             top_n=top_n, scope=scope, additional_filters=additional_filters
         )
         if return_df:
@@ -694,14 +865,8 @@ class Plot:
             fig.add_annotation(text="No filter data available", showarrow=False)
             return fig
 
-        # Use the scope column for the y-axis label
         y_col = scope if scope in plot_df.columns else "Action"
-        # Determine a color column (one level above scope in hierarchy)
-        color_col = None
-        if scope == "Action" and "Issue" in plot_df.columns:
-            color_col = "Issue"
-        elif scope == "Group" and "Issue" in plot_df.columns:
-            color_col = "Issue"
+        color_discrete_map = self._decision_data.color_mappings.get(y_col)
 
         fig = px.bar(
             plot_df,
@@ -710,15 +875,17 @@ class Plot:
             orientation="h",
             facet_col="Component Name",
             facet_col_wrap=2,
-            color=color_col,
+            color=y_col,
+            color_discrete_map=color_discrete_map,
             template="pega",
         )
         fig.update_yaxes(matches=None, automargin=True, title="")
         fig.update_xaxes(matches=None, title="")
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
-            height=max(400, 120 * min(top_n, 10)),
-            showlegend=color_col is not None,
+            height=max(200, 50 * min(top_n, 10)),
+            showlegend=False,
+            bargap=0.6,
         )
         return fig
 
@@ -753,8 +920,9 @@ class Plot:
         -------
         go.Figure or pl.DataFrame
         """
-        df = self._decision_data.getComponentDrilldown(
+        df = self._decision_data.get_component_drilldown(
             component_name=component_name,
+            scope=scope,
             additional_filters=additional_filters,
         )
         if return_df:
@@ -903,14 +1071,14 @@ class Plot:
         fig = px.line(
             collected_df,
             x="day",
-            y="nOffers",
+            y="avg_actions",
             color=level,
             color_discrete_map=color_discrete_map,
             template="pega",
         )
 
         fig.update_xaxes(title="")
-        fig.update_yaxes(title="Number of Unique Offers")
+        fig.update_yaxes(title="Avg. Actions per Customer")
 
         return fig, warning
 

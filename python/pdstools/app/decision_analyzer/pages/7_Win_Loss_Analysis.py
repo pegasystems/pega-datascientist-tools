@@ -9,8 +9,41 @@ from da_streamlit_utils import (
 )
 
 from pdstools.decision_analyzer.utils import (
+    apply_filter,
     get_first_level_stats,
 )
+
+MAX_COMPARISON_LABEL_LEN = 80
+
+
+def _describe_comparison_group() -> str:
+    """Build a human-readable label from the active comparison filter selections.
+
+    Examples:
+        Issue: Service
+        Issue: Service, Sales
+        Issue: Service and Group: Cards
+        (falls back to "comparison group" when too long or nothing selected)
+    """
+    columns = st.session_state.get("localmultiselect", [])
+    if not columns:
+        return "comparison group"
+
+    parts: list[str] = []
+    for col in columns:
+        values = st.session_state.get(f"localselected_{col}", [])
+        if not values:
+            continue
+        parts.append(f"{col}: {', '.join(values)}")
+
+    if not parts:
+        return "comparison group"
+
+    label = " and ".join(parts)
+    if len(label) > MAX_COMPARISON_LABEL_LEN:
+        return "comparison group"
+    return label
+
 
 # TODO: the rank of winning may not be used or not properly in the analyses shown
 # TODO: double check the numbers - I sometimes can't intuitively relate the bar charts to the box plots
@@ -40,42 +73,26 @@ facetting = "pyChannel/pyDirection"
 #     pl.col(pl.Categorical).cast(pl.Utf8)
 # )
 with st.session_state["sidebar"]:
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
-
-    top_k = st.number_input(
-        "Top N elements to show",
-        min_value=1,
-        max_value=30,  # TODO this is a generic session, make common across many pages
-        value=10,
-    )
-    st.number_input(
-        "Top-N actions that define Winning",
-        min_value=1,
-        max_value=10,  # TODO why restrict to 10, lets use the upper bound from the data.
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
-        key="win_rank",
-    )
-    scope_index = get_current_index(scope_options, "scope")
-    st.selectbox(
-        "Select Scope",
-        options=scope_options,
-        # column names are already friendly
-        index=scope_index,
-        key="scope",
-    )
-
-    # Apply channel filter to sample data
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
     filtered_data = st.session_state.decision_data.filtered_sample
+    comparison_filter_columns = [
+        c
+        for c in st.session_state.decision_data.get_available_fields_for_filtering(
+            categoricalOnly=True,
+        )
+        if c not in {"Stage", "Channel", "Direction"}
+    ]
 
     "### Define a Comparison Group"
 
     st.session_state["local_filters"] = get_data_filters(
         filtered_data,
-        columns=st.session_state.decision_data.getAvailableFieldsForFiltering(
-            categoricalOnly=True,
-        ),
+        columns=comparison_filter_columns,
         queries=[],
         filter_type="local",
+        default_select_all_categories=False,
+        selector_label="Compare offers by",
+        sort_columns=False,
     )
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
@@ -88,6 +105,33 @@ with st.session_state["sidebar"]:
         show_filtered_counts(statsBeforeExtraFilter, statsAfterExtraFilter)
     else:
         st.warning("No comparison group defined")
+
+    scope_index = get_current_index(scope_options, "scope")
+    st.selectbox(
+        "Select Scope",
+        options=scope_options,
+        # column names are already friendly
+        index=scope_index,
+        key="scope",
+    )
+
+    st.number_input(
+        "Define winning: rank in top N",
+        min_value=1,
+        max_value=st.session_state.decision_data.max_win_rank,
+        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
+        key="win_rank",
+        help="A win means at least one offer from the comparison group ranks N or better.",
+    )
+
+    top_k = None
+    if st.session_state.scope == "Action":
+        top_k = st.number_input(
+            "Top N elements to show",
+            min_value=1,
+            max_value=30,
+            value=10,
+        )
 
     channel_direction_selector()
 
@@ -122,112 +166,137 @@ def get_groupby_columns(scope_options, current_scope_key):
 
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
-
-    interactions_where_comparison_group_wins = st.session_state.decision_data.get_winning_or_losing_interactions(
-        win_rank=st.session_state.win_rank,
+    winning_from = st.session_state.decision_data.get_win_loss_distribution_data(
+        level=groupby_cols,
         group_filter=st.session_state["local_filters"],
-        win=True,
-        additional_filters=channel_filter,
-    )
-    winning_from = st.session_state.decision_data.winning_from(
-        interactions=interactions_where_comparison_group_wins,
-        win_rank=st.session_state.win_rank,
-        groupby_cols=groupby_cols,
+        status="Wins",
         top_k=top_k,
         additional_filters=channel_filter,
     )
-    interactions_where_comparison_group_loses = st.session_state.decision_data.get_winning_or_losing_interactions(
-        win_rank=st.session_state.win_rank,
+    losing_to = st.session_state.decision_data.get_win_loss_distribution_data(
+        level=groupby_cols,
         group_filter=st.session_state["local_filters"],
-        win=False,
-        additional_filters=channel_filter,
-    )
-    losing_to = st.session_state.decision_data.losing_to(
-        interactions=interactions_where_comparison_group_loses,
-        win_rank=st.session_state.win_rank,
-        groupby_cols=groupby_cols,
+        status="Losses",
         top_k=top_k,
         additional_filters=channel_filter,
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        """## Win Analysis"""
-        win_count = interactions_where_comparison_group_wins.collect().shape[0]
+    comparison_label = _describe_comparison_group()
+    scope_label = " and ".join(groupby_cols)
 
-        st.info(
-            # TODO these numbers may not be correct
-            f"The action(s) in the comparison group win {win_count} times",
+    win_rank = st.session_state.win_rank
+
+    counts = st.session_state.decision_data.get_win_loss_counts(
+        group_filter=st.session_state["local_filters"],
+        win_rank=win_rank,
+        additional_filters=channel_filter,
+    )
+    win_count = counts["wins"]
+    loss_count = counts["losses"]
+    total = counts["total"]
+    win_pct = (win_count / total * 100) if total > 0 else 0
+    loss_pct = (loss_count / total * 100) if total > 0 else 0
+
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            """## Win Analysis"""
+            st.info(
+                f"**{comparison_label}** wins **{win_count}** out of **{total}** decisions (**{win_pct:.1f}%**)",
+            )
+            f"""Distribution of the {scope_label} **{comparison_label}** wins from"""
+
+            st.plotly_chart(
+                st.session_state.decision_data.plot.distribution(
+                    winning_from,
+                    st.session_state.scope,
+                    groupby_cols[1] if len(groupby_cols) > 1 else None,
+                    "Avg per Decision",
+                    horizontal=True,
+                ),
+                key="win_distribution_chart",
+            )
+
+        with col2:
+            """## Loss Analysis"""
+            st.info(
+                f"**{comparison_label}** loses **{loss_count}** out of **{total}** decisions (**{loss_pct:.1f}%**)",
+            )
+            f"""Distribution of the {scope_label} **{comparison_label}** loses to"""
+
+            st.plotly_chart(
+                st.session_state.decision_data.plot.distribution(
+                    losing_to,
+                    st.session_state.scope,
+                    groupby_cols[1] if len(groupby_cols) > 1 else None,
+                    "Avg per Decision",
+                    horizontal=True,
+                ),
+                key="loss_distribution_chart",
+            )
+
+    with st.container(border=True):
+        "## What Drives Winning and Losing?"
+
+        st.caption(
+            f"How much each prioritization factor contributes to **{comparison_label}** "
+            f"winning or losing. The bars show the percentage of the **{total}** total decisions "
+            "influenced by each factor."
         )
-        f"""Distribution of the {st.session_state.scope}s that the comparison group wins from in Arbitration"""
 
-        st.plotly_chart(
-            st.session_state.decision_data.plot.distribution(
-                winning_from,
-                st.session_state.scope,
-                groupby_cols[1] if len(groupby_cols) > 1 else None,
-                "Decisions",
-                horizontal=True,
-                # models=models,
-            ),
-            key="win_distribution_chart",
-        )
-
-    with col2:
-        """## Loss Analysis"""
-        st.info(
-            f"The action(s) in the comparison group loses {interactions_where_comparison_group_loses.collect().shape[0]} times",
-        )
-        f"""Distribution of the {st.session_state.scope}s that the comparison group loses to in Arbitration"""
-
-        st.plotly_chart(
-            st.session_state.decision_data.plot.distribution(
-                losing_to,
-                st.session_state.scope,
-                groupby_cols[1] if len(groupby_cols) > 1 else None,
-                "Decisions",
-                horizontal=True,
-            ),
-            key="loss_distribution_chart",
-        )
-
-    "## Why Do These Offers Win?"
-
-    """
-    See which factors drive your comparison group to the top. The chart shows how many
-    additional wins each factor contributes. If an offer wins 600 times now but only
-    200 times without considering value, then value is adding 400 wins — pushing this
-    offer ahead of others.
-    """
-    if win_count == 0:
-        st.warning("The selected comparison Group never wins in the arbitration")
-    else:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
+                win_rank=win_rank,
                 reference_group=st.session_state["local_filters"],
                 additional_filters=channel_filter,
+                total_decisions=total,
             ),
             key="sensitivity_chart",
         )
-    "## Comparison: Your Group vs Others"
+    with st.container(border=True):
+        f"## {comparison_label} vs Other Offers"
 
-    """
-    Compare how your selected offers score on key factors (value, priority, propensity)
-    against competing offers in the same customer interactions. This reveals whether
-    your group wins through higher scores or other strategic factors.
-    """
-
-    fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
-        reference=st.session_state["local_filters"],
-        additional_filters=channel_filter,
-    )
-    if warning_message:
-        st.warning(warning_message)
-    if fig is not None:
-        st.plotly_chart(
-            fig,
-            key="prio_factor_boxplots_chart",
+        st.caption(
+            f"Compare how **{comparison_label}** scores on key factors (value, priority, propensity) "
+            "against competing offers in the same customer interactions. Use the dropdowns below "
+            "to narrow down which offers to compare against."
         )
+
+        compare_cols = get_groupby_columns(scope_options, "scope")
+        arb_data = apply_filter(
+            st.session_state.decision_data.arbitration_stage,
+            channel_filter,
+        )
+
+        others_filters: list[pl.Expr] = []
+        selector_cols = st.columns(len(compare_cols))
+        for idx, col_name in enumerate(compare_cols):
+            col_data = arb_data
+            for prev in others_filters:
+                col_data = col_data.filter(prev)
+            options = ["All"] + sorted(col_data.select(col_name).unique().collect().get_column(col_name).to_list())
+            with selector_cols[idx]:
+                selected = st.selectbox(
+                    col_name,
+                    options=options,
+                    key=f"comparison_others_{col_name}",
+                )
+            if selected != "All":
+                others_filters.append(pl.col(col_name) == selected)
+
+        fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
+            reference=st.session_state["local_filters"],
+            additional_filters=channel_filter,
+            others_filter=others_filters if others_filters else None,
+        )
+        sample_warning = "Showing a representative sample of"
+        if warning_message and not warning_message.startswith(sample_warning):
+            st.warning(warning_message)
+        if fig is not None:
+            st.plotly_chart(
+                fig,
+                key="prio_factor_boxplots_chart",
+            )
 
     "## How Often Do These Offers Rank First?"
 

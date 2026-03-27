@@ -2,6 +2,8 @@ import polars as pl
 import streamlit as st
 from da_streamlit_utils import channel_direction_selector, ensure_data, get_current_index
 
+from pdstools.decision_analyzer.utils import apply_filter
+
 # TODO The coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
 # TODO Infer the top-X by channel from the data (max rank per channel for Final records)
 
@@ -22,11 +24,12 @@ st.session_state["sidebar"] = st.sidebar
 
 with st.session_state["sidebar"]:
     st.number_input(
-        "Top-N actions that define Winning",
+        "Define winning: rank in top N",
         min_value=1,
-        max_value=st.session_state.decision_data.max_win_rank,  # TODO why restrict to 10, lets use the upper bound from the data. Calculating these columns is expensive. Maybe add an option at the filter or homepage to increase that range
+        max_value=st.session_state.decision_data.max_win_rank,
         value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
         key="win_rank",
+        help="A win means at least one offer ranks N or better.",
     )
     channel_direction_selector()
 
@@ -45,6 +48,8 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
 
 channel_filter = st.session_state.get("page_channel_expr")
 
+total_decisions = apply_filter(filtered_data, channel_filter).select(pl.n_unique("Interaction ID")).collect().item()
+
 with st.container(border=True):
     "## What Drives Your Offer Selection?"
 
@@ -52,6 +57,7 @@ with st.container(border=True):
         st.session_state.decision_data.plot.sensitivity(
             st.session_state.win_rank,
             additional_filters=channel_filter,
+            total_decisions=total_decisions,
         ),
     )
 
@@ -63,7 +69,7 @@ with st.container(border=True):
         "which offers dominate your customer interactions and which rarely make it through."
     )
 
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
 
     if "glob_sensitivity_scope" not in st.session_state:
         st.session_state.glob_sensitivity_scope = scope_options[0]
