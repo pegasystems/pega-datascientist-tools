@@ -87,7 +87,9 @@ class Plot:
         relative to that number and the hover includes both the absolute
         influence count and the total decisions.
         """
-        df = self._decision_data.get_sensitivity(win_rank, reference_group, additional_filters=additional_filters)
+        df = self._decision_data.get_sensitivity(
+            win_rank, group_filter=reference_group, additional_filters=additional_filters
+        )
         if return_df:
             return df
         n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()

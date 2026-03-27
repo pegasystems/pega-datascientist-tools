@@ -219,7 +219,7 @@ get_win_loss_distribution_data(level, win_rank, additional_filters) → pl.LazyF
 get_optionality_data(df) → dict[str, ...]
 get_optionality_funnel(df) → ...
 getThresholdingData(field, quantile_range) → dict[tuple, pl.DataFrame]
-get_sensitivity(win_rank, filters, additional_filters) → pl.LazyFrame
+get_sensitivity(win_rank, group_filter, additional_filters) → pl.LazyFrame
 get_winning_or_losing_interactions(win_rank, group_filter, win, additional_filters) → pl.DataFrame
 get_trend_data(level, groupby, additional_filters) → pl.LazyFrame
 

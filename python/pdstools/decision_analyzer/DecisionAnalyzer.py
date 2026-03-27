@@ -1492,7 +1492,7 @@ class DecisionAnalyzer:
 
         return distribution
 
-    def winning_from(
+    def _winning_from(
         self,
         interactions: pl.LazyFrame,
         win_rank: int,
@@ -1535,7 +1535,7 @@ class DecisionAnalyzer:
             dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
         return dist
 
-    def losing_to(
+    def _losing_to(
         self,
         interactions: pl.LazyFrame,
         win_rank: int,
@@ -1578,26 +1578,54 @@ class DecisionAnalyzer:
             dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
         return dist
 
-    def get_optionality_data(self, df):
+    # Backward-compat aliases for the now-private methods.
+    winning_from = _winning_from
+    losing_to = _losing_to
+
+    def get_optionality_data(self, df=None, by_day: bool = False) -> pl.LazyFrame:
+        """Average number of actions per stage, optionally broken down by day.
+
+        Computes per-interaction action counts at each stage using
+        ``aggregate_remaining_per_stage``, then aggregates into a histogram.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame, optional
+            Input data.  Defaults to :attr:`sample`.
+        by_day : bool, default False
+            If True, include ``"day"`` in the grouping for trend analysis.
+            When False, zero-action rows are injected for stages where some
+            interactions have no remaining actions.
+
+        Returns
+        -------
+        pl.LazyFrame
         """
-        Finding the average number of actions per stage without trend analysis.
-        We have to go back to the interaction level data, no way to
-        use pre-aggregations unfortunately.
-        """
-        total_interactions = df.select("Interaction ID").collect().unique().height
+        if df is None:
+            df = self.sample
         expr = [
             pl.len().alias("nOffers"),
             pl.col("Propensity").filter(pl.col("Propensity") < 0.5).max().alias("bestPropensity"),
         ]
+
+        group_by_columns = ["Interaction ID", "day"] if by_day else ["Interaction ID"]
+        outer_group = ["nOffers", self.level, "day"] if by_day else ["nOffers", self.level]
+
         per_offer_count_and_stage = (
             self.aggregate_remaining_per_stage(
                 df=df,
-                group_by_columns=["Interaction ID"],
+                group_by_columns=group_by_columns,
                 aggregations=expr,
             )
-            .group_by(["nOffers", self.level])
+            .group_by(outer_group)
             .agg(Interactions=pl.len(), AverageBestPropensity=pl.mean("bestPropensity"))
         )
+
+        if by_day:
+            return per_offer_count_and_stage.sort("nOffers", descending=True)
+
+        # Non-trend mode: inject zero-action rows for completeness
+        total_interactions = df.select("Interaction ID").collect().unique().height
         schema = per_offer_count_and_stage.collect_schema()
         zero_actions = (
             per_offer_count_and_stage.group_by(self.level)
@@ -1618,30 +1646,9 @@ class DecisionAnalyzer:
 
         return optionality_data
 
-    # @cached_property
-    def get_optionality_data_with_trend(self, df=None):
-        """
-        Finding the average number of actions per stage with trend analysis.
-        We have to go back to the interaction level data, no way to
-        use pre-aggregations unfortunately.
-        """
-        if df is None:
-            df = self.sample
-        expr = [
-            pl.len().alias("nOffers"),
-            pl.col("Propensity").filter(pl.col("Propensity") < 0.5).max().alias("bestPropensity"),
-        ]
-        optionality_data = (
-            self.aggregate_remaining_per_stage(
-                df=df,
-                group_by_columns=["Interaction ID", "day"],
-                aggregations=expr,
-            )
-            .group_by(["nOffers", self.level, "day"])
-            .agg(Interactions=pl.len(), AverageBestPropensity=pl.mean("bestPropensity"))
-            .sort("nOffers", descending=True)
-        )
-        return optionality_data
+    def get_optionality_data_with_trend(self, df=None) -> pl.LazyFrame:
+        """Backward-compatible alias for ``get_optionality_data(df, by_day=True)``."""
+        return self.get_optionality_data(df=df, by_day=True)
 
     # @cached_property
     def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
@@ -2200,14 +2207,14 @@ class DecisionAnalyzer:
         """Backward-compatible alias for :attr:`overview_stats`."""
         return self.overview_stats
 
-    def get_sensitivity(self, win_rank=1, filters=None, additional_filters=None):
+    def get_sensitivity(self, win_rank=1, group_filter=None, additional_filters=None):
         """Global or local sensitivity of the prioritization factors.
 
         Parameters
         ----------
         win_rank : int
             Maximum rank to be considered a winner.
-        filters : pl.Expr, optional
+        group_filter : pl.Expr, optional
             Selected offers, only used in local sensitivity analysis.
             When ``None`` (global), results are cached by ``win_rank``.
         additional_filters : pl.Expr or list[pl.Expr], optional
@@ -2218,17 +2225,17 @@ class DecisionAnalyzer:
         -------
         pl.LazyFrame
         """
-        is_global_sensitivity = filters is None
+        is_global_sensitivity = group_filter is None
         if is_global_sensitivity and additional_filters is None:
             if win_rank in self._sensitivity_cache:
                 return self._sensitivity_cache[win_rank]
-            filters = pl.col("Rank") <= win_rank
+            group_filter = pl.col("Rank") <= win_rank
         elif is_global_sensitivity:
-            filters = pl.col("Rank") <= win_rank
+            group_filter = pl.col("Rank") <= win_rank
 
         sensitivity = (
             apply_filter(
-                self.reRank(additional_filters=additional_filters), filters
+                self.reRank(additional_filters=additional_filters), group_filter
             )  # don't put filters in rerank function, we need to filter after reranking!
             # .filter(pl.col("rank_PVCL") <= win_rank)
             .select(
