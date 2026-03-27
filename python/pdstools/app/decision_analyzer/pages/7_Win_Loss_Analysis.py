@@ -9,6 +9,7 @@ from da_streamlit_utils import (
 )
 
 from pdstools.decision_analyzer.utils import (
+    apply_filter,
     get_first_level_stats,
 )
 
@@ -248,26 +249,50 @@ if st.session_state.local_filters != []:
             ),
             key="sensitivity_chart",
         )
-    "## Comparison: Your Group vs Others"
+    with st.container(border=True):
+        "## Your Comparison Group vs Other Offers"
 
-    """
-    Compare how your selected offers score on key factors (value, priority, propensity)
-    against competing offers in the same customer interactions. This reveals whether
-    your group wins through higher scores or other strategic factors.
-    """
-
-    fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
-        reference=st.session_state["local_filters"],
-        additional_filters=channel_filter,
-    )
-    sample_warning = "Showing a representative sample of"
-    if warning_message and not warning_message.startswith(sample_warning):
-        st.warning(warning_message)
-    if fig is not None:
-        st.plotly_chart(
-            fig,
-            key="prio_factor_boxplots_chart",
+        st.caption(
+            "Compare how your comparison group scores on key factors (value, priority, propensity) "
+            "against competing offers in the same customer interactions. Use the dropdowns below "
+            "to narrow down which offers to compare against."
         )
+
+        compare_cols = get_groupby_columns(scope_options, "scope")
+        arb_data = apply_filter(
+            st.session_state.decision_data.arbitration_stage,
+            channel_filter,
+        )
+
+        others_filters: list[pl.Expr] = []
+        selector_cols = st.columns(len(compare_cols))
+        for idx, col_name in enumerate(compare_cols):
+            col_data = arb_data
+            for prev in others_filters:
+                col_data = col_data.filter(prev)
+            options = ["All"] + sorted(col_data.select(col_name).unique().collect().get_column(col_name).to_list())
+            with selector_cols[idx]:
+                selected = st.selectbox(
+                    col_name,
+                    options=options,
+                    key=f"comparison_others_{col_name}",
+                )
+            if selected != "All":
+                others_filters.append(pl.col(col_name) == selected)
+
+        fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
+            reference=st.session_state["local_filters"],
+            additional_filters=channel_filter,
+            others_filter=others_filters if others_filters else None,
+        )
+        sample_warning = "Showing a representative sample of"
+        if warning_message and not warning_message.startswith(sample_warning):
+            st.warning(warning_message)
+        if fig is not None:
+            st.plotly_chart(
+                fig,
+                key="prio_factor_boxplots_chart",
+            )
 
     "## How Often Do These Offers Rank First?"
 

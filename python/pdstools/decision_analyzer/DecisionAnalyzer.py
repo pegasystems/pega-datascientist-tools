@@ -1237,6 +1237,92 @@ class DecisionAnalyzer:
 
         return distribution
 
+    def winning_from(
+        self,
+        interactions: pl.LazyFrame,
+        win_rank: int,
+        groupby_cols: list[str],
+        top_k: int = 20,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
+        """Actions beaten by the comparison group in its winning interactions.
+
+        Parameters
+        ----------
+        interactions
+            Interaction IDs where the comparison group wins.
+        win_rank
+            Rank threshold used to define "winning".
+        groupby_cols
+            Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
+        top_k
+            Return only the top-k entries.
+        additional_filters
+            Optional extra filters (e.g. channel filter).
+        """
+        stage_filtered = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+        rows = stage_filtered.join(interactions, on="Interaction ID", how="inner").filter(pl.col("Rank") > win_rank)
+        n_interactions = rows.select(pl.n_unique("Interaction ID")).collect().item()
+        dist = (
+            rows.group_by(groupby_cols)
+            .agg(Decisions=pl.len())
+            .filter(pl.col("Decisions") > 0)
+            .sort("Decisions", descending=True)
+            .head(top_k)
+        )
+        if n_interactions > 0:
+            dist = dist.with_columns(
+                (pl.col("Decisions") / pl.lit(n_interactions)).round(1).alias("Avg per Decision"),
+            )
+        else:
+            dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
+        return dist
+
+    def losing_to(
+        self,
+        interactions: pl.LazyFrame,
+        win_rank: int,
+        groupby_cols: list[str],
+        top_k: int = 20,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
+        """Actions that beat the comparison group in its losing interactions.
+
+        Parameters
+        ----------
+        interactions
+            Interaction IDs where the comparison group loses.
+        win_rank
+            Rank threshold used to define "winning".
+        groupby_cols
+            Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
+        top_k
+            Return only the top-k entries.
+        additional_filters
+            Optional extra filters (e.g. channel filter).
+        """
+        stage_filtered = apply_filter(self.sample, additional_filters).filter(
+            pl.col(self.level).is_in(self.stages_from_arbitration_down)
+        )
+        rows = stage_filtered.join(interactions, on="Interaction ID", how="inner").filter(pl.col("Rank") < win_rank)
+        n_interactions = rows.select(pl.n_unique("Interaction ID")).collect().item()
+        dist = (
+            rows.group_by(groupby_cols)
+            .agg(Decisions=pl.len())
+            .filter(pl.col("Decisions") > 0)
+            .sort("Decisions", descending=True)
+            .head(top_k)
+        )
+        if n_interactions > 0:
+            dist = dist.with_columns(
+                (pl.col("Decisions") / pl.lit(n_interactions)).round(1).alias("Avg per Decision"),
+            )
+        else:
+            dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
+        return dist
+
     def get_optionality_data(self, df):
         """
         Finding the average number of actions per stage without trend analysis.

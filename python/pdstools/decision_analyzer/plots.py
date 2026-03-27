@@ -587,17 +587,19 @@ class Plot:
         reference: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
         additional_filters=None,
+        others_filter: pl.Expr | list[pl.Expr] | None = None,
     ) -> tuple[go.Figure, str | None]:
         point_cap = self._boxplot_point_cap()
         df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
         prio_factors = PRIO_FACTORS
-        segmented_df = (
-            df.with_columns(
-                segment=pl.when(reference)  # pl.col("Action").is_in(models)
-                .then(pl.lit("Selected Actions"))
-                .otherwise(pl.lit("Others"))
-            ).select(prio_factors + ["segment"])
-        ).collect()
+        tagged = df.with_columns(
+            segment=pl.when(reference).then(pl.lit("Comparison Group")).otherwise(pl.lit("Other Offers"))
+        )
+        if others_filter is not None:
+            keep_selected = pl.col("segment") == "Comparison Group"
+            others_match = others_filter if isinstance(others_filter, pl.Expr) else pl.all_horizontal(others_filter)
+            tagged = tagged.filter(keep_selected | others_match)
+        segmented_df = tagged.select(prio_factors + ["segment"]).collect()
         warning_message = None
         if segmented_df.height > point_cap:
             segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)
@@ -606,18 +608,18 @@ class Plot:
             return segmented_df
 
         if segmented_df.select(pl.col("segment").n_unique()).row(0)[0] == 1:
-            warning_message = "Action in selected group never survives to Arbitration"
+            warning_message = "Comparison group never survives to Arbitration"
             return None, warning_message
 
         colors = {
-            "Selected Actions": "rgba(76, 120, 168, 0.5)",
-            "Others": "rgba(165, 170, 175, 0.5)",
+            "Comparison Group": "rgba(76, 120, 168, 0.5)",
+            "Other Offers": "rgba(165, 170, 175, 0.5)",
         }
 
         fig = make_subplots(rows=len(prio_factors), cols=1, subplot_titles=prio_factors)
 
         for i, metric in enumerate(prio_factors, start=1):
-            for _, segment in enumerate(["Selected Actions", "Others"]):
+            for _, segment in enumerate(["Comparison Group", "Other Offers"]):
                 prio_factor_values = segmented_df.filter(segment=segment).get_column(metric).to_list()
                 fig.add_trace(
                     go.Box(
