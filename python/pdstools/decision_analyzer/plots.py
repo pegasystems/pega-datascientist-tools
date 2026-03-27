@@ -22,7 +22,7 @@ class Plot:
         return DEFAULT_BOXPLOT_POINT_CAP
 
     def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
-        df = self._decision_data.getThresholdingData(thresholding_on)
+        df = self._decision_data.get_thresholding_data(thresholding_on)
         if return_df:
             return df
 
@@ -350,7 +350,7 @@ class Plot:
             color_by: Optional dimension to color by (e.g., "Channel/Direction")
             return_df: If True, return the data instead of the figure
         """
-        df = self._decision_data.getActionVariationData(stage, color_by=color_by)
+        df = self._decision_data.get_action_variation_data(stage, color_by=color_by)
         if return_df:
             return df
 
@@ -425,7 +425,7 @@ class Plot:
         passing_fig shows actions that exit each stage (Passing Actions tab).
         filtered_fig shows actions removed at each stage (Filtered Actions tab).
         """
-        available_df, passing_df, filtered_df = self._decision_data.getFunnelData(scope, additional_filters)
+        available_df, passing_df, filtered_df = self._decision_data.get_funnel_data(scope, additional_filters)
         if return_df:
             return available_df, passing_df, filtered_df
 
@@ -586,7 +586,7 @@ class Plot:
             return df
 
         total_decisions = (
-            apply_filter(self._decision_data.getPreaggregatedFilterView, additional_filters)
+            apply_filter(self._decision_data.preaggregated_filter_view, additional_filters)
             .select(pl.col("Interaction_IDs").flatten().unique().count())
             .collect()
             .item()
@@ -617,7 +617,7 @@ class Plot:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         return_df=False,
     ):
-        df = self._decision_data.getFilterComponentData(top_n, additional_filters)
+        df = self._decision_data.get_filter_component_data(top_n, additional_filters)
         if return_df:
             return df
         top_n_actions_dict = {}
@@ -845,7 +845,7 @@ class Plot:
         -------
         go.Figure or pl.DataFrame
         """
-        df = self._decision_data.getComponentActionImpact(
+        df = self._decision_data.get_component_action_impact(
             top_n=top_n, scope=scope, additional_filters=additional_filters
         )
         if return_df:
@@ -920,7 +920,7 @@ class Plot:
         -------
         go.Figure or pl.DataFrame
         """
-        df = self._decision_data.getComponentDrilldown(
+        df = self._decision_data.get_component_drilldown(
             component_name=component_name,
             scope=scope,
             additional_filters=additional_filters,

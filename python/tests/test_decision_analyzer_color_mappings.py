@@ -94,7 +94,7 @@ def test_distribution_treemap_uses_consistent_colors(sample_data):
     # Create treemap plot with Issue as primary scope
     scope_options = ["Issue"]
     fig = da.plot.distribution_as_treemap(
-        da.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Arbitration"),
+        da.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Arbitration"),
         stage="Arbitration",
         scope_options=scope_options,
     )

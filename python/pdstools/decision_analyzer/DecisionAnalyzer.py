@@ -250,7 +250,7 @@ class DecisionAnalyzer:
         else:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
         self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
-        self.resetGlobalDataFilters()
+        self.reset_global_data_filters()
         available_columns = set(self.unfiltered_raw_decision_data.collect_schema().names())
         self.fields_for_data_filtering = [f for f in self._default_filter_fields if f in available_columns]
         self.preaggregation_columns = {
@@ -574,7 +574,7 @@ class DecisionAnalyzer:
         self._thresholding_cache.clear()
         self._sensitivity_cache.clear()
 
-    def applyGlobalDataFilters(self, filters: pl.Expr | list[pl.Expr] | None = None) -> None:
+    def apply_global_data_filters(self, filters: pl.Expr | list[pl.Expr] | None = None) -> None:
         """Apply global filters to the decision data.
 
         Replaces ``decision_data`` with a filtered subset of
@@ -591,13 +591,13 @@ class DecisionAnalyzer:
         if filters is not None:
             self.decision_data = apply_filter(self.unfiltered_raw_decision_data, filters)
 
-    def resetGlobalDataFilters(self) -> None:
+    def reset_global_data_filters(self) -> None:
         """Remove all global filters, restoring the full dataset."""
         self.decision_data = self.unfiltered_raw_decision_data
         self._invalidate_cached_properties()
 
     @cached_property
-    def getPreaggregatedFilterView(self):
+    def preaggregated_filter_view(self):
         """Pre-aggregates the full dataset over customers and interactions providing
         a view of what is filtered at a stage.
 
@@ -634,7 +634,7 @@ class DecisionAnalyzer:
         return self.preaggregated_decision_data_filterview
 
     @cached_property
-    def getPreaggregatedRemainingView(self):
+    def preaggregated_remaining_view(self):
         """Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
 
         This pre-aggregation builds on the filter view and aggregates over
@@ -642,7 +642,7 @@ class DecisionAnalyzer:
         """
         self.preaggregated_decision_data_remainingview = (
             self.aggregate_remaining_per_stage(
-                self.getPreaggregatedFilterView,
+                self.preaggregated_filter_view,
                 list(self.preaggregation_columns),
                 [
                     pl.col("Interaction_IDs").flatten().unique().count().alias("Decisions"),
@@ -767,7 +767,7 @@ class DecisionAnalyzer:
 
         return self.sample
 
-    def getAvailableFieldsForFiltering(self, categoricalOnly=False) -> list[str]:
+    def get_available_fields_for_filtering(self, categoricalOnly=False) -> list[str]:
         """Return column names available for data filtering.
 
         Parameters
@@ -844,12 +844,12 @@ class DecisionAnalyzer:
         )
         return preproc_df
 
-    def getPossibleScopeValues(self) -> list[str]:
+    def get_possible_scope_values(self) -> list[str]:
         """Return scope hierarchy columns present in the data (e.g. Issue, Group, Action)."""
         available = set(self.decision_data.collect_schema().names())
         return [col for col in SCOPE_HIERARCHY if col in available]
 
-    def getPossibleStageValues(self) -> list[str]:
+    def get_possible_stage_values(self) -> list[str]:
         """Return the list of available stage values for the current level."""
         options = self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
@@ -880,7 +880,7 @@ class DecisionAnalyzer:
             )
         )
 
-    def getDistributionData(
+    def get_distribution_data(
         self,
         stage: str,
         grouping_levels: str | list[str],
@@ -903,7 +903,7 @@ class DecisionAnalyzer:
             Columns from *grouping_levels* plus ``Decisions``, sorted descending.
         """
         distribution_data = (
-            apply_filter(self.getPreaggregatedRemainingView, additional_filters)
+            apply_filter(self.preaggregated_remaining_view, additional_filters)
             .filter(pl.col(self.level) == stage)
             .group_by(grouping_levels)
             .agg(pl.sum("Decisions"))
@@ -915,10 +915,10 @@ class DecisionAnalyzer:
 
     # import streamlit as st
     # @st.cache_data
-    def getFunnelData(
+    def get_funnel_data(
         self, scope, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
-        filtered_df = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+        filtered_df = apply_filter(self.preaggregated_filter_view, additional_filters)
 
         interaction_count_expr = (
             apply_filter(self.decision_data, additional_filters).select("Interaction ID").unique().count()
@@ -990,7 +990,7 @@ class DecisionAnalyzer:
         sorted in pipeline order. For each stage X, the value is the number of
         interactions that lose their final remaining action at stage X.
         """
-        filter_view = apply_filter(self.getPreaggregatedFilterView, additional_filters)
+        filter_view = apply_filter(self.preaggregated_filter_view, additional_filters)
 
         def count_from(stages):
             return (
@@ -1046,11 +1046,11 @@ class DecisionAnalyzer:
         Parameters
         ----------
         available_df : pl.LazyFrame
-            First element returned by ``getFunnelData`` (actions entering each stage).
+            First element returned by ``get_funnel_data`` (actions entering each stage).
         passing_df : pl.DataFrame
-            Second element returned by ``getFunnelData`` (actions exiting each stage).
+            Second element returned by ``get_funnel_data`` (actions exiting each stage).
         additional_filters : optional
-            Same filters used when calling ``getFunnelData``.
+            Same filters used when calling ``get_funnel_data``.
 
         Returns
         -------
@@ -1109,7 +1109,7 @@ class DecisionAnalyzer:
         )
         return summary
 
-    def getFilterComponentData(
+    def get_filter_component_data(
         self, top_n: int, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> pl.DataFrame:
         """Top-N filter components per stage, ranked by filtered-decision count.
@@ -1128,12 +1128,12 @@ class DecisionAnalyzer:
             Filtered Decisions.
         """
         group_cols = [self.level, "Component Name"]
-        available = set(self.getPreaggregatedFilterView.collect_schema().names())
+        available = set(self.preaggregated_filter_view.collect_schema().names())
         if "Component Type" in available:
             group_cols.append("Component Type")
 
         stages_actions_df = (
-            apply_filter(self.getPreaggregatedFilterView, additional_filters)
+            apply_filter(self.preaggregated_filter_view, additional_filters)
             .filter(pl.col(self.level) != "Output")
             .group_by(group_cols)
             .agg(pl.col("Interaction_IDs").flatten().unique().count().alias("Filtered Decisions"))
@@ -1150,7 +1150,7 @@ class DecisionAnalyzer:
 
         return result
 
-    def getComponentActionImpact(
+    def get_component_action_impact(
         self,
         top_n: int = 10,
         scope: str = "Action",
@@ -1204,7 +1204,7 @@ class DecisionAnalyzer:
 
         return result.sort(["Component Name", "Filtered Decisions"], descending=[False, True])
 
-    def getComponentDrilldown(
+    def get_component_drilldown(
         self,
         component_name: str,
         scope: str = "Action",
@@ -1278,7 +1278,7 @@ class DecisionAnalyzer:
         sort_col = sort_by if sort_by in result.columns else "Filtered Decisions"
         return result.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).sort(sort_col, descending=True)
 
-    def reRank(
+    def re_rank(
         self,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         overrides: list[pl.Expr] = [],
@@ -1423,7 +1423,7 @@ class DecisionAnalyzer:
                 raise ValueError("win_rank must be provided when group_filter is None.")
             win_col = f"Win_at_rank{win_rank}"
             group_level_win_losses = (
-                apply_filter(self.getPreaggregatedRemainingView, additional_filters)
+                apply_filter(self.preaggregated_remaining_view, additional_filters)
                 .filter(pl.col(self.level) == "Arbitration")
                 .group_by(level)
                 .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
@@ -1685,7 +1685,7 @@ class DecisionAnalyzer:
         )
         return optionality_funnel
 
-    def getActionVariationData(self, stage, color_by=None):
+    def get_action_variation_data(self, stage, color_by=None):
         """Get action variation data, optionally broken down by a categorical dimension.
 
         Args:
@@ -1701,7 +1701,7 @@ class DecisionAnalyzer:
             grouping_levels = ["Action"] if color_by is None else [color_by, "Action"]
 
         # Get distribution data grouped by Action (and optionally color_by dimension)
-        distribution = self.getDistributionData(
+        distribution = self.get_distribution_data(
             stage=stage,
             grouping_levels=grouping_levels,
         ).collect()
@@ -1805,7 +1805,7 @@ class DecisionAnalyzer:
         return result.lazy()
 
     # TODO: figure out how to maintain standard stage order, for now simply solved by sorting on counts
-    def getABTestResults(self) -> pl.DataFrame:
+    def get_ab_test_results(self) -> pl.DataFrame:
         """A/B test summary: control vs test counts and control percentage per stage.
 
         Returns
@@ -1815,7 +1815,7 @@ class DecisionAnalyzer:
             Control Percentage.
         """
         tbl = (
-            self.getPreaggregatedRemainingView.group_by(
+            self.preaggregated_remaining_view.group_by(
                 # TODO: we should include all the IA properties but they're not populated currently
                 [self.level, "Model Control Group"]
             )
@@ -1832,7 +1832,7 @@ class DecisionAnalyzer:
         )
         return tbl
 
-    def getThresholdingData(self, fld: str, quantile_range=range(10, 100, 10)) -> pl.DataFrame:
+    def get_thresholding_data(self, fld: str, quantile_range=range(10, 100, 10)) -> pl.DataFrame:
         """Quantile-based thresholding analysis at Arbitration.
 
         Computes counts and threshold values at each quantile for the given
@@ -1857,7 +1857,7 @@ class DecisionAnalyzer:
 
         thresholds_wide = (
             # Note: runs on pre-aggregated data - maybe should be using _min/_max for filtering instead
-            self.getPreaggregatedFilterView.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
+            self.preaggregated_filter_view.filter(pl.col(self.level).is_in(self.stages_from_arbitration_down))
             .select(
                 # TODO can probably code this up more efficiently
                 [pl.col(fld).explode().quantile(q / 100.0).alias(f"p{q}") for q in quantile_range]
@@ -2166,11 +2166,11 @@ class DecisionAnalyzer:
 
         kpis = (
             (
-                self.getPreaggregatedFilterView.select(
+                self.preaggregated_filter_view.select(
                     pl.n_unique("Action").alias("Actions"),
                     (
                         pl.struct("Channel", "Direction").n_unique()
-                        if "Direction" in self.getPreaggregatedFilterView.collect_schema().names()
+                        if "Direction" in self.preaggregated_filter_view.collect_schema().names()
                         else pl.n_unique("Channel")
                     ).alias("Channels"),
                     ((pl.max("Decision Time_max") - pl.min("Decision Time_min")) + pl.duration(days=1)).alias(
@@ -2235,7 +2235,7 @@ class DecisionAnalyzer:
 
         sensitivity = (
             apply_filter(
-                self.reRank(additional_filters=additional_filters), group_filter
+                self.re_rank(additional_filters=additional_filters), group_filter
             )  # don't put filters in rerank function, we need to filter after reranking!
             # .filter(pl.col("rank_PVCL") <= win_rank)
             .select(
@@ -2296,7 +2296,7 @@ class DecisionAnalyzer:
             ``n90`` — number of actions covering 90 % of decisions.
             ``gini`` — Gini coefficient of decision concentration.
         """
-        offer_variability_data = self.getActionVariationData(stage)
+        offer_variability_data = self.get_action_variation_data(stage)
         return {
             "n90": bisect_left(
                 offer_variability_data.select("DecisionsFraction").collect()["DecisionsFraction"],
@@ -2535,7 +2535,7 @@ class DecisionAnalyzer:
         """
         if lever_value is None:
             # Return baseline distribution only
-            original_winners = self.reRank(
+            original_winners = self.re_rank(
                 additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
 
@@ -2576,7 +2576,7 @@ class DecisionAnalyzer:
             return result
         else:
             # Return both baseline and lever-adjusted distribution
-            recalculated_winners = self.reRank(
+            recalculated_winners = self.re_rank(
                 overrides=[
                     (pl.when(lever_condition).then(pl.lit(lever_value)).otherwise(pl.col("Levers"))).alias("Levers")
                 ],
@@ -2703,7 +2703,7 @@ class DecisionAnalyzer:
 
         def _calculate_action_win_percentage(lever: float) -> float:
             """Calculate win percentage for a given lever value"""
-            ranked_df = self.reRank(
+            ranked_df = self.re_rank(
                 overrides=[(pl.when(lever_condition).then(pl.lit(lever)).otherwise(pl.col("Levers"))).alias("Levers")],
                 additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).filter(pl.col("rank_PVCL") <= win_rank)
@@ -2747,3 +2747,28 @@ class DecisionAnalyzer:
 
         final_lever = (low + high) / 2
         return final_lever
+
+    # Backward-compat aliases for camelCase → snake_case rename.
+    applyGlobalDataFilters = apply_global_data_filters
+    resetGlobalDataFilters = reset_global_data_filters
+
+    @property
+    def getPreaggregatedFilterView(self):
+        return self.preaggregated_filter_view
+
+    @property
+    def getPreaggregatedRemainingView(self):
+        return self.preaggregated_remaining_view
+
+    getAvailableFieldsForFiltering = get_available_fields_for_filtering
+    getPossibleScopeValues = get_possible_scope_values
+    getPossibleStageValues = get_possible_stage_values
+    getDistributionData = get_distribution_data
+    getFunnelData = get_funnel_data
+    getFilterComponentData = get_filter_component_data
+    getComponentActionImpact = get_component_action_impact
+    getComponentDrilldown = get_component_drilldown
+    reRank = re_rank
+    getActionVariationData = get_action_variation_data
+    getABTestResults = get_ab_test_results
+    getThresholdingData = get_thresholding_data

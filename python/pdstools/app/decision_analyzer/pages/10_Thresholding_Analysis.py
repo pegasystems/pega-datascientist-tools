@@ -42,7 +42,7 @@ channel_filter = st.session_state.get("page_channel_expr")
 # Collect sampled values from arbitration once
 # ---------------------------------------------------------------------------
 arb_data = (
-    apply_filter(da.getPreaggregatedFilterView, channel_filter)
+    apply_filter(da.preaggregated_filter_view, channel_filter)
     .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
     .select(
         pl.col("Propensity").explode(),
@@ -58,7 +58,7 @@ total_action_appearances = arb_data["Decisions"].sum()
 # Sidebar: threshold sliders for propensity and priority
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    prop_range = da.getThresholdingData("Propensity", quantile_range=[0, 100])["Threshold"].to_list()
+    prop_range = da.get_thresholding_data("Propensity", quantile_range=[0, 100])["Threshold"].to_list()
 
     if all(v is None for v in prop_range):
         st.warning(
@@ -81,7 +81,7 @@ with st.sidebar:
         / 100
     )
 
-    prio_range = da.getThresholdingData("Priority", quantile_range=[0, 100])["Threshold"].to_list()
+    prio_range = da.get_thresholding_data("Priority", quantile_range=[0, 100])["Threshold"].to_list()
     prio_range = [v if v is not None else 0.0 for v in prio_range]
 
     priority_threshold = st.slider(
@@ -170,7 +170,7 @@ with st.container(border=True):
 
     with col2:
         prio_data = (
-            apply_filter(da.getPreaggregatedFilterView, channel_filter)
+            apply_filter(da.preaggregated_filter_view, channel_filter)
             .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
             .select(pl.col("Priority").explode(), pl.col("Decisions"))
             .collect()
@@ -200,7 +200,7 @@ with st.container(border=True):
     "## Offers Meeting Quality Thresholds"
 
     surviving = (
-        apply_filter(da.getPreaggregatedFilterView, channel_filter)
+        apply_filter(da.preaggregated_filter_view, channel_filter)
         .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
         .select(
             pl.col("Issue"),

@@ -73,11 +73,11 @@ facetting = "pyChannel/pyDirection"
 #     pl.col(pl.Categorical).cast(pl.Utf8)
 # )
 with st.session_state["sidebar"]:
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
     filtered_data = st.session_state.decision_data.filtered_sample
     comparison_filter_columns = [
         c
-        for c in st.session_state.decision_data.getAvailableFieldsForFiltering(
+        for c in st.session_state.decision_data.get_available_fields_for_filtering(
             categoricalOnly=True,
         )
         if c not in {"Stage", "Channel", "Direction"}

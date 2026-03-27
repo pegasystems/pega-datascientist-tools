@@ -37,7 +37,7 @@ st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     stage_level_selector()
 
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
 
     stage_selectbox()
     channel_direction_selector()
@@ -66,7 +66,7 @@ with st.container(border=True):
         "Issue → Group → Action to see how your portfolio is composed."
     )
 
-    distribution_data = st.session_state.decision_data.getDistributionData(
+    distribution_data = st.session_state.decision_data.get_distribution_data(
         st.session_state.stage,
         scope_options,
         additional_filters=channel_filter,

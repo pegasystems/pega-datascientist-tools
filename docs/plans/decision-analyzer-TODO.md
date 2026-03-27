@@ -40,7 +40,7 @@ Active work items for the Decision Analysis Tool.
 
 ### High Priority
 
-- [ ] **[P1] Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Consequence:** Users cannot get representative distributions across groups; sampling only provides one data point per group regardless of group size, potentially missing important variation patterns in small-volume groups. **Root cause:** With multiple samples per group, `.explode()` in `getThresholdingData` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing quantile calculations toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
+- [ ] **[P1] Fix `num_samples > 1`** — Pre-aggregation sampling ([DecisionAnalyzer.py:569](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L569)) is locked at 1 because >1 breaks thresholding. **Consequence:** Users cannot get representative distributions across groups; sampling only provides one data point per group regardless of group size, potentially missing important variation patterns in small-volume groups. **Root cause:** With multiple samples per group, `.explode()` in `get_thresholding_data` ([line 1236](../python/pdstools/decision_analyzer/DecisionAnalyzer.py#L1236)) creates multiple rows per aggregated group, biasing quantile calculations toward groups with more underlying interactions. **Solutions:** (A) Weight samples properly in thresholding, (B) Calculate quantiles at group level before exploding, (C) Use min/max columns instead of samples for distributions, or (D) Document the limitation and keep `num_samples=1`.
 
 ### Medium Priority
 
@@ -54,7 +54,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] Distinct propensity display names** — `column_schema.py` maps model propensity and (final) propensity to same display name. **Consequence:** Users cannot distinguish between raw model output and arbitration-adjusted propensity in UI; confusing for lever analysis where the distinction matters (model propensity is input, final propensity is after lever adjustments); charts and tables ambiguous. **Action:** Use "Model Propensity" for raw model output vs "Final Propensity" for arbitration-adjusted value, update `column_schema.py` and all PVCL references.
 
-- [ ] **[P2] Rename camelCase methods to snake_case** — Several public methods still use camelCase (`getDistributionData`, `getFunnelData`, `getThresholdingData`, `getPreaggregatedFilterView`, `getPreaggregatedRemainingView`, `getActionVariationData`, `reRank`, etc.). **Consequence:** Inconsistent API surface — newer methods use snake_case, older ones use camelCase; violates PEP 8; confusing for contributors and users. **Action:** Rename each to snake_case equivalent (e.g. `get_distribution_data`), add backward-compat aliases with deprecation warnings, update all callers (app pages, plots, tests, notebooks). Do in a single focused PR to control blast radius.
+- [x] **[DONE] Rename camelCase methods to snake_case** — ✅ Completed: All 16 camelCase methods renamed to snake_case equivalents (e.g., `getDistributionData` → `get_distribution_data`, `getFunnelData` → `get_funnel_data`, etc.). Backward-compat aliases added. All callers (app pages, plots, tests, notebooks, docs) updated.
 
 - [ ] **[P2] Consolidate win/loss methods** — Win/loss analysis currently has four related methods with overlapping responsibilities: `_winning_from`, `_losing_to` (per-direction helpers), `get_win_loss_distribution_data` (rank-based distributions), and `get_win_loss_distributions` (combined wrapper using group-filter boundaries). **Consequence:** Callers must choose between multiple APIs that do similar things; `_winning_from`/`_losing_to` duplicate most of their logic (only the rank comparison operator differs); confusing for contributors. **Action:** Merge `_winning_from`/`_losing_to` into a single private helper with a `direction` parameter; review whether `get_win_loss_distribution_data` and `get_win_loss_distributions` can be unified or whether they serve genuinely different use cases (fixed rank vs group-filter boundaries); simplify the public API to at most two methods.
 
@@ -66,7 +66,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P3] Customer-level aggregates** — Per-customer statistics and trends. **Consequence:** Cannot analyze customer-level patterns (e.g., "do high-value customers see different action mixes?"); limited to interaction-level view. **Status:** Postponed; current sample data not representative of real customer distributions. **Action:** Wait for representative multi-customer dataset, then design customer aggregation methods.
 
-- [ ] **[P3] AB test: include IA properties** — `getABTestResults` doesn't include Impact Analyzer properties when populated in data. **Consequence:** Users running A/B tests cannot see treatment effects on business outcomes (CTR, conversion, revenue) that IA would provide; limited to arbitration metrics only. **Action:** Extend method to join IA properties when available, add to output dataframe.
+- [ ] **[P3] AB test: include IA properties** — `get_ab_test_results` doesn't include Impact Analyzer properties when populated in data. **Consequence:** Users running A/B tests cannot see treatment effects on business outcomes (CTR, conversion, revenue) that IA would provide; limited to arbitration metrics only. **Action:** Extend method to join IA properties when available, add to output dataframe.
 
 - [ ] **[P3] Optimize thresholding quantiles** — Current implementation is verbose and potentially slow on large datasets. **Consequence:** Slight performance overhead in thresholding analysis; code harder to maintain. **Action:** Profile performance, refactor to use vectorized polars operations if measurably faster.
 
@@ -74,7 +74,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P3] Scale up counts in UI after sampling** — When sampling is applied, displayed counts are actual sample counts, not estimates of true volumes. **Consequence:** Users see artificially low numbers that don't reflect reality; can't estimate production impact from sample analysis. **Status:** Metadata infrastructure now in place to track sample fraction. **Action:** Add UI toggle to show "Estimated Full Volume" by multiplying counts by inverse of sample fraction; clearly indicate estimates vs actuals.
 
-- [ ] **[P3] Streaming pre-aggregation** — `getPreaggregatedFilterView` calls `.collect()` on full dataset before aggregation. **Consequence:** Memory pressure on GB-scale datasets; potential OOM crashes; slower than necessary. **Action:** Investigate polars streaming mode or chunked processing to aggregate without full materialization; benchmark memory and speed improvements.
+- [ ] **[P3] Streaming pre-aggregation** — `preaggregated_filter_view` calls `.collect()` on full dataset before aggregation. **Consequence:** Memory pressure on GB-scale datasets; potential OOM crashes; slower than necessary. **Action:** Investigate polars streaming mode or chunked processing to aggregate without full materialization; benchmark memory and speed improvements.
 
 ---
 
@@ -130,7 +130,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P2] Better coloring for filter components** — All filters use similar colors regardless of type. **Consequence:** Hard to distinguish engagement filters from eligibility filters from suitability filters; cognitive load to parse charts. **Action:** Use consistent color scheme by filter category (e.g., blue for eligibility, orange for suitability, green for engagement); add legend; consider icons for common filter types.
 
-- [ ] **[P2] Align funnel filter view with product (show post-stage counts)** — The filter view in the funnel is shifted with respect to the Pega product: it currently shows incoming counts rather than the results after each stage. **Consequence:** Mismatch with the product’s funnel confuses users who cross-reference; harder to compare tool output against Pega’s built-in analysis; “remaining” numbers don’t match expectations when reading stage-by-stage. **Action:** Shift displayed counts so each stage shows results *after* that stage’s filters have been applied, aligning with the product’s convention; verify against product screenshots; update labels to make the perspective unambiguous.
+- [x] **[DONE] Align funnel filter view with product (show post-stage counts)** — ✅ Completed Mar 2026: Funnel now shows post-stage counts aligned with the Pega product convention.
 
 - [ ] **[P3] Move top-N control from sidebar to section** — Top-N action selector is in sidebar, far from affected charts. **Consequence:** Poor UX (control separated from effect); unclear what top-N applies to; sidebar cluttered. **Action:** Move control to inline position above affected charts; make scope clear with label "Show top N actions by final volume".
 
@@ -154,7 +154,7 @@ Active work items for the Decision Analysis Tool.
 
 - [ ] **[P3] Generalize rank usage across pages** — Rank selection UI differs between Win/Loss, Sensitivity, and other pages. **Consequence:** Inconsistent UX; users must relearn controls on each page; different defaults may confuse. **Action:** Create shared rank selector component in `da_streamlit_utils.py`; standardize on data-driven default; consistent placement and labeling.
 
-- [ ] **[P2] Add additive comparison-group selection** — Comparison-group selection currently relies on deselecting many items from a large pre-selected set. **Consequence:** High interaction cost and error-prone workflow; cumbersome for common "compare these few items" tasks. **Action:** Provide additive include-first selection mode (start empty, add selected items), while optionally retaining deselect mode for power users.
+- [x] **[DONE] Add additive comparison-group selection** — ✅ Completed Mar 2026: Additive include-first selection mode added for comparison group.
 
 - [ ] **[P2] Win/Loss deep-dive selectors for specific opponents** — Deep-dive analysis is currently global across all counterpart items. **Consequence:** Users cannot inspect why a selected comparison group wins/loses against specific counterpart items; insights become diluted. **Action:** Add selectors for the specific items the comparison group is winning to / losing from, and scope deep-dive charts/tables to those selected counterpart sets.
 

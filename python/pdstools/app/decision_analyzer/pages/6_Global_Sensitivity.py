@@ -69,7 +69,7 @@ with st.container(border=True):
         "which offers dominate your customer interactions and which rarely make it through."
     )
 
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
 
     if "glob_sensitivity_scope" not in st.session_state:
         st.session_state.glob_sensitivity_scope = scope_options[0]

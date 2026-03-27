@@ -84,12 +84,12 @@ def stage_selectbox(
         the first option when the default is not available.
     options : list[str], optional
         Explicit list of stage values to show. When provided, overrides
-        ``da.getPossibleStageValues()``.
+        ``da.get_possible_stage_values()``.
     **kwargs
         Extra keyword arguments forwarded to ``st.selectbox``.
     """
     da = st.session_state.decision_data
-    stage_options = options if options is not None else da.getPossibleStageValues()
+    stage_options = options if options is not None else da.get_possible_stage_values()
     mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
 
     if mapping:
@@ -134,7 +134,7 @@ def ensure_funnel():
         st.stop()
 
 
-def ensure_getFilterComponentData():
+def ensure_get_filter_component_data():
     return "Component Name" in st.session_state.decision_data.decision_data.collect_schema().names()
 
 

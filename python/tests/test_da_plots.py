@@ -89,19 +89,19 @@ class TestDistributionAsTreemap:
     def test_treemap_with_scope(self, plot_v2, da_v2):
         """Test treemap with scope options."""
         # Use Stage Group since Stage column doesn't exist in pre-aggregated view
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=["Action"])
         assert isinstance(fig, Figure)
 
     def test_treemap_multiple_scopes(self, plot_v2, da_v2):
         """Test treemap with multiple scope levels."""
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=["Channel", "Action"])
         assert isinstance(fig, Figure)
 
     def test_treemap_empty_scope(self, plot_v2, da_v2):
         """Test treemap with no scope options."""
-        df = da_v2.getPreaggregatedRemainingView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_remaining_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution_as_treemap(df, stage="Output", scope_options=[])
         assert isinstance(fig, Figure)
 
@@ -131,7 +131,7 @@ class TestSensitivity:
         """Test local sensitivity with reference group."""
         # Get a valid action name from the data
         action_name = (
-            plot_v2._decision_data.getPreaggregatedRemainingView.select("Action").collect().get_column("Action")[0]
+            plot_v2._decision_data.preaggregated_remaining_view.select("Action").collect().get_column("Action")[0]
         )
         # reference_group needs to be a pl.Expr
         fig = plot_v2.sensitivity(win_rank=1, reference_group=pl.col("Action") == action_name)
@@ -147,7 +147,7 @@ class TestSensitivity:
     def test_local_sensitivity_with_total_decisions(self, plot_v2):
         """Test local sensitivity with total_decisions."""
         action_name = (
-            plot_v2._decision_data.getPreaggregatedRemainingView.select("Action").collect().get_column("Action")[0]
+            plot_v2._decision_data.preaggregated_remaining_view.select("Action").collect().get_column("Action")[0]
         )
         fig = plot_v2.sensitivity(
             win_rank=1,
@@ -340,7 +340,7 @@ class TestDistribution:
     def test_distribution_plot(self, plot_v2, da_v2):
         """Test distribution plot - smoke test to ensure it runs."""
         # Get pre-aggregated data like the UI does
-        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_filter_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution(
             df=df,
             scope="Action",
@@ -351,7 +351,7 @@ class TestDistribution:
 
     def test_distribution_horizontal(self, plot_v2, da_v2):
         """Test distribution with horizontal orientation."""
-        df = da_v2.getPreaggregatedFilterView.filter(pl.col("Stage Group") == "Output")
+        df = da_v2.preaggregated_filter_view.filter(pl.col("Stage Group") == "Output")
         fig = plot_v2.distribution(
             df=df,
             scope="Channel",
@@ -393,7 +393,7 @@ class TestComponentActionImpact:
 
     def test_component_impact(self, plot_v2):
         """Test component action impact plot - smoke test."""
-        # This calls getComponentActionImpact internally
+        # This calls get_component_action_impact internally
         fig = plot_v2.component_action_impact(top_n=5, scope="Action")
         assert isinstance(fig, Figure)
 
