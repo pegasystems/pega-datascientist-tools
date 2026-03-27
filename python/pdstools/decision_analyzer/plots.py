@@ -75,32 +75,70 @@ class Plot:
         return_df=False,
         reference_group=None,
         additional_filters=None,
+        total_decisions: int | None = None,
     ):
-        """
-        If reference_group is None, this works as global sensitivity, otherwise it is local sensitivity where the focus is on the refernce_group.
+        """Sensitivity of the prioritization factors.
 
+        If reference_group is None, this works as global sensitivity,
+        otherwise it is local sensitivity where the focus is on the
+        reference_group.
+
+        When *total_decisions* is provided the x-axis shows percentages
+        relative to that number and the hover includes both the absolute
+        influence count and the total decisions.
         """
         df = self._decision_data.get_sensitivity(win_rank, reference_group, additional_filters=additional_filters)
         if return_df:
             return df
         n = df.filter(pl.col("Factor") == "Priority").select("Influence").collect().item()
-        plotData = df.with_columns(pl.format("{}%", (100.0 * pl.col("Influence") / n).round(2)).alias("Relative"))
+
+        if total_decisions and total_decisions > 0:
+            plotData = df.with_columns(
+                (100.0 * pl.col("Influence") / total_decisions).round(2).alias("Percentage"),
+            )
+        else:
+            plotData = df.with_columns(
+                (100.0 * pl.col("Influence") / n).round(2).alias("Percentage"),
+            )
+
+        plotData = plotData.with_columns(
+            pl.format("{}%", pl.col("Percentage")).alias("PercentageLabel"),
+        )
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
         plotData = plotData.collect()
-        range_color = [0, max(0, max(plotData["Influence"]))]
+
+        use_pct_axis = total_decisions is not None and total_decisions > 0
+        x_col = "Percentage" if use_pct_axis else "Influence"
+        range_color = [0, max(0, max(plotData[x_col]))]
+
         fig = px.bar(
             data_frame=plotData,
             y="Factor",
-            x="Influence",
-            text="Relative",
-            color="Influence",
+            x=x_col,
+            text="PercentageLabel",
+            color=x_col,
             color_continuous_scale="RdYlGn",
             range_color=range_color,
             orientation="h",
             template="pega",
+            custom_data=["Influence", "Percentage"],
         )
+
+        if use_pct_axis:
+            hover_template = (
+                "<b>%{y}</b><br>"
+                "Influence: %{customdata[0]} decisions<br>"
+                f"of {total_decisions:,} total decisions<br>"
+                "Percentage: %{customdata[1]:.2f}%"
+                "<extra></extra>"
+            )
+        else:
+            hover_template = (
+                "<b>%{y}</b><br>Influence: %{customdata[0]} decisions<br>Relative: %{customdata[1]:.2f}%<extra></extra>"
+            )
+        fig.update_traces(hovertemplate=hover_template)
 
         layout_args = {
             "showlegend": False,
@@ -111,12 +149,13 @@ class Plot:
             ),
         }
 
+        x_title = "% of Decisions" if use_pct_axis else "Decisions"
         fig.update_yaxes(
             autorange="reversed",
             title="Prioritization Factor",
         ).update_xaxes(
-            title="Decisions",
-            # tickformat="",
+            title=x_title,
+            ticksuffix="%" if use_pct_axis else "",
         ).update(layout_coloraxis_showscale=False).update_layout(**layout_args)
 
         return fig

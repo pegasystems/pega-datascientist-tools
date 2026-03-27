@@ -115,12 +115,21 @@ with st.session_state["sidebar"]:
         key="scope",
     )
 
+    st.number_input(
+        "Define winning: rank in top N",
+        min_value=1,
+        max_value=st.session_state.decision_data.max_win_rank,
+        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
+        key="win_rank",
+        help="A win means at least one offer from the comparison group ranks N or better.",
+    )
+
     top_k = None
     if st.session_state.scope == "Action":
         top_k = st.number_input(
             "Top N elements to show",
             min_value=1,
-            max_value=30,  # TODO this is a generic session, make common across many pages
+            max_value=30,
             value=10,
         )
 
@@ -175,32 +184,27 @@ if st.session_state.local_filters != []:
     comparison_label = _describe_comparison_group()
     scope_label = " and ".join(groupby_cols)
 
+    win_rank = st.session_state.win_rank
+
+    counts = st.session_state.decision_data.get_win_loss_counts(
+        group_filter=st.session_state["local_filters"],
+        win_rank=win_rank,
+        additional_filters=channel_filter,
+    )
+    win_count = counts["wins"]
+    loss_count = counts["losses"]
+    total = counts["total"]
+    win_pct = (win_count / total * 100) if total > 0 else 0
+    loss_pct = (loss_count / total * 100) if total > 0 else 0
+
     with st.container(border=True):
-        win_rank = st.number_input(
-            "Define winning: rank in top N",
-            min_value=1,
-            value=1,
-            help="A win means at least one offer from the comparison group ranks N or better.",
-        )
-
-        counts = st.session_state.decision_data.get_win_loss_counts(
-            group_filter=st.session_state["local_filters"],
-            win_rank=win_rank,
-            additional_filters=channel_filter,
-        )
-        win_count = counts["wins"]
-        loss_count = counts["losses"]
-        total = counts["total"]
-        win_pct = (win_count / total * 100) if total > 0 else 0
-        loss_pct = (loss_count / total * 100) if total > 0 else 0
-
         col1, col2 = st.columns(2)
         with col1:
             """## Win Analysis"""
             st.info(
                 f"**{comparison_label}** wins **{win_count}** out of **{total}** decisions (**{win_pct:.1f}%**)",
             )
-            f"""Distribution of the {scope_label} the comparison group wins from"""
+            f"""Distribution of the {scope_label} **{comparison_label}** wins from"""
 
             st.plotly_chart(
                 st.session_state.decision_data.plot.distribution(
@@ -218,7 +222,7 @@ if st.session_state.local_filters != []:
             st.info(
                 f"**{comparison_label}** loses **{loss_count}** out of **{total}** decisions (**{loss_pct:.1f}%**)",
             )
-            f"""Distribution of the {scope_label} the comparison group loses to"""
+            f"""Distribution of the {scope_label} **{comparison_label}** loses to"""
 
             st.plotly_chart(
                 st.session_state.decision_data.plot.distribution(
@@ -231,29 +235,29 @@ if st.session_state.local_filters != []:
                 key="loss_distribution_chart",
             )
 
-    "## Why Do These Offers Win?"
+    with st.container(border=True):
+        "## What Drives Winning and Losing?"
 
-    f"""
-    See which factors drive **{comparison_label}** to the top. The chart shows how many
-    additional wins each factor contributes. If an offer wins 600 times now but only
-    200 times without considering value, then value is adding 400 wins — pushing this
-    offer ahead of others.
-    """
-    if win_count == 0:
-        st.warning(f"**{comparison_label}** never wins in the arbitration")
-    else:
+        st.caption(
+            f"How much each prioritization factor contributes to **{comparison_label}** "
+            f"winning or losing. The bars show the percentage of the **{total}** total decisions "
+            "influenced by each factor."
+        )
+
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
+                win_rank=win_rank,
                 reference_group=st.session_state["local_filters"],
                 additional_filters=channel_filter,
+                total_decisions=total,
             ),
             key="sensitivity_chart",
         )
     with st.container(border=True):
-        "## Your Comparison Group vs Other Offers"
+        f"## {comparison_label} vs Other Offers"
 
         st.caption(
-            "Compare how your comparison group scores on key factors (value, priority, propensity) "
+            f"Compare how **{comparison_label}** scores on key factors (value, priority, propensity) "
             "against competing offers in the same customer interactions. Use the dropdowns below "
             "to narrow down which offers to compare against."
         )

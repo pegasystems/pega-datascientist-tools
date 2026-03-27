@@ -137,6 +137,26 @@ class TestSensitivity:
         fig = plot_v2.sensitivity(win_rank=1, reference_group=pl.col("Action") == action_name)
         assert isinstance(fig, Figure)
 
+    def test_sensitivity_with_total_decisions(self, plot_v2):
+        """Test sensitivity with total_decisions shows percentage axis."""
+        fig = plot_v2.sensitivity(win_rank=1, total_decisions=1000)
+        assert isinstance(fig, Figure)
+        assert fig.layout.xaxis.title.text == "% of Decisions"
+        assert fig.layout.xaxis.ticksuffix == "%"
+
+    def test_local_sensitivity_with_total_decisions(self, plot_v2):
+        """Test local sensitivity with total_decisions."""
+        action_name = (
+            plot_v2._decision_data.getPreaggregatedRemainingView.select("Action").collect().get_column("Action")[0]
+        )
+        fig = plot_v2.sensitivity(
+            win_rank=1,
+            reference_group=pl.col("Action") == action_name,
+            total_decisions=500,
+        )
+        assert isinstance(fig, Figure)
+        assert fig.layout.xaxis.title.text == "% of Decisions"
+
 
 class TestGlobalWinlossDistribution:
     """Test global_winloss_distribution method."""
