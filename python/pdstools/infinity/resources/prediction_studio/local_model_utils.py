@@ -6,7 +6,7 @@ import re
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
 from .base import LocalModel, ModelValidationError
 
@@ -26,15 +26,50 @@ class OutcomeType(Enum):
 
 
 class Predictor(BaseModel):
+    """A single predictor (feature) in an ONNX model.
+
+    **Automatic name derivation** — When *pega_property* is supplied
+    (e.g. ``".Customer.Age"``) and *name* is omitted, the predictor
+    ``name`` is automatically set to the leaf segment of the property
+    path (``"Age"``).  Pega Prediction Studio auto‑maps predictors by
+    matching ``name`` against its data‑model properties, so this
+    guarantees correct field mapping on upload without any manual work.
+
+    If *name* is provided explicitly it is always used as‑is.
+
+    See Also
+    --------
+    Metadata.build_predictor_list : Batch‑build predictors from a list
+        of Pega property paths or plain feature names.
+    """
+
     name: str | None = Field(default=None, validate_default=True)
     index: int | None = Field(default=None, validate_default=True)
     input_name: str | None = Field(default=None, validate_default=True)
+    data_type: str = Field(default="Numeric")
+    pega_property: str | None = Field(default=None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_name_from_pega_property(cls, data):
+        """Auto‑derive ``name`` from the leaf of ``pega_property``.
+
+        Runs before individual field validators so that every
+        downstream validator already sees a resolved ``name``.
+        """
+        if isinstance(data, dict):
+            name = data.get("name")
+            pega_prop = data.get("pega_property")
+            if name is None and pega_prop:
+                data["name"] = pega_prop.rsplit(".", 1)[-1]
+        return data
 
     @field_validator("input_name", mode="before")
     def validate_input_name(cls, v):
         if v is None:
             raise ValueError(
-                "The 'input_name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors.",
+                "The 'input_name' for a predictor is absent in the ONNX metadata. "
+                "Ensure it is populated for all predictors.",
             )
         return v
 
@@ -42,7 +77,9 @@ class Predictor(BaseModel):
     def validate_name(cls, v):
         if v is None:
             raise ValueError(
-                "The 'name' for a predictor is absent in the ONNX metadata. Ensure it is populated for all predictors.",
+                "The 'name' for a predictor is absent in the ONNX metadata. "
+                "Either provide 'name' explicitly or supply 'pega_property' "
+                "so the name can be derived automatically.",
             )
         return v
 
@@ -50,7 +87,16 @@ class Predictor(BaseModel):
     def validate_index(cls, v):
         if v is None or v < 1:
             raise ValueError(
-                "The 'index' for a predictor is absent/invalid in the ONNX metadata. Ensure it is populated for all predictors.",
+                "The 'index' for a predictor is absent/invalid in the ONNX metadata. "
+                "Ensure it is populated for all predictors.",
+            )
+        return v
+
+    @field_validator("data_type", mode="before")
+    def validate_data_type(cls, v):
+        if v is not None and v not in ("Numeric", "Symbolic"):
+            raise ValueError(
+                "The 'data_type' for a predictor must be 'Numeric' or 'Symbolic'.",
             )
         return v
 
@@ -72,11 +118,93 @@ class Output(BaseModel):
 
 
 class Metadata(BaseModel):
-    predictor_list: list[Predictor] = Field(default_factory=list)
-    modeling_technique: str | None = Field(default=None)
-    internal: bool | None = Field(default=False)
     type: OutcomeType | None = Field(default=None, validate_default=True)
+    predictor_list: list[Predictor] = Field(default_factory=list)
     output: Output | None = Field(default=None, validate_default=True)
+    modeling_technique: str | None = Field(default=None)
+    internal: bool | None = Field(default=None)
+
+    # Enterprise / governance fields (Pega 24+).
+    # Python API uses clean names; Pydantic aliases handle the Pega
+    # ``py``-prefixed camelCase keys (e.g. ``pyModelVersion``) in JSON.
+    file_source: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("file_source", "py_file_source"),
+        serialization_alias="pyFileSource",
+    )
+    objective: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("objective", "py_objective"),
+        serialization_alias="pyObjective",
+    )
+    rule_set: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("rule_set", "py_rule_set"),
+        serialization_alias="pyRuleSet",
+    )
+    rule_set_version: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("rule_set_version", "py_rule_set_version"),
+        serialization_alias="pyRuleSetVersion",
+    )
+    predict_method_uses_name_value_pair: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "predict_method_uses_name_value_pair",
+            "py_predict_method_uses_name_value_pair",
+        ),
+        serialization_alias="pyPredictMethodUsesNameValuePair",
+    )
+    model_version: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("model_version", "py_model_version"),
+        serialization_alias="pyModelVersion",
+    )
+    created_by: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("created_by", "py_created_by"),
+        serialization_alias="pyCreatedBy",
+    )
+    created_date: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("created_date", "py_created_date"),
+        serialization_alias="pyCreatedDate",
+    )
+    last_modified_date: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("last_modified_date", "py_last_modified_date"),
+        serialization_alias="pyLastModifiedDate",
+    )
+    training_dataset: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("training_dataset", "py_training_dataset"),
+        serialization_alias="pyTrainingDataset",
+    )
+    experiment_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("experiment_id", "py_experiment_id"),
+        serialization_alias="pyExperimentId",
+    )
+    parent_model_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("parent_model_id", "py_parent_model_id"),
+        serialization_alias="pyParentModelId",
+    )
+    baseline_auc: float | None = Field(
+        default=None,
+        validation_alias=AliasChoices("baseline_auc", "py_baseline_auc"),
+        serialization_alias="pyBaselineAUC",
+    )
+    baseline_accuracy: float | None = Field(
+        default=None,
+        validation_alias=AliasChoices("baseline_accuracy", "py_baseline_accuracy"),
+        serialization_alias="pyBaselineAccuracy",
+    )
+    performance_threshold: float | None = Field(
+        default=None,
+        validation_alias=AliasChoices("performance_threshold", "py_performance_threshold"),
+        serialization_alias="pyPerformanceThreshold",
+    )
 
     @field_validator("type", mode="before")
     def validate_type(cls, v, values):
@@ -99,13 +227,104 @@ class Metadata(BaseModel):
         return v
 
     def to_json(self) -> str:
-        return json.dumps(self, cls=self._ONNXMetadataEncoder, indent=4)
+        return json.dumps(self, cls=self._ONNXMetadataEncoder, separators=(", ", ": "))
 
     @classmethod
     def from_json(cls, json_str: str) -> Metadata:
         data = json.loads(json_str)
         data_snake_case = cls._convert_keys(data, cls._to_snake_case)
         return cls.model_validate(data_snake_case)
+
+    @staticmethod
+    def build_predictor_list(
+        features: list[str],
+        input_name: str = "features",
+        *,
+        data_types: list[str] | dict[str, str] | None = None,
+    ) -> list[Predictor]:
+        """Build a predictor list from feature names or Pega property paths.
+
+        This is the **recommended** one‑liner for constructing
+        predictors.  Each entry in *features* can be:
+
+        * A **Pega property path** starting with ``"."``
+          (e.g. ``".Customer.Age"``).  The leaf segment becomes the
+          predictor ``name`` (``"Age"``) and the full path is stored as
+          ``pega_property`` so Pega Prediction Studio auto‑maps the
+          field on upload.
+        * A **plain feature name** (e.g. ``"Age"``).  Used as‑is for
+          ``name``; ``pega_property`` is left unset.
+
+        Indices are assigned automatically (1‑based) in the order the
+        features appear.
+
+        Parameters
+        ----------
+        features
+            Ordered list of feature identifiers.  The order **must**
+            match the column order in the ONNX input tensor.  Accepts
+            any mix of plain names and Pega property paths.
+        input_name
+            Name of the ONNX input node.  Default ``"features"``.
+        data_types
+            Optional type annotations for features.  Accepts either:
+
+            * A **list** of ``"Numeric"`` / ``"Symbolic"`` values,
+              one per feature (must match *features* length).
+            * A **dict** mapping feature *names* (the leaf segment for
+              Pega paths) to ``"Numeric"`` or ``"Symbolic"``.  Only the
+              features present in the dict are overridden; the rest
+              default to ``"Numeric"``.
+
+            When ``None`` every feature defaults to ``"Numeric"``.
+
+        Returns
+        -------
+        list[Predictor]
+
+        Examples
+        --------
+        >>> # Using Pega property paths (recommended for auto-mapping):
+        >>> Metadata.build_predictor_list(
+        ...     [".Customer.Age", ".Customer.Tenure", ".Customer.MonthlyCharges"],
+        ... )  # doctest: +SKIP
+
+        >>> # Using plain feature names:
+        >>> Metadata.build_predictor_list(["Age", "Tenure", "MonthlyCharges"])
+        ... # doctest: +SKIP
+
+        >>> # Sparse overrides via dict:
+        >>> Metadata.build_predictor_list(
+        ...     [".Customer.Age", ".Customer.ContractType"],
+        ...     data_types={"ContractType": "Symbolic"},
+        ... )  # doctest: +SKIP
+
+        """
+        if isinstance(data_types, list) and len(data_types) != len(features):
+            raise ValueError(f"Length of data_types ({len(data_types)}) must match features ({len(features)}).")
+
+        dt_dict: dict[str, str] | None = None
+        if isinstance(data_types, dict):
+            dt_dict = data_types
+        elif isinstance(data_types, list):
+            dt_dict = None  # handled via index below
+
+        predictors: list[Predictor] = []
+        for idx, feat in enumerate(features, start=1):
+            is_pega_path = feat.startswith(".")
+            leaf = feat.rsplit(".", maxsplit=1)[-1] if is_pega_path else feat
+            kwargs: dict = {
+                "name": None if is_pega_path else feat,
+                "index": idx,
+                "input_name": input_name,
+                "pega_property": feat if is_pega_path else None,
+            }
+            if isinstance(data_types, list):
+                kwargs["data_type"] = data_types[idx - 1]
+            elif dt_dict is not None and leaf in dt_dict:
+                kwargs["data_type"] = dt_dict[leaf]
+            predictors.append(Predictor(**kwargs))
+        return predictors
 
     @staticmethod
     def _convert_keys(data: dict, conversion_func) -> dict:
@@ -117,23 +336,40 @@ class Metadata(BaseModel):
 
     @staticmethod
     def _to_snake_case(string: str) -> str:
-        return re.sub(r"(?<!^)(?=[A-Z])", "_", string).lower()
+        # Handle transitions like "baselineAUC" -> "baseline_AUC" -> "baseline_auc"
+        # and "predictMethodUsesNameValuePair" correctly.
+        s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", string)
+        s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
+        return s.lower()
 
     @staticmethod
     def _to_camel_case(string: str) -> str:
         parts = string.split("_")
-        return parts[0] + "".join(word.capitalize() for word in parts[1:])
+        result = parts[0]
+        for word in parts[1:]:
+            if word.lower() == "auc":
+                result += word.upper()
+            else:
+                result += word.capitalize()
+        return result
 
     class _ONNXMetadataEncoder(json.JSONEncoder):
         def default(self, o):
             if isinstance(o, Enum):
                 return o.value
             if isinstance(o, BaseModel):
-                return Metadata._convert_keys(
-                    o.model_dump(exclude_defaults=True),
-                    Metadata._to_camel_case,
-                )
+                dumped = Metadata._strip_empty(o.model_dump(by_alias=True, exclude_none=True))
+                return Metadata._convert_keys(dumped, Metadata._to_camel_case)
             return super().default(o)
+
+    @staticmethod
+    def _strip_empty(data):
+        """Recursively remove keys whose value is ``[]``."""
+        if isinstance(data, dict):
+            return {k: Metadata._strip_empty(v) for k, v in data.items() if v != []}
+        if isinstance(data, list):
+            return [Metadata._strip_empty(i) for i in data]
+        return data
 
 
 class ONNXModelCreationError(Exception):
@@ -234,6 +470,126 @@ class ONNXModel(LocalModel):
             return cls(model=model)
 
         raise ONNXModelCreationError("Model must be a sklearn Pipeline object.")
+
+    @classmethod
+    def from_pytorch(
+        cls,
+        model,
+        dummy_input,
+        *,
+        input_names: list[str] | None = None,
+        output_names: list[str] | None = None,
+        opset_version: int = 17,
+        fixed_batch_size: bool = True,
+    ) -> ONNXModel:  # pragma: no cover
+        """Create an ONNXModel from a PyTorch ``nn.Module``.
+
+        The model is exported via ``torch.onnx.export`` with static shapes.
+        When *fixed_batch_size* is ``True`` (the default), any remaining
+        dynamic dimensions are replaced with a batch size of 1 so that the
+        resulting ONNX file is accepted by Pega Prediction Studio.
+
+        Parameters
+        ----------
+        model
+            A PyTorch ``nn.Module`` (already in eval mode is recommended).
+        dummy_input
+            Example input tensor(s) matching the model's forward signature.
+        input_names
+            Optional list of ONNX input node names.  Defaults to ``["input"]``.
+        output_names
+            Optional list of ONNX output node names.  Defaults to ``["output"]``.
+        opset_version
+            ONNX opset version.  Default ``17``.
+        fixed_batch_size
+            Replace dynamic dimensions with batch size 1.
+
+        Returns
+        -------
+        ONNXModel
+
+        Raises
+        ------
+        ONNXModelCreationError
+            If PyTorch is not installed or the export fails.
+
+        """
+        try:
+            import torch
+        except ImportError:
+            raise ONNXModelCreationError(
+                "PyTorch is required for from_pytorch(). Install it with: uv pip install torch"
+            )
+
+        import io as _io
+
+        import onnx
+
+        model.eval()
+        input_names = input_names or ["input"]
+        output_names = output_names or ["output"]
+
+        buf = _io.BytesIO()
+        with torch.no_grad():
+            torch.onnx.export(
+                model,
+                dummy_input,
+                buf,
+                input_names=input_names,
+                output_names=output_names,
+                dynamic_axes=None,
+                opset_version=opset_version,
+                do_constant_folding=True,
+            )
+
+        buf.seek(0)
+        proto = onnx.load_model_from_string(buf.read())
+
+        if fixed_batch_size:
+            cls._fix_dynamic_shapes(proto, batch_size=1)
+
+        logger.info("PyTorch model exported to ONNX (opset %s).", opset_version)
+        return cls(model=proto)
+
+    # ------------------------------------------------------------------
+    # Shape fixing
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fix_dynamic_shapes(proto: ModelProto, batch_size: int = 1) -> None:  # pragma: no cover
+        """Replace dynamic (symbolic) dimensions with a fixed *batch_size*.
+
+        Pega Prediction Studio rejects ONNX models whose input or output
+        nodes contain symbolic dimension parameters (e.g. ``"batch"``).
+        This helper iterates every dimension on every input/output and
+        replaces symbolic dims with the given integer value.
+
+        Parameters
+        ----------
+        proto
+            An ``onnx.ModelProto`` — **modified in place**.
+        batch_size
+            The integer value to substitute.  Default ``1``.
+
+        """
+        for node in list(proto.graph.input) + list(proto.graph.output):
+            if node.type.HasField("tensor_type"):
+                for dim in node.type.tensor_type.shape.dim:
+                    if dim.dim_param:
+                        dim.ClearField("dim_param")
+                        dim.dim_value = batch_size
+        logger.debug("Fixed dynamic shapes to batch_size=%d.", batch_size)
+
+    # ------------------------------------------------------------------
+    # Metadata helpers
+    # ------------------------------------------------------------------
+
+    def get_metadata(self) -> Metadata | None:
+        """Return the embedded ``Metadata`` or ``None`` if absent."""
+        for prop in self._model.metadata_props:
+            if prop.key == PEGA_METADATA:
+                return Metadata.from_json(prop.value)
+        return None
 
     def add_metadata(self, metadata: Metadata) -> ONNXModel:
         """Adds metadata to the ONNX model.
