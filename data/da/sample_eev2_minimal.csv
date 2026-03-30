@@ -1,0 +1,13 @@
+pxInteractionID,pxDecisionTime,Primary_pySubjectID,pyIssue,pyGroup,pyName,Primary_ContainerPayload_Channel,Primary_ContainerPayload_Direction,FinalPropensity,Value,ContextWeight,Weight,Priority,Stage_pyStageGroup,Stage_pyName,Stage_pyOrder,pxRecordType,pxComponentName,pxComponentType,pxStrategyName
+INT-001,2024-03-27 10:00:00,CUST-001,Sales,Cards,ACTION1,Web,Inbound,0.9,10.0,0.8,1.0,7.2,Output,Output,4000,OUTPUT,OutputComponent,Strategy,NBADStrategy
+INT-001,2024-03-27 10:00:00,CUST-001,Sales,Loans,ACTION2,Web,Inbound,0.3,40.0,0.9,0.8,8.64,FinalActionsProcessing,ContactPoliciesActionLimits,3900,FILTERED_OUT,ContactPolicyRule,Strategy,NBADStrategy
+INT-001,2024-03-27 10:00:00,CUST-001,Retention,Proactive,ACTION3,Web,Inbound,,20.0,0.7,0.5,,Eligibility,Eligibility,1500,FILTERED_OUT,EligibilityRule,Strategy,NBADStrategy
+INT-001,2024-03-27 10:00:00,CUST-001,Retention,Reactive,ACTION4,Web,Inbound,0.5,30.0,1.0,0.6,9.0,Output,Output,4000,OUTPUT,OutputComponent,Strategy,NBADStrategy
+INT-001,2024-03-27 10:00:00,CUST-001,Sales,Cards,ACTION5,Web,Inbound,0.7,15.0,0.5,0.9,4.725,FinalActionsProcessing,ContactPoliciesActionLimits,3900,FILTERED_OUT,ContactPolicyRule,Strategy,NBADStrategy
+INT-002,2024-03-28 10:00:00,CUST-002,Sales,Cards,ACTION1,Mobile,Inbound,0.6,25.0,0.7,1.0,10.5,Output,Output,4000,OUTPUT,OutputComponent,Strategy,NBADStrategy
+INT-002,2024-03-28 10:00:00,CUST-002,Sales,Loans,ACTION2,Mobile,Inbound,0.9,10.0,0.8,0.9,6.48,Output,Output,4000,OUTPUT,OutputComponent,Strategy,NBADStrategy
+INT-002,2024-03-28 10:00:00,CUST-002,Retention,Proactive,ACTION3,Mobile,Inbound,0.4,35.0,0.6,0.7,5.88,FinalActionsProcessing,ContactPoliciesActionLimits,3900,FILTERED_OUT,ContactPolicyRule,Strategy,NBADStrategy
+INT-002,2024-03-28 10:00:00,CUST-002,Retention,Reactive,ACTION4,Mobile,Inbound,,50.0,0.5,0.4,,Eligibility,Eligibility,1500,FILTERED_OUT,EligibilityRule,Strategy,NBADStrategy
+INT-003,2024-03-29 10:00:00,CUST-003,Sales,Loans,ACTION2,Web,Outbound,0.85,30.0,0.9,1.0,22.95,Output,Output,4000,OUTPUT,OutputComponent,Strategy,NBADStrategy
+INT-003,2024-03-29 10:00:00,CUST-003,Retention,Proactive,ACTION3,Web,Outbound,0.5,25.0,0.8,0.6,6.0,FinalActionsProcessing,ContactPoliciesActionLimits,3900,FILTERED_OUT,ContactPolicyRule,Strategy,NBADStrategy
+INT-003,2024-03-29 10:00:00,CUST-003,Sales,Cards,ACTION5,Web,Outbound,,10.0,0.4,0.8,,Eligibility,Eligibility,1500,FILTERED_OUT,EligibilityRule,Strategy,NBADStrategy
