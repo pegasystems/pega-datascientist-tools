@@ -866,7 +866,7 @@ class TestBoxplotPointCapAndSampling:
 
 class TestOverviewStats:
     def test_v1_overview_has_expected_keys(self, da_v1):
-        stats = da_v1.get_overview_stats
+        stats = da_v1.overview_stats
         expected_keys = {
             "Actions",
             "Channels",
@@ -878,7 +878,7 @@ class TestOverviewStats:
         assert expected_keys.issubset(stats.keys())
 
     def test_v2_overview_has_expected_keys(self, da_v2):
-        stats = da_v2.get_overview_stats
+        stats = da_v2.overview_stats
         expected_keys = {
             "Actions",
             "Channels",
@@ -890,10 +890,10 @@ class TestOverviewStats:
         assert expected_keys.issubset(stats.keys())
 
     def test_overview_actions_positive(self, da_v1):
-        assert da_v1.get_overview_stats["Actions"] > 0
+        assert da_v1.overview_stats["Actions"] > 0
 
     def test_overview_decisions_positive(self, da_v1):
-        assert da_v1.get_overview_stats["Decisions"] > 0
+        assert da_v1.overview_stats["Decisions"] > 0
 
 
 # ---------------------------------------------------------------------------
@@ -1015,7 +1015,7 @@ class TestOptionality:
         assert df.height > 0
 
     def test_optionality_with_trend(self, da_v1):
-        df = da_v1.get_optionality_data_with_trend().collect()
+        df = da_v1.get_optionality_data(by_day=True).collect()
         assert df.height > 0
         assert "day" in df.columns
 

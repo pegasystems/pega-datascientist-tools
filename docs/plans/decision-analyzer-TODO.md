@@ -17,11 +17,11 @@ removed or marked done as commits land on master.
 
 ### P2
 
-- [ ] **Remove backward-compat aliases** — Four groups of aliases remain in `DecisionAnalyzer` that exist only for backward compatibility. These are not needed — no external consumers depend on them. Remove all aliases and update example notebooks to use the current names.
-  - camelCase aliases (16 methods, line ~2751): `applyGlobalDataFilters`, `getDistributionData`, `getFunnelData`, etc.
-  - `winning_from` / `losing_to` aliases (line ~1581) for the now-private `_winning_from` / `_losing_to`
-  - `get_optionality_data_with_trend` (line ~1649) — replaced by `get_optionality_data(by_day=True)`
-  - `get_overview_stats` method (line ~2206) — replaced by `overview_stats` cached property
+- [x] **Remove backward-compat aliases** — Removed all backward-compat aliases and updated example notebooks, app code, and tests to use the current method names.
+  - ~~camelCase aliases (16 methods): `applyGlobalDataFilters`, `getDistributionData`, `getFunnelData`, etc.~~
+  - ~~`winning_from` / `losing_to` aliases for the now-private `_winning_from` / `_losing_to`~~
+  - ~~`get_optionality_data_with_trend` — replaced by `get_optionality_data(by_day=True)`~~
+  - ~~`get_overview_stats` method — replaced by `overview_stats` cached property~~
 
 - [ ] **Consolidate win/loss methods** — `_winning_from`/`_losing_to` duplicate logic (only the rank comparison differs). Merge into single private helper with `direction` param; review whether `get_win_loss_distribution_data` and `get_win_loss_distributions` can be unified.
 

@@ -82,7 +82,7 @@ with st.container(border=True):
     )
 
     optionality_data_with_trend_per_stage = (
-        st.session_state.decision_data.get_optionality_data_with_trend(df=filtered_data)
+        st.session_state.decision_data.get_optionality_data(df=filtered_data, by_day=True)
         .group_by(["day", st.session_state.decision_data.level])
         .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
         .sort("day")

@@ -1578,10 +1578,6 @@ class DecisionAnalyzer:
             dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
         return dist
 
-    # Backward-compat aliases for the now-private methods.
-    winning_from = _winning_from
-    losing_to = _losing_to
-
     def get_optionality_data(self, df=None, by_day: bool = False) -> pl.LazyFrame:
         """Average number of actions per stage, optionally broken down by day.
 
@@ -1645,10 +1641,6 @@ class DecisionAnalyzer:
         ).sort("nOffers", descending=True)
 
         return optionality_data
-
-    def get_optionality_data_with_trend(self, df=None) -> pl.LazyFrame:
-        """Backward-compatible alias for ``get_optionality_data(df, by_day=True)``."""
-        return self.get_optionality_data(df=df, by_day=True)
 
     # @cached_property
     def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
@@ -2202,11 +2194,6 @@ class DecisionAnalyzer:
 
         return {k: kpis[k].item() for k in kpis.columns}
 
-    @property
-    def get_overview_stats(self) -> dict[str, object]:
-        """Backward-compatible alias for :attr:`overview_stats`."""
-        return self.overview_stats
-
     def get_sensitivity(self, win_rank=1, group_filter=None, additional_filters=None):
         """Global or local sensitivity of the prioritization factors.
 
@@ -2747,28 +2734,3 @@ class DecisionAnalyzer:
 
         final_lever = (low + high) / 2
         return final_lever
-
-    # Backward-compat aliases for camelCase → snake_case rename.
-    applyGlobalDataFilters = apply_global_data_filters
-    resetGlobalDataFilters = reset_global_data_filters
-
-    @property
-    def getPreaggregatedFilterView(self):
-        return self.preaggregated_filter_view
-
-    @property
-    def getPreaggregatedRemainingView(self):
-        return self.preaggregated_remaining_view
-
-    getAvailableFieldsForFiltering = get_available_fields_for_filtering
-    getPossibleScopeValues = get_possible_scope_values
-    getPossibleStageValues = get_possible_stage_values
-    getDistributionData = get_distribution_data
-    getFunnelData = get_funnel_data
-    getFilterComponentData = get_filter_component_data
-    getComponentActionImpact = get_component_action_impact
-    getComponentDrilldown = get_component_drilldown
-    reRank = re_rank
-    getActionVariationData = get_action_variation_data
-    getABTestResults = get_ab_test_results
-    getThresholdingData = get_thresholding_data
