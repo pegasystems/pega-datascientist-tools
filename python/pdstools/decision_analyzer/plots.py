@@ -467,6 +467,8 @@ class Plot:
             ordered_in_map = [val for val in color_map if val in scope_values]
             scope_values = ordered_in_map + [val for val in scope_values if val not in ordered_in_map]
 
+        stage_totals: dict[str, float] = {stage: 0.0 for stage in passing_stage_order}
+
         passing_fig = go.Figure()
         for idx, scope_value in enumerate(scope_values):
             trace_df = (
@@ -506,6 +508,9 @@ class Plot:
                 custom_values.append([reach_val, occ_val])
                 text_values.append(f"{x_val:.1f}" if x_val > 0 else "")
 
+            for stage, val in zip(stage_values, metric_values):
+                stage_totals[stage] += val
+
             trace_color = None
             if color_map is not None:
                 trace_color = color_map.get(scope_value)
@@ -531,6 +536,14 @@ class Plot:
                 )
             )
 
+        if len(scope_values) > 1:
+            tick_labels = [
+                f"{stage} ({stage_totals[stage]:.1f})" if stage_totals.get(stage, 0) > 0 else stage
+                for stage in passing_stage_order
+            ]
+        else:
+            tick_labels = passing_stage_order
+
         passing_fig.update_layout(
             template="pega",
             funnelmode="stack",
@@ -539,7 +552,12 @@ class Plot:
             yaxis_title="Average Actions per Interaction",
             legend=dict(traceorder="reversed", title_text=scope),
         )
-        passing_fig.update_xaxes(categoryorder="array", categoryarray=passing_stage_order)
+        passing_fig.update_xaxes(
+            categoryorder="array",
+            categoryarray=passing_stage_order,
+            tickvals=passing_stage_order,
+            ticktext=tick_labels,
+        )
 
         filter_fig = (
             px.bar(

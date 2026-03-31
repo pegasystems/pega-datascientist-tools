@@ -971,11 +971,16 @@ class DecisionAnalyzer:
         # Passing: actions exiting each stage (shift by one — use next stage's remaining set)
         # Output is the result, not a filtering stage, so exclude it from funnel views
         stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        # All stages including Output — needed to correctly count actions that survive
+        # past the last filtering stage and reach Output.
+        all_stages = list(self.AvailableNBADStages)
 
         def _passing_at_stage(i: int, stage: str) -> pl.DataFrame:
-            # For stage i, passing = actions remaining at stage i+1.
-            # For the last stage (Output), passing = available (nothing filters there).
-            next_stages = stages[i + 1 :] if i + 1 < len(stages) else [stage]
+            # For stage i, passing = actions remaining at stage i+1 (including Output).
+            all_stage_idx = all_stages.index(stage)
+            next_stages = all_stages[all_stage_idx + 1 :]
+            if not next_stages:
+                next_stages = [stage]
             return (
                 filtered_df.filter(pl.col(self.level).is_in(next_stages))
                 .group_by([scope])
