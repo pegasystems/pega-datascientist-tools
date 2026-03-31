@@ -122,11 +122,6 @@ def df_to_md(df, max_rows=100):
     return result + "\n"
 
 
-def rag_icon(metric_id, value):
-    status = MetricLimits.evaluate_metric_rag(metric_id, value)
-    return {"RED": "❌", "AMBER": "⚠️", "GREEN": "✅"}.get(status, "—")
-
-
 from pdstools.adm.Analysis import _gini as gini
 
 
@@ -251,23 +246,23 @@ if disclaimer:
     print(f"> **⚠️ {disclaimer}**\n")
 
 print("## Executive Summary\n")
-print(f"| Metric | Value | Status |")
-print(f"| --- | --- | --- |")
-print(f"| Total Models (latest snapshot) | {fmt_int(total_models)} | |")
-print(f"| Active Models (updated since {active_models_threshold_date_string}) | {fmt_int(active_models)} | |")
-print(f"| Channels | {n_channels} | |")
-print(f"| Actions | {fmt_int(n_actions)} | {rag_icon('ActionCount', n_actions)} |")
-print(f"| Treatments | {fmt_int(n_treatments)} | |")
-print(f"| Total Responses | {fmt_int(total_responses)} | |")
-print(f"| Total Positives | {fmt_int(total_positives)} | |")
-print(f"| Overall CTR | {fmt_pct(overall_ctr)} | |")
-print(f"| Average Model Performance (AUC) | {fmt_perf(avg_performance)} | {rag_icon('ModelPerformance', avg_performance)} |")
+print(f"| Metric | Value |")
+print(f"| --- | --- |")
+print(f"| Total Models (latest snapshot) | {fmt_int(total_models)} |")
+print(f"| Active Models (updated since {active_models_threshold_date_string}) | {fmt_int(active_models)} |")
+print(f"| Channels | {n_channels} |")
+print(f"| Actions | {fmt_int(n_actions)} |")
+print(f"| Treatments | {fmt_int(n_treatments)} |")
+print(f"| Total Responses | {fmt_int(total_responses)} |")
+print(f"| Total Positives | {fmt_int(total_positives)} |")
+print(f"| Overall CTR | {fmt_pct(overall_ctr)} |")
+print(f"| Average Model Performance (AUC) | {fmt_perf(avg_performance)} |")
 date_start_str = date_start.strftime("%d-%b-%Y") if date_start else "N/A"
 date_end_str = date_end.strftime("%d-%b-%Y") if date_end else "N/A"
-print(f"| Data Period | {date_start_str} to {date_end_str} | |")
-print(f"| Predictor Data Available | {'Yes' if has_predictors else 'No'} | |")
-print(f"| Prediction Data Available | {'Yes' if has_predictions else 'No'} | |")
-print(f"| Inactive Threshold | {threshold_updated_days} days | |")
+print(f"| Data Period | {date_start_str} to {date_end_str} |")
+print(f"| Predictor Data Available | {'Yes' if has_predictors else 'No'} |")
+print(f"| Prediction Data Available | {'Yes' if has_predictions else 'No'} |")
+print(f"| Inactive Threshold | {threshold_updated_days} days |")
 print()
 ```
 
@@ -531,28 +526,27 @@ else:
 # ════════════════════════════════════════════════════════════════════════════
 
 print("## Action Overview\n")
-print("Counts of actions, treatments, issues and groups compared to recommended cloud service limits.\n")
+print(
+    "Taxonomy structure of the deployment. "
+    "Use the Issue/Group Hierarchy below to understand which actions are organised where "
+    "— the counts alone are covered by the maturity check.\n"
+)
 
 items = [
-    ("Overall Number of Actions", report_utils.n_unique_values(datamart, datamart_all_columns, "Name"), "ActionCount"),
-    ("Max Actions within an Issue/Group", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Name", ["Issue", "Group"]), "ActionsPerGroupMaximum"),
-    ("Number of Treatments", report_utils.n_unique_values(datamart, datamart_all_columns, "Treatment"), "TreatmentCount"),
-    ("Max Treatments per Channel", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Treatment", ["Channel", "Direction"]), "TreatmentsPerChannelAverage"),
-    ("Unique Issues", report_utils.n_unique_values(datamart, datamart_all_columns, "Issue"), "IssueCount"),
-    ("Avg Groups per Issue", report_utils.avg_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]), "AverageGroupsPerIssue"),
-    ("Number of Channels", report_utils.n_unique_values(datamart, datamart_all_columns, ["Channel", "Direction"]), "ChannelsUsingADM"),
+    ("Overall Number of Actions", report_utils.n_unique_values(datamart, datamart_all_columns, "Name")),
+    ("Max Actions within an Issue/Group", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Name", ["Issue", "Group"])),
+    ("Number of Treatments", report_utils.n_unique_values(datamart, datamart_all_columns, "Treatment")),
+    ("Max Treatments per Channel", report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Treatment", ["Channel", "Direction"])),
+    ("Unique Issues", report_utils.n_unique_values(datamart, datamart_all_columns, "Issue")),
+    ("Avg Groups per Issue", report_utils.avg_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"])),
+    ("Number of Channels", report_utils.n_unique_values(datamart, datamart_all_columns, ["Channel", "Direction"])),
 ]
 
-print("| Item | Value | Best Practice Min | Cloud Service Max | Status |")
-print("| --- | --- | --- | --- | --- |")
-for label, value, metric_id in items:
-    bp_min = MetricLimits.best_practice_min(metric_id)
-    bp_max = MetricLimits.best_practice_max(metric_id)
-    bp_min_str = fmt_int(int(bp_min)) if bp_min is not None else "—"
-    bp_max_str = fmt_int(int(bp_max)) if bp_max is not None else "—"
-    icon = rag_icon(metric_id, value)
+print("| Item | Value |")
+print("| --- | --- |")
+for label, value in items:
     val_str = f"{value:.1f}" if isinstance(value, float) else fmt_int(value)
-    print(f"| {label} | {val_str} | {bp_min_str} | {bp_max_str} | {icon} |")
+    print(f"| {label} | {val_str} |")
 print()
 
 # Show examples of actions, issues, groups
@@ -604,8 +598,9 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 print("## Success Rates\n")
 print(
-    f"Top {barchart_max_bars} actions by success rate per channel, "
-    f"limited to models with ≥{responsecount_analysis_threshold} responses.\n"
+    f"Per-action success rates (CTR) ranked within each channel — showing the top {barchart_max_bars} actions "
+    f"for models with ≥{responsecount_analysis_threshold} responses. "
+    "This is action-level detail; channel-level CTR trends are in the maturity check.\n"
 )
 
 try:
@@ -765,7 +760,11 @@ if (unused_configurations.height > 0) and (
 
 print("## Model Performance Analysis\n")
 print("### Performance Distribution by Channel\n")
-print("Quantile statistics of model performance (AUC, 50-100 scale) for active models.\n")
+print(
+    "Quantile breakdown of model AUC per channel. "
+    "The maturity check scores only the *percentage* in the 60–85 range; "
+    "the distribution shape here reveals whether poor performance is widespread or driven by a tail.\n"
+)
 
 try:
     active_data = last_data.filter(active_models_filter_expr).lazy()
@@ -802,6 +801,34 @@ print("> **Interpretation:**")
 print("> - Median AUC below 55 suggests insufficient predictor data or data quality issues.")
 print("> - A wide P25-P75 range is normal — different actions have different predictability.")
 print("> - Very high AUC (>90) for many models may indicate outcome leakers or very few positives.")
+print()
+
+# Worst performing mature models — the specific models behind the maturity check score
+print("### Underperforming Mature Models\n")
+_bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
+print(
+    f"Mature models (≥{int(_bp_min_positives)} positives) with the lowest AUC. "
+    "These are the specific models pulling the maturity check score down.\n"
+)
+try:
+    mature_filter = pl.col("Positives") >= _bp_min_positives
+    worst = (
+        last_data.filter(mature_filter)
+        .sort("Performance")
+        .head(20)
+        .select(
+            [c for c in ["Channel/Direction", "Configuration", "Issue", "Group", "Name", "Positives", "ResponseCount"] if c in last_data.columns]
+            + ["Performance"]
+        )
+        .with_columns((pl.col("Performance") * 100).round(1).alias("AUC"))
+        .drop("Performance")
+    )
+    if worst.height == 0:
+        print("*No mature models found.*\n")
+    else:
+        print(df_to_md(worst))
+except Exception as e:
+    print(f"*Could not compute underperforming models: {e}*\n")
 print()
 ```
 
@@ -903,8 +930,9 @@ print()
 
 print("## Model Maturity\n")
 print(
-    "Models categorized by their maturity level based on response counts and performance. "
-    "Models need sufficient positive responses (≥200) to be considered mature.\n"
+    "Models categorized by maturity level. "
+    "The maturity check scores only the headline percentage; "
+    "this section names the specific models in each problem category so they can be acted on.\n"
 )
 
 bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
@@ -986,6 +1014,33 @@ print("> - A small percentage of 'Never used' and 'Immature' models is normal wi
 print("> - 'Mature but AUC=50' models may have data quality issues or insufficient predictor variation.")
 print("> - The majority of models should be in the 'Mature with decent performance' category.")
 print()
+
+# Detail: models stuck at AUC=50 despite being mature
+stuck_filter = (pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives)
+stuck = last_data.filter(stuck_filter)
+if stuck.height > 0:
+    print("### Mature Models Stuck at AUC=50\n")
+    print(
+        "These models have enough data to learn but haven't improved beyond random. "
+        "Likely causes: no useful predictors, outcome label misconfigured, or data quality issue.\n"
+    )
+    detail_cols = [c for c in ["Channel/Direction", "Configuration", "Issue", "Group", "Name", "Positives", "ResponseCount"] if c in last_data.columns]
+    print(df_to_md(stuck.select(detail_cols).sort(["Channel/Direction"] if "Channel/Direction" in last_data.columns else [])))
+    print()
+
+# Detail: models with zero responses
+never_used_filter = pl.col("ResponseCount") < MetricLimits.minimum("TotalResponseCount")
+never_used = last_data.filter(never_used_filter)
+if never_used.height > 0:
+    print(f"### Never-Used Models ({never_used.height} total)\n")
+    print("Models with zero responses. These may be inactive actions that should be archived.\n")
+    detail_cols = [c for c in ["Channel/Direction", "Configuration", "Issue", "Group", "Name"] if c in last_data.columns]
+    display = never_used.select(detail_cols).sort(detail_cols[:2] if len(detail_cols) >= 2 else detail_cols)
+    if display.height > tables_max_rows:
+        print(f"*Showing first {tables_max_rows} of {display.height} rows.*\n")
+        display = display.head(tables_max_rows)
+    print(df_to_md(display))
+    print()
 ```
 
 ```{python}
