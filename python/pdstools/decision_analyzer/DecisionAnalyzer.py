@@ -698,6 +698,7 @@ class DecisionAnalyzer:
             "Levers",
             "Subject ID",
             "Record Type",
+            "Component Name",
             "Action",
             "day",
             "is_mandatory",
