@@ -277,15 +277,7 @@ class DecisionAnalyzer:
             self.NBADStages_RemainingView = self.AvailableNBADStages
 
         elif self.extract_type == "decision_analyzer":
-            stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
-            if "Arbitration" not in stage_df[self.level] and self.level == "Stage Group":
-                arb = pl.DataFrame(
-                    {self.level: "Arbitration", "Stage Order": 3800},
-                    schema=stage_df.schema,
-                )
-                stage_df = pl.concat([stage_df, arb])
-            stage_df = stage_df.sort("Stage Order")
-            self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
+            self._recompute_available_stages()
 
     @property
     def available_levels(self) -> list[str]:
@@ -326,18 +318,59 @@ class DecisionAnalyzer:
         self._invalidate_cached_properties()
 
     def _recompute_available_stages(self):
-        """Derive ``AvailableNBADStages`` from the data for the current level."""
+        """Derive ``AvailableNBADStages`` from the data for the current level.
+
+        At "Stage Group" level, synthetically injects "Arbitration" if it
+        has no data rows (it is used as an anchor point by many analyses).
+
+        At "Stage" level, detects Stage Groups that have no individual
+        stages represented in the data and inserts the group name as a
+        placeholder so the full pipeline is visible.
+        """
         if self.extract_type == "explainability_extract":
             self.AvailableNBADStages = ["Arbitration", "Output"]
             return
 
         stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
-        if "Arbitration" not in stage_df[self.level].to_list() and self.level == "Stage Group":
-            arb = pl.DataFrame(
-                {self.level: "Arbitration", "Stage Order": 3800},
-                schema=stage_df.schema,
-            )
-            stage_df = pl.concat([stage_df, arb])
+
+        if self.level == "Stage Group":
+            if "Arbitration" not in stage_df[self.level].to_list():
+                arb = pl.DataFrame(
+                    {self.level: "Arbitration", "Stage Order": 3800},
+                    schema=stage_df.schema,
+                )
+                stage_df = pl.concat([stage_df, arb])
+        elif self.level == "Stage":
+            # Build the Stage Group pipeline and inject placeholders for
+            # groups that have no individual stages in the data.
+            available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+            if "Stage Group" in available:
+                group_df = (
+                    self.unfiltered_raw_decision_data.group_by("Stage Group").agg(pl.col("Stage Order").min()).collect()
+                )
+                if "Arbitration" not in group_df["Stage Group"].to_list():
+                    group_df = pl.concat(
+                        [
+                            group_df,
+                            pl.DataFrame(
+                                {"Stage Group": "Arbitration", "Stage Order": 3800},
+                                schema=group_df.schema,
+                            ),
+                        ]
+                    )
+                group_df = group_df.sort("Stage Order")
+                all_groups = group_df["Stage Group"].to_list()
+                group_orders = dict(zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list()))
+                mapping = self.stage_to_group_mapping
+                covered_groups = set(mapping.values())
+                for grp in all_groups:
+                    if grp not in covered_groups:
+                        placeholder = pl.DataFrame(
+                            {self.level: grp, "Stage Order": group_orders[grp]},
+                            schema=stage_df.schema,
+                        )
+                        stage_df = pl.concat([stage_df, placeholder])
+
         stage_df = stage_df.sort("Stage Order")
         self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 

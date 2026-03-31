@@ -1,5 +1,6 @@
 # python/pdstools/app/decision_analyzer/pages/12_Single_Decision.py
 import html as html_mod
+from itertools import groupby
 
 import polars as pl
 import streamlit as st
@@ -67,7 +68,8 @@ desired_cols = [
     "Issue",
     "Group",
     "Action",
-    da.level,  # "Stage Group" or "Stage"
+    "Stage",
+    "Stage Group",
     "Stage Order",
     "Record Type",
     "Component Name",
@@ -123,21 +125,26 @@ level_col = da.level  # "Stage Group" or "Stage"
 scope_hierarchy = ["Issue", "Group", "Action"]
 available_scopes = [c for c in scope_hierarchy if c in available_cols]
 
-# Ordered stages present in this interaction (deduplicated by level_col,
-# keeping the earliest Stage Order so Stage Groups appear in pipeline order)
-stages_ordered = (
-    interaction_df.select([level_col, "Stage Order"])
-    .group_by(level_col)
-    .agg(pl.col("Stage Order").min())
-    .sort("Stage Order")
-    .get_column(level_col)
-    .to_list()
-)
+# Ordered stages: use the full pipeline from the DA so that stages where
+# actions silently pass through (e.g. Arbitration) still appear as columns.
+stages_ordered = da.AvailableNBADStages
+
+# When viewing at "Stage" level, build a Stage → Stage Group mapping for
+# grouped column headers.
+stage_to_group: dict[str, str] = {}
+show_group_header = False
+if level_col == "Stage" and "Stage Group" in available_cols:
+    stage_to_group = dict(da.stage_to_group_mapping)  # {Stage: StageGroup}
+    # Placeholder stages (group name used as stage name) map to themselves
+    for s in stages_ordered:
+        if s not in stage_to_group:
+            stage_to_group[s] = s
+    show_group_header = bool(stage_to_group)
 
 pvcl_factors = [f for f in ["Propensity", "Value", "Context Weight", "Levers", "Priority"] if f in available_cols]
 
 
-def _cell_label(filtered_df: pl.DataFrame, n_surviving: int) -> str:
+def _cell_label(filtered_df: pl.DataFrame, n_surviving: int, *, show_components: bool = True) -> str:
     """Summarise what happened at one stage for a scope-group.
 
     Parameters
@@ -146,6 +153,8 @@ def _cell_label(filtered_df: pl.DataFrame, n_surviving: int) -> str:
         Rows with Record Type == FILTERED_OUT at this stage (may be empty).
     n_surviving
         Number of actions still alive *entering* this stage.
+    show_components
+        Whether to list component names in the cell.
     """
     has_action = "Action" in filtered_df.columns if not filtered_df.is_empty() else False
     n_filtered = (
@@ -155,7 +164,7 @@ def _cell_label(filtered_df: pl.DataFrame, n_surviving: int) -> str:
 
     parts = []
     if n_filtered > 0:
-        if "Component Name" in filtered_df.columns:
+        if show_components and "Component Name" in filtered_df.columns:
             components = filtered_df.get_column("Component Name").drop_nulls()
             if len(components) > 0:
                 unique_components = (
@@ -205,7 +214,7 @@ def _pvcl_values(subset: pl.DataFrame, is_aggregate: bool) -> dict:
     return result
 
 
-def _stage_cells(subset: pl.DataFrame) -> dict:
+def _stage_cells(subset: pl.DataFrame, *, show_components: bool = True) -> dict:
     """Compute per-stage cell labels, tracking surviving actions cumulatively.
 
     The data only records events (FILTERED_OUT or OUTPUT rows).  Actions
@@ -241,7 +250,7 @@ def _stage_cells(subset: pl.DataFrame) -> dict:
         )
 
         if n_filtered > 0:
-            label = _cell_label(filtered_at_stage, surviving)
+            label = _cell_label(filtered_at_stage, surviving, show_components=show_components)
             surviving -= n_filtered
         elif not stage_data.is_empty():
             # Stage has rows (e.g. OUTPUT) but no filtering — all survive
@@ -305,6 +314,16 @@ if not grid_rows:
     st.warning("No actions found for the selected interaction.")
     st.stop()
 
+# ── Grand totals row ──────────────────────────────────────────────────────
+total_actions = (
+    interaction_df.select("Action").n_unique() if "Action" in interaction_df.columns else len(interaction_df)
+)
+totals_row = {"_depth": -1, "_key": "__totals__", "_label": f"Total ({total_actions})"}
+for f in pvcl_factors:
+    totals_row[f] = ""
+totals_row.update(_stage_cells(interaction_df, show_components=False))
+grid_rows.append(totals_row)
+
 # ── Render hierarchical HTML table ────────────────────────────────────────
 # Columns for display
 display_pvcl = [f for f in pvcl_factors if any(f in r for r in grid_rows)]
@@ -314,15 +333,44 @@ header_cols = [""] + display_pvcl + stages_ordered  # "" = name/label column
 has_groups = any(r["_depth"] == 1 for r in grid_rows)
 has_actions = any(r["_depth"] == 2 for r in grid_rows)
 
-# Build header
-header_cells = []
-for col in header_cols:
-    escaped = html_mod.escape(col)
-    if col in stages_ordered:
-        header_cells.append(f'<th class="rotated"><div><span>{escaped}</span></div></th>')
-    else:
-        header_cells.append(f"<th>{escaped}</th>")
-header_html = "<tr>" + "".join(header_cells) + "</tr>"
+# Build header — two-row when Stage-level with group header
+if show_group_header:
+    # Row 1: Stage Group spanning cells + empty cells for name/PVCL columns
+    n_fixed = 1 + len(display_pvcl)  # name col + PVCL cols
+    group_header_cells = ['<th rowspan="2"></th>']  # name col spans both rows
+    for f in display_pvcl:
+        group_header_cells.append(f'<th rowspan="2">{html_mod.escape(f)}</th>')
+
+    # Group consecutive stages by their Stage Group
+    grouped_stages = []
+    for grp, members in groupby(stages_ordered, key=lambda s: stage_to_group.get(s, s)):
+        member_list = list(members)
+        grouped_stages.append((grp, member_list))
+
+    for grp, members in grouped_stages:
+        escaped = html_mod.escape(grp)
+        group_header_cells.append(f'<th class="group-header" colspan="{len(members)}">{escaped}</th>')
+    group_header_html = "<tr>" + "".join(group_header_cells) + "</tr>"
+
+    # Row 2: individual Stage names (multi-line)
+    stage_header_cells = []
+    for col in stages_ordered:
+        label = html_mod.escape(col).replace(" ", "<br>")
+        stage_header_cells.append(f'<th class="stage-col">{label}</th>')
+    stage_header_html = "<tr>" + "".join(stage_header_cells) + "</tr>"
+
+    header_html = group_header_html + stage_header_html
+else:
+    # Single-row header (Stage Group level or no mapping)
+    header_cells = []
+    for col in header_cols:
+        escaped = html_mod.escape(col)
+        if col in stages_ordered:
+            label = escaped.replace(" ", "<br>")
+            header_cells.append(f'<th class="stage-col">{label}</th>')
+        else:
+            header_cells.append(f"<th>{escaped}</th>")
+    header_html = "<tr>" + "".join(header_cells) + "</tr>"
 
 # Build body rows
 body_html_parts = []
@@ -332,23 +380,28 @@ for r in grid_rows:
     parent = html_mod.escape(r.get("_parent", ""))
     label = html_mod.escape(r["_label"])
 
+    is_totals = depth == -1
+
     # Determine if this row has children
     has_children = (depth == 0 and has_groups) or (depth == 1 and has_actions)
 
     # Row attributes
-    cls = f"depth-{depth}"
+    cls = "totals-row" if is_totals else f"depth-{depth}"
     hidden = ' style="display:none"' if depth > 0 else ""
     data_attrs = f'data-key="{key}" data-depth="{depth}"'
     if parent:
         data_attrs += f' data-parent="{parent}"'
 
     # Label cell with indent and toggle icon
-    indent = depth * 20
-    if has_children:
-        toggle = '<span class="toggle">▶</span> '
+    if is_totals:
+        name_cell = f"<td><b>{label}</b></td>"
     else:
-        toggle = '<span style="display:inline-block;width:1em"></span> '
-    name_cell = f'<td style="padding-left:{indent + 6}px">{toggle}<b>{label}</b></td>'
+        indent = depth * 20
+        if has_children:
+            toggle = '<span class="toggle">▶</span> '
+        else:
+            toggle = '<span style="display:inline-block;width:1em"></span> '
+        name_cell = f'<td style="padding-left:{indent + 6}px">{toggle}<b>{label}</b></td>'
 
     # PVCL cells
     pvcl_cells = []
@@ -401,23 +454,20 @@ components.html(
     .decision-grid th {{
         background: #f8f9fa;
         font-weight: 600;
-        white-space: nowrap;
     }}
-    .decision-grid th.rotated {{
-        height: 140px;
-        white-space: nowrap;
+    .decision-grid th.group-header {{
+        text-align: center;
+        background: #e9ecef;
+        font-size: 0.80rem;
+        border-bottom: 2px solid #adb5bd;
+    }}
+    .decision-grid th.stage-col {{
         vertical-align: bottom;
-        padding: 4px;
-    }}
-    .decision-grid th.rotated > div {{
-        transform: rotate(-60deg);
-        transform-origin: left bottom;
-        width: 1.5em;
-        margin-left: 0.5em;
-    }}
-    .decision-grid th.rotated > div > span {{
-        display: block;
-        white-space: nowrap;
+        text-align: center;
+        padding: 4px 6px;
+        font-size: 0.78rem;
+        line-height: 1.2;
+        min-width: 60px;
     }}
     .decision-grid .cell-filtered {{
         background: #fff0f0;
@@ -441,6 +491,11 @@ components.html(
     }}
     .decision-grid .depth-2 {{
         background: #f5f5f5;
+    }}
+    .decision-grid .totals-row {{
+        border-top: 2px solid #333;
+        background: #f8f9fa;
+        font-weight: 600;
     }}
     .decision-grid .toggle {{
         font-size: 0.7rem;
