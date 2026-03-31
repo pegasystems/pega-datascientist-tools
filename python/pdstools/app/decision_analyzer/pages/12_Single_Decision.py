@@ -428,11 +428,9 @@ for r in grid_rows:
 if pvcl_factors:
     st.caption("PVCL values at Issue/Group level show **min|median|max** across actions.")
 
-# Estimate height: header ~160px + visible rows (depth-0) * 35px + margin.
-# When expanded the iframe will resize via JS.
-n_top_rows = sum(1 for r in grid_rows if r["_depth"] == 0)
+# Estimate height: generous to avoid cutting off rows.
 n_all_rows = len(grid_rows)
-estimated_height = 180 + n_all_rows * 35
+estimated_height = 300 + n_all_rows * 45
 
 components.html(
     f"""
@@ -508,8 +506,29 @@ components.html(
     .decision-grid .toggle.expanded {{
         transform: rotate(90deg);
     }}
+    .expand-controls {{
+        margin-bottom: 6px;
+        display: flex;
+        gap: 8px;
+    }}
+    .expand-controls button {{
+        background: #f8f9fa;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 3px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        font-family: inherit;
+    }}
+    .expand-controls button:hover {{
+        background: #e9ecef;
+    }}
     </style>
     <div class="decision-grid">
+    <div class="expand-controls">
+      <button onclick="expandAll()">Expand all</button>
+      <button onclick="collapseAll()">Collapse all</button>
+    </div>
     <table>
     <thead>{header_html}</thead>
     <tbody>{"".join(body_html_parts)}</tbody>
@@ -557,6 +576,33 @@ components.html(
     document.querySelectorAll('.toggle').forEach(function(el) {{
         el.addEventListener('click', function() {{ toggleChildren(this); }});
     }});
+
+    function expandAll() {{
+        document.querySelectorAll('tbody tr').forEach(function(row) {{
+            if (parseInt(row.dataset.depth) >= 0) {{
+                row.style.display = '';
+            }}
+            const toggle = row.querySelector('.toggle');
+            if (toggle) {{
+                toggle.classList.add('expanded');
+                toggle.textContent = '\\u25BC';
+            }}
+        }});
+    }}
+
+    function collapseAll() {{
+        document.querySelectorAll('tbody tr').forEach(function(row) {{
+            const depth = parseInt(row.dataset.depth);
+            if (depth > 0) {{
+                row.style.display = 'none';
+            }}
+            const toggle = row.querySelector('.toggle');
+            if (toggle) {{
+                toggle.classList.remove('expanded');
+                toggle.textContent = '\\u25B6';
+            }}
+        }});
+    }}
     </script>
     """,
     height=estimated_height,

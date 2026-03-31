@@ -247,6 +247,11 @@ sidebar logo and title (sub-pages re-apply it automatically).
 ### General Streamlit rules
 - Never use `st.experimental_*` APIs — they have been removed. Use
   the stable equivalents (`st.cache_data`, `st.cache_resource`, etc.).
+- Avoid `components.html()` with custom JavaScript. It runs in an
+  iframe, is fragile, hard to debug, and does not integrate with
+  Streamlit's state management (session state, theming, reruns).
+  Prefer native Streamlit widgets and layout primitives. Only resort
+  to custom JS when there is genuinely no Streamlit-native alternative.
 - Use Streamlit magic (bare strings/expressions) for static markdown
   where convenient, but prefer explicit `st.markdown()` / `st.write()`
   for dynamic content.
