@@ -730,13 +730,15 @@ class DecisionAnalyzer:
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
         # but doesn't require collecting all unique IDs first, 15x faster than collecting 50k interactions first.
+        # Compare hash directly against a scaled UInt64 threshold to avoid
+        # modular-arithmetic collisions (hash % small_N can collapse to few buckets).
         try:
+            base = self.decision_data.select(columns_to_keep)
+            if sample_rate < 1.0:
+                hash_threshold = int((2**64 - 1) * sample_rate)
+                base = base.filter(pl.col("Interaction ID").hash() < hash_threshold)
             df = (
-                self.decision_data.select(columns_to_keep)
-                .with_columns([(pl.col("Interaction ID").hash() % 1000 < 1000 * sample_rate).alias("_sample")])
-                .filter(pl.col("_sample"))
-                .drop("_sample")
-                .collect()
+                base.collect()
                 .shrink_to_fit()  # reclaim unused memory (DataFrame-only method)
                 .lazy()  # re-wrap so downstream consumers stay lazy
             )
