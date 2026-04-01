@@ -265,7 +265,7 @@ date_start_str = date_start.strftime("%d-%b-%Y") if date_start else "N/A"
 date_end_str = date_end.strftime("%d-%b-%Y") if date_end else "N/A"
 print(f"| Data Period | {date_start_str} to {date_end_str} |")
 print(f"| Predictor Data Available | {'Yes' if has_predictors else 'No'} |")
-print(f"| Prediction Data Available | {'Yes' if has_predictions else 'No'} |")
+# print(f"| Prediction Data Available | {'Yes' if has_predictions else 'No'} |")  # Lift metric pending verification
 print(f"| Inactive Threshold | {threshold_updated_days} days |")
 print()
 ```
@@ -492,78 +492,79 @@ print("> **Interpretation:** Ideally there is significant overlap — the same a
 
 # ════════════════════════════════════════════════════════════════════════════
 # PREDICTIONS OVERVIEW
+# NOTE: Commented out pending verification that the lift metric is reliable.
 # ════════════════════════════════════════════════════════════════════════════
 
-if prediction is not None:
-    print("## Predictions Overview\n")
-    print("Predictions measure engagement lift: how much better the model-driven group performs vs a random control group.\n")
-    print("$$Lift = (CTR_{test} - CTR_{control}) / CTR_{control}$$\n")
-
-    try:
-        secs_per_day = 60 * 60 * 24
-        pred_overview = prediction.summary_by_channel().collect()
-        pred_overview = pred_overview.with_columns(
-            pl.format(
-                "{}d",
-                (pl.col("Duration") / secs_per_day).round().cast(pl.Int64),
-            ).alias("Duration")
-        )
-
-        display_cols = []
-        for col in [
-            "Prediction",
-            "Channel",
-            "Direction",
-            "DateRange Min",
-            "Duration",
-            "Performance",
-            "Positives",
-            "Responses",
-            "CTR",
-            "CTR_Test",
-            "CTR_Control",
-            "Lift",
-            "TestPercentage",
-            "ControlPercentage",
-        ]:
-            if col in pred_overview.columns:
-                display_cols.append(col)
-
-        pred_display = pred_overview.select(display_cols)
-
-        # Scale metrics for display
-        scale_cols = [
-            c
-            for c in ["Performance", "CTR", "CTR_Test", "CTR_Control", "Lift",
-                       "TestPercentage", "ControlPercentage"]
-            if c in pred_display.columns
-        ]
-        for c in scale_cols:
-            if c == "Performance":
-                pred_display = pred_display.with_columns(
-                    (pl.col(c) * 100).round(1).alias(c)
-                )
-            elif c == "Lift":
-                pred_display = pred_display.with_columns(
-                    (pl.col(c) * 100).round(0).alias(c)
-                )
-            else:
-                pred_display = pred_display.with_columns(
-                    (pl.col(c) * 100).round(3).alias(c)
-                )
-
-        print(df_to_md(pred_display))
-    except Exception as e:
-        print(f"*Could not compute prediction overview: {e}*\n")
-
-    print("> **Interpretation:**")
-    print("> - Lift should always be > 0. Negative lift means models are hurting rather than helping.")
-    print("> - Lift should be reasonably stable over time, not highly volatile.")
-    print("> - Default prediction names (e.g., 'PredictInboundDefaultPropensity') indicate a configuration issue.")
-    print()
-else:
-    print("## Predictions Overview\n")
-    print("*Prediction data is not available. Export Prediction Studio data to include prediction lift analysis.*\n")
+# if prediction is not None:
+#     print("## Predictions Overview\n")
+#     print("Predictions measure engagement lift: how much better the model-driven group performs vs a random control group.\n")
+#     print("$$Lift = (CTR_{test} - CTR_{control}) / CTR_{control}$$\n")
+#
+#     try:
+#         secs_per_day = 60 * 60 * 24
+#         pred_overview = prediction.summary_by_channel().collect()
+#         pred_overview = pred_overview.with_columns(
+#             pl.format(
+#                 "{}d",
+#                 (pl.col("Duration") / secs_per_day).round().cast(pl.Int64),
+#             ).alias("Duration")
+#         )
+#
+#         display_cols = []
+#         for col in [
+#             "Prediction",
+#             "Channel",
+#             "Direction",
+#             "DateRange Min",
+#             "Duration",
+#             "Performance",
+#             "Positives",
+#             "Responses",
+#             "CTR",
+#             "CTR_Test",
+#             "CTR_Control",
+#             "Lift",
+#             "TestPercentage",
+#             "ControlPercentage",
+#         ]:
+#             if col in pred_overview.columns:
+#                 display_cols.append(col)
+#
+#         pred_display = pred_overview.select(display_cols)
+#
+#         # Scale metrics for display
+#         scale_cols = [
+#             c
+#             for c in ["Performance", "CTR", "CTR_Test", "CTR_Control", "Lift",
+#                        "TestPercentage", "ControlPercentage"]
+#             if c in pred_display.columns
+#         ]
+#         for c in scale_cols:
+#             if c == "Performance":
+#                 pred_display = pred_display.with_columns(
+#                     (pl.col(c) * 100).round(1).alias(c)
+#                 )
+#             elif c == "Lift":
+#                 pred_display = pred_display.with_columns(
+#                     (pl.col(c) * 100).round(0).alias(c)
+#                 )
+#             else:
+#                 pred_display = pred_display.with_columns(
+#                     (pl.col(c) * 100).round(3).alias(c)
+#                 )
+#
+#         print(df_to_md(pred_display))
+#     except Exception as e:
+#         print(f"*Could not compute prediction overview: {e}*\n")
+#
+#     print("> **Interpretation:**")
+#     print("> - Lift should always be > 0. Negative lift means models are hurting rather than helping.")
+#     print("> - Lift should be reasonably stable over time, not highly volatile.")
+#     print("> - Default prediction names (e.g., 'PredictInboundDefaultPropensity') indicate a configuration issue.")
+#     print()
+# else:
+#     print("## Predictions Overview\n")
+#     print("*Prediction data is not available. Export Prediction Studio data to include prediction lift analysis.*\n")
 ```
 
 ```{python}
@@ -1139,6 +1140,11 @@ try:
         print("*No Issue/Group columns available.*\n")
 except Exception as e:
     print(f"*Could not compute group summary: {e}*\n")
+
+print("> **Interpretation:**")
+print("> - Groups with low Avg AUC and high Total Responses are the biggest concern — many customers are receiving sub-optimally targeted actions.")
+print("> - Groups with high AUC but low responses may have overly restrictive engagement rules.")
+print("> - Large imbalances in Total Responses between groups may reflect lever settings worth reviewing with business.")
 print()
 ```
 
@@ -1348,7 +1354,12 @@ if datamart.predictor_data is not None:
     except Exception as e:
         print(f"*Could not compute predictor categories: {e}*\n")
 
-    # ── Predictor performance by category ──
+    print("> **Interpretation:**")
+    print("> - Total predictors per model should be 200–700 to stay within service limits.")
+    print("> - Include some IH (Interaction History) predictors, but no more than ~100.")
+    print("> - No more than a few dozen Param predictors.")
+    print("> - Counts should be broadly consistent across configurations — large discrepancies suggest uneven data sourcing.")
+    print()
     print("### Predictor Performance by Category\n")
     print("Weighted average univariate AUC per predictor category — shows which data sources contribute most.\n")
     try:
@@ -1373,7 +1384,11 @@ if datamart.predictor_data is not None:
     except Exception as e:
         print(f"*Could not compute predictor category performance: {e}*\n")
 
-    # ── Top predictors ──
+    print("> **Interpretation:**")
+    print("> - Categories with high Avg AUC are the most valuable data sources for this deployment.")
+    print("> - A wide Min–Max spread within a category is normal — some predictors work well for certain actions, not others.")
+    print("> - If one category dominates all others, consider whether the data sourcing is sufficiently diverse.")
+    print()
     print("### Top Predictors by Performance\n")
     print("Predictors with the highest median univariate AUC performance across all models.\n")
     try:
@@ -1404,7 +1419,11 @@ if datamart.predictor_data is not None:
     except Exception as e:
         print(f"*Could not compute top predictors: {e}*\n")
 
-    # ── Poor predictors ──
+    print("> **Interpretation:**")
+    print("> - Expect a spread in AUC range (Min–Max) across models — predictors that show a single narrow bar are suspicious.")
+    print("> - Ideally the top performers span multiple categories (Customer, IH, Param) rather than all coming from one source.")
+    print("> - Median AUC for top predictors should fall in the 55–75 range; above 80 may indicate outcome leakers.")
+    print()
     print("### Poor Predictors\n")
     print(
         f"Predictors with mean performance below minimum threshold "
@@ -1437,7 +1456,11 @@ if datamart.predictor_data is not None:
     except Exception as e:
         print(f"*Could not compute poor predictors: {e}*\n")
 
-    # ── Missing predictor data ──
+    print("> **Interpretation:**")
+    print("> - Predictors that consistently perform poorly across all models could potentially be removed.")
+    print("> - Before removing, check for data problems (missing values, constant values, encoding issues).")
+    print("> - Only remove if there is clearly no value to any action — a predictor weak for one group may be strong for another.")
+    print()
     print("### Missing Predictor Data\n")
     print("Predictors with >10% missing values (excluding IH predictors). High missing rates may indicate data sourcing problems.\n")
     try:
@@ -1479,9 +1502,9 @@ if datamart.predictor_data is not None:
         print(f"*Could not compute missing data: {e}*\n")
 
     print("> **Interpretation:**")
-    print("> - Predictors that consistently perform poorly could potentially be removed, but be cautious — they may be valuable for other actions.")
-    print("> - High missing rates may indicate data pipeline issues worth investigating.")
-    print("> - A mix of predictor categories (Customer, IH, Param, etc.) in the top performers is ideal.")
+    print("> - High missing rates usually indicate a data sourcing problem (attribute not available at decision time).")
+    print("> - IH predictors are excluded here as missing values are expected when there is no prior interaction history.")
+    print("> - Predictors with consistently high missing rates and low AUC are strong candidates for removal.")
     print()
 
 else:
@@ -1524,7 +1547,11 @@ try:
 except Exception as e:
     print(f"*Could not compute response trend: {e}*\n")
 
-# ── Distribution skewness ──
+print("> **Interpretation:**")
+print("> - Response counts should generally grow or stay stable over time — sustained drops may indicate model resets or data pipeline issues.")
+print("> - Watch for consecutive weeks with zero responses, which may signal a configuration problem.")
+print("> - 'New Actions' appearing regularly week-over-week is a sign of a healthy, actively maintained deployment.")
+print()
 print("### Response Distribution Skewness\n")
 print(
     "How concentrated responses are across models. "
@@ -1665,8 +1692,6 @@ print(
   Values above 55 indicate the model is learning. Typical good range: 60-80.
 - **Success Rate / CTR:** The proportion of positive responses out of all responses.
   Higher is generally better but unusually high rates should be investigated.
-- **Engagement Lift:** How much better the model-driven group performs vs random.
-  Should always be positive.
 - **OmniChannel %:** Action overlap between channels. Higher means more cross-channel
   action reuse, which is generally recommended.
 - **Gini Coefficient:** Measures response concentration. 0 = perfectly equal,
@@ -1679,7 +1704,6 @@ print(
 | Many models with AUC=50 | Insufficient data or poor predictors | Review predictor availability and data quality |
 | No positive responses | Broken response loop | Check outcome label configuration |
 | Very high AUC (>95) | Outcome leaker or very few responses | Investigate predictor data for leakage |
-| Negative engagement lift | Model misconfiguration | Review prediction and arbitration setup |
 | High missing predictor data | Data pipeline issues | Check data sourcing for affected predictors |
 | Default configuration names | Not customized after deployment | Rename to channel-specific names |
 """
