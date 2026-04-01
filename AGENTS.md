@@ -304,6 +304,22 @@ between external naming conventions (Pega property names, JSON key
 schemes) at the serialization boundary, not in field names or
 function signatures. See the naming-conventions section above.
 
+## Feature backlog / TODO files
+
+Major features maintain a living TODO file in `docs/plans/` (e.g.
+`decision-analyzer-TODO.md`, `health-check-TODO.md`,
+`impact-analyzer-TODO.md`). These track open work items, bugs, and
+improvement ideas that are not otherwise captured in GitHub issues.
+
+- **Check before working.** When starting work on a feature area, read
+  its TODO file first for context on known issues and planned work.
+- **Update as you go.** Mark items done (`[x]`) when they land on
+  master. Add new items when you discover bugs, limitations, or ideas
+  during development.
+- **Priority levels:** P1 = high, P2 = medium, P3 = nice-to-have.
+- **Keep them current.** Remove or archive completed sections
+  periodically so the files stay useful.
+
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
 - Healthcheck tests are separate and require extra deps/tools.

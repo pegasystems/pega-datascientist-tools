@@ -98,6 +98,7 @@ removed or marked done as commits land on master.
 ### Page 8 — Optionality Analysis
 
 - [ ] **[P2] Overlay propensity/priority on optionality plot** — Dual-axis or faceted view alongside optionality distribution.
+- [ ] **[P2] Color optionality plot by issue/group** — Add selector to color the optionality distribution by Issue or Group. Helps explain bi-modal patterns where different issues/groups dominate different parts of the distribution.
 
 ### Page 9 — Offer Quality Analysis
 
