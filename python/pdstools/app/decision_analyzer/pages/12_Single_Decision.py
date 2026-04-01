@@ -178,13 +178,13 @@ def _cell_label(filtered_df: pl.DataFrame, n_surviving: int, *, show_components:
                 comp_text = ""
         else:
             comp_text = ""
-        label = f"❌ {n_filtered}"
+        label = f"❌\u00a0{n_filtered}"
         if comp_text:
             label += f"\n{comp_text}"
         parts.append(label)
     if n_passing > 0:
-        parts.append(f"✅ {n_passing}")
-    return " · ".join(parts) if parts else "—"
+        parts.append(f"✅\u00a0{n_passing}")
+    return "\n".join(parts) if parts else "—"
 
 
 def _pvcl_values(subset: pl.DataFrame, is_aggregate: bool) -> dict:
@@ -254,10 +254,10 @@ def _stage_cells(subset: pl.DataFrame, *, show_components: bool = True) -> dict:
             surviving -= n_filtered
         elif not stage_data.is_empty():
             # Stage has rows (e.g. OUTPUT) but no filtering — all survive
-            label = f"✅ {surviving}"
+            label = f"✅\u00a0{surviving}"
         else:
             # No rows at this stage — actions silently pass through
-            label = f"✅ {surviving}"
+            label = f"✅\u00a0{surviving}"
 
         result[stage] = label
     return result
