@@ -104,10 +104,12 @@ with col2:
         approach, balanced with business value.
         """
 
+        total_decisions = da.filtered_sample.select(pl.n_unique("Interaction ID")).collect().item()
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
                 win_rank=1,
                 hide_priority=True,
+                total_decisions=total_decisions,
             ).update_layout(
                 height=300,
             ),
