@@ -1082,6 +1082,9 @@ class DecisionAnalyzer:
     ) -> pl.DataFrame:
         """Per-stage summary: Available, Passing, Filtered actions and Decisions.
 
+        The table matches the funnel chart: it starts with a synthetic
+        "Available Actions" row and excludes the Output stage.
+
         Parameters
         ----------
         available_df : pl.LazyFrame
@@ -1094,11 +1097,13 @@ class DecisionAnalyzer:
         Returns
         -------
         pl.DataFrame
-            One row per stage/stage-group in pipeline order with columns:
-            [self.level, Available Actions, Passing Actions, Filtered Actions,
-            % of total filtered, Decisions].
+            One row per stage in pipeline order with raw counts first,
+            then per-decision averages.
         """
         level = self.level
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        first_real_stage = stages[0] if stages else None
+
         available_by_stage = (
             available_df.collect()
             .with_columns(pl.col(level).cast(pl.Utf8))
@@ -1119,7 +1124,7 @@ class DecisionAnalyzer:
             .collect()
             .item()
         )
-        stage_order_no_output = {s: i for i, s in enumerate(self.AvailableNBADStages) if s != "Output"}
+        stage_order_no_output = {s: i for i, s in enumerate(stages)}
         decisions_by_stage = (
             without_actions.with_columns(pl.col(level).cast(pl.Utf8))
             .sort(pl.col(level).map_elements(lambda s: stage_order_no_output.get(s, 999), return_dtype=pl.Int32))
@@ -1128,23 +1133,62 @@ class DecisionAnalyzer:
             .select([level, "Decisions"])
         )
 
-        stage_order = {s: i for i, s in enumerate(self.AvailableNBADStages)}
         summary = (
             available_by_stage.join(passing_by_stage, on=level, how="left")
             .join(decisions_by_stage, on=level, how="left")
             .fill_null(0)
             .with_columns((pl.col("Available Actions") - pl.col("Passing Actions")).alias("Filtered Actions"))
-            .with_columns(
+        )
+
+        # Exclude Output, keep only funnel stages
+        summary = summary.filter(pl.col(level).is_in(stages))
+
+        # Add synthetic "Available Actions" row: available = passing = first real stage's available
+        synthetic_label = "Available Actions"
+        if first_real_stage is not None:
+            first_available = summary.filter(pl.col(level) == first_real_stage).select("Available Actions").item()
+            synthetic_row = pl.DataFrame(
+                {
+                    level: [synthetic_label],
+                    "Available Actions": [first_available],
+                    "Passing Actions": [first_available],
+                    "Decisions": [total_interactions],
+                    "Filtered Actions": [0],
+                }
+            )
+            summary = pl.concat([synthetic_row, summary], how="diagonal_relaxed")
+
+        display_stage_order = [synthetic_label] + stages
+        summary = (
+            summary.with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
-                .round(2)
-                .alias("% of total filtered"),
+                .round(1)
+                .alias("% of Total Filtered"),
                 (pl.col("Available Actions") / pl.lit(total_interactions)).round(2).alias("Avg Available/Decision"),
                 (pl.col("Passing Actions") / pl.lit(total_interactions)).round(2).alias("Avg Passing/Decision"),
                 (pl.col("Filtered Actions") / pl.lit(total_interactions)).round(2).alias("Avg Filtered/Decision"),
-                (pl.col("Decisions") / pl.lit(total_interactions) * 100).round(1).alias("% Decisions with Actions"),
+                ((pl.lit(total_interactions) - pl.col("Decisions")) / pl.lit(total_interactions) * 100)
+                .round(1)
+                .alias("% Decisions without Actions"),
             )
-            .drop("Available Actions", "Passing Actions", "Filtered Actions", "Decisions")
-            .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
+            .sort(
+                pl.col(level).map_elements(
+                    lambda s: display_stage_order.index(s) if s in display_stage_order else 999,
+                    return_dtype=pl.Int32,
+                )
+            )
+            .select(
+                level,
+                "Available Actions",
+                "Passing Actions",
+                "Filtered Actions",
+                "Decisions",
+                "% of Total Filtered",
+                "Avg Available/Decision",
+                "Avg Passing/Decision",
+                "Avg Filtered/Decision",
+                "% Decisions without Actions",
+            )
         )
         return summary
 

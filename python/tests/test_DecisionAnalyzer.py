@@ -472,18 +472,24 @@ class TestFunnelSummary:
         result = da_v2.get_funnel_summary(available, passing)
         expected_cols = {
             da_v2.level,
+            "Available Actions",
+            "Passing Actions",
+            "Filtered Actions",
+            "Decisions",
             "Avg Available/Decision",
             "Avg Passing/Decision",
             "Avg Filtered/Decision",
-            "% of total filtered",
-            "% Decisions with Actions",
+            "% of Total Filtered",
+            "% Decisions without Actions",
         }
         assert expected_cols.issubset(set(result.columns))
 
     def test_summary_row_count(self, da_v2):
         available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        assert len(result) == len(da_v2.AvailableNBADStages)
+        # Stages minus Output plus synthetic "Available Actions" row
+        stages_no_output = [s for s in da_v2.AvailableNBADStages if s != "Output"]
+        assert len(result) == len(stages_no_output) + 1
 
     def test_filtered_is_difference(self, da_v2):
         available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
@@ -495,14 +501,14 @@ class TestFunnelSummary:
     def test_pct_sums_to_100(self, da_v2):
         available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        total_pct = result["% of total filtered"].sum()
+        total_pct = result["% of Total Filtered"].sum()
         assert abs(total_pct - 100.0) < 0.5  # rounding tolerance
 
     def test_decisions_pct_in_range(self, da_v2):
         available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        assert (result["% Decisions with Actions"] >= 0).all()
-        assert (result["% Decisions with Actions"] <= 100.1).all()  # rounding tolerance
+        assert (result["% Decisions without Actions"] >= 0).all()
+        assert (result["% Decisions without Actions"] <= 100.1).all()  # rounding tolerance
 
 
 # ---------------------------------------------------------------------------
@@ -1779,3 +1785,116 @@ class TestPropensityValidation:
         warning1 = da_v2.propensity_validation_warning
         warning2 = da_v2.propensity_validation_warning
         assert warning1 == warning2
+
+
+# ---------------------------------------------------------------------------
+# Minimal dataset: exact-value tests
+# ---------------------------------------------------------------------------
+# The minimal CSV (data/da/sample_eev2_minimal.csv) has 12 rows across
+# 3 interactions, 2 issues (Sales / Retention), 5 actions. Small enough
+# to hand-verify every number.
+
+
+@pytest.fixture(scope="module")
+def da_minimal():
+    """DecisionAnalyzer from the hand-crafted minimal CSV."""
+    raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
+    return DecisionAnalyzer(raw, sample_size=5000)
+
+
+class TestMinimalDatasetBasics:
+    def test_extract_type(self, da_minimal):
+        assert da_minimal.extract_type == "decision_analyzer"
+
+    def test_interaction_count(self, da_minimal):
+        n = da_minimal.decision_data.select("Interaction ID").unique().count().collect().item()
+        assert n == 3
+
+    def test_stages(self, da_minimal):
+        stages = da_minimal.AvailableNBADStages
+        assert "Eligibility" in stages
+        assert "Output" in stages
+
+    def test_issues(self, da_minimal):
+        issues = da_minimal.decision_data.select("Issue").unique().collect().get_column("Issue").to_list()
+        assert set(issues) == {"Sales", "Retention"}
+
+
+class TestMinimalFunnelExactValues:
+    """Exact-value tests for funnel data against the minimal dataset.
+
+    The 12 rows break down as:
+        Sales (7 action occurrences):
+          INT-001/ACTION1 → Output
+          INT-001/ACTION2 → ContactPolicies (FILTERED_OUT)
+          INT-001/ACTION5 → ContactPolicies (FILTERED_OUT)
+          INT-002/ACTION1 → Eligibility (FILTERED_OUT)
+          INT-002/ACTION2 → ContactPolicies (FILTERED_OUT)
+          INT-003/ACTION2 → Output
+          INT-003/ACTION5 → Eligibility (FILTERED_OUT)
+
+        Retention (5 action occurrences):
+          INT-001/ACTION3 → Eligibility (FILTERED_OUT)
+          INT-001/ACTION4 → Output
+          INT-002/ACTION3 → ContactPolicies (FILTERED_OUT)
+          INT-002/ACTION4 → Eligibility (FILTERED_OUT)
+          INT-003/ACTION3 → ContactPolicies (FILTERED_OUT)
+    """
+
+    def test_available_at_eligibility_all(self, da_minimal):
+        """All 12 action occurrences should be available at Eligibility."""
+        available, _, _ = da_minimal.get_funnel_data(scope="Action")
+        eligibility = available.filter(pl.col(da_minimal.level) == "Eligibility").collect()
+        total = eligibility["action_occurrences"].sum()
+        assert total == 12
+
+    def test_available_at_eligibility_sales_filter(self, da_minimal):
+        """7 Sales action occurrences available at Eligibility."""
+        available, _, _ = da_minimal.get_funnel_data(scope="Action", additional_filters=pl.col("Issue") == "Sales")
+        eligibility = available.filter(pl.col(da_minimal.level) == "Eligibility").collect()
+        total = eligibility["action_occurrences"].sum()
+        assert total == 7
+
+    def test_passing_eligibility_sales(self, da_minimal):
+        """5 Sales action occurrences pass Eligibility (2 filtered there)."""
+        _, passing, _ = da_minimal.get_funnel_data(scope="Action", additional_filters=pl.col("Issue") == "Sales")
+        eligibility = passing.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 5
+
+    def test_passing_eligibility_all(self, da_minimal):
+        """8 total action occurrences pass Eligibility (4 filtered there)."""
+        _, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        eligibility = passing.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 8
+
+    def test_filtered_at_eligibility(self, da_minimal):
+        """4 action occurrences filtered at Eligibility overall."""
+        _, _, filtered = da_minimal.get_funnel_data(scope="Action")
+        eligibility = filtered.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 4
+
+    def test_funnel_summary_stages_match_funnel(self, da_minimal):
+        """Summary table should show Available Actions + filtering stages, no Output."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        stages_in_summary = summary[da_minimal.level].to_list()
+        assert stages_in_summary[0] == "Available Actions"
+        assert "Output" not in stages_in_summary
+
+    def test_funnel_summary_available_actions_row(self, da_minimal):
+        """The synthetic Available Actions row should have 12 total actions, 0 filtered."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        aa_row = summary.filter(pl.col(da_minimal.level) == "Available Actions")
+        assert aa_row["Available Actions"].item() == 12
+        assert aa_row["Filtered Actions"].item() == 0
+
+    def test_funnel_summary_raw_counts_present(self, da_minimal):
+        """Summary should include raw count columns."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        for col in ["Available Actions", "Passing Actions", "Filtered Actions", "Decisions"]:
+            assert col in summary.columns

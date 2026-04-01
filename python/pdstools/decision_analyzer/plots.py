@@ -621,6 +621,7 @@ class Plot:
             },
             category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
             template="plotly_white",
+            color_discrete_sequence=["#d73027"],
         ).update_layout(
             xaxis_title="% of Decisions without Actions",
             xaxis_ticksuffix="%",
