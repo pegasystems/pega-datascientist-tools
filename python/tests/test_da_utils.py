@@ -27,6 +27,7 @@ from pdstools.decision_analyzer.utils import (  # noqa: E402
     get_first_level_stats,
     get_scope_config,
     gini_coefficient,
+    parse_filter_specs,
     parse_sample_flag,
     prepare_and_save,
     rename_and_cast_types,
@@ -1144,3 +1145,85 @@ class TestResolveFilterColumn:
         """Unknown column name raises ValueError with available columns listed."""
         with pytest.raises(ValueError, match="Unknown filter column 'Bogus'"):
             resolve_filter_column("Bogus", available_columns={"pxInteractionID"})
+
+
+# ---------------------------------------------------------------------------
+# parse_filter_specs
+# ---------------------------------------------------------------------------
+
+
+class TestParseFilterSpecs:
+    """Tests for parse_filter_specs()."""
+
+    def test_single_filter_single_value(self):
+        """Single filter with one value produces is_in expression."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B", "C"], "x": [1, 2, 3]})
+        expr = parse_filter_specs(
+            ["Interaction ID=A"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["A"]
+
+    def test_single_filter_multiple_values(self):
+        """Single filter with comma-separated values keeps matching rows."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B", "C"], "x": [1, 2, 3]})
+        expr = parse_filter_specs(
+            ["Interaction ID=A,C"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["A", "C"]
+
+    def test_multiple_filters_and(self):
+        """Multiple filters are ANDed together."""
+        df = pl.LazyFrame(
+            {
+                "pxInteractionID": ["A", "B", "C"],
+                "pyIssue": ["Sales", "Service", "Sales"],
+            }
+        )
+        expr = parse_filter_specs(
+            ["Interaction ID=A,B", "Issue=Sales"],
+            available_columns={"pxInteractionID", "pyIssue"},
+        )
+        result = df.filter(expr).collect()
+        # A has Sales, B has Service -> only A matches both filters
+        assert result["pxInteractionID"].to_list() == ["A"]
+        assert result["pyIssue"].to_list() == ["Sales"]
+
+    def test_no_matching_rows(self):
+        """Filter that matches nothing produces empty result."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B"], "x": [1, 2]})
+        expr = parse_filter_specs(
+            ["Interaction ID=Z"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result.height == 0
+
+    def test_malformed_spec_no_equals(self):
+        """Spec without '=' raises ValueError."""
+        with pytest.raises(ValueError, match="Expected format"):
+            parse_filter_specs(
+                ["Interaction ID"],
+                available_columns={"pxInteractionID"},
+            )
+
+    def test_malformed_spec_empty_values(self):
+        """Spec with empty values raises ValueError."""
+        with pytest.raises(ValueError, match="Expected format"):
+            parse_filter_specs(
+                ["Interaction ID="],
+                available_columns={"pxInteractionID"},
+            )
+
+    def test_values_are_case_sensitive(self):
+        """Filter values are case-sensitive."""
+        df = pl.LazyFrame({"pxInteractionID": ["ABC", "abc"], "x": [1, 2]})
+        expr = parse_filter_specs(
+            ["Interaction ID=ABC"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["ABC"]

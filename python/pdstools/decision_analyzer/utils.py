@@ -1037,6 +1037,58 @@ def resolve_filter_column(
     raise ValueError(f"Unknown filter column {name!r}. Available filterable columns: {', '.join(filterable)}")
 
 
+def parse_filter_specs(
+    filter_specs: list[str],
+    available_columns: set[str],
+) -> pl.Expr:
+    """Parse ``--filter`` specs into a combined Polars filter expression.
+
+    Each spec has the form ``"Column Name=value1,value2,..."``. Column names
+    are resolved via :func:`resolve_filter_column` (case-insensitive). Values
+    are exact-match and case-sensitive. Multiple specs are ANDed together.
+
+    Parameters
+    ----------
+    filter_specs : list[str]
+        Filter specifications from the CLI.
+    available_columns : set[str]
+        Column names present in the raw data.
+
+    Returns
+    -------
+    pl.Expr
+        Combined filter expression.
+
+    Raises
+    ------
+    ValueError
+        If a spec is malformed or references an unknown column.
+    """
+    if not filter_specs:
+        raise ValueError("filter_specs must not be empty")
+
+    expressions: list[pl.Expr] = []
+
+    for spec in filter_specs:
+        if "=" not in spec:
+            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
+        col_name, values_str = spec.split("=", 1)
+        col_name = col_name.strip()
+        values_str = values_str.strip()
+
+        if not values_str:
+            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
+
+        values = [v.strip() for v in values_str.split(",")]
+        resolved = resolve_filter_column(col_name, available_columns)
+        expressions.append(pl.col(resolved).is_in(values))
+
+    combined = expressions[0]
+    for expr in expressions[1:]:
+        combined = combined & expr
+    return combined
+
+
 def format_count_for_filename(count: int) -> str:
     """Format an interaction count for use in filenames.
 
