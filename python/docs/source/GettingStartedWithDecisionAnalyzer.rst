@@ -197,8 +197,14 @@ data loading and sampling. All options can also be set via environment variables
 
 ``--filter "Column Name=value1,value2,..."``
    Pre-ingestion row filter for extracting specific data from large files.
-   Use user-friendly column names (e.g. ``Interaction ID``, ``Subject ID``,
-   ``Channel``, ``Issue``). Multiple ``--filter`` flags are ANDed together.
+   Supports three syntax forms:
+
+   - **Categorical:** ``"Column=value1,value2,..."`` — exact match on any listed value
+   - **Numeric:** ``"Column>=N"``, ``"Column<=N"``, ``"Column>N"``, ``"Column<N"``
+   - **Date range:** ``"Column=YYYY-MM-DD..YYYY-MM-DD"`` — inclusive date range
+
+   Use user-friendly column names (e.g. ``Channel``, ``Decision Time``,
+   ``ModelPositives``). Multiple ``--filter`` flags are ANDed together.
    Can be combined with ``--sample`` (filter is applied first, then sampling
    runs on the filtered result). Filtered data is cached as parquet for fast
    reloading.
@@ -246,6 +252,15 @@ data loading and sampling. All options can also be set via environment variables
    # Filter first, then sample the filtered result
    pdstools decision_analyzer --data-path /path/to/data.zip --filter "Subject ID=customer-42" --sample 100
 
+   # Filter by date range
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Decision Time=2024-01-01..2024-12-31"
+
+   # Filter by numeric threshold
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "ModelPositives>=100"
+
+   # Combine all filter types
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Channel=Web" --filter "ModelPositives>=50" --filter "Decision Time=2024-06-01..2024-12-31"
+
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
 Using the Decision Analysis Tool
@@ -262,9 +277,10 @@ Start by upload your data through the data import section in the Home page.
 
    For information about exporting this data from Pega, refer to your Pega documentation.
 
-**Step 2: Apply Data Filters**
+**Step 2: Focus Your Analysis**
 
-Select only certain Issues, Channels or other dimensions to focus your analysis on. You can choose any data field to filter on in the **Global Filters** page.
+Use per-page filters in the sidebar (Channel/Direction, Stage, Scope) to focus
+on specific segments. For pre-ingestion data selection, use ``--filter`` CLI flags.
 
 **Step 3: Analyze the results**
 
@@ -300,8 +316,6 @@ the same channel focus across different analyses.
    does not have a channel filter.
 
 .. note::
-   The channel filter respects global filters from the Global Data Filters page. Only
-   channels that exist after global filters are applied will appear in the dropdown.
    In the Action Funnel page, the Filter Impact table intentionally remains unfiltered
    to show all filter events across channels.
 

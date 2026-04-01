@@ -94,11 +94,13 @@ def create_parser():
         default=None,
         help=(
             "Pre-ingestion row filter for extracting specific data from large files. "
-            "Specify as 'Column Name=value1,value2,...' using display names "
-            "(e.g. 'Interaction ID', 'Subject ID', 'Channel'). "
-            "Multiple --filter flags are ANDed together. "
-            "Can be combined with --sample (filter is applied first). "
-            "Exposed to the app as the PDSTOOLS_FILTER env var."
+            "Syntax options: "
+            "'Column=value1,value2,...' (categorical, exact match), "
+            "'Column>=N' / 'Column<=N' / 'Column>N' / 'Column<N' (numeric), "
+            "'Column=YYYY-MM-DD..YYYY-MM-DD' (date range, inclusive). "
+            "Column names use display names (e.g. 'Channel', 'Decision Time', "
+            "'ModelPositives'). Multiple --filter flags are ANDed together. "
+            "Can be combined with --sample (filter is applied first)."
         ),
     )
     parser.add_argument(
