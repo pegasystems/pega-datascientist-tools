@@ -149,7 +149,7 @@ if raw_data is not None:
         with st.spinner(f"Filtering data: {filter_desc}"):
             # Collect filtered data so we can check for empty results and
             # avoid re-executing the filter scan during subsequent sampling.
-            filtered_df = raw_data.filter(filter_expr).collect(streaming=True)
+            filtered_df = raw_data.filter(filter_expr).collect(engine="streaming")
             filter_row_count = len(filtered_df)
             if filter_row_count == 0:
                 st.warning(f"Filter matched 0 rows: {filter_desc}. Check your filter values.")
