@@ -1,6 +1,7 @@
 # python/pdstools/decision_analyzer/utils.py
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -1037,15 +1038,36 @@ def resolve_filter_column(
     raise ValueError(f"Unknown filter column {name!r}. Available filterable columns: {', '.join(filterable)}")
 
 
+_NUMERIC_OPS = {
+    ">=": lambda col, val: col >= val,
+    "<=": lambda col, val: col <= val,
+    ">": lambda col, val: col > val,
+    "<": lambda col, val: col < val,
+}
+
+# Ordered longest-first so ">=" is checked before ">"
+_OP_PREFIXES = sorted(_NUMERIC_OPS.keys(), key=len, reverse=True)
+
+_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
+
+
 def parse_filter_specs(
     filter_specs: list[str],
     available_columns: set[str],
 ) -> pl.Expr:
     """Parse ``--filter`` specs into a combined Polars filter expression.
 
-    Each spec has the form ``"Column Name=value1,value2,..."``. Column names
-    are resolved via :func:`resolve_filter_column` (case-insensitive). Values
-    are exact-match and case-sensitive. Multiple specs are ANDed together.
+    Supported syntax:
+
+    * **Categorical:** ``"Column Name=value1,value2,..."`` — exact-match on
+      any listed value.
+    * **Numeric:** ``"Column>=N"``, ``"Column<=N"``, ``"Column>N"``,
+      ``"Column<N"`` — numeric comparison (value cast to float).
+    * **Temporal range:** ``"Column=YYYY-MM-DD..YYYY-MM-DD"`` — inclusive
+      date range (detected when the value matches the ``date..date`` pattern).
+
+    Column names are resolved via :func:`resolve_filter_column`
+    (case-insensitive). Multiple specs are ANDed together.
 
     Parameters
     ----------
@@ -1070,23 +1092,62 @@ def parse_filter_specs(
     expressions: list[pl.Expr] = []
 
     for spec in filter_specs:
-        if "=" not in spec:
-            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
-        col_name, values_str = spec.split("=", 1)
-        col_name = col_name.strip()
-        values_str = values_str.strip()
-
-        if not values_str:
-            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
-
-        values = [v.strip() for v in values_str.split(",")]
-        resolved = resolve_filter_column(col_name, available_columns)
-        expressions.append(pl.col(resolved).is_in(values))
+        expr = _parse_single_spec(spec, available_columns)
+        expressions.append(expr)
 
     combined = expressions[0]
     for expr in expressions[1:]:
         combined = combined & expr
     return combined
+
+
+def _parse_single_spec(spec: str, available_columns: set[str]) -> pl.Expr:
+    """Parse one filter spec string into a Polars expression."""
+    from datetime import date
+
+    # Try numeric operators first (>=, <=, >, <)
+    for op in _OP_PREFIXES:
+        if op in spec:
+            col_name, val_str = spec.split(op, 1)
+            col_name = col_name.strip()
+            val_str = val_str.strip()
+            if col_name and val_str:
+                try:
+                    val = float(val_str)
+                except ValueError:
+                    continue  # Not a valid numeric — try next operator
+                resolved = resolve_filter_column(col_name, available_columns)
+                return _NUMERIC_OPS[op](pl.col(resolved), val)
+
+    # Fall back to = operator
+    if "=" not in spec:
+        raise ValueError(
+            f"Expected format: 'Column=value1,value2' or 'Column>=N' or 'Column=YYYY-MM-DD..YYYY-MM-DD', got {spec!r}"
+        )
+    col_name, values_str = spec.split("=", 1)
+    col_name = col_name.strip()
+    values_str = values_str.strip()
+
+    if not values_str:
+        raise ValueError(
+            f"Expected format: 'Column=value1,value2' or 'Column>=N' or 'Column=YYYY-MM-DD..YYYY-MM-DD', got {spec!r}"
+        )
+
+    # Check for date range pattern: YYYY-MM-DD..YYYY-MM-DD
+    date_match = _DATE_RE.match(values_str)
+    if date_match:
+        resolved = resolve_filter_column(col_name, available_columns)
+        try:
+            start = date.fromisoformat(date_match.group(1))
+            end = date.fromisoformat(date_match.group(2))
+        except ValueError as e:
+            raise ValueError(f"Invalid date in range {values_str!r}: {e}") from e
+        return pl.col(resolved).cast(pl.Date).is_between(start, end, closed="both")
+
+    # Categorical: is_in
+    values = [v.strip() for v in values_str.split(",")]
+    resolved = resolve_filter_column(col_name, available_columns)
+    return pl.col(resolved).is_in(values)
 
 
 def format_count_for_filename(count: int) -> str:

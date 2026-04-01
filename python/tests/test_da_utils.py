@@ -9,6 +9,8 @@ sample_interactions, prepare_and_save, _find_interaction_id_column,
 _get_interaction_id_candidates, should_cache_source.
 """
 
+from datetime import datetime
+
 import polars as pl
 import pytest
 
@@ -1227,6 +1229,118 @@ class TestParseFilterSpecs:
         )
         result = df.filter(expr).collect()
         assert result["pxInteractionID"].to_list() == ["ABC"]
+
+    def test_numeric_gte_filter(self):
+        """>=N filters rows where column >= N (cast to float)."""
+        df = pl.LazyFrame({"ModelPositives": [50, 100, 200], "x": ["a", "b", "c"]})
+        expr = parse_filter_specs(
+            ["ModelPositives>=100"],
+            available_columns={"ModelPositives", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["ModelPositives"].to_list() == [100, 200]
+
+    def test_numeric_lte_filter(self):
+        """<=N filters rows where column <= N."""
+        df = pl.LazyFrame({"ModelPositives": [50, 100, 200], "x": ["a", "b", "c"]})
+        expr = parse_filter_specs(
+            ["ModelPositives<=100"],
+            available_columns={"ModelPositives", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["ModelPositives"].to_list() == [50, 100]
+
+    def test_numeric_gt_filter(self):
+        """>N filters rows where column > N."""
+        df = pl.LazyFrame({"ModelPositives": [50, 100, 200], "x": ["a", "b", "c"]})
+        expr = parse_filter_specs(
+            ["ModelPositives>100"],
+            available_columns={"ModelPositives", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["ModelPositives"].to_list() == [200]
+
+    def test_numeric_lt_filter(self):
+        """<N filters rows where column < N."""
+        df = pl.LazyFrame({"ModelPositives": [50, 100, 200], "x": ["a", "b", "c"]})
+        expr = parse_filter_specs(
+            ["ModelPositives<100"],
+            available_columns={"ModelPositives", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["ModelPositives"].to_list() == [50]
+
+    def test_numeric_filter_with_float(self):
+        """Numeric filter works with float values."""
+        df = pl.LazyFrame({"Propensity": [0.1, 0.5, 0.9], "x": ["a", "b", "c"]})
+        expr = parse_filter_specs(
+            ["Propensity>=0.5"],
+            available_columns={"Propensity", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["Propensity"].to_list() == [0.5, 0.9]
+
+    def test_numeric_combined_with_categorical(self):
+        """Numeric and categorical filters can be ANDed together."""
+        df = pl.LazyFrame(
+            {
+                "ModelPositives": [50, 100, 200],
+                "pyIssue": ["Sales", "Service", "Sales"],
+            }
+        )
+        expr = parse_filter_specs(
+            ["ModelPositives>=100", "Issue=Sales"],
+            available_columns={"ModelPositives", "pyIssue"},
+        )
+        result = df.filter(expr).collect()
+        assert result["ModelPositives"].to_list() == [200]
+
+    def test_date_range_filter(self):
+        """date..date syntax filters to date range (inclusive)."""
+        df = pl.LazyFrame(
+            {
+                "Decision Time": [
+                    datetime(2024, 1, 1),
+                    datetime(2024, 6, 15),
+                    datetime(2024, 12, 31),
+                    datetime(2025, 3, 1),
+                ],
+                "x": ["a", "b", "c", "d"],
+            }
+        )
+        expr = parse_filter_specs(
+            ["Decision Time=2024-01-01..2024-12-31"],
+            available_columns={"Decision Time", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["x"].to_list() == ["a", "b", "c"]
+
+    def test_date_range_single_day(self):
+        """date..date with same start and end filters to single day."""
+        df = pl.LazyFrame(
+            {
+                "Decision Time": [
+                    datetime(2024, 6, 14),
+                    datetime(2024, 6, 15),
+                    datetime(2024, 6, 16),
+                ],
+                "x": ["a", "b", "c"],
+            }
+        )
+        expr = parse_filter_specs(
+            ["Decision Time=2024-06-15..2024-06-15"],
+            available_columns={"Decision Time", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["x"].to_list() == ["b"]
+
+    def test_malformed_date_range_raises(self):
+        """Invalid date in range raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid date"):
+            parse_filter_specs(
+                ["Decision Time=2024-13-01..2024-12-31"],
+                available_columns={"Decision Time"},
+            )
 
 
 # ---------------------------------------------------------------------------
