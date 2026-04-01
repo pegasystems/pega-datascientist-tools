@@ -1143,9 +1143,10 @@ class DecisionAnalyzer:
         # Exclude Output, keep only funnel stages
         summary = summary.filter(pl.col(level).is_in(stages))
 
-        # Add synthetic "Available Actions" row: available = passing = first real stage's available
+        # Add synthetic "Available Actions" baseline row — but only when the first
+        # real stage isn't already called "Available Actions" (to avoid a duplicate).
         synthetic_label = "Available Actions"
-        if first_real_stage is not None:
+        if first_real_stage is not None and first_real_stage != synthetic_label:
             first_available = summary.filter(pl.col(level) == first_real_stage).select("Available Actions").item()
             synthetic_row = pl.DataFrame(
                 {
