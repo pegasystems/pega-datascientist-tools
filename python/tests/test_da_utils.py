@@ -1252,3 +1252,24 @@ class TestFilterCLIArgs:
         parser = create_parser()
         args, _ = parser.parse_known_args(["da"])
         assert args.filter is None
+
+
+# ---------------------------------------------------------------------------
+# get_filter_specs (streamlit_utils env var reader)
+# ---------------------------------------------------------------------------
+
+
+class TestGetFilterSpecs:
+    """Tests for get_filter_specs() env var reader."""
+
+    def test_returns_none_when_not_set(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_FILTER", raising=False)
+        from pdstools.utils.streamlit_utils import get_filter_specs
+
+        assert get_filter_specs() is None
+
+    def test_returns_parsed_list(self, monkeypatch):
+        monkeypatch.setenv("PDSTOOLS_FILTER", '["Interaction ID=ABC", "Channel=Web"]')
+        from pdstools.utils.streamlit_utils import get_filter_specs
+
+        assert get_filter_specs() == ["Interaction ID=ABC", "Channel=Web"]
