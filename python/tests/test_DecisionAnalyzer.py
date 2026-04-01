@@ -1792,12 +1792,12 @@ class TestPropensityValidation:
 # ---------------------------------------------------------------------------
 # The minimal CSV (data/da/sample_eev2_minimal.csv) has 12 rows across
 # 3 interactions, 2 issues (Sales / Retention), 5 actions. Small enough
-# to hand-verify every number.
+# to verify every number.
 
 
 @pytest.fixture(scope="module")
 def da_minimal():
-    """DecisionAnalyzer from the hand-crafted minimal CSV."""
+    """DecisionAnalyzer from the minimal CSV."""
     raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
     return DecisionAnalyzer(raw, sample_size=5000)
 
@@ -1979,7 +1979,7 @@ class TestMinimalRanking:
 
 
 class TestMinimalOverviewStats:
-    """Verify exact overview stat values against hand-counted data.
+    """Verify exact overview stat values against the minimal dataset.
 
     The dataset has 3 interactions, 3 customers, 5 distinct actions,
     3 channel/direction combos, spanning 3 calendar days.
