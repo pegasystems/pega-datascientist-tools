@@ -1898,3 +1898,473 @@ class TestMinimalFunnelExactValues:
         summary = da_minimal.get_funnel_summary(available, passing)
         for col in ["Available Actions", "Passing Actions", "Filtered Actions", "Decisions"]:
             assert col in summary.columns
+
+
+class TestMinimalRanking:
+    """Verify exact ranks for every action in the minimal dataset.
+
+    Ranking is by: is_mandatory desc, Priority desc, Stage Order desc,
+    then alphabetic Issue/Group/Action.  Null Priority sorts last.
+
+    INT-001 (5 actions):
+      Rank 1: ACTION4 (Priority 9.0,   Output)
+      Rank 2: ACTION2 (Priority 8.64,  ContactPolicies)
+      Rank 3: ACTION1 (Priority 7.2,   Output)
+      Rank 4: ACTION5 (Priority 4.725, ContactPolicies)
+      Rank 5: ACTION3 (Priority null,  Eligibility)
+
+    INT-002 (4 actions):
+      Rank 1: ACTION2 (Priority 6.48,  ContactPolicies)
+      Rank 2: ACTION3 (Priority 5.88,  ContactPolicies)
+      Rank 3: ACTION4 (Priority null,  Eligibility)
+      Rank 4: ACTION1 (Priority null,  Eligibility)
+
+    INT-003 (3 actions):
+      Rank 1: ACTION2 (Priority 22.95, Output)
+      Rank 2: ACTION3 (Priority 6.0,   ContactPolicies)
+      Rank 3: ACTION5 (Priority null,  Eligibility)
+    """
+
+    def _ranks_for(self, da_minimal, interaction_id):
+        return (
+            da_minimal.decision_data.filter(pl.col("Interaction ID") == interaction_id)
+            .select("Action", "Rank")
+            .sort("Rank")
+            .collect()
+        )
+
+    def test_int001_rank1_is_action4(self, da_minimal):
+        """ACTION4 has the highest priority (9.0) in INT-001."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df.filter(pl.col("Action") == "ACTION4")["Rank"].item() == 1
+
+    def test_int001_rank5_is_action3(self, da_minimal):
+        """ACTION3 has null priority in INT-001 → last rank."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df.filter(pl.col("Action") == "ACTION3")["Rank"].item() == 5
+
+    def test_int001_full_order(self, da_minimal):
+        """Full rank order for INT-001."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df["Action"].to_list() == ["ACTION4", "ACTION2", "ACTION1", "ACTION5", "ACTION3"]
+
+    def test_int002_rank1_is_action2(self, da_minimal):
+        """ACTION2 has the highest priority (6.48) in INT-002."""
+        df = self._ranks_for(da_minimal, "INT-002")
+        assert df.filter(pl.col("Action") == "ACTION2")["Rank"].item() == 1
+
+    def test_int002_null_priority_actions_rank_last(self, da_minimal):
+        """ACTION1 and ACTION4 have null priority → ranks 3 and 4."""
+        df = self._ranks_for(da_minimal, "INT-002")
+        null_prio_ranks = df.filter(pl.col("Action").is_in(["ACTION1", "ACTION4"]))["Rank"].sort().to_list()
+        assert null_prio_ranks == [3, 4]
+
+    def test_int003_rank1_is_action2(self, da_minimal):
+        """ACTION2 has the highest priority (22.95) in INT-003."""
+        df = self._ranks_for(da_minimal, "INT-003")
+        assert df.filter(pl.col("Action") == "ACTION2")["Rank"].item() == 1
+
+    def test_int003_full_order(self, da_minimal):
+        df = self._ranks_for(da_minimal, "INT-003")
+        assert df["Action"].to_list() == ["ACTION2", "ACTION3", "ACTION5"]
+
+    def test_rank1_actions_are_in_output_stage(self, da_minimal):
+        """Rank-1 actions in INT-001 and INT-003 should be in Output.
+        INT-002 has no Output actions, so its rank-1 is ContactPolicies."""
+        rank1 = da_minimal.decision_data.filter(pl.col("Rank") == 1).select("Interaction ID", "Stage Group").collect()
+        int001 = rank1.filter(pl.col("Interaction ID") == "INT-001")["Stage Group"].item()
+        int003 = rank1.filter(pl.col("Interaction ID") == "INT-003")["Stage Group"].item()
+        assert int001 == "Output"
+        assert int003 == "Output"
+
+
+class TestMinimalOverviewStats:
+    """Verify exact overview stat values against hand-counted data.
+
+    The dataset has 3 interactions, 3 customers, 5 distinct actions,
+    3 channel/direction combos, spanning 3 calendar days.
+    """
+
+    def test_actions_count(self, da_minimal):
+        assert da_minimal.overview_stats["Actions"] == 5
+
+    def test_decisions_count(self, da_minimal):
+        assert da_minimal.overview_stats["Decisions"] == 3
+
+    def test_customers_count(self, da_minimal):
+        assert da_minimal.overview_stats["Customers"] == 3
+
+    def test_channels_count(self, da_minimal):
+        """Web/Inbound, Mobile/Inbound, Web/Outbound = 3."""
+        assert da_minimal.overview_stats["Channels"] == 3
+
+    def test_start_date(self, da_minimal):
+        from datetime import date
+
+        assert da_minimal.overview_stats["StartDate"] == date(2024, 3, 27)
+
+    def test_duration(self, da_minimal):
+        from datetime import timedelta
+
+        assert da_minimal.overview_stats["Duration"] == timedelta(days=3)
+
+
+class TestMinimalDistribution:
+    """Verify exact distribution counts at each stage.
+
+    At Output:  ACTION1(INT-001), ACTION2(INT-003), ACTION4(INT-001)
+                → 3 distinct actions, each appearing in 1 decision.
+    """
+
+    def test_output_has_three_actions(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert df.height == 3
+
+    def test_output_each_action_has_one_decision(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert (df["Decisions"] == 1).all()
+
+    def test_output_actions_are_correct(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert set(df["Action"].to_list()) == {"ACTION1", "ACTION2", "ACTION4"}
+
+    def test_eligibility_has_five_actions(self, da_minimal):
+        """All 5 actions appear at Eligibility (it's the first stage, everything enters)."""
+        df = da_minimal.get_distribution_data(stage="Eligibility", grouping_levels="Action").collect()
+        assert df.height == 5
+
+    def test_distribution_by_issue_at_output(self, da_minimal):
+        """Output has Sales (2 actions: ACTION1, ACTION2) and Retention (1: ACTION4)."""
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Issue").collect()
+        sales = df.filter(pl.col("Issue") == "Sales")["Decisions"].item()
+        retention = df.filter(pl.col("Issue") == "Retention")["Decisions"].item()
+        assert sales == 2
+        assert retention == 1
+
+
+class TestMinimalSensitivity:
+    """Verify exact sensitivity influence values.
+
+    Sensitivity measures how many rank-1 wins are lost when each PVCL
+    component is removed. With 3 interactions and known priorities,
+    each factor's influence is deterministic.
+    """
+
+    def test_all_five_factors_present(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        assert set(df["Factor"].to_list()) == {
+            "Priority",
+            "Propensity",
+            "Value",
+            "Context Weights",
+            "Levers",
+        }
+
+    def test_priority_has_highest_influence(self, da_minimal):
+        """Priority is the composite score — removing it should have the largest impact."""
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        priority_influence = df.filter(pl.col("Factor") == "Priority")["Influence"].item()
+        max_non_priority = df.filter(pl.col("Factor") != "Priority")["Influence"].max()
+        assert priority_influence >= max_non_priority
+
+    def test_exact_influence_values(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect().sort("Factor")
+        values = {row["Factor"]: row["Influence"] for row in df.iter_rows(named=True)}
+        assert values["Priority"] == 3
+        assert values["Propensity"] == 2
+        assert values["Value"] == 1
+        assert values["Context Weights"] == 2
+        assert values["Levers"] == 1
+
+    def test_influence_values_non_negative(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        assert (df["Influence"] >= 0).all()
+
+
+class TestMinimalWinLoss:
+    """Verify exact win/loss counts and distribution percentages.
+
+    With win_rank=1:
+    - Sales wins when a Sales action is rank 1 → INT-001(ACTION4? no, ACTION4 is Retention),
+      actually INT-003(ACTION2, Sales/Loans → rank 1). And INT-001 rank 1 is ACTION4 (Retention).
+      So Sales wins in INT-003, loses in INT-001 (rank 1 is Retention).
+      INT-002 has no Output, rank 1 is ACTION2 (Sales/Loans) → Sales wins.
+      Sales: wins=2, losses=1, total=3.
+    - Retention: wins=1 (INT-001), losses=2 (INT-002, INT-003), total=3.
+    """
+
+    def test_sales_win_loss_counts(self, da_minimal):
+        counts = da_minimal.get_win_loss_counts(
+            group_filter=pl.col("Issue") == "Sales",
+            win_rank=1,
+        )
+        assert counts["wins"] == 2
+        assert counts["losses"] == 1
+        assert counts["total"] == 3
+
+    def test_retention_win_loss_counts(self, da_minimal):
+        counts = da_minimal.get_win_loss_counts(
+            group_filter=pl.col("Issue") == "Retention",
+            win_rank=1,
+        )
+        assert counts["wins"] == 1
+        assert counts["losses"] == 2
+        assert counts["total"] == 3
+
+    def test_win_loss_distribution_percentages(self, da_minimal):
+        """Win/loss percentages should sum to 1.0 for each status."""
+        df = da_minimal.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        for status in ["Wins", "Losses"]:
+            total = df.filter(pl.col("Status") == status)["Percentage"].sum()
+            assert abs(total - 1.0) < 0.01
+
+    def test_sales_win_percentage(self, da_minimal):
+        """Sales has 2 of 3 wins → 66.7%."""
+        df = da_minimal.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        pct = df.filter((pl.col("Issue") == "Sales") & (pl.col("Status") == "Wins"))["Percentage"].item()
+        assert abs(pct - 2 / 3) < 0.01
+
+
+class TestMinimalOptionalityExact:
+    """Verify exact per-stage action counts (optionality).
+
+    Actions remaining at each stage:
+      Eligibility (all enter):
+        INT-001=5, INT-002=4, INT-003=3
+      Contact Policies (after Eligibility filters 4):
+        INT-001=4, INT-002=2, INT-003=2
+      Output (after ContactPolicies filters 5):
+        INT-001=2, INT-002=0, INT-003=1
+    """
+
+    def test_optionality_at_eligibility(self, da_minimal):
+        """Total action occurrences at Eligibility: 5+4+3 = 12."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        elig = opt.filter(pl.col("Stage Group") == "Eligibility")
+        total_actions = (elig["nOffers"] * elig["Interactions"]).sum()
+        assert total_actions == 12
+
+    def test_optionality_at_output(self, da_minimal):
+        """At Output: INT-001 has 2, INT-003 has 1, INT-002 has 0 → total 3."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        output = opt.filter((pl.col("Stage Group") == "Output") & (pl.col("nOffers") > 0))
+        total_actions = (output["nOffers"] * output["Interactions"]).sum()
+        assert total_actions == 3
+
+    def test_output_zero_offers_interaction(self, da_minimal):
+        """INT-002 has 0 actions at Output → 1 interaction with nOffers=0."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        zero_at_output = opt.filter((pl.col("Stage Group") == "Output") & (pl.col("nOffers") == 0))
+        assert zero_at_output["Interactions"].item() == 1
+
+    def test_all_interactions_present_at_eligibility(self, da_minimal):
+        """All 3 interactions should be counted at Eligibility (including zero row)."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        elig = opt.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Interactions"].sum() == 3
+
+
+class TestMinimalFilterComponents:
+    """Verify exact filter component counts.
+
+    EligibilityRule filters 4 actions across 3 interactions → 3 filtered decisions.
+    ContactPolicyRule filters 5 actions across 3 interactions → 3 filtered decisions.
+    """
+
+    def test_two_components(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        assert df.height == 2
+
+    def test_contact_policy_filtered_decisions(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
+        assert cp["Filtered Decisions"].item() == 3
+
+    def test_eligibility_rule_filtered_decisions(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        er = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert er["Filtered Decisions"].item() == 3
+
+    def test_contact_policy_at_correct_stage(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
+        assert "Contact Policies" in cp["Stage Group"].item()
+
+    def test_eligibility_rule_at_correct_stage(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        er = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert er["Stage Group"].item() == "Eligibility"
+
+
+class TestMinimalDecisionsWithoutActions:
+    """Verify exact decisions-without-actions counts.
+
+    After Eligibility: all 3 interactions still have actions → 0 knockouts.
+    Arbitration is a passthrough here → 0 knockouts.
+    After ContactPolicies: INT-002 loses all remaining actions → 1 knockout.
+    Total knockouts: 1 = 3 decisions - 2 Output survivors.
+    """
+
+    def test_no_knockouts_at_eligibility(self, da_minimal):
+        result = da_minimal.get_decisions_without_actions_data()
+        elig = result.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["decisions_without_actions"].item() == 0
+
+    def test_one_knockout_at_contact_policies(self, da_minimal):
+        result = da_minimal.get_decisions_without_actions_data()
+        cp = result.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["decisions_without_actions"].item() == 1
+
+    def test_total_knockouts_equals_non_survivors(self, da_minimal):
+        """Total knockouts = total decisions - Output survivors = 3 - 2 = 1."""
+        result = da_minimal.get_decisions_without_actions_data()
+        assert result["decisions_without_actions"].sum() == 1
+
+
+class TestMinimalFunnelSummaryExact:
+    """Verify exact funnel summary values (percentages and averages).
+
+    Funnel summary for 3 interactions, 12 total action occurrences:
+      Available Actions: 12 avail, 12 pass, 0 filtered
+      Eligibility:       12 avail,  8 pass, 4 filtered (44.4% of total)
+      Arbitration:        8 avail,  8 pass, 0 filtered
+      ContactPolicies:    8 avail,  3 pass, 5 filtered (55.6% of total)
+    """
+
+    def _summary(self, da_minimal):
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        return da_minimal.get_funnel_summary(available, passing)
+
+    def test_eligibility_available_12(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Available Actions"].item() == 12
+
+    def test_eligibility_passing_8(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Passing Actions"].item() == 8
+
+    def test_eligibility_filtered_4(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Filtered Actions"].item() == 4
+
+    def test_contact_policies_passing_3(self, da_minimal):
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["Passing Actions"].item() == 3
+
+    def test_contact_policies_filtered_5(self, da_minimal):
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["Filtered Actions"].item() == 5
+
+    def test_percent_filtered_eligibility(self, da_minimal):
+        """4 of 9 total filtered actions = 44.4%."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert abs(elig["% of Total Filtered"].item() - 44.4) < 0.5
+
+    def test_percent_filtered_contact_policies(self, da_minimal):
+        """5 of 9 total filtered actions = 55.6%."""
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert abs(cp["% of Total Filtered"].item() - 55.6) < 0.5
+
+    def test_avg_available_per_decision_at_eligibility(self, da_minimal):
+        """12 actions / 3 decisions = 4.0."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Avg Available/Decision"].item() == 4.0
+
+    def test_avg_passing_per_decision_at_eligibility(self, da_minimal):
+        """8 actions / 3 decisions = 2.67."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert abs(elig["Avg Passing/Decision"].item() - 2.67) < 0.01
+
+    def test_contact_policies_decisions_without_actions(self, da_minimal):
+        """1 of 3 interactions loses all actions at ContactPolicies → 33.3%."""
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert abs(cp["% Decisions without Actions"].item() - 33.3) < 0.5
+
+    def test_percent_filtered_sums_to_100(self, da_minimal):
+        summary = self._summary(da_minimal)
+        assert abs(summary["% of Total Filtered"].sum() - 100.0) < 0.5
+
+
+class TestMinimalComponentActionImpact:
+    """Verify exact component-action impact breakdown.
+
+    ContactPolicyRule filters:
+      ACTION2 (Sales/Loans): 2 decisions (INT-001, INT-002)
+      ACTION3 (Retention/Proactive): 2 decisions (INT-002, INT-003)
+      ACTION5 (Sales/Cards): 1 decision (INT-001)
+
+    EligibilityRule filters:
+      ACTION1 (Sales/Cards): 1, ACTION3 (Retention/Proactive): 1,
+      ACTION4 (Retention/Reactive): 1, ACTION5 (Sales/Cards): 1
+    """
+
+    def test_contact_policy_action2_filtered_2(self, da_minimal):
+        df = da_minimal.get_component_action_impact(top_n=10)
+        row = df.filter((pl.col("Component Name") == "ContactPolicyRule") & (pl.col("Action") == "ACTION2"))
+        assert row["Filtered Decisions"].item() == 2
+
+    def test_contact_policy_action3_filtered_2(self, da_minimal):
+        df = da_minimal.get_component_action_impact(top_n=10)
+        row = df.filter((pl.col("Component Name") == "ContactPolicyRule") & (pl.col("Action") == "ACTION3"))
+        assert row["Filtered Decisions"].item() == 2
+
+    def test_eligibility_all_actions_filtered_1(self, da_minimal):
+        """Each action filtered by EligibilityRule appears in exactly 1 decision."""
+        df = da_minimal.get_component_action_impact(top_n=10)
+        elig = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert (elig["Filtered Decisions"] == 1).all()
+        assert elig.height == 4
+
+    def test_total_rows(self, da_minimal):
+        """ContactPolicyRule: 3 action rows + EligibilityRule: 4 action rows = 7."""
+        df = da_minimal.get_component_action_impact(top_n=10)
+        assert df.height == 7
+
+
+class TestMinimalComponentDrilldown:
+    """Verify component drilldown with avg scores from surviving actions.
+
+    ContactPolicyRule drilldown for ACTION3 (Retention/Proactive):
+      Filtered in 2 decisions (INT-002, INT-003).
+      avg_Priority derived from surviving ACTION3 rows (weighted avg of
+      priorities where ACTION3 survived = only INT-001... but ACTION3 is
+      filtered at Eligibility in INT-001, so from ContactPolicies rows only).
+    """
+
+    def test_contact_policy_drilldown_has_three_actions(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        assert df.height == 3
+
+    def test_contact_policy_drilldown_sorted_descending(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        decisions = df["Filtered Decisions"].to_list()
+        assert decisions == sorted(decisions, reverse=True)
+
+    def test_eligibility_drilldown_has_four_actions(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="EligibilityRule")
+        assert df.height == 4
+
+    def test_nonexistent_component_empty(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="NONEXISTENT_XYZ")
+        assert df.height == 0
+
+    def test_drilldown_includes_avg_score_columns(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        avg_cols = [c for c in df.columns if c.startswith("avg_")]
+        assert len(avg_cols) > 0
+
+    def test_drilldown_respects_scope_issue(self, da_minimal):
+        """At Issue scope, ContactPolicyRule should show 2 rows (Sales, Retention)."""
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule", scope="Issue")
+        assert df.height == 2
+        assert set(df["Issue"].to_list()) == {"Sales", "Retention"}
