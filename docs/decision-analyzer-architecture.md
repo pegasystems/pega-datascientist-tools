@@ -95,8 +95,7 @@ Key functions:
 │ • Receives raw_data: pl.LazyFrame                            │
 │ • Column renaming & validation (column_schema.py)            │
 │ • Data type casting and cleanup                              │
-│ • Creates unfiltered_raw_decision_data                       │
-│ • Initializes decision_data = unfiltered_raw_decision_data   │
+│ • Creates decision_data                                      │
 └──────────────────────────────────┬──────────────────────────┘
                                     ↓
 ┌──────────────────────────────────────────────────────────────┐
@@ -153,20 +152,19 @@ DecisionAnalyzer(
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `decision_data` | `pl.LazyFrame` | Current working dataset (with global filters applied if any) |
-| `unfiltered_raw_decision_data` | `pl.LazyFrame` | Original data before any global filters, always available for reset |
+| `decision_data` | `pl.LazyFrame` | The working dataset |
 | `extract_type` | str | Either `"explainability_extract"` (v1, arbitration-only) or `"decision_analyzer"` (v2, full pipeline) |
 | `level` | str | Current stage granularity level (`"Stage Group"` or `"Stage"`) |
 | `sample_size` | int | Maximum interactions to sample |
 | `sample` | `pl.LazyFrame` (@cached_property) | Hash-based deterministic sample of unique interactions. All rows within selected interactions kept. |
 | `AvailableNBADStages` | list[str] | All stage values in the data at current `level` (e.g., `["Filtering", "Arbitration", "Output"]`) |
-| `fields_for_data_filtering` | list[str] | Columns available for global filtering (subset of default list) |
+| `fields_for_data_filtering` | list[str] | Columns available for Win/Loss comparison grouping (subset of default list) |
 | `color_mappings` | dict[str, dict[str, str]] (@cached_property) | Pre-computed consistent color assignments for all categorical dimensions |
 | `plot` | Plot | Plot accessor for visualization methods (see plots.py) |
 
 ### Major Cached Properties & Methods
 
-#### Key Cached Properties (automatically invalidated on filter/level changes)
+#### Key Cached Properties (automatically invalidated on level changes)
 ```python
 @cached_property
 def sample() → pl.LazyFrame
@@ -201,9 +199,7 @@ def preaggregated_remaining_view() → pl.LazyFrame
 
 #### Key Query Methods
 ```python
-# Filtering & configuration
-apply_global_data_filters(filters: pl.Expr | list[pl.Expr]) → None
-reset_global_data_filters() → None
+# Configuration
 set_level(level: str) → None
 
 # Data retrieval
@@ -256,24 +252,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 2. Global Data Filters
-**File:** [python/pdstools/app/decision_analyzer/pages/1_Global_Data_Filters.py](python/pdstools/app/decision_analyzer/pages/1_Global_Data_Filters.py)
-
-**Purpose:** Apply cross-cutting filters to all downstream analyses
-**Key Features:**
-- Multi-select widgets for available filter fields (Channel, Issue, Group, Action, Direction, etc.)
-- Filter composition (AND logic)
-- Save/load filters as JSON files
-- Persistent filter state across page navigation
-- All analysis pages respect these global filters
-- Colors remain consistent despite filtering
-
-**Data Need:** Full dataset (via `unfiltered_raw_decision_data`)
-
----
-
-### 3. Overview
-**File:** [python/pdstools/app/decision_analyzer/pages/2_Global_Data_Filters.py](python/pdstools/app/decision_analyzer/pages/3_Overview.py) → Actually at [3_Overview.py](python/pdstools/app/decision_analyzer/pages/3_Overview.py)
+### 2. Overview
+**File:** [python/pdstools/app/decision_analyzer/pages/2_Overview.py](python/pdstools/app/decision_analyzer/pages/2_Overview.py)
 
 **Purpose:** High-level summary metrics and insights
 **Key Features:**
@@ -289,8 +269,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 4. Action Distribution
-**File:** [python/pdstools/app/decision_analyzer/pages/4_Action_Distribution.py](python/pdstools/app/decision_analyzer/pages/4_Action_Distribution.py)
+### 3. Action Distribution
+**File:** [python/pdstools/app/decision_analyzer/pages/3_Action_Distribution.py](python/pdstools/app/decision_analyzer/pages/3_Action_Distribution.py)
 
 **Purpose:** Analyze distribution of actions across dimensions
 **Key Features:**
@@ -305,8 +285,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 5. Action Funnel
-**File:** [python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py](python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py)
+### 4. Action Funnel
+**File:** [python/pdstools/app/decision_analyzer/pages/4_Action_Funnel.py](python/pdstools/app/decision_analyzer/pages/4_Action_Funnel.py)
 
 **Purpose:** Track how offers flow through decision pipeline
 **Key Features:**
@@ -323,8 +303,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 6. Global Sensitivity
-**File:** [python/pdstools/app/decision_analyzer/pages/6_Global_Sensitivity.py](python/pdstools/app/decision_analyzer/pages/6_Global_Sensitivity.py)
+### 5. Global Sensitivity
+**File:** [python/pdstools/app/decision_analyzer/pages/5_Global_Sensitivity.py](python/pdstools/app/decision_analyzer/pages/5_Global_Sensitivity.py)
 
 **Purpose:** What-if analysis — how sensitive is ranking to priority/propensity adjustments
 **Key Features:**
@@ -337,8 +317,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 7. Win Loss Analysis
-**File:** [python/pdstools/app/decision_analyzer/pages/7_Win_Loss_Analysis.py](python/pdstools/app/decision_analyzer/pages/7_Win_Loss_Analysis.py)
+### 6. Win Loss Analysis
+**File:** [python/pdstools/app/decision_analyzer/pages/6_Win_Loss_Analysis.py](python/pdstools/app/decision_analyzer/pages/6_Win_Loss_Analysis.py)
 
 **Purpose:** Analyze characteristics of winning vs. losing offers
 **Key Features:**
@@ -351,8 +331,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 8. Optionality Analysis
-**File:** [python/pdstools/app/decision_analyzer/pages/8_Optionality_Analysis.py](python/pdstools/app/decision_analyzer/pages/8_Optionality_Analysis.py)
+### 7. Optionality Analysis
+**File:** [python/pdstools/app/decision_analyzer/pages/7_Optionality_Analysis.py](python/pdstools/app/decision_analyzer/pages/7_Optionality_Analysis.py)
 
 **Purpose:** How many options do customers get at each stage
 **Key Features:**
@@ -365,8 +345,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 9. Offer Quality Analysis
-**File:** [python/pdstools/app/decision_analyzer/pages/9_Offer_Quality_Analysis.py](python/pdstools/app/decision_analyzer/pages/9_Offer_Quality_Analysis.py)
+### 8. Offer Quality Analysis
+**File:** [python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py](python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py)
 
 **Purpose:** Assess quality and diversity of offers
 **Key Features:**
@@ -379,8 +359,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 10. Thresholding Analysis
-**File:** [python/pdstools/app/decision_analyzer/pages/10_Thresholding_Analysis.py](python/pdstools/app/decision_analyzer/pages/10_Thresholding_Analysis.py)
+### 9. Thresholding Analysis
+**File:** [python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py](python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py)
 
 **Purpose:** How would different propensity/priority thresholds change offer selection
 **Key Features:**
@@ -393,8 +373,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 11. Arbitration Distribution
-**File:** [python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py](python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py)
+### 10. Arbitration Distribution
+**File:** [python/pdstools/app/decision_analyzer/pages/10_Arbitration_Distribution.py](python/pdstools/app/decision_analyzer/pages/10_Arbitration_Distribution.py)
 
 **Purpose:** Deep dive into arbitration stage specifically
 **Key Features:**
@@ -403,8 +383,8 @@ Actions are ranked within each interaction using this priority:
 
 ---
 
-### 12. About
-**File:** [python/pdstools/app/decision_analyzer/pages/12_About.py](python/pdstools/app/decision_analyzer/pages/12_About.py)
+### 11. About
+**File:** [python/pdstools/app/decision_analyzer/pages/11_About.py](python/pdstools/app/decision_analyzer/pages/11_About.py)
 
 **Purpose:** Help and version information
 **Content:** Uses shared `show_about_page()` utility from streamlit_utils.py
@@ -473,7 +453,7 @@ One Interaction = One Customer Decision Point
 | Analysis | Typical Size | Sampling Used | Notes |
 |----------|--------------|-------------------|-------|
 | Distribution overview (histograms, violin plots) | 10k interactions (default) | Yes, via `sample_size` param | Configurable in Home page |
-| Global metrics (counts, averages) | Full dataset | No | Computed from full filtered data |
+| Global metrics (counts, averages) | Full dataset | No | Computed from full dataset |
 | Pre-aggregated views | ~100k aggregated rows | Depends on data | Much smaller than raw data |
 | Component analysis | Full dataset | No | Expensive but necessary for complete view |
 
@@ -500,8 +480,7 @@ One Interaction = One Customer Decision Point
 │                                                                  │
 │ ┌──────────────────────────────────────────────────────────┐   │
 │ │ Raw Data (pl.LazyFrame)                                 │   │
-│ │ ├─ unfiltered_raw_decision_data (always full)           │   │
-│ │ └─ decision_data (with global filters applied)          │   │
+│ │ └─ decision_data                                        │   │
 │ └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │ ┌──────────────────────────────────────────────────────────┐   │
@@ -524,12 +503,12 @@ One Interaction = One Customer Decision Point
 └──────────────────────────────┬──────────────────────────────────┘
                                ↓
           ┌────────────────────────────────────────┐
-          │ Analysis Pages (2-11)                  │
+          │ Analysis Pages (2-10)                  │
           ├────────────────────────────────────────┤
           │ Each page:                             │
           │ 1. Uses ensure_data() guard            │
           │ 2. Calls DecisionAnalyzer methods      │
-          │ 3. Applies global filters              │
+          │ 3. Passes additional_filters per page  │
           │ 4. Caches results via @st.cache_data   │
           │ 5. Displays via st.plotly_chart()      │
           └────────────────────────────────────────┘
@@ -541,10 +520,7 @@ One Interaction = One Customer Decision Point
 
 ### 1. Data Filtering
 ```python
-# In DecisionAnalyzer
-decision_data = apply_filter(unfiltered_raw_decision_data, filters)
-apply_global_data_filters(filters)
-
+# Per-page filtering via additional_filters parameter on query methods
 # Filters are Polars expressions combined with AND logic
 # Example: (Issue == "Retention") & (Channel == "Email")
 ```
@@ -561,7 +537,7 @@ da = st.session_state.decision_data
 
 ### 3. Caching Strategy (4 Layers)
 ```python
-# Layer 1: @cached_property on DecisionAnalyzer (auto-invalidated on filter/level)
+# Layer 1: @cached_property on DecisionAnalyzer (auto-invalidated on level change)
 @cached_property
 def sample(self):
     ...
@@ -598,11 +574,11 @@ all_rows_for_sampled_interactions = (
 
 2. **Sample Size Trade-off:** Larger `sample_size` values improve distribution accuracy but increase computation time. Current default of 10k is tuned for typical use cases.
 
-3. **Stage Level Switching:** When user switches between "Stage Group" and "Stage" levels, all cached properties are invalidated. This can be slow for large datasets.
+3. **Stage Level Switching:** When the user switches between "Stage Group" and "Stage" levels, all cached properties are invalidated. This can be slow for large datasets.
 
 4. **Pre-aggregation Cost:** Computing `preaggregated_filter_view` is expensive and must be done once per data load. Subsequent per-page filtering is fast.
 
-5. **Color Consistency:** Colors are assigned based on full dataset (before filtering) to maintain consistency. This means unused categories still claim colors.
+5. **Color Consistency:** Colors are assigned based on the full dataset to maintain consistency across pages. This means unused categories still claim colors.
 
 6. **Mandatory Actions:** Mandatory actions bypass normal ranking and always rank first. This is useful for business rules but can obscure ranking patterns.
 
