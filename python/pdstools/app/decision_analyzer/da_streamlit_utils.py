@@ -20,10 +20,24 @@ from pdstools.utils.streamlit_utils import (
 )
 
 
+def show_cli_filter_banner():
+    """Show active CLI --filter specs in the sidebar if any are set."""
+    from pdstools.utils.streamlit_utils import get_filter_specs
+
+    filter_specs = get_filter_specs()
+    if not filter_specs:
+        return
+    with st.sidebar:
+        st.caption("**Active CLI filters:**")
+        for spec in filter_specs:
+            st.caption(f"  `{spec}`")
+
+
 def ensure_data():
     """Guard: stop if decision data is not loaded."""
     _apply_sidebar_logo()
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
+    show_cli_filter_banner()
 
 
 def _apply_stage_level():
