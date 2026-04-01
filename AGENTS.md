@@ -174,6 +174,13 @@ python -m build --sdist --wheel --outdir dist/ .
 - Mark slow tests with `@pytest.mark.slow`.
 - Use `pytest.skip` for missing external tools (Quarto, Pandoc).
 - **Minimum coverage: 80 %** for new and overall code (CI-enforced).
+- **Strongly prefer exact-value assertions** over structural checks.
+  Tests that only verify column names, non-empty results, or `height > 0`
+  give false confidence — they pass even when computations are wrong.
+  Use small, minimal datasets (see `data/da/sample_eev2_minimal.csv`)
+  where every expected value can be traced back to the input data.
+  Structural/smoke tests on larger datasets are fine as a complement,
+  but the correctness backbone should be exact-value tests.
 
 ### Notebooks and reports
 - Notebooks for docs should be empty/not pre-run.
@@ -247,6 +254,11 @@ sidebar logo and title (sub-pages re-apply it automatically).
 ### General Streamlit rules
 - Never use `st.experimental_*` APIs — they have been removed. Use
   the stable equivalents (`st.cache_data`, `st.cache_resource`, etc.).
+- Avoid `components.html()` with custom JavaScript. It runs in an
+  iframe, is fragile, hard to debug, and does not integrate with
+  Streamlit's state management (session state, theming, reruns).
+  Prefer native Streamlit widgets and layout primitives. Only resort
+  to custom JS when there is genuinely no Streamlit-native alternative.
 - Use Streamlit magic (bare strings/expressions) for static markdown
   where convenient, but prefer explicit `st.markdown()` / `st.write()`
   for dynamic content.
@@ -298,6 +310,22 @@ Public APIs should feel natural to a Python developer. Translate
 between external naming conventions (Pega property names, JSON key
 schemes) at the serialization boundary, not in field names or
 function signatures. See the naming-conventions section above.
+
+## Feature backlog / TODO files
+
+Major features maintain a living TODO file in `docs/plans/` (e.g.
+`decision-analyzer-TODO.md`, `health-check-TODO.md`,
+`impact-analyzer-TODO.md`). These track open work items, bugs, and
+improvement ideas that are not otherwise captured in GitHub issues.
+
+- **Check before working.** When starting work on a feature area, read
+  its TODO file first for context on known issues and planned work.
+- **Update as you go.** Mark items done (`[x]`) when they land on
+  master. Add new items when you discover bugs, limitations, or ideas
+  during development.
+- **Priority levels:** P1 = high, P2 = medium, P3 = nice-to-have.
+- **Keep them current.** Remove or archive completed sections
+  periodically so the files stay useful.
 
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.

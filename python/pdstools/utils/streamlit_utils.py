@@ -154,6 +154,19 @@ def get_sample_limit() -> str | None:
     return os.environ.get("PDSTOOLS_SAMPLE_LIMIT")
 
 
+def get_filter_specs() -> list[str] | None:
+    """Return the filter specs set via ``--filter`` CLI flags.
+
+    Returns ``None`` when no filters were configured.
+    """
+    raw = os.environ.get("PDSTOOLS_FILTER")
+    if raw is None:
+        return None
+    import json
+
+    return json.loads(raw)
+
+
 def get_temp_dir() -> str | None:
     """Return the temp directory set via ``--temp-dir`` CLI flag.
 

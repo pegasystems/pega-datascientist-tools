@@ -88,6 +88,20 @@ def create_parser():
         ),
     )
     parser.add_argument(
+        "--filter",
+        dest="filter",
+        action="append",
+        default=None,
+        help=(
+            "Pre-ingestion row filter for extracting specific data from large files. "
+            "Specify as 'Column Name=value1,value2,...' using display names "
+            "(e.g. 'Interaction ID', 'Subject ID', 'Channel'). "
+            "Multiple --filter flags are ANDed together. "
+            "Can be combined with --sample (filter is applied first). "
+            "Exposed to the app as the PDSTOOLS_FILTER env var."
+        ),
+    )
+    parser.add_argument(
         "--temp-dir",
         dest="temp_dir",
         default=None,
@@ -139,7 +153,7 @@ def main():
         args.app = ALIASES[args.app]
 
     # Check for likely typos in pdstools arguments
-    known_pdstools_args = ["--version", "--data-path", "--sample", "--temp-dir"]
+    known_pdstools_args = ["--version", "--data-path", "--sample", "--filter", "--temp-dir"]
     typos = check_for_typos(unknown, known_pdstools_args)
 
     if typos:
@@ -252,6 +266,10 @@ def run(args, unknown):
                 "   uv pip install 'polars[rt64]'\n",
                 file=sys.stderr,
             )
+    if args.filter:
+        import json
+
+        os.environ["PDSTOOLS_FILTER"] = json.dumps(args.filter)
     if args.temp_dir:
         os.environ["PDSTOOLS_TEMP_DIR"] = args.temp_dir
 

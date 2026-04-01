@@ -277,15 +277,7 @@ class DecisionAnalyzer:
             self.NBADStages_RemainingView = self.AvailableNBADStages
 
         elif self.extract_type == "decision_analyzer":
-            stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
-            if "Arbitration" not in stage_df[self.level] and self.level == "Stage Group":
-                arb = pl.DataFrame(
-                    {self.level: "Arbitration", "Stage Order": 3800},
-                    schema=stage_df.schema,
-                )
-                stage_df = pl.concat([stage_df, arb])
-            stage_df = stage_df.sort("Stage Order")
-            self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
+            self._recompute_available_stages()
 
     @property
     def available_levels(self) -> list[str]:
@@ -326,18 +318,59 @@ class DecisionAnalyzer:
         self._invalidate_cached_properties()
 
     def _recompute_available_stages(self):
-        """Derive ``AvailableNBADStages`` from the data for the current level."""
+        """Derive ``AvailableNBADStages`` from the data for the current level.
+
+        At "Stage Group" level, synthetically injects "Arbitration" if it
+        has no data rows (it is used as an anchor point by many analyses).
+
+        At "Stage" level, detects Stage Groups that have no individual
+        stages represented in the data and inserts the group name as a
+        placeholder so the full pipeline is visible.
+        """
         if self.extract_type == "explainability_extract":
             self.AvailableNBADStages = ["Arbitration", "Output"]
             return
 
         stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
-        if "Arbitration" not in stage_df[self.level].to_list() and self.level == "Stage Group":
-            arb = pl.DataFrame(
-                {self.level: "Arbitration", "Stage Order": 3800},
-                schema=stage_df.schema,
-            )
-            stage_df = pl.concat([stage_df, arb])
+
+        if self.level == "Stage Group":
+            if "Arbitration" not in stage_df[self.level].to_list():
+                arb = pl.DataFrame(
+                    {self.level: "Arbitration", "Stage Order": 3800},
+                    schema=stage_df.schema,
+                )
+                stage_df = pl.concat([stage_df, arb])
+        elif self.level == "Stage":
+            # Build the Stage Group pipeline and inject placeholders for
+            # groups that have no individual stages in the data.
+            available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+            if "Stage Group" in available:
+                group_df = (
+                    self.unfiltered_raw_decision_data.group_by("Stage Group").agg(pl.col("Stage Order").min()).collect()
+                )
+                if "Arbitration" not in group_df["Stage Group"].to_list():
+                    group_df = pl.concat(
+                        [
+                            group_df,
+                            pl.DataFrame(
+                                {"Stage Group": "Arbitration", "Stage Order": 3800},
+                                schema=group_df.schema,
+                            ),
+                        ]
+                    )
+                group_df = group_df.sort("Stage Order")
+                all_groups = group_df["Stage Group"].to_list()
+                group_orders = dict(zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list()))
+                mapping = self.stage_to_group_mapping
+                covered_groups = set(mapping.values())
+                for grp in all_groups:
+                    if grp not in covered_groups:
+                        placeholder = pl.DataFrame(
+                            {self.level: grp, "Stage Order": group_orders[grp]},
+                            schema=stage_df.schema,
+                        )
+                        stage_df = pl.concat([stage_df, placeholder])
+
         stage_df = stage_df.sort("Stage Order")
         self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
 
@@ -698,6 +731,7 @@ class DecisionAnalyzer:
             "Levers",
             "Subject ID",
             "Record Type",
+            "Component Name",
             "Action",
             "day",
             "is_mandatory",
@@ -937,11 +971,16 @@ class DecisionAnalyzer:
         # Passing: actions exiting each stage (shift by one — use next stage's remaining set)
         # Output is the result, not a filtering stage, so exclude it from funnel views
         stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        # All stages including Output — needed to correctly count actions that survive
+        # past the last filtering stage and reach Output.
+        all_stages = list(self.AvailableNBADStages)
 
         def _passing_at_stage(i: int, stage: str) -> pl.DataFrame:
-            # For stage i, passing = actions remaining at stage i+1.
-            # For the last stage (Output), passing = available (nothing filters there).
-            next_stages = stages[i + 1 :] if i + 1 < len(stages) else [stage]
+            # For stage i, passing = actions remaining at stage i+1 (including Output).
+            all_stage_idx = all_stages.index(stage)
+            next_stages = all_stages[all_stage_idx + 1 :]
+            if not next_stages:
+                next_stages = [stage]
             return (
                 filtered_df.filter(pl.col(self.level).is_in(next_stages))
                 .group_by([scope])
@@ -1043,6 +1082,9 @@ class DecisionAnalyzer:
     ) -> pl.DataFrame:
         """Per-stage summary: Available, Passing, Filtered actions and Decisions.
 
+        The table matches the funnel chart: it starts with a synthetic
+        "Available Actions" row and excludes the Output stage.
+
         Parameters
         ----------
         available_df : pl.LazyFrame
@@ -1055,11 +1097,13 @@ class DecisionAnalyzer:
         Returns
         -------
         pl.DataFrame
-            One row per stage/stage-group in pipeline order with columns:
-            [self.level, Available Actions, Passing Actions, Filtered Actions,
-            % of total filtered, Decisions].
+            One row per stage in pipeline order with raw counts first,
+            then per-decision averages.
         """
         level = self.level
+        stages = [s for s in self.AvailableNBADStages if s != "Output"]
+        first_real_stage = stages[0] if stages else None
+
         available_by_stage = (
             available_df.collect()
             .with_columns(pl.col(level).cast(pl.Utf8))
@@ -1080,7 +1124,7 @@ class DecisionAnalyzer:
             .collect()
             .item()
         )
-        stage_order_no_output = {s: i for i, s in enumerate(self.AvailableNBADStages) if s != "Output"}
+        stage_order_no_output = {s: i for i, s in enumerate(stages)}
         decisions_by_stage = (
             without_actions.with_columns(pl.col(level).cast(pl.Utf8))
             .sort(pl.col(level).map_elements(lambda s: stage_order_no_output.get(s, 999), return_dtype=pl.Int32))
@@ -1089,23 +1133,63 @@ class DecisionAnalyzer:
             .select([level, "Decisions"])
         )
 
-        stage_order = {s: i for i, s in enumerate(self.AvailableNBADStages)}
         summary = (
             available_by_stage.join(passing_by_stage, on=level, how="left")
             .join(decisions_by_stage, on=level, how="left")
             .fill_null(0)
             .with_columns((pl.col("Available Actions") - pl.col("Passing Actions")).alias("Filtered Actions"))
-            .with_columns(
+        )
+
+        # Exclude Output, keep only funnel stages
+        summary = summary.filter(pl.col(level).is_in(stages))
+
+        # Add synthetic "Available Actions" baseline row — but only when the first
+        # real stage isn't already called "Available Actions" (to avoid a duplicate).
+        synthetic_label = "Available Actions"
+        if first_real_stage is not None and first_real_stage != synthetic_label:
+            first_available = summary.filter(pl.col(level) == first_real_stage).select("Available Actions").item()
+            synthetic_row = pl.DataFrame(
+                {
+                    level: [synthetic_label],
+                    "Available Actions": [first_available],
+                    "Passing Actions": [first_available],
+                    "Decisions": [total_interactions],
+                    "Filtered Actions": [0],
+                }
+            )
+            summary = pl.concat([synthetic_row, summary], how="diagonal_relaxed")
+
+        display_stage_order = [synthetic_label] + stages
+        summary = (
+            summary.with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
-                .round(2)
-                .alias("% of total filtered"),
+                .round(1)
+                .alias("% of Total Filtered"),
                 (pl.col("Available Actions") / pl.lit(total_interactions)).round(2).alias("Avg Available/Decision"),
                 (pl.col("Passing Actions") / pl.lit(total_interactions)).round(2).alias("Avg Passing/Decision"),
                 (pl.col("Filtered Actions") / pl.lit(total_interactions)).round(2).alias("Avg Filtered/Decision"),
-                (pl.col("Decisions") / pl.lit(total_interactions) * 100).round(1).alias("% Decisions with Actions"),
+                ((pl.lit(total_interactions) - pl.col("Decisions")) / pl.lit(total_interactions) * 100)
+                .round(1)
+                .alias("% Decisions without Actions"),
             )
-            .drop("Available Actions", "Passing Actions", "Filtered Actions", "Decisions")
-            .sort(pl.col(level).map_elements(lambda s: stage_order.get(s, 999), return_dtype=pl.Int32))
+            .sort(
+                pl.col(level).map_elements(
+                    lambda s: display_stage_order.index(s) if s in display_stage_order else 999,
+                    return_dtype=pl.Int32,
+                )
+            )
+            .select(
+                level,
+                "Available Actions",
+                "Passing Actions",
+                "Filtered Actions",
+                "Decisions",
+                "% of Total Filtered",
+                "Avg Available/Decision",
+                "Avg Passing/Decision",
+                "Avg Filtered/Decision",
+                "% Decisions without Actions",
+            )
         )
         return summary
 
@@ -1578,10 +1662,6 @@ class DecisionAnalyzer:
             dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
         return dist
 
-    # Backward-compat aliases for the now-private methods.
-    winning_from = _winning_from
-    losing_to = _losing_to
-
     def get_optionality_data(self, df=None, by_day: bool = False) -> pl.LazyFrame:
         """Average number of actions per stage, optionally broken down by day.
 
@@ -1645,10 +1725,6 @@ class DecisionAnalyzer:
         ).sort("nOffers", descending=True)
 
         return optionality_data
-
-    def get_optionality_data_with_trend(self, df=None) -> pl.LazyFrame:
-        """Backward-compatible alias for ``get_optionality_data(df, by_day=True)``."""
-        return self.get_optionality_data(df=df, by_day=True)
 
     # @cached_property
     def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
@@ -2202,11 +2278,6 @@ class DecisionAnalyzer:
 
         return {k: kpis[k].item() for k in kpis.columns}
 
-    @property
-    def get_overview_stats(self) -> dict[str, object]:
-        """Backward-compatible alias for :attr:`overview_stats`."""
-        return self.overview_stats
-
     def get_sensitivity(self, win_rank=1, group_filter=None, additional_filters=None):
         """Global or local sensitivity of the prioritization factors.
 
@@ -2747,28 +2818,3 @@ class DecisionAnalyzer:
 
         final_lever = (low + high) / 2
         return final_lever
-
-    # Backward-compat aliases for camelCase → snake_case rename.
-    applyGlobalDataFilters = apply_global_data_filters
-    resetGlobalDataFilters = reset_global_data_filters
-
-    @property
-    def getPreaggregatedFilterView(self):
-        return self.preaggregated_filter_view
-
-    @property
-    def getPreaggregatedRemainingView(self):
-        return self.preaggregated_remaining_view
-
-    getAvailableFieldsForFiltering = get_available_fields_for_filtering
-    getPossibleScopeValues = get_possible_scope_values
-    getPossibleStageValues = get_possible_stage_values
-    getDistributionData = get_distribution_data
-    getFunnelData = get_funnel_data
-    getFilterComponentData = get_filter_component_data
-    getComponentActionImpact = get_component_action_impact
-    getComponentDrilldown = get_component_drilldown
-    reRank = re_rank
-    getActionVariationData = get_action_variation_data
-    getABTestResults = get_ab_test_results
-    getThresholdingData = get_thresholding_data

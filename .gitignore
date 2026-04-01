@@ -17,6 +17,7 @@ r/tests/testthat/*.pdf
 build/
 *.egg-info/
 .vscode
+.github/copilot/mcp.json
 **/*.Rcheck
 **/*.Rapp*
 .DS_Store

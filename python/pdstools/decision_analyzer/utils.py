@@ -974,6 +974,121 @@ def parse_sample_flag(value: str) -> dict[str, int | float]:
     return parse_sample_spec(value)
 
 
+def resolve_filter_column(
+    name: str,
+    available_columns: set[str],
+) -> str:
+    """Resolve a user-friendly column name to the actual column in the data.
+
+    Checks display names, aliases, and raw keys from both the
+    ``DecisionAnalyzer`` and ``ExplainabilityExtract`` schemas.
+    Resolution is case-insensitive.
+
+    Parameters
+    ----------
+    name : str
+        User-provided column name (display name, alias, or raw key).
+    available_columns : set[str]
+        Column names actually present in the raw data.
+
+    Returns
+    -------
+    str
+        The actual column name present in *available_columns*.
+
+    Raises
+    ------
+    ValueError
+        If *name* cannot be resolved to any column in *available_columns*.
+    """
+    from .column_schema import DecisionAnalyzer, ExplainabilityExtract
+
+    name_lower = name.lower()
+
+    # Check if name is directly present (raw key or already-renamed display name)
+    for col in available_columns:
+        if col.lower() == name_lower:
+            return col
+
+    # Build lookup: display_name/alias -> list of raw keys
+    for schema in (DecisionAnalyzer, ExplainabilityExtract):
+        for raw_key, config in schema.items():
+            display = config["display_name"]
+            aliases = config.get("aliases", [])
+            all_names = [display] + aliases
+
+            if any(n.lower() == name_lower for n in all_names):
+                # Found a schema match -- check if raw_key is in the data
+                if raw_key in available_columns:
+                    return raw_key
+                # Or if the display name itself is in the data (already renamed)
+                if display in available_columns:
+                    return display
+
+    # Build helpful error message
+    filterable = sorted(
+        {
+            config["display_name"]
+            for schema in (DecisionAnalyzer, ExplainabilityExtract)
+            for raw_key, config in schema.items()
+            if raw_key in available_columns or config["display_name"] in available_columns
+        }
+    )
+    raise ValueError(f"Unknown filter column {name!r}. Available filterable columns: {', '.join(filterable)}")
+
+
+def parse_filter_specs(
+    filter_specs: list[str],
+    available_columns: set[str],
+) -> pl.Expr:
+    """Parse ``--filter`` specs into a combined Polars filter expression.
+
+    Each spec has the form ``"Column Name=value1,value2,..."``. Column names
+    are resolved via :func:`resolve_filter_column` (case-insensitive). Values
+    are exact-match and case-sensitive. Multiple specs are ANDed together.
+
+    Parameters
+    ----------
+    filter_specs : list[str]
+        Filter specifications from the CLI.
+    available_columns : set[str]
+        Column names present in the raw data.
+
+    Returns
+    -------
+    pl.Expr
+        Combined filter expression.
+
+    Raises
+    ------
+    ValueError
+        If a spec is malformed or references an unknown column.
+    """
+    if not filter_specs:
+        raise ValueError("filter_specs must not be empty")
+
+    expressions: list[pl.Expr] = []
+
+    for spec in filter_specs:
+        if "=" not in spec:
+            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
+        col_name, values_str = spec.split("=", 1)
+        col_name = col_name.strip()
+        values_str = values_str.strip()
+
+        if not values_str:
+            raise ValueError(f"Expected format: 'Column Name=value1,value2', got {spec!r}")
+
+        values = [v.strip() for v in values_str.split(",")]
+        resolved = resolve_filter_column(col_name, available_columns)
+        expressions.append(pl.col(resolved).is_in(values))
+
+    combined = expressions[0]
+    for expr in expressions[1:]:
+        combined = combined & expr
+    return combined
+
+
 def format_count_for_filename(count: int) -> str:
     """Format an interaction count for use in filenames.
 

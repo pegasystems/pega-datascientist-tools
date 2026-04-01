@@ -460,7 +460,7 @@ class TestOptionalityTrend:
     def _build_trend_df(self, da_v2):
         level = da_v2.level
         return (
-            da_v2.get_optionality_data_with_trend(da_v2.sample)
+            da_v2.get_optionality_data(da_v2.sample, by_day=True)
             .group_by(["day", level])
             .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
             .sort("day")

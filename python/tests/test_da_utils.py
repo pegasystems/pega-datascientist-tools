@@ -27,10 +27,12 @@ from pdstools.decision_analyzer.utils import (  # noqa: E402
     get_first_level_stats,
     get_scope_config,
     gini_coefficient,
+    parse_filter_specs,
     parse_sample_flag,
     prepare_and_save,
     rename_and_cast_types,
     resolve_aliases,
+    resolve_filter_column,
     sample_interactions,
 )
 
@@ -1091,3 +1093,183 @@ class TestDetermineOutputDirectory:
 
         result = _determine_output_directory("/nonexistent/file.parquet", None)
         assert result == Path(".")
+
+
+# ---------------------------------------------------------------------------
+# resolve_filter_column
+# ---------------------------------------------------------------------------
+
+
+class TestResolveFilterColumn:
+    """Tests for resolve_filter_column()."""
+
+    def test_resolve_display_name_v2(self):
+        """Display name 'Interaction ID' resolves to raw key 'pxInteractionID'."""
+        result = resolve_filter_column("Interaction ID", available_columns={"pxInteractionID", "pyIssue"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_display_name_v1(self):
+        """Display name 'Subject ID' resolves to v1 raw key 'pySubjectID'."""
+        result = resolve_filter_column("Subject ID", available_columns={"pySubjectID", "pxInteractionID"})
+        assert result == "pySubjectID"
+
+    def test_resolve_alias(self):
+        """Alias 'InteractionID' resolves to 'pxInteractionID'."""
+        result = resolve_filter_column("InteractionID", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_raw_key_fallback(self):
+        """Raw column name works as fallback."""
+        result = resolve_filter_column("pxInteractionID", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_case_insensitive(self):
+        """Column name resolution is case-insensitive."""
+        result = resolve_filter_column("interaction id", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_channel_v2(self):
+        """'Channel' resolves to v2 raw key when present."""
+        result = resolve_filter_column(
+            "Channel",
+            available_columns={"Primary_ContainerPayload_Channel", "pyIssue"},
+        )
+        assert result == "Primary_ContainerPayload_Channel"
+
+    def test_resolve_channel_already_renamed(self):
+        """'Channel' resolves to itself when data already uses display names."""
+        result = resolve_filter_column("Channel", available_columns={"Channel", "Issue"})
+        assert result == "Channel"
+
+    def test_resolve_unknown_column_raises(self):
+        """Unknown column name raises ValueError with available columns listed."""
+        with pytest.raises(ValueError, match="Unknown filter column 'Bogus'"):
+            resolve_filter_column("Bogus", available_columns={"pxInteractionID"})
+
+
+# ---------------------------------------------------------------------------
+# parse_filter_specs
+# ---------------------------------------------------------------------------
+
+
+class TestParseFilterSpecs:
+    """Tests for parse_filter_specs()."""
+
+    def test_single_filter_single_value(self):
+        """Single filter with one value produces is_in expression."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B", "C"], "x": [1, 2, 3]})
+        expr = parse_filter_specs(
+            ["Interaction ID=A"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["A"]
+
+    def test_single_filter_multiple_values(self):
+        """Single filter with comma-separated values keeps matching rows."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B", "C"], "x": [1, 2, 3]})
+        expr = parse_filter_specs(
+            ["Interaction ID=A,C"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["A", "C"]
+
+    def test_multiple_filters_and(self):
+        """Multiple filters are ANDed together."""
+        df = pl.LazyFrame(
+            {
+                "pxInteractionID": ["A", "B", "C"],
+                "pyIssue": ["Sales", "Service", "Sales"],
+            }
+        )
+        expr = parse_filter_specs(
+            ["Interaction ID=A,B", "Issue=Sales"],
+            available_columns={"pxInteractionID", "pyIssue"},
+        )
+        result = df.filter(expr).collect()
+        # A has Sales, B has Service -> only A matches both filters
+        assert result["pxInteractionID"].to_list() == ["A"]
+        assert result["pyIssue"].to_list() == ["Sales"]
+
+    def test_no_matching_rows(self):
+        """Filter that matches nothing produces empty result."""
+        df = pl.LazyFrame({"pxInteractionID": ["A", "B"], "x": [1, 2]})
+        expr = parse_filter_specs(
+            ["Interaction ID=Z"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result.height == 0
+
+    def test_malformed_spec_no_equals(self):
+        """Spec without '=' raises ValueError."""
+        with pytest.raises(ValueError, match="Expected format"):
+            parse_filter_specs(
+                ["Interaction ID"],
+                available_columns={"pxInteractionID"},
+            )
+
+    def test_malformed_spec_empty_values(self):
+        """Spec with empty values raises ValueError."""
+        with pytest.raises(ValueError, match="Expected format"):
+            parse_filter_specs(
+                ["Interaction ID="],
+                available_columns={"pxInteractionID"},
+            )
+
+    def test_values_are_case_sensitive(self):
+        """Filter values are case-sensitive."""
+        df = pl.LazyFrame({"pxInteractionID": ["ABC", "abc"], "x": [1, 2]})
+        expr = parse_filter_specs(
+            ["Interaction ID=ABC"],
+            available_columns={"pxInteractionID", "x"},
+        )
+        result = df.filter(expr).collect()
+        assert result["pxInteractionID"].to_list() == ["ABC"]
+
+
+# ---------------------------------------------------------------------------
+# CLI --filter argument
+# ---------------------------------------------------------------------------
+
+
+class TestFilterCLIArgs:
+    """Tests for --filter CLI argument parsing."""
+
+    def test_filter_arg_parsed(self):
+        """--filter args are collected into a list."""
+        from pdstools.cli import create_parser
+
+        parser = create_parser()
+        args, _ = parser.parse_known_args(["da", "--filter", "Interaction ID=ABC", "--filter", "Channel=Web"])
+        assert args.filter == ["Interaction ID=ABC", "Channel=Web"]
+
+    def test_filter_default_is_none(self):
+        """No --filter args gives None."""
+        from pdstools.cli import create_parser
+
+        parser = create_parser()
+        args, _ = parser.parse_known_args(["da"])
+        assert args.filter is None
+
+
+# ---------------------------------------------------------------------------
+# get_filter_specs (streamlit_utils env var reader)
+# ---------------------------------------------------------------------------
+
+
+class TestGetFilterSpecs:
+    """Tests for get_filter_specs() env var reader."""
+
+    def test_returns_none_when_not_set(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_FILTER", raising=False)
+        from pdstools.utils.streamlit_utils import get_filter_specs
+
+        assert get_filter_specs() is None
+
+    def test_returns_parsed_list(self, monkeypatch):
+        monkeypatch.setenv("PDSTOOLS_FILTER", '["Interaction ID=ABC", "Channel=Web"]')
+        from pdstools.utils.streamlit_utils import get_filter_specs
+
+        assert get_filter_specs() == ["Interaction ID=ABC", "Channel=Web"]
