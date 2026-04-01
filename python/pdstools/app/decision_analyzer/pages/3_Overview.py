@@ -29,7 +29,10 @@ if sample_metadata:
     sample_pct = sample_metadata["sample_percentage"]
     source_file = sample_metadata.get("source_file", "unknown")
 
-    st.info(f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. Original source: `{source_file}`")
+    if sample_pct < 100.0:
+        st.info(
+            f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. Original source: `{source_file}`"
+        )
 
 # Find the best stage for overview analyses
 da = st.session_state.decision_data

@@ -256,9 +256,14 @@ def _show_data_summary(da):
         sample_pct = sample_metadata["sample_percentage"]
         source_file = sample_metadata.get("source_file", "unknown")
 
-        st.info(
-            f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. Original source: `{source_file}`"
-        )
+        # Skip the "100% of original" message when filter was applied —
+        # the filter info banner already explains what happened, and
+        # "100%" is misleading (it's 100% of the filtered data, not the original).
+        if sample_pct < 100.0:
+            st.info(
+                f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. "
+                f"Original source: `{source_file}`"
+            )
 
 
 if has_new_data and raw_data is not None:
