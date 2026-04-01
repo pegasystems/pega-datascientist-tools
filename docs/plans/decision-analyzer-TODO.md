@@ -53,6 +53,8 @@ removed or marked done as commits land on master.
 
 ### P2
 
+- [ ] **Add Issue filter to contextual filters section** — Extend `contextual_filters()` with an `issue_selector()` multiselect (empty = no filter). Store in `page_issue_filter`/`page_issue_expr` session state keys (same pattern as channel). Extend `DecisionAnalyzer.filtered_sample` to collect all contextual filter expressions. Update empty-data checks on all pages.
+- [ ] **Add cascading Group filter to contextual filters section** — After Issue filter is in place, add `group_selector()` that dynamically constrains its options based on the current Issue selection (Issue → Group hierarchy). Same session state pattern (`page_group_filter`/`page_group_expr`). Requires `filtered_sample` to apply all three filters (channel, issue, group).
 - [ ] **Improve file upload robustness** — Filter META-INF/MANIFEST.mf files, clear session state on new upload, improve error messages. Apply patterns from Impact Analyzer.
 - [ ] **Dynamic stage UI** — Hardcoded stage names remain in Optionality page (`stage="Output"`) and plots.py (`"Final"` filter). Replace with data-driven `DecisionAnalyzer.stages`.
 

@@ -705,6 +705,18 @@ def _update_channel_filter():
             st.session_state.page_channel_expr = pl.col("Channel") == selected
 
 
+def contextual_filters():
+    """Render the universal contextual filter section in the sidebar.
+
+    Adds a visual divider and section header, then renders all contextual
+    filters (currently Channel/Direction). Every analysis page should call
+    this as the last sidebar item to maintain a consistent layout.
+    """
+    st.divider()
+    st.caption("**Filters**")
+    channel_direction_selector()
+
+
 def channel_direction_selector():
     """Render channel/direction selector in sidebar.
 

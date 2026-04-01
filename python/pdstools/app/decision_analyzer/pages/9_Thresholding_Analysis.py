@@ -3,7 +3,7 @@ import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import channel_direction_selector, ensure_data
+from da_streamlit_utils import contextual_filters, ensure_data
 from pdstools.decision_analyzer.utils import apply_filter
 
 "# Thresholding Analysis"
@@ -91,7 +91,7 @@ with st.sidebar:
         value=0.0,
         format="%.4f",
     )
-    channel_direction_selector()
+    contextual_filters()
 
 # ---------------------------------------------------------------------------
 # Apply both thresholds
