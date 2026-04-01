@@ -26,8 +26,8 @@ pdstools da --data-path big_export.zip --filter "Interaction ID=ABC" --filter "C
 - **Filter values:** Case-sensitive exact match.
 - **Env var:** `PDSTOOLS_FILTER` -- JSON-encoded list of specs,
   e.g. `'["Interaction ID=ABC,DEF", "Channel=Web"]'`.
-- **Mutual exclusivity:** CLI raises an error if both `--sample` and `--filter`
-  are provided.
+- **Combinable with --sample:** Filter is applied first, then sampling runs on the
+  filtered result.
 
 ### Filter Parsing & Resolution
 
@@ -58,8 +58,8 @@ existing syntax.
 
 **CLI layer (`cli.py`):**
 - `--filter` argument with `action="append"`.
-- Validate mutual exclusivity with `--sample`.
 - Serialize to `PDSTOOLS_FILTER` env var as JSON list.
+- Can be combined with `--sample` (filter applied first).
 
 **App layer (`Home.py`):**
 - Read `PDSTOOLS_FILTER` env var (only for `--data-path`, not file uploads).

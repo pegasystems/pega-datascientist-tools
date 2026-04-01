@@ -97,7 +97,7 @@ def create_parser():
             "Specify as 'Column Name=value1,value2,...' using display names "
             "(e.g. 'Interaction ID', 'Subject ID', 'Channel'). "
             "Multiple --filter flags are ANDed together. "
-            "Mutually exclusive with --sample. "
+            "Can be combined with --sample (filter is applied first). "
             "Exposed to the app as the PDSTOOLS_FILTER env var."
         ),
     )
@@ -267,9 +267,6 @@ def run(args, unknown):
                 file=sys.stderr,
             )
     if args.filter:
-        if args.sample:
-            print("error: --filter and --sample are mutually exclusive", file=sys.stderr)
-            sys.exit(2)
         import json
 
         os.environ["PDSTOOLS_FILTER"] = json.dumps(args.filter)
