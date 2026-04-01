@@ -10,6 +10,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
 from pdstools.decision_analyzer.utils import (
+    parse_filter_specs,
     parse_sample_flag,
     prepare_and_save,
     should_cache_source,
@@ -17,6 +18,7 @@ from pdstools.decision_analyzer.utils import (
 )
 from pdstools.utils.streamlit_utils import (
     get_data_path,
+    get_filter_specs,
     get_sample_limit,
     get_temp_dir,
     show_sidebar_branding,
@@ -130,7 +132,31 @@ def _is_capacity_error(exc: BaseException) -> bool:
 # Pre-ingestion data preparation (sampling or caching)
 # Only apply --sample flag when loading from --data-path (not for file uploads)
 sample_limit_raw = get_sample_limit() if data_source_path else None
+filter_specs_raw = get_filter_specs() if data_source_path else None
 if raw_data is not None:
+    if filter_specs_raw:
+        # Filter mode — apply before sampling
+        try:
+            filter_expr = parse_filter_specs(
+                filter_specs_raw,
+                available_columns=set(raw_data.collect_schema().names()),
+            )
+        except ValueError as e:
+            st.error(f"Invalid --filter value: {e}")
+            st.stop()
+
+        filter_desc = " AND ".join(filter_specs_raw)
+        with st.spinner(f"Filtering data: {filter_desc}"):
+            raw_data = raw_data.filter(filter_expr)
+
+            # Check for empty result
+            row_count = raw_data.select(pl.len()).collect().item()
+            if row_count == 0:
+                st.warning(f"Filter matched 0 rows: {filter_desc}. Check your filter values.")
+                st.stop()
+
+        st.info(f"🔍 Pre-ingestion filter applied: **{filter_desc}**. **{row_count:,}** rows matched.")
+
     if sample_limit_raw:
         # Sampling mode
         try:
@@ -187,7 +213,7 @@ if raw_data is not None:
         else:
             st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
 
-    elif should_cache_source(data_source_path):
+    elif filter_specs_raw or should_cache_source(data_source_path):
         # Caching mode - save 100% of data from non-parquet sources
         with st.spinner("Caching data for faster reloading..."):
             raw_data, sample_path = prepare_and_save(
