@@ -31,6 +31,7 @@ from pdstools.decision_analyzer.utils import (  # noqa: E402
     prepare_and_save,
     rename_and_cast_types,
     resolve_aliases,
+    resolve_filter_column,
     sample_interactions,
 )
 
@@ -1091,3 +1092,55 @@ class TestDetermineOutputDirectory:
 
         result = _determine_output_directory("/nonexistent/file.parquet", None)
         assert result == Path(".")
+
+
+# ---------------------------------------------------------------------------
+# resolve_filter_column
+# ---------------------------------------------------------------------------
+
+
+class TestResolveFilterColumn:
+    """Tests for resolve_filter_column()."""
+
+    def test_resolve_display_name_v2(self):
+        """Display name 'Interaction ID' resolves to raw key 'pxInteractionID'."""
+        result = resolve_filter_column("Interaction ID", available_columns={"pxInteractionID", "pyIssue"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_display_name_v1(self):
+        """Display name 'Subject ID' resolves to v1 raw key 'pySubjectID'."""
+        result = resolve_filter_column("Subject ID", available_columns={"pySubjectID", "pxInteractionID"})
+        assert result == "pySubjectID"
+
+    def test_resolve_alias(self):
+        """Alias 'InteractionID' resolves to 'pxInteractionID'."""
+        result = resolve_filter_column("InteractionID", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_raw_key_fallback(self):
+        """Raw column name works as fallback."""
+        result = resolve_filter_column("pxInteractionID", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_case_insensitive(self):
+        """Column name resolution is case-insensitive."""
+        result = resolve_filter_column("interaction id", available_columns={"pxInteractionID"})
+        assert result == "pxInteractionID"
+
+    def test_resolve_channel_v2(self):
+        """'Channel' resolves to v2 raw key when present."""
+        result = resolve_filter_column(
+            "Channel",
+            available_columns={"Primary_ContainerPayload_Channel", "pyIssue"},
+        )
+        assert result == "Primary_ContainerPayload_Channel"
+
+    def test_resolve_channel_already_renamed(self):
+        """'Channel' resolves to itself when data already uses display names."""
+        result = resolve_filter_column("Channel", available_columns={"Channel", "Issue"})
+        assert result == "Channel"
+
+    def test_resolve_unknown_column_raises(self):
+        """Unknown column name raises ValueError with available columns listed."""
+        with pytest.raises(ValueError, match="Unknown filter column 'Bogus'"):
+            resolve_filter_column("Bogus", available_columns={"pxInteractionID"})

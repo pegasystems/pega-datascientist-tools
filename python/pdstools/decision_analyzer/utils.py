@@ -974,6 +974,69 @@ def parse_sample_flag(value: str) -> dict[str, int | float]:
     return parse_sample_spec(value)
 
 
+def resolve_filter_column(
+    name: str,
+    available_columns: set[str],
+) -> str:
+    """Resolve a user-friendly column name to the actual column in the data.
+
+    Checks display names, aliases, and raw keys from both the
+    ``DecisionAnalyzer`` and ``ExplainabilityExtract`` schemas.
+    Resolution is case-insensitive.
+
+    Parameters
+    ----------
+    name : str
+        User-provided column name (display name, alias, or raw key).
+    available_columns : set[str]
+        Column names actually present in the raw data.
+
+    Returns
+    -------
+    str
+        The actual column name present in *available_columns*.
+
+    Raises
+    ------
+    ValueError
+        If *name* cannot be resolved to any column in *available_columns*.
+    """
+    from .column_schema import DecisionAnalyzer, ExplainabilityExtract
+
+    name_lower = name.lower()
+
+    # Check if name is directly present (raw key or already-renamed display name)
+    for col in available_columns:
+        if col.lower() == name_lower:
+            return col
+
+    # Build lookup: display_name/alias -> list of raw keys
+    for schema in (DecisionAnalyzer, ExplainabilityExtract):
+        for raw_key, config in schema.items():
+            display = config["display_name"]
+            aliases = config.get("aliases", [])
+            all_names = [display] + aliases
+
+            if any(n.lower() == name_lower for n in all_names):
+                # Found a schema match -- check if raw_key is in the data
+                if raw_key in available_columns:
+                    return raw_key
+                # Or if the display name itself is in the data (already renamed)
+                if display in available_columns:
+                    return display
+
+    # Build helpful error message
+    filterable = sorted(
+        {
+            config["display_name"]
+            for schema in (DecisionAnalyzer, ExplainabilityExtract)
+            for raw_key, config in schema.items()
+            if raw_key in available_columns or config["display_name"] in available_columns
+        }
+    )
+    raise ValueError(f"Unknown filter column {name!r}. Available filterable columns: {', '.join(filterable)}")
+
+
 def format_count_for_filename(count: int) -> str:
     """Format an interaction count for use in filenames.
 
