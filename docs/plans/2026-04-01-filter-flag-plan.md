@@ -2,13 +2,17 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add a `--filter` CLI flag that extracts specific rows from large files by exact-match on user-friendly column names, mutually exclusive with `--sample`.
+**Goal:** Add a `--filter` CLI flag that extracts specific rows from large files by exact-match on user-friendly column names. Can be combined with `--sample` (filter applied first, then sampling).
 
 **Architecture:** New `parse_filter_specs()` + `resolve_filter_column()` functions in `decision_analyzer/utils.py` handle parsing and column name resolution. CLI adds `--filter` arg, propagates via `PDSTOOLS_FILTER` env var. Home.py reads the env var, applies the filter as a lazy Polars expression, then caches via `prepare_and_save()`.
 
 **Tech Stack:** Python, Polars (LazyFrame expressions), argparse, Streamlit
 
 **Design doc:** `docs/plans/2026-04-01-filter-flag-design.md`
+
+**Design change (during implementation):** `--filter` and `--sample` are NOT
+mutually exclusive. Filter is applied first, then sampling on the filtered result.
+Tasks 3 and 5 below were updated accordingly during implementation.
 
 ---
 
