@@ -147,15 +147,16 @@ if raw_data is not None:
 
         filter_desc = " AND ".join(filter_specs_raw)
         with st.spinner(f"Filtering data: {filter_desc}"):
-            raw_data = raw_data.filter(filter_expr)
-
-            # Check for empty result
-            row_count = raw_data.select(pl.len()).collect().item()
-            if row_count == 0:
+            # Collect filtered data so we can check for empty results and
+            # avoid re-executing the filter scan during subsequent sampling.
+            filtered_df = raw_data.filter(filter_expr).collect(streaming=True)
+            filter_row_count = len(filtered_df)
+            if filter_row_count == 0:
                 st.warning(f"Filter matched 0 rows: {filter_desc}. Check your filter values.")
                 st.stop()
+            raw_data = filtered_df.lazy()
 
-        st.info(f"🔍 Pre-ingestion filter applied: **{filter_desc}**. **{row_count:,}** rows matched.")
+        st.info(f"🔍 Pre-ingestion filter applied: **{filter_desc}**. **{filter_row_count:,}** rows matched.")
 
     if sample_limit_raw:
         # Sampling mode
