@@ -174,6 +174,13 @@ python -m build --sdist --wheel --outdir dist/ .
 - Mark slow tests with `@pytest.mark.slow`.
 - Use `pytest.skip` for missing external tools (Quarto, Pandoc).
 - **Minimum coverage: 80 %** for new and overall code (CI-enforced).
+- **Strongly prefer exact-value assertions** over structural checks.
+  Tests that only verify column names, non-empty results, or `height > 0`
+  give false confidence — they pass even when computations are wrong.
+  Use small, hand-crafted datasets (see `data/da/sample_eev2_minimal.csv`)
+  where every expected value can be traced back to the input data.
+  Structural/smoke tests on larger datasets are fine as a complement,
+  but the correctness backbone should be exact-value tests.
 
 ### Notebooks and reports
 - Notebooks for docs should be empty/not pre-run.
