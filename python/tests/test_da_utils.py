@@ -1227,3 +1227,28 @@ class TestParseFilterSpecs:
         )
         result = df.filter(expr).collect()
         assert result["pxInteractionID"].to_list() == ["ABC"]
+
+
+# ---------------------------------------------------------------------------
+# CLI --filter argument
+# ---------------------------------------------------------------------------
+
+
+class TestFilterCLIArgs:
+    """Tests for --filter CLI argument parsing."""
+
+    def test_filter_arg_parsed(self):
+        """--filter args are collected into a list."""
+        from pdstools.cli import create_parser
+
+        parser = create_parser()
+        args, _ = parser.parse_known_args(["da", "--filter", "Interaction ID=ABC", "--filter", "Channel=Web"])
+        assert args.filter == ["Interaction ID=ABC", "Channel=Web"]
+
+    def test_filter_default_is_none(self):
+        """No --filter args gives None."""
+        from pdstools.cli import create_parser
+
+        parser = create_parser()
+        args, _ = parser.parse_known_args(["da"])
+        assert args.filter is None
