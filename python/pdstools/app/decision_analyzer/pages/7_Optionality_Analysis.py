@@ -2,7 +2,7 @@
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
-    channel_direction_selector,
+    contextual_filters,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
@@ -22,7 +22,7 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
     stage_level_selector()
-    channel_direction_selector()
+    contextual_filters()
 
 # Apply channel filter to sample data
 filtered_data = st.session_state.decision_data.filtered_sample

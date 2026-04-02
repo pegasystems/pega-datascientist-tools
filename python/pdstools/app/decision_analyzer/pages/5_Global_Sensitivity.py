@@ -1,6 +1,6 @@
 import polars as pl
 import streamlit as st
-from da_streamlit_utils import channel_direction_selector, ensure_data, get_current_index
+from da_streamlit_utils import contextual_filters, ensure_data, get_current_index
 
 from pdstools.decision_analyzer.utils import apply_filter
 
@@ -31,7 +31,7 @@ with st.session_state["sidebar"]:
         key="win_rank",
         help="A win means at least one offer ranks N or better.",
     )
-    channel_direction_selector()
+    contextual_filters()
 
 # Apply channel filter to sample data
 filtered_data = st.session_state.decision_data.filtered_sample

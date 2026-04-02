@@ -249,9 +249,8 @@ class DecisionAnalyzer:
             raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
         else:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
-        self.unfiltered_raw_decision_data = self.cleanup_raw_data(raw_data)
-        self.reset_global_data_filters()
-        available_columns = set(self.unfiltered_raw_decision_data.collect_schema().names())
+        self.decision_data = self.cleanup_raw_data(raw_data)
+        available_columns = set(self.decision_data.collect_schema().names())
         self.fields_for_data_filtering = [f for f in self._default_filter_fields if f in available_columns]
         self.preaggregation_columns = {
             "Issue",
@@ -289,7 +288,7 @@ class DecisionAnalyzer:
         """
         if self.extract_type == "explainability_extract":
             return ["Stage Group"]
-        available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+        available = set(self.decision_data.collect_schema().names())
         levels = []
         if "Stage Group" in available:
             levels.append("Stage Group")
@@ -331,7 +330,7 @@ class DecisionAnalyzer:
             self.AvailableNBADStages = ["Arbitration", "Output"]
             return
 
-        stage_df = self.unfiltered_raw_decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
+        stage_df = self.decision_data.group_by(self.level).agg(pl.min("Stage Order")).collect()
 
         if self.level == "Stage Group":
             if "Arbitration" not in stage_df[self.level].to_list():
@@ -343,11 +342,9 @@ class DecisionAnalyzer:
         elif self.level == "Stage":
             # Build the Stage Group pipeline and inject placeholders for
             # groups that have no individual stages in the data.
-            available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+            available = set(self.decision_data.collect_schema().names())
             if "Stage Group" in available:
-                group_df = (
-                    self.unfiltered_raw_decision_data.group_by("Stage Group").agg(pl.col("Stage Order").min()).collect()
-                )
+                group_df = self.decision_data.group_by("Stage Group").agg(pl.col("Stage Order").min()).collect()
                 if "Arbitration" not in group_df["Stage Group"].to_list():
                     group_df = pl.concat(
                         [
@@ -607,28 +604,6 @@ class DecisionAnalyzer:
         self._thresholding_cache.clear()
         self._sensitivity_cache.clear()
 
-    def apply_global_data_filters(self, filters: pl.Expr | list[pl.Expr] | None = None) -> None:
-        """Apply global filters to the decision data.
-
-        Replaces ``decision_data`` with a filtered subset of
-        ``unfiltered_raw_decision_data`` and invalidates all cached
-        properties so downstream queries reflect the new filter.
-
-        Parameters
-        ----------
-        filters : pl.Expr or list of pl.Expr, optional
-            Filter expression(s) applied to the raw data.
-            If ``None``, no change is made.
-        """
-        self._invalidate_cached_properties()
-        if filters is not None:
-            self.decision_data = apply_filter(self.unfiltered_raw_decision_data, filters)
-
-    def reset_global_data_filters(self) -> None:
-        """Remove all global filters, restoring the full dataset."""
-        self.decision_data = self.unfiltered_raw_decision_data
-        self._invalidate_cached_properties()
-
     @cached_property
     def preaggregated_filter_view(self):
         """Pre-aggregates the full dataset over customers and interactions providing
@@ -755,13 +730,15 @@ class DecisionAnalyzer:
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
         # but doesn't require collecting all unique IDs first, 15x faster than collecting 50k interactions first.
+        # Compare hash directly against a scaled UInt64 threshold to avoid
+        # modular-arithmetic collisions (hash % small_N can collapse to few buckets).
         try:
+            base = self.decision_data.select(columns_to_keep)
+            if sample_rate < 1.0:
+                hash_threshold = int((2**64 - 1) * sample_rate)
+                base = base.filter(pl.col("Interaction ID").hash() < hash_threshold)
             df = (
-                self.decision_data.select(columns_to_keep)
-                .with_columns([(pl.col("Interaction ID").hash() % 1000 < 1000 * sample_rate).alias("_sample")])
-                .filter(pl.col("_sample"))
-                .drop("_sample")
-                .collect()
+                base.collect()
                 .shrink_to_fit()  # reclaim unused memory (DataFrame-only method)
                 .lazy()  # re-wrap so downstream consumers stay lazy
             )
@@ -903,10 +880,10 @@ class DecisionAnalyzer:
         """
         if self.level != "Stage":
             return {}
-        available = set(self.unfiltered_raw_decision_data.collect_schema().names())
+        available = set(self.decision_data.collect_schema().names())
         if "Stage Group" not in available or "Stage" not in available:
             return {}
-        mapping_df = self.unfiltered_raw_decision_data.select(["Stage", "Stage Group"]).unique().collect()
+        mapping_df = self.decision_data.select(["Stage", "Stage Group"]).unique().collect()
         return dict(
             zip(
                 mapping_df.get_column("Stage").to_list(),

@@ -129,7 +129,7 @@ def _make_da_raw_data() -> pl.LazyFrame:
 def test_stage_columns_transformed_to_display_names():
     """DecisionAnalyzer should replace internal stage names with display names."""
     da = DecisionAnalyzer(_make_da_raw_data())
-    data = da.unfiltered_raw_decision_data.collect()
+    data = da.decision_data.collect()
 
     assert "Issue/Group: All Actions - Eligibility" in data["Stage"].to_list()
     assert "Issue/Group: Customer Actions - Constraints" in data["Stage"].to_list()
@@ -153,6 +153,6 @@ def test_unknown_stage_kept_as_is():
         pl.lit("SomeFutureGroup").alias("Stage_pyStageGroup"),
     )
     da = DecisionAnalyzer(raw)
-    data = da.unfiltered_raw_decision_data.collect()
+    data = da.decision_data.collect()
     assert "SomeFutureStage" in data["Stage"].to_list()
     assert "SomeFutureGroup" in data["Stage Group"].to_list()

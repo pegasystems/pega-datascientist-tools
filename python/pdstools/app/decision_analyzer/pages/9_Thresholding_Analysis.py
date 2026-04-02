@@ -1,9 +1,11 @@
 # python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
+import math
+
 import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import channel_direction_selector, ensure_data
+from da_streamlit_utils import contextual_filters, ensure_data
 from pdstools.decision_analyzer.utils import apply_filter
 
 "# Thresholding Analysis"
@@ -54,44 +56,65 @@ arb_data = (
 
 total_action_appearances = arb_data["Decisions"].sum()
 
+if arb_data.height == 0:
+    st.warning(
+        "⚠️ No actions survive to the arbitration stage for the current filters. Please check your data or filters."
+    )
+    st.stop()
+
+# Slider upper bounds: use P75 of the filtered data so the slider has
+# useful resolution even when the distribution is heavily skewed.
+prop_max = max(arb_data["Propensity"].quantile(0.75), 1e-9)
+prio_max = max(arb_data["Priority"].quantile(0.75), 1e-9)
+
+# ---------------------------------------------------------------------------
+# Session state for thresholds (shared between sliders and chart clicks)
+# ---------------------------------------------------------------------------
+if "propensity_threshold_pct" not in st.session_state:
+    st.session_state.propensity_threshold_pct = 0.0
+if "priority_threshold_val" not in st.session_state:
+    st.session_state.priority_threshold_val = 0.0
+
+# Pick up chart clicks from the previous run (before sliders render)
+_prev_prop = st.session_state.get("prop_chart")
+if _prev_prop and getattr(_prev_prop, "selection", None) and _prev_prop.selection.points:
+    _x = _prev_prop.selection.points[0]["x"]
+    if isinstance(_x, (int, float)):
+        st.session_state.propensity_threshold_pct = min(_x * 100, prop_max * 100)
+
+_prev_prio = st.session_state.get("prio_chart")
+if _prev_prio and getattr(_prev_prio, "selection", None) and _prev_prio.selection.points:
+    _x = _prev_prio.selection.points[0]["x"]
+    if isinstance(_x, (int, float)):
+        st.session_state.priority_threshold_val = min(float(_x), prio_max)
+
+prio_step = prio_max / 100
+prio_decimals = max(4, -math.floor(math.log10(prio_step)) + 1)
+
 # ---------------------------------------------------------------------------
 # Sidebar: threshold sliders for propensity and priority
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    prop_range = da.get_thresholding_data("Propensity", quantile_range=[0, 100])["Threshold"].to_list()
-
-    if all(v is None for v in prop_range):
-        st.warning(
-            "⚠️ No actions survive to the arbitration stage in this data set. "
-            "Thresholding Analysis requires actions at or after arbitration. "
-            "Please check your data or filters."
-        )
-        st.stop()
-
-    prop_range = [v if v is not None else 0.0 for v in prop_range]
-
     propensity_threshold = (
         st.slider(
             "Propensity threshold",
-            prop_range[0] * 100,
-            prop_range[1] * 100,
-            value=0.0,
+            0.0,
+            prop_max * 100,
             format="%.2f%%",
+            key="propensity_threshold_pct",
         )
         / 100
     )
 
-    prio_range = da.get_thresholding_data("Priority", quantile_range=[0, 100])["Threshold"].to_list()
-    prio_range = [v if v is not None else 0.0 for v in prio_range]
-
     priority_threshold = st.slider(
         "Priority threshold",
-        prio_range[0],
-        prio_range[1],
-        value=0.0,
-        format="%.4f",
+        0.0,
+        prio_max,
+        key="priority_threshold_val",
+        step=prio_step,
+        format=f"%.{prio_decimals}f",
     )
-    channel_direction_selector()
+    contextual_filters()
 
 # ---------------------------------------------------------------------------
 # Apply both thresholds
@@ -144,19 +167,22 @@ with st.container(border=True):
 
     st.caption(
         "See how your offers are distributed across response likelihood (propensity) and "
-        "priority values. The red dashed line shows your current threshold — offers below "
-        "this line would be filtered out."
+        "priority values. The red dashed line shows your current threshold — "
+        "**click a bar** to set the threshold, or use the sidebar sliders."
     )
+
+    # Filter to P75 range so histogram bins are meaningful
+    plot_data = arb_data.filter((pl.col("Propensity") <= prop_max) & (pl.col("Priority") <= prio_max))
 
     col1, col2 = st.columns(2)
     with col1:
         propensity_hist = px.histogram(
-            arb_data,
+            plot_data,
             x="Propensity",
             y="Decisions",
-            labels={"Decisions": "Actions"},
+            nbins=50,
         )
-        propensity_hist.update_xaxes(tickformat=",.0%")
+        propensity_hist.update_yaxes(title_text="Actions")
         propensity_hist.add_vline(
             x=propensity_threshold,
             line_dash="dash",
@@ -166,22 +192,17 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(propensity_hist)
+        prop_event = st.plotly_chart(propensity_hist, on_select="rerun", key="prop_chart")
 
     with col2:
-        prio_data = (
-            apply_filter(da.preaggregated_filter_view, channel_filter)
-            .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
-            .select(pl.col("Priority").explode(), pl.col("Decisions"))
-            .collect()
-        )
         priority_hist = px.histogram(
-            prio_data,
+            plot_data,
             x="Priority",
             y="Decisions",
+            nbins=50,
             log_y=True,
-            labels={"Decisions": "Actions"},
         )
+        priority_hist.update_yaxes(title_text="Actions")
         priority_hist.add_vline(
             x=priority_threshold,
             line_dash="dash",
@@ -191,7 +212,8 @@ with st.container(border=True):
             annotation_position="top right",
             annotation_font_color="red",
         )
-        st.plotly_chart(priority_hist)
+        prio_event = st.plotly_chart(priority_hist, on_select="rerun", key="prio_chart")
+
 
 # ---------------------------------------------------------------------------
 # Section 3: Distribution of surviving actions above both thresholds

@@ -119,10 +119,6 @@ class TestConstruction:
         assert isinstance(da_v2.decision_data, pl.LazyFrame)
         assert da_v2.decision_data.collect().height > 0
 
-    def test_v1_unfiltered_equals_decision_data_initially(self, da_v1):
-        """Before any filters, both should point to the same data."""
-        assert da_v1.unfiltered_raw_decision_data.collect().height == da_v1.decision_data.collect().height
-
     def test_construction_with_additional_columns(self):
         raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
         da = DecisionAnalyzer(
@@ -332,30 +328,6 @@ class TestPreaggregation:
         )
         # Remaining at earlier stages includes later stages, so total remaining >= filtered
         assert remaining["Decisions"].sum() >= filtered["Decisions"].sum()
-
-
-# ---------------------------------------------------------------------------
-# Global filters
-# ---------------------------------------------------------------------------
-
-
-class TestGlobalFilters:
-    def test_apply_and_reset_filters(self):
-        raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
-        da = DecisionAnalyzer(raw, sample_size=1000)
-        original_count = da.decision_data.collect().height
-
-        # Apply a filter that reduces data
-        da.apply_global_data_filters(
-            pl.col("Issue") == da.decision_data.select(pl.col("Issue").first()).collect().item()
-        )
-        filtered_count = da.decision_data.collect().height
-        assert filtered_count <= original_count
-
-        # Reset
-        da.reset_global_data_filters()
-        reset_count = da.decision_data.collect().height
-        assert reset_count == original_count
 
 
 # ---------------------------------------------------------------------------

@@ -20,10 +20,24 @@ from pdstools.utils.streamlit_utils import (
 )
 
 
+def show_cli_filter_banner():
+    """Show active CLI --filter specs in the sidebar if any are set."""
+    from pdstools.utils.streamlit_utils import get_filter_specs
+
+    filter_specs = get_filter_specs()
+    if not filter_specs:
+        return
+    with st.sidebar:
+        st.caption("**Active CLI filters:**")
+        for spec in filter_specs:
+            st.caption(f"  `{spec}`")
+
+
 def ensure_data():
     """Guard: stop if decision data is not loaded."""
     _apply_sidebar_logo()
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
+    show_cli_filter_banner()
 
 
 def _apply_stage_level():
@@ -166,34 +180,6 @@ def _persist_widget_value(filter_type: str, column: str, regex: str = ""):
     src = f"{filter_type}{regex}_selected_{column}"
     dst = f"{filter_type}{regex}selected_{column}"
     st.session_state[dst] = st.session_state[src]
-
-
-def serialize_filters(filters: list[pl.Expr]) -> str:
-    """Serialize a list of polars filter expressions to a JSON string."""
-    import json
-
-    serialized = {}
-    for i, expr in enumerate(filters):
-        serialized[i] = json.loads(expr.meta.serialize(format="json"))
-    return json.dumps(serialized)
-
-
-def deserialize_filters(json_str: str) -> list[pl.Expr]:
-    """Deserialize a JSON string back into a list of polars filter expressions."""
-    import io
-    import json
-
-    data = json.loads(json_str)
-    return [pl.Expr.deserialize(io.StringIO(json.dumps(v)), format="json") for v in data.values()]
-
-
-def reset_filter_state(filter_type: str):
-    """Remove all session-state keys for the given filter type prefix."""
-    keys_to_remove = [k for k in st.session_state.keys() if k.startswith(filter_type) and k != "filters"]
-    for k in keys_to_remove:
-        del st.session_state[k]
-    # Clear the persistent filter store
-    st.session_state.pop("_applied_filters_json", None)
 
 
 def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
@@ -717,6 +703,18 @@ def _update_channel_filter():
             st.session_state.page_channel_expr = (pl.col("Channel") == channel) & (pl.col("Direction") == direction)
         else:
             st.session_state.page_channel_expr = pl.col("Channel") == selected
+
+
+def contextual_filters():
+    """Render the universal contextual filter section in the sidebar.
+
+    Adds a visual divider and section header, then renders all contextual
+    filters (currently Channel/Direction). Every analysis page should call
+    this as the last sidebar item to maintain a consistent layout.
+    """
+    st.divider()
+    st.caption("**Filters**")
+    channel_direction_selector()
 
 
 def channel_direction_selector():

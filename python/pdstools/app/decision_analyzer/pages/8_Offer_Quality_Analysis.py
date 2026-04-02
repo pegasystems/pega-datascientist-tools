@@ -4,7 +4,7 @@ import streamlit as st
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
-    channel_direction_selector,
+    contextual_filters,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
@@ -78,7 +78,7 @@ with st.session_state["sidebar"]:
         format="%.4f",
         help="Offers with priority below this value are considered irrelevant (low quality)",
     )
-    channel_direction_selector()
+    contextual_filters()
 
 
 # Apply channel filter to sample data

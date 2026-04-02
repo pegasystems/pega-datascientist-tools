@@ -1,7 +1,7 @@
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import (
-    channel_direction_selector,
+    contextual_filters,
     ensure_data,
     get_current_index,
     get_data_filters,
@@ -133,7 +133,7 @@ with st.session_state["sidebar"]:
             value=10,
         )
 
-    channel_direction_selector()
+    contextual_filters()
 
 # Check for empty results when a specific channel is selected
 if st.session_state.get("page_channel_filter", "Any") != "Any":

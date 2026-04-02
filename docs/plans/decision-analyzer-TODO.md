@@ -53,6 +53,8 @@ removed or marked done as commits land on master.
 
 ### P2
 
+- [ ] **Add Issue filter to contextual filters section** — Extend `contextual_filters()` with an `issue_selector()` multiselect (empty = no filter). Store in `page_issue_filter`/`page_issue_expr` session state keys (same pattern as channel). Extend `DecisionAnalyzer.filtered_sample` to collect all contextual filter expressions. Update empty-data checks on all pages.
+- [ ] **Add cascading Group filter to contextual filters section** — After Issue filter is in place, add `group_selector()` that dynamically constrains its options based on the current Issue selection (Issue → Group hierarchy). Same session state pattern (`page_group_filter`/`page_group_expr`). Requires `filtered_sample` to apply all three filters (channel, issue, group).
 - [ ] **Improve file upload robustness** — Filter META-INF/MANIFEST.mf files, clear session state on new upload, improve error messages. Apply patterns from Impact Analyzer.
 - [ ] **Dynamic stage UI** — Hardcoded stage names remain in Optionality page (`stage="Output"`) and plots.py (`"Final"` filter). Replace with data-driven `DecisionAnalyzer.stages`.
 
@@ -64,53 +66,49 @@ removed or marked done as commits land on master.
 
 ## Streamlit Pages
 
-### Page 2 — Global Data Filters
-
-- [ ] **[P2] Robustness against heavy filtering** — Validate after filter application; warn if >95% of data eliminated; provide "reset filters" escape hatch.
-
-### Page 3 — Overview
+### Page 2 — Overview
 
 - [ ] **[P1] Speed up first-use page load** — Lazy-load stage-specific metrics per tab instead of computing everything upfront.
 - [ ] **[P2] Value Finder-style pie chart** — Add win/loss proportion pie at arbitration stage for users migrating from Value Finder.
 
-### Page 4 — Action Distribution
+### Page 3 — Action Distribution
 
 - [ ] **[P2] Top-K limiter** — Bar charts with >50 actions are unreadable. Add "Show top N" control with sorting options.
 - [ ] **[P2] Dynamic stages** — Audit for hardcoded stage names; use `DecisionAnalyzer.stages`.
 
-### Page 5 — Action Funnel
+### Page 4 — Action Funnel
 
 - [ ] **[P2] Funnel summary table improvements** — Current table shows averages/percentages. Add absolute-count display mode toggle; include synthetic "Available Actions" baseline row; clarify headers.
 - [ ] **[P2] Better coloring for filter components** — Use consistent color scheme by filter category (eligibility, suitability, engagement).
 - [ ] **[P3] Component overlap analysis** — UpSet plot or Sankey showing which actions are hit by multiple filters.
 - [ ] **[P3] Component impact over time** — Time-series trend of filter removal rates.
 
-### Page 6 — Global Sensitivity
+### Page 5 — Global Sensitivity
 
 - [ ] **[P2] Infer top-X and win rank bounds from data** — Auto-compute from actual max rank instead of user-specified or hardcoded values.
 
-### Page 7 — Win/Loss Analysis
+### Page 6 — Win/Loss Analysis
 
 - [ ] **[P2] Verify numbers across visualizations** — Bar charts and box plots sometimes show different counts. Audit data sources.
 - [ ] **[P2] Deep-dive selectors for specific opponents** — Scope deep-dive to selected counterpart items the comparison group wins to / loses from.
 - [ ] **[P3] Shared rank selector component** — Standardize rank selection UI across Win/Loss, Sensitivity, and other pages.
 
-### Page 8 — Optionality Analysis
+### Page 7 — Optionality Analysis
 
 - [ ] **[P2] Overlay propensity/priority on optionality plot** — Dual-axis or faceted view alongside optionality distribution.
 - [ ] **[P2] Color optionality plot by issue/group** — Add selector to color the optionality distribution by Issue or Group. Helps explain bi-modal patterns where different issues/groups dominate different parts of the distribution.
 
-### Page 9 — Offer Quality Analysis
+### Page 8 — Offer Quality Analysis
 
 - [ ] **[P2] Generalize stage naming** — Audit for hardcoded stages; use data-driven stage selection.
 - [ ] **[P2] Move logic to DecisionAnalyzer** — Extract offer quality calculations from Streamlit page code.
 
-### Page 10 — Thresholding Analysis
+### Page 9 — Thresholding Analysis
 
 - [ ] **[P2] Move inline plots to `plots` module** — Three plotly charts defined inline. Extract to reusable functions.
 - [ ] **[P1] Depends on `num_samples = 1`** — Uses `.explode()` on samples. Coordinate fix with core library `num_samples` item.
 
-### Page 11 — Arbitration Component Distribution
+### Page 10 — Arbitration Component Distribution
 
 - [ ] **[P2] EE v1: show all propensity flavors** — V1 has model/adjusted/final propensity; currently only shows one.
 - [ ] **[P3] Proposition distribution side-by-side** — Complete multi-select comparison of component distributions.
