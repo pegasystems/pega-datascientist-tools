@@ -8,12 +8,12 @@ from .statistics import (
     calculate_value_lift,
     error_propagation,
     is_significant,
+    lift_pl,
     required_sample_size,
 )
 
 __all__ = [
     "ImpactAnalyzer",
-    # statistics.py — standalone functions & dataclass
     "LiftResult",
     "accept_rate",
     "binomial_ci",
@@ -22,5 +22,6 @@ __all__ = [
     "calculate_value_lift",
     "error_propagation",
     "is_significant",
+    "lift_pl",
     "required_sample_size",
 ]

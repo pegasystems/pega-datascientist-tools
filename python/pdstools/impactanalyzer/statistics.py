@@ -1,12 +1,16 @@
 """Statistical calculations for Impact Analyzer experiments.
 
-All formulas reverse-engineered from Pega's Java implementation
-(ExperimentMetrics.java, ConfidenceLevelUtils.java) and validated
-against real PDC output — 20/20 exact match for engagement lift.
+Provides confidence intervals, significance testing, and sample-size
+planning for Impact Analyzer lift metrics.  These are core to
+interpreting experiment results — without them a reported lift cannot
+be distinguished from noise.
 
-This module is **additive** — it does not modify the original
-``ImpactAnalyzer`` class.  Import the functions directly or via
-``pdstools.impactanalyzer``:
+Formulas follow Pega's Java implementation
+(``ExperimentMetrics.java``, ``ConfidenceLevelUtils.java``).
+Validated for PDC parity and against a Pega Infinity Scenario Planner
+Actuals export (engagement lift, value lift, and CI all match).
+
+Usage::
 
     >>> from pdstools.impactanalyzer import (
     ...     calculate_engagement_lift,
@@ -17,7 +21,7 @@ This module is **additive** — it does not modify the original
 Critical implementation detail
 ------------------------------
 Pega rounds the error-propagated CI to **4 decimal places**
-(``round(result, 4)``).  This MUST be replicated for significance
+(``round(result, 4)``).  This must be replicated for significance
 calls to match.
 """
 
@@ -32,6 +36,7 @@ __all__ = [
     "accept_rate",
     "binomial_ci",
     "calculate_lift",
+    "lift_pl",
     "error_propagation",
     "is_significant",
     "calculate_engagement_lift",
@@ -159,13 +164,36 @@ def calculate_lift(test: float, control: float) -> float:
     return (test - control) / control
 
 
+def lift_pl(test_col: str, control_col: str):
+    """Polars expression for relative lift between two columns.
+
+    Intended for use inside ``pl.LazyFrame.with_columns()`` so that the
+    lift formula is defined in one place.
+
+    Parameters
+    ----------
+    test_col : str
+        Name of the column holding the test-group metric.
+    control_col : str
+        Name of the column holding the control-group metric.
+
+    Returns
+    -------
+    pl.Expr
+        ``(test − control) / control``.
+    """
+    import polars as pl  # lazy import — keep module lightweight
+
+    return (pl.col(test_col) - pl.col(control_col)) / pl.col(control_col)
+
+
 def error_propagation(test: float, control: float, ci_test: float, ci_control: float) -> float:
     """Error-propagated CI for the lift ratio via the delta method.
 
     .. important::
 
-       Pega rounds to **4 decimal places**.  We replicate this
-       (discovered by reverse-engineering ``ExperimentMetrics.java``).
+       Pega rounds to **4 decimal places**.  This rounding is
+       replicated here to match ``ExperimentMetrics.java``.
 
     Parameters
     ----------
@@ -215,8 +243,9 @@ def calculate_engagement_lift(
 ) -> LiftResult:
     """Full engagement-lift calculation matching Pega's formulas.
 
-    This is the primary metric used by Pega Impact Analyzer.
-    Validated to **20/20 exact match** against PDC output.
+    This is the primary metric shown by Pega's Impact Analyzer UI.
+    Validated for PDC parity and against a Pega Infinity Scenario
+    Planner Actuals export.
 
     Parameters
     ----------
