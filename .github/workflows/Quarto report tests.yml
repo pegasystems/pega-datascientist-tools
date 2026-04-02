@@ -117,6 +117,49 @@ jobs:
       - name: Run healthcheck report tests
         run: uv run pytest python/tests/test_healthcheck.py
 
+  # ── Step 2a-no-esbuild: Healthcheck without esbuild (DJS simulation) ─
+  healthcheck-tests-no-esbuild:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Healthcheck without esbuild (DJS simulation)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra healthcheck --extra tests
+
+      - name: Remove esbuild to simulate DJS Docker environment
+        run: |
+          echo "Removing esbuild binaries to simulate DJS environment (issue #620)..."
+          find "$HOME/quarto" -name "esbuild" -type f -exec rm -v {} \;
+          echo "Verifying esbuild is gone:"
+          find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
+
+      - name: Run healthcheck tests (CDN mode only)
+        run: uv run pytest python/tests/test_healthcheck.py -k "not size_reduction_methods"
+
   # ── Step 2b: Explanations report tests ───────────────────────────────
   explanations-tests:
     needs: [prepare-tools]
