@@ -122,6 +122,184 @@ def test_remove_duplicate_html_scripts_size_threshold():
 
 
 @pytest.mark.slow
+def test_health_check_agent_basic():
+    """Verify health_check_agent generates a valid Markdown file."""
+    import tempfile
+    from pathlib import Path
+
+    from pdstools import datasets
+    from pdstools.adm.Reports import Reports
+
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available in this environment: {e}")
+
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        output_path = reports.health_check_agent(
+            name="agent_test",
+            output_dir=temp_path,
+        )
+
+        assert output_path is not None
+        assert isinstance(output_path, Path)
+        assert output_path.exists(), f"Report file not found: {output_path}"
+        assert output_path.suffix == ".md", f"Expected .md file, got: {output_path.suffix}"
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Must not be empty
+        assert len(content) > 1000, "Report suspiciously short"
+
+        # Core sections must be present
+        assert "## ADM Model Overview" in content or "# ADM Model Overview" in content
+        assert "Channel Overview" in content
+        assert "Model Performance" in content or "Model Maturity" in content
+
+        # Must be plain text Markdown, not HTML
+        assert "<html" not in content.lower()
+        assert "<!DOCTYPE" not in content.upper()
+
+
+@pytest.mark.slow
+def test_health_check_agent_title_and_subtitle():
+    """Verify title, subtitle and disclaimer are rendered into the output."""
+    import tempfile
+    from pathlib import Path
+
+    from pdstools import datasets
+    from pdstools.adm.Reports import Reports
+
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available in this environment: {e}")
+
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = reports.health_check_agent(
+            name="agent_title_test",
+            title="Test Client Health Check",
+            subtitle="Q1 2025",
+            disclaimer="For internal use only.",
+            output_dir=Path(temp_dir),
+        )
+
+        content = output_path.read_text(encoding="utf-8")
+        assert "Test Client Health Check" in content
+        assert "Q1 2025" in content
+        assert "For internal use only." in content
+
+
+@pytest.mark.slow
+def test_health_check_agent_no_lift():
+    """Verify the Predictions/lift section is not rendered (pending reliability verification)."""
+    import tempfile
+    from pathlib import Path
+
+    from pdstools import datasets
+    from pdstools.adm.Reports import Reports
+
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available in this environment: {e}")
+
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = reports.health_check_agent(
+            name="agent_lift_test",
+            output_dir=Path(temp_dir),
+        )
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Lift section must not appear in output
+        assert "Engagement Lift" not in content
+        assert "CTR_Test" not in content
+        assert "Negative engagement lift" not in content
+
+
+@pytest.mark.slow
+def test_health_check_agent_with_predictor_data():
+    """Verify the Predictor Analysis section appears when predictor data is available."""
+    import tempfile
+    from pathlib import Path
+
+    from pdstools import datasets
+    from pdstools.adm.Reports import Reports
+
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available in this environment: {e}")
+
+    datamart = datasets.cdh_sample()
+    if datamart.predictor_data is None:
+        pytest.skip("cdh_sample does not include predictor data")
+
+    reports = Reports(datamart)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = reports.health_check_agent(
+            name="agent_predictor_test",
+            output_dir=Path(temp_dir),
+        )
+
+        content = output_path.read_text(encoding="utf-8")
+        assert "Predictor Analysis" in content
+        assert "Predictors per Category" in content
+
+
+@pytest.mark.slow
+def test_health_check_agent_interpretation_guides():
+    """Verify key interpretation blocks are present in the output."""
+    import tempfile
+    from pathlib import Path
+
+    from pdstools import datasets
+    from pdstools.adm.Reports import Reports
+
+    try:
+        from pdstools.utils.report_utils import get_quarto_with_version
+
+        get_quarto_with_version(verbose=False)
+    except (FileNotFoundError, Exception) as e:
+        pytest.skip(f"Quarto not available in this environment: {e}")
+
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = reports.health_check_agent(
+            name="agent_interp_test",
+            output_dir=Path(temp_dir),
+        )
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # At least these interpretation blocks must be present regardless of data
+        assert content.count("**Interpretation:**") >= 5
+
+
+@pytest.mark.slow
 def test_size_reduction_method_integration():
     """Test that the size_reduction_method options work correctly in report generation."""
     import tempfile
