@@ -10,6 +10,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
 )
 from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
 from pdstools.decision_analyzer.utils import (
+    parse_filter_specs,
     parse_sample_flag,
     prepare_and_save,
     should_cache_source,
@@ -17,6 +18,7 @@ from pdstools.decision_analyzer.utils import (
 )
 from pdstools.utils.streamlit_utils import (
     get_data_path,
+    get_filter_specs,
     get_sample_limit,
     get_temp_dir,
     show_sidebar_branding,
@@ -130,7 +132,32 @@ def _is_capacity_error(exc: BaseException) -> bool:
 # Pre-ingestion data preparation (sampling or caching)
 # Only apply --sample flag when loading from --data-path (not for file uploads)
 sample_limit_raw = get_sample_limit() if data_source_path else None
+filter_specs_raw = get_filter_specs() if data_source_path else None
 if raw_data is not None:
+    if filter_specs_raw:
+        # Filter mode — apply before sampling
+        try:
+            filter_expr = parse_filter_specs(
+                filter_specs_raw,
+                available_columns=set(raw_data.collect_schema().names()),
+            )
+        except ValueError as e:
+            st.error(f"Invalid --filter value: {e}")
+            st.stop()
+
+        filter_desc = " AND ".join(filter_specs_raw)
+        with st.spinner(f"Filtering data: {filter_desc}"):
+            # Collect filtered data so we can check for empty results and
+            # avoid re-executing the filter scan during subsequent sampling.
+            filtered_df = raw_data.filter(filter_expr).collect(engine="streaming")
+            filter_row_count = len(filtered_df)
+            if filter_row_count == 0:
+                st.warning(f"Filter matched 0 rows: {filter_desc}. Check your filter values.")
+                st.stop()
+            raw_data = filtered_df.lazy()
+
+        st.info(f"🔍 Pre-ingestion filter applied: **{filter_desc}**. **{filter_row_count:,}** rows matched.")
+
     if sample_limit_raw:
         # Sampling mode
         try:
@@ -187,7 +214,7 @@ if raw_data is not None:
         else:
             st.info(f"📉 Sampling requested (**{label}**) but data already within limit — using full dataset.")
 
-    elif should_cache_source(data_source_path):
+    elif filter_specs_raw or should_cache_source(data_source_path):
         # Caching mode - save 100% of data from non-parquet sources
         with st.spinner("Caching data for faster reloading..."):
             raw_data, sample_path = prepare_and_save(
@@ -209,7 +236,7 @@ def _show_data_summary(da):
         else "**Action Analysis / EEV2 (v2)** — full pipeline"
     )
 
-    overview = da.get_overview_stats
+    overview = da.overview_stats
     rows = da.decision_data.select(pl.len()).collect().item()
     summary = (
         f"Data loaded successfully. Detected format: {format_label}\n\n"
@@ -229,9 +256,14 @@ def _show_data_summary(da):
         sample_pct = sample_metadata["sample_percentage"]
         source_file = sample_metadata.get("source_file", "unknown")
 
-        st.info(
-            f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. Original source: `{source_file}`"
-        )
+        # Skip the "100% of original" message when filter was applied —
+        # the filter info banner already explains what happened, and
+        # "100%" is misleading (it's 100% of the filtered data, not the original).
+        if sample_pct < 100.0:
+            st.info(
+                f"📊 This data represents **{sample_pct:.2f}%** of the original dataset. "
+                f"Original source: `{source_file}`"
+            )
 
 
 if has_new_data and raw_data is not None:

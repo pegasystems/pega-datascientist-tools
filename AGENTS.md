@@ -6,6 +6,19 @@ Primary code lives under `python/pdstools`, with tests in `python/tests`.
 Keep edits focused, run the narrowest tests you can, and prefer `uv` for
 dependencies and execution.
 
+## Critical rules
+
+- **Open source repo.** Never include customer names, customer data, or
+  internal project names anywhere (code, comments, commit messages, tests).
+- **Git workflow.** Do not `git commit` on the user's working branch.
+  Stage with `git add` and let the user commit. Exception: branches you
+  created yourself, or when the user explicitly asks for a commit/PR.
+- **Product naming.** User-facing text: "Decision Analysis Tool",
+  "ADM Health Check". Code/CLI: `decision_analyzer`, `adm_healthcheck`.
+- **No `verbose` parameters.** Use `logging.debug()` instead of
+  `if verbose: print(...)`. Remove `verbose` if you encounter it.
+- **Prefer Polars over Pandas** for all data processing.
+
 ## Quick orientation
 - `python/pdstools`: library code (polars-based data tooling, reports).
 - `python/tests`: pytest suite.
@@ -114,7 +127,9 @@ python -m build --sdist --wheel --outdir dist/ .
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
 - Reuse aliases from `python/pdstools/utils/types.py` where suitable.
-- Prefer `list[str]`, `dict[str, ...]`, and `|` unions (Py3.10+ syntax).
+- Python 3.10+: use `list[str]`, `dict[str, ...]`, `X | None` (not
+  `Optional[X]`). Do not import `Optional`, `Union`, `List`, `Dict`
+  from `typing`.
 
 ### Naming conventions
 - Functions/variables: `snake_case`.
@@ -139,7 +154,9 @@ python -m build --sdist --wheel --outdir dist/ .
 
 ### Logging
 - Use module-level `logger = logging.getLogger(__name__)`.
-- Avoid printing in library code; log at `debug`/`info` levels.
+- No `print()` in library code; log at `debug`/`info` levels.
+- `debug` as a parameter name: only when it changes the **return value**
+  (extra columns, etc.), not for controlling log output.
 
 ### Data and polars
 - Use `polars.LazyFrame` where feasible; collect only at boundaries.
@@ -156,6 +173,14 @@ python -m build --sdist --wheel --outdir dist/ .
 - Keep tests deterministic and data-driven.
 - Mark slow tests with `@pytest.mark.slow`.
 - Use `pytest.skip` for missing external tools (Quarto, Pandoc).
+- **Minimum coverage: 80 %** for new and overall code (CI-enforced).
+- **Strongly prefer exact-value assertions** over structural checks.
+  Tests that only verify column names, non-empty results, or `height > 0`
+  give false confidence — they pass even when computations are wrong.
+  Use small, minimal datasets (see `data/da/sample_eev2_minimal.csv`)
+  where every expected value can be traced back to the input data.
+  Structural/smoke tests on larger datasets are fine as a complement,
+  but the correctness backbone should be exact-value tests.
 
 ### Notebooks and reports
 - Notebooks for docs should be empty/not pre-run.
@@ -214,8 +239,9 @@ sidebar logo and title (sub-pages re-apply it automatically).
   `os.environ` directly in page code.
 
 ### Plotly charts
-- All charts use Plotly. Display with `st.plotly_chart(...,
-  use_container_width=True)`.
+- All charts use Plotly. Display with `st.plotly_chart(fig)` — do NOT
+  pass `use_container_width` (deprecated) or `width="stretch"` (default).
+  Use `config=` for Plotly config options.
 - Keep plot construction in the library layer (`plots.py`); Streamlit
   pages call those functions and may tweak layout via
   `.update_layout()` before rendering.
@@ -228,6 +254,11 @@ sidebar logo and title (sub-pages re-apply it automatically).
 ### General Streamlit rules
 - Never use `st.experimental_*` APIs — they have been removed. Use
   the stable equivalents (`st.cache_data`, `st.cache_resource`, etc.).
+- Avoid `components.html()` with custom JavaScript. It runs in an
+  iframe, is fragile, hard to debug, and does not integrate with
+  Streamlit's state management (session state, theming, reruns).
+  Prefer native Streamlit widgets and layout primitives. Only resort
+  to custom JS when there is genuinely no Streamlit-native alternative.
 - Use Streamlit magic (bare strings/expressions) for static markdown
   where convenient, but prefer explicit `st.markdown()` / `st.write()`
   for dynamic content.
@@ -280,16 +311,31 @@ between external naming conventions (Pega property names, JSON key
 schemes) at the serialization boundary, not in field names or
 function signatures. See the naming-conventions section above.
 
+## Feature backlog / TODO files
+
+Major features maintain a living TODO file in `docs/plans/` (e.g.
+`decision-analyzer-TODO.md`, `health-check-TODO.md`,
+`impact-analyzer-TODO.md`). These track open work items, bugs, and
+improvement ideas that are not otherwise captured in GitHub issues.
+
+- **Check before working.** When starting work on a feature area, read
+  its TODO file first for context on known issues and planned work.
+- **Update as you go.** Mark items done (`[x]`) when they land on
+  master. Add new items when you discover bugs, limitations, or ideas
+  during development.
+- **Priority levels:** P1 = high, P2 = medium, P3 = nice-to-have.
+- **Keep them current.** Remove or archive completed sections
+  periodically so the files stay useful.
+
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
 - Healthcheck tests are separate and require extra deps/tools.
 - Use `uv` to mirror CI; avoid mixing system pip unless necessary.
 
-## Cursor/Copilot rules
-- No `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md`
-  were found in this repository at the time of writing.
-
 ## Tips for agentic changes
 - Prefer minimal diffs; avoid touching unrelated files.
 - Do not edit generated files (e.g., `uv.lock`) unless required.
 - Keep security in mind; do not commit secrets or local data artifacts.
+- When the IDE shows type errors after an edit, distinguish
+  **pre-existing** from **newly introduced**. Only fix the new ones
+  silently; ask before touching pre-existing issues.

@@ -189,44 +189,44 @@ def arbitration_stage() → pl.LazyFrame
     # Sample filtered to arbitration stage and later
 
 @cached_property
-def getPreaggregatedFilterView() → pl.LazyFrame
+def preaggregated_filter_view() → pl.LazyFrame
     # Pre-aggregated view showing what gets filtered at each stage
     # Grouped by Issue, Group, Action, Treatment, Channel, Direction, etc.
     # Includes Win_at_rank1..5 columns for ranking analysis
 
 @cached_property
-def getPreaggregatedRemainingView() → pl.LazyFrame
+def preaggregated_remaining_view() → pl.LazyFrame
     # Pre-aggregated view showing remaining offers per stage
 ```
 
 #### Key Query Methods
 ```python
 # Filtering & configuration
-applyGlobalDataFilters(filters: pl.Expr | list[pl.Expr]) → None
-resetGlobalDataFilters() → None
+apply_global_data_filters(filters: pl.Expr | list[pl.Expr]) → None
+reset_global_data_filters() → None
 set_level(level: str) → None
 
 # Data retrieval
-getDistributionData(stage, grouping_levels, additional_filters) → pl.LazyFrame
-getFunnelData(scope, additional_filters) → tuple[pl.LazyFrame, pl.DataFrame]
-getFilterComponentData(top_n, additional_filters) → pl.DataFrame
-getComponentDrilldown(component_name, additional_filters) → pl.DataFrame
-getComponentActionImpact(top_n, scope, additional_filters) → pl.DataFrame
+get_distribution_data(stage, grouping_levels, additional_filters) → pl.LazyFrame
+get_funnel_data(scope, additional_filters) → tuple[pl.LazyFrame, pl.DataFrame]
+get_filter_component_data(top_n, additional_filters) → pl.DataFrame
+get_component_drilldown(component_name, additional_filters) → pl.DataFrame
+get_component_action_impact(top_n, scope, additional_filters) → pl.DataFrame
 
 # Analysis data
-get_overview_stats() → dict[str, ...]
+overview_stats → dict[str, ...]  (also available as get_overview_stats for backward compat)
 get_win_loss_distribution_data(level, win_rank, additional_filters) → pl.LazyFrame
 get_optionality_data(df) → dict[str, ...]
 get_optionality_funnel(df) → ...
-getThresholdingData(field, quantile_range) → dict[tuple, pl.DataFrame]
-get_sensitivity(win_rank, filters, additional_filters) → pl.LazyFrame
+get_thresholding_data(field, quantile_range) → dict[tuple, pl.DataFrame]
+get_sensitivity(win_rank, group_filter, additional_filters) → pl.LazyFrame
 get_winning_or_losing_interactions(win_rank, group_filter, win, additional_filters) → pl.DataFrame
 get_trend_data(level, groupby, additional_filters) → pl.LazyFrame
 
 # Utilities
-getPossibleScopeValues() → list[str]  # ["Issue", "Group", "Action"]
-getPossibleStageValues() → list[str]  # Stages in current level
-getAvailableFieldsForFiltering(categoricalOnly=False) → list[str]
+get_possible_scope_values() → list[str]  # ["Issue", "Group", "Action"]
+get_possible_stage_values() → list[str]  # Stages in current level
+get_available_fields_for_filtering(categoricalOnly=False) → list[str]
 ```
 
 #### Ranking Function
@@ -507,15 +507,15 @@ One Interaction = One Customer Decision Point
 │ ┌──────────────────────────────────────────────────────────┐   │
 │ │ Cached Properties (auto-invalidated on filter/level)    │   │
 │ │ ├─ sample (10k interactions by default)                 │   │
-│ │ ├─ getPreaggregatedFilterView                           │   │
-│ │ ├─ getPreaggregatedRemainingView                        │   │
+│ │ ├─ preaggregated_filter_view                           │   │
+│ │ ├─ preaggregated_remaining_view                        │   │
 │ │ ├─ color_mappings                                       │   │
 │ │ ├─ stages_with_propensity                               │   │
 │ │ └─ ... (15+ cached properties)                          │   │
 │ └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │ ┌──────────────────────────────────────────────────────────┐   │
-│ │ Query Methods (getDistributionData, getFunnelData, etc) │   │
+│ │ Query Methods (get_distribution_data, get_funnel_data, etc) │   │
 │ └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │ ┌──────────────────────────────────────────────────────────┐   │
@@ -543,7 +543,7 @@ One Interaction = One Customer Decision Point
 ```python
 # In DecisionAnalyzer
 decision_data = apply_filter(unfiltered_raw_decision_data, filters)
-applyGlobalDataFilters(filters)
+apply_global_data_filters(filters)
 
 # Filters are Polars expressions combined with AND logic
 # Example: (Issue == "Retention") & (Channel == "Email")
@@ -576,7 +576,7 @@ self._thresholding_cache: dict[tuple, pl.DataFrame]
 self._sensitivity_cache: dict[int, pl.LazyFrame]
 
 # Layer 4: Pre-aggregation views (one-time compute, then lazy-wrap)
-getPreaggregatedFilterView.collect().lazy()
+preaggregated_filter_view.collect().lazy()
 ```
 
 ### 4. Interaction-Level Sampling
@@ -600,7 +600,7 @@ all_rows_for_sampled_interactions = (
 
 3. **Stage Level Switching:** When user switches between "Stage Group" and "Stage" levels, all cached properties are invalidated. This can be slow for large datasets.
 
-4. **Pre-aggregation Cost:** Computing `getPreaggregatedFilterView` is expensive and must be done once per data load. Subsequent per-page filtering is fast.
+4. **Pre-aggregation Cost:** Computing `preaggregated_filter_view` is expensive and must be done once per data load. Subsequent per-page filtering is fast.
 
 5. **Color Consistency:** Colors are assigned based on full dataset (before filtering) to maintain consistency. This means unused categories still claim colors.
 

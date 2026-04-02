@@ -38,7 +38,7 @@ ensure_data()
 if st.session_state.pop("_needs_filter_reset", False):
     reset_filter_state("global")
     st.session_state["filters"] = []
-    st.session_state.decision_data.resetGlobalDataFilters()
+    st.session_state.decision_data.reset_global_data_filters()
     st.cache_data.clear()
 
 # ── Uploaded filter file ─────────────────────────────────────────────
@@ -58,7 +58,7 @@ with st.container(border=True):
 # ── Build filters from widgets ───────────────────────────────────────
 widget_filters = get_data_filters(
     st.session_state.decision_data.unfiltered_raw_decision_data,
-    columns=st.session_state.decision_data.getAvailableFieldsForFiltering(),
+    columns=st.session_state.decision_data.get_available_fields_for_filtering(),
     queries=expr_list,
     filter_type="global",
 )
@@ -83,10 +83,10 @@ st.session_state["filters"] = active_filters
 
 # ── Apply filters and show status ───────────────────────────────────
 if active_filters:
-    st.session_state.decision_data.resetGlobalDataFilters()
+    st.session_state.decision_data.reset_global_data_filters()
     stats_before = get_first_level_stats(st.session_state.decision_data.sample)
 
-    st.session_state.decision_data.applyGlobalDataFilters(active_filters)
+    st.session_state.decision_data.apply_global_data_filters(active_filters)
 
     stats_after = get_first_level_stats(st.session_state.decision_data.sample)
     st.cache_data.clear()
@@ -107,6 +107,6 @@ if active_filters:
             st.session_state["_needs_filter_reset"] = True
             st.rerun()
 else:
-    st.session_state.decision_data.resetGlobalDataFilters()
+    st.session_state.decision_data.reset_global_data_filters()
     st.cache_data.clear()
     st.success("No data filters applied")

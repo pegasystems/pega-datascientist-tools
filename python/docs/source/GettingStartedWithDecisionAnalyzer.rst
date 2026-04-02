@@ -195,6 +195,15 @@ data loading and sampling. All options can also be set via environment variables
    interaction.
    *(env var:* ``PDSTOOLS_SAMPLE_LIMIT`` *)*
 
+``--filter "Column Name=value1,value2,..."``
+   Pre-ingestion row filter for extracting specific data from large files.
+   Use user-friendly column names (e.g. ``Interaction ID``, ``Subject ID``,
+   ``Channel``, ``Issue``). Multiple ``--filter`` flags are ANDed together.
+   Can be combined with ``--sample`` (filter is applied first, then sampling
+   runs on the filtered result). Filtered data is cached as parquet for fast
+   reloading.
+   *(env var:* ``PDSTOOLS_FILTER`` *)*
+
 ``--temp-dir DIR``
    Directory for temporary files such as the sampled-data parquet cache.
    Defaults to the current working directory.
@@ -224,6 +233,18 @@ data loading and sampling. All options can also be set via environment variables
 
    # Sample using shorthand notation (1M = 1 million interactions)
    pdstools decision_analyzer --data-path /path/to/data.parquet --sample 1M
+
+   # Filter to specific interactions
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Interaction ID=ABC-123,DEF-456"
+
+   # Filter to a specific customer
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Subject ID=customer-42"
+
+   # Combine multiple filters (ANDed)
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Interaction ID=ABC-123" --filter "Channel=Web"
+
+   # Filter first, then sample the filtered result
+   pdstools decision_analyzer --data-path /path/to/data.zip --filter "Subject ID=customer-42" --sample 100
 
 The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
 
@@ -343,11 +364,13 @@ exports, install the 64-bit runtime extra:
 
 This drops in a 64-bit runtime alongside polars, which is selected
 automatically at import time — no code changes required. Alternatively,
-use the ``--sample`` CLI flag to reduce the data before ingestion:
+use the ``--sample`` CLI flag to reduce the data before ingestion, or use
+``--filter`` to extract only the rows you need:
 
 .. code-block:: bash
 
    pdstools decision_analyzer --sample 500000 --data-path /path/to/data
+   pdstools decision_analyzer --filter "Subject ID=customer-42" --data-path /path/to/data
 
 **For more help:**
 
