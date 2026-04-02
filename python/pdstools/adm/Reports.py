@@ -353,6 +353,121 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def health_check_agent(
+        self,
+        name: str | None = None,
+        title: str = "ADM Model Overview",
+        subtitle: str = "",
+        disclaimer: str = "",
+        output_dir: os.PathLike | None = None,
+        *,
+        query: QUERY | None = None,
+        keep_temp_files: bool = False,
+        verbose: bool = False,
+        prediction=None,
+        model_file_path: PathLike | None = None,
+        predictor_file_path: PathLike | None = None,
+        prediction_file_path: PathLike | None = None,
+    ) -> Path:
+        """Generate an agent-ready Markdown health check report.
+
+        Produces a GitHub-Flavored Markdown (GFM) document designed for
+        consumption by AI agents and LLMs. Equivalent in coverage to
+        :meth:`health_check` but outputs plain text Markdown instead of HTML.
+
+        Parameters
+        ----------
+        name : str, optional
+            Base file name for the report. Defaults to ``"HealthCheck.md"``.
+        title : str, optional
+            Title embedded in the report header.
+        subtitle : str, optional
+            Subtitle embedded in the report header.
+        disclaimer : str, optional
+            Optional disclaimer blurb.
+        output_dir : os.PathLike, optional
+            Directory for the output file. Defaults to the current working directory.
+        query : QUERY, optional
+            Optional extra filter applied to the datamart data.
+        keep_temp_files : bool, default False
+            If True, the temporary working directory is not deleted after generation.
+        verbose : bool, default False
+            If True, prints paths and diagnostic information during generation.
+        prediction : Prediction, optional
+            Optional :class:`~pdstools.prediction.Prediction` instance to include.
+        model_file_path : PathLike, optional
+            Path to a pre-exported model parquet file; skips the automatic export.
+        predictor_file_path : PathLike, optional
+            Path to a pre-exported predictor parquet file; skips the automatic export.
+        prediction_file_path : PathLike, optional
+            Path to a pre-exported prediction parquet file; skips the automatic export.
+
+        Returns
+        -------
+        Path
+            Path to the generated ``.md`` file.
+        """
+        output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
+        try:
+            qmd_filename = "HealthCheckAgent.qmd"
+            copy_quarto_file(qmd_filename, temp_dir)
+
+            output_filename = get_output_filename(name, "HealthCheck", None, "md")
+
+            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
+                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
+            ):
+                model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+
+            if (prediction_file_path is None) and (prediction is not None):
+                prediction_file_path = prediction.save_data(temp_dir)
+
+            serialized_query = serialize_query(query)
+            run_quarto(
+                qmd_file=qmd_filename,
+                output_filename=output_filename,
+                output_type="md",
+                params={
+                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
+                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
+                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
+                    "query": serialized_query,
+                    "title": title,
+                    "subtitle": subtitle,
+                    "disclaimer": disclaimer,
+                },
+                project={"title": title, "type": "default"},
+                analysis={
+                    "predictions": (prediction_file_path is not None),
+                    "predictors": (self.datamart.predictor_data is not None),
+                    "models": (self.datamart.model_data is not None),
+                },
+                temp_dir=temp_dir,
+                verbose=verbose,
+                size_reduction_method=None,
+            )
+
+            output_path = temp_dir / output_filename
+            if verbose or not output_path.exists():
+                if model_file_path is not None:
+                    print(f'model_file_path = "{model_file_path}"')
+                if predictor_file_path is not None:
+                    print(f'predictor_file_path = "{predictor_file_path}"')
+                if prediction_file_path is not None:
+                    print(f'prediction_file_path = "{prediction_file_path}"')
+                print(f"output_path = {output_path}")
+            if not output_path.exists():
+                raise ValueError(f"Failed to generate report: {output_filename}")
+
+            final_path = output_dir / output_filename
+            shutil.copy(output_path, final_path)
+
+            return final_path
+
+        finally:
+            if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
     def excel_report(
         self,
         name: Path | str = Path("Tables.xlsx"),

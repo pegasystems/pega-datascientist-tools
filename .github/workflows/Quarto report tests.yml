@@ -117,7 +117,49 @@ jobs:
       - name: Run healthcheck report tests
         run: uv run pytest python/tests/test_healthcheck.py
 
-  # ── Step 2b: Explanations report tests ───────────────────────────────
+  # ── Step 2b: Healthcheck agent (Markdown) report tests ──────────────
+  healthcheck-agent-tests:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Healthcheck agent report tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra healthcheck --extra tests
+
+      - name: Verify tools
+        run: |
+          quarto --version
+          pandoc --version
+          uv run python --version
+
+      - name: Run healthcheck agent report tests
+        run: uv run pytest python/tests/test_Reports.py -k "health_check_agent"
+
+  # ── Step 2c: Explanations report tests ───────────────────────────────
   explanations-tests:
     needs: [prepare-tools]
     runs-on: ubuntu-latest
