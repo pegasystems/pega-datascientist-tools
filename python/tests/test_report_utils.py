@@ -369,7 +369,7 @@ def test_write_params_files_size_reduction_method(tmp_path):
         config = yaml.safe_load(f)
     assert config["format"]["html"]["plotly-connected"] is True
 
-    # "cdn" - load plotly from CDN
+    # "cdn" - load plotly from CDN, disable embed-resources to avoid esbuild (#620)
     report_utils._write_params_files(
         tmp_path,
         params={"test": "value"},
@@ -378,6 +378,7 @@ def test_write_params_files_size_reduction_method(tmp_path):
     with open(tmp_path / "_quarto.yml") as f:
         config = yaml.safe_load(f)
     assert config["format"]["html"]["plotly-connected"] is False
+    assert config["format"]["html"]["embed-resources"] is False
 
 
 def test_create_metric_gttable_callable_rag_with_metric_format():

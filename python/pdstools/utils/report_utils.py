@@ -88,9 +88,10 @@ def _write_params_files(
     analysis : dict, optional
         Analysis configuration to write to _quarto.yml, by default None
     size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
-        When "cdn", sets plotly-connected to false so Plotly.js loads from CDN
-        (resulting in smaller files ~8MB vs ~110MB).
-        When None or "strip", sets plotly-connected to true for fully embedded Plotly.
+        When "cdn", disables both embed-resources and plotly-connected so
+        Plotly.js loads from CDN and Quarto skips esbuild bundling
+        (resulting in smaller files ~8MB vs ~110MB, but requires internet).
+        When None or "strip", embeds all resources for a fully standalone HTML.
 
     Returns
     -------
@@ -109,12 +110,16 @@ def _write_params_files(
             f,
         )
 
-    # Always embed resources for standalone HTML
+    # When using CDN mode, disable embed-resources so Quarto does not invoke
+    # esbuild to bundle JavaScript.  This avoids failures in environments
+    # where esbuild is unavailable (e.g. DJS Docker images that removed it
+    # due to CVE issues).  See GitHub issue #620.
     # plotly-connected: false = load Plotly from CDN (smaller file ~8MB)
     # plotly-connected: true = embed Plotly (larger file ~110MB)
+    embed = size_reduction_method != "cdn"
     html_format: dict = {
-        "embed-resources": True,
-        "plotly-connected": size_reduction_method != "cdn",
+        "embed-resources": embed,
+        "plotly-connected": embed,
     }
 
     quarto_config: dict = {
@@ -163,7 +168,8 @@ def run_quarto(
         Whether to print detailed execution logs, by default False
     size_reduction_method : Optional[Literal["strip", "cdn"]], default=None
         When None will fully embed all resources into the HTML output.
-        When "cdn" will pass this on to Quarto and Plotly so Javascript libraries will be loaded from the internet.
+        When "cdn" disables embed-resources and loads Plotly.js from CDN,
+        avoiding the need for esbuild (see issue #620).
         When "strip" the HTML will be post-processed to remove duplicate Javascript that would otherwise get embedded multiple times.
 
     Returns
