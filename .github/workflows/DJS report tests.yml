@@ -111,6 +111,8 @@ jobs:
               if m and current:
                   packages.setdefault(current, m.group(1))
                   current = None
+          # Exclude pdstools itself — we install it from source in this repo
+          packages.pop('pdstools', None)
           pathlib.Path('djs-constraints.txt').write_text(
               '\n'.join(f'{k}=={v}' for k, v in sorted(packages.items()))
           )
@@ -171,6 +173,8 @@ jobs:
               if m and current:
                   packages.setdefault(current, m.group(1))
                   current = None
+          # Exclude pdstools itself — we install it from source in this repo
+          packages.pop('pdstools', None)
           pathlib.Path('djs-constraints.txt').write_text(
               '\n'.join(f'{k}=={v}' for k, v in sorted(packages.items()))
           )
