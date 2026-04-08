@@ -1,0 +1,188 @@
+name: DJS report tests
+
+# Runs the DJS-simulation report tests using the exact dependency versions
+# that decision-jobs-service ships in its health check Docker image.
+# Dependencies are pinned via .github/djs/poetry.lock (a copy of the DJS
+# poetry.lock). See that file for instructions on how to update it.
+#
+# Only the no-esbuild jobs are run here — the standard report tests
+# (with pdstools' own uv.lock) are covered by "Quarto report tests".
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - 'release/**'
+    paths:
+      - python/**
+      - .github/djs/poetry.lock
+      - .github/workflows/DJS report tests.yml
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - python/**
+      - .github/djs/poetry.lock
+      - .github/workflows/DJS report tests.yml
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  # Match the exact versions used in the DJS Dockerfile
+  QUARTO_VERSION: "1.8.25"
+  PANDOC_VERSION: "3.1.11"
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  # ── Step 1: Cache Quarto and Pandoc binaries ─────────────────────────
+  prepare-tools:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    outputs:
+      cache-key-tools: ${{ steps.cache-keys.outputs.tools }}
+    steps:
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "tools=djs-tools-quarto-${{ env.QUARTO_VERSION }}-pandoc-${{ env.PANDOC_VERSION }}-py${{ env.PYTHON_VERSION }}-${{ runner.os }}-${{ runner.arch }}" >> $GITHUB_OUTPUT
+
+      - name: Cache tool installations
+        id: cache-tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+          key: ${{ steps.cache-keys.outputs.tools }}
+
+      - name: Install tools
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/quarto" "$HOME/pandoc"
+
+          echo "Installing Quarto ${QUARTO_VERSION}..."
+          wget -q "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "quarto-${QUARTO_VERSION}-linux-amd64.tar.gz" -C "$HOME/quarto" --strip-components=1
+
+          echo "Installing Pandoc ${PANDOC_VERSION}..."
+          wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -C "$HOME/pandoc" --strip-components=1
+
+  # ── Step 2: Healthcheck without esbuild (DJS simulation) ─────────────
+  healthcheck-tests-no-esbuild:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Healthcheck without esbuild (DJS deps)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install pdstools with DJS-pinned dependencies
+        run: |
+          python3 -c "
+          import re, pathlib
+          content = pathlib.Path('.github/djs/poetry.lock').read_text()
+          packages = {}
+          current = None
+          for line in content.splitlines():
+              m = re.match(r'^name = \"(.+)\"', line)
+              if m: current = m.group(1)
+              m = re.match(r'^version = \"(.+)\"', line)
+              if m and current:
+                  packages.setdefault(current, m.group(1))
+                  current = None
+          pathlib.Path('djs-constraints.txt').write_text(
+              '\n'.join(f'{k}=={v}' for k, v in sorted(packages.items()))
+          )
+          print(f'Generated constraints for {len(packages)} packages')
+          "
+          pip install --upgrade pip
+          pip install --constraint djs-constraints.txt ".[healthcheck,tests]"
+
+      - name: Remove esbuild to simulate DJS Docker environment
+        run: |
+          find "$HOME/quarto" -name "esbuild" -type f -exec rm -v {} \;
+          find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found — good"
+
+      - name: Run healthcheck tests (CDN mode only, no esbuild)
+        run: pytest python/tests/test_healthcheck.py -k "not full_embed"
+
+      - name: Run batch healthcheck integration test (CDN only, no esbuild)
+        run: pytest python/tests/test_batch_healthcheck.py -k "not full_embed"
+
+  # ── Step 3: Explanations without esbuild (DJS simulation) ────────────
+  explanations-tests-no-esbuild:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Explanations without esbuild (DJS deps)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install pdstools with DJS-pinned dependencies
+        run: |
+          python3 -c "
+          import re, pathlib
+          content = pathlib.Path('.github/djs/poetry.lock').read_text()
+          packages = {}
+          current = None
+          for line in content.splitlines():
+              m = re.match(r'^name = \"(.+)\"', line)
+              if m: current = m.group(1)
+              m = re.match(r'^version = \"(.+)\"', line)
+              if m and current:
+                  packages.setdefault(current, m.group(1))
+                  current = None
+          pathlib.Path('djs-constraints.txt').write_text(
+              '\n'.join(f'{k}=={v}' for k, v in sorted(packages.items()))
+          )
+          print(f'Generated constraints for {len(packages)} packages')
+          "
+          pip install --upgrade pip
+          pip install --constraint djs-constraints.txt ".[explanations,tests]"
+
+      - name: Remove esbuild to simulate DJS Docker environment
+        run: |
+          find "$HOME/quarto" -name "esbuild" -type f -exec rm -v {} \;
+          find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found — good"
+
+      - name: Run explanations report tests
+        run: pytest python/tests/test_explanations_report.py
