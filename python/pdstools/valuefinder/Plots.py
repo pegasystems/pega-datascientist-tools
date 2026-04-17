@@ -42,6 +42,7 @@ P = ParamSpec("P")
 
 class Plots(LazyNamespace):
     dependencies = ["plotly"]
+    dependency_group = "adm"
 
     def __init__(self, vf: "ValueFinder"):
         self.vf = vf

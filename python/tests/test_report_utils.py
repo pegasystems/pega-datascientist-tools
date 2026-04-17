@@ -510,6 +510,51 @@ class TestGenerateZippedReport:
         assert result is None
 
 
+class TestBundleQuartoResources:
+    """Tests for bundle_quarto_resources."""
+
+    def test_bundles_html_with_resources_folder(self, tmp_path):
+        """When a `<stem>_files` folder exists, both are zipped into `<stem>.zip`."""
+        import zipfile
+
+        html_path = tmp_path / "report.html"
+        html_path.write_text("<html>hi</html>")
+        resources = tmp_path / "report_files"
+        (resources / "libs" / "plotly").mkdir(parents=True)
+        (resources / "libs" / "plotly" / "plotly.js").write_text("/* js */")
+        (resources / "figure-html" / "fig.png").parent.mkdir(parents=True)
+        (resources / "figure-html" / "fig.png").write_text("png")
+
+        result = report_utils.bundle_quarto_resources(html_path)
+
+        assert result == tmp_path / "report.zip"
+        assert result.exists()
+        assert not html_path.exists()
+        assert not resources.exists()
+        with zipfile.ZipFile(result) as zf:
+            names = set(zf.namelist())
+        assert "report.html" in names
+        assert "report_files/libs/plotly/plotly.js" in names
+        assert "report_files/figure-html/fig.png" in names
+
+    def test_no_resources_folder_is_noop(self, tmp_path):
+        """Without a companion folder, the original file path is returned unchanged."""
+        html_path = tmp_path / "solo.html"
+        html_path.write_text("<html>embedded</html>")
+
+        result = report_utils.bundle_quarto_resources(html_path)
+
+        assert result == html_path
+        assert html_path.exists()
+        assert not (tmp_path / "solo.zip").exists()
+
+    def test_missing_file_returns_same_path(self, tmp_path):
+        """A non-existent input is returned unchanged without error."""
+        missing = tmp_path / "ghost.html"
+        result = report_utils.bundle_quarto_resources(missing)
+        assert result == missing
+
+
 class TestDeserializeQuery:
     """Tests for deserialize_query and serialize/deserialize roundtrip."""
 

@@ -517,8 +517,11 @@ class ONNXModel(LocalModel):
         try:
             import torch
         except ImportError:
-            raise ONNXModelCreationError(
-                "PyTorch is required for from_pytorch(). Install it with: uv pip install torch"
+            from pdstools.utils.namespaces import MissingDependenciesException
+
+            raise MissingDependenciesException(
+                ["torch"],
+                namespace="ONNXModel.from_pytorch",
             )
 
         import io as _io

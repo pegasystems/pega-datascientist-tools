@@ -21,6 +21,7 @@ class BinAggregator(LazyNamespace):
     """A class to generate rolled up insights from ADM predictor binning."""
 
     dependencies = ["plotly", "numpy"]
+    dependency_group = "adm"
 
     def __init__(self, dm: "ADMDatamart") -> None:
         self.dm = dm

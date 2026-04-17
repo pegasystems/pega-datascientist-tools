@@ -12,6 +12,7 @@ import polars as pl
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (
+    bundle_quarto_resources,
     copy_quarto_file,
     get_output_filename,
     run_quarto,
@@ -175,6 +176,7 @@ class Reports(LazyNamespace):
                     print(f"output_path = {output_path}")
                 if not output_path.exists():
                     raise ValueError(f"Failed to write the report: {output_filename}")
+                output_path = bundle_quarto_resources(output_path)
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
@@ -343,8 +345,10 @@ class Reports(LazyNamespace):
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
+            output_path = bundle_quarto_resources(output_path)
+
             # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
-            final_path = output_dir / output_filename
+            final_path = output_dir / output_path.name
             shutil.copy(output_path, final_path)
 
             return final_path
