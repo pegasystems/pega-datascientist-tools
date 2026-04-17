@@ -264,7 +264,7 @@ class Anonymization:
 
         Raises
         ------
-        ImportError:
+        MissingDependenciesException:
             If polars-hash is not installed.
 
         Returns
@@ -275,8 +275,12 @@ class Anonymization:
         try:  # to make it optional
             import polars_hash as plh
         except ImportError:  # pragma: no cover
-            raise ImportError(
-                "Polars-hash not installed. Please install using pip install polars-hash",
+            from ..utils.namespaces import MissingDependenciesException
+
+            raise MissingDependenciesException(
+                ["polars-hash"],
+                namespace="Anonymization",
+                deps_group="pega_io",
             )
 
         df: pl.LazyFrame = pl.concat(

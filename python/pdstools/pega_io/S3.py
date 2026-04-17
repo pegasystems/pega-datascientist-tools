@@ -86,7 +86,13 @@ class S3Data:
         try:
             import aioboto3
         except ImportError:
-            raise ImportError("To use S3 functionality, please install aioboto3.")
+            from ..utils.namespaces import MissingDependenciesException
+
+            raise MissingDependenciesException(
+                ["aioboto3"],
+                namespace="S3Data",
+                deps_group="pega_io",
+            )
 
         def createPathIfNotExists(path):
             if not os.path.exists(path):
