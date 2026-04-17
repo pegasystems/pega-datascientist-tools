@@ -31,7 +31,7 @@ def sample_prediction_data() -> Prediction:
 
 def test_GenerateHealthCheck(sample: ADMDatamart):
     hc = sample.generate.health_check()
-    assert hc == pathlib.Path("./HealthCheck.html").resolve()
+    assert hc == pathlib.Path("./HealthCheck.zip").resolve()
     assert pathlib.Path(hc).exists()
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
@@ -122,7 +122,7 @@ def test_GenerateHealthCheck_ModelDataOnly(
     sample_without_predictor_binning: ADMDatamart,
 ):
     hc = sample_without_predictor_binning.generate.health_check(name="MyOrg")
-    assert hc == pathlib.Path("./HealthCheck_MyOrg.html").resolve()
+    assert hc == pathlib.Path("./HealthCheck_MyOrg.zip").resolve()
     assert pathlib.Path(hc).exists()
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
@@ -138,7 +138,7 @@ def test_GenerateHealthCheck_PredictionData(
         prediction=sample_prediction_data,
         name="WithPredictions",
     )
-    assert hc == pathlib.Path("./HealthCheck_WithPredictions.html").resolve()
+    assert hc == pathlib.Path("./HealthCheck_WithPredictions.zip").resolve()
     assert pathlib.Path(hc).exists()
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
@@ -169,7 +169,7 @@ def test_GenerateModelReport(sample: ADMDatamart):
         only_active_predictors=True,
     )
     expected_path = pathlib.Path(
-        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
+        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.zip",
     ).resolve()
     assert report == expected_path
     assert pathlib.Path(report).exists()
@@ -236,7 +236,7 @@ Test parameters: {{< meta params.title >}}
 """)
 
     hc = sample.generate.health_check(name="CustomTemplate", qmd_file=custom_qmd)
-    assert hc == pathlib.Path("./HealthCheck_CustomTemplate.html").resolve()
+    assert hc == pathlib.Path("./HealthCheck_CustomTemplate.zip").resolve()
     assert pathlib.Path(hc).exists()
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
@@ -268,7 +268,7 @@ Model ID: {{< meta params.model_id >}}
         qmd_file=custom_qmd,
     )
     expected_path = pathlib.Path(
-        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
+        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.zip",
     ).resolve()
     assert report == expected_path
     assert pathlib.Path(report).exists()

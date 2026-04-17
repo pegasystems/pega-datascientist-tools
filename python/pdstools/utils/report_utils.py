@@ -1208,7 +1208,14 @@ def check_report_for_errors(html_path: str | Path) -> list[str]:
         raise FileNotFoundError(f"HTML file not found: {html_path}")
 
     try:
-        content = html_path.read_text(encoding="utf-8")
+        if html_path.suffix.lower() == ".zip":
+            with zipfile.ZipFile(html_path) as zf:
+                html_members = [n for n in zf.namelist() if n.endswith(".html")]
+                if not html_members:
+                    raise IOError(f"No HTML file found inside zip: {html_path}")
+                content = zf.read(html_members[0]).decode("utf-8")
+        else:
+            content = html_path.read_text(encoding="utf-8")
     except Exception as e:
         raise IOError(f"Failed to read HTML file: {e}")
 

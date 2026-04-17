@@ -1,8 +1,19 @@
 """Testing the functionality of the adm Reports module"""
 
+import zipfile
+
 import pytest
 
 from pdstools.utils.report_utils import check_report_for_errors
+
+
+def _read_report_html(output_path):
+    """Return the HTML content for a rendered report, unzipping if needed."""
+    if output_path.suffix.lower() == ".zip":
+        with zipfile.ZipFile(output_path) as zf:
+            html_name = next(n for n in zf.namelist() if n.endswith(".html"))
+            return zf.read(html_name).decode("utf-8")
+    return output_path.read_text(encoding="utf-8")
 
 
 @pytest.mark.slow
@@ -65,7 +76,7 @@ def test_health_check_file_size_optimization():
 
             # Content validation
             try:
-                html_content = output_path.read_text(encoding="utf-8")
+                html_content = _read_report_html(output_path)
                 assert "<html" in html_content, "Generated file is not valid HTML"
                 assert "ADM Models across all Channels" in html_content, "Report content missing expected text"
             except UnicodeDecodeError as e:
@@ -118,7 +129,7 @@ def test_full_embed_integration():
                     results[label] = {
                         "path": output,
                         "size": output.stat().st_size / (1024 * 1024),
-                        "content": output.read_text(encoding="utf-8"),
+                        "content": _read_report_html(output),
                     }
             except Exception as e:
                 pytest.skip(f"Report generation failed for {label}: {e}")
