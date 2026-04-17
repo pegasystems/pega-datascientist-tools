@@ -8,7 +8,7 @@ import polars as pl
 import pytest
 from pdstools import datasets
 from pdstools.utils import cdh_utils
-from pytz import timezone
+from zoneinfo import ZoneInfo as timezone
 
 
 def test_safe_range_auc():
@@ -123,7 +123,7 @@ def test_toPRPCDateTime():
                 tzinfo=timezone("US/Eastern"),
             ),
         )
-        == "20180316T134127.847 GMT-0456"
+        == "20180316T134127.847 GMT-0400"
     )
     assert (
         cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]

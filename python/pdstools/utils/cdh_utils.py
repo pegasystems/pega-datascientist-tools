@@ -751,7 +751,7 @@ def from_prpc_date_time(
         >>> fromPRPCDateTime("20180316T184127.846", True)
 
     """
-    import pytz  # type: ignore[import-untyped]
+    from zoneinfo import ZoneInfo
 
     timezonesplits = x.split(" ")
 
@@ -771,7 +771,7 @@ def from_prpc_date_time(
     dt = datetime.datetime.strptime(date_no_frac, "%Y%m%dT%H%M%S")
 
     if use_timezones and len(timezonesplits) > 1:
-        dt = dt.replace(tzinfo=pytz.timezone(timezonesplits[1]))
+        dt = dt.replace(tzinfo=ZoneInfo(timezonesplits[1]))
 
     if "." in x:
         dt = dt.replace(microsecond=int(frac_sec))
