@@ -718,6 +718,7 @@ def _polars_capitalize(df: F, extra_endwords: Iterable[str] | None = None) -> F:
             zip(
                 cols,
                 renamed_cols,
+                strict=False,
             ),
         ),
     )
@@ -1082,7 +1083,7 @@ def bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]:
     nbins = len(bin_pos)  # must be > 0
     return [
         (math.log(pos + 1 / nbins) - math.log(sum_pos + 1)) - (math.log(neg + 1 / nbins) - math.log(sum_neg + 1))
-        for pos, neg in zip(bin_pos, bin_neg)
+        for pos, neg in zip(bin_pos, bin_neg, strict=False)
     ]
 
 
@@ -1254,8 +1255,8 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
 
     def get_mapping(columns, reverse=False):
         if not reverse:
-            return dict(zip(columns, _capitalize(columns)))
-        return dict(zip(_capitalize(columns), columns))
+            return dict(zip(columns, _capitalize(columns), strict=False))
+        return dict(zip(_capitalize(columns), columns, strict=False))
 
     schema = df.collect_schema()
     named = get_mapping(schema.names())

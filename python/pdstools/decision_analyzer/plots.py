@@ -508,7 +508,7 @@ class Plot:
                 custom_values.append([reach_val, occ_val])
                 text_values.append(f"{x_val:.1f}" if x_val > 0 else "")
 
-            for stage, val in zip(stage_values, metric_values):
+            for stage, val in zip(stage_values, metric_values, strict=False):
                 stage_totals[stage] += val
 
             trace_color = None
@@ -1587,7 +1587,7 @@ def create_win_distribution_plot(
         hover_template = (
             "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
         )
-        customdata = list(zip(plot_data["Group"], plot_data["Issue"]))
+        customdata = list(zip(plot_data["Group"], plot_data["Issue"], strict=False))
     else:
         # Default hover template
         hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"

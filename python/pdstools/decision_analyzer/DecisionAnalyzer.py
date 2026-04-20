@@ -268,6 +268,18 @@ class DecisionAnalyzer:
         self.max_win_rank = 5
         self.AvailableNBADStages = ["Arbitration", "Output"]
 
+        # Validate that the requested level exists in the data; fall back to
+        # the first available level if not (e.g. user passed default
+        # "Stage Group" but data only has a "Stage" column).
+        available_levels = self.available_levels
+        if self.level not in available_levels:
+            logger.info(
+                "Requested level '%s' not present in data; falling back to '%s'.",
+                self.level,
+                available_levels[0],
+            )
+            self.level = available_levels[0]
+
         if self.extract_type == "explainability_extract":
             columns_to_remove = {"Component Name"}
             self.preaggregation_columns -= columns_to_remove
@@ -357,7 +369,9 @@ class DecisionAnalyzer:
                     )
                 group_df = group_df.sort("Stage Order")
                 all_groups = group_df["Stage Group"].to_list()
-                group_orders = dict(zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list()))
+                group_orders = dict(
+                    zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list(), strict=False)
+                )
                 mapping = self.stage_to_group_mapping
                 covered_groups = set(mapping.values())
                 for grp in all_groups:
@@ -888,6 +902,7 @@ class DecisionAnalyzer:
             zip(
                 mapping_df.get_column("Stage").to_list(),
                 mapping_df.get_column("Stage Group").to_list(),
+                strict=False,
             )
         )
 

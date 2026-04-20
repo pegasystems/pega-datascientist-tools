@@ -573,7 +573,7 @@ def test_log_odds_matches_pure_python():
         "LogOdds"
     ].to_list()
 
-    for py_val, pl_val in zip(py_result, pl_result):
+    for py_val, pl_val in zip(py_result, pl_result, strict=False):
         assert py_val == pytest.approx(pl_val, abs=1e-6)
 
 

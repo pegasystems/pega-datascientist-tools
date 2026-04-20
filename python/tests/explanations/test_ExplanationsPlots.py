@@ -370,7 +370,9 @@ def test_plot_contributions_for_overall_with_kwargs_overrides_default(plots):
     _, figs_default = plots.plot_contributions_for_overall()
     _, figs_no_remaining = plots.plot_contributions_for_overall(remaining=False)
     # Without remaining bar the predictor figures should differ
-    assert any(fig_a.to_json() != fig_b.to_json() for fig_a, fig_b in zip(figs_default, figs_no_remaining))
+    assert any(
+        fig_a.to_json() != fig_b.to_json() for fig_a, fig_b in zip(figs_default, figs_no_remaining, strict=False)
+    )
 
 
 def test_plot_contributions_for_overall_include_numeric_single_bin_default(plots):

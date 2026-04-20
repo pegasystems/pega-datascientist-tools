@@ -56,7 +56,7 @@ class Infinity(SyncAPIClient):
                 f"'{name}' is not available because the Pega version could "
                 "not be determined. Pass 'pega_version' explicitly when "
                 "constructing the client, e.g.:\n"
-                "  Infinity.from_client_id_and_secret(..., pega_version='24.2')",
+                "  Infinity.from_client_id_and_secret(..., pega_version='25.1')",
             )
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
@@ -106,7 +106,7 @@ class AsyncInfinity(AsyncAPIClient):
                 f"'{name}' is not available because the Pega version could "
                 "not be determined. Pass 'pega_version' explicitly when "
                 "constructing the client, e.g.:\n"
-                "  AsyncInfinity.from_client_id_and_secret(..., pega_version='24.2')",
+                "  AsyncInfinity.from_client_id_and_secret(..., pega_version='25.1')",
             )
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",

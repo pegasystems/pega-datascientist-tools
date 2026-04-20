@@ -259,8 +259,22 @@ def run_quarto(
     # Raise an exception with captured output if Quarto failed
     if return_code != 0:
         captured_output = "\n".join(output_lines)
+        # Surface common, actionable failure modes at the top of the message
+        # so they're not buried in hundreds of lines of Quarto output.
+        hints = []
+        permission_lines = [
+            ln for ln in output_lines if "permission denied" in ln.lower() or "access is denied" in ln.lower()
+        ]
+        if permission_lines:
+            hints.append(
+                "Permission denied while running Quarto. Common causes: the "
+                "output directory or temp directory is not writable, the Quarto "
+                "binary is locked by an antivirus scanner, or a previous run "
+                "left files open. Offending log lines:\n  - " + "\n  - ".join(permission_lines[:5])
+            )
+        hint_block = ("\nHint: " + "\n\nHint: ".join(hints) + "\n") if hints else ""
         raise RuntimeError(
-            f"Quarto rendering failed with return code {return_code}.\nOutput:\n{captured_output}",
+            f"Quarto rendering failed with return code {return_code}.{hint_block}\nOutput:\n{captured_output}",
         )
 
     return return_code
