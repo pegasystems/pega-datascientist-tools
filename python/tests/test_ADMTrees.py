@@ -46,22 +46,18 @@ def sampledX(tree_sample: ADMTrees):
     return sample_x(tree_sample)
 
 
-@pytest.mark.skip(reason="Test disabled - needs investigation")
 def test_plot_first_tree(tree_sample, sampledX):
     tree_sample.plot_tree(42, highlighted=sampledX, show=False)
 
 
-@pytest.mark.skip(reason="Test disabled - needs investigation")
 def test_score(tree_sample, sampledX):
     assert 0 <= tree_sample.score(sampledX) <= 1
 
 
-@pytest.mark.skip(reason="Test disabled - needs investigation")
 def test_plotContributionPerTree(tree_sample, sampledX):
     tree_sample.plot_contribution_per_tree(sampledX, show=False)
 
 
-@pytest.mark.skip(reason="Test disabled - needs investigation")
 def test_plotSplitsPerVariableType(tree_sample):
     tree_sample.plot_splits_per_variable_type()
 
@@ -266,3 +262,59 @@ def test_metrics_feature_importance_exported(exported_model: ADMTreesModel):
         assert m["top_predictor_by_gain"] is None
         assert m["top_predictor_gain_share"] == 0.0
         assert m["predictor_gain_entropy"] == 0.0
+
+
+# --- safe evaluation helpers -----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("left", "op", "right", "expected"),
+    [
+        (1.0, "<", 2.0, True),
+        (3.0, "<", 2.0, False),
+        (2.0, ">", 1.0, True),
+        (1.0, ">", 2.0, False),
+        (1.0, "==", 1.0, True),
+        (1.0, "==", 2.0, False),
+        (1.0, "<=", 1.0, True),
+        (2.0, "<=", 1.0, False),
+        (1.0, ">=", 1.0, True),
+        (1.0, ">=", 2.0, False),
+        (1.0, "!=", 2.0, True),
+        (1.0, "!=", 1.0, False),
+    ],
+)
+def test_safe_numeric_compare(tree_sample, left, op, right, expected):
+    assert tree_sample._safe_numeric_compare(left, op, right) is expected
+
+
+def test_safe_numeric_compare_unsupported_operator(tree_sample):
+    with pytest.raises(ValueError, match="Unsupported operator"):
+        tree_sample._safe_numeric_compare(1.0, "??", 2.0)
+
+
+@pytest.mark.parametrize(
+    ("value", "op", "comparison", "expected"),
+    [
+        ("a", "in", {"a", "b"}, True),
+        ("c", "in", {"a", "b"}, False),
+        ("1.5", "<", 2.0, True),
+        ("3.0", "<", 2.0, False),
+        ("3.0", ">", 2.0, True),
+        ("1.0", ">", 2.0, False),
+        ("foo", "==", "foo", True),
+        ("foo", "==", "bar", False),
+    ],
+)
+def test_safe_condition_evaluate(tree_sample, value, op, comparison, expected):
+    assert tree_sample._safe_condition_evaluate(value, op, comparison) is expected
+
+
+def test_safe_condition_evaluate_unsupported_operator(tree_sample):
+    # Unsupported operator raises inside the try, gets caught, returns False
+    assert tree_sample._safe_condition_evaluate("x", "??", "y") is False
+
+
+def test_safe_condition_evaluate_handles_bad_numeric(tree_sample):
+    # Non-numeric string with "<" triggers ValueError -> warning -> False
+    assert tree_sample._safe_condition_evaluate("not_a_number", "<", 2.0) is False

@@ -1818,7 +1818,8 @@ class ADMTreesModel:
         else:
             to_plot = self.splits_per_variable_type[0]
         # sort column names
-        df = pl.DataFrame(to_plot).select(sorted(pl.col("*")))
+        df = pl.DataFrame(to_plot)
+        df = df.select(sorted(df.columns))
 
         fig = px.area(
             df,
