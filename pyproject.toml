@@ -72,6 +72,7 @@ tests = [
     'pytest-cov',
     'pytest-httpx',
     'pytest-mock',
+    'pytest-xdist',
     "pytest-asyncio",
     'moto',
     'openpyxl',

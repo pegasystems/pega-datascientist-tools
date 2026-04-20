@@ -115,10 +115,43 @@ jobs:
           uv run python --version
 
       - name: Run healthcheck report tests
-        run: uv run pytest python/tests/test_healthcheck.py
+        run: uv run pytest python/tests/test_healthcheck.py -n auto
+
+  # ── Step 2a-batch: Batch healthcheck integration test ──────────────
+  batch-healthcheck-tests:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Batch healthcheck integration test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra healthcheck --extra tests
 
       - name: Run batch healthcheck integration test
-        run: uv run pytest python/tests/test_batch_healthcheck.py
+        run: uv run pytest python/tests/test_batch_healthcheck.py -n auto
 
   # ── Step 2a-no-esbuild: Healthcheck without esbuild (DJS simulation) ─
   healthcheck-tests-no-esbuild:
@@ -161,10 +194,50 @@ jobs:
           find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
 
       - name: Run healthcheck tests (CDN mode only)
-        run: uv run pytest python/tests/test_healthcheck.py -k "not full_embed"
+        run: uv run pytest python/tests/test_healthcheck.py -k "not full_embed" -n auto
+
+  # ── Step 2a-batch-no-esbuild: Batch healthcheck without esbuild ────
+  batch-healthcheck-tests-no-esbuild:
+    needs: [prepare-tools]
+    runs-on: ubuntu-latest
+    name: Batch healthcheck without esbuild (DJS simulation)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore tools from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/quarto
+            ~/pandoc
+            ~/.local/share/uv/python
+          key: ${{ needs.prepare-tools.outputs.cache-key-tools }}
+          fail-on-cache-miss: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Add tools to PATH
+        run: |
+          echo "$HOME/quarto/bin" >> $GITHUB_PATH
+          echo "$HOME/pandoc/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra healthcheck --extra tests
+
+      - name: Remove esbuild to simulate DJS Docker environment
+        run: |
+          echo "Removing esbuild binaries to simulate DJS environment (issue #620)..."
+          find "$HOME/quarto" -name "esbuild" -type f -exec rm -v {} \;
+          echo "Verifying esbuild is gone:"
+          find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
 
       - name: Run batch healthcheck integration test (CDN only, no esbuild)
-        run: uv run pytest python/tests/test_batch_healthcheck.py -k "not full_embed"
+        run: uv run pytest python/tests/test_batch_healthcheck.py -k "not full_embed" -n auto
 
   # ── Step 2b: Explanations report tests ───────────────────────────────
   explanations-tests:
