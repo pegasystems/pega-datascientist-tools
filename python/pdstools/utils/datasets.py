@@ -1,7 +1,7 @@
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
-from ..adm.ADMTrees import ADMTrees
+from ..adm.ADMTrees import ADMTreesModel
 from ..utils.types import QUERY
 from ..valuefinder.ValueFinder import ValueFinder
 
@@ -40,7 +40,7 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
 def sample_trees():
     with warnings.catch_warnings(record=True) as w:
         try:
-            return ADMTrees(
+            return ADMTreesModel.from_url(
                 "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt",
             )
         except Exception as e:

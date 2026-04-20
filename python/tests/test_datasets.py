@@ -41,7 +41,7 @@ def test_sample_trees_raises_runtime_error(monkeypatch):
 
     from pdstools.utils import datasets as ds_mod
 
-    monkeypatch.setattr(ds_mod, "ADMTrees", _raise)
+    monkeypatch.setattr(ds_mod, "ADMTreesModel", _raise)
     with pytest.raises(RuntimeError, match="Error importing the Sample Trees"):
         ds_mod.sample_trees()
 
