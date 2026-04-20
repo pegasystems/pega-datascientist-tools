@@ -1,6 +1,5 @@
-__all__ = ["Reports"]
+__all__ = ["ReportOptions", "Reports"]
 import logging
-import os
 import shutil
 from os import PathLike
 from pathlib import Path
@@ -8,6 +7,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 import polars as pl
+from typing_extensions import TypedDict, Unpack
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
@@ -25,6 +25,89 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ReportOptions(TypedDict, total=False):
+    """Shared rendering/output options for report-generating methods.
+
+    Passed via ``**options`` to :meth:`Reports.model_reports` and
+    :meth:`Reports.health_check`. All keys are optional; per-method defaults
+    apply when a key is omitted.
+
+    Keys
+    ----
+    title : str
+        Title shown in the report.
+    subtitle : str
+        Subtitle shown under the title.
+    disclaimer : str
+        Disclaimer text included in the report.
+    output_dir : str or Path or None
+        Directory for the output file. If None, uses the current working
+        directory.
+    output_type : str
+        Output format (e.g. ``"html"``, ``"pdf"``). Defaults to ``"html"``.
+    qmd_file : str or Path or None
+        Path to a custom Quarto template. If None, the built-in template
+        is used.
+    full_embed : bool
+        When True, fully embed all JavaScript libraries (Plotly, itables,
+        etc.) into the HTML output (larger file, requires esbuild). When
+        False (default), load JavaScript libraries from CDN. See issue
+        #620.
+    keep_temp_files : bool
+        If True, the temporary working directory is preserved after the
+        report is generated. Defaults to False.
+    """
+
+    title: str
+    subtitle: str
+    disclaimer: str
+    output_dir: PathLike | None
+    output_type: str
+    qmd_file: PathLike | None
+    full_embed: bool
+    keep_temp_files: bool
+
+
+_VALID_REPORT_OPTION_KEYS: frozenset[str] = frozenset(ReportOptions.__annotations__)
+
+
+def _resolve_report_options(defaults: "ReportOptions", options: "ReportOptions") -> dict:
+    """Merge per-method defaults with caller-supplied options.
+
+    Raises ``TypeError`` on unknown keys so typos surface at runtime (since
+    ``TypedDict`` is only checked statically).
+    """
+    unknown = set(options) - _VALID_REPORT_OPTION_KEYS
+    if unknown:
+        raise TypeError(
+            f"Unknown report option(s): {sorted(unknown)}. Valid options: {sorted(_VALID_REPORT_OPTION_KEYS)}"
+        )
+    return {**defaults, **options}
+
+
+_MODEL_REPORT_DEFAULTS: ReportOptions = {
+    "title": "ADM Model Report",
+    "subtitle": "",
+    "disclaimer": "",
+    "output_dir": None,
+    "output_type": "html",
+    "qmd_file": None,
+    "full_embed": False,
+    "keep_temp_files": False,
+}
+
+_HEALTH_CHECK_DEFAULTS: ReportOptions = {
+    "title": "ADM Model Overview",
+    "subtitle": "",
+    "disclaimer": "",
+    "output_dir": None,
+    "output_type": "html",
+    "qmd_file": None,
+    "full_embed": False,
+    "keep_temp_files": False,
+}
+
+
 class Reports(LazyNamespace):
     dependencies = ["yaml"]
     dependency_group = "healthcheck"
@@ -39,18 +122,11 @@ class Reports(LazyNamespace):
         *,
         name: str
         | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
-        title: str = "ADM Model Report",
-        disclaimer: str = "",
-        subtitle: str = "",
-        output_dir: PathLike | None = None,
         only_active_predictors: bool = True,
-        output_type: str = "html",
-        keep_temp_files: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: PathLike | None = None,
         predictor_file_path: PathLike | None = None,
-        qmd_file: PathLike | None = None,
-        full_embed: bool = False,
+        **options: Unpack[ReportOptions],
     ) -> Path:
         """Generates model reports for Naive Bayes ADM models.
 
@@ -60,20 +136,8 @@ class Reports(LazyNamespace):
             The model ID (or list of model IDs) to generate reports for.
         name : str, optional
             The (base) file name of the report.
-        title : str, optional
-            Title to put in the report, uses a default string if not given.
-        subtitle : str, optional
-            Subtitle to put in the report, empty if not given.
-        disclaimer : str, optional
-            Disclaimer blub to put in the report, empty if not given.
-        output_dir : Union[str, Path, None], optional
-            The directory for the output. If None, uses current working directory.
         only_active_predictors : bool, default=True
             Whether to only include active predictor details.
-        output_type : str, default='html'
-            The type of the output file (e.g., "html", "pdf").
-        keep_temp_files : bool, optional
-            If True, the temporary directory with temp files will not be deleted after report generation.
         progress_callback : Callable[[int, int], None], optional
             A callback function to report progress. Used only in the Streamlit app.
             The function should accept two integers: the current progress and the total.
@@ -81,14 +145,11 @@ class Reports(LazyNamespace):
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
-        qmd_file : Union[str, Path, None], optional
-            Optional path to the Quarto file to use for the model report.
-            If None, defaults to "ModelReport.qmd".
-        full_embed : bool, default=False
-            When True, fully embeds all JavaScript libraries (Plotly, itables,
-            etc.) into the HTML output (larger file, requires esbuild).
-            When False, loads JavaScript libraries from CDN (smaller, requires
-            internet). See issue #620.
+        **options : Unpack[ReportOptions]
+            Shared rendering/output options. See :class:`ReportOptions` for
+            the supported keys (``title``, ``subtitle``, ``disclaimer``,
+            ``output_dir``, ``output_type``, ``qmd_file``, ``full_embed``,
+            ``keep_temp_files``). Default ``title`` is ``"ADM Model Report"``.
 
         Returns
         -------
@@ -99,12 +160,24 @@ class Reports(LazyNamespace):
         ------
         ValueError
             If there's an error in report generation or invalid parameters.
+        TypeError
+            If ``options`` contains an unknown key.
         FileNotFoundError
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
 
         """
+        opts = _resolve_report_options(_MODEL_REPORT_DEFAULTS, options)
+        title = opts["title"]
+        subtitle = opts["subtitle"]
+        disclaimer = opts["disclaimer"]
+        output_dir = opts["output_dir"]
+        output_type = opts["output_type"]
+        qmd_file = opts["qmd_file"]
+        full_embed = opts["full_embed"]
+        keep_temp_files = opts["keep_temp_files"]
+
         if isinstance(model_ids, str):
             model_ids = [model_ids]
         if not model_ids or not isinstance(model_ids, list) or not all(isinstance(i, str) for i in model_ids):
@@ -201,20 +274,13 @@ class Reports(LazyNamespace):
         self,
         name: str
         | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
-        title: str = "ADM Model Overview",
-        subtitle: str = "",
-        disclaimer: str = "",
-        output_dir: os.PathLike | None = None,
         *,
         query: QUERY | None = None,
-        output_type: str = "html",
-        keep_temp_files: bool = False,
         prediction=None,
         model_file_path: PathLike | None = None,
         predictor_file_path: PathLike | None = None,
         prediction_file_path: PathLike | None = None,
-        qmd_file: PathLike | None = None,
-        full_embed: bool = False,
+        **options: Unpack[ReportOptions],
     ) -> Path:
         """Generates Health Check report for ADM models, optionally including predictor and prediction sections.
 
@@ -222,20 +288,8 @@ class Reports(LazyNamespace):
         ----------
         name : str, optional
             The (base) file name of the report.
-        title : str, optional
-            Title to put in the report, uses a default string if not given.
-        subtitle : str, optional
-            Subtitle to put in the report, empty if not given.
-        disclaimer : str, optional
-            Disclaimer blub to put in the report, empty if not given.
         query : QUERY, optional
             Optional extra filter on the datamart data
-        output_dir : Union[str, Path, None], optional
-            The directory for the output. If None, uses current working directory.
-        output_type : str, default='html'
-            The type of the output file (e.g., "html", "pdf").
-        keep_temp_files : bool, optional
-            If True, the temporary directory with temp files will not be deleted after report generation.
         prediction : Prediction, optional
             Optional Prediction object to include in the health check. If provided without
             prediction_file_path, the prediction data will be automatically cached to a temporary file.
@@ -246,14 +300,11 @@ class Reports(LazyNamespace):
         prediction_file_path : Union[str, Path, None], optional
             Optional name of the actual predictions data file. If not provided but prediction object
             is given, the data will be automatically cached from the prediction object.
-        qmd_file : Union[str, Path, None], optional
-            Optional path to the Quarto file to use for the health check report.
-            If None, defaults to "HealthCheck.qmd".
-        full_embed : bool, default=False
-            When True, fully embeds all JavaScript libraries (Plotly, itables,
-            etc.) into the HTML output (larger file, requires esbuild).
-            When False, loads JavaScript libraries from CDN (smaller, requires
-            internet). See issue #620.
+        **options : Unpack[ReportOptions]
+            Shared rendering/output options. See :class:`ReportOptions` for
+            the supported keys (``title``, ``subtitle``, ``disclaimer``,
+            ``output_dir``, ``output_type``, ``qmd_file``, ``full_embed``,
+            ``keep_temp_files``). Default ``title`` is ``"ADM Model Overview"``.
 
         Returns
         -------
@@ -264,12 +315,24 @@ class Reports(LazyNamespace):
         ------
         ValueError
             If there's an error in report generation or invalid parameters.
+        TypeError
+            If ``options`` contains an unknown key.
         FileNotFoundError
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
 
         """
+        opts = _resolve_report_options(_HEALTH_CHECK_DEFAULTS, options)
+        title = opts["title"]
+        subtitle = opts["subtitle"]
+        disclaimer = opts["disclaimer"]
+        output_dir = opts["output_dir"]
+        output_type = opts["output_type"]
+        qmd_file = opts["qmd_file"]
+        full_embed = opts["full_embed"]
+        keep_temp_files = opts["keep_temp_files"]
+
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
             # Use provided qmd_file or default to "HealthCheck.qmd"
