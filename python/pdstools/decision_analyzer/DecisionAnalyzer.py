@@ -1894,8 +1894,6 @@ class DecisionAnalyzer:
 
         return result.lazy()
 
-    # Tracked in docs/plans/decision-analyzer-TODO.md (P3: AB test:
-    # maintain standard stage order) — currently sorted on counts.
     def get_ab_test_results(self) -> pl.DataFrame:
         """A/B test summary: control vs test counts and control percentage per stage.
 
@@ -1903,7 +1901,9 @@ class DecisionAnalyzer:
         -------
         pl.DataFrame
             One row per stage with columns for Control, Test counts and
-            Control Percentage.
+            Control Percentage. Rows preserve the canonical
+            ``AvailableNBADStages`` order (stages absent from the data are
+            omitted).
         """
         tbl = (
             self.preaggregated_remaining_view.group_by(
@@ -1921,7 +1921,12 @@ class DecisionAnalyzer:
                 sort_columns=True,
             )
             .with_columns((pl.col("Control") / (pl.col("Test") + pl.col("Control"))).alias("Control Percentage"))
-            .sort("Test", descending=True)
+        )
+        stage_order = pl.DataFrame(
+            {self.level: self.AvailableNBADStages, "_stage_order": list(range(len(self.AvailableNBADStages)))}
+        )
+        tbl = (
+            tbl.join(stage_order, on=self.level, how="left").sort("_stage_order", nulls_last=True).drop("_stage_order")
         )
         return tbl
 

@@ -36,13 +36,22 @@ logger = logging.getLogger(__name__)
 
 
 def get_output_filename(
-    name: str | None,  # going to be the full file name
+    name: str | None,
     report_type: str,
     model_id: str | None = None,
     output_type: str = "html",
 ) -> str:
-    """Generate the output filename based on the report parameters."""
-    name = name.replace(" ", "_") if name else None
+    """Generate the output filename based on the report parameters.
+
+    If ``name`` already ends with ``.{output_type}`` (case-insensitive), it
+    is treated as a full filename and returned verbatim (after replacing
+    spaces with underscores). Otherwise the filename is composed from
+    ``report_type``, ``name``, and ``model_id`` with the extension appended.
+    """
+    if name:
+        name = name.replace(" ", "_")
+        if name.lower().endswith(f".{output_type.lower()}"):
+            return name
     if report_type == "ModelReport":
         return f"{report_type}_{name}_{model_id}.{output_type}" if name else f"{report_type}_{model_id}.{output_type}"
     return f"{report_type}_{name}.{output_type}" if name else f"{report_type}.{output_type}"

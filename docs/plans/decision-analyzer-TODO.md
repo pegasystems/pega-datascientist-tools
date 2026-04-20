@@ -39,7 +39,10 @@ removed or marked done as commits land on master.
 - [ ] **Treatment support** — Treatment column commented out in schema. When present, same action appears multiple times per interaction with different propensities. Key decisions needed: aggregation strategy, UX approach, which metrics need treatment-specific handling. Low prevalence (~0.6% of rows).
 - [ ] **Customer-level aggregates** — Per-customer statistics. Postponed until representative multi-customer dataset available.
 - [ ] **AB test: include IA properties** — `get_ab_test_results` doesn't join Impact Analyzer properties when present.
-- [ ] **AB test: maintain standard stage order** — `get_ab_test_results` currently sorts by Test count for visual prominence; should preserve the canonical stage order from `AvailableNBADStages` for consistency with other tables.
+- [x] **AB test: maintain standard stage order** — `get_ab_test_results` now
+  joins onto `AvailableNBADStages` and sorts by canonical stage order
+  (stages absent from the data are omitted). Verified by an exact-value
+  assertion in `test_get_ab_test_results_no_crash`.
 - [ ] **Stratified sampling** — Add optional `sample_stratified_by` parameter for proportional representation across channels/directions.
 - [ ] **Scale up counts after sampling** — Show estimated full-volume counts in UI (infrastructure in place via sample fraction metadata).
 - [ ] **Streaming pre-aggregation** — `preaggregated_filter_view` calls `.collect()` on full dataset. Investigate polars streaming mode for GB-scale data.

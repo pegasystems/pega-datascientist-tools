@@ -85,7 +85,12 @@ def get_colorscale(
 DEFAULT_LABEL_MAX_LENGTH = 25
 
 
-def abbreviate_label(label: str, max_length: int = DEFAULT_LABEL_MAX_LENGTH) -> str:
+def abbreviate_label(
+    label: str,
+    max_length: int = DEFAULT_LABEL_MAX_LENGTH,
+    *,
+    from_end: bool = False,
+) -> str:
     """Truncate a label to ``max_length`` chars, appending ``...`` when shortened.
 
     Used for axis tick labels (predictor names, bin symbols, action names) that
@@ -99,15 +104,23 @@ def abbreviate_label(label: str, max_length: int = DEFAULT_LABEL_MAX_LENGTH) -> 
         The original label.
     max_length : int, optional
         Maximum length before the ellipsis is appended, by default 25.
+    from_end : bool, optional
+        If True, keep the trailing ``max_length`` characters and prepend
+        ``...`` instead of truncating from the end. Useful for action /
+        treatment names whose distinguishing suffix is more informative
+        than the common prefix. Defaults to False.
 
     Returns
     -------
     str
-        The original ``label`` if it fits, otherwise ``label[:max_length] + "..."``.
+        The original ``label`` if it fits, otherwise the truncated label
+        with ``...`` on the truncated side.
     """
-    if len(label) > max_length:
-        return label[:max_length] + "..."
-    return label
+    if len(label) <= max_length:
+        return label
+    if from_end:
+        return "..." + label[-max_length:]
+    return label[:max_length] + "..."
 
 
 def abbreviate_label_expr(

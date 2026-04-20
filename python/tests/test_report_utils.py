@@ -79,6 +79,17 @@ def test_get_output_filename():
         report_utils.get_output_filename("test report", "HealthCheck", None, "html") == "HealthCheck_test_report.html"
     )
 
+    # When `name` already ends with `.<output_type>`, return it verbatim
+    # (after underscore-substitution) instead of double-suffixing.
+    assert report_utils.get_output_filename("my_report.html", "HealthCheck", None, "html") == "my_report.html"
+    assert report_utils.get_output_filename("My Report.HTML", "HealthCheck", None, "html") == "My_Report.HTML"
+    assert report_utils.get_output_filename("my_report.html", "ModelReport", "model1", "html") == "my_report.html"
+    # Mismatched extension still gets the canonical extension appended.
+    assert (
+        report_utils.get_output_filename("my_report.html", "HealthCheck", None, "pdf")
+        == "HealthCheck_my_report.html.pdf"
+    )
+
 
 def test_set_command_options():
     """Test the _set_command_options function."""

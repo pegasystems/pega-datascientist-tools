@@ -12,7 +12,11 @@ Open work items for the ADM Health Check report and supporting ADM library code.
 
 - [ ] **[P2] Consistent legend coloring across partitioned plots** — Same predictor category gets different colors in different partitions (`_boxplot_pre_aggregated` uses local `fixed_colors` with index-shifting fallback). Reuse `pdstools/utils/color_mapping.py` (`create_categorical_color_mappings()`) — already proven in Decision Analyzer's `color_mappings` property. Compute global mapping at `ADMDatamart` level; pass `color_discrete_map` into box plot functions.
 
-- [ ] **[P3] Standardize long axis label abbreviation** — Ad-hoc `s[:25] + "..."` truncation in `BinAggregator.py`. Extract to shared `abbreviate_labels()` utility; apply to predictor names, action names, config names.
+- [x] **[P3] Standardize long axis label abbreviation** — `abbreviate_label` /
+  `abbreviate_label_expr` in `utils/plot_utils.py` are the canonical helpers.
+  HealthCheck.qmd now uses `abbreviate_label(..., from_end=True)` instead of
+  inline slicing. Remaining work (ensuring truncated labels stay unique within
+  a plot) is captured by the inline TODO at `BinAggregator.py` line ~822.
 
 ---
 
@@ -43,6 +47,11 @@ Open work items for the ADM Health Check report and supporting ADM library code.
 
 - [ ] **[P3] Move report-local plot helpers into `adm/Plots.py`** — `ModelReport.qmd` defines several plotly figures inline (cumulative gains/lift area charts, base-propensity hline overlay on predictor binning, the "Philip Mann" lift bar plot duplicated between BinAggregator.py and the qmd). Lift these into reusable functions on `ADMDatamart.plot` so they can be tested and shared.
 
-- [ ] **[P3] Replace silent ValueError swallow in `predictors_overview`** — `Aggregates.predictors_overview` wraps its body in `try/except ValueError: return None` (documented as "returns None on error" but hides the cause). Narrow the exception, log the reason, or re-raise so callers can distinguish "no data" from "broken data".
+- [x] **[P3] Replace silent ValueError swallow in `predictors_overview`** —
+  Narrowed: now only catches the specific `ValueError` from `last()` when no
+  predictor data is loaded, logs it at debug level, and returns `None`.
 
-- [ ] **[P3] Auto-detect `name` ending in `.html`** — `Reports.model_reports` and `Reports.health_check` accept `name` as the *base* file name and append the extension from `output_type`. When a caller passes `name="report.html"` they probably mean "use this exact filename" — handle that in `get_output_filename` rather than producing `report.html.html`.
+- [x] **[P3] Auto-detect `name` ending in `.html`** — `get_output_filename`
+  now returns `name` verbatim when it already ends with the configured
+  output extension (case-insensitive), so `name="report.html"` no longer
+  produces `report.html.html`.

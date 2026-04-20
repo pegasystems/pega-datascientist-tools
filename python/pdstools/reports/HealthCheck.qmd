@@ -38,6 +38,7 @@ from pdstools import (
     read_ds_export,
 )
 from pdstools.utils import pega_template, report_utils, cdh_utils
+from pdstools.utils.plot_utils import abbreviate_label
 from pdstools.adm.Plots import fig_update_facet
 
 # from plotly.offline import iplot
@@ -1566,14 +1567,11 @@ if datamart.predictor_data is not None:
         )
         if fig is not None:
             fig.update_layout(
-                # Tracked in docs/plans/health-check-TODO.md (P3:
-                # Standardize long axis label abbreviation) — replace this
-                # ad-hoc truncation with a shared helper.
                 xaxis={
                     "tickmode": "array",
                     "tickvals": fig.data[0]["x"],
                     "ticktext": [
-                        "..." + tick[-25:] if len(tick) > 25 else tick
+                        abbreviate_label(tick, from_end=True)
                         for tick in fig.data[0]["x"]
                     ],
                 },

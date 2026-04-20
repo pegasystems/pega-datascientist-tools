@@ -1418,6 +1418,11 @@ class TestAnalysisMethods:
             result = da_v2.get_ab_test_results()
             assert isinstance(result, pl.DataFrame)
             assert result.height > 0
+            # Stages must follow the canonical AvailableNBADStages order
+            # (subset, since not every stage has AB rows).
+            stages_in_result = result.get_column(da_v2.level).to_list()
+            canonical = [s for s in da_v2.AvailableNBADStages if s in stages_in_result]
+            assert stages_in_result == canonical
 
     def test_get_thresholding_data_propensity(self, da_v1):
         result = da_v1.get_thresholding_data(fld="Propensity")

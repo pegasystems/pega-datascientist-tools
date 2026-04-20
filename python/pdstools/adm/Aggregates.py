@@ -1,5 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
+import logging
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -14,6 +15,8 @@ from ..utils.types import QUERY
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
+
+logger = logging.getLogger(__name__)
 
 
 class Aggregates:
@@ -895,55 +898,90 @@ class Aggregates:
         """
         try:
             data = self.last(table="predictor_data")
-
-            if model_id is not None:
-                data = data.filter(pl.col("ModelID") == model_id)
-                group_cols = ["PredictorName", "PredictorCategory"]
-            else:
-                group_cols = ["ModelID", "PredictorName", "PredictorCategory"]
-
-            default_aggs = [
-                pl.last("ResponseCount").cast(pl.Int64).alias("Responses"),
-                pl.last("Positives").cast(pl.Int64),
-                pl.last("EntryType"),
-                (pl.last("EntryType") == "Active").alias("isActive"),
-                pl.last("GroupIndex").cast(pl.Int16),
-                pl.last("Type"),
-                pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
-                pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
-                (
-                    pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum()
-                    * 100
-                    / pl.sum("BinResponseCount")
-                )
-                .cast(pl.Float64)
-                .alias("Missing %"),
-                (
-                    pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
-                    * 100
-                    / pl.sum("BinResponseCount")
-                )
-                .cast(pl.Float64)
-                .alias("Residual %"),
-            ]
-
-            if additional_aggregations is not None:
-                default_aggs.extend(additional_aggregations)
-
-            result = data.group_by(group_cols).agg(*default_aggs)
-            result = result.sort(
-                ["GroupIndex", "isActive", "Univariate Performance"],
-                descending=[False, True, True],
-                nulls_last=True,
-            )
-
-            return result
-        except ValueError:
-            # NOTE: documented behaviour ("Returns None if an error is
-            # encountered"). Tracked in docs/plans/health-check-TODO.md
-            # (P3: Replace silent ValueError swallow in predictors_overview)
-            # — narrow the except, log the reason, or re-raise.
+        except ValueError as e:
+            # `last()` raises ValueError when the underlying lazy frame is
+            # missing (no predictor data loaded). That's the only case we
+            # want to silently degrade — anything else should surface.
+            logger.debug("predictors_overview: no predictor data available (%s)", e)
             return None
+
+        if model_id is not None:
+            data = data.filter(pl.col("ModelID") == model_id)
+            group_cols = ["PredictorName", "PredictorCategory"]
+        else:
+            group_cols = ["ModelID", "PredictorName", "PredictorCategory"]
+
+        default_aggs = [
+            pl.last("ResponseCount").cast(pl.Int64).alias("Responses"),
+            pl.last("Positives").cast(pl.Int64),
+            pl.last("EntryType"),
+            (pl.last("EntryType") == "Active").alias("isActive"),
+            pl.last("GroupIndex").cast(pl.Int16),
+            pl.last("Type"),
+            pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
+            pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
+            (pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum() * 100 / pl.sum("BinResponseCount"))
+            .cast(pl.Float64)
+            .alias("Missing %"),
+            (
+                pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
+                * 100
+                / pl.sum("BinResponseCount")
+            )
+            .cast(pl.Float64)
+            .alias("Residual %"),
+        ]
+
+        if additional_aggregations is not None:
+            default_aggs.extend(additional_aggregations)
+
+        result = data.group_by(group_cols).agg(*default_aggs)
+        result = result.sort(
+            ["GroupIndex", "isActive", "Univariate Performance"],
+            descending=[False, True, True],
+            nulls_last=True,
+        )
+
+        return result
+
+        if model_id is not None:
+            data = data.filter(pl.col("ModelID") == model_id)
+            group_cols = ["PredictorName", "PredictorCategory"]
+        else:
+            group_cols = ["ModelID", "PredictorName", "PredictorCategory"]
+
+        default_aggs = [
+            pl.last("ResponseCount").cast(pl.Int64).alias("Responses"),
+            pl.last("Positives").cast(pl.Int64),
+            pl.last("EntryType"),
+            (pl.last("EntryType") == "Active").alias("isActive"),
+            pl.last("GroupIndex").cast(pl.Int16),
+            pl.last("Type"),
+            pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
+            pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
+            (pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum() * 100 / pl.sum("BinResponseCount"))
+            .cast(pl.Float64)
+            .alias("Missing %"),
+            (
+                pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
+                * 100
+                / pl.sum("BinResponseCount")
+            )
+            .cast(pl.Float64)
+            .alias("Residual %"),
+        ]
+
+        if additional_aggregations is not None:
+            default_aggs.extend(additional_aggregations)
+
+        result = data.group_by(group_cols).agg(*default_aggs)
+        result = result.sort(
+            ["GroupIndex", "isActive", "Univariate Performance"],
+            descending=[False, True, True],
+            nulls_last=True,
+        )
+
+        return result
 
     def overall_summary(
         self,
