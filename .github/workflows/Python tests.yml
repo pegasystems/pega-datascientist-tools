@@ -83,7 +83,12 @@ jobs:
         run: uv sync --extra tests
 
       - name: Run tests
-        run: uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py --ignore=python/tests/test_explanations_report.py --ignore=python/tests/test_batch_healthcheck.py
+        # Run in two passes: parallel for the bulk of tests, then sequential for
+        # python/tests/explanations which share state via a hardcoded `.tmp/`
+        # working directory and aren't safe to parallelise.
+        run: |
+          uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py --ignore=python/tests/test_explanations_report.py --ignore=python/tests/test_batch_healthcheck.py --ignore=python/tests/explanations -n auto
+          uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc python/tests/explanations
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5.1.2
