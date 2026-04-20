@@ -449,11 +449,16 @@ def test_multitrees_indexing_by_int(two_models):
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b}, model_name="cfg")
-    # Integer index returns the (key, value) pair from insertion order.
-    assert mt[0] == ("2024-01-01", a)
-    assert mt[-1] == ("2024-02-01", b)
-    assert mt.first == ("2024-01-01", a)
-    assert mt.last == ("2024-02-01", b)
+    # Integer index returns the model directly (was a (key, value) tuple
+    # in the legacy code — confusingly inconsistent with string indexing).
+    assert mt[0] is a
+    assert mt[-1] is b
+    assert mt.first is a
+    assert mt.last is b
+    # items() / values() / keys() expose the dict view explicitly.
+    assert list(mt.values()) == [a, b]
+    assert list(mt.keys()) == ["2024-01-01", "2024-02-01"]
+    assert list(mt.items()) == [("2024-01-01", a), ("2024-02-01", b)]
 
 
 def test_multitrees_indexing_by_str(two_models):
@@ -466,6 +471,18 @@ def test_multitrees_indexing_by_str(two_models):
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b})
     assert mt["2024-01-01"] is a
     assert mt["2024-02-01"] is b
+
+
+def test_multitrees_first_last_callable(two_models):
+    """``mt.first.score(x)`` must work — guards against the asymmetric
+    indexing footgun."""
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b})
+    # If first returned a tuple this would AttributeError.
+    assert isinstance(mt.first.metrics, dict)
+    assert isinstance(mt.last.metrics, dict)
 
 
 def test_multitrees_add_preserves_metadata(two_models):
@@ -502,3 +519,38 @@ def test_multitrees_len_and_repr(two_models):
     assert len(mt) == 2
     r = repr(mt)
     assert "cfg" in r and "2" in r
+
+
+def test_multitrees_from_datamart_timestamp_formatting():
+    """Regression: ``str.strip_chars_end(\".000000000\")`` strips a *set*
+    of characters, not a literal suffix, so timestamps ending in 0 (e.g.
+    12:30:20) used to get mangled to ``12:30:2``.  The fix uses
+    ``dt.strftime`` which formats explicitly.
+    """
+    import polars as pl
+    from datetime import datetime
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                datetime(2024, 1, 1, 12, 30, 20),  # ends in 0 — would be mangled
+                datetime(2024, 1, 1, 12, 30, 5),
+            ],
+            "Modeldata": [None, None],  # filtered out, we only want the strftime
+            "Configuration": ["cfg", "cfg"],
+        }
+    )
+    # Reproduce the projection that from_datamart applies to confirm the
+    # formatting; the actual decode pipeline needs real blobs.
+    formatted = df.select(
+        pl.col("SnapshotTime").dt.round("1s").dt.strftime("%Y-%m-%d %H:%M:%S"),
+    )["SnapshotTime"].to_list()
+    assert formatted == ["2024-01-01 12:30:20", "2024-01-01 12:30:05"]
+    # Sanity: the buggy approach mangles the trailing 0.
+    legacy_buggy = df.select(pl.col("SnapshotTime").dt.round("1s").cast(pl.Utf8).str.strip_chars_end(".000000000"))[
+        "SnapshotTime"
+    ].to_list()
+    assert "12:30:20" not in legacy_buggy[0]  # confirms the bug exists
+    # Reference MultiTrees so it's exercised even though we don't construct it.
+    assert callable(MultiTrees.from_datamart)

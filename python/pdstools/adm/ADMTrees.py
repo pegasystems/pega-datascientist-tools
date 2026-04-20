@@ -393,8 +393,9 @@ class ADMTreesModel:
         """Load a model from a URL pointing at the JSON export."""
         import requests  # type: ignore[import-untyped]
 
-        content = requests.get(url).content
-        data = json.loads(content)
+        content = requests.get(url)
+        content.raise_for_status()
+        data = json.loads(content.content)
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = url
@@ -1099,27 +1100,14 @@ class ADMTreesModel:
     def get_predictors(self) -> dict | None:
         """Extract predictor names and types from model metadata.
 
-        Falls back to inferring from tree splits when explicit metadata
-        is missing (newer Pega export formats can omit ``configuration``).
+        Tries explicit metadata first (``configuration.predictors`` then
+        ``predictors``); falls back to inferring from tree splits when
+        neither is present.
         """
-        try:
-            predictors = self._properties["configuration"]["predictors"]
-        except (KeyError, TypeError):  # pragma: no cover
-            try:
-                predictors = self._properties["predictors"]
-            except (KeyError, TypeError):
-                try:
-                    predictors = []
-                    for i in self._properties.split("=")[4].split(
-                        "com.pega.decision.adm.client.PredictorInfo: ",
-                    ):
-                        if i.startswith("{"):
-                            if i.endswith("ihSummaryPredictors"):
-                                predictors += [i.split("], ihSummaryPredictors")[0]]
-                            else:
-                                predictors += [i[:-2]]
-                except (AttributeError, IndexError, TypeError):
-                    return self._infer_predictors_from_splits()
+        config = self._properties.get("configuration") or {}
+        predictors = config.get("predictors") or self._properties.get("predictors")
+        if not predictors:
+            return self._infer_predictors_from_splits()
         result = {}
         for predictor in predictors:
             if isinstance(predictor, str):  # pragma: no cover
@@ -1206,6 +1194,17 @@ class ADMTreesModel:
 
     def get_grouped_gains_per_split(self) -> pl.DataFrame:
         """Gains per split, grouped by split string with helpful aggregates."""
+
+        def _sign(raw: str) -> str:
+            split = parse_split(raw)
+            return "in" if split.operator == "is" else split.operator
+
+        def _values(raw: str) -> set[str]:
+            split = parse_split(raw)
+            if isinstance(split.value, tuple):
+                return set(split.value)
+            return {str(split.value)}
+
         return (
             self.gains_per_split.group_by("split", maintain_order=True)
             .agg(
@@ -1213,18 +1212,8 @@ class ADMTreesModel:
                     pl.first("predictor"),
                     pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
-                    pl.first("split")
-                    .map_elements(
-                        lambda x: self.parse_split_values(x)[1],
-                        return_dtype=pl.Utf8,
-                    )
-                    .alias("sign"),
-                    pl.first("split")
-                    .map_elements(
-                        lambda x: self.parse_split_values(x)[2],
-                        return_dtype=pl.Object,
-                    )
-                    .alias("values"),
+                    pl.first("split").map_elements(_sign, return_dtype=pl.Utf8).alias("sign"),
+                    pl.first("split").map_elements(_values, return_dtype=pl.Object).alias("values"),
                 ],
             )
             .with_columns(n=pl.col("gains").list.len())
@@ -1394,15 +1383,15 @@ class ADMTreesModel:
             color = "green" if key in highlighted else "white"
             label = f"Score: {node['score']}"
             if "split" in node:
-                split = node["split"]
-                variable, sign, values = self.parse_split_values(split)
-                if sign == "in":
-                    if len(values) <= 3:
-                        labelname = values
+                split_obj = parse_split(node["split"])
+                if split_obj.operator == "in" and isinstance(split_obj.value, tuple):
+                    members = split_obj.value
+                    if len(members) <= 3:
+                        labelname = set(members)
                     else:
-                        totallen = len(self.all_values_per_split[variable])
-                        labelname = f"{list(values)[0:2] + ['...']} ({len(values)}/{totallen})"
-                    label += f"\nSplit: {variable} in {labelname}\nGain: {node['gain']}"
+                        totallen = len(self.all_values_per_split[split_obj.variable])
+                        labelname = f"{list(members[:2]) + ['...']} ({len(members)}/{totallen})"
+                    label += f"\nSplit: {split_obj.variable} in {labelname}\nGain: {node['gain']}"
                 else:
                     label += f"\nSplit: {node['split']}\nGain: {node['gain']}"
                 graph.add_node(
@@ -1459,14 +1448,23 @@ class ADMTreesModel:
             visited.append(current_node_id)
             current_node = tree[current_node_id]
             if "split" in current_node:
-                variable, type_, split = self.parse_split_values(current_node["split"])
-                splitvalue = f"'{x[variable]}'" if type_ in {"in", "is"} else x[variable]
-                type_ = "in" if type_ == "is" else type_
+                split_obj = parse_split(current_node["split"])
+                op = split_obj.operator
+                if op in {"in", "is"}:
+                    splitvalue = f"'{x[split_obj.variable]}'"
+                    op = "in"
+                else:
+                    splitvalue = x[split_obj.variable]
                 if save_all:
                     scores.append({current_node["split"]: current_node["gain"]})
-                if type_ in {"<", ">"} and isinstance(split, set):
-                    split = float(next(iter(split)))
-                if self._safe_condition_evaluate(splitvalue, type_, split):
+                # Resolve the right-hand side of the comparison.
+                if op in {"<", ">"}:
+                    rhs: Any = float(split_obj.value)  # type: ignore[arg-type]
+                elif isinstance(split_obj.value, tuple):
+                    rhs = set(split_obj.value)
+                else:
+                    rhs = split_obj.value
+                if self._safe_condition_evaluate(splitvalue, op, rhs):
                     current_node_id = current_node["left_child"]
                 else:
                     current_node_id = current_node["right_child"]
@@ -1652,13 +1650,34 @@ class MultiTrees:
             return f"MultiTrees object{mod}, empty"
         return f"MultiTrees object{mod}, with {len(self)} trees ranging from {keys[0]} to {keys[-1]}"
 
-    def __getitem__(self, index: int | str):
+    def __getitem__(self, index: int | str) -> ADMTreesModel:
+        """Return the :class:`ADMTreesModel` at ``index``.
+
+        Integer indices select by insertion order; string indices select
+        by snapshot timestamp.  Use :meth:`items` if you need both keys
+        and values together.
+        """
         if isinstance(index, int):
-            return list(self.trees.items())[index]
+            return list(self.trees.values())[index]
         return self.trees[index]
 
     def __len__(self) -> int:
         return len(self.trees)
+
+    def items(self):
+        """Iterate ``(timestamp, model)`` pairs in insertion order."""
+        return self.trees.items()
+
+    def values(self):
+        """Iterate :class:`ADMTreesModel` instances in insertion order."""
+        return self.trees.values()
+
+    def keys(self):
+        """Iterate snapshot timestamps in insertion order."""
+        return self.trees.keys()
+
+    def __iter__(self):
+        return iter(self.trees)
 
     def __add__(self, other: MultiTrees | ADMTreesModel) -> MultiTrees:
         if isinstance(other, MultiTrees):
@@ -1677,11 +1696,11 @@ class MultiTrees:
         return NotImplemented  # pragma: no cover
 
     @property
-    def first(self):
+    def first(self) -> ADMTreesModel:
         return self[0]
 
     @property
-    def last(self):
+    def last(self) -> ADMTreesModel:
         return self[-1]
 
     @classmethod
@@ -1689,7 +1708,6 @@ class MultiTrees:
         cls,
         df: pl.DataFrame,
         n_threads: int = 1,
-        **kwargs,
     ) -> dict[str, MultiTrees]:
         """Decode every Modeldata blob in ``df`` and group by Configuration.
 
@@ -1697,7 +1715,10 @@ class MultiTrees:
         each containing one :class:`ADMTreesModel` per snapshot.
         """
         df = df.filter(pl.col("Modeldata").is_not_null()).select(
-            pl.col("SnapshotTime").dt.round("1s").cast(pl.Utf8).str.strip_chars_end(".000000000"),
+            # Format SnapshotTime explicitly — strip_chars_end strips a *set*
+            # of characters, not a literal suffix, so it would mangle
+            # timestamps ending in 0 (e.g. 12:30:20 → 12:30:2).
+            pl.col("SnapshotTime").dt.round("1s").dt.strftime("%Y-%m-%d %H:%M:%S"),
             pl.col("Modeldata").str.decode("base64"),
             pl.col("Configuration").cast(pl.Utf8),
         )
