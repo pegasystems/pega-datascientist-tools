@@ -1299,68 +1299,40 @@ class ADMTreesModel:
     # Tree representation, plotting, scoring
     # ------------------------------------------------------------------
 
-    def get_nodes_recursively(
-        self,
-        tree: dict,
-        nodelist: dict,
-        counter: list,
-        childs: dict,
-    ) -> tuple[dict, dict]:
-        """Recursively walks through each node, used for tree representation.
+    def get_tree_representation(self, tree_number: int) -> dict[int, dict]:
+        """Build a flat node-id-keyed representation of one tree.
 
-        The ``nodelist``, ``counter`` and ``childs`` parameters are used
-        as accumulators and should be passed as fresh empty containers
-        on the initial call.
+        Walks ``self.model[tree_number]`` in pre-order (left subtree
+        before right) and returns a dict keyed by 1-based node id.
+
+        Each entry has ``score``; internal nodes additionally carry
+        ``split``, ``gain``, ``left_child`` and ``right_child``; non-root
+        nodes carry ``parent_node``.
+
+        This replaces an earlier implementation that mutated three
+        accumulator parameters and relied on a final ``del`` to drop a
+        spurious trailing entry.
         """
-        checked = False
-        for key, value in tree.items():
-            if key in {"left", "right"}:
-                nodelist[len(counter) + 1], _ = self.get_nodes_recursively(
-                    value,
-                    nodelist,
-                    counter,
-                    childs,
-                )
-            else:
-                nodelist[len(counter) + 1] = {}
-                if key == "score":
-                    counter.append(len(counter) + 1)
-                nodelist[len(counter)][key] = value
-            if key == "split":
-                childs[len(counter)] = {"left": 0, "right": 0}
-            if not checked:
-                for node, children in reversed(list(childs.items())):
-                    if children["left"] == 0:
-                        childs[node]["left"] = len(counter)
-                        break
-                    if children["right"] == 0:
-                        childs[node]["right"] = len(counter)
-                        break
-                if len(counter) > 1:
-                    nodelist[len(counter)]["parent_node"] = node
-                checked = True
-        return nodelist, childs
+        nodes: dict[int, dict] = {}
+        next_id = 0
 
-    @staticmethod
-    def _fill_child_node_ids(nodeinfo: dict, childs: dict) -> dict:
-        for ID, children in childs.items():
-            nodeinfo[ID]["left_child"] = children["left"]
-            nodeinfo[ID]["right_child"] = children["right"]
-        return nodeinfo
+        def visit(node: dict, parent_id: int | None) -> int:
+            nonlocal next_id
+            next_id += 1
+            my_id = next_id
+            info: dict = {"score": node["score"]}
+            if parent_id is not None:
+                info["parent_node"] = parent_id
+            nodes[my_id] = info
+            if "split" in node:
+                info["split"] = node["split"]
+                info["gain"] = node["gain"]
+                info["left_child"] = visit(node["left"], my_id)
+                info["right_child"] = visit(node["right"], my_id)
+            return my_id
 
-    def get_tree_representation(self, tree_number: int) -> dict:
-        """Build a flat node-id-keyed representation of one tree."""
-        tree = self.model[tree_number]
-        nodeinfo, childs = self.get_nodes_recursively(
-            tree,
-            nodelist={},
-            childs={},
-            counter=[],
-        )
-        tree_repr = self._fill_child_node_ids(nodeinfo, childs)
-        # Spurious last entry containing the entire tree — drop it.
-        del tree_repr[list(tree_repr.keys())[-1]]
-        return tree_repr
+        visit(self.model[tree_number], parent_id=None)
+        return nodes
 
     def plot_tree(
         self,
