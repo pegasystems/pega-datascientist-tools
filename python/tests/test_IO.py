@@ -13,19 +13,6 @@ from pdstools import pega_io
 basePath = pathlib.Path(__file__).parent.parent.parent
 
 
-@pl.api.register_lazyframe_namespace("shape")
-class Shape:
-    """Get the shape of a lazy dataframe.
-
-    This is just for testing purposes. This will break the computation graph.
-    For testing it's convenient though because we can use shape interchangeably
-    for both dataframes as well as lazyframes.
-    """
-
-    def __new__(cls, ldf: pl.LazyFrame):
-        return (ldf.select(pl.first().len()).collect().item(), len(ldf.columns))
-
-
 @pytest.fixture
 def test_data() -> pl.LazyFrame:
     return pega_io.read_ds_export(
