@@ -38,3 +38,11 @@ Open work items for the ADM Health Check report and supporting ADM library code.
   **Why not just set `embed-resources: true`?** That triggers Quarto's esbuild pipeline to bundle JavaScript. DJS Docker images removed esbuild due to CVE issues (see #620).
 
 - [ ] **[P3] Expose `full_embed` as CLI option and UI advanced setting** — The `full_embed` flag (default `False`) controls whether JavaScript libraries are bundled into the HTML or loaded from CDN. Consider adding `--full-embed` to the CLI and an advanced toggle in the Streamlit Reports page so users in air-gapped environments can opt into standalone output. Currently the Streamlit app hardcodes `full_embed=True`.
+
+- [ ] **[P3] `over_time` multi-by support** — `ADMDatamart.plot.over_time` only accepts a single `by` column. HealthCheck.qmd and ModelReport.qmd would benefit from grouping by multiple dimensions (e.g. `["Channel", "Direction"]`). Generalize to accept a list or polars expression, mirroring the facet pattern used in the bubble chart.
+
+- [ ] **[P3] Move report-local plot helpers into `adm/Plots.py`** — `ModelReport.qmd` defines several plotly figures inline (cumulative gains/lift area charts, base-propensity hline overlay on predictor binning, the "Philip Mann" lift bar plot duplicated between BinAggregator.py and the qmd). Lift these into reusable functions on `ADMDatamart.plot` so they can be tested and shared.
+
+- [ ] **[P3] Replace silent ValueError swallow in `predictors_overview`** — `Aggregates.predictors_overview` wraps its body in `try/except ValueError: return None` (documented as "returns None on error" but hides the cause). Narrow the exception, log the reason, or re-raise so callers can distinguish "no data" from "broken data".
+
+- [ ] **[P3] Auto-detect `name` ending in `.html`** — `Reports.model_reports` and `Reports.health_check` accept `name` as the *base* file name and append the extension from `output_type`. When a caller passes `name="report.html"` they probably mean "use this exact filename" — handle that in `get_output_filename` rather than producing `report.html.html`.

@@ -12,10 +12,8 @@ from da_streamlit_utils import (
 
 # st.set_option("global.showWarningOnDirectExecution", False)
 
-# TODO the stages need to be much more dynamic, driven from the data and potentially be many - see latest mocks Dennis as well in GOAL-25903
-# TODO given there can be many stages, we should perhaps see about selecting multiple, coordinate w Dennis on this but only if we have such data
-# TODO consider a top K argument again, to limit the bars, also consider the plotly option to always show all ticks, easily misleading otherwise (or show somewhere that there are more)
-# TODO consider a plot of how often "winning", at rank x, or is this simply the final stage
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 3 — Action Distribution).
 
 """
 # Action Distribution

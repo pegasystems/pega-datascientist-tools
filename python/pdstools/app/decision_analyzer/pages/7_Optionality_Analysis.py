@@ -8,9 +8,8 @@ from da_streamlit_utils import (
     stage_selectbox,
 )
 
-# TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
-# TODO for optionality plot allow to overlay propensity but also maybe add priority?
-# TODO think more about the "offer variation" or personalization index - I now calculated PI from the AUC of the variation curve
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 7 — Optionality Analysis).
 
 "# Optionality Analysis"
 

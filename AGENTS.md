@@ -361,6 +361,29 @@ improvement ideas that are not otherwise captured in GitHub issues.
 - **Keep them current.** Remove or archive completed sections
   periodically so the files stay useful.
 
+### Inline `# TODO` vs plan-file entries
+
+Use the right venue for the right kind of note:
+
+- **Plan file (`docs/plans/<feature>-TODO.md`)** — substantive backlog
+  items: missing features, refactors that span more than a few lines,
+  known limitations, bugs worth tracking, design questions. Anything a
+  future contributor would want to discover by reading the backlog
+  rather than by stumbling onto a comment.
+- **Inline `# TODO`** — small, code-local hints tied to a specific line:
+  "consider a faster path here", "revisit when polars supports X",
+  "this branch is only hit in tests". Should be self-contained — no
+  required cross-reference for a reader to act on it.
+- **Anchor when both apply.** If an inline note has a meaningful
+  backlog entry, link them with
+  `# Tracked in docs/plans/<file>.md (P<n>: <item title>) — <one-liner>`
+  so the call site stays searchable and the rationale is visible
+  locally. Don't leave dangling inline TODOs that duplicate a backlog
+  item without the anchor.
+- **Don't park lists of TODOs at the top of a file/page.** Lift them
+  into the relevant plan file and replace the block with a single
+  pointer comment.
+
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
 - Healthcheck tests are separate and require extra deps/tools.

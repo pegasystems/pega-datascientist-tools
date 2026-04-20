@@ -326,10 +326,9 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 ::: {layout-ncol="2"}
 ```{python}
 
-# TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
-# however it is so trivial, not really sure it should be. See also the other gains charts
-# in the health check.
-# TODO in HC there now is a beter way to plot gains, use that when it has progressed into PDS tools
+# Tracked in docs/plans/health-check-TODO.md (P3: Move report-local plot
+# helpers into adm/Plots.py) — Cumulative Gains / Lift / base-propensity
+# overlay are defined inline below; lift to reusable plot functions.
 try:
     fig = (
         px.area(
@@ -361,7 +360,7 @@ except Exception as e:
 ```
 
 ```{python}
-# TODO perhaps this should move into the pdstools plot functions "plotCumulativeLift"
+# (See HC-TODO P3: Move report-local plot helpers into adm/Plots.py.)
 try:
     fig = (
         px.area(
@@ -644,7 +643,9 @@ def show_single_predictor(pred):
         fig.data[1].line.width = 3
         fig.data[1].marker.color = "black"
 
-        # Add line for base propensity, TODO consider putting back in the library
+        # Add line for base propensity. (See HC-TODO P3: Move report-local
+        # plot helpers into adm/Plots.py — base propensity overlay belongs
+        # in the library plot.)
         fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
         # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 

@@ -218,10 +218,6 @@ class IH:
 
             return sampled
 
-        # TODO maybe this should be changed in PDS tools - w/o __TimeStamp__ flag
-        # def to_prpc_time_str(__TimeStamp__):
-        #     return to_prpc_date_time(__TimeStamp__)[0:15]
-
         ih_fake_impressions = pl.DataFrame(
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],

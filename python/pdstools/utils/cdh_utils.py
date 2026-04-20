@@ -751,7 +751,6 @@ def from_prpc_date_time(
 
     if "." in x:
         date_no_frac, frac_sec = x.split(".")
-        # TODO: obtain only 3 decimals
         if len(frac_sec) > 3:
             frac_sec = frac_sec[:3]
         elif len(frac_sec) < 3:
@@ -770,9 +769,6 @@ def from_prpc_date_time(
     if return_string:
         return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
     return dt
-
-
-# TODO: Polars doesn't like time zones like GMT+0200
 
 
 def to_prpc_date_time(dt: datetime.datetime) -> str:
@@ -970,7 +966,8 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
     return pl.Series(average_overlap)  # ,dtype=pl.list(inner=pl.Float64))
 
 
-# TODO all these should perhaps be consistently named _polars
+# NOTE: the helpers below (z_ratio, lift, bin_log_odds, ...) could be
+# consistently named with a ``_polars`` suffix for clarity.
 
 
 def z_ratio(
@@ -1025,9 +1022,6 @@ def z_ratio(
     return z_ratio_impl(pos_frac, neg_frac, pos_col.sum(), neg_col.sum())
 
 
-# TODO all these should perhaps be consistently named _polars
-
-
 def lift(
     pos_col: str | pl.Expr = pl.col("BinPositives"),
     neg_col: str | pl.Expr = pl.col("BinNegatives"),
@@ -1057,9 +1051,9 @@ def lift(
 
     def lift_impl(bin_pos, bin_neg, total_pos, total_neg):
         return (
-            # TODO not sure how polars (mis)behaves when there are no positives at all
-            # I would hope for a NaN but base python doesn't do that. Polars perhaps.
-            # Stijn: It does have proper None value support, may work like you say
+            # NOTE: when there are no positives at all this could produce
+            # NaN/None. Polars supports proper None values, so this likely
+            # behaves correctly without special-casing.
             bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 

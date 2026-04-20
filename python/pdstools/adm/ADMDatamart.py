@@ -135,7 +135,11 @@ class ADMDatamart:
             cdh_utils._apply_query(model_data_validated, query) if model_data_validated is not None else None
         )
 
-        # TODO @stijn how do we ensure the model IDs intersect, also if there is a query argument?
+        # NOTE: model and predictor data are validated independently. When a
+        # query is supplied it filters model_data only — predictor_data may
+        # contain rows for ModelIDs no longer in the filtered model_data.
+        # Downstream joins handle this; revisit if a stricter intersection
+        # is needed.
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(

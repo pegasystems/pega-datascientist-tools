@@ -4,8 +4,8 @@ from da_streamlit_utils import contextual_filters, ensure_data, get_current_inde
 
 from pdstools.decision_analyzer.utils import apply_filter
 
-# TODO The coloring at Action level is way to busy - maybe limit to a top-N or so, probably something we need more often in general
-# TODO Infer the top-X by channel from the data (max rank per channel for Final records)
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 5 — Global Sensitivity).
 
 "# Global Sensitivity Analysis"
 

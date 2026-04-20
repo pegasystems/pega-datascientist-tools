@@ -45,13 +45,8 @@ def _describe_comparison_group() -> str:
     return label
 
 
-# TODO: the rank of winning may not be used or not properly in the analyses shown
-# TODO: double check the numbers - I sometimes can't intuitively relate the bar charts to the box plots
-# TODO: generalize and relabel the arbitration properties - they're repeated all over the place and may not even be the actual property names (just from my mock data)
-# TODO: instead of sampling here, use the aggregated data and the sampling done inside of that now - perhaps with a larger n if need be
-# TODO: the two bar charts as we show them in Global Sensitivity may be preferable over the streamlit 2-column view?
-# TODO: also because now the colors are inconsistent - separate for both plots
-# TODO: colors get too pale if the counts become really small, becomes invisible
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 6 — Win/Loss Analysis).
 
 "# Win/Loss Analysis"
 
@@ -66,7 +61,8 @@ offers consistently win or lose.
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
-# TODO see if this works when we have many channels
+# (See docs/plans/decision-analyzer-TODO.md → Page 6 for the
+# many-channel handling backlog item.)
 facetting = "pyChannel/pyDirection"
 
 # st.session_state.df = st.session_state.df.with_columns(

@@ -234,7 +234,22 @@ class _ChampionChallengerV24_2Mixin:
             "Ready for review",
             "Approved",
         ]
-        from tqdm import tqdm  # TODO: make this fail gracefully when tqdm not installed
+        try:
+            from tqdm import tqdm
+        except ImportError:
+            # Fall back to a no-op progress bar when tqdm isn't installed.
+            class tqdm:  # type: ignore[no-redef]
+                def __init__(self, total=None):
+                    self.n = 0
+
+                def set_description(self, *_a, **_k):
+                    pass
+
+                def refresh(self):
+                    pass
+
+                def update(self, *_a, **_k):
+                    self.n += 1
 
         pbar = tqdm(total=len(status_order))
         model_status = None

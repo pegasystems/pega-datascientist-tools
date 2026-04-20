@@ -4,7 +4,8 @@ import streamlit as st
 from da_streamlit_utils import ensure_data
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
-# TODO see if we can speed up on first use - it's doing a lot now
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 2 — Overview), incl. the first-use perf item.
 
 ensure_data()
 st.session_state["sidebar"] = st.sidebar

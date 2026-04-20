@@ -938,7 +938,11 @@ class Aggregates:
             )
 
             return result
-        except ValueError:  # TODO: @yusufuyanik1 really swallowing? https://en.wikipedia.org/wiki/Error_hiding
+        except ValueError:
+            # NOTE: documented behaviour ("Returns None if an error is
+            # encountered"). Tracked in docs/plans/health-check-TODO.md
+            # (P3: Replace silent ValueError swallow in predictors_overview)
+            # — narrow the except, log the reason, or re-raise.
             return None
 
     def overall_summary(

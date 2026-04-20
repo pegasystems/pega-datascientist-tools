@@ -120,8 +120,7 @@ class Reports(LazyNamespace):
         self,
         model_ids: str | list[str],
         *,
-        name: str
-        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str | None = None,  # tracked in docs/plans/health-check-TODO.md (P3: Auto-detect name ending in .html)
         only_active_predictors: bool = True,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: PathLike | None = None,
@@ -272,8 +271,7 @@ class Reports(LazyNamespace):
 
     def health_check(
         self,
-        name: str
-        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str | None = None,  # tracked in docs/plans/health-check-TODO.md (P3: Auto-detect name ending in .html)
         *,
         query: QUERY | None = None,
         prediction=None,

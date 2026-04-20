@@ -39,6 +39,7 @@ removed or marked done as commits land on master.
 - [ ] **Treatment support** — Treatment column commented out in schema. When present, same action appears multiple times per interaction with different propensities. Key decisions needed: aggregation strategy, UX approach, which metrics need treatment-specific handling. Low prevalence (~0.6% of rows).
 - [ ] **Customer-level aggregates** — Per-customer statistics. Postponed until representative multi-customer dataset available.
 - [ ] **AB test: include IA properties** — `get_ab_test_results` doesn't join Impact Analyzer properties when present.
+- [ ] **AB test: maintain standard stage order** — `get_ab_test_results` currently sorts by Test count for visual prominence; should preserve the canonical stage order from `AvailableNBADStages` for consistency with other tables.
 - [ ] **Stratified sampling** — Add optional `sample_stratified_by` parameter for proportional representation across channels/directions.
 - [ ] **Scale up counts after sampling** — Show estimated full-volume counts in UI (infrastructure in place via sample fraction metadata).
 - [ ] **Streaming pre-aggregation** — `preaggregated_filter_view` calls `.collect()` on full dataset. Investigate polars streaming mode for GB-scale data.
@@ -75,6 +76,8 @@ removed or marked done as commits land on master.
 
 - [ ] **[P2] Top-K limiter** — Bar charts with >50 actions are unreadable. Add "Show top N" control with sorting options.
 - [ ] **[P2] Dynamic stages** — Audit for hardcoded stage names; use `DecisionAnalyzer.stages`.
+- [ ] **[P3] Multi-stage selection** — Allow selecting multiple stages at once for side-by-side comparison (only worth doing once we have datasets with many stages).
+- [ ] **[P3] "Winning at rank X" view** — Plot how often each action wins at a given rank, not just at the final stage.
 
 ### Page 4 — Action Funnel
 
@@ -86,22 +89,35 @@ removed or marked done as commits land on master.
 ### Page 5 — Global Sensitivity
 
 - [ ] **[P2] Infer top-X and win rank bounds from data** — Auto-compute from actual max rank instead of user-specified or hardcoded values.
+- [ ] **[P2] Limit color complexity at Action level** — Action-level coloring becomes unreadable; cap at top-N actions or fall back to a single colour.
 
 ### Page 6 — Win/Loss Analysis
 
 - [ ] **[P2] Verify numbers across visualizations** — Bar charts and box plots sometimes show different counts. Audit data sources.
 - [ ] **[P2] Deep-dive selectors for specific opponents** — Scope deep-dive to selected counterpart items the comparison group wins to / loses from.
+- [ ] **[P2] Use aggregated data instead of fresh sampling** — Currently re-samples on the page; reuse `DecisionAnalyzer`'s aggregated/sampled data.
+- [ ] **[P2] Replace 2-column layout with side-by-side bars** — The Streamlit two-column view of "wins to" vs "loses from" is hard to compare; the dual-bar layout from Global Sensitivity reads better.
+- [ ] **[P2] Consistent colors across both plots** — The two charts currently choose colours independently; use a shared categorical mapping.
+- [ ] **[P2] Make colors stay legible at low counts** — Colours fade to near-invisible when bin counts are small; clamp opacity / use outlines.
+- [ ] **[P2] Generalize and relabel arbitration property names** — Property labels are repeated and may match mock-data naming rather than real Pega names.
+- [ ] **[P2] Audit "rank of winning" usage** — May not be plumbed through all win/loss analyses correctly.
+- [ ] **[P3] Verify many-channel handling** — Faceting (e.g. `pyChannel/pyDirection`) hasn't been validated with high cardinality channel sets.
 - [ ] **[P3] Shared rank selector component** — Standardize rank selection UI across Win/Loss, Sensitivity, and other pages.
 
 ### Page 7 — Optionality Analysis
 
 - [ ] **[P2] Overlay propensity/priority on optionality plot** — Dual-axis or faceted view alongside optionality distribution.
 - [ ] **[P2] Color optionality plot by issue/group** — Add selector to color the optionality distribution by Issue or Group. Helps explain bi-modal patterns where different issues/groups dominate different parts of the distribution.
+- [ ] **[P3] Consistent stage color scheme** — Use a single stage palette across all DA pages.
+- [ ] **[P3] Reconsider personalization-index calculation** — PI is currently the AUC of the variation curve; revisit whether that's the right metric.
 
 ### Page 8 — Offer Quality Analysis
 
 - [ ] **[P2] Generalize stage naming** — Audit for hardcoded stages; use data-driven stage selection.
 - [ ] **[P2] Move logic to DecisionAnalyzer** — Extract offer quality calculations from Streamlit page code.
+- [ ] **[P2] Handle no-action / single-action edge cases** — Generalise the analysis when an interaction has no actions, just one, or only low-propensity options.
+- [ ] **[P3] Support propensity-based categories per stage** — Some stages can categorise by propensity bucket; surface this where applicable.
+- [ ] **[P3] Reduce session-state footprint** — Page stores more in `st.session_state` than necessary; trim to derived values only.
 
 ### Page 9 — Thresholding Analysis
 

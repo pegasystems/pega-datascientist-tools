@@ -634,7 +634,11 @@ class DecisionAnalyzer:
         in that it records the actions that get filtered out at stages. From this
         a "remaining" view is easily derived.
         """
-        num_samples = 1  # TODO: when > 1 this breaks the .explode() I'm doing in some places(thresholding analysis e.g.), need to solve
+        # Tracked in docs/plans/decision-analyzer-TODO.md (P1: Fix
+        # num_samples > 1) — locked at 1 because .explode() in
+        # get_thresholding_data biases quantiles when groups have multiple
+        # samples.
+        num_samples = 1
         stats_cols = ["Decision Time", "Value", "Propensity", "Priority"]
         exprs = [
             pl.col("Interaction ID").filter(pl.col("Rank") <= i).count().alias(f"Win_at_rank{i}")
@@ -1890,7 +1894,8 @@ class DecisionAnalyzer:
 
         return result.lazy()
 
-    # TODO: figure out how to maintain standard stage order, for now simply solved by sorting on counts
+    # Tracked in docs/plans/decision-analyzer-TODO.md (P3: AB test:
+    # maintain standard stage order) — currently sorted on counts.
     def get_ab_test_results(self) -> pl.DataFrame:
         """A/B test summary: control vs test counts and control percentage per stage.
 
@@ -1902,7 +1907,9 @@ class DecisionAnalyzer:
         """
         tbl = (
             self.preaggregated_remaining_view.group_by(
-                # TODO: we should include all the IA properties but they're not populated currently
+                # Tracked in docs/plans/decision-analyzer-TODO.md (P3: AB
+                # test: include IA properties) — IA properties not joined
+                # here when present.
                 [self.level, "Model Control Group"]
             )
             .agg(pl.len())
@@ -2172,7 +2179,9 @@ class DecisionAnalyzer:
         for i, stage in enumerate(self.AvailableNBADStages):
             # Get aggregated counts for this stage (only interactions WITH actions)
             stage_df = (
-                # TODO refactor to use the remaining view aggregator (aggregate_remaining_per_stage)
+                # Tracked in docs/plans/decision-analyzer-TODO.md (P2:
+                # Refactor get_offer_quality) — delegate to
+                # aggregate_remaining_per_stage instead of this manual loop.
                 df.filter(pl.col(self.level).is_in(self.AvailableNBADStages[i:]))
                 .group_by(group_by)
                 .agg(

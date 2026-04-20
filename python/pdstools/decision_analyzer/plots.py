@@ -665,25 +665,6 @@ class Plot:
             **color_kwargs,
         )
 
-        # TODO generalize this
-        # Ouch! TODO use the generic stuff from utils
-        # order = ["Suitability", "Arbitration", "Eligibility", "Applicability"]
-        # index = 0
-        # for row in range(1, 3):
-        #     for col in range(1, 3):
-        #         fig.update_traces(
-        #             textposition="auto",
-        #             text=top_n_actions_dict[order[index]],
-        #             row=row,
-        #             col=col,
-        #             showlegend=False,  # TODO: still showing...
-        #         )
-        #         index += 1
-
-        # fig.update_yaxes(showticklabels=False, matches=None, title="").update_xaxes(
-        #     title=""
-        # )
-
         # Use annotations for global x and y titles (not per facet)
         fig.add_annotation(
             showarrow=False,
@@ -725,7 +706,9 @@ class Plot:
     ):
         color_discrete_map = self._decision_data.color_mappings.get(breakdown)
 
-        # TODO have a nice hover showing both the individual colored totals as the total bar
+        # Tracked in docs/plans/decision-analyzer-TODO.md (Plots: Hover
+        # info in stacked histograms) — show both segment value and bar
+        # total on hover.
         fig = px.histogram(
             df.collect(),
             x=metric if horizontal else scope,

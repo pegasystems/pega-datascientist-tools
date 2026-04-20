@@ -225,8 +225,9 @@ ExplainabilityExtract: dict[str, TableConfig] = {
     },
     # V1 has multiple propensity columns: pyPropensity (model propensity)
     # and FinalPropensity (after adjustments). V2 only has FinalPropensity.
-    # TODO: give these distinct display names (e.g. "Model Propensity" and
-    # "Propensity") and update all PVCL code that references "Propensity".
+    # Tracked in docs/plans/decision-analyzer-TODO.md (P2: Distinct
+    # propensity display names) — give these distinct display names
+    # ("Model Propensity" vs "Final Propensity") and update PVCL refs.
     "pyPropensity": {
         "display_name": "pyPropensity",
         "default": True,

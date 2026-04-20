@@ -766,9 +766,10 @@ class BinAggregator(LazyNamespace):
 
         return fig.update_xaxes(title="")
 
-    # "Philip Mann" plot with simple red/green lift bars relative to base propensity
-    # TODO currently shared between ModelReport.qmd and BinAggregator.py and
-    # copied into plot_base - move over to that version once PDS tools version got bumped
+    # "Philip Mann" plot with simple red/green lift bars relative to base
+    # propensity. Tracked in docs/plans/health-check-TODO.md (P3: Move
+    # report-local plot helpers into adm/Plots.py) — currently duplicated
+    # between ModelReport.qmd and BinAggregator.py.
 
     # NOTE: Otto - could you change this to use that implementation instead? Don't want to break things.
     def plot_binning_lift(
@@ -818,10 +819,10 @@ class BinAggregator(LazyNamespace):
             .collect()
         )
 
-        # Abbreviate possibly very long bin labels
-        # TODO generalize this, use it in the standard bin plot as well
-        # and make sure the resulting labels are unique - with just the
-        # truncate they are not necessarily unique
+        # Abbreviate possibly very long bin labels. Tracked in
+        # docs/plans/health-check-TODO.md (P3: Standardize long axis label
+        # abbreviation) — extract to a shared helper and ensure resulting
+        # labels are unique (truncation alone may not be).
         pm_plot_binning_table = pm_plot_binning_table.with_columns(
             pl.Series(
                 "BinSymbolAbbreviated",

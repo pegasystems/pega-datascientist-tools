@@ -606,9 +606,10 @@ Adaptive Models are created per treatment (at least in the default setup) and th
 The recommended [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html) are used here to highlight whether metrics are within limits. These limits may not apply for on-prem, non-CDH installs or for other reasons.
 
 ```{python}
-# TODO this currently does not include
-# any filtering on active models.
 from pdstools.utils.metric_limits import MetricLimits
+# Tracked in docs/plans/health-check-TODO.md (P2: Consistent active model
+# filtering) — these counts currently do not apply the active-models
+# filter.
 df_action_overview = pl.DataFrame(
     {
         "Item": [
@@ -1565,7 +1566,9 @@ if datamart.predictor_data is not None:
         )
         if fig is not None:
             fig.update_layout(
-                # TODO: make this a proper call to some abbreviation function
+                # Tracked in docs/plans/health-check-TODO.md (P3:
+                # Standardize long axis label abbreviation) — replace this
+                # ad-hoc truncation with a shared helper.
                 xaxis={
                     "tickmode": "array",
                     "tickvals": fig.data[0]["x"],
@@ -1822,7 +1825,8 @@ Guidance ::: {.callout-tip title="Guidance"} \* Empty models shouldnt be increas
 try:
     response_counts = datamart.plot.over_time(
         "ResponseCount",
-        # TODO support ["Channel", "Direction"] - mulitiple by's in over_time
+        # Tracked in docs/plans/health-check-TODO.md (P3: `over_time`
+        # multi-by support) — single column for now.
         by="Channel",
         cumulative=False,
         # facet="Configuration",

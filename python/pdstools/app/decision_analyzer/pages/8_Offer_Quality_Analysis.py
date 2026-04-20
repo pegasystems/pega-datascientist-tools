@@ -9,10 +9,8 @@ from da_streamlit_utils import (
     stage_level_selector,
     stage_selectbox,
 )
-# TODO generalize a bit: no actions, just one, with a low propensity, sufficient
-# TODO support the propensity based categories for those stages that have it
-# TODO code align the way we name the stages in the "remaining" view like done elsewhere
-# TODO we store a little too much in the session, that seems unnecessary
+# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
+# (Streamlit Pages → Page 8 — Offer Quality Analysis).
 
 "# Offer Quality Analysis"
 

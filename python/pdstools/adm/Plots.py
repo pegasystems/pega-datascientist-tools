@@ -321,7 +321,8 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=".3%")
         return fig
 
-    # TODO support ["Channel", "Direction"] - mulitiple by's in over_time
+    # Tracked in docs/plans/health-check-TODO.md (P3: `over_time` multi-by
+    # support) — currently accepts a single `by` column only.
 
     @requires({"SnapshotTime"})
     def over_time(

@@ -409,46 +409,6 @@ class Plots(LazyNamespace):
 
         return fig
 
-    # def success_rates_trend_bar(
-    #     self,
-    #     condition: Union[str, pl.Expr],
-    #     *,
-    #     metric: Optional[str] = "Engagement",
-    #     every: Union[str, timedelta] = "1d",
-    #     by: Optional[str] = None,
-    #     title: Optional[str] = None,
-    #     query: Optional[QUERY] = None,
-    #     facet: Optional[str] = None,
-    #     return_df: Optional[bool] = False,
-    # ):
-
-    #     plot_data = self.ih.aggregates.summary_success_rates(
-    #         every=every,
-    #         by=[condition] + [by],  # TODO generalize to support pl expression
-    #         query=query,
-    #     )
-
-    #     if return_df:
-    #         return plot_data
-
-    #     if title is None:
-    #         title = f"{metric} Rates over Time"
-
-    #     fig = px.bar(
-    #         plot_data.collect(),
-    #         x="OutcomeTime",
-    #         y=f"SuccessRate_{metric}",
-    #         color=condition,
-    #         error_y=f"StdErr_{metric}",
-    #         facet_row=by,
-    #         barmode="group",
-    #         custom_data=[condition],
-    #         template="pega",
-    #         title=title,
-    #     )
-    #     fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
-    #     return fig
-
     def success_rate(
         self,
         *,
