@@ -1525,21 +1525,38 @@ def create_working_and_temp_dir(
 
 
 # Safe flattening of nested lists, removing None elements, and not splitting strings
-def safe_flatten_list(alist: list, extras: list | None = None) -> list:
-    if extras is None:
-        extras = []
+def safe_flatten_list(alist: list | None, extras: list | None = None) -> list | None:
+    """Flatten one level of ``alist``, drop ``None`` entries, and prepend ``extras``.
+
+    The result is order-preserving and de-duplicated. Strings are treated as
+    atoms (not iterated). Both ``alist`` and ``extras`` are read-only — the
+    caller's lists are never mutated. Returns ``None`` when the result would
+    be empty so callers can use the truthiness as a "no grouping" signal.
+    """
     if alist is None:
         alist = []
     alist = list(filter(partial(is_not, None), alist))
     alist = [item for sublist in [[item] if type(item) is not list else item for item in alist] for item in sublist]
     alist = list(filter(partial(is_not, None), alist))
-    seen = set()
-    unique_alist = extras
+    unique_alist: list = list(extras) if extras else []
+    seen_ids: set[int] = {id(x) for x in unique_alist}
+    seen_hashable: set = set()
+    for x in unique_alist:
+        try:
+            seen_hashable.add(x)
+        except TypeError:
+            pass
     for item in alist:
-        if item not in seen:
-            unique_alist.append(item)
-            seen.add(item)
-    return unique_alist if len(unique_alist) > 0 else None  # type: ignore[return-value]
+        try:
+            if item in seen_hashable:
+                continue
+            seen_hashable.add(item)
+        except TypeError:
+            if id(item) in seen_ids:
+                continue
+        seen_ids.add(id(item))
+        unique_alist.append(item)
+    return unique_alist or None
 
 
 def _get_start_end_date_args(

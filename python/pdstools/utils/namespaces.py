@@ -97,15 +97,16 @@ class MissingDependenciesException(Exception):
 
         message += (
             f"\nPlease install {'it' if len(deps) == 1 else 'them'} using your "
-            f"favorite package manager (e.g. pip install {' '.join(install_names)})"
+            f"favorite package manager. Package name"
+            f"{'' if len(deps) == 1 else 's'}: {' '.join(install_names)}"
         )
 
         if deps_group:
             message += (
-                f",\n\nNOTE: these dependencies are also shipped with the optional "
-                f"dependency group '{deps_group}', \nso you can install them "
-                f"automatically with pdstools as well "
-                f"(e.g. pip install 'pdstools[{deps_group}]')."
+                f".\n\nNOTE: these dependencies are also shipped with the optional "
+                f"pdstools extra '{deps_group}', \nso you can install them "
+                f"automatically by adding the 'pdstools[{deps_group}]' extra "
+                f"with your package manager."
             )
         else:
             message += "."

@@ -291,7 +291,7 @@ class ADMTreesModel:
             try:  # pragma: no cover
                 self.trees = json.loads(decode_string(file))
                 if not self.trees["_serialClass"].endswith("GbModel"):
-                    return ValueError("Not an AGB model")
+                    raise ValueError("Not an AGB model")
                 decode = True
                 logger.info("Model needs to be decoded")
             except Exception:
@@ -320,7 +320,7 @@ class ADMTreesModel:
         elif isinstance(file, bytes):  # pragma: no cover
             self.trees = json.loads(zlib.decompress(file))
             if not self.trees["_serialClass"].endswith("GbModel"):
-                return ValueError("Not an AGB model")
+                raise ValueError("Not an AGB model")
             decode = True
             logger.info("Model needs to be decoded")
         elif isinstance(file, dict):  # pragma: no cover

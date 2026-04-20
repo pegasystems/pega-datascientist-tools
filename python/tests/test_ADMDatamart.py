@@ -25,17 +25,17 @@ def test_cdh_sample_init(sample):
 
 
 def test_cached_properties(sample: ADMDatamart):
-    assert sample.unique_channel_direction == {
+    assert sample.unique_channel_direction == [
         "Email/Outbound",
         "SMS/Outbound",
         "Web/Inbound",
-    }
+    ]
 
-    assert sample.unique_channels == {"Email", "SMS", "Web"}
+    assert sample.unique_channels == ["Email", "SMS", "Web"]
 
-    assert sample.unique_configurations == {"OmniAdaptiveModel"}
+    assert sample.unique_configurations == ["OmniAdaptiveModel"]
 
-    assert sample.unique_predictor_categories == {"Customer", "IH", "Param"}
+    assert sample.unique_predictor_categories == ["Customer", "IH", "Param"]
 
 
 def test_write_then_load(sample: ADMDatamart):

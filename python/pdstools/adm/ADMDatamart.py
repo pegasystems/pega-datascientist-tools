@@ -691,44 +691,45 @@ class ADMDatamart:
         return modeldata_cache, predictordata_cache
 
     @cached_property
-    def unique_channels(self):
-        """A consistently ordered set of unique channels in the data
+    def unique_channels(self) -> list[str]:
+        """Sorted list of unique channels in the data.
 
-        Used for making the color schemes in different plots consistent
+        Used for making the color schemes in different plots consistent.
         """
-        return set(
-            self.model_data.select(pl.col("Channel").unique().sort()).collect()["Channel"],
-        )
+        return self.model_data.select(pl.col("Channel").unique().sort()).collect()["Channel"].to_list()
 
     @cached_property
-    def unique_configurations(self):
-        """A consistently ordered set of unique configurations in the data
+    def unique_configurations(self) -> list[str]:
+        """Sorted list of unique configurations in the data.
 
-        Used for making the color schemes in different plots consistent
+        Used for making the color schemes in different plots consistent.
         """
-        return set(
-            self.model_data.select(pl.col("Configuration").unique()).collect()["Configuration"].to_list(),
-        )
+        return self.model_data.select(pl.col("Configuration").unique().sort()).collect()["Configuration"].to_list()
 
     @cached_property
-    def unique_channel_direction(self):
-        """A consistently ordered set of unique channel+direction combos in the data
-        Used for making the color schemes in different plots consistent
+    def unique_channel_direction(self) -> list[str]:
+        """Sorted list of unique channel+direction combos in the data.
+
+        Used for making the color schemes in different plots consistent.
         """
-        return set(
+        return (
             self.model_data.select(
-                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").unique().alias("ChannelDirection"),
+                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
+                .unique()
+                .sort()
+                .alias("ChannelDirection"),
             )
             .collect()["ChannelDirection"]
-            .to_list(),
+            .to_list()
         )
 
     @cached_property
-    def unique_configuration_channel_direction(self):
-        """A consistently ordered set of unique configuration+channel+direction
-        Used for making the color schemes in different plots consistent
+    def unique_configuration_channel_direction(self) -> list[str]:
+        """Sorted list of unique configuration+channel+direction combos.
+
+        Used for making the color schemes in different plots consistent.
         """
-        return set(
+        return (
             self.model_data.select(
                 pl.concat_str(
                     pl.col("Configuration"),
@@ -737,21 +738,24 @@ class ADMDatamart:
                     separator="/",
                 )
                 .unique()
+                .sort()
                 .alias("ChannelDirection"),
             )
             .collect()["ChannelDirection"]
-            .to_list(),
+            .to_list()
         )
 
     @cached_property
-    def unique_predictor_categories(self):
-        """A consistently ordered set of unique predictor categories in the data
-        Used for making the color schemes in different plots consistent
+    def unique_predictor_categories(self) -> list[str]:
+        """Sorted list of unique predictor categories in the data.
+
+        Used for making the color schemes in different plots consistent.
         """
-        return set(
+        return (
             self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
             .filter(pl.col("PredictorCategory").is_not_null())
-            .collect()["PredictorCategory"],
+            .collect()["PredictorCategory"]
+            .to_list()
         )
 
     def get_last_data_for_report(self) -> pl.DataFrame:
