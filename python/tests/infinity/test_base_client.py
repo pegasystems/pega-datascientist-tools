@@ -205,7 +205,7 @@ class TestSyncAPIClientRequest:
     def test_delete_returns_response_on_204_no_body(self, mocker):
         client = self._make_client()
         resp = self._mock_response(204)
-        resp.json.side_effect = Exception("no body")
+        resp.json.side_effect = ValueError("no body")
         mocker.patch.object(client, "_request", return_value=resp)
         result = client.delete("/api/test")
         # Should return the raw response when json() fails.
@@ -335,7 +335,7 @@ class TestHandlePegaException:
     def test_non_json_response_raises_invalid_request(self):
         resp = MagicMock(spec=httpx.Response)
         resp.status_code = 500
-        resp.json.side_effect = Exception("not json")
+        resp.json.side_effect = ValueError("not json")
         resp.content = b"Internal Server Error"
         from pdstools.infinity.internal._exceptions import InvalidRequest
 

@@ -186,7 +186,7 @@ if raw_data is not None:
             min_time, max_time = estimate_sampling_time(row_count, target_n)
             time_msg = format_time_estimate(min_time, max_time)
             sampling_msg += f" (estimated: {time_msg})"
-        except Exception:
+        except (ImportError, AttributeError, ValueError):
             pass  # Keep the simple message
 
         try:

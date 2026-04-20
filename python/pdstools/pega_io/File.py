@@ -560,10 +560,12 @@ def import_file(
                 file,
                 infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
             )
-        except Exception:  # pragma: no cover
+        except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, OSError) as exc:  # pragma: no cover
+            logger.debug("scan_ndjson failed for %s: %s", file, exc)
             try:
                 df = pl.read_json(file).lazy()
-            except Exception:
+            except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, ValueError) as exc:
+                logger.debug("read_json fallback failed for %s: %s", file, exc)
                 import json
 
                 with open(file) as f:  # type: ignore[arg-type]
@@ -746,9 +748,10 @@ def get_latest_file(
     def f(x):
         try:
             return from_prpc_date_time(
-                re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " "),
+                re.search(r"\d.{0,15}GMT", x)[0].replace("_", " "),
             )
-        except Exception:
+        except (AttributeError, TypeError, ValueError) as exc:
+            logger.debug("Falling back to ctime for %s: %s", x, exc)
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
     dates = pl.Series([f(i) for i in paths])

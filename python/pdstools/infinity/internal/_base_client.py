@@ -321,7 +321,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
         try:
             return response.json()
-        except Exception:
+        except ValueError:
             return response
 
     def patch(
@@ -379,7 +379,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             raise self.handle_pega_exception(endpoint, params, response)
         try:
             return response.json()
-        except Exception:
+        except ValueError:
             return response
 
     def get_api_list(self):  # pragma: no cover
@@ -409,7 +409,7 @@ class AsyncHttpxClientWrapper(DefaultAsyncHttpxClient):
         try:
             # TODO(someday): support non asyncio runtimes here
             asyncio.get_running_loop().create_task(self.aclose())
-        except Exception:
+        except RuntimeError:
             pass
 
 
@@ -566,7 +566,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
 
         try:
             return response.json()
-        except Exception:
+        except ValueError:
             return response
 
     async def patch(
@@ -624,7 +624,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             raise self.handle_pega_exception(endpoint, params, response)
         try:
             return response.json()
-        except Exception:
+        except ValueError:
             return response
 
     def get_api_list(self):  # pragma: no cover

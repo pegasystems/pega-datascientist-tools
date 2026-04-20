@@ -428,18 +428,18 @@ class ADMTreesModel:
 
         try:
             self._properties = {prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"}
-        except Exception:  # pragma: no cover
+        except (AttributeError, TypeError):  # pragma: no cover
             logger.info("Could not extract the properties.")
             self._properties = {}
 
         try:
             self.learning_rate = self._properties["configuration"]["parameters"]["learningRateEta"]
-        except Exception:  # pragma: no cover
+        except (KeyError, TypeError):  # pragma: no cover
             logger.info("Could not find the learning rate in the model.")
 
         try:
             self.context_keys = self._properties["configuration"]["contextKeys"]
-        except Exception:  # pragma: no cover
+        except (KeyError, TypeError):  # pragma: no cover
             logger.info("Could not find context keys.")
             self.context_keys = kwargs.get("context_keys")
 
@@ -806,8 +806,8 @@ class ADMTreesModel:
         total_predictors: dict[str, str] | None = None
         try:
             total_predictors = self.predictors
-        except Exception:
-            pass
+        except (KeyError, AttributeError, TypeError, IndexError) as exc:
+            logger.debug("Could not read total predictors: %s", exc)
 
         if total_predictors is not None:
             all_ih = {n for n in total_predictors if _classify_predictor(n) == "ih"}
@@ -1162,10 +1162,10 @@ class ADMTreesModel:
         self.nospaces = True
         try:
             predictors = self._properties["configuration"]["predictors"]
-        except Exception:  # pragma: no cover
+        except (KeyError, TypeError):  # pragma: no cover
             try:
                 predictors = self._properties["predictors"]
-            except Exception:
+            except (KeyError, TypeError):
                 try:
                     predictors = []
                     for i in self._properties.split("=")[4].split(
@@ -1177,7 +1177,7 @@ class ADMTreesModel:
                             else:
                                 predictors += [i[:-2]]
 
-                except Exception:
+                except (AttributeError, IndexError, TypeError):
                     # No explicit predictor metadata available — infer
                     # from tree splits (see docstring above).
                     return self._infer_predictors_from_splits()

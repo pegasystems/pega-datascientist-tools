@@ -1295,7 +1295,8 @@ def _read_source_metadata(source_path: str) -> dict[str, str | float] | None:
         p = Path(source_path)
         if not p.exists() or not p.is_file() or p.suffix.lower() != ".parquet":
             return None
-    except Exception:
+    except (OSError, TypeError, ValueError) as exc:
+        logger.debug("Could not stat %s: %s", source_path, exc)
         return None
 
     try:

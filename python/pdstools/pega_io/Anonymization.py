@@ -1,8 +1,11 @@
 import math
 import os
+import logging
 from glob import glob
 
 import polars as pl
+
+logger = logging.getLogger(__name__)
 
 
 class Anonymization:
@@ -141,11 +144,12 @@ class Anonymization:
                 ser = df.get_column(col)
                 try:
                     ser = ser.replace("", None)
-                except Exception:
+                except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError):
                     pass
                 ser.cast(pl.Float64)
                 types[col] = "numeric"
-            except Exception:
+            except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError, ValueError) as exc:
+                logger.debug("Column %s defaulted to symbolic: %s", col, exc)
                 types[col] = "symbolic"
 
         return types

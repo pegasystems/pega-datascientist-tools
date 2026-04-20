@@ -61,6 +61,12 @@ uv run ruff format ./python
 ```
 
 ### Tests
+The full suite takes ~10–15 minutes locally. **Prefer narrow, targeted runs**
+(single file, single function, or `-k` keyword filter) while iterating.
+Only run the full suite when you're done with a logical chunk of work
+or when you need broad confidence (e.g. before pushing a PR). CI re-runs
+everything, so a final full local run is usually enough.
+
 Full test suite (CI default, with coverage; skips heavy tests):
 
 ```bash

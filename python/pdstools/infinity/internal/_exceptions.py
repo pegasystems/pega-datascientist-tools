@@ -123,7 +123,7 @@ def handle_pega_exception(
 ) -> PegaException | Exception:
     try:
         content = response.json()
-    except Exception:
+    except ValueError:
         raise InvalidRequest(
             str(base_url),
             endpoint,

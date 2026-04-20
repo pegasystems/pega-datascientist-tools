@@ -474,7 +474,7 @@ def handle_data_path() -> pl.LazyFrame | None:
             min_time, max_time = estimate_extraction_time(file_size)
             time_msg = format_time_estimate(min_time, max_time)
             spinner_msg = f"Extracting archive... (estimated: {time_msg})"
-        except Exception:
+        except (ImportError, OSError, AttributeError):
             spinner_msg = "Extracting archive..."
 
         tmp_dir = tempfile.mkdtemp(prefix="da_path_")
@@ -499,7 +499,7 @@ def handle_data_path() -> pl.LazyFrame | None:
             min_time, max_time = estimate_extraction_time(file_size)
             time_msg = format_time_estimate(min_time, max_time)
             spinner_msg = f"Extracting archive... (estimated: {time_msg})"
-        except Exception:
+        except (ImportError, OSError, AttributeError):
             spinner_msg = "Extracting archive..."
 
         tmp_dir = tempfile.mkdtemp(prefix="da_path_tar_")
@@ -553,7 +553,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
             min_time, max_time = estimate_extraction_time(file_size)
             time_msg = format_time_estimate(min_time, max_time)
             spinner_msg = f"Extracting uploaded archive... (estimated: {time_msg})"
-        except Exception:
+        except (ImportError, OSError, AttributeError):
             spinner_msg = "Extracting uploaded archive..."
 
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
@@ -582,7 +582,7 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
         min_time, max_time = estimate_extraction_time(file_size)
         time_msg = format_time_estimate(min_time, max_time)
         spinner_msg = f"Extracting uploaded archive... (estimated: {time_msg})"
-    except Exception:
+    except (ImportError, OSError, AttributeError):
         spinner_msg = "Extracting uploaded archive..."
 
     tmp_dir = tempfile.mkdtemp(prefix="da_tar_")

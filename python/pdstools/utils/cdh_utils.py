@@ -1277,10 +1277,11 @@ def _apply_schema_types(df: F, definition, **timestamp_opts) -> F:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
                 else:
                     types.append(pl.col(col).cast(new_type, strict=False))
-        except Exception:
+        except (KeyError, AttributeError) as exc:
             logger.debug(
-                "Column %s not in default table schema; can't set type.",
+                "Column %s not in default table schema; can't set type: %s",
                 col,
+                exc,
             )
     return df.with_columns(types)
 
@@ -1484,9 +1485,10 @@ def get_latest_pdstools_version():
     import requests  # type: ignore[import-untyped]
 
     try:
-        response = requests.get("https://pypi.org/pypi/pdstools/json")
+        response = requests.get("https://pypi.org/pypi/pdstools/json", timeout=5)
         return response.json()["info"]["version"]
-    except Exception:
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        logger.debug("Could not fetch latest pdstools version: %s", exc)
         return None
 
 

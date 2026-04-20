@@ -142,7 +142,7 @@ class PaginatedList(Generic[T]):
             if not response:
                 raise ValueError(__key)
             return response
-        except Exception:
+        except (IndexError, KeyError, ValueError, AttributeError, TypeError):
             return __default
 
     def __iter__(self) -> Iterator[T]:
@@ -301,7 +301,7 @@ class AsyncPaginatedList(Generic[T]):
                     for el in items:
                         if getattr(el, "id", None) == __key:
                             return el
-            except Exception:
+            except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
         return __default  # type: ignore[return-value]
 

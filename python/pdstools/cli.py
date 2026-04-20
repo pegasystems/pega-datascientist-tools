@@ -246,7 +246,7 @@ def run(args, unknown):
             except (KeyboardInterrupt, EOFError):
                 print("\nExiting...")
                 sys.exit(0)
-            except Exception:
+            except ValueError:
                 print("Invalid input. Please try again.")
 
     # Propagate CLI flags to the Streamlit process via env vars
@@ -259,7 +259,7 @@ def run(args, unknown):
             import polars as _pl
 
             has_rt64 = _pl.get_index_type() == _pl.UInt64
-        except Exception:
+        except (ImportError, AttributeError):
             has_rt64 = False
         if not has_rt64:
             print(

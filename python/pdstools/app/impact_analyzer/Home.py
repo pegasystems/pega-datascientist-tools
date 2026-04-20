@@ -121,7 +121,7 @@ def _show_data_summary(ia, is_sample_data: bool = False):
             format_label = "**VBD Scenario Planner**"
         else:
             format_label = "**PDC Export**"
-    except Exception:
+    except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
 
     try:
@@ -136,7 +136,7 @@ def _show_data_summary(ia, is_sample_data: bool = False):
             prefix = "Data loaded successfully"
 
         st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
-    except Exception:
+    except (pl.exceptions.PolarsError, AttributeError, KeyError):
         prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
         st.success(f"{prefix}. Detected format: {format_label}")
 
