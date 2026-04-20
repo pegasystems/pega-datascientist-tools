@@ -411,3 +411,140 @@ class TestConfigurePredictorCategorization:
             # Get the figure that was passed to plotly_chart
             chart_call_args = mock_chart.call_args[0][0]
             assert chart_call_args is not None, "Chart should have been created"
+
+
+# ---------------------------------------------------------------------------
+# Pure-helper coverage: env-var getters, version comparison, parse_sample_spec,
+# get_current_index, ensure_session_data
+# ---------------------------------------------------------------------------
+
+
+class TestEnvVarGetters:
+    def test_get_data_path_unset(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_DATA_PATH", raising=False)
+        assert streamlit_utils.get_data_path() is None
+
+    def test_get_data_path_set(self, monkeypatch):
+        monkeypatch.setenv("PDSTOOLS_DATA_PATH", "/tmp/data.parquet")
+        assert streamlit_utils.get_data_path() == "/tmp/data.parquet"
+
+    def test_get_sample_limit_unset(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_SAMPLE_LIMIT", raising=False)
+        assert streamlit_utils.get_sample_limit() is None
+
+    def test_get_sample_limit_set(self, monkeypatch):
+        monkeypatch.setenv("PDSTOOLS_SAMPLE_LIMIT", "100k")
+        assert streamlit_utils.get_sample_limit() == "100k"
+
+    def test_get_temp_dir_unset(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_TEMP_DIR", raising=False)
+        assert streamlit_utils.get_temp_dir() is None
+
+    def test_get_temp_dir_set(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("PDSTOOLS_TEMP_DIR", str(tmp_path))
+        assert streamlit_utils.get_temp_dir() == str(tmp_path)
+
+    def test_get_filter_specs_unset(self, monkeypatch):
+        monkeypatch.delenv("PDSTOOLS_FILTER", raising=False)
+        assert streamlit_utils.get_filter_specs() is None
+
+    def test_get_filter_specs_parses_json(self, monkeypatch):
+        import json
+
+        monkeypatch.setenv(
+            "PDSTOOLS_FILTER",
+            json.dumps(["Channel=Web", "Score>=0.5"]),
+        )
+        assert streamlit_utils.get_filter_specs() == ["Channel=Web", "Score>=0.5"]
+
+
+class TestIsNewerVersionAvailable:
+    def test_newer(self):
+        assert streamlit_utils._is_newer_version_available("1.0.0", "1.0.1")
+
+    def test_same(self):
+        assert not streamlit_utils._is_newer_version_available("1.0.0", "1.0.0")
+
+    def test_older(self):
+        assert not streamlit_utils._is_newer_version_available("2.0.0", "1.0.0")
+
+    def test_prerelease_is_newer_than_old_stable(self):
+        # 4.6.0rc1 (installed) is newer than 4.5.2 (latest)
+        assert not streamlit_utils._is_newer_version_available("4.6.0rc1", "4.5.2")
+
+    def test_invalid_version_returns_false(self):
+        assert not streamlit_utils._is_newer_version_available("not-a-version", "1.0")
+
+
+class TestParseSampleSpec:
+    def test_absolute_int(self):
+        assert streamlit_utils.parse_sample_spec("100000") == {"n": 100000}
+
+    def test_thousand_suffix(self):
+        assert streamlit_utils.parse_sample_spec("100k") == {"n": 100000}
+
+    def test_million_suffix(self):
+        assert streamlit_utils.parse_sample_spec("2M") == {"n": 2000000}
+
+    def test_percentage(self):
+        out = streamlit_utils.parse_sample_spec("10%")
+        assert out == {"fraction": 0.1}
+
+    def test_invalid_percentage_raises(self):
+        with pytest.raises(ValueError):
+            streamlit_utils.parse_sample_spec("0%")
+        with pytest.raises(ValueError):
+            streamlit_utils.parse_sample_spec("150%")
+
+    def test_zero_count_raises(self):
+        with pytest.raises(ValueError):
+            streamlit_utils.parse_sample_spec("0")
+
+
+class TestGetCurrentIndex:
+    def test_default_when_key_missing(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {}
+            assert streamlit_utils.get_current_index(["a", "b", "c"], "missing") == 0
+
+    def test_returns_index_when_present(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {"k": "b"}
+            assert streamlit_utils.get_current_index(["a", "b", "c"], "k") == 1
+
+    def test_default_when_value_not_in_options(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {"k": "z"}
+            assert (
+                streamlit_utils.get_current_index(
+                    ["a", "b"],
+                    "k",
+                    default=99,
+                )
+                == 99
+            )
+
+
+class TestEnsureSessionData:
+    def test_stops_when_key_missing(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {}
+            mock_st.stop.side_effect = SystemExit
+            with pytest.raises(SystemExit):
+                streamlit_utils.ensure_session_data("foo")
+            mock_st.warning.assert_called_once()
+
+    def test_custom_message(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {}
+            mock_st.stop.side_effect = SystemExit
+            with pytest.raises(SystemExit):
+                streamlit_utils.ensure_session_data("foo", message="please load")
+            mock_st.warning.assert_called_once_with("please load")
+
+    def test_no_stop_when_key_present(self):
+        with patch.object(streamlit_utils, "st") as mock_st:
+            mock_st.session_state = {"foo": "bar"}
+            streamlit_utils.ensure_session_data("foo")
+            mock_st.warning.assert_not_called()
+            mock_st.stop.assert_not_called()
