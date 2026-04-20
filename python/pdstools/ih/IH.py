@@ -497,7 +497,7 @@ class IH:
             bigrams = []
             bigrams_all = []
 
-            for seq, out in zip(sequences, outcomes):
+            for seq, out in zip(sequences, outcomes, strict=False):
                 ngrams_seen = set()
 
                 for n in range(2, len(seq) + 1):

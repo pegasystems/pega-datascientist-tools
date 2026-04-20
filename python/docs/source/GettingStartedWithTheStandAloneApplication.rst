@@ -245,7 +245,7 @@ Troubleshooting
 **Application doesn't start**
 
 - Ensure you have installed all dependencies (Quarto, Pandoc, pdstools with app dependencies)
-- Check that you're using a compatible Python version (3.9 or higher)
+- Check that you're using a compatible Python version (3.10 or higher)
 - If using virtual environments, make sure it's activated
 
 **Reports fail to generate**

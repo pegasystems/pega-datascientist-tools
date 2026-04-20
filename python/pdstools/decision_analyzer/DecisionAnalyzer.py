@@ -357,7 +357,9 @@ class DecisionAnalyzer:
                     )
                 group_df = group_df.sort("Stage Order")
                 all_groups = group_df["Stage Group"].to_list()
-                group_orders = dict(zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list()))
+                group_orders = dict(
+                    zip(group_df["Stage Group"].to_list(), group_df["Stage Order"].to_list(), strict=False)
+                )
                 mapping = self.stage_to_group_mapping
                 covered_groups = set(mapping.values())
                 for grp in all_groups:
@@ -653,7 +655,11 @@ class DecisionAnalyzer:
                 self.preaggregated_filter_view,
                 list(self.preaggregation_columns),
                 [
-                    pl.col("Interaction_IDs").flatten().unique().count().alias("Decisions"),
+                    pl.col("Interaction_IDs")
+                    .list.explode(keep_nulls=False, empty_as_null=False)
+                    .unique()
+                    .count()
+                    .alias("Decisions"),
                     pl.min("Decision Time_min"),
                     pl.max("Decision Time_max"),
                     pl.min("Value_min"),
@@ -888,6 +894,7 @@ class DecisionAnalyzer:
             zip(
                 mapping_df.get_column("Stage").to_list(),
                 mapping_df.get_column("Stage Group").to_list(),
+                strict=False,
             )
         )
 
@@ -941,7 +948,11 @@ class DecisionAnalyzer:
             group_by_columns=[scope],
             aggregations=[
                 pl.sum("Decisions").alias("action_occurrences"),
-                pl.col("Interaction_IDs").flatten().unique().count().alias("interaction_count_for_scope"),
+                pl.col("Interaction_IDs")
+                .list.explode(keep_nulls=False, empty_as_null=False)
+                .unique()
+                .count()
+                .alias("interaction_count_for_scope"),
             ],
         ).filter(pl.col("action_occurrences") > 0)
 
@@ -963,7 +974,10 @@ class DecisionAnalyzer:
                 .group_by([scope])
                 .agg(
                     action_occurrences=pl.sum("Decisions"),
-                    interaction_count_for_scope=pl.col("Interaction_IDs").flatten().unique().count(),
+                    interaction_count_for_scope=pl.col("Interaction_IDs")
+                    .list.explode(keep_nulls=False, empty_as_null=False)
+                    .unique()
+                    .count(),
                 )
                 .with_columns(pl.lit(stage).alias(self.level))
                 .collect()
@@ -979,7 +993,10 @@ class DecisionAnalyzer:
             .group_by([self.level, scope])
             .agg(
                 action_occurrences=pl.sum("Decisions"),
-                interaction_count_for_scope=pl.col("Interaction_IDs").flatten().unique().count(),
+                interaction_count_for_scope=pl.col("Interaction_IDs")
+                .list.explode(keep_nulls=False, empty_as_null=False)
+                .unique()
+                .count(),
             )
             .collect()
         )
@@ -1011,7 +1028,7 @@ class DecisionAnalyzer:
         def count_from(stages):
             return (
                 filter_view.filter(pl.col(self.level).is_in(stages))
-                .select(pl.col("Interaction_IDs").flatten().unique().count())
+                .select(pl.col("Interaction_IDs").list.explode(keep_nulls=False, empty_as_null=False).unique().count())
                 .collect()
                 .item()
             )
@@ -1197,7 +1214,13 @@ class DecisionAnalyzer:
             apply_filter(self.preaggregated_filter_view, additional_filters)
             .filter(pl.col(self.level) != "Output")
             .group_by(group_cols)
-            .agg(pl.col("Interaction_IDs").flatten().unique().count().alias("Filtered Decisions"))
+            .agg(
+                pl.col("Interaction_IDs")
+                .list.explode(keep_nulls=False, empty_as_null=False)
+                .unique()
+                .count()
+                .alias("Filtered Decisions")
+            )
             .collect()
         )
         result = pl.concat(

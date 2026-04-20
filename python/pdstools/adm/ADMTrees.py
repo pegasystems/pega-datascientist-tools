@@ -207,6 +207,7 @@ class ADMTrees:  # pragma: no cover
                 zip(
                     map(tuple, df2["Configuration"].to_list()),
                     list(f(ADMTrees, iterable)),
+                    strict=False,
                 ),
             )
         dict_per_config: dict[Any, Any] = {key[0]: {} for key in out.keys()}
@@ -1264,7 +1265,7 @@ class ADMTreesModel:
         total_split_list: list = functools.reduce(operator.iconcat, splitlist, [])
         total_gains_list: list = functools.reduce(operator.iconcat, gainslist, [])
         gainsPerSplit = pl.DataFrame(
-            list(zip(total_split_list, total_gains_list)),
+            list(zip(total_split_list, total_gains_list, strict=False)),
             schema=["split", "gains"],
             orient="row",
         )

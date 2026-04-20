@@ -426,7 +426,7 @@ class TestFunnelData:
         total = da_v2.decision_data.select("Interaction ID").unique().collect().height
         output_survivors = (
             da_v2.preaggregated_filter_view.filter(pl.col(da_v2.level) == "Output")
-            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .select(pl.col("Interaction_IDs").list.explode(keep_nulls=False, empty_as_null=False).unique().count())
             .collect()
             .item()
         )
