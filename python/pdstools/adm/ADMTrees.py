@@ -389,7 +389,7 @@ class ADMTreesModel:
         return instance
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> ADMTreesModel:  # pragma: no cover
+    def from_url(cls, url: str, **kwargs) -> ADMTreesModel:
         """Load a model from a URL pointing at the JSON export."""
         import requests  # type: ignore[import-untyped]
 
@@ -430,29 +430,30 @@ class ADMTreesModel:
 
     @classmethod
     def _from_anything(cls, file: Any, **kwargs) -> ADMTreesModel:
-        """Best-effort load from a string (path / URL / base64) or bytes."""
+        """Best-effort load from a string (path / URL / base64) or bytes.
+
+        Dispatches based on input *shape*, not by trying every loader and
+        catching exceptions:
+
+        * ``dict``           → :meth:`from_dict`
+        * ``bytes``          → :meth:`from_datamart_blob`
+        * ``str`` starting with ``http://`` / ``https://`` → :meth:`from_url`
+        * ``str`` that names an existing path → :meth:`from_file`
+        * any other ``str``  → :meth:`from_datamart_blob` (assume base64)
+        """
         if isinstance(file, dict):
             return cls.from_dict(file, **kwargs)
-        if isinstance(file, bytes):  # pragma: no cover
+        if isinstance(file, bytes):
             return cls.from_datamart_blob(file, **kwargs)
         if isinstance(file, str):
-            try:  # pragma: no cover
-                return cls.from_datamart_blob(file, **kwargs)
-            except Exception:
-                logger.debug("Datamart-blob decode failed; trying file/URL.", exc_info=True)
-            try:
+            if file.startswith(("http://", "https://")):
+                return cls.from_url(file, **kwargs)
+            if Path(file).expanduser().is_file():
                 return cls.from_file(file, **kwargs)
-            except Exception:  # pragma: no cover
-                logger.debug("Local file load failed; trying URL.", exc_info=True)
-                try:
-                    return cls.from_url(file, **kwargs)
-                except Exception as exc:
-                    raise ValueError(
-                        "Could not import the AGB model.\n"
-                        "Please check that your model export is a valid format "
-                        "(JSON file, URL, or base64-encoded datamart blob).\n"
-                        "Also make sure you're using Pega 8.7.3 or higher.",
-                    ) from exc
+            # Last-resort: treat as a base64-encoded datamart blob.  If the
+            # caller passed a non-existent path string, this surfaces the
+            # decode error directly instead of a misleading "file not found".
+            return cls.from_datamart_blob(file, **kwargs)
         raise TypeError(f"Unsupported input type: {type(file).__name__}")
 
     # ------------------------------------------------------------------
@@ -540,23 +541,15 @@ class ADMTreesModel:
             logger.debug("Decoding the tree splits.")
             self._decode_trees()
 
-        try:
+        if isinstance(self.trees, dict):
             self._properties = {k: v for k, v in self.trees.items() if k != "model"}
-        except (AttributeError, TypeError):  # pragma: no cover
+        else:  # pragma: no cover
             logger.debug("Could not extract the properties.")
             self._properties = {}
 
-        try:
-            self.learning_rate = self._properties["configuration"]["parameters"]["learningRateEta"]
-        except (KeyError, TypeError):  # pragma: no cover
-            logger.debug("Could not find the learning rate in the model.")
-            self.learning_rate = None
-
-        try:
-            self.context_keys = self._properties["configuration"]["contextKeys"]
-        except (KeyError, TypeError):  # pragma: no cover
-            logger.debug("Could not find context keys.")
-            self.context_keys = kwargs.get("context_keys")
+        config = self._properties.get("configuration", {}) or {}
+        self.learning_rate = (config.get("parameters") or {}).get("learningRateEta")
+        self.context_keys = config.get("contextKeys", kwargs.get("context_keys"))
 
         if self.model is None:  # pragma: no cover
             raise ValueError("Import unsuccessful: no boosters/trees found.")
@@ -606,7 +599,11 @@ class ADMTreesModel:
     ) -> bool:
         """Safely evaluate split conditions without using ``eval()``.
 
-        Returns ``False`` (with a warning) on type-conversion errors.
+        Returns ``False`` (with a debug log) on type-conversion errors.
+        Type errors here are common in production scoring — the predictor
+        is present but its value can't be coerced to the comparison's
+        expected type — so we log at DEBUG to avoid swamping callers with
+        per-record warnings.  Set the logger to DEBUG to surface them.
         """
         try:
             if operator == "in":
@@ -619,8 +616,8 @@ class ADMTreesModel:
                 return str(value).strip("'") == str(comparison_set)
             raise ValueError(f"Unsupported operator: {operator}")
         except (ValueError, TypeError) as e:
-            logger.warning(
-                "Safe evaluation failed for %r %s %r: %s",
+            logger.debug(
+                "Safe evaluation failed for %r %s %r: %s — returning False",
                 value,
                 operator,
                 comparison_set,

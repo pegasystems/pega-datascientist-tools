@@ -321,9 +321,15 @@ def test_safe_condition_evaluate_unsupported_operator(tree_sample):
     assert tree_sample._safe_condition_evaluate("x", "??", "y") is False
 
 
-def test_safe_condition_evaluate_handles_bad_numeric(tree_sample):
-    # Non-numeric string with "<" triggers ValueError -> warning -> False
-    assert tree_sample._safe_condition_evaluate("not_a_number", "<", 2.0) is False
+def test_safe_condition_evaluate_handles_bad_numeric(tree_sample, caplog):
+    # Non-numeric string with "<" triggers ValueError -> debug log -> False
+    import logging
+
+    with caplog.at_level(logging.DEBUG, logger="pdstools.adm.ADMTrees"):
+        assert tree_sample._safe_condition_evaluate("not_a_number", "<", 2.0) is False
+    assert any("Safe evaluation failed" in r.message for r in caplog.records)
+    # Verify we log at DEBUG, not WARNING — the function is hot in scoring loops.
+    assert all(r.levelno <= logging.DEBUG for r in caplog.records if "Safe evaluation failed" in r.message)
 
 
 # --- top-level Split / parse_split helpers ---------------------------------
@@ -374,3 +380,125 @@ def test_legacy_admtrees_factory_warns():
         m = ADMTrees(f"{basePath}/data/agb/ModelExportExample.json")
     assert isinstance(m, ADMTreesModel)
     assert m.metrics["number_of_trees"] == 50
+
+
+# --- read pipeline dispatch ------------------------------------------------
+
+
+def test_from_dict_round_trips_the_model():
+    """Loading from a dict skips IO and produces the same model."""
+    import json
+
+    raw = json.loads(pathlib.Path(f"{basePath}/data/agb/ModelExportExample.json").read_text())
+    m = ADMTreesModel.from_dict(raw)
+    assert m.metrics["number_of_trees"] == 50
+
+
+def test_from_anything_dispatches_dict():
+    """dict input goes through from_dict (no IO required)."""
+    import json
+
+    raw = json.loads(pathlib.Path(f"{basePath}/data/agb/ModelExportExample.json").read_text())
+    m = ADMTreesModel._from_anything(raw)
+    assert m.metrics["number_of_trees"] == 50
+
+
+def test_from_anything_dispatches_existing_path():
+    """A path string that exists routes to from_file, not base64."""
+    path = f"{basePath}/data/agb/ModelExportExample.json"
+    m = ADMTreesModel._from_anything(path)
+    assert m.raw_input == path
+
+
+def test_from_anything_url_string_routes_to_url(monkeypatch):
+    """A string starting with http(s):// routes to from_url, not from_file."""
+    sentinel = object()
+
+    def fake_from_url(cls, url, **kwargs):
+        assert url == "https://example.com/model.json"
+        return sentinel
+
+    monkeypatch.setattr(ADMTreesModel, "from_url", classmethod(fake_from_url), raising=True)
+    assert ADMTreesModel._from_anything("https://example.com/model.json") is sentinel
+
+
+def test_from_anything_unknown_string_treated_as_blob():
+    """A string that is neither URL nor existing path falls through to
+    from_datamart_blob and surfaces its decode error directly."""
+    with pytest.raises(Exception):  # noqa: B017 — base64/zlib chain raises various
+        ADMTreesModel._from_anything("definitely-not-a-real-path-or-blob")
+
+
+def test_from_anything_rejects_unsupported_type():
+    with pytest.raises(TypeError, match="Unsupported input type"):
+        ADMTreesModel._from_anything(12345)
+
+
+# --- MultiTrees -----------------------------------------------------------
+
+
+@pytest.fixture
+def two_models(exported_model: ADMTreesModel) -> tuple[ADMTreesModel, ADMTreesModel]:
+    """Two distinct ADMTreesModel instances loaded from the same export."""
+    second = ADMTreesModel.from_file(f"{basePath}/data/agb/ModelExportExample.json")
+    return exported_model, second
+
+
+def test_multitrees_indexing_by_int(two_models):
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b}, model_name="cfg")
+    # Integer index returns the (key, value) pair from insertion order.
+    assert mt[0] == ("2024-01-01", a)
+    assert mt[-1] == ("2024-02-01", b)
+    assert mt.first == ("2024-01-01", a)
+    assert mt.last == ("2024-02-01", b)
+
+
+def test_multitrees_indexing_by_str(two_models):
+    """String indexing returns the model directly — fixes a latent bug
+    where the old code checked ``isinstance(index, pl.datetime)`` which
+    is always False (``pl.datetime`` is a function, not a class)."""
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b})
+    assert mt["2024-01-01"] is a
+    assert mt["2024-02-01"] is b
+
+
+def test_multitrees_add_preserves_metadata(two_models):
+    """``__add__`` must preserve ``model_name`` and ``context_keys`` —
+    legacy code dropped them silently."""
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    left = MultiTrees(trees={"2024-01-01": a}, model_name="cfg", context_keys=["Issue", "Group"])
+    right = MultiTrees(trees={"2024-02-01": b})
+    combined = left + right
+    assert combined.model_name == "cfg"
+    assert combined.context_keys == ["Issue", "Group"]
+    assert set(combined.trees) == {"2024-01-01", "2024-02-01"}
+
+
+def test_multitrees_add_with_admtreesmodel(two_models):
+    """Adding an ADMTreesModel keys it by its factory_update_time."""
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    mt = MultiTrees(trees={"2024-01-01": a}, model_name="cfg")
+    combined = mt + b
+    # Exported model has factory_update_time = '2022-03-24T14:36:19.902Z'
+    assert "2022-03-24T14:36:19.902Z" in combined.trees
+    assert combined.model_name == "cfg"
+
+
+def test_multitrees_len_and_repr(two_models):
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    a, b = two_models
+    mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b}, model_name="cfg")
+    assert len(mt) == 2
+    r = repr(mt)
+    assert "cfg" in r and "2" in r

@@ -75,7 +75,10 @@ uv run pytest \
   --cov-report=xml \
   --cov-config=./python/tests/.coveragerc \
   --ignore=python/tests/test_healthcheck.py \
-  --ignore=python/tests/test_ADMTrees.py
+  --ignore=python/tests/test_explanations_report.py \
+  --ignore=python/tests/test_batch_healthcheck.py \
+  --ignore=python/tests/explanations \
+  -n auto
 ```
 
 Run all tests locally:
