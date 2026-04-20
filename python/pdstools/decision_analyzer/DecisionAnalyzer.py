@@ -1377,7 +1377,7 @@ class DecisionAnalyzer:
     def re_rank(
         self,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        overrides: list[pl.Expr] = [],
+        overrides: list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """Recalculate priority and rank for all PVCL component combinations.
 
@@ -1438,7 +1438,7 @@ class DecisionAnalyzer:
                 self.sample.with_columns(fill_exprs),
                 additional_filters,
             )
-            .with_columns(overrides)
+            .with_columns(overrides if overrides is not None else [])
             .filter(pl.col("Priority").is_not_null())
             .with_columns(
                 prio_PVCL=(pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")),
@@ -2033,12 +2033,14 @@ class DecisionAnalyzer:
         return base.filter(pl.col(self.level).is_in(remaining_stages))
 
     def aggregate_remaining_per_stage(
-        self, df: pl.LazyFrame, group_by_columns: list[str], aggregations: list = []
+        self, df: pl.LazyFrame, group_by_columns: list[str], aggregations: list | None = None
     ) -> pl.LazyFrame:
         """
         Workhorse function to convert the raw Decision Analyzer data (filter view) to
         the aggregates remaining per stage, ensuring all stages are represented.
         """
+        if aggregations is None:
+            aggregations = []
         stage_orders = (
             df.group_by(self.level)
             .agg(pl.min("Stage Order"))

@@ -668,7 +668,8 @@ def sample_interactions(
             sampled_ids_df = unique_ids_df.sample(n=target_n, shuffle=True, seed=None)
         else:
             # n-based random sampling
-            assert n is not None
+            if n is None:
+                raise ValueError("sample_interactions requires either fraction or n")
             if total <= n:
                 logger.info("Data has %d interactions (≤ requested %d), skipping.", total, n)
                 return df
@@ -691,7 +692,8 @@ def sample_interactions(
         return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
     # n-based hash sampling
-    assert n is not None
+    if n is None:
+        raise ValueError("sample_interactions requires either fraction or n")
 
     # Deterministic hash-based sampling for n interactions
     # If we know the total, compute an exact threshold
@@ -880,9 +882,11 @@ def prepare_and_save(
     logger.info("Streaming data to %s", tmp_path)
     try:
         sampled_lf.sink_parquet(tmp_path)
-    except Exception:
-        # sink_parquet may not support all query plans; fall back to collect
-        logger.info("sink_parquet failed, falling back to collect + write_parquet")
+    except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError) as exc:
+        # sink_parquet doesn't support all query plans; fall back to collect.
+        # Narrowed from bare Exception so genuine I/O errors (disk full, perms,
+        # etc.) still surface instead of being silently retried.
+        logger.info("sink_parquet not supported for this plan (%s), falling back to collect + write_parquet", exc)
         sampled_lf.collect(streaming=True).write_parquet(tmp_path)
 
     # Step 4: Read back to get the actual count and compute metadata
@@ -917,7 +921,8 @@ def prepare_and_save(
     # Step 5: Apply inheritance if sampling a sample
     if source_metadata and is_sampling:
         source_pct = source_metadata["sample_percentage"]
-        assert isinstance(source_pct, float)
+        if not isinstance(source_pct, float):
+            raise TypeError(f"Source metadata 'sample_percentage' must be float, got {type(source_pct).__name__}")
         sample_percentage = (sample_percentage * source_pct) / 100.0
         if source_metadata["method"] == "approximated":
             method = "approximated"

@@ -1151,7 +1151,7 @@ def log_odds_polars(
 
 
 def feature_importance(
-    over: list[str] | None = ["PredictorName", "ModelID"],
+    over: list[str] | None = None,
     scaled: bool = True,
 ) -> pl.Expr:
     """Calculate feature importance for Naive Bayes predictors.
@@ -1176,7 +1176,7 @@ def feature_importance(
     Parameters
     ----------
     over : list[str], optional
-        Grouping columns, default ["PredictorName", "ModelID"]
+        Grouping columns. Defaults to ``["PredictorName", "ModelID"]``.
     scaled : bool, default True
         If True, scale importance to 0-100 where max predictor = 100
 
@@ -1221,8 +1221,9 @@ def feature_importance(
     result = importance.alias("FeatureImportance")
 
     # Apply grouping for per-predictor aggregation
-    if over is not None:
-        result = result.over(over)
+    if over is None:
+        over = ["PredictorName", "ModelID"]
+    result = result.over(over)
 
     # Step 4: Optional scaling (must happen AFTER .over() to scale across all predictors)
     if scaled:
@@ -1494,11 +1495,23 @@ def get_latest_pdstools_version():
 
 
 def setup_logger():
-    """Returns a logger and log buffer in root level"""
-    logger = logging.getLogger()
+    """Return the ``pdstools`` logger and a log buffer it streams into.
+
+    Targets the named ``pdstools`` logger rather than the root logger so we
+    don't clobber the host application's logging config (Streamlit, Quarto,
+    Jupyter, etc.). Idempotent: repeated calls return the same buffer
+    instead of stacking new handlers, so re-running a notebook cell or
+    bouncing a Streamlit page doesn't produce duplicated log lines.
+    """
+    logger = logging.getLogger("pdstools")
     logger.setLevel(logging.INFO)
+    for handler in logger.handlers:
+        existing_buffer = getattr(handler, "_pdstools_buffer", None)
+        if existing_buffer is not None:
+            return logger, existing_buffer
     log_buffer = StringIO()
     handler = logging.StreamHandler(log_buffer)
+    handler._pdstools_buffer = log_buffer  # type: ignore[attr-defined]
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",

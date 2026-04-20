@@ -13,7 +13,7 @@ import multiprocessing
 import operator
 import zlib
 from dataclasses import dataclass
-from functools import cached_property, lru_cache
+from functools import cached_property
 from math import exp
 from statistics import mean, median, stdev
 from typing import (
@@ -1066,15 +1066,15 @@ class ADMTreesModel:
 
     @cached_property
     def splits_per_tree(self):
-        return self.get_gains_per_split()[0]
+        return self._gains_per_split_raw[0]
 
     @cached_property
     def gains_per_tree(self):  # pragma: no cover
-        return self.get_gains_per_split()[1]
+        return self._gains_per_split_raw[1]
 
     @cached_property
     def gains_per_split(self):
-        return self.get_gains_per_split()[2]
+        return self._gains_per_split_raw[2]
 
     @cached_property
     def grouped_gains_per_split(self):
@@ -1241,15 +1241,22 @@ class ADMTreesModel:
         logger.info(f"Inferred {len(result)} predictors from tree splits.")
         return result
 
-    @lru_cache
-    def get_gains_per_split(
+    @cached_property
+    def _gains_per_split_raw(
         self,
     ) -> tuple[
         dict,
         dict,
         pl.DataFrame,
     ]:
-        """Function to compute the gains of each split in each tree."""
+        """Compute (splits_per_tree, gains_per_tree, gains_per_split) once.
+
+        Backs the public ``splits_per_tree`` / ``gains_per_tree`` /
+        ``gains_per_split`` properties. Implemented as a cached_property
+        rather than ``@lru_cache`` on a method, because lru_cache holds a
+        strong reference to ``self`` and would leak the entire ADMTrees
+        instance (often hundreds of MB) for the lifetime of the cache.
+        """
         self.predictors
 
         splitsPerTree = {
