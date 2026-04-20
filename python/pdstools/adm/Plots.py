@@ -1,27 +1,28 @@
 __all__ = ["Plots"]
 import logging
+import math
+from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Iterable,
-    List,
     Literal,
-    Optional,
-    Set,
-    Tuple,
     TypeVar,
     Union,
     overload,
 )
+from collections.abc import Callable
 
 import polars as pl
-from typing_extensions import Concatenate, ParamSpec
+import polars.selectors as cs
+from typing_extensions import ParamSpec
+from typing import Concatenate
 
 from ..utils import cdh_utils
+from ..utils.metric_limits import MetricLimits
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import get_colorscale
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
@@ -29,16 +30,12 @@ try:
     import plotly.express as px
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-
-    from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
-
     from .ADMDatamart import ADMDatamart
-COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -47,36 +44,41 @@ P = ParamSpec("P")
 
 
 def requires(
-    model_columns: Optional[Iterable[str]] = None,
-    predictor_columns: Optional[Iterable[str]] = None,
-    combined_columns: Optional[Iterable[str]] = None,
+    model_columns: Iterable[str] | None = None,
+    predictor_columns: Iterable[str] | None = None,
+    combined_columns: Iterable[str] | None = None,
 ):
     def decorator(
-        func: Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]],
-    ) -> Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]]:
+        func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
+    ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
         @overload
-        def wrapper(
-            self: T, *args: P.args, return_df: Literal[False] = ..., **kwargs: P.kwargs
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: Literal[False] = ...,
+            **kwargs: P.kwargs,
         ) -> Figure: ...
 
         @overload
-        def wrapper(
-            self: T, *args: P.args, return_df: Literal[True], **kwargs: P.kwargs
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: Literal[True],
+            **kwargs: P.kwargs,
         ) -> pl.LazyFrame: ...
 
         @wraps(func)
-        def wrapper(
-            self: T, *args: P.args, return_df: bool = False, **kwargs: P.kwargs
-        ) -> Union[Figure, pl.LazyFrame]:
+        def wrapper(  # type: ignore[valid-type]
+            self: T,
+            *args: P.args,
+            return_df: bool = False,
+            **kwargs: P.kwargs,
+        ) -> Figure | pl.LazyFrame:
             # Validation logic (unchanged)
             if model_columns:
                 if self.datamart.model_data is None:
                     raise ValueError("Missing data: model_data")
-                missing = {
-                    c
-                    for c in model_columns
-                    if c not in self.datamart.model_data.collect_schema().names()
-                }
+                missing = {c for c in model_columns if c not in self.datamart.model_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required model columns:{missing}")
 
@@ -84,9 +86,7 @@ def requires(
                 if self.datamart.predictor_data is None:
                     raise ValueError("Missing data: predictor_data")
                 missing = {
-                    c
-                    for c in predictor_columns
-                    if c not in self.datamart.predictor_data.collect_schema().names()
+                    c for c in predictor_columns if c not in self.datamart.predictor_data.collect_schema().names()
                 }
                 if missing:
                     raise ValueError(f"Missing required predictor columns:{missing}")
@@ -94,29 +94,62 @@ def requires(
             if combined_columns:
                 if self.datamart.combined_data is None:
                     raise ValueError("Missing data: combined_data")
-                missing = {
-                    c
-                    for c in combined_columns
-                    if c not in self.datamart.combined_data.collect_schema().names()
-                }
+                missing = {c for c in combined_columns if c not in self.datamart.combined_data.collect_schema().names()}
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
-            return func(self, *args, return_df=return_df, **kwargs)
+            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]
 
         return wrapper
 
     return decorator
 
 
+def fig_update_facet(
+    fig: Figure,
+    n_cols: int = 2,
+    base_height: int = 250,
+    step_height: int = 270,
+) -> Figure:
+    """Update faceted plot layout with proper height and simplified annotation text.
+
+    This utility function adjusts the height of faceted plots based on the number of
+    facets and columns, and simplifies facet annotation text by showing only the
+    value part after "=" splits.
+
+    Parameters
+    ----------
+    fig : Figure
+        The plotly figure to update
+    n_cols : int, optional
+        Number of columns in the facet layout, by default 2
+    base_height : int, optional
+        Base height for the plot, by default 250
+    step_height : int, optional
+        Additional height per row of facets, by default 270
+
+    Returns
+    -------
+    Figure
+        The updated plotly figure
+
+    """
+    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
+    height = base_height + (n_rows * step_height)
+    return fig.for_each_annotation(
+        lambda a: a.update(text=a.text.split("=")[1]) if "=" in a.text else a,
+    ).update_layout(autosize=True, height=height)
+
+
 def add_bottom_left_text_to_bubble_plot(
-    fig: Figure, df: pl.LazyFrame, bubble_size: int
+    fig: Figure,
+    df: pl.LazyFrame,
+    bubble_size: int,
 ):
     def get_nonperforming_models(df: pl.LazyFrame):
         return (
             df.filter(
-                (pl.col("Performance") == 50)
-                & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0))
+                (pl.col("Performance") == 50) & ((pl.col("SuccessRate").is_null()) | (pl.col("SuccessRate") == 0)),
             )
             .select(pl.first().count())
             .collect()
@@ -124,7 +157,7 @@ def add_bottom_left_text_to_bubble_plot(
         )
 
     if len(fig.layout.annotations) > 0:
-        for i in range(0, len(fig.layout.annotations)):
+        for i in range(len(fig.layout.annotations)):
             oldtext = fig.layout.annotations[i].text.split("=")
             subset = df.filter(pl.col(oldtext[0]) == oldtext[1])
             num_models = subset.select(pl.first().count()).collect().item()
@@ -145,11 +178,51 @@ def add_bottom_left_text_to_bubble_plot(
     return fig
 
 
+def add_metric_limit_lines(
+    fig: Figure,
+    metric_id: str = "ModelPerformance",
+    scale: float = 100.0,
+    orientation: str = "vertical",
+) -> Figure:
+    """Add dashed lines at MetricLimits thresholds (red=hard, green=best practice)."""
+    limits = MetricLimits.get_limit_for_metric(metric_id)
+    if not limits:
+        return fig
+
+    add_line = fig.add_vline if orientation == "vertical" else fig.add_hline
+    pos_key = "x" if orientation == "vertical" else "y"
+
+    line_specs = [
+        ("minimum", "rgba(255, 69, 0, 0.5)", "Min"),
+        ("best_practice_min", "rgba(0, 128, 0, 0.5)", "Good"),
+        ("best_practice_max", "rgba(0, 128, 0, 0.5)", "Good"),
+        ("maximum", "rgba(255, 69, 0, 0.5)", "Max"),
+    ]
+
+    for limit_key, color, label in line_specs:
+        value = limits.get(limit_key)
+        if value is not None:
+            scaled = value * scale
+            add_line(
+                **{pos_key: scaled},
+                line_dash="dash",
+                line_width=1,
+                line_color=color,
+                layer="below",
+                annotation_text=f"{label} ({scaled:.0f})",
+                annotation_position="top" if orientation == "vertical" else "right",
+                annotation_font_size=9,
+                annotation_font_color=color,
+            )
+
+    return fig
+
+
 def distribution_graph(df: pl.LazyFrame, title: str):
     plot_df = df.collect()
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
-        go.Bar(x=plot_df["BinSymbol"], y=plot_df["BinResponseCount"], name="Responses")
+        go.Bar(x=plot_df["BinSymbol"], y=plot_df["BinResponseCount"], name="Responses"),
     )
     fig.add_trace(
         go.Scatter(
@@ -158,10 +231,13 @@ def distribution_graph(df: pl.LazyFrame, title: str):
             yaxis="y2",
             name="Propensity",
             mode="lines+markers",
-        )
+        ),
     )
     fig.update_layout(
-        template="pega", title=title, xaxis_title="Range", yaxis_title="Responses"
+        template="pega",
+        title=title,
+        xaxis_title="Range",
+        yaxis_title="Responses",
     )
     fig.update_yaxes(title_text="Propensity", secondary_y=True)
     fig.layout.yaxis2.tickformat = ",.3%"
@@ -186,9 +262,10 @@ class Plots(LazyNamespace):
         *,
         last: bool = True,
         rounding: int = 5,
-        query: Optional[QUERY] = None,
-        facet: Optional[Union[str, pl.Expr]] = None,
-        color: Optional[str] = "Performance",
+        query: QUERY | None = None,
+        facet: str | pl.Expr | None = None,
+        color: str | None = "Performance",
+        show_metric_limits: bool = False,
         return_df: bool = False,
     ):
         """The Bubble Chart, as seen in Prediction Studio
@@ -203,8 +280,12 @@ class Plots(LazyNamespace):
             The query to apply to the data, by default None
         facet : Optional[Union[str, pl.Expr]], optional
             Column name or Polars expression to facet the plot into subplots, by default None
+        show_metric_limits : bool, optional
+            Whether to show dashed vertical lines at the ModelPerformance
+            metric limit thresholds (from MetricLimits.csv), by default False
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
+
         """
         # why do we need this select? it's not ideal because columns used in the query are not always selected
         columns_to_select = list(
@@ -219,15 +300,13 @@ class Plots(LazyNamespace):
                     "LastUpdate",
                     "Configuration",
                     *self.datamart.context_keys,
-                ]
-            )
+                ],
+            ),
         ) + (["Performance"] if color != "Performance" else [])
         if facet is not None:
             if isinstance(facet, pl.Expr):
                 facet_columns = facet.meta.root_names()
-                columns_to_select.extend(
-                    col for col in facet_columns if col not in columns_to_select
-                )
+                columns_to_select.extend(col for col in facet_columns if col not in columns_to_select)
                 facet_name = facet.meta.output_name()
             else:
                 if facet not in columns_to_select:
@@ -236,7 +315,7 @@ class Plots(LazyNamespace):
         else:
             facet_name = None
         df = (
-            (self.datamart.aggregates.last() if last else self.datamart.model_data)
+            (self.datamart.aggregates.last() if last else self.datamart.model_data)  # type: ignore[union-attr]
             .select(*columns_to_select)
             .with_columns((pl.col("Performance") * pl.lit(100)).round(rounding))
         )
@@ -268,20 +347,25 @@ class Plots(LazyNamespace):
             labels={"LastUpdate": "Last Updated"},
         )
         fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
+        if show_metric_limits:
+            fig = add_metric_limit_lines(fig)
         fig.update_traces(marker=dict(line=dict(color="black")))
         fig.update_yaxes(tickformat=".3%")
         return fig
+
+    # TODO support ["Channel", "Direction"] - mulitiple by's in over_time
 
     @requires({"SnapshotTime"})
     def over_time(
         self,
         metric: str = "Performance",
-        by: Union[pl.Expr, str] = "ModelID",
+        by: pl.Expr | str = "ModelID",
         *,
-        every: Union[str, timedelta] = "1d",
+        every: str | timedelta = "1d",
         cumulative: bool = True,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
+        show_metric_limits: bool = False,
         return_df: bool = False,
     ):
         """Statistics over time
@@ -301,8 +385,13 @@ class Plots(LazyNamespace):
             The query to apply to the data, by default None
         facet : Optional[str], optional
             Whether to facet the plot into subplots, by default None
+        show_metric_limits : bool, optional
+            Whether to show dashed horizontal lines at the metric limit
+            thresholds (from MetricLimits.csv), by default False.
+            Only applies when metric is "Performance".
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
+
         """
         percentage_metrics = ["Performance", "SuccessRate"]
         metric_formatting = {
@@ -318,7 +407,7 @@ class Plots(LazyNamespace):
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
-        columns_to_select: Set[str] = {"SnapshotTime", metric, "ResponseCount"}
+        columns_to_select: set[str] = {"SnapshotTime", metric, "ResponseCount"}
         columns_to_select.update(by.meta.root_names())
         if facet:
             columns_to_select.add(facet)
@@ -327,9 +416,7 @@ class Plots(LazyNamespace):
         metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
 
         df = (
-            cdh_utils._apply_query(self.datamart.model_data, query)
-            .sort("SnapshotTime")
-            .select(list(columns_to_select))
+            cdh_utils._apply_query(self.datamart.model_data, query).sort("SnapshotTime").select(list(columns_to_select))
         )
 
         grouping_columns = [by_col]
@@ -337,13 +424,16 @@ class Plots(LazyNamespace):
             grouping_columns.append(facet)
         df = df.with_columns(by).set_sorted("SnapshotTime")
 
+        # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
+        null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
+        df = df.filter(pl.all_horizontal(null_filters))
+
         agg_expr = [
             (
-                metric_scaling
-                * cdh_utils.weighted_average_polars(metric, "ResponseCount")
+                metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
                 if is_percentage
                 else pl.sum(metric)
-            ).alias(metric)
+            ).alias(metric),
         ]
         if is_percentage:
             agg_expr.append(pl.sum("ResponseCount"))
@@ -360,7 +450,7 @@ class Plots(LazyNamespace):
         if not cumulative and unique_intervals <= 1:
             logger.warning(
                 f"Only one {every} interval of data found. Cannot calculate interval-to-interval differences. "
-                "Automatically switching to cumulative mode to show values instead."
+                "Automatically switching to cumulative mode to show values instead.",
             )
             cumulative = True
 
@@ -369,11 +459,13 @@ class Plots(LazyNamespace):
             plot_metric = f"{metric}_change"
             df = (
                 df.group_by_dynamic(
-                    "SnapshotTime", every=every, group_by=grouping_columns
+                    "SnapshotTime",
+                    every=every,
+                    group_by=grouping_columns,
                 )
                 .agg(pl.last(metric))
                 .with_columns(
-                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
+                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric),
                 )
             )
 
@@ -407,6 +499,9 @@ class Plots(LazyNamespace):
             fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
 
+        if show_metric_limits and metric == "Performance":
+            fig = add_metric_limit_lines(fig, orientation="horizontal")
+
         return fig
 
     @requires({"ModelID", "Name"})
@@ -416,8 +511,8 @@ class Plots(LazyNamespace):
         by: str = "Name",
         *,
         top_n: int = 0,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        query: QUERY | None = None,
+        facet: str | None = None,
         return_df: bool = False,
     ):
         """Proposition Success Rates
@@ -436,12 +531,13 @@ class Plots(LazyNamespace):
             What facetting column to apply to the graph, by default None
         return_df : bool, optional
             Whether to return a DataFrame instead of the graph, by default False
+
         """
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
         df = cdh_utils._apply_query(self.datamart.model_data, query).select(
-            {"ModelID", "Name", metric, by, facet}
+            {"ModelID", "Name", metric, by, facet},
         )
 
         if return_df:
@@ -479,7 +575,7 @@ class Plots(LazyNamespace):
             "BinResponseCount",
             "BinPropensity",
             "ModelID",
-        }
+        },
     )
     def score_distribution(
         self,
@@ -488,6 +584,28 @@ class Plots(LazyNamespace):
         active_range: bool = True,
         return_df: bool = False,
     ):
+        """Generate a score distribution plot for a specific model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate the score distribution for
+        active_range : bool, optional
+            Whether to filter to active score range only, by default True
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing score distribution or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID
+
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -503,7 +621,7 @@ class Plots(LazyNamespace):
                 }
                 | set(
                     self.datamart.context_keys,
-                )
+                ),
             )
             .filter(PredictorName="Classifier", ModelID=model_id)
         ).sort("BinIndex")
@@ -512,9 +630,9 @@ class Plots(LazyNamespace):
             active_ranges = self.datamart.active_ranges(model_id).collect()
             if active_ranges.height > 0:
                 active_range_info = active_ranges.to_dicts()[0]
-                active_range_filter_expr = (
-                    pl.col("BinIndex") >= active_range_info["idx_min"]
-                ) & (pl.col("BinIndex") <= active_range_info["idx_max"])
+                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                    pl.col("BinIndex") <= active_range_info["idx_max"]
+                )
                 df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
@@ -526,12 +644,12 @@ class Plots(LazyNamespace):
         context = "/".join(
             df.select(
                 pl.col("Configuration", *self.datamart.context_keys).fill_null(
-                    "MISSING"
-                )
+                    "MISSING",
+                ),
             )
             .unique()
             .collect()
-            .row(0)
+            .row(0),
         )
         return distribution_graph(
             df,
@@ -541,8 +659,10 @@ class Plots(LazyNamespace):
         )
 
     def multiple_score_distributions(
-        self, query: Optional[QUERY] = None, show_all: bool = True
-    ) -> List[Figure]:
+        self,
+        query: QUERY | None = None,
+        show_all: bool = True,
+    ) -> list[Figure]:
         """Generate the score distribution plot for all models in the query
 
         Parameters
@@ -554,8 +674,9 @@ class Plots(LazyNamespace):
 
         Returns
         -------
-        List[go.Figure]
+        list[go.Figure]
             A list of Plotly charts, one for each model instance
+
         """
         plots = []
         for model_id in (
@@ -582,11 +703,36 @@ class Plots(LazyNamespace):
             "BinSymbol",
             "BinResponseCount",
             "BinPropensity",
-        }
+        },
     )
     def predictor_binning(
-        self, model_id: str, predictor_name: str, return_df: bool = False
+        self,
+        model_id: str,
+        predictor_name: str,
+        return_df: bool = False,
     ):
+        """Generate a predictor binning plot for a specific model and predictor.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model containing the predictor
+        predictor_name : str
+            Name of the predictor to analyze
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly figure showing predictor binning or DataFrame if return_df=True
+
+        Raises
+        ------
+        ValueError
+            If no data is available for the provided model ID and predictor name
+
+        """
         df = (
             self.datamart.aggregates.last(table="combined_data")
             .select(
@@ -602,16 +748,17 @@ class Plots(LazyNamespace):
                 }
                 | set(
                     self.datamart.context_keys,
-                )
+                ),
             )
             .filter(
-                pl.col("PredictorName") == predictor_name, pl.col("ModelID") == model_id
+                pl.col("PredictorName") == predictor_name,
+                pl.col("ModelID") == model_id,
             )
         ).sort("BinIndex")
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(
-                f"There is no data for the provided modelid {model_id} and predictor {predictor_name}"
+                f"There is no data for the provided modelid {model_id} and predictor {predictor_name}",
             )
 
         if return_df:
@@ -619,20 +766,41 @@ class Plots(LazyNamespace):
         context = "/".join(
             df.select(
                 pl.col("Configuration", *self.datamart.context_keys).fill_null(
-                    "MISSING"
-                )
+                    "MISSING",
+                ),
             )
             .unique()
             .collect()
-            .row(0)
+            .row(0),
         )
         return distribution_graph(
-            df, title=f"""Predictor binning for {predictor_name}<br><sup>{context}"""
+            df,
+            title=f"""Predictor binning for {predictor_name}<br><sup>{context}""",
         )
 
     def multiple_predictor_binning(
-        self, model_id: str, query: Optional[QUERY] = None, show_all=True
-    ) -> List[Figure]:
+        self,
+        model_id: str,
+        query: QUERY | None = None,
+        show_all=True,
+    ) -> list[Figure]:
+        """Generate predictor binning plots for all predictors in a model.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model to generate predictor binning plots for
+        query : Optional[QUERY], optional
+            A query to apply to the predictor data, by default None
+        show_all : bool, optional
+            Whether to display all plots or just return the list, by default True
+
+        Returns
+        -------
+        list[Figure]
+            A list of Plotly figures, one for each predictor in the model
+
+        """
         plots = []
         for predictor in (
             cdh_utils._apply_query(
@@ -650,176 +818,222 @@ class Plots(LazyNamespace):
             plots.append(fig)
         return plots
 
-    @requires(
-        combined_columns={
-            "Channel",
-            "PredictorName",
-            "ModelID",
-            "Name",
-            "ResponseCountBin",
-            "Type",
-            "PredictorCategory",
-        }
-    )
-    def predictor_performance(
+    def _boxplot_pre_aggregated(
         self,
+        df: pl.LazyFrame,
         *,
-        metric: str = "Performance",
-        top_n: Optional[int] = None,
-        active_only: bool = False,
-        query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        y_col: str,
+        metric_col: str,
+        metric_weight_col: str | None = None,
+        legend_col: str | None = None,
         return_df: bool = False,
     ):
-        """Plots a bar chart of the performance of the predictors
+        if legend_col is None:
+            legend_col = y_col
 
-        By default, shows the performance over all models.
-        Use the query argument to drill down to a more specific subset
-        If top n is given, chooses the top predictors based on the
-        weighted average performance across models, sorted by their median performance.
-
-        Parameters
-        ----------
-        metric : str, optional
-            The metric to plot, by default "Performance"
-            This is more for future-proofing, once FeatureImportant gets more used.
-        top_n : Optional[int], optional
-            The top n predictors to plot, by default None
-        active_only : bool, optional
-            Whether to only consider active predictor performance, by default False
-        query : Optional[QUERY], optional
-            The query to apply to the data, by default None
-        facet : Optional[str], optional
-            Whether to facet the plot into subplots, by default None
-        return_df : bool, optional
-            Whether to return a dataframe instead of a plot, by default False
-
-        See also
-        --------
-        pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
-        """
-
-        metric = "PredictorPerformance" if metric == "Performance" else metric
-        try:
-            flds = [
-                "Channel",
-                "PredictorName",
-                "ModelID",
-                "Name",
-                "ResponseCountBin",
-                "EntryType",
-                "Type",
-                "PredictorCategory",
-                "Configuration",
-                facet,
-                metric,
-            ]
-            flds = flds + [f for f in self.datamart.context_keys if f not in flds]
-            df = cdh_utils._apply_query(
-                self.datamart.aggregates.last(table="combined_data")
-                .with_columns(
-                    pl.col("PredictorPerformance") * 100.0,
-                )
-                .select(flds)
-                .filter(pl.col("EntryType") != "Classifier")
-                .unique(subset=["ModelID", "PredictorName"], keep="first")
-                .rename({"PredictorCategory": "Legend"}),
-                query=query,
+        if metric_weight_col is None:
+            mean_expr = pl.mean(metric_col)
+        else:
+            mean_expr = cdh_utils.weighted_average_polars(metric_col, metric_weight_col)
+        pre_aggs = (
+            df.group_by(list({y_col, legend_col}))
+            .agg(
+                median=pl.median(metric_col),
+                mean=mean_expr,
+                q1=pl.quantile(metric_col, 0.25),
+                q3=pl.quantile(metric_col, 0.75),
+                min=pl.min(metric_col),
+                max=pl.max(metric_col),
+                whisker_low=pl.quantile(metric_col, 0.1),
+                whisker_high=pl.quantile(metric_col, 0.9),
             )
-        except ValueError:
-            return None
-        if active_only:
-            df = df.filter(pl.col("EntryType") == "Active")
-        if top_n:
-            df = self.datamart.aggregates._top_n(
-                df, top_n, metric, facets=[facet] if facet else None
-            )
-
-        df = df.with_columns(
-            pl.median(metric).over("PredictorName").alias("_median_"),
-            pl.mean(metric).over("PredictorName").alias("_mean_"),
-            pl.min(metric).over("PredictorName").alias("_min_"),
-            pl.max(metric).over("PredictorName").alias("_max_"),
-        )
-
-        order = (
-            df.group_by("PredictorName")
-            .agg(pl.col("_median_").first().alias("Order"))
-            .fill_nan(0)
-            .sort("Order", descending=False)
-            .select("PredictorName")
-            .collect()["PredictorName"]
+            .with_columns(iqr=pl.col("q3") - pl.col("q1"))
+            # limiting the decimals should reduce the size of
+            # the plotly data in HTML significantly. TODO not sure thats true!!
+            .with_columns(cs.numeric().round(3))
+            .sort(["median", y_col], descending=True)
+            .collect()
         )
 
         if return_df:
-            return df.rename({"Legend": "PredictorCategory"})
+            return pre_aggs
 
-        title_suffix = "over all models" if facet is None else f"per {facet}"
-        title_prefix = metric
+        if pre_aggs.select(pl.first().len()).item() == 0:
+            return None
 
-        y = "PredictorName"
+        fig = go.Figure()
 
-        fig = px.box(
-            df.sort(y).collect(),
-            x=metric,
-            y=y,
-            color="Legend",
-            template="pega",
-            title=f"{title_prefix} {title_suffix}",
-            facet_col=facet,
-            facet_col_wrap=5,
-            hover_name="PredictorName",
-            # Unfortunately, Plotly supports customization of the hovers only
-            # for the 'point type' data in a box plot, not the actual boxes.
-            # https://github.com/plotly/plotly.py/issues/2498
-            # https://github.com/plotly/plotly.py/issues/3334
-            hover_data={
-                "PredictorName": False,
-                "_median_": ":.2f",
-                "_mean_": ":.2f",
-                "_min_": ":.2f",
-                "_max_": ":.2f",
-                "PredictorPerformance": ":.2f",
-            },
-            labels={
-                "PredictorName": "Predictor Name",
-                "PredictorPerformance": "Performance",
-                "_median_": "Median Performance",
-                "_mean_": "Average Performance",
-                "_min_": "Minimum Performance",
-                "_max_": "Maximum Performance",
-                "Legend": "Predictor Category",
-            },
-        )
+        # Fixed colors for specific predictor categories
+        # TODO move elsewhere
+        fixed_colors = {
+            "IH": "#1f77b4",  # Blue
+            "Param": "#ff7f0e",  # Orange
+            "Primary": "#2ca02c",  # Green
+            "Other": "#d62728",  # Red
+        }
 
-        fig.update_yaxes(
-            categoryorder="array", categoryarray=order, automargin=True, dtick=1
-        )
+        # Fallback colors from pega template for other categories
+        template_colors = [
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ]
+
+        # TODO bad code below
+        color_map = {}
+        template_color_index = 0
+        for cat in pre_aggs.select(pl.col(legend_col).unique())[legend_col].to_list():
+            if cat in fixed_colors:
+                color_map[cat] = fixed_colors[cat]
+            else:
+                color_map[cat] = template_colors[template_color_index % len(template_colors)]
+                template_color_index += 1
+
+        # Track which categories have been added to legend
+        legend_added = set()
+
+        # Create a box plot for each predictor
+        for i, row in enumerate(pre_aggs.iter_rows(named=True)):
+            show_in_legend = row[legend_col] not in legend_added
+            if show_in_legend:
+                legend_added.add(row[legend_col])
+
+            fig.add_trace(
+                go.Box(
+                    q1=[row["q1"]],
+                    median=[row["median"]],
+                    q3=[row["q3"]],
+                    lowerfence=[row["whisker_low"]],
+                    upperfence=[row["whisker_high"]],
+                    mean=[row["mean"]],
+                    y=[row[y_col]],
+                    boxpoints=False,
+                    marker=dict(color=color_map[row[legend_col]]),
+                    name=row[legend_col],
+                    legendgroup=row[legend_col],
+                    orientation="h",
+                    showlegend=show_in_legend,
+                ),
+            )
 
         fig.update_layout(
-            boxgap=0, boxgroupgap=0, legend_title_text="Predictor category"
+            title=f"{metric_col} by {legend_col}",
+            xaxis_title=metric_col,
+            yaxis_title="",
+            template="pega",
+        )
+
+        # set y-axis category order to show highest median values at the top
+        fig.update_yaxes(
+            categoryorder="array",
+            categoryarray=pre_aggs[y_col].to_list(),
+            automargin=True,
+            autorange="reversed",
         )
         return fig
 
     @requires(
         combined_columns={
             "ModelID",
-            "Configuration",
-            "Channel",
-            "Direction",
             "PredictorName",
+            "PredictorCategory",
             "ResponseCountBin",
             "Type",
+            "EntryType",
+        },
+    )
+    def predictor_performance(
+        self,
+        *,
+        metric: str = "Performance",
+        top_n: int | None = None,
+        active_only: bool = False,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ):
+        """Plots a box plot of the performance of the predictors
+
+        Use the query argument to drill down to a more specific subset
+        If top n is given, chooses the top predictors based on the
+        weighted average performance across models, ordered by their median performance.
+
+        Parameters
+        ----------
+        metric : str, optional
+            The metric to plot, by default "Performance"
+            This is more for future-proofing, once FeatureImportance gets more used.
+        top_n : Optional[int], optional
+            The top n predictors to plot, by default None
+        active_only : bool, optional
+            Whether to only consider active predictor performance, by default False
+        query : Optional[QUERY], optional
+            The query to apply to the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        See Also
+        --------
+        pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
+        """
+        # in combined_data, the performance metric is renamed to PredictorPerformance
+        metric = "PredictorPerformance" if metric == "Performance" else metric
+        df = cdh_utils._apply_query(
+            self.datamart.aggregates.last(table="combined_data")
+            .with_columns(
+                pl.col("PredictorPerformance") * 100.0,
+            )
+            .filter(pl.col("EntryType") != "Classifier")
+            .filter(pl.col("ResponseCountBin") > 0)
+            .unique(subset=["ModelID", "PredictorName"], keep="first"),
+            query=query,
+            allow_empty=True,
+        )
+        if active_only:
+            df = df.filter(pl.col("EntryType") == "Active")
+        if top_n:
+            df = self.datamart.aggregates._top_n(
+                df,
+                top_n,
+                metric,
+            )
+
+        fig = self._boxplot_pre_aggregated(
+            df,
+            y_col="PredictorName",
+            metric_col=metric,
+            # It is confusing, but ResponseCountBin is the correct total response
+            # count for a predictor. It is the sum of BinResponseCount. Thanks SK :)
+            metric_weight_col="ResponseCountBin",
+            legend_col="PredictorCategory",
+            return_df=return_df,
+        )
+
+        if fig is not None and not return_df:
+            fig.update_xaxes(title="Performance")
+            fig.update_layout(title=f"{metric} by Predictor Category")
+
+        return fig
+
+    @requires(
+        combined_columns={
+            "ModelID",
+            "PredictorName",
             "PredictorCategory",
-        }
+            "ResponseCountBin",
+            "Type",
+            "EntryType",
+        },
     )
     def predictor_category_performance(
         self,
         *,
         metric: str = "Performance",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
-        facet: Optional[Union[pl.Expr, str]] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plot the predictor category performance
@@ -832,8 +1046,6 @@ class Plots(LazyNamespace):
             Whether to only analyze active predictors, by default False
         query : Optional[QUERY], optional
             An optional query to apply, by default None
-        facet : Optional[Union[pl.Expr, str]], optional
-            By which columns to facet the result, by default None
         return_df : bool, optional
             An optional flag to get the dataframe instead, by default False
 
@@ -842,83 +1054,35 @@ class Plots(LazyNamespace):
         px.Figure
             A Plotly figure
 
-
-        See also
+        See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
         """
         metric = "PredictorPerformance" if metric == "Performance" else metric
-
-        # Determine columns to select and grouping
-        select_columns = {
-            "ModelID",
-            "Configuration",
-            "Channel",
-            "Direction",
-            "PredictorName",
-            "ResponseCountBin",
-            "EntryType",
-            "Type",
-            "PredictorCategory",
-            metric,
-        } | set(self.datamart.context_keys)
-
-        groups = [pl.col("ModelID"), pl.col("PredictorCategory")]
-
-        facet_col = None
-        if isinstance(facet, str):
-            select_columns.add(facet)
-            groups.insert(0, pl.col(facet))
-        elif facet is not None:
-            select_columns |= set(facet.meta.root_names())
-            groups.insert(0, facet)
-            facet_col = facet.meta.output_name()
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data")
             .with_columns(
                 pl.col("PredictorPerformance") * 100.0,
             )
-            .select(select_columns)
-            .filter(pl.col("EntryType") != "Classifier"),
+            .filter(pl.col("EntryType") != "Classifier")
+            .filter(pl.col("ResponseCountBin") > 0),
             query=query,
         )
-
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
 
-        df = df.group_by(groups).agg(
-            PredictorPerformance=cdh_utils.weighted_average_polars(
-                "PredictorPerformance", "ResponseCountBin"
-            )
+        fig = self._boxplot_pre_aggregated(
+            df,
+            y_col="PredictorCategory",
+            metric_col="PredictorPerformance",
+            legend_col="PredictorCategory",
+            return_df=return_df,
         )
+        if fig is not None and not return_df:
+            fig.update_xaxes(title="Performance")
 
-        if return_df:
-            return df
-        y = "PredictorCategory"
-        order = df.collect().get_column("PredictorCategory").unique().to_list()
-        order.sort()
-        fig = px.box(
-            df.sort(y).collect(),
-            x=metric,
-            y=y,
-            color="PredictorCategory",
-            template="pega",
-            facet_col=facet_col,
-            # title=f"{title_prefix} {title_suffix}",
-            facet_col_wrap=3,
-            labels={
-                "PredictorName": "Predictor Name",
-                "PredictorPerformance": "Performance",
-            },
-        )
-        fig.update_yaxes(
-            categoryorder="array", categoryarray=order, automargin=True, dtick=1
-        )
-
-        fig.update_layout(
-            boxgap=0, boxgroupgap=0, legend_title_text="Predictor category"
-        )
         return fig
 
     @requires(
@@ -927,13 +1091,13 @@ class Plots(LazyNamespace):
             "PredictorPerformance",
             "BinResponseCount",
             "PredictorCategory",
-        }
+        },
     )
     def predictor_contribution(
         self,
         *,
         by: str = "Configuration",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
         """Plots the predictor contribution for each configuration
@@ -952,9 +1116,10 @@ class Plots(LazyNamespace):
         px.Figure
             A plotly figure
 
-        See also
+        See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
         """
         df = (
             cdh_utils._apply_query(
@@ -962,16 +1127,17 @@ class Plots(LazyNamespace):
                 query,
             )
             .filter(pl.col("PredictorName") != "Classifier")
+            # Huh?
             .with_columns((pl.col("PredictorPerformance") - 0.5) * 2)
             .group_by(by, "PredictorCategory")
             .agg(
                 Performance=cdh_utils.weighted_average_polars(
-                    "PredictorPerformance", "BinResponseCount"
-                )
+                    "PredictorPerformance",
+                    "BinResponseCount",
+                ),
             )
             .with_columns(
-                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by))
-                * 100
+                Contribution=(pl.col("Performance") / pl.sum("Performance").over(by)) * 100,
             )
             .sort("PredictorCategory")
         )
@@ -996,18 +1162,41 @@ class Plots(LazyNamespace):
             "Performance",
             "PredictorPerformance",
             "ResponseCountBin",
-        }
+        },
     )
     def predictor_performance_heatmap(
         self,
         *,
         top_predictors: int = 20,
-        top_groups: Optional[int] = None,
+        top_groups: int | None = None,
         by: str = "Name",
         active_only: bool = False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
+        """Generate a heatmap showing predictor performance across different groups.
+
+        Parameters
+        ----------
+        top_predictors : int, optional
+            Number of top-performing predictors to include, by default 20
+        top_groups : int, optional
+            Number of top groups to include, by default None (all groups)
+        by : str, optional
+            Column to group by for the heatmap, by default "Name"
+        active_only : bool, optional
+            Whether to only include active predictors, by default False
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly heatmap figure or DataFrame if return_df=True
+
+        """
         if isinstance(by, str):
             by_name = by
         else:
@@ -1022,24 +1211,34 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
-        df = df.collect().transpose(
-            include_header=True, header_name=by_name, column_names=by_name
+        # Filter out rows with null values in the grouping column before transpose
+        # to avoid "Column with new names can't have null values" error
+        filtered_df = df.filter(pl.col(by_name).is_not_null()).collect()
+
+        # Check if dataframe is empty after filtering
+        if filtered_df.height == 0:
+            if return_df:
+                return pl.LazyFrame({by_name: []})
+            return None
+
+        collected = filtered_df.transpose(
+            include_header=True,
+            header_name=by_name,
+            column_names=by_name,
         )
 
         if return_df:
-            return df.lazy()
+            return collected.lazy()
 
         title = "over all models"
         fig = px.imshow(
-            df.select(pl.all().exclude(by_name)),
+            collected.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
-            color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
-                "Performance"
-            ),
+            color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df[by_name],
+            y=collected[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
@@ -1048,63 +1247,263 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def response_gain(): ...  # TODO: more generic plot_gains function?
-
-    # TODO anyone using this still?
-    # consider removing
-    def models_by_positives(
+    def gains_chart(
         self,
-        by: str = "Channel",
-        query: Optional[QUERY] = None,
+        value: str,
+        *,
+        index: str | None = None,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        title: str | None = None,
         return_df: bool = False,
-    ):  # TODO: more generic plot gains function?
-        df = (
-            cdh_utils._apply_query(self.datamart.aggregates.last(), query=query)
-            .select([by, "Positives", "ModelID"])
-            .collect()
-        )
-        models_by_positives = (
-            df.with_columns(
-                PositivesBin=df["Positives"].cut(
-                    breaks=list(range(0, 210, 10)),
-                )
-            )
-            .lazy()
-            .group_by([by, "PositivesBin"])
-            .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
-            .with_columns(
-                (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
-                    "cumModels"
-                )
-            )
-            .sort("Positives")
-        ).collect()
-        if return_df:
-            return models_by_positives
+    ) -> Figure | pl.LazyFrame:
+        """Generate a gains chart showing cumulative distribution of a metric.
 
-        title = "Positives vs Number of Models"
-        fig = px.line(
-            models_by_positives.filter(pl.col("ModelCount") > 0).with_columns(
-                pl.col(by).fill_null("NA")
-            ),
-            x="PositivesBin",
-            y="cumModels",
-            color=by,
-            markers=True,
-            title=title,
-            labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
-            template="pega",
-            category_orders={
-                "PositivesBin": models_by_positives.select("Positives", "PositivesBin")
-                .unique()
-                .sort("Positives")["PositivesBin"]
-                .to_list()
-            },
+        Creates a gains/lift chart to visualize model response skewness. Shows what
+        percentage of the total value (e.g., responses, positives) is driven by what
+        percentage of models. Useful for identifying if a small number of models
+        drive most of the volume.
+
+        Parameters
+        ----------
+        value : str
+            Column name containing the metric to compute gains for (e.g., "ResponseCount", "Positives")
+        index : str, optional
+            Column name to normalize by (e.g., population size). If None, uses model count.
+        by : str | list[str], optional
+            Column(s) to group by for separate gain curves (e.g., "Channel" or ["Channel", "Direction"])
+        query : QUERY, optional
+            Optional query to filter the data before computing gains
+        title : str, optional
+            Chart title. If None, uses "Gains Chart"
+        return_df : bool, default False
+            If True, return the gains data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing the gains chart, or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Single gains curve for response count
+        >>> fig = datamart.plot.gains_chart(value="ResponseCount")
+
+        >>> # Gains curves by channel for positives
+        >>> fig = datamart.plot.gains_chart(
+        ...     value="Positives",
+        ...     by=["Channel", "Direction"],
+        ...     title="Cumulative Positives by Channel"
+        ... )
+        """
+        from ..utils import report_utils, cdh_utils
+
+        # Get the last snapshot of data
+        df = self.datamart.aggregates.last()
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Calculate gains
+        gains_data = report_utils.gains_table(df, value=value, index=index, by=by)
+
+        if return_df:
+            return gains_data.lazy()
+
+        # Create the plot
+        if by is None:
+            fig = px.area(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                title=title or "Gains Chart",
+                template="pega",
+            )
+        else:
+            by_as_list = by if isinstance(by, list) else [by]
+            # Create a combined label for the legend
+            legend_col = gains_data.select(pl.concat_str(by_as_list, separator="/").alias("By"))["By"]
+
+            fig = px.line(
+                gains_data,
+                x="cum_x",
+                y="cum_y",
+                color=legend_col,
+                title=title or "Gains Chart",
+                template="pega",
+            )
+            fig = fig.update_layout(legend_title="/".join(by_as_list))
+
+        # Add diagonal reference line (represents perfect equality)
+        fig.add_shape(
+            type="line",
+            line=dict(color="grey", dash="dash"),
+            x0=0,
+            x1=1,
+            y0=0,
+            y1=1,
         )
-        fig.update_layout(
-            xaxis_title="Number of Positives",
-            yaxis_title="Percentage of Models",
+
+        # Configure axes and layout
+        fig = (
+            fig.update_yaxes(scaleanchor="x", scaleratio=1)
+            .update_layout(
+                autosize=False,
+                width=400,
+                height=400,
+            )
+            .update_yaxes(constrain="domain", title="% of Responders")
+            .update_xaxes(tickformat=",.0%", constrain="domain", title="% of Population")
+            .update_yaxes(tickformat=",.0%")
         )
+
+        return fig
+
+    def performance_volume_distribution(
+        self,
+        *,
+        by: str | list[str] | None = None,
+        query: QUERY | None = None,
+        bin_width: int = 3,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Generate a performance vs volume distribution chart.
+
+        Shows how response volume is distributed across different model performance
+        ranges. Helps identify if volume is driven by high-performing or low-performing
+        models. Ideally, most volume should be in the 60-80 AUC range.
+
+        Parameters
+        ----------
+        by : str | list[str], optional
+            Column(s) to group by for separate curves (e.g., "Channel" or ["Channel", "Direction"])
+            If None, creates a single curve for all data
+        query : QUERY, optional
+            Optional query to filter the data before analysis
+        bin_width : int, default 3
+            Width of performance bins in AUC points (default creates bins of 3: 50-53, 53-56, etc.)
+        title : str, optional
+            Chart title. If None, uses "Performance vs Volume"
+        return_df : bool, default False
+            If True, return the binned data instead of the figure
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly figure showing performance distribution, or LazyFrame if return_df=True
+
+        Notes
+        -----
+        Performance is binned from 50-100 using the specified bin_width. The chart shows
+        what percentage of responses fall into each performance bin, grouped by the `by`
+        parameter if provided.
+
+        Examples
+        --------
+        >>> # Single curve for all channels
+        >>> fig = datamart.plot.performance_volume_distribution()
+
+        >>> # Separate curves per channel
+        >>> fig = datamart.plot.performance_volume_distribution(
+        ...     by=["Channel", "Direction"],
+        ...     title="Performance Distribution by Channel"
+        ... )
+        """
+        from ..utils import cdh_utils
+
+        # Get model data
+        df = self.datamart.model_data
+
+        # Apply query if provided
+        if query is not None:
+            df = cdh_utils._apply_query(df, query)
+
+        # Determine grouping columns
+        group_cols = []
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            group_cols = by_list.copy()
+
+        # Create combined grouping column if needed
+        if by is not None:
+            by_list = by if isinstance(by, list) else [by]
+            df = df.with_columns(pl.concat_str(by_list, separator="/").alias("_GroupBy"))
+            group_cols = ["_GroupBy"]
+
+        # Bin performance and aggregate
+        df = (
+            df.with_columns(
+                (pl.col("Performance") * 100)
+                .cut(breaks=[p for p in range(50, 100, bin_width)], left_closed=True)
+                .alias("PerformanceBinned"),
+            )
+            .group_by(group_cols + ["PerformanceBinned"])
+            .agg(
+                pl.sum("ResponseCount"),
+                (pl.min("Performance") * 100).round(2).alias("break_label"),
+            )
+        )
+
+        # Calculate proportions within each group
+        if group_cols:
+            df = df.with_columns(
+                (pl.col("ResponseCount") / pl.col("ResponseCount").sum().over(group_cols[0])).alias("Proportion")
+            )
+        else:
+            df = df.with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum()).alias("Proportion"))
+
+        df = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
+
+        if return_df:
+            return df.lazy()
+
+        # Create the plot
+        fig = go.Figure()
+
+        if group_cols:
+            # Multiple curves
+            groups = df[group_cols[0]].unique().sort()
+            for group in groups:
+                group_df = df.filter(pl.col(group_cols[0]) == group)
+                fig.add_trace(
+                    go.Scatter(
+                        x=group_df["PerformanceBinned"],
+                        y=group_df["Proportion"],
+                        line_shape="spline",
+                        name=group,
+                    )
+                )
+        else:
+            # Single curve
+            fig.add_trace(
+                go.Scatter(
+                    x=df["PerformanceBinned"],
+                    y=df["Proportion"],
+                    line_shape="spline",
+                    name="All Channels",
+                )
+            )
+
+        # Configure layout
+        fig = (
+            fig.update_yaxes(tickformat=",.0%")
+            .update_xaxes(
+                type="category",
+                categoryorder="array",
+                categoryarray=df["PerformanceBinned"].unique().sort().to_list(),
+            )
+            .update_layout(
+                template="pega",
+                title=title or "Performance vs Volume",
+                xaxis_title="Model Performance",
+                yaxis_title="Percentage of Responses",
+            )
+        )
+
+        # Apply legend color ordering
+        fig = cdh_utils.legend_color_order(fig)
 
         return fig
 
@@ -1119,21 +1518,36 @@ class Plots(LazyNamespace):
         ] = "Performance",
         *,
         by: str = "Name",
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
+        """Generate a tree map visualization showing hierarchical model metrics.
+
+        Parameters
+        ----------
+        metric : Literal["ResponseCount", "Positives", "Performance", "SuccessRate", "percentage_without_responses"], optional
+            The metric to visualize in the tree map, by default "Performance"
+        by : str, optional
+            Column to group by for the tree map hierarchy, by default "Name"
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly treemap figure or DataFrame if return_df=True
+
+        """
         # TODO: clean up implementation a bit
 
-        group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by)]
-            if by != "ModelID"
-            else [by]
-        )
+        group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by)] if by != "ModelID" else [by]
         df = self.datamart.aggregates.model_summary(by=by, query=query).select(
             pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
             pl.col("count").alias("Model Count"),
             pl.col("Percentage_without_responses").alias(
-                "Percentage without responses"
+                "Percentage without responses",
             ),
             pl.col("ResponseCount_sum").alias("Total number of responses"),
             pl.col("Weighted_success_rate").alias("Weighted average Success Rate"),
@@ -1145,11 +1559,7 @@ class Plots(LazyNamespace):
 
         context_keys = [px.Constant("All contexts")] + group_by
 
-        colorscale = self.datamart.cdh_guidelines.colorscales.get(metric, None) or [
-            "#d91c29",
-            "#F76923",
-            "#20aa50",
-        ]
+        colorscale = get_colorscale(metric)
 
         label_map = {
             "ResponseCount": "Total number of responses",
@@ -1184,34 +1594,100 @@ class Plots(LazyNamespace):
     def predictor_count(
         self,
         *,
-        by: str = "Type",
-        facet: str = "Configuration",
-        query: Optional[QUERY] = None,
+        by: str | list[str] = ["EntryType", "Type"],
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
-        df = self.datamart.aggregates.predictor_counts(by=by, facet=facet, query=query)
-        if return_df:
-            return df
+        """Generate a box plot showing the distribution of predictor counts by type.
 
-        return px.box(
-            df.collect(),
-            x="PredictorCount",
-            y="Type",
-            facet_col=facet,
-            facet_col_wrap=2,
-            color="EntryType",
+        Parameters
+        ----------
+        by : Union[str, list[str]], optional
+            Column(s) to group predictors by, by default ["EntryType", "Type"]
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly box plot figure or DataFrame if return_df=True
+
+        """
+        if isinstance(by, str):
+            by = [by]
+
+        df = cdh_utils._apply_query(
+            self.datamart.aggregates.last(table="combined_data"),
+            query,
+        ).filter(pl.col("EntryType") != "Classifier")
+
+        collected = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
+
+        if len(by) > 1:
+            collected = pl.concat(
+                [
+                    collected,
+                    collected.group_by(["ModelID"] + by[1:])
+                    .agg(pl.col("Count").sum())
+                    .with_columns(pl.lit("Overall").alias(by[0])),
+                ],
+                how="diagonal_relaxed",
+            )
+        collected = collected.sort(by)
+
+        if return_df:
+            return collected
+
+        fig = px.box(
+            collected.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
+            x="Count",
+            y="_Type",
+            color=by[0],
             template="pega",
-            title="Predictor Count across all models",
         )
+
+        # Update title and x-axis label if we have a figure (not None and not a DataFrame)
+        if fig is not None and not return_df:
+            fig.update_layout(title="Predictors by Type")
+            fig.update_xaxes(title="Number of Predictors")
+            # Ensure y-axis labels fit properly by increasing left margin
+            fig.update_yaxes(automargin=True)
+            fig.update_layout(margin=dict(l=150))
+            fig.update_yaxes(title="")
+            # Reverse the legend order
+            fig.update_layout(legend=dict(traceorder="reversed"))
+
+        return fig
 
     def binning_lift(
         self,
         model_id: str,
         predictor_name: str,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
+        """Generate a binning lift plot for a specific predictor showing propensity lift per bin.
+
+        Parameters
+        ----------
+        model_id : str
+            The ID of the model containing the predictor
+        predictor_name : str
+            Name of the predictor to analyze for lift
+        query : Optional[QUERY], optional
+            Optional query to filter the predictor data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly bar chart showing binning lift or DataFrame if return_df=True
+
+        """
         df = cdh_utils._apply_query(
             (
                 self.datamart.aggregates.last(table="predictor_data")
@@ -1223,20 +1699,20 @@ class Plots(LazyNamespace):
             ),
             query,
         ).select(
-            "PredictorName", "BinIndex", "BinPositives", "BinNegatives", "BinSymbol"
+            "PredictorName",
+            "BinIndex",
+            "BinPositives",
+            "BinNegatives",
+            "BinSymbol",
         )
         cols = df.collect_schema().names()
 
         if "Lift" not in cols:
             df = df.with_columns(
-                (
-                    cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0
-                ).alias("Lift")
+                (cdh_utils.lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift"),
             )
 
-        shading_expr = (
-            pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
-        )
+        shading_expr = pl.col("BinPositives") <= 5 if "BinPositives" in cols else pl.lit(False)
 
         plot_df = df.with_columns(
             pl.when((pl.col("Lift") >= 0.0) & shading_expr.not_())
@@ -1253,7 +1729,7 @@ class Plots(LazyNamespace):
             BinSymbolAbbreviated=pl.when(pl.col("BinSymbol").str.len_chars() < 25)
             .then(pl.col("BinSymbol"))
             .otherwise(
-                pl.concat_str([pl.col("BinSymbol").str.slice(0, 25), pl.lit("...")])
+                pl.concat_str([pl.col("BinSymbol").str.slice(0, 25), pl.lit("...")]),
             ),
         ).sort(["PredictorName", "BinIndex"])
 
@@ -1280,8 +1756,12 @@ class Plots(LazyNamespace):
         )
         fig.update_traces(
             hovertemplate="<br>".join(
-                ["<b>%{customdata[0]}</b>", "%{customdata[1]}", "<b>Lift: %{x:.2%}</b>"]
-            )
+                [
+                    "<b>%{customdata[0]}</b>",
+                    "%{customdata[1]}",
+                    "<b>Lift: %{x:.2%}</b>",
+                ],
+            ),
         )
         fig.add_vline(x=0, line_color="black")
 
@@ -1299,28 +1779,49 @@ class Plots(LazyNamespace):
             matches=None,  # allow independent y-labels if there are row facets
         )
         fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1])
+            lambda a: a.update(text=a.text.split("=")[-1]),
         )  # split plotly facet label, show only right side
         return fig
 
     def action_overlap(
         self,
-        group_col: Union[str, list[str], pl.Expr] = "Channel",
+        group_col: str | list[str] | pl.Expr = "Channel",
         overlap_col="Name",
         *,
         show_fraction=True,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
     ):
+        """Generate an overlap matrix heatmap showing shared actions across different groups.
+
+        Parameters
+        ----------
+        group_col : Union[str, list[str], pl.Expr], optional
+            Column(s) to group by for overlap analysis, by default "Channel"
+        overlap_col : str, optional
+            Column containing values to analyze for overlap, by default "Name"
+        show_fraction : bool, optional
+            Whether to show overlap as fraction or absolute count, by default True
+        query : Optional[QUERY], optional
+            Optional query to filter the data, by default None
+        return_df : bool, optional
+            Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Union[Figure, pl.LazyFrame]
+            Plotly heatmap showing action overlap or DataFrame if return_df=True
+
+        """
         df = cdh_utils._apply_query(
-            (self.datamart.model_data),
+            (self.datamart.model_data),  # type: ignore[arg-type]
             query,
         )
 
         if isinstance(group_col, list):
             group_col_name = "/".join(group_col)
             df = df.with_columns(
-                pl.concat_str(*group_col, separator="/").alias(group_col_name)
+                pl.concat_str(*group_col, separator="/").alias(group_col_name),
             )
         elif isinstance(group_col, pl.Expr):
             group_col_name = group_col.meta.output_name()
@@ -1329,10 +1830,7 @@ class Plots(LazyNamespace):
             group_col_name = group_col
 
         overlap_data = cdh_utils.overlap_matrix(
-            df.group_by(group_col_name)
-            .agg(pl.col(overlap_col).unique())
-            .sort(group_col_name)
-            .collect(),
+            df.group_by(group_col_name).agg(pl.col(overlap_col).unique()).sort(group_col_name).collect(),
             overlap_col,
             by=group_col_name,
             show_fraction=show_fraction,
@@ -1349,7 +1847,11 @@ class Plots(LazyNamespace):
             x=overlap_data[group_col_name],
             y=overlap_data[group_col_name],
             template="pega",
-            labels=dict(x=f"{group_col_name} on x", y=f"{group_col_name} on y", color="Overlap"),
+            labels=dict(
+                x=f"{group_col_name} on x",
+                y=f"{group_col_name} on y",
+                color="Overlap",
+            ),
         )
         plt.update_coloraxes(showscale=False)
         return plt
@@ -1357,102 +1859,58 @@ class Plots(LazyNamespace):
     def partitioned_plot(
         self,
         func: Callable,
-        facets: Set,
-        partition_col: str = "Configuration",
+        facets: list[dict[str, str | None]],
         show_plots: bool = True,
         *args,
         **kwargs,
     ):
-        existing_query = kwargs.get("query")
+        """Execute a plotting function across multiple faceted subsets of data.
+
+        This method applies a given plotting function to multiple filtered subsets of data,
+        where each subset is defined by the facet conditions. It's useful for generating
+        multiple plots with different filter conditions applied.
+
+        Parameters
+        ----------
+        func : Callable
+            The plotting function to execute for each facet
+        facets : list[dict[str, Optional[str]]]
+            list of dictionaries defining filter conditions for each facet
+        show_plots : bool, optional
+            Whether to display the plots as they are generated, by default True
+        *args : tuple
+            Additional positional arguments to pass to the plotting function
+        **kwargs : dict
+            Additional keyword arguments to pass to the plotting function
+
+        Returns
+        -------
+        list[Figure]
+            list of Plotly figures, one for each facet condition
+
+        """
         figs = []
+        existing_query = kwargs.get("query")
         for facet in facets:
-            new_query = pl.col(partition_col).eq(facet)
-            if existing_query is not None:
-                combined_query = cdh_utils._combine_queries(existing_query, new_query)
-            else:
-                combined_query = new_query
+            combined_query = existing_query
+            for k, v in facet.items():
+                if v is None:
+                    new_query = pl.col(k).is_null()
+                else:
+                    new_query = pl.col(k).eq(v)
+                if combined_query is not None:
+                    combined_query = cdh_utils._combine_queries(
+                        combined_query,
+                        new_query,
+                    )
+                else:
+                    combined_query = new_query
+
             kwargs["query"] = combined_query
             fig = func(*args, **kwargs)
             figs.append(fig)
-            if show_plots and fig is not None:
-                fig.show()
+        if show_plots and fig is not None:
+            # fig.update_layout(title=title)
+            fig.show()
+
         return figs
-
-    # TODO I took the propensity distrib plot out of the HC as
-    # it wasn't very clear, also didn't look great visually.
-
-    @requires(
-        predictor_columns={
-            "BinPropensity",
-        },
-        combined_columns={"Channel", "Direction"},
-    )
-    def propensity_distribution(
-        self,
-        query: Optional[QUERY] = None,
-        return_df: bool = False,
-    ):
-        to_plot = "BinPropensity"
-        df = cdh_utils._apply_query(
-            (
-                self.datamart.combined_data.filter(
-                    pl.col("PredictorName") != "Classifier"
-                )
-                .group_by([to_plot, "Channel", "Direction"])
-                .agg(pl.sum("BinResponseCount"))
-                .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
-                .collect()
-            ),
-            query,
-        )
-
-        custom_bins = [
-            0,
-            0.0005,
-            0.001,
-            0.002,
-            0.005,
-            0.01,
-            0.02,
-            0.05,
-            0.1,
-            0.2,
-            0.5,
-            0.8,
-            1.0,
-        ]
-        df_pl = df.with_columns(
-            pl.col(to_plot)
-            .fill_null(0)
-            .fill_nan(0)
-            .cut(breaks=custom_bins)
-            .alias(f"{to_plot}_range")
-        )
-
-        out = (
-            df_pl.group_by(["Channel", f"{to_plot}_range"])
-            .agg([pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")])
-            .sort(["Channel", "break_label"])
-            .with_columns(
-                [
-                    (
-                        pl.col("BinResponseCount")
-                        / pl.col("BinResponseCount").sum().over("Channel")
-                    ).alias("Responses")
-                ]
-            )
-        )
-        if return_df:
-            return df.lazy()
-        fig = px.bar(
-            out,
-            x=f"{to_plot}_range",
-            y="Responses",
-            color="Channel",
-            template="pega",
-            barmode="overlay",
-        )
-        fig.update_xaxes(type="category")
-        fig.update_yaxes(tickformat=",.0%")
-
-        return fig

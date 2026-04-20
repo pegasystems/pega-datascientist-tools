@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypeVar, Literal
+from typing import Literal, TypeVar
 
 
 class AdmModelType(Enum):

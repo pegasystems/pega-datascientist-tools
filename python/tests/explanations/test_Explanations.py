@@ -11,33 +11,39 @@ from pdstools.explanations import Explanations
 @pytest.fixture(scope="module")
 def dummy_explanations_data():
     """Fixture to create a dummy explanations data folder."""
-    os.makedirs('explanations_data', exist_ok=True)
-    file_path = 'explanations_data/dummy_explanations.parquet'
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write('dummy data')
+    os.makedirs("explanations_data", exist_ok=True)
+    file_path = "explanations_data/dummy_explanations.parquet"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write("dummy data")
     yield file_path
 
     # Cleanup after test
-    if os.path.exists('explanations_data'):
-        shutil.rmtree('explanations_data')
+    if os.path.exists("explanations_data"):
+        shutil.rmtree("explanations_data")
+
 
 @pytest.fixture(scope="module")
 def dummy_aggregate_data():
     """Fixture to create a dummy aggregate data folder."""
-    os.makedirs('.tmp/aggregated_data', exist_ok=True)
-    file_path = '.tmp/aggregated_data/dummy_aggregate.parquet'
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write('dummy data')
+    os.makedirs(".tmp/aggregated_data", exist_ok=True)
+    file_path = ".tmp/aggregated_data/dummy_aggregate.parquet"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write("dummy data")
     yield file_path
 
     # Cleanup after test
-    if os.path.exists('.tmp'):
-        shutil.rmtree('.tmp')
+    if os.path.exists(".tmp"):
+        shutil.rmtree(".tmp")
+
 
 class TestExplanationsDateRange:
     """Test the initialization of the Explanations class"""
 
-    def test_date_range_only_to_date(self, dummy_explanations_data, dummy_aggregate_data):
+    def test_date_range_only_to_date(
+        self,
+        dummy_explanations_data,
+        dummy_aggregate_data,
+    ):
         """Test initialization with only to_date provided"""
         to_date = datetime(2023, 1, 8)
         explanations = Explanations(to_date=to_date)
@@ -46,7 +52,11 @@ class TestExplanationsDateRange:
         assert explanations.from_date == expected_from_date
         assert explanations.to_date == to_date
 
-    def test_date_range_only_from_date(self, dummy_explanations_data, dummy_aggregate_data):
+    def test_date_range_only_from_date(
+        self,
+        dummy_explanations_data,
+        dummy_aggregate_data,
+    ):
         """Test initialization with only from_date provided"""
         from_date = datetime(2023, 1, 1)
         explanations = Explanations(from_date=from_date)

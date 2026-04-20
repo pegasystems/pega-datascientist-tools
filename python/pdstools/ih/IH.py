@@ -1,68 +1,146 @@
+"""Interaction History analysis for Pega CDH."""
+
 import datetime
+import math
 import os
 import random
-from typing import Dict, List, Optional, Union
 from collections import defaultdict
-import math
+
 import polars as pl
 import polars.selectors as cs
 
+from ..pega_io.File import read_ds_export
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
+from ..utils.cdh_utils import (
+    _apply_query,
+    _polars_capitalize,
+    parse_pega_date_time_formats,
+)
+from ..utils.types import QUERY
 from .Aggregates import Aggregates
 from .Plots import Plots
-from ..utils.cdh_utils import _polars_capitalize, _apply_query
-from ..utils.types import QUERY
-from ..pega_io.File import read_ds_export
 
 
 class IH:
+    """Analyze Interaction History data from Pega CDH.
+
+    The IH class provides analysis and visualization capabilities for
+    customer interaction data from Pega's Customer Decision Hub. It supports
+    engagement, conversion, and open rate metrics through customizable
+    outcome label mappings.
+
+    Attributes
+    ----------
+    data : pl.LazyFrame
+        The underlying interaction history data.
+    aggregates : Aggregates
+        Aggregation methods accessor.
+    plot : Plots
+        Plot accessor for visualization methods.
+    positive_outcome_labels : dict
+        Mapping of metric types to positive outcome labels.
+    negative_outcome_labels : dict
+        Mapping of metric types to negative outcome labels.
+
+    See Also
+    --------
+    pdstools.adm.ADMDatamart : For ADM model analysis.
+    pdstools.impactanalyzer.ImpactAnalyzer : For Impact Analyzer experiments.
+
+    Examples
+    --------
+    >>> from pdstools import IH
+    >>> ih = IH.from_ds_export("interaction_history.zip")
+    >>> ih.aggregates.summary_by_channel().collect()
+    >>> ih.plot.response_count_trend()
+
+    """
+
     data: pl.LazyFrame
-    positive_outcome_labels: Dict[str, List[str]]
+    outcome_labels_used: dict | None
+
+    positive_outcome_labels: dict[str, list[str]] = {
+        "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
+        "Conversion": ["Conversion"],
+        "OpenRate": ["Opened", "Open"],
+    }
+    """Mapping of metric types to positive outcome labels."""
+
+    negative_outcome_labels: dict[str, list[str]] = {
+        "Engagement": ["Impression", "Impressed", "Pending", "NoResponse"],
+        "Conversion": ["Impression", "Pending"],
+        "OpenRate": ["Impression", "Pending"],
+    }
+    """Mapping of metric types to negative outcome labels."""
 
     def __init__(self, data: pl.LazyFrame):
-        self.data = _polars_capitalize(data)
+        """Initialize an IH instance.
 
+        Parameters
+        ----------
+        data : pl.LazyFrame
+            Interaction history data. Column names will be automatically
+            capitalized using Pega naming conventions.
+
+        Notes
+        -----
+        Use the class methods :meth:`from_ds_export` or :meth:`from_mock_data`
+        to create instances from data sources.
+
+        """
+        self.data = _polars_capitalize(data)
+        self.outcome_labels_used = self._scan_outcome_labels()
         self.aggregates = Aggregates(ih=self)
         self.plot = Plots(ih=self)
-        self.positive_outcome_labels = {
-            "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
-            "Conversion": ["Conversion"],
-            "OpenRate": ["Opened", "Open"],
-        }
-        self.negative_outcome_labels = {
-            "Engagement": [
-                "Impression",
-                "Impressed",
-                "Pending",
-                "NoResponse",
-            ],
-            "Conversion": ["Impression", "Pending"],
-            "OpenRate": ["Impression", "Pending"],
-        }
+
+    def _scan_outcome_labels(self) -> dict | None:
+        """Scan data for channel/outcome combinations and resolve defaults.
+
+        Returns None if the required columns are not present.
+        """
+        schema_names = self.data.collect_schema().names()
+        if not {"Channel", "Direction", "Outcome"}.issubset(schema_names):
+            return None
+        scan = (
+            self.data.select("Channel", "Direction", "Outcome")
+            .unique()
+            .group_by("Channel", "Direction")
+            .agg(pl.col("Outcome").sort())
+            .collect()
+        )
+        return _resolve_outcome_labels({f"{row[0]}/{row[1]}": row[2] for row in scan.iter_rows()})
 
     @classmethod
     def from_ds_export(
         cls,
-        ih_filename: Union[os.PathLike, str],
-        query: Optional[QUERY] = None,
-    ):
-        """Create an IH instance from a file with Pega Dataset Export
+        ih_filename: os.PathLike | str,
+        query: QUERY | None = None,
+    ) -> "IH":
+        """Create an IH instance from a Pega Dataset Export.
 
         Parameters
         ----------
         ih_filename : Union[os.PathLike, str]
-            The full path to the dataset files
+            Path to the dataset export file (parquet, csv, ndjson, or zip).
         query : Optional[QUERY], optional
-            An optional argument to filter out selected data, by default None
+            Polars expression to filter the data. Default is None.
 
         Returns
         -------
         IH
-            The properly initialized IH object
+            Initialized IH instance.
+
+        Examples
+        --------
+        >>> ih = IH.from_ds_export("Data-pxStrategyResult_pxInteractionHistory.zip")
+        >>> ih.data.collect_schema()
 
         """
-        data = read_ds_export(ih_filename).with_columns(
-            # TODO this should come from some polars func in utils
-            pl.col("pxOutcomeTime").str.strptime(pl.Datetime, "%Y%m%dT%H%M%S%.3f %Z")
+        data_raw = read_ds_export(ih_filename)
+        if data_raw is None:
+            raise ValueError(f"Could not read file: {ih_filename}")
+        data = data_raw.with_columns(
+            pxOutcomeTime=parse_pega_date_time_formats("pxOutcomeTime"),
         )
         if query is not None:
             data = _apply_query(data, query=query)
@@ -70,23 +148,45 @@ class IH:
         return IH(data)
 
     @classmethod
-    def from_s3(cls):
-        """Not implemented yet. Please let us know if you would like this functionality!"""
-        ...
+    def from_s3(cls) -> "IH":
+        """Create an IH instance from S3 data.
+
+        .. note::
+            Not implemented yet. Please let us know if you would like this!
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not yet implemented.
+
+        """
+        raise NotImplementedError("from_s3 is not yet implemented")
 
     @classmethod
-    def from_mock_data(cls, days=90, n=100000):
-        """Initialize an IH instance with sample data
+    def from_mock_data(cls, days: int = 90, n: int = 100000) -> "IH":
+        """Create an IH instance with synthetic sample data.
+
+        Generates realistic interaction history data for testing and
+        demonstration purposes. Includes inbound (Web) and outbound (Email)
+        channels with configurable propensities and model noise.
 
         Parameters
         ----------
-        days : number of days, defaults to 90 days
-        n : number of interaction data records, defaults to 100k
+        days : int, default 90
+            Number of days of data to generate.
+        n : int, default 100000
+            Number of interaction records to generate.
 
         Returns
         -------
         IH
-            The properly initialized IH object
+            IH instance with synthetic data.
+
+        Examples
+        --------
+        >>> ih = IH.from_mock_data(days=30, n=10000)
+        >>> ih.data.select("pyChannel").collect().unique()
+
         """
         n = int(n)
 
@@ -98,9 +198,7 @@ class IH:
         convert_avg_duration_days = 2
         inbound_base_propensity = 0.02
         outbound_base_propensity = 0.01
-        inbound_modelnoise_NaiveBayes = (
-            0.2  # relative amount of extra noise added to models
-        )
+        inbound_modelnoise_NaiveBayes = 0.2  # relative amount of extra noise added to models
         inbound_modelnoise_GradientBoost = 0.0
         outbound_modelnoise_NaiveBayes = 0.3
         outbound_modelnoise_GradientBoost = 0.1
@@ -128,10 +226,12 @@ class IH:
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
                 "pyChannel": random.choices(
-                    ["Web", "Email"], k=n
+                    ["Web", "Email"],
+                    k=n,
                 ),  # Direction will be derived from this later
                 "pyIssue": random.choices(
-                    ["Acquisition", "Retention", "Risk", "Service"], k=n
+                    ["Acquisition", "Retention", "Risk", "Service"],
+                    k=n,
                 ),
                 "pyGroup": random.choices(
                     [
@@ -147,12 +247,10 @@ class IH:
                 ),
                 "pyName": random.choices(
                     range(1, 1 + n_actions),
-                    weights=reversed(range(1, 1 + n_actions)),
+                    weights=list(reversed(range(1, 1 + n_actions))),
                     k=n,
                 ),  # nr will be appended to group name to form action name
-                "pyTreatment": [
-                    random.randint(1, 2) for _ in range(n)
-                ],  # nr will be appended to group/channel
+                "pyTreatment": [random.randint(1, 2) for _ in range(n)],  # nr will be appended to group/channel
                 # https://stackoverflow.com/questions/40351791/how-to-hash-strings-into-a-float-in-01
                 "ExperimentGroup": [
                     "Conversion-Test",
@@ -168,24 +266,14 @@ class IH:
                     "GradientBoost",
                 ]
                 * int(n / 4),
-                "pxOutcomeTime": [
-                    (now - datetime.timedelta(days=i * days / n)) for i in range(n)
-                ],
-                "Temp.ClickDurationMinutes": [
-                    random.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)
-                ],
-                "Temp.AcceptDurationMinutes": [
-                    random.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)
-                ],
-                "Temp.ConvertDurationDays": [
-                    random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)
-                ],
+                "pxOutcomeTime": [(now - datetime.timedelta(days=i * days / n)) for i in range(n)],
+                "Temp.ClickDurationMinutes": [random.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)],
+                "Temp.AcceptDurationMinutes": [random.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)],
+                "Temp.ConvertDurationDays": [random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)],
                 "Temp.RandomUniform": [random.uniform(0, 1) for i in range(n)],
-            }
+            },
         ).with_columns(
-            pyDirection=pl.when(pl.col("pyChannel") == "Web")
-            .then(pl.lit("Inbound"))
-            .otherwise(pl.lit("Outbound")),
+            pyDirection=pl.when(pl.col("pyChannel") == "Web").then(pl.lit("Inbound")).otherwise(pl.lit("Outbound")),
             pyName=pl.format("{}_{}", pl.col("pyGroup"), pl.col("pyName")),
             pyTreatment=pl.format(
                 "{}_{}_{}Treatment{}",
@@ -194,9 +282,7 @@ class IH:
                 pl.col("pyChannel"),
                 pl.col("pyTreatment"),
             ),
-            pyOutcome=pl.when(pl.col.pyChannel == "Web")
-            .then(pl.lit("Impression"))
-            .otherwise(pl.lit("Pending")),
+            pyOutcome=pl.when(pl.col.pyChannel == "Web").then(pl.lit("Impression")).otherwise(pl.lit("Pending")),
         )
 
         action_basepropensities = (
@@ -211,81 +297,70 @@ class IH:
 
         ih_fake_impressions = (
             ih_fake_impressions.join(
-                action_basepropensities.select(["pyName", "Temp.Zipf"]), on=["pyName"]
+                action_basepropensities.select(["pyName", "Temp.Zipf"]),
+                on=["pyName"],
             )
             .with_columns(
-                pl.col("Temp.Zipf")
-                .mean()
-                .over(["pyChannel", "pyDirection"])
-                .alias("Temp.ZipfMean"),
+                pl.col("Temp.Zipf").mean().over(["pyChannel", "pyDirection"]).alias("Temp.ZipfMean"),
                 pl.when(pl.col("pyDirection") == "Inbound")
                 .then(pl.lit(inbound_base_propensity))
                 .otherwise(pl.lit(outbound_base_propensity))
                 .alias("Temp.ChannelBasePropensity"),
             )
             .with_columns(
-                BasePropensity=pl.col("Temp.Zipf")
-                * pl.col("Temp.ChannelBasePropensity")
-                / pl.col("Temp.ZipfMean")
+                BasePropensity=pl.col("Temp.Zipf") * pl.col("Temp.ChannelBasePropensity") / pl.col("Temp.ZipfMean"),
             )
             .with_columns(
                 pyPropensity=pl.col("BasePropensity").map_elements(
-                    thompson_sampler, pl.Float64
-                )
+                    thompson_sampler,
+                    pl.Float64,
+                ),
             )
         )
 
         # Add artificial noise to the models to manipulate some scenarios
         ih_fake_impressions = ih_fake_impressions.with_columns(
             pl.when(
-                (pl.col.pyModelTechnique == "NaiveBayes")
-                & (pl.col.pyDirection == "Inbound")
+                (pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Inbound"),
             )
             .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_NaiveBayes)
             .when(
-                (pl.col.pyModelTechnique == "GradientBoost")
-                & (pl.col.pyDirection == "Inbound")
+                (pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Inbound"),
             )
             .then(
-                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost
+                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost,
             )
             .when(
-                (pl.col.pyModelTechnique == "NaiveBayes")
-                & (pl.col.pyDirection == "Outbound")
+                (pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Outbound"),
             )
             .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_NaiveBayes)
             .when(
-                (pl.col.pyModelTechnique == "GradientBoost")
-                & (pl.col.pyDirection == "Outbound")
+                (pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Outbound"),
             )
             .then(
-                pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost
+                pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost,
             )
             .otherwise(pl.lit(0.0))
-            .alias("Temp.ExtraModelNoise")
+            .alias("Temp.ExtraModelNoise"),
         )
 
         ih_fake_clicks = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
             .filter(
-                pl.col("Temp.RandomUniform")
-                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+                pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
             )
             .with_columns(
-                pxOutcomeTime=pl.col.pxOutcomeTime
-                + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
+                pxOutcomeTime=pl.col.pxOutcomeTime + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
                 pyOutcome=pl.lit("Clicked"),
             )
         )
         ih_fake_accepts = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
             .filter(
-                pl.col("Temp.RandomUniform")
-                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+                pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
             )
             .with_columns(
-                pxOutcomeTime=pl.col.pxOutcomeTime
-                + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),
+                pxOutcomeTime=pl.col.pxOutcomeTime + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),
                 pyOutcome=pl.lit("Accepted"),
             )
         )
@@ -295,8 +370,7 @@ class IH:
                 df.filter(pl.col("ExperimentGroup") == group)
                 .sample(fraction=fraction)
                 .with_columns(
-                    pxOutcomeTime=pl.col("pxOutcomeTime")
-                    + pl.duration(days=pl.col("Temp.ConvertDurationDays")),
+                    pxOutcomeTime=pl.col("pxOutcomeTime") + pl.duration(days=pl.col("Temp.ConvertDurationDays")),
                     pyOutcome=pl.lit("Conversion"),
                 )
             )
@@ -327,7 +401,7 @@ class IH:
                         "Conversion-Control",
                         convert_over_accept_click_rate_control,
                     ),
-                ]
+                ],
             )
             .filter(pl.col("pxOutcomeTime") <= pl.lit(now))
             .drop(cs.starts_with("Temp."))
@@ -335,7 +409,7 @@ class IH:
         )
 
         return IH(ih_data.lazy())
-    
+
     def get_sequences(
         self,
         positive_outcome_label: str,
@@ -345,58 +419,60 @@ class IH:
     ) -> tuple[
         list[tuple[str, ...]],
         list[tuple[int, ...]],
-        list[defaultdict[tuple[str], int]],
-        list[defaultdict[tuple[str, ...], int]],
+        list[defaultdict],
+        list[defaultdict],
     ]:
-        """
-        Generates customer sequences, outcome labels, counts
-        needed for PMI (Pointwise Mutual Information) calculations.
+        """Extract customer action sequences for PMI analysis.
 
-        This function processes customer interaction data to produce:
-        1. Action sequences per customer.
-        2. Corresponding binary outcome sequences (1 for positive outcome, 0 otherwise).
-        3. Counts of bigrams and ≥3-grams that end with a positive outcome.
-        4. Counts of all possible bigrams within that corpus.
+        Processes customer interaction data to produce action sequences,
+        outcome labels, and frequency counts needed for Pointwise Mutual
+        Information (PMI) calculations.
 
         Parameters
         ----------
         positive_outcome_label : str
-            The outcome label that marks the final event in a sequence.
+            Outcome label marking the target event (e.g., "Conversion").
         level : str
-            Column name that contains the action (offer / treatment).
+            Column name containing the action/offer/treatment.
         outcome_column : str
-            Column name that contains the outcome label.
+            Column name containing the outcome label.
         customerid_column : str
-            Column name that identifies a unique customer / subject.
+            Column name identifying unique customers.
 
         Returns
         -------
-        customer_sequences: list[tuple[str, ...]]
-            Sequences of actions per customer.
-        customer_outcomes: list[tuple[int, ...]]
-            Binary outcomes (0 or 1) for each customer action sequence.
-        count_actions: list[defaultdict[tuple[str], int]]
-            Actions frequency counts.
-            Index 0 = count of first element in all bigrams
-            Index 1 = count of second element in all bigrams
-        count_sequences: list[defaultdict[tuple[str, …], int]] 
-            Sequence frequency counts.
-            Index 0 = bigrams (all)
-            Index 1 = ≥3-grams that end with positive outcome
-            Index 2 = bigrams that end with positive outcome
-            Index 3 = unique ngrams per customer
+        customer_sequences : list[tuple[str, ...]]
+            Action sequences per customer.
+        customer_outcomes : list[tuple[int, ...]]
+            Binary outcomes (1=positive, 0=other) per sequence position.
+        count_actions : list[defaultdict]
+            Action frequency counts:
+            - [0]: First element counts in bigrams
+            - [1]: Second element counts in bigrams
+        count_sequences : list[defaultdict]
+            Sequence frequency counts:
+            - [0]: All bigrams
+            - [1]: ≥3-grams ending with positive outcome
+            - [2]: Bigrams ending with positive outcome
+            - [3]: Unique n-grams per customer
+
+        See Also
+        --------
+        calculate_pmi : Compute PMI scores from sequence counts.
+        pmi_overview : Generate PMI analysis summary.
+
         """
         cols = [customerid_column, level, outcome_column]
 
-        df = (
-            self.data
-            .select(cols)
-            .sort([customerid_column])
-            .collect()
-        )
+        df = self.data.select(cols).sort([customerid_column]).collect()
 
-        count_actions = [defaultdict(int), defaultdict(int)]
-        count_sequences = [defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)]
+        count_actions: list[defaultdict[tuple[str, ...], int]] = [defaultdict(int), defaultdict(int)]
+        count_sequences: list[defaultdict[tuple[str, ...], int]] = [
+            defaultdict(int),
+            defaultdict(int),
+            defaultdict(int),
+            defaultdict(int),
+        ]
         customer_sequences = []
         customer_outcomes = []
 
@@ -412,7 +488,7 @@ class IH:
 
             if 1 not in outcome_actions:
                 continue
-                
+
             customer_sequences.append(tuple(user_actions))
             customer_outcomes.append(tuple(outcome_actions))
 
@@ -422,13 +498,12 @@ class IH:
             bigrams_all = []
 
             for seq, out in zip(sequences, outcomes):
-
                 ngrams_seen = set()
 
                 for n in range(2, len(seq) + 1):
                     for i in range(len(seq) - n + 1):
-                        ngram = seq[i:i + n]
-                        ngram_outcomes = out[i:i + n]
+                        ngram = seq[i : i + n]
+                        ngram_outcomes = out[i : i + n]
 
                         if ngram_outcomes[-1] == 1:  # Ends in positive_outcome_label
                             if len(ngram) == 2:
@@ -438,14 +513,17 @@ class IH:
                                 ngrams.append(ngram)
                                 for j in range(len(ngram) - 1):
                                     bigrams_all.append(ngram[j : j + 2])
-                        
+
                             if ngram not in ngrams_seen:
                                 count_sequences[3][ngram] += 1
                                 ngrams_seen.add(ngram)
 
             return ngrams, bigrams, bigrams_all
 
-        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(customer_sequences, customer_outcomes)
+        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(
+            customer_sequences,
+            customer_outcomes,
+        )
 
         # Frequency tables
         for seq in ngrams:
@@ -463,46 +541,48 @@ class IH:
 
     @staticmethod
     def calculate_pmi(
-        count_actions: list[defaultdict[tuple[str], int]],
-        count_sequences: list[defaultdict[tuple[str, ...], int]],
-    ) -> tuple[
-        dict[tuple[str, str], float],
-        dict[tuple[str, ...], float]
-    ]:
-        """
-        Computes PMI scores for n-grams (n ≥ 2) in customer action sequences. 
-        Returns an unsorted dictionary mapping sequences to their PMI values, providing insights into significant action associations.
+        count_actions: list[defaultdict],
+        count_sequences: list[defaultdict],
+    ) -> dict[tuple[str, ...], float | dict[str, float | dict]]:
+        """Compute PMI scores for action sequences.
 
-        Bigrams values are calculated by PMI.
-        N-gram values are computed by averaging the PMI of their constituent bigrams.
-        Higher values indicate more informative or surprising paths.
+        Calculates Pointwise Mutual Information scores for bigrams and
+        higher-order n-grams. Higher values indicate more informative
+        or surprising action sequences.
 
         Parameters
-        -------
-        count_actions: list[defaultdict[tuple[str], int]] 
-            Actions frequency counts. 
-            Index 0 = count of first element in all bigrams
-            Index 1 = count of second element in all bigrams
-        count_sequences: list[defaultdict[tuple[str, …], int]]  
-            Sequence frequency counts.
-            Index 0 = bigrams (all)
-            Index 1 = ≥3-grams that end with positive outcome
-            Index 2 = bigrams that end with positive outcome
-            Index 3 = unique ngrams per customer
+        ----------
+        count_actions : list[defaultdict]
+            Action frequency counts from :meth:`get_sequences`.
+        count_sequences : list[defaultdict]
+            Sequence frequency counts from :meth:`get_sequences`.
 
         Returns
         -------
-        ngrams_pmi: dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, str], float]]]
-            Dictionary containing PMI information for bigrams and n-grams.
-            For bigrams, the value is a float representing the PMI value.
-            For higher-order n-grams, the value is a dictionary with:
-                - 'average_pmi: The average PMI value.
-                - 'links': A dictionary mapping each constituent bigram to its PMI value.
+        dict[tuple[str, ...], Union[float, dict]]
+            PMI scores for sequences:
+            - Bigrams: Direct PMI value (float)
+            - N-grams (n≥3): dict with 'average_pmi' and 'links' (constituent bigram PMIs)
+
+        See Also
+        --------
+        get_sequences : Extract sequences for PMI analysis.
+        pmi_overview : Generate PMI analysis summary.
+
+        Notes
+        -----
+        Bigram PMI is calculated as:
+
+        .. math::
+
+            PMI(a, b) = \\log_2 \\frac{P(a, b)}{P(a) \\cdot P(b)}
+
+        N-gram PMI is the average of constituent bigram PMIs.
+
         """
         # corpus size (number of action tokens)
-        corpus = (
-            sum(len(k) * v for k, v in count_sequences[1].items())
-            + sum(len(k) * v for k, v in count_sequences[2].items())
+        corpus = sum(len(k) * v for k, v in count_sequences[1].items()) + sum(
+            len(k) * v for k, v in count_sequences[2].items()
         )
 
         bigrams_pmi = {}
@@ -512,7 +592,9 @@ class IH:
             first_count = count_actions[0][(bigram[0],)]
             second_count = count_actions[1][(bigram[1],)]
 
-            pmi = math.log2((bigram_count / corpus) / ((first_count / corpus) * (second_count / corpus)))
+            pmi = math.log2(
+                (bigram_count / corpus) / ((first_count / corpus) * (second_count / corpus)),
+            )
 
             bigrams_pmi[bigram] = pmi
 
@@ -522,7 +604,7 @@ class IH:
         ngrams_pmi = dict(customer_bigrams)
 
         for seq in count_sequences[1].keys():
-            links = [seq[i:i+2] for i in range(len(seq) - 1)]
+            links = [seq[i : i + 2] for i in range(len(seq) - 1)]
             values = []
             link_info = {}
 
@@ -534,60 +616,65 @@ class IH:
 
             average = sum(values) / len(values) if values else 0
 
-            ngrams_pmi[seq] = {
-                "average_pmi": average,
-                "links": link_info
-            }
+            ngrams_pmi[seq] = {"average_pmi": average, "links": link_info}
 
         return ngrams_pmi
-    
+
     @staticmethod
     def pmi_overview(
-        ngrams_pmi: Dict[str, Dict[str, Union[Dict[str, float], float]]],
-        count_sequences: list[defaultdict[tuple[str, ...], int]],
+        ngrams_pmi: dict[tuple[str, ...], float | dict],
+        count_sequences: list[defaultdict],
         customer_sequences: list[tuple[str, ...]],
         customer_outcomes: list[tuple[int, ...]],
     ) -> pl.DataFrame:
-        """
-        Analyzes customer sequences to identify patterns linked to positive outcomes. Returns a sorted Polars DataFrame of significant n-grams
+        """Generate PMI analysis summary DataFrame.
+
+        Creates a summary of action sequences ranked by their significance
+        in predicting positive outcomes.
 
         Parameters
         ----------
-        ngrams_pmi: dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, str], float]]]
-            Dictionary containing PMI information for bigrams and n-grams.
-            For bigrams, the value is a float representing the PMI value.
-            For higher-order n-grams, the value is a dictionary with:
-                - 'average_pmi: The average PMI value.
-                - 'links': A dictionary mapping each constituent bigram to its PMI value.
-
-        count_sequences : list[defaultdict[tuple[str, ...], int]]
-            Sequence frequency counts.
-            Index 1 = ≥3-grams ending in positive outcome.
-            Index 2 = bigrams ending in positive outcome.
-
+        ngrams_pmi : dict[tuple[str, ...], Union[float, dict]]
+            PMI scores from :meth:`calculate_pmi`.
+        count_sequences : list[defaultdict]
+            Sequence frequency counts from :meth:`get_sequences`.
         customer_sequences : list[tuple[str, ...]]
-            Sequences of actions per customer.
-
+            Customer action sequences from :meth:`get_sequences`.
         customer_outcomes : list[tuple[int, ...]]
-            Binary outcomes (0 or 1) for each customer action sequence.
+            Customer outcome sequences from :meth:`get_sequences`.
 
         Returns
         -------
         pl.DataFrame
-            DataFrame containing:
-            - 'Sequence': the action sequence
-            - 'Length': number of actions
-            - 'Avg PMI': average PMI value
-            - 'Frequency': number of times the sequence appears
-            - 'Unique freq': number of unique customers who had this sequence ending in a positive outcome
-            - 'Score': Avg PMI x log(Frequency), sorted descending
+            Summary DataFrame with columns:
+
+            - **Sequence**: Action sequence tuple
+            - **Length**: Number of actions in sequence
+            - **Avg PMI**: Average PMI value
+            - **Frequency**: Total occurrence count
+            - **Unique freq**: Unique customer count
+            - **Score**: PMI × log(Frequency), sorted descending
+
+        See Also
+        --------
+        get_sequences : Extract sequences for analysis.
+        calculate_pmi : Compute PMI scores.
+
+        Examples
+        --------
+        >>> seqs, outs, actions, counts = ih.get_sequences(
+        ...     "Conversion", "pyName", "pyOutcome", "pxInteractionID"
+        ... )
+        >>> pmi = IH.calculate_pmi(actions, counts)
+        >>> IH.pmi_overview(pmi, counts, seqs, outs)
+
         """
         data: list[dict[str, object]] = []
         freq_all = count_sequences[1] | count_sequences[2]
 
         for seq, pmi_val in ngrams_pmi.items():
             if len(seq) > 2:
-                pmi_val = pmi_val["average_pmi"]
+                pmi_val = pmi_val["average_pmi"]  # type: ignore[index]
 
             count = freq_all.get(seq, 0)
 
@@ -596,13 +683,13 @@ class IH:
 
             data.append(
                 {
-                    "Sequence":  seq,
-                    "Length":    len(seq),
-                    "Avg PMI":   pmi_val,
+                    "Sequence": seq,
+                    "Length": len(seq),
+                    "Avg PMI": pmi_val,
                     "Frequency": count,
                     "Unique freq": count_sequences[3][seq],
-                    "Score":     pmi_val * math.log(count),
-                }
+                    "Score": pmi_val * math.log(count),  # type: ignore[operator]
+                },
             )
 
         return (

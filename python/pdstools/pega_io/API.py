@@ -35,7 +35,7 @@ def get_token(credential_file: PathLike, verify: bool = True):  # pragma: no cov
         explicitly set verify to False, otherwise Python will yell at you.
 
     """
-    import requests
+    import requests  # type: ignore[import-untyped]
 
     creds = _read_client_credential_file(credential_file)
     response = requests.post(

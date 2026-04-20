@@ -46,7 +46,7 @@ mock_prediction_describe = {
                     "performanceMeasure": "AUC",
                     "componentName": "Accept",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
             "categoryModels": [
                 {
@@ -58,9 +58,9 @@ mock_prediction_describe = {
                     "categoryName": "Retention",
                     "componentName": "testModel_falcons",
                     "modelingTechnique": "Adaptive model - Bayesian",
-                }
+                },
             ],
-        }
+        },
     ],
     "supportingModels": [
         {
@@ -73,7 +73,7 @@ mock_prediction_describe = {
             "componentName": "RiskModel",
             "contextName": "NoContext",
             "modelingTechnique": "GBM and XGBoost",
-        }
+        },
     ],
     "metrics": {"lift": 0.0, "performance": 68.87, "performanceMeasure": "AUC"},
 }
@@ -88,7 +88,7 @@ mock_performance_metric = {
         {"value": "70.13", "snapshotTime": "2024-07-09T12:00:00.000Z"},
         {"value": "77.45", "snapshotTime": "2024-07-10T12:00:00.000Z"},
         {"value": "68.87", "snapshotTime": "2024-07-11T12:00:00.000Z"},
-    ]
+    ],
 }
 
 
@@ -116,7 +116,7 @@ mock_response_notifications = {
             "impact": "High",
             "triggerTime": "20240720T050554.923 GMT",
         },
-    ]
+    ],
 }
 
 mock_response_get_models = [
@@ -166,17 +166,17 @@ def test_prediction_describe(prediction_client, mocker):
     mock_response = mock_prediction_describe
 
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_response
+        prediction_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_client.describe()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
-    assert (
-        result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert result["predictionId"] == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert result["label"] == "Predict Cards Acceptance"
     assert result["objective"] == "Accept"
     assert result["subject"] == "Customer"
@@ -221,12 +221,18 @@ def test_prediction_describe(prediction_client, mocker):
     ],
 )
 def test_prediction_notifications(
-    prediction_client, mocker, return_df, expected_type, additional_checks
+    prediction_client,
+    mocker,
+    return_df,
+    expected_type,
+    additional_checks,
 ):
     mock_response = mock_response_notifications
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        prediction_client._client, method_to_patch, return_value=mock_response
+        prediction_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     result = prediction_client.get_notifications(return_df=return_df)
 
@@ -240,12 +246,16 @@ def test_prediction_get_models(prediction_client, mocker):
     mock_response = mock_prediction_describe
 
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_response
+        prediction_client._client,
+        "get",
+        return_value=mock_response,
     )
-    result = prediction_client._get_models()
+    from pdstools.infinity.internal._resource import _run_sync
+
+    result = _run_sync(prediction_client._get_models)
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
     assert result == mock_response_get_models
 
@@ -254,17 +264,17 @@ def test_prediction_get_cc(prediction_client, mocker):
     mock_response = mock_prediction_describe
 
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_response
+        prediction_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_client.get_champion_challengers()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+        "/prweb/api/PredictionStudio/v3/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
     )
 
-    assert (
-        result[0].prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
-    )
+    assert result[0].prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert len(result) == 3
 
 
@@ -273,11 +283,14 @@ def test_add_conditional_model(prediction_client, mocker):
     mock_response = mock_prediction_describe
 
     mocker.patch.object(
-        prediction_client._client, "_post", return_value=mock_response_post
+        prediction_client._client,
+        "_post",
+        return_value=mock_response_post,
     )
     mocker.patch.object(prediction_client._client, "get", return_value=mock_response)
     result = prediction_client.add_conditional_model(
-        new_model="@baseclass!testModel_falcons", category="Retention"
+        new_model="@baseclass!testModel_falcons",
+        category="Retention",
     )
 
     # mock_add_conditional_model.assert_called_once_with("/prweb/api/PredictionStudio/v4/predictions/CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS/category/Retention/models/@baseclass!testModel_falcons")
@@ -289,7 +302,9 @@ def test_prediction_get_metric(prediction_client, mocker):
     start_date = date(2024, 7, 2)
     end_date = date(2024, 7, 11)
     mock_get = mocker.patch.object(
-        prediction_client._client, "get", return_value=mock_response
+        prediction_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = prediction_client.get_metric(
         start_date=start_date,
@@ -317,8 +332,8 @@ def test_get_staged_changes(prediction_client, mocker):
                 "ruleName": "testModel_falcons",
                 "caseID": "M-2042",
                 "updateDateTime": "20240718T120558.474 GMT",
-            }
-        ]
+            },
+        ],
     }
     mocker.patch.object(prediction_client._client, "get", return_value=mock_responses)
     result = prediction_client.get_staged_changes()

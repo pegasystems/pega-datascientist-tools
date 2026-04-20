@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ADMDatamart functions
-"""
+"""Testing the functionality of the ADMDatamart functions"""
 
 import os
 import pathlib
@@ -65,7 +63,8 @@ def test_active_range_Pega7():
     test_data_mdls = f"{basePath}/data/active_range/dmModels.csv.gz"
     test_data_preds = f"{basePath}/data/active_range/dmPredictors.csv.gz"
     dm = ADMDatamart(
-        model_df=pl.scan_csv(test_data_mdls), predictor_df=pl.scan_csv(test_data_preds)
+        model_df=pl.scan_csv(test_data_mdls),
+        predictor_df=pl.scan_csv(test_data_preds),
     )
 
     # These tests are identical to the tests in the old R version
@@ -92,7 +91,8 @@ def test_active_range_newer_single():
     test_data_mdls = f"{basePath}/data/active_range/all_1_mdls.csv"
     test_data_preds = f"{basePath}/data/active_range/all_1_preds.csv"
     dm = ADMDatamart(
-        model_df=pl.scan_csv(test_data_mdls), predictor_df=pl.scan_csv(test_data_preds)
+        model_df=pl.scan_csv(test_data_mdls),
+        predictor_df=pl.scan_csv(test_data_preds),
     )
 
     ar = dm.active_ranges().collect()
@@ -105,7 +105,7 @@ def test_active_range_newer_single():
 
 def test_active_range_Pega8():
     dm = ADMDatamart.from_ds_export(
-        base_path=f"{basePath}/data/active_range/CDHSample-Pega8"
+        base_path=f"{basePath}/data/active_range/CDHSample-Pega8",
     )
 
     ar = dm.active_ranges().collect()
@@ -144,13 +144,12 @@ def test_active_range_Pega8():
         -0.425495,
     ]
 
+
 def _check_cat(dm, pred_name):
     return (
-        dm.predictor_data.filter(PredictorName=pred_name)
-        .select(pl.col("PredictorCategory").unique())
-        .collect()
-        .item()
+        dm.predictor_data.filter(PredictorName=pred_name).select(pl.col("PredictorCategory").unique()).collect().item()
     )
+
 
 def test_predictor_categorization_default(sample):
     default_cats = (
@@ -171,7 +170,7 @@ def test_predictor_categorization_default(sample):
 
 def test_predictor_categorization_custom_expression(sample):
     categorization = pl.when(
-        pl.col("PredictorName").cast(pl.Utf8).str.contains("Score")
+        pl.col("PredictorName").cast(pl.Utf8).str.contains("Score"),
     ).then(pl.lit("External Model"))
 
     sample.apply_predictor_categorization(categorization)
@@ -192,8 +191,9 @@ def test_predictor_categorization_custom_expression(sample):
     assert cats == ["Customer", "External Model", "IH", "Param"]
     assert _check_cat(sample, "Customer.RiskScore") == "External Model"
 
+
 def test_predictor_categorization_dictionary(sample):
-    categorization = {"XGBoost Model" : "Score"}
+    categorization = {"XGBoost Model": "Score"}
 
     sample.apply_predictor_categorization(categorization)
 
@@ -213,10 +213,10 @@ def test_predictor_categorization_dictionary(sample):
     assert cats == ["Customer", "IH", "Param", "XGBoost Model"]
     assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
 
-def test_predictor_categorization_dictionary_regexps(sample):
 
+def test_predictor_categorization_dictionary_regexps(sample):
     # Using a reg exp w/o setting the flag should not match anything
-    categorization = {"XGBoost Model" : "Score$"}
+    categorization = {"XGBoost Model": "Score$"}
     sample.apply_predictor_categorization(categorization)
 
     cats = (
@@ -229,7 +229,7 @@ def test_predictor_categorization_dictionary_regexps(sample):
     assert "XGBoost Model" not in cats
 
     # But with the flag we should get some more results
-    categorization = {"XGBoost Model" : "Score$"}
+    categorization = {"XGBoost Model": "Score$"}
     sample.apply_predictor_categorization(categorization, use_regexp=True)
 
     cats = (
@@ -240,3 +240,35 @@ def test_predictor_categorization_dictionary_regexps(sample):
         .to_list()
     )
     assert "XGBoost Model" in cats
+
+
+def test_get_last_data_for_report(sample: ADMDatamart):
+    """Test get_last_data_for_report formatting."""
+    report_data = sample.get_last_data_for_report()
+
+    # Should return a collected DataFrame
+    assert isinstance(report_data, pl.DataFrame)
+    assert report_data.height > 0
+
+    # Check that nulls are filled with "NA" for string columns
+    string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
+    for col in string_cols:
+        # Should not have null values in string columns
+        if col in ["Channel", "Direction", "Configuration"]:
+            assert report_data[col].null_count() == 0
+
+    # Check SuccessRate and Performance are filled with 0 for null/nan
+    if "SuccessRate" in report_data.columns:
+        success_rates = report_data["SuccessRate"].to_list()
+        assert all(v is not None or v == 0 for v in success_rates)
+
+    if "Performance" in report_data.columns:
+        performances = report_data["Performance"].to_list()
+        assert all(v is not None or v == 0 for v in performances)
+
+    # Check Channel/Direction concatenated column exists
+    assert "Channel/Direction" in report_data.columns
+
+    # Verify no categorical columns remain (all should be cast to string)
+    for col in report_data.columns:
+        assert report_data[col].dtype != pl.Categorical

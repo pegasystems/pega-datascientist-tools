@@ -4,14 +4,21 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.report_utils import (
+    bundle_quarto_resources,
+    copy_quarto_file,
+    get_output_filename,
+    run_quarto,
+    serialize_query,
+)
 from ..utils.types import QUERY
-from ..utils.report_utils import _serialize_query, get_quarto_with_version, run_quarto, copy_quarto_file, get_output_filename
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -28,29 +35,29 @@ class Reports(LazyNamespace):
 
     def model_reports(
         self,
-        model_ids: Union[str,List[str]],
+        model_ids: str | list[str],
         *,
-        name: Optional[
-            str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str
+        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Report",
         disclaimer: str = "",
         subtitle: str = "",
-        output_dir: Optional[PathLike] = None,
+        output_dir: PathLike | None = None,
         only_active_predictors: bool = True,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        model_file_path: Optional[PathLike] = None,
-        predictor_file_path: Optional[PathLike] = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+        model_file_path: PathLike | None = None,
+        predictor_file_path: PathLike | None = None,
+        qmd_file: PathLike | None = None,
+        full_embed: bool = False,
     ) -> Path:
-        """
-        Generates model reports for Naive Bayes ADM models.
+        """Generates model reports for Naive Bayes ADM models.
 
         Parameters
         ----------
-        model_ids : Union[str,List[str]]
+        model_ids : Union[str,list[str]]
             The model ID (or list of model IDs) to generate reports for.
         name : str, optional
             The (base) file name of the report.
@@ -77,7 +84,14 @@ class Reports(LazyNamespace):
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
-
+        qmd_file : Union[str, Path, None], optional
+            Optional path to the Quarto file to use for the model report.
+            If None, defaults to "ModelReport.qmd".
+        full_embed : bool, default=False
+            When True, fully embeds all JavaScript libraries (Plotly, itables,
+            etc.) into the HTML output (larger file, requires esbuild).
+            When False, loads JavaScript libraries from CDN (smaller, requires
+            internet). See issue #620.
 
         Returns
         -------
@@ -92,42 +106,43 @@ class Reports(LazyNamespace):
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
-        """
 
+        """
         if isinstance(model_ids, str):
             model_ids = [model_ids]
-        if (
-            not model_ids
-            or not isinstance(model_ids, list)
-            or not all(isinstance(i, str) for i in model_ids)
-        ):
-            raise ValueError(
-                "No valid model IDs"
-            )
+        if not model_ids or not isinstance(model_ids, list) or not all(isinstance(i, str) for i in model_ids):
+            raise ValueError("No valid model IDs")
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
         try:
-            qmd_file = "ModelReport.qmd"
-            copy_quarto_file(qmd_file, temp_dir)
+            # Use provided qmd_file or default to "ModelReport.qmd"
+            if qmd_file is None:
+                qmd_filename = "ModelReport.qmd"
+                copy_quarto_file(qmd_filename, temp_dir)
+            else:
+                qmd_filename = Path(qmd_file).name
+                # Copy the custom qmd file to temp directory
+                shutil.copy(qmd_file, temp_dir / qmd_filename)
 
             # Copy data to a temp dir only if the files are not passed in already
-            if (
-                (model_file_path is None) and (self.datamart.model_data is not None)
-            ) or (
-                (predictor_file_path is None)
-                and (self.datamart.predictor_data is not None)
+            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
+                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(
-                    temp_dir, selected_model_ids=model_ids
+                    temp_dir,
+                    selected_model_ids=model_ids,
                 )
 
-            output_file_paths = []
+            output_file_paths: list[str | Path] = []
             for i, model_id in enumerate(model_ids):
                 output_filename = get_output_filename(
-                    name, "ModelReport", model_id, output_type
+                    name,
+                    "ModelReport",
+                    model_id,
+                    output_type,
                 )
                 run_quarto(
-                    qmd_file=qmd_file,
+                    qmd_file=qmd_filename,
                     output_filename=output_filename,
                     output_type=output_type,
                     params={
@@ -148,6 +163,7 @@ class Reports(LazyNamespace):
                     },
                     temp_dir=temp_dir,
                     verbose=verbose,
+                    full_embed=full_embed,
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
@@ -160,13 +176,15 @@ class Reports(LazyNamespace):
                     print(f"output_path = {output_path}")
                 if not output_path.exists():
                     raise ValueError(f"Failed to write the report: {output_filename}")
+                output_path = bundle_quarto_resources(output_path)
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
             # Is this just a difficult way to copy the file? Why not shutil.copy? Or
             # even pass in the output-dir property to the quarto project?
             file_data, file_name = cdh_utils.process_files_to_bytes(
-                output_file_paths, base_file_name=output_path
+                output_file_paths,
+                base_file_name=output_path,
             )
             output_path = output_dir.joinpath(file_name)
             with open(output_path, "wb") as f:
@@ -186,24 +204,25 @@ class Reports(LazyNamespace):
 
     def health_check(
         self,
-        name: Optional[
-            str
-        ] = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
+        name: str
+        | None = None,  # TODO when ends with .html assume its the full name but this could be in get_output_filename
         title: str = "ADM Model Overview",
         subtitle: str = "",
         disclaimer: str = "",
-        output_dir: Optional[os.PathLike] = None,
+        output_dir: os.PathLike | None = None,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
-        model_file_path: Optional[PathLike] = None,
-        predictor_file_path: Optional[PathLike] = None,
-        prediction_file_path: Optional[PathLike] = None,
+        prediction=None,
+        model_file_path: PathLike | None = None,
+        predictor_file_path: PathLike | None = None,
+        prediction_file_path: PathLike | None = None,
+        qmd_file: PathLike | None = None,
+        full_embed: bool = False,
     ) -> Path:
-        """
-        Generates Health Check report for ADM models, optionally including predictor and prediction sections.
+        """Generates Health Check report for ADM models, optionally including predictor and prediction sections.
 
         Parameters
         ----------
@@ -225,12 +244,24 @@ class Reports(LazyNamespace):
             If True, the temporary directory with temp files will not be deleted after report generation.
         verbose: bool, optional
             If True, prints detailed logs during execution.
+        prediction : Prediction, optional
+            Optional Prediction object to include in the health check. If provided without
+            prediction_file_path, the prediction data will be automatically cached to a temporary file.
         model_file_path : Union[str, Path, None], optional
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
         prediction_file_path : Union[str, Path, None], optional
-            Optional name of the actual predictions data file, so it does not get copied
+            Optional name of the actual predictions data file. If not provided but prediction object
+            is given, the data will be automatically cached from the prediction object.
+        qmd_file : Union[str, Path, None], optional
+            Optional path to the Quarto file to use for the health check report.
+            If None, defaults to "HealthCheck.qmd".
+        full_embed : bool, default=False
+            When True, fully embeds all JavaScript libraries (Plotly, itables,
+            etc.) into the HTML output (larger file, requires esbuild).
+            When False, loads JavaScript libraries from CDN (smaller, requires
+            internet). See issue #620.
 
         Returns
         -------
@@ -245,34 +276,46 @@ class Reports(LazyNamespace):
             If required files are not found.
         subprocess.SubprocessError
             If there's an error in running external commands.
+
         """
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
-            qmd_file = "HealthCheck.qmd"
+            # Use provided qmd_file or default to "HealthCheck.qmd"
+            if qmd_file is None:
+                qmd_filename = "HealthCheck.qmd"
+                copy_quarto_file(qmd_filename, temp_dir)
+            else:
+                qmd_filename = Path(qmd_file).name
+                # Copy the custom qmd file to temp directory
+                shutil.copy(qmd_file, temp_dir / qmd_filename)
+
             output_filename = get_output_filename(
-                name, "HealthCheck", None, output_type
+                name,
+                "HealthCheck",
+                None,
+                output_type,
             )
 
-            copy_quarto_file(qmd_file, temp_dir)
-
             # Copy data to a temp dir only if the files are not passed in already
-            if (
-                (model_file_path is None) and (self.datamart.model_data is not None)
-            ) or (
-                (predictor_file_path is None)
-                and (self.datamart.predictor_data is not None)
+            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
+                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
-            serialized_query = _serialize_query(query)
+
+            # Handle prediction data - cache if prediction object provided but no file path
+            if (prediction_file_path is None) and (prediction is not None):
+                prediction_file_path = prediction.save_data(temp_dir)
+
+            serialized_query = serialize_query(query)
             run_quarto(
-                qmd_file=qmd_file,
+                qmd_file=qmd_filename,
                 output_filename=output_filename,
                 output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
-                    "model_file_path": str(model_file_path),
-                    "predictor_file_path": str(predictor_file_path),
-                    "prediction_file_path": str(prediction_file_path),
+                    "model_file_path": str(model_file_path) if model_file_path is not None else "",
+                    "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
+                    "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
@@ -286,6 +329,7 @@ class Reports(LazyNamespace):
                 },
                 temp_dir=temp_dir,
                 verbose=verbose,
+                full_embed=full_embed,
             )
 
             # TODO why not print paths earlier, before the quarto call?
@@ -301,8 +345,10 @@ class Reports(LazyNamespace):
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
+            output_path = bundle_quarto_resources(output_path)
+
             # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
-            final_path = output_dir / output_filename
+            final_path = output_dir / output_path.name
             shutil.copy(output_path, final_path)
 
             return final_path
@@ -311,14 +357,12 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
-
     def excel_report(
         self,
-        name: Union[Path, str] = Path("Tables.xlsx"),
+        name: Path | str = Path("Tables.xlsx"),
         predictor_binning: bool = False,
-    ) -> tuple[Optional[Path], list[str]]:
-        """
-        Export raw data to an Excel file.
+    ) -> tuple[Path | None, list[str]]:
+        """Export raw data to an Excel file.
 
         This method exports the last snapshots of model_data, predictor summary,
         and optionally predictor_binning data to separate sheets in an Excel file.
@@ -342,13 +386,14 @@ class Reports(LazyNamespace):
             A tuple containing:
             - The path to the created Excel file if the export was successful, None if no data was available
             - A list of warning messages (empty if no warnings)
+
         """
         from xlsxwriter import Workbook
 
         EXCEL_ROW_LIMIT = 1048576
         # Standard ZIP format limit is 4gb but 3gb would already crash most laptops
         ZIP_SIZE_LIMIT_MB = 3000
-        warning_messages = []
+        warning_messages: list[str] = []
 
         name = Path(name)
         tabs = {
@@ -361,20 +406,18 @@ class Reports(LazyNamespace):
                 + self.datamart.context_keys
                 + [
                     col
-                    for col in self.datamart.model_data.collect_schema().names()
+                    for col in self.datamart.model_data.collect_schema().names()  # type: ignore[union-attr]
                     if col != "ModelID" and col not in self.datamart.context_keys
-                ]
+                ],
             )
-            .sort(self.datamart.context_keys)
+            .sort(self.datamart.context_keys),
         }
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
+            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()  # type: ignore[assignment]
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_overview"] = (
-                self.datamart.aggregates.predictors_global_overview()
-            )
+            tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
 
         if predictor_binning and self.datamart.predictor_data is not None:
             columns = [
@@ -397,8 +440,7 @@ class Reports(LazyNamespace):
             subset_columns = [
                 col
                 for col in columns
-                if col.meta.output_name()
-                in self.datamart.predictor_data.collect_schema().names()
+                if col.meta.output_name() in self.datamart.predictor_data.collect_schema().names()
             ]
             tabs["predictor_binning"] = (
                 self.datamart.aggregates.last(table="predictor_data")
@@ -419,7 +461,8 @@ class Reports(LazyNamespace):
 
         try:
             with Workbook(
-                name, options={"nan_inf_to_errors": True, "remove_timezone": True}
+                name,
+                options={"nan_inf_to_errors": True, "remove_timezone": True},
             ) as wb:
                 # Enable ZIP64 extensions to handle large files
                 wb.use_zip64()
@@ -428,12 +471,12 @@ class Reports(LazyNamespace):
                     data = data.with_columns(
                         pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
                         .list.eval(pl.element().cast(pl.Utf8))
-                        .list.join(", ")
+                        .list.join(", "),
                     )
-                    data = data.collect()
+                    collected_data = data.collect()
 
                     # Check data size (with a multiplication factor for Excel XML overhead)
-                    estimated_size_mb = data.estimated_size(unit="mb") * 2.5
+                    estimated_size_mb = collected_data.estimated_size(unit="mb") * 2.5
                     if estimated_size_mb > ZIP_SIZE_LIMIT_MB:
                         warning_msg = (
                             f"The data for sheet '{tab}' is too large (estimated {estimated_size_mb:.1f} MB). "
@@ -445,22 +488,19 @@ class Reports(LazyNamespace):
                         print(warning_msg)
                         continue
 
-                    if data.shape[0] > EXCEL_ROW_LIMIT:
+                    if collected_data.shape[0] > EXCEL_ROW_LIMIT:
                         warning_msg = (
                             f"The data for sheet '{tab}' exceeds Excel's row limit "
-                            f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                            f"({collected_data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
                             "This sheet will not be written to the Excel file. "
                             "Please filter your data before generating the Excel report."
                         )
                         warning_messages.append(warning_msg)
                         print(warning_msg)
                         continue
-                    else:
-                        data.write_excel(workbook=wb, worksheet=tab)
+                    collected_data.write_excel(workbook=wb, worksheet=tab)
         except Exception as e:
-            warning_msg = (
-                f"Error creating Excel file: {str(e)}. Try exporting to CSV instead."
-            )
+            warning_msg = f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
             warning_messages.append(warning_msg)
             print(warning_msg)
             return None, warning_messages

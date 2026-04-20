@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   auto-tag:
@@ -27,7 +28,7 @@ jobs:
           VERSION=${BRANCH_NAME#release/V}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
-          
+
           # Determine if this is a patch release (x.y.z where z > 0) or major/minor (x.y.0)
           IFS='.' read -r major minor patch <<< "$VERSION"
           if [ "$patch" != "0" ]; then
@@ -43,12 +44,20 @@ jobs:
           VERSION="${{ steps.extract_version.outputs.version }}"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           echo "Creating tag V$VERSION"
           git tag "V$VERSION"
           git push origin "V$VERSION"
-          
+
           echo "Tag V$VERSION has been created and pushed"
+
+      - name: Trigger PyPI publish workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          gh workflow run "Python release.yml" --ref "V$VERSION"
+          echo "✅ Triggered PyPI publish for V$VERSION"
 
       - name: Create draft release (for major/minor only)
         if: steps.extract_version.outputs.release_type == 'major_minor'
@@ -56,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.extract_version.outputs.version }}"
-          
+
           RELEASE_NOTES="## What's Changed
 
           Review and edit the auto-generated notes below.
@@ -67,13 +76,13 @@ jobs:
 
           1. Review and edit these release notes
           2. When ready, publish this release to trigger the PyPI deployment"
-          
+
           gh release create "V$VERSION" \
             --draft \
             --title "Release V$VERSION" \
             --notes "$RELEASE_NOTES" \
             --generate-notes
-          
+
           echo "✅ Draft release created for V$VERSION"
 
       - name: Summary
@@ -84,10 +93,9 @@ jobs:
           echo "- **Release Type**: ${{ steps.extract_version.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.extract_version.outputs.release_type }}" == "patch" ]; then
-            echo "The tag has been pushed and will trigger the PyPI release workflow immediately." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "The tag has been created and a draft release is ready for review." >> $GITHUB_STEP_SUMMARY
-            echo "Publish the draft release to trigger PyPI deployment." >> $GITHUB_STEP_SUMMARY
+
+          echo "The tag has been pushed and the PyPI publish workflow has been triggered." >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.extract_version.outputs.release_type }}" == "major_minor" ]; then
+            echo "A draft release has also been created for review." >> $GITHUB_STEP_SUMMARY
           fi

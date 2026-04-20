@@ -1,57 +1,105 @@
-import os
 import datetime
+import html
+import io
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
 import traceback
+import zipfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+
 
 import polars as pl
 
-from ..adm.CDH_Guidelines import CDHGuidelines
-from ..utils.show_versions import show_versions
 from ..utils.types import QUERY
+
+# Re-export RAG functions from metric_limits for convenience in Quarto reports.
+from .metric_limits import (  # noqa: F401
+    MetricFormats,
+    MetricLimits,
+    exclusive_0_1_range_rag,
+    positive_values,
+    standard_NBAD_channels_rag,
+    standard_NBAD_configurations_rag,
+    standard_NBAD_directions_rag,
+    standard_NBAD_predictions_rag,
+    strict_positive_values,
+)
+
+# Re-export NumberFormat, MetricFormats, and MetricLimits for external use
+from .number_format import NumberFormat  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
+
 def get_output_filename(
-    name: Optional[str],  # going to be the full file name
+    name: str | None,  # going to be the full file name
     report_type: str,
-    model_id: Optional[str] = None,
+    model_id: str | None = None,
     output_type: str = "html",
 ) -> str:
     """Generate the output filename based on the report parameters."""
     name = name.replace(" ", "_") if name else None
     if report_type == "ModelReport":
-        return (
-            f"{report_type}_{name}_{model_id}.{output_type}"
-            if name
-            else f"{report_type}_{model_id}.{output_type}"
-        )
-    return (
-        f"{report_type}_{name}.{output_type}"
-        if name
-        else f"{report_type}.{output_type}"
-    )
+        return f"{report_type}_{name}_{model_id}.{output_type}" if name else f"{report_type}_{model_id}.{output_type}"
+    return f"{report_type}_{name}.{output_type}" if name else f"{report_type}.{output_type}"
+
 
 def copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
-    """Copy the report quarto file to the temporary directory."""
+    """Copy the report quarto file to the temporary directory.
+
+    Parameters
+    ----------
+    qmd_file : str
+        Name of the Quarto markdown file to copy
+    temp_dir : Path
+        Destination directory to copy files to
+
+    Returns
+    -------
+    None
+
+    """
     from pdstools import __reports__
 
     shutil.copy(__reports__ / qmd_file, temp_dir)
     shutil.copytree(__reports__ / "assets", temp_dir / "assets", dirs_exist_ok=True)
 
+
 def _write_params_files(
     temp_dir: Path,
-    params: Optional[Dict] = None,
-    project: Dict = {"type": "default"},
-    analysis: Optional[Dict] = None,
+    params: dict | None = None,
+    project: dict = {"type": "default"},
+    analysis: dict | None = None,
+    full_embed: bool = False,
 ) -> None:
-    """Write parameters to a YAML file."""
-    import yaml
+    """Write parameters to YAML files for Quarto processing.
+
+    Parameters
+    ----------
+    temp_dir : Path
+        Directory where YAML files will be written
+    params : dict, optional
+        Parameters to write to params.yml, by default None
+    project : dict, optional
+        Project configuration to write to _quarto.yml, by default {"type": "default"}
+    analysis : dict, optional
+        Analysis configuration to write to _quarto.yml, by default None
+    full_embed : bool, default=False
+        When True, embeds all resources (JavaScript libraries like Plotly,
+        itables, etc.) for a fully standalone HTML (larger output).
+        When False, loads JavaScript libraries from CDN and skips esbuild
+        bundling (smaller output, but requires internet).
+
+    Returns
+    -------
+    None
+
+    """
+    import yaml  # type: ignore[import-untyped]
 
     params = params or {}
     analysis = analysis or {}
@@ -62,30 +110,87 @@ def _write_params_files(
             params,
             f,
         )
-    
-    # Project/rendering options to quarto
+
+    # When not using full_embed, disable embed-resources so Quarto does not
+    # invoke esbuild to bundle JavaScript libraries (Plotly, itables, etc.).
+    # This avoids failures in environments where esbuild is unavailable
+    # (e.g. DJS Docker images that removed it due to CVE issues).
+    # See GitHub issue #620.
+    # plotly-connected: false = load Plotly from CDN (smaller file)
+    # plotly-connected: true = embed Plotly (larger file)
+    embed = full_embed
+    html_format: dict = {
+        "embed-resources": embed,
+        "plotly-connected": embed,
+    }
+
+    quarto_config: dict = {
+        "project": project,
+        "analysis": analysis,
+        "format": {
+            "html": html_format,
+        },
+    }
+
     with open(temp_dir / "_quarto.yml", "w") as f:
-        yaml.dump(
-            {
-                "project": project,
-                "analysis": analysis,
-            },
-            f,
-        )
+        yaml.dump(quarto_config, f)
+
 
 def run_quarto(
-    qmd_file: Optional[str] = None,
-    output_filename: Optional[str] = None,
-    output_type: Optional[str] = "html",
-    params: Optional[Dict] = None,
-    project: Dict = {"type": "default"},
-    analysis: Optional[Dict] = None,
-    temp_dir: Path = Path("."),
+    qmd_file: str | None = None,
+    output_filename: str | None = None,
+    output_type: str | None = "html",
+    params: dict | None = None,
+    project: dict = {"type": "default"},
+    analysis: dict | None = None,
+    temp_dir: Path = Path(),
     verbose: bool = False,
+    *,
+    full_embed: bool = False,
 ) -> int:
-    """Run the Quarto command to generate the report."""
+    """Run the Quarto command to generate the report.
 
-    def get_command() -> List[str]:
+    Parameters
+    ----------
+    qmd_file : str, optional
+        Path to the Quarto markdown file to render, by default None
+    output_filename : str, optional
+        Name of the output file, by default None
+    output_type : str, optional
+        Type of output format (html, pdf, etc.), by default "html"
+    params : dict, optional
+        Parameters to pass to Quarto execution, by default None
+    project : dict, optional
+        Project configuration settings, by default {"type": "default"}
+    analysis : dict, optional
+        Analysis configuration settings, by default None
+    temp_dir : Path, optional
+        Temporary directory for processing, by default Path(".")
+    verbose : bool, optional
+        Whether to print detailed execution logs, by default False
+    full_embed : bool, default=False
+        When True, fully embeds all JavaScript libraries (Plotly, itables,
+        etc.) into the HTML output (larger file).
+        When False, loads JavaScript libraries from CDN and skips esbuild
+        bundling, avoiding the need for esbuild (see issue #620).
+
+    Returns
+    -------
+    int
+        Return code from the Quarto process (0 for success)
+
+    Raises
+    ------
+    RuntimeError
+        If the Quarto process fails (non-zero return code), includes captured output
+    subprocess.SubprocessError
+        If the Quarto command fails to execute
+    FileNotFoundError
+        If required files are not found
+
+    """
+
+    def get_command() -> list[str]:
         quarto_exec, _ = get_quarto_with_version(verbose)
         _command = [str(quarto_exec), "render"]
 
@@ -95,7 +200,8 @@ def run_quarto(
         options = _set_command_options(
             output_type=output_type,
             output_filename=output_filename,
-            execute_params=params is not None)
+            execute_params=params is not None,
+        )
 
         _command.extend(options)
         return _command
@@ -106,6 +212,7 @@ def run_quarto(
             params=params,
             project=project,
             analysis=analysis,
+            full_embed=full_embed,
         )
 
     # render file or render project with options
@@ -114,18 +221,31 @@ def run_quarto(
     if verbose:
         print(f"Executing: {' '.join(command)} in temp directory {temp_dir}")
 
+    # Set QUARTO_PYTHON to ensure Quarto uses the same Python that's running pdstools.
+    # This is critical for isolated environments (uv tool, pipx) where the default
+    # system Python may not have the required dependencies like ipykernel.
+    import sys
+
+    env = os.environ.copy()
+    env["QUARTO_PYTHON"] = sys.executable
+    logger.info(f"Setting QUARTO_PYTHON to: {sys.executable}")
+
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,  # Redirect stderr to stdout
         cwd=temp_dir,
+        env=env,
         text=True,
         bufsize=1,  # Line buffered
     )
 
+    # Capture all output for potential error reporting
+    output_lines: list[str] = []
     if process.stdout is not None:
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
+            output_lines.append(line)
             if verbose:
                 print(line)
             logger.info(line)
@@ -136,15 +256,38 @@ def run_quarto(
     message = f"Quarto process exited with return code {return_code}"
     logger.info(message)
 
+    # Raise an exception with captured output if Quarto failed
+    if return_code != 0:
+        captured_output = "\n".join(output_lines)
+        raise RuntimeError(
+            f"Quarto rendering failed with return code {return_code}.\nOutput:\n{captured_output}",
+        )
+
     return return_code
 
-def _set_command_options(
-    output_type: Optional[str] = None,
-    output_filename: Optional[str] = None,
-    execute_params: bool = False,
-) -> List[str]:
-    """Set the options for the Quarto command."""
 
+def _set_command_options(
+    output_type: str | None = None,
+    output_filename: str | None = None,
+    execute_params: bool = False,
+) -> list[str]:
+    """Set the options for the Quarto command.
+
+    Parameters
+    ----------
+    output_type : str, optional
+        Output format type (html, pdf, etc.), by default None
+    output_filename : str, optional
+        Name of the output file, by default None
+    execute_params : bool, optional
+        Whether to include parameter execution flag, by default False
+
+    Returns
+    -------
+    list[str]
+        list of command line options for Quarto
+
+    """
     options = []
     if output_type is not None:
         options.append("--to")
@@ -157,29 +300,71 @@ def _set_command_options(
         options.append("params.yml")
     return options
 
+
 def copy_report_resources(resource_dict: list[tuple[str, str]]):
+    """Copy report resources from the reports directory to specified destinations.
+
+    Parameters
+    ----------
+    resource_dict : list[tuple[str, str]]
+        list of tuples containing (source_path, destination_path) pairs
+
+    Returns
+    -------
+    None
+
+    """
     from pdstools import __reports__
-    
+
     for src, dest in resource_dict:
         source_path = __reports__ / src
         destination_path = dest
-        
+
         if destination_path == "":
-                destination_path = "./"
-        
+            destination_path = "./"
+
         if os.path.isdir(source_path):
             shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
         else:
             shutil.copy(source_path, destination_path)
 
+
 def generate_zipped_report(output_filename: str, folder_to_zip: str):
+    """Generate a zipped archive of a directory.
+
+    This is a general-purpose utility function that can compress any directory
+    into a zip archive. While named for report generation, it works with any
+    directory structure.
+
+    Parameters
+    ----------
+    output_filename : str
+        Name of the output file (extension will be replaced with .zip)
+    folder_to_zip : str
+        Path to the directory to be compressed
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    FileNotFoundError
+        If the folder to zip does not exist or is not a directory
+
+    Examples
+    --------
+    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
+    >>> generate_zipped_report("report_2023", "/tmp/report_output")
+
+    """
     if not os.path.isdir(folder_to_zip):
         logger.error(f"The output path {folder_to_zip} is not a directory.")
         return
 
     if not os.path.exists(folder_to_zip):
         logger.warning(
-            f"The {folder_to_zip} directory does not exist. Skipping zip creation."
+            f"The {folder_to_zip} directory does not exist. Skipping zip creation.",
         )
         return
 
@@ -187,38 +372,92 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
     logger.info(f"created zip file...{zippy}")
 
-def _get_cmd_output(args: List[str]) -> List[str]:
+
+def bundle_quarto_resources(output_path: Path) -> Path:
+    """Bundle a Quarto-rendered file with its resources folder into a zip.
+
+    When Quarto renders an HTML report without ``embed-resources``, it emits
+    the HTML alongside a ``<basename>_files/`` directory containing the
+    JavaScript and CSS assets the report needs. This helper detects that
+    pattern and wraps both into a single ``<basename>.zip`` archive so the
+    report can be distributed and unpacked as one unit.
+
+    If no companion resources folder exists next to ``output_path`` (e.g. the
+    report was fully embedded, or the format doesn't produce resources), the
+    function is a no-op and returns ``output_path`` unchanged.
+
+    Parameters
+    ----------
+    output_path : Path
+        Path to the rendered report file (typically an HTML file). The
+        companion resources folder is expected at ``<output_path stem>_files``
+        in the same directory.
+
+    Returns
+    -------
+    Path
+        Path to the zip archive when bundling occurred, otherwise the
+        original ``output_path``.
+    """
+    output_path = Path(output_path)
+    if not output_path.exists():
+        return output_path
+
+    resources_dir = output_path.with_name(f"{output_path.stem}_files")
+    if not resources_dir.is_dir():
+        return output_path
+
+    zip_path = output_path.with_suffix(".zip")
+    logger.info(
+        f"Bundling {output_path.name} with resources folder {resources_dir.name} into {zip_path.name}",
+    )
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(output_path, output_path.name)
+        for file in resources_dir.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(output_path.parent))
+
+    shutil.rmtree(resources_dir, ignore_errors=True)
+    try:
+        output_path.unlink()
+    except OSError:  # pragma: no cover
+        pass
+    return zip_path
+
+
+def _get_cmd_output(args: list[str]) -> list[str]:
     """Get command output in an OS-agnostic way."""
     try:
         result = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
         )
         return result.stdout.split("\n")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to run command {' '.join(args)}: {e}")
         raise FileNotFoundError(
-            f"Command failed. Make sure {args[0]} is installed and in the system PATH."
+            f"Command failed. Make sure {args[0]} is installed and in the system PATH.",
         )
 
 
 def _get_version_only(versionstr: str) -> str:
     """Extract version number from version string."""
-    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
-    return match.group(1) if match else ""
-    # Match version numbers in the format X.Y.Z (ignoring any pre-release or build metadata)
-    match = re.search(r'(\d+(?:\.\d+)*)', versionstr)
+    match = re.search(r"(\d+(?:\.\d+)*)", versionstr)
     return match.group(1) if match else ""
 
 
-def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
+def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Quarto executable path and version."""
     try:
-        executable = Path(shutil.which("quarto"))
-        if not executable:
+        quarto_path = shutil.which("quarto")
+        if not quarto_path:
             raise FileNotFoundError(
-                "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
+                "Quarto executable not found. Please ensure Quarto is installed and in the system PATH.",
             )
+        executable = Path(quarto_path)
 
         version_string = _get_version_only(_get_cmd_output(["quarto", "--version"])[0])
         message = f"quarto version: {version_string}"
@@ -231,13 +470,18 @@ def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
         raise
 
 
-def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
+def get_pandoc_with_version(verbose: bool = True) -> tuple[Path, str]:
     """Get Pandoc executable path and version."""
     try:
-        executable = Path(shutil.which("pandoc"))
+        pandoc_path = shutil.which("pandoc")
+        if not pandoc_path:
+            raise FileNotFoundError(
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
+            )
+        executable = Path(pandoc_path)
         if not executable:
             raise FileNotFoundError(
-                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH."
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH.",
             )
 
         version_string = _get_version_only(_get_cmd_output(["pandoc", "--version"])[0])
@@ -264,7 +508,7 @@ def quarto_callout_info(info):
 %s
 :::
 """
-        % info
+        % info,
     )
 
 
@@ -275,7 +519,7 @@ def quarto_callout_important(info):
 %s
 :::
 """
-        % info
+        % info,
     )
 
 
@@ -288,7 +532,7 @@ def quarto_plot_exception(plot_name: str, e: Exception):
 %s
 :::
 """
-        % (plot_name, e, traceback.format_exc())
+        % (plot_name, e, traceback.format_exc()),
     )
 
 
@@ -308,219 +552,385 @@ def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
 
 
-def rag_background_styler(rag: Optional[str] = None):
-    from great_tables import style
-
-    if rag is not None and len(rag) > 0:
-        rag_upper = rag[0].upper()
-        if rag_upper == "R":
-            return style.fill(color="orangered")
-        elif rag_upper == "A":
-            return style.fill(color="orange")
-        elif rag_upper == "Y":
-            return style.fill(color="yellow")
-        elif rag_upper == "G":
-            return None  # no green background to keep it light
-    raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-def rag_background_styler_dense(rag: Optional[str] = None):
-    from great_tables import style
-
-    if rag is not None and len(rag) > 0:
-        rag_upper = rag[0].upper()
-        if rag_upper == "R":
-            return style.fill(color="orangered")
-        elif rag_upper == "A":
-            return style.fill(color="orange")
-        elif rag_upper == "Y":
-            return style.fill(color="yellow")
-        elif rag_upper == "G":
-            return style.fill(color="green")
-    raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-def rag_textcolor_styler(rag: Optional[str] = None):
-    from great_tables import style
-
-    if rag is not None and len(rag) > 0:
-        rag_upper = rag[0].upper()
-        if rag_upper == "R":
-            return style.text(color="orangered")
-        elif rag_upper == "A":
-            return style.text(color="orange")
-        elif rag_upper == "Y":
-            return style.text(color="yellow")
-        elif rag_upper == "G":
-            return style.text(color="green")
-    raise ValueError(f"Not a supported RAG value: {rag}")
-
-
-def table_standard_formatting(
-    source_table,
-    title=None,
-    subtitle=None,
-    rowname_col=None,
-    groupname_col=None,
-    cdh_guidelines=CDHGuidelines(),
-    highlight_limits: Dict[str, Union[str, List[str]]] = {},
-    highlight_lists: Dict[str, List[str]] = {},
-    highlight_configurations: List[str] = [],
-    rag_styler: callable = rag_background_styler,
+def create_metric_itable(
+    source_table: pl.DataFrame,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
+    color_background: bool = False,
+    strict_metric_validation: bool = True,
+    highlight_issues_only: bool = False,
+    rag_source: pl.DataFrame | None = None,
+    **itable_kwargs,
 ):
-    from great_tables import GT, loc
+    """Create an interactive table with RAG coloring for metric columns.
 
-    def apply_style(gt, rag, rows):
-        style = rag_styler(rag)
-        if style is not None:
-            gt = gt.tab_style(
-                style=style,
-                locations=loc.body(columns=col_name, rows=rows),
-            )
-        return gt
+    Displays the table using itables with cells colored based on RAG
+    (Red/Amber/Green) status derived from metric thresholds.
 
-    def apply_rag_styling(gt, col_name, metric):
-        if col_name in source_table.collect_schema().names():
-            min_val = cdh_guidelines.min(metric)
-            max_val = cdh_guidelines.max(metric)
-            best_practice_min = cdh_guidelines.best_practice_min(metric)
-            best_practice_max = cdh_guidelines.best_practice_max(metric)
+    Parameters
+    ----------
+    source_table : pl.DataFrame
+        DataFrame containing data columns to be colored.
+    column_to_metric : dict, optional
+        Mapping from column names (or tuples of column names) to one of:
 
-            values = source_table[col_name].to_list()
-            bad_rows = [
-                i
-                for i, v in enumerate(values)
-                if v is not None
-                and (
-                    (min_val is not None and v < min_val)
-                    or (max_val is not None and v > max_val)
-                )
-            ]
-            warning_rows = [
-                i
-                for i, v in enumerate(values)
-                if v is not None
-                and (
-                    (
-                        min_val is not None
-                        and best_practice_min is not None
-                        and v >= min_val
-                        and v < best_practice_min
-                    )
-                    or (
-                        max_val is not None
-                        and best_practice_max is not None
-                        and v > best_practice_max
-                        and v <= max_val
-                    )
-                )
-            ]
-            good_rows = [
-                i
-                for i, v in enumerate(values)
-                if v is not None
-                and (best_practice_min is None or v >= best_practice_min)
-                and (best_practice_max is None or v <= best_practice_max)
-            ]
+        - **str**: metric ID to look up in MetricLimits.csv
+        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+          that maps column values to metric values before evaluation.
+          Supports tuple keys for multiple values: {("Yes", "yes"): True}
 
-            gt = apply_style(gt, "green", good_rows)
-            gt = apply_style(gt, "amber", warning_rows)
-            gt = apply_style(gt, "red", bad_rows)
-        return gt
+        If a column is not in this dict, its name is used as the metric ID.
+    column_descriptions : dict, optional
+        Mapping from column names to tooltip descriptions. When provided,
+        column headers will display the description as a tooltip on hover.
+        Example: {"Performance": "Model AUC performance metric"}
+    color_background : bool, default False
+        If True, colors the cell background. If False, colors the text (foreground).
+    strict_metric_validation : bool, default True
+        If True, raises an exception if a metric ID in column_to_metric
+        is not found in MetricLimits.csv. Set to False to skip validation.
+    highlight_issues_only : bool, default False
+        If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
+        Set to False to also highlight GREEN values.
+    rag_source : pl.DataFrame, optional
+        If provided, RAG thresholds are evaluated against this DataFrame
+        instead of ``source_table``. Use this when ``source_table`` contains
+        non-numeric display values (e.g. HTML strings) but you still want
+        RAG coloring based on the original numeric data. Must have the same
+        columns and row order as ``source_table``.
+    **itable_kwargs
+        Additional keyword arguments passed to itables.show().
+        Common options include: lengthMenu, paging, searching, ordering.
 
-    gt = (
-        GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col)
-        .tab_options(table_font_size=8)
-        .sub_missing(missing_text="")
+    Returns
+    -------
+    itables HTML display
+        An itables display object that will render in Jupyter/Quarto.
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import create_metric_itable
+    >>> create_metric_itable(
+    ...     df,
+    ...     column_to_metric={
+    ...         # Simple metric ID
+    ...         "Performance": "ModelPerformance",
+    ...         # Custom RAG function
+    ...         "Channel": standard_NBAD_channels_rag,
+    ...         # Value mapping: column values -> metric values
+    ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+    ...         # Multiple column values to same metric value
+    ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
+    ...     },
+    ...     column_descriptions={
+    ...         "Performance": "Model AUC performance metric",
+    ...         "Channel": "Communication channel for the action",
+    ...     },
+    ...     paging=False
+    ... )
+
+    """
+    from itables import show
+
+    RAG_COLORS = {
+        "RED": "orangered",
+        "AMBER": "orange",
+        "YELLOW": "yellow",
+    }
+    if not highlight_issues_only:
+        RAG_COLORS["GREEN"] = "green"
+
+    # Get RAG values using the shared function from metric_limits
+    from .metric_limits import add_rag_columns
+
+    df_with_rag = add_rag_columns(
+        rag_source if rag_source is not None else source_table,
+        column_to_metric=column_to_metric,
+        strict_metric_validation=strict_metric_validation,
     )
+
+    # Convert to pandas for styling
+    pdf = source_table.to_pandas()
+    pdf_rag = df_with_rag.to_pandas()
+
+    # Rename columns to include HTML tooltips if column_descriptions provided
+    # Must be done before styling since Styler doesn't have rename method
+    column_rename = {}
+    if column_descriptions:
+        for col in source_table.columns:
+            if col in column_descriptions:
+                escaped_desc = html.escape(column_descriptions[col], quote=True)
+                column_rename[col] = f'<span title="{escaped_desc}">{col}</span>'
+        if column_rename:
+            pdf = pdf.rename(columns=column_rename)
+
+    def style_row(row):
+        styles = []
+        for col in pdf.columns:
+            rag_col = f"{col}_RAG"
+            if rag_col in pdf_rag.columns:
+                rag_val = pdf_rag.loc[row.name, rag_col]
+                if rag_val in RAG_COLORS:
+                    color = RAG_COLORS[rag_val]
+                    if color_background:
+                        styles.append(f"background-color: {color}")
+                    else:
+                        styles.append(f"color: {color}; font-weight: bold")
+                else:
+                    styles.append("")
+            else:
+                styles.append("")
+        return styles
+
+    # Build format dict from centralized config using MetricFormats
+    expanded_mapping = {}
+    for key, value in (column_to_metric or {}).items():
+        if isinstance(key, tuple):
+            for col in key:
+                expanded_mapping[col] = value
+        else:
+            expanded_mapping[key] = value
+
+    format_dict = {}
+    # When rag_source is provided, source_table may contain pre-formatted strings;
+    # use the numeric source for column detection and sort values, but only
+    # populate format_dict for columns that are still numeric in source_table.
+    numeric_source = rag_source if rag_source is not None else source_table
+    numeric_cols = []
+    for col in source_table.columns:
+        if not numeric_source[col].dtype.is_numeric():
+            continue
+        numeric_cols.append(col)
+        metric_id = expanded_mapping.get(col, col)
+        if isinstance(metric_id, tuple):
+            metric_id = metric_id[0]
+        if isinstance(metric_id, str):
+            metric_fmt = MetricFormats.get(metric_id) or MetricFormats.DEFAULT_FORMAT
+            if source_table[col].dtype.is_numeric():
+                format_dict[col] = metric_fmt.to_pandas_format()
+        else:
+            if source_table[col].dtype.is_numeric():
+                format_dict[col] = MetricFormats.DEFAULT_FORMAT.to_pandas_format()
+
+    # Add hidden sort columns for all formatted numeric columns so that
+    # DataTables can sort by the raw numeric value instead of the display string
+    # (e.g. "4K" < "500" or "100%" < "2%" lexicographically without this).
+    sort_col_map = {col: f"__sort__{col}" for col in numeric_cols}
+    for col, sort_col in sort_col_map.items():
+        pdf[sort_col] = numeric_source[col].to_pandas()
+
+    styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
+
+    # Set default itable options
+    default_kwargs = {
+        "paging": False,
+        "allow_html": True,  # Required for styled DataFrames
+        "classes": "compact",
+        # "maxBytes":0,
+        # "maxRows":0,
+        "connected": True,
+        "show_dtypes": False,
+    }
+    default_kwargs.update(itable_kwargs)
+
+    if sort_col_map:
+        final_cols = list(pdf.columns)
+        sort_defs = []
+        for orig_col, sort_col in sort_col_map.items():
+            display_name = column_rename.get(orig_col, orig_col)
+            display_idx = final_cols.index(display_name)
+            sort_idx = final_cols.index(sort_col)
+            sort_defs.extend(
+                [
+                    {"targets": display_idx, "orderData": [sort_idx]},
+                    {"targets": sort_idx, "visible": False, "searchable": False},
+                ]
+            )
+        default_kwargs["columnDefs"] = default_kwargs.get("columnDefs", []) + sort_defs
+
+    return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
+
+
+def create_metric_gttable(
+    source_table: pl.DataFrame,
+    title: str | None = None,
+    subtitle: str | None = None,
+    column_to_metric: dict | None = None,
+    column_descriptions: dict[str, str] | None = None,
+    color_background: bool = True,
+    strict_metric_validation: bool = True,
+    highlight_issues_only: bool = True,
+    **gt_kwargs,
+):
+    """Create a great_tables table with RAG coloring for metric columns.
+
+    Displays the table using great_tables with cells colored based on RAG
+    (Red/Amber/Green) status derived from metric thresholds.
+
+    Parameters
+    ----------
+    source_table : pl.DataFrame
+        DataFrame containing data columns to be colored.
+    title : str, optional
+        Table title.
+    subtitle : str, optional
+        Table subtitle.
+    column_to_metric : dict, optional
+        Mapping from column names (or tuples of column names) to one of:
+
+        - **str**: metric ID to look up in MetricLimits.csv
+        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+          that maps column values to metric values before evaluation.
+          Supports tuple keys for multiple values: {("Yes", "yes"): True}
+
+        If a column is not in this dict, its name is used as the metric ID.
+    column_descriptions : dict, optional
+        Mapping from column names to tooltip descriptions. When provided,
+        column headers will display the description as a tooltip on hover.
+        Example: {"Performance": "Model AUC performance metric"}
+    color_background : bool, default True
+        If True, colors the cell background. If False, colors the text.
+    strict_metric_validation : bool, default True
+        If True, raises an exception if a metric ID in column_to_metric
+        is not found in MetricLimits.csv. Set to False to skip validation.
+    highlight_issues_only : bool, default True
+        If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
+        Set to False to also highlight GREEN values.
+    **gt_kwargs
+        Additional keyword arguments passed to great_tables.GT constructor.
+        Common options include: rowname_col, groupname_col.
+
+    Returns
+    -------
+    great_tables.GT
+        A great_tables instance with RAG coloring applied.
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import create_metric_gttable
+    >>> create_metric_gttable(
+    ...     df,
+    ...     title="Model Overview",
+    ...     column_to_metric={
+    ...         # Simple metric ID
+    ...         "Performance": "ModelPerformance",
+    ...         # Custom RAG function
+    ...         "Channel": standard_NBAD_channels_rag,
+    ...         # Value mapping: column values -> metric values
+    ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+    ...         # Multiple column values to same metric value
+    ...         "AGB": ("UsingAGB", {("Yes", "yes", "YES"): True, "No": False}),
+    ...     },
+    ...     column_descriptions={
+    ...         "Performance": "Model AUC performance metric",
+    ...         "Channel": "Communication channel for the action",
+    ...     },
+    ...     rowname_col="Name",
+    ... )
+
+    """
+    import html as html_module
+
+    from great_tables import GT, html, loc, style
+
+    from .metric_limits import add_rag_columns
+
+    RAG_COLORS = {"RED": "orangered", "AMBER": "orange", "YELLOW": "yellow"}
+    if not highlight_issues_only:
+        RAG_COLORS["GREEN"] = "green"
+
+    gt = GT(source_table, **gt_kwargs)
+    gt = gt.tab_options(
+        table_font_size="12px",
+        column_labels_font_size="12px",
+    )
+    gt = gt.sub_missing(missing_text="")
 
     if title is not None:
         gt = gt.tab_header(title=title, subtitle=subtitle)
 
-    for metric in highlight_limits.keys():
-        cols = highlight_limits[metric]
-        if isinstance(cols, str):
-            cols = [cols]
-        # Highlight colors
-        for col_name in cols:
-            gt = apply_rag_styling(gt, col_name=col_name, metric=metric)
+    # Apply column label tooltips if column_descriptions provided
+    if column_descriptions:
+        label_kwargs = {}
+        for col in source_table.columns:
+            if col in column_descriptions:
+                escaped_desc = html_module.escape(column_descriptions[col], quote=True)
+                # Wrap column label in span with title attribute for tooltip
+                label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
+        if label_kwargs:
+            gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]
 
-        # Value formatting
-        if metric == "Model Performance":
-            gt = gt.fmt_number(
-                decimals=2,
-                columns=cols,
-            )
-        elif metric == "Engagement Lift":
-            gt = gt.fmt_percent(
-                decimals=0,
-                columns=cols,
-            )
-        elif metric == "OmniChannel":
-            gt = gt.fmt_percent(
-                decimals=1,
-                columns=cols,
-            )
-        elif metric == "CTR":
-            gt = gt.fmt_percent(
-                decimals=3,
-                columns=cols,
-            )
+    # Expand tuple keys to individual columns
+    expanded_mapping = {}
+    for key, value in (column_to_metric or {}).items():
+        if isinstance(key, tuple):
+            for col in key:
+                expanded_mapping[col] = value
         else:
-            gt = gt.fmt_number(
-                decimals=0,
-                compact=True,
-                columns=cols,
-            )
+            expanded_mapping[key] = value
 
-    # Highlight columns with non-standard values
-    def simplify_name(x: str) -> str:
-        if x is None:
-            return x
-        return re.sub("\\W", "", x, flags=re.IGNORECASE).upper()
+    # Apply formatting based on metric type using MetricFormats
+    formatted_cols = set()
+    for col in source_table.columns:
+        metric_id = expanded_mapping.get(col, col)
+        if isinstance(metric_id, tuple):
+            metric_id = metric_id[0]
+        if isinstance(metric_id, str):
+            fmt = MetricFormats.get(metric_id)
+            if fmt is not None:
+                gt = fmt.apply_to_gt(gt, [col])
+                formatted_cols.add(col)
+        elif callable(metric_id):
+            # When a callable is used for RAG, still apply formatting if
+            # the column name itself has a format defined in MetricFormats
+            fmt = MetricFormats.get(col)
+            if fmt is not None:
+                gt = fmt.apply_to_gt(gt, [col])
+                formatted_cols.add(col)
 
-    for col_name in highlight_lists.keys():
-        if col_name in source_table.collect_schema().names():
-            simplified_names = [simplify_name(x) for x in highlight_lists[col_name]]
-            values = source_table[col_name].to_list()
-            non_standard_rows = [
-                i
-                for i, v in enumerate(values)
-                if simplify_name(v) not in simplified_names
-            ]
-            gt = apply_style(gt, "yellow", non_standard_rows)
+    # Apply default number formatting to numeric columns not yet formatted
+    # Exclude columns used as row/group names from numeric formatting
+    rowname_col = gt_kwargs.get("rowname_col")
+    groupname_col = gt_kwargs.get("groupname_col")
+    numeric_cols = [
+        col
+        for col in source_table.columns
+        if col not in formatted_cols
+        and col != rowname_col
+        and col != groupname_col
+        and source_table[col].dtype.is_numeric()
+    ]
+    if numeric_cols:
+        gt = MetricFormats.DEFAULT_FORMAT.apply_to_gt(gt, numeric_cols)
 
-    # Highlight column with more than one element (assuming its a comma-separated string)
-    for col_name in highlight_configurations:
-        if col_name in source_table.collect_schema().names():
-            values = source_table[col_name].to_list()
-            multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
-            gt = apply_style(gt, "yellow", multiple_config_rows)
+    # Apply RAG coloring
+    df_with_rag = add_rag_columns(
+        source_table,
+        column_to_metric=column_to_metric,
+        strict_metric_validation=strict_metric_validation,
+    )
 
-    return gt
+    for col in source_table.columns:
+        rag_col = f"{col}_RAG"
+        if rag_col not in df_with_rag.columns or df_with_rag[rag_col].dtype == pl.Null:
+            continue
 
+        for rag_value, color in RAG_COLORS.items():
+            row_indices = df_with_rag.with_row_index().filter(pl.col(rag_col) == rag_value)["index"].to_list()
+            if row_indices:
+                if color_background:
+                    gt = gt.tab_style(
+                        style=style.fill(color=color),
+                        locations=loc.body(columns=col, rows=row_indices),
+                    )
+                else:
+                    gt = gt.tab_style(
+                        style=style.text(color=color, weight="bold"),
+                        locations=loc.body(columns=col, rows=row_indices),
+                    )
 
-def table_style_predictor_count(
-    gt, flds, cdh_guidelines=CDHGuidelines(), rag_styler=rag_textcolor_styler
-):
-    from great_tables import GT, loc
-
-    if not isinstance(gt, GT):
-        raise ValueError("gt argument should be a Great Table")
-    for col in flds:
-        gt = gt.tab_style(
-            style=rag_styler("amber"),
-            locations=loc.body(
-                columns=col,
-                rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
-            ),
-        ).tab_style(
-            style=rag_styler("red"),
-            locations=loc.body(
-                columns=col,
-                rows=(pl.col(col) == 0),
-            ),
-        )
     return gt
 
 
@@ -581,7 +991,7 @@ def sample_values(dm, all_dm_cols, fld, n=6):
         return "-"
     return (
         dm.model_data.select(
-            pl.concat_str(fld, separator="/").alias("__SampleValues__")
+            pl.concat_str(fld, separator="/").alias("__SampleValues__"),
         )
         .drop_nulls()
         .collect()
@@ -592,27 +1002,40 @@ def sample_values(dm, all_dm_cols, fld, n=6):
     )
 
 
-def show_credits(quarto_source: str):
+def show_credits(quarto_source: str | None = None):
+    """Display a credits section with build metadata at the end of a report.
+
+    Prints a formatted block containing the generation timestamp, Quarto and
+    Pandoc versions, and optionally the source notebook path.
+
+    Parameters
+    ----------
+    quarto_source : str, optional
+        Path or identifier of the source .qmd file. Include this for
+        standalone reports where knowing the source is useful. Omit for
+        Quarto website projects where pages are generated from templates.
+    """
     _, quarto_version = get_quarto_with_version(verbose=False)
     _, pandoc_version = get_pandoc_with_version(verbose=False)
 
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-    quarto_print(
-        f"""
-
-    Document created at: {timestamp_str}
-
-    This notebook: {quarto_source}
-
-    Quarto runtime: {quarto_version}
-    Pandoc: {pandoc_version}
-
-    """
+    lines = [
+        f"Document created at: {timestamp_str}",
+    ]
+    if quarto_source:
+        lines.append(f"This notebook: {quarto_source}")
+    lines.extend(
+        [
+            f"Quarto runtime: {quarto_version}",
+            f"Pandoc: {pandoc_version}",
+        ]
     )
 
+    quarto_print("\n\n    ".join([""] + lines) + "\n\n    ")
 
-def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
+
+def serialize_query(query: QUERY | None) -> dict | None:
     if query is None:
         return None
 
@@ -627,7 +1050,196 @@ def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
             serialized_exprs[str(i)] = json.loads(expr.meta.serialize(format="json"))
         return {"type": "expr_list", "expressions": serialized_exprs}
 
-    elif isinstance(query, dict):
+    if isinstance(query, dict):
         return {"type": "dict", "data": query}
 
     raise ValueError(f"Unsupported query type: {type(query)}")
+
+
+def deserialize_query(serialized_query: dict | None) -> QUERY | None:
+    """Deserialize a query that was previously serialized with serialize_query.
+
+    Parameters
+    ----------
+    serialized_query : Optional[dict]
+        A serialized query dictionary created by serialize_query
+
+    Returns
+    -------
+    Optional[QUERY]
+        The deserialized query
+
+    """
+    if serialized_query is None:
+        return None
+
+    if serialized_query["type"] == "expr_list":
+        expr_list = []
+        for _, val in serialized_query["expressions"].items():
+            json_str = json.dumps(val)
+            str_io = io.StringIO(json_str)
+            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
+        return expr_list
+
+    if serialized_query["type"] == "dict":
+        return serialized_query["data"]
+
+    raise ValueError(f"Unknown query type: {serialized_query['type']}")
+
+
+def gains_table(
+    df: pl.LazyFrame | pl.DataFrame,
+    value: str,
+    index: str | None = None,
+    by: str | list[str] | None = None,
+) -> pl.DataFrame:
+    """Calculate cumulative gains for visualization.
+
+    Computes cumulative distribution of a value metric, sorted by the ratio
+    of value to index (or by value alone if no index). Used for gains charts
+    to show model response skewness.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame | pl.DataFrame
+        Input data containing the value and optional index columns
+    value : str
+        Column name containing the metric to compute gains for (e.g., "ResponseCount")
+    index : str, optional
+        Column name to normalize by (e.g., population size). If None, uses row count.
+    by : str | list[str], optional
+        Column(s) to group by for separate gain curves. If None, computes single curve.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with columns:
+        - cum_x: Cumulative proportion of index (or models)
+        - cum_y: Cumulative proportion of value
+        - by columns: if `by` is specified
+
+    Examples
+    --------
+    >>> # Single gains curve for response count
+    >>> gains = gains_table(df, value="ResponseCount")
+
+    >>> # Gains curves by channel, normalized by population
+    >>> gains = gains_table(df, value="Positives", index="Population", by="Channel")
+    """
+    # Determine sorting expression
+    sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+
+    # Determine index expression for cumulative x-axis
+    if index is None:
+        index_expr = pl.int_range(1, pl.len() + 1) / pl.len()
+    else:
+        index_expr = pl.cum_sum(index) / pl.sum(index)
+
+    if by is None:
+        # Single gains curve
+        gains_df = pl.concat(
+            [
+                pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
+                df.lazy()
+                .sort(sort_expr, descending=True)
+                .select(
+                    index_expr.cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
+                ),
+            ]
+        )
+    else:
+        # Multiple gains curves grouped by column(s)
+        by_as_list = by if isinstance(by, list) else [by]
+        sort_expr_with_by = by_as_list + [sort_expr]
+        gains_df = (
+            df.lazy()
+            .sort(sort_expr_with_by, descending=True)
+            .select(
+                by_as_list
+                + [
+                    index_expr.over(by).cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
+                ]
+            )
+        )
+        # Add entry for the (0,0) point for each group
+        gains_df = pl.concat([gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]).sort(
+            by_as_list + ["cum_x"]
+        )
+
+    return gains_df.collect()
+
+
+def check_report_for_errors(html_path: str | Path) -> list[str]:
+    """Check generated report HTML for error indicators.
+
+    Scans the HTML file for error patterns that indicate plot rendering failures
+    or exceptions during report generation. These errors are typically hidden in
+    collapsed callout sections but should be caught in testing.
+
+    Parameters
+    ----------
+    html_path : str or Path
+        Path to the HTML file to check
+
+    Returns
+    -------
+    list[str]
+        List of error descriptions found (empty if no errors)
+
+    Raises
+    ------
+    FileNotFoundError
+        If the HTML file does not exist
+
+    Examples
+    --------
+    >>> from pdstools.utils.report_utils import check_report_for_errors
+    >>> errors = check_report_for_errors("HealthCheck.html")
+    >>> if errors:
+    ...     print(f"Found {len(errors)} error(s):")
+    ...     for error in errors:
+    ...         print(f"  - {error}")
+    """
+    html_path = Path(html_path)
+
+    if not html_path.exists():
+        raise FileNotFoundError(f"HTML file not found: {html_path}")
+
+    try:
+        if html_path.suffix.lower() == ".zip":
+            with zipfile.ZipFile(html_path) as zf:
+                html_members = [n for n in zf.namelist() if n.endswith(".html")]
+                if not html_members:
+                    raise IOError(f"No HTML file found inside zip: {html_path}")
+                content = zf.read(html_members[0]).decode("utf-8")
+        else:
+            content = html_path.read_text(encoding="utf-8")
+    except Exception as e:
+        raise IOError(f"Failed to read HTML file: {e}")
+
+    errors = []
+
+    # Common error patterns in HTML output from quarto_plot_exception
+    error_patterns = [
+        ("Error rendering", "Plot rendering error"),
+        ("Traceback (most recent call last)", "Python traceback"),
+        ("ValueError:", "ValueError exception"),
+        ("TypeError:", "TypeError exception"),
+        ("KeyError:", "KeyError exception"),
+        ("AttributeError:", "AttributeError exception"),
+        ("NameError:", "NameError exception"),
+        ("Exception:", "Generic exception"),
+        ("The given query resulted in an empty dataframe", "Empty dataframe error"),
+    ]
+
+    for pattern, description in error_patterns:
+        if pattern in content:
+            count = content.count(pattern)
+            if count > 1:
+                errors.append(f"{description} (found {count} times)")
+            else:
+                errors.append(description)
+
+    return errors

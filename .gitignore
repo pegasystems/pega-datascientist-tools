@@ -17,6 +17,7 @@ r/tests/testthat/*.pdf
 build/
 *.egg-info/
 .vscode
+.github/copilot/mcp.json
 **/*.Rcheck
 **/*.Rapp*
 .DS_Store
@@ -37,3 +38,8 @@ r/tests/testthat/d/tmp2
 .venv
 **/.tmp/
 .dev
+.worktrees
+
+# Verification scripts with customer data references
+verify_sampling.py
+test_consolidation.py

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "databricks": {
+      "url": "https://dsi.pega.com/mcp"
+    },
+    "github": {
+      "url": "https://api.github.com/mcp"
+    }
+  }
+}

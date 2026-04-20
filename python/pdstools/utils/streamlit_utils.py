@@ -1,17 +1,221 @@
 import os
 from pathlib import Path
-from typing import Optional
 
+from packaging.version import Version, InvalidVersion
 import plotly.express as px
 import polars as pl
+import polars.selectors as cs
 import streamlit as st
 
+from .. import __version__ as pdstools_version
 from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
+from ..prediction.Prediction import Prediction
 from ..utils import datasets
 from ..utils.types import ANY_FRAME
 from . import cdh_utils
-from pdstools.app.decision_analyzer.da_streamlit_utils import get_current_index
+
+# ---------------------------------------------------------------------------
+# Shared Streamlit helpers — used by all pdstools apps
+# ---------------------------------------------------------------------------
+
+_MENU_ITEMS = {
+    "Report a bug": "https://github.com/pegasystems/pega-datascientist-tools/issues",
+    "Get help": "https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html",
+}
+
+_ASSETS_DIR = Path(__file__).resolve().parent.parent / "app" / "assets"
+
+
+def _is_newer_version_available(installed: str, latest: str) -> bool:
+    """Return True only when *latest* is strictly newer than *installed*.
+
+    Uses PEP 440 parsing so that pre-release / dev versions of *installed*
+    (e.g. ``4.6.0rc1``) are correctly recognised as newer than an older
+    stable release on PyPI (e.g. ``4.5.2``).
+    """
+    try:
+        return Version(latest) > Version(installed)
+    except InvalidVersion:
+        return False
+
+
+def _apply_sidebar_logo():
+    """Re-apply the sidebar logo from session state (for sub-pages)."""
+    title = st.session_state.get("_pdstools_app_title")
+    if not title:
+        return
+    logo_path = _ASSETS_DIR / "pega-logo.svg"
+    if logo_path.exists():
+        st.logo(str(logo_path), size="large")
+    st.html(
+        "<style>"
+        "[data-testid='stSidebarNav']::before {"
+        "  content: '" + title.replace("'", "\\'") + "';"
+        "  display: block;"
+        "  font-size: 1.1rem;"
+        "  font-weight: 500;"
+        "  color: #5a5c63;"
+        "  padding: 0 1rem 0.75rem;"
+        "}"
+        "</style>",
+    )
+
+
+def standard_page_config(page_title: str, layout: str = "wide", **kwargs):
+    """Apply a consistent ``st.set_page_config`` across all pdstools apps.
+
+    Parameters
+    ----------
+    page_title : str
+        The browser-tab title for the page.
+    layout : str, default "wide"
+        Streamlit layout mode.
+    **kwargs
+        Extra keyword arguments forwarded to ``st.set_page_config``.
+
+    """
+    kwargs.setdefault("menu_items", _MENU_ITEMS)
+    logo_path = _ASSETS_DIR / "pega-logo.svg"
+    if logo_path.exists():
+        kwargs.setdefault("page_icon", str(logo_path))
+    st.set_page_config(layout=layout, page_title=page_title, **kwargs)  # type: ignore[arg-type]
+    _apply_sidebar_logo()
+
+
+def show_sidebar_branding(title: str):
+    """Display the Pega logo and an app title at the top of the sidebar.
+
+    Uses ``st.logo`` for the logo and CSS injection for the title, so both
+    render above the page navigation. Call once from the Home page; sub-pages
+    re-apply automatically via ``standard_page_config`` or ``ensure_data``.
+
+    Parameters
+    ----------
+    title : str
+        Application title shown below the logo in the sidebar.
+
+    """
+    st.session_state["_pdstools_app_title"] = title
+    _apply_sidebar_logo()
+
+
+def show_version_header(check_latest: bool = True):
+    """Display the pdstools version, an upgrade hint, and optionally a staleness warning.
+
+    Parameters
+    ----------
+    check_latest : bool, default True
+        If *True*, queries PyPI for the latest version and shows an upgrade
+        warning when the installed version is outdated.
+
+    """
+    st.caption(f"pdstools {pdstools_version}")
+
+    if check_latest:
+        latest = st_get_latest_pdstools_version()
+        if latest and _is_newer_version_available(pdstools_version, latest):
+            st.warning(
+                f"A newer version of pdstools is available (**{latest}**, "
+                f"you have {pdstools_version}). "
+                "Run `uv pip install --upgrade pdstools` to update.",
+            )
+
+
+def ensure_session_data(key: str, message: str | None = None):
+    """Guard that stops page execution when *key* is missing from session state.
+
+    Parameters
+    ----------
+    key : str
+        The ``st.session_state`` key to check.
+    message : str or None
+        Custom warning text. Falls back to a generic "Please load data on the Home page."
+
+    """
+    if key not in st.session_state:
+        st.warning(message or "Please load data on the Home page.")
+        st.stop()
+
+
+def get_data_path() -> str | None:
+    """Return the data path set via ``--data-path`` CLI flag.
+
+    Returns ``None`` when no path was configured.
+    """
+    return os.environ.get("PDSTOOLS_DATA_PATH")
+
+
+def get_sample_limit() -> str | None:
+    """Return the raw sample limit string set via ``--sample`` CLI flag.
+
+    Returns ``None`` when no sampling was requested.
+    """
+    return os.environ.get("PDSTOOLS_SAMPLE_LIMIT")
+
+
+def get_filter_specs() -> list[str] | None:
+    """Return the filter specs set via ``--filter`` CLI flags.
+
+    Returns ``None`` when no filters were configured.
+    """
+    raw = os.environ.get("PDSTOOLS_FILTER")
+    if raw is None:
+        return None
+    import json
+
+    return json.loads(raw)
+
+
+def get_temp_dir() -> str | None:
+    """Return the temp directory set via ``--temp-dir`` CLI flag.
+
+    Returns ``None`` when no temp directory was configured.
+    """
+    return os.environ.get("PDSTOOLS_TEMP_DIR")
+
+
+def parse_sample_spec(value: str) -> dict[str, int | float]:
+    """Parse a ``--sample`` flag value into keyword arguments.
+
+    Supports absolute counts (``"100000"``), percentages (``"10%"``),
+    and human-readable notation (``"100k"``, ``"1M"``).
+
+    Returns
+    -------
+    dict
+        Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+    """
+    value = value.strip()
+    if value.endswith("%"):
+        pct = float(value[:-1])
+        if not 0 < pct <= 100:
+            raise ValueError(f"Percentage must be in (0, 100], got {pct}")
+        return {"fraction": pct / 100.0}
+
+    multiplier = None
+    if value.lower().endswith("k"):
+        multiplier = 1000
+    elif value.lower().endswith("m"):
+        multiplier = 1000000
+
+    if multiplier:
+        count = int(float(value[:-1]) * multiplier)
+    else:
+        count = int(value)
+
+    if count <= 0:
+        raise ValueError(f"Sample count must be positive, got {count}")
+    return {"n": count}
+
+
+def get_current_index(options, key, default=0):
+    """Get index from session state if key exists and value is in options, else return default."""
+    return (
+        options.index(st.session_state[key])
+        if key in st.session_state and st.session_state[key] in options
+        else default
+    )
 
 
 @st.cache_resource
@@ -21,20 +225,71 @@ def cached_sample():
 
 @st.cache_resource
 def cached_datamart(**kwargs):
+    """Load ADMDatamart with caching.
+
+    Parameters
+    ----------
+    **kwargs
+        Arguments passed to ADMDatamart.from_ds_export
+
+    """
     with st.spinner("Loading datamart..."):
         try:
             datamart = ADMDatamart.from_ds_export(**kwargs)
             if datamart is not None:
                 return datamart
-            else:
-                st.warning("Unable to load datamart.")
-                return None
+            st.warning("Unable to load datamart.")
+            return None
         except Exception as e:
-            st.error(f"An error occurred while importing the datamart: {str(e)}")
+            st.error(f"An error occurred while importing the datamart: {e!s}")
             return None
 
 
-def import_datamart(extract_pyname_keys: bool):
+@st.cache_resource
+def cached_sample_prediction():
+    return Prediction.from_mock_data(days=60)
+
+
+@st.cache_resource
+def cached_prediction_table(**kwargs):
+    """Load Prediction with caching.
+
+    Parameters
+    ----------
+    **kwargs
+        Arguments passed to Prediction.from_ds_export
+
+    """
+    with st.spinner("Loading prediction table..."):
+        try:
+            prediction = Prediction.from_ds_export(**kwargs)
+            if prediction is not None:
+                return prediction
+            st.warning("Unable to load prediction table.")
+            return None
+        except Exception as e:
+            st.error(
+                f"An error occurred while importing the prediction table: {e!s}",
+            )
+            return None
+
+
+def import_datamart(
+    extract_pyname_keys: bool,
+    infer_schema_length: int = 10000,
+):
+    """Import ADMDatamart data from various sources.
+
+    Parameters
+    ----------
+    extract_pyname_keys : bool
+        Whether to extract additional keys from pyName column
+    infer_schema_length : int, default 10000
+        Number of rows to scan for schema inference when reading CSV/JSON files.
+        For large production datasets, increase this value (e.g., 200000) if columns
+        are not being detected correctly.
+
+    """
     options = [
         "Direct file path",
         "Direct file upload",
@@ -64,31 +319,37 @@ def import_datamart(extract_pyname_keys: bool):
         st.session_state["data_source"] = options[0]
     if st.session_state["data_source"] == "CDH Sample":
         st.session_state["dm"] = cached_sample()
+        st.session_state["prediction"] = cached_sample_prediction()
     elif st.session_state["data_source"] == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif st.session_state["data_source"] == "Direct file upload":
-        from_uploaded_file(extract_pyname_keys, codespaces)
+        from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length)
     elif st.session_state["data_source"] == "Direct file path":
-        from_file_path(extract_pyname_keys, codespaces)
+        from_file_path(extract_pyname_keys, codespaces, infer_schema_length)
 
     if "dm" in st.session_state:
         st.success("Import Successful!")
 
 
-def from_uploaded_file(extract_pyname_keys, codespaces):
+def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000):
     model_file = st.file_uploader(
-        "Upload Model Snapshot", type=["json", "zip", "parquet", "csv", "arrow"]
+        "Upload Model Snapshot",
+        type=["json", "zip", "parquet", "csv", "arrow"],
     )
     predictor_file = st.file_uploader(
         "Upload Predictor Binning snapshot",
+        type=["json", "zip", "parquet", "csv", "arrow"],
+    )
+    prediction_file_path = st.file_uploader(
+        "Upload Prediction Table (optional)",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
     if codespaces and model_file is None and predictor_file is None:
         st.warning(
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
-            Detailed instructions can be found [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)
-            """
+            Detailed instructions can be found [here](https://pegasystems.github.io/pega-datascientist-tools/GettingStartedWithTheStandAloneApplication.html)
+            """,
         )
     if model_file and predictor_file:
         try:
@@ -96,6 +357,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
                 model_filename=model_file,
                 predictor_filename=predictor_file,
                 extract_pyname_keys=extract_pyname_keys,
+                infer_schema_length=infer_schema_length,
             )
         except Exception as e:
             st.write("Oh oh.", e)
@@ -105,27 +367,40 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """
+                """,
         )
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
             try:
                 st.session_state["dm"] = cached_datamart(
-                    model_filename=model_file, extract_pyname_keys=extract_pyname_keys
+                    model_filename=model_file,
+                    extract_pyname_keys=extract_pyname_keys,
+                    infer_schema_length=infer_schema_length,
                 )
             except Exception as e:
                 st.write("Oh oh.", e)
 
+    if prediction_file_path:
+        try:
+            st.session_state["prediction"] = cached_prediction_table(
+                predictions_filename=prediction_file_path,
+                infer_schema_length=infer_schema_length,
+            )
+        except Exception as e:
+            st.write("Oh oh.", e)
 
-def from_file_path(extract_pyname_keys, codespaces):
+    elif "prediction" in st.session_state:
+        # Clear it if user removed the path
+        del st.session_state["prediction"]
+
+
+def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
-    where the original files are located, and we can find it automatically."""
+    where the original files are located, and we can find it automatically.""",
     )
-    placeholder = (
-        "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
-    )
+    placeholder = "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder=placeholder,
@@ -140,7 +415,7 @@ def from_file_path(extract_pyname_keys, codespaces):
             st.error(
                 f"""**Not a directory**:
             It looks like {dir} is a file.
-            Please supply the path to the **folder** the files are in."""
+            Please supply the path to the **folder** the files are in.""",
             )
             st.stop()
 
@@ -160,13 +435,13 @@ def from_file_path(extract_pyname_keys, codespaces):
         else:
             box.write("## X")
             data.write(
-                "Could not find the predicting binning snapshot in the given folder."
+                "Could not find the predicting binning snapshot in the given folder.",
             )
 
         if model_matches is None:
             st.write(
                 """If you can't get the files to automatically be detected,
-    try uploading the files manually using a different data source."""
+    try uploading the files manually using a different data source.""",
             )
 
         elif predictor_matches is None:
@@ -177,7 +452,7 @@ def from_file_path(extract_pyname_keys, codespaces):
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """
+                """,
             )
             model_analysis = st.checkbox("Only run model-based Health Check")
             if model_analysis:
@@ -186,6 +461,7 @@ def from_file_path(extract_pyname_keys, codespaces):
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
                     extract_pyname_keys=extract_pyname_keys,
+                    infer_schema_length=infer_schema_length,
                 )
         else:
             st.session_state["dm"] = cached_datamart(
@@ -193,6 +469,22 @@ def from_file_path(extract_pyname_keys, codespaces):
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 extract_pyname_keys=extract_pyname_keys,
+                infer_schema_length=infer_schema_length,
+            )
+
+        prediction_matches = pega_io.get_latest_file(dir, target="prediction_data")
+        box, data = st.columns([1, 15])
+        if prediction_matches is not None:
+            box.write("## √")
+            data.write(f"Prediction table found: {prediction_matches}")
+            st.session_state["prediction"] = cached_prediction_table(
+                predictions_filename=prediction_matches,
+                infer_schema_length=infer_schema_length,
+            )
+        else:
+            box.write("## X")
+            data.write(
+                "Could not find the optional prediction table in the given folder. The file should be named something like `Data-DM-Snapshot_pyGetSnapshot_{date}T{time}.zip`. You can export it from dev studio by following the instructions in the documentation, or continue without it.",
             )
 
 
@@ -202,17 +494,18 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
         .unique()
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
-        .collect()
+        .collect()  # type: ignore[assignment]
     )
 
     return df
 
 
 def filter_dataframe(
-    df: pl.LazyFrame, schema: Optional[dict] = None, queries=[]
+    df: pl.LazyFrame,
+    schema: dict | None = None,
+    queries=[],
 ) -> pl.LazyFrame:
-    """
-    Adds a UI on top of a dataframe to let viewers filter columns
+    """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
     ----------
@@ -226,7 +519,9 @@ def filter_dataframe(
 
     """
     to_filter_columns = st.multiselect(
-        "Filter dataframe on", df.collect_schema().names(), key="multiselect"
+        "Filter dataframe on",
+        df.collect_schema().names(),
+        key="multiselect",
     )
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
@@ -239,9 +534,7 @@ def filter_dataframe(
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
                 )
             if f"selected_{column}" not in st.session_state.keys():
-                st.session_state[f"selected_{column}"] = st.session_state[
-                    f"categories_{column}"
-                ]
+                st.session_state[f"selected_{column}"] = st.session_state[f"categories_{column}"]
             if len(st.session_state[f"categories_{column}"]) < 200:
                 options = st.session_state[f"categories_{column}"]
                 selected = right.multiselect(
@@ -251,9 +544,7 @@ def filter_dataframe(
                 )
                 if selected != st.session_state[f"categories_{column}"]:
                     queries.append(
-                        pl.col(column)
-                        .cast(pl.Utf8)
-                        .is_in(st.session_state[f"selected_{column}"])
+                        pl.col(column).cast(pl.Utf8).is_in(st.session_state[f"selected_{column}"]),
                     )
             else:
                 user_text_input = right.text_input(
@@ -262,7 +553,7 @@ def filter_dataframe(
                 if user_text_input:
                     queries.append(pl.col(column).str.contains(user_text_input))
 
-        elif col_dtype in pl.NUMERIC_DTYPES:
+        elif df.select(cs.numeric()).collect_schema().get(column) is not None:
             min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
@@ -286,10 +577,10 @@ def filter_dataframe(
                     max_value=_max,
                     value=_max,
                 )
-                user_num_input = [user_min, user_max]
+                user_num_input = [user_min, user_max]  # type: ignore[assignment]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
-        elif col_dtype in pl.TEMPORAL_DTYPES:
+        elif df.select(cs.temporal()).collect_schema().get(column) is not None:
             user_date_input = right.date_input(
                 f"Values for {column}",
                 value=(
@@ -304,8 +595,7 @@ def filter_dataframe(
 
 
 def model_and_row_counts(df: ANY_FRAME):
-    """
-    Returns unique model id count and row count from a dataframe
+    """Returns unique model id count and row count from a dataframe
 
     Parameters
     ----------
@@ -317,6 +607,7 @@ def model_and_row_counts(df: ANY_FRAME):
     Tuple[int, int]
         unique model count
         row count
+
     """
     if isinstance(df, pl.DataFrame):
         df = df.lazy()
@@ -343,11 +634,12 @@ def configure_predictor_categorization():
         .group_by("PredictorCategory")
         .agg(
             Performance=cdh_utils.weighted_average_polars(
-                "PredictorPerformance", "BinResponseCount"
-            )
+                "PredictorPerformance",
+                "BinResponseCount",
+            ),
         )
         .with_columns(
-            Contribution=((pl.col("Performance") / (pl.sum("Performance"))) * 100)
+            Contribution=((pl.col("Performance") / (pl.sum("Performance"))) * 100),
         )
         .collect()
     )
@@ -371,3 +663,40 @@ def convert_df(df):
 @st.cache_data
 def st_get_latest_pdstools_version():
     return cdh_utils.get_latest_pdstools_version()
+
+
+def show_about_page():
+    """Render a standardised About page with version and dependency information.
+
+    Mirrors the Credits section of the Quarto ADM Health Check report.
+    Call this from a Streamlit page to display pdstools version info,
+    platform details, and an expandable dependency listing.
+    """
+    from ..utils.show_versions import show_versions
+
+    st.markdown("# About")
+    st.markdown(
+        "This application is part of "
+        "[Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools), "
+        "an open-source toolkit for Pega decisioning analytics.",
+    )
+
+    st.markdown("### Version information")
+    summary = show_versions(print_output=False, include_dependencies=False)
+    st.code(summary, language=None)
+
+    latest = st_get_latest_pdstools_version()
+    if latest and _is_newer_version_available(pdstools_version, latest):
+        st.warning(
+            f"A newer version is available (**{latest}**). Run `uv pip install --upgrade pdstools` to update.",
+        )
+
+    with st.expander("Detailed dependency versions"):
+        details = show_versions(print_output=False, include_dependencies=True)
+        st.code(details, language=None)
+
+    st.markdown(
+        "For more information see the "
+        "[documentation](https://pegasystems.github.io/pega-datascientist-tools/) "
+        "or [report an issue](https://github.com/pegasystems/pega-datascientist-tools/issues).",
+    )

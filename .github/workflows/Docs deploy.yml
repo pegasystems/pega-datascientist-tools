@@ -5,7 +5,7 @@ on:
     tags:
       - '*'  # This will trigger on any tag push, regardless of changes
     branches:
-      - master # This branch filter applies only to the paths below   
+      - master # This branch filter applies only to the paths below
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

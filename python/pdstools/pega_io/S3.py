@@ -20,8 +20,8 @@ class S3Data:
             The name of the bucket the datamart folder is in
         temp_dir: str, default = './s3_download'
             The directory to download the s3 files to before reading them
-        """
 
+        """
         self.bucketName = bucketName
         self.temp_dir = temp_dir
 
@@ -86,7 +86,13 @@ class S3Data:
         try:
             import aioboto3
         except ImportError:
-            raise ImportError("To use S3 functionality, please install aioboto3.")
+            from ..utils.namespaces import MissingDependenciesException
+
+            raise MissingDependenciesException(
+                ["aioboto3"],
+                namespace="S3Data",
+                deps_group="pega_io",
+            )
 
         def createPathIfNotExists(path):
             if not os.path.exists(path):
@@ -109,7 +115,7 @@ class S3Data:
             filename = f"{self.temp_dir}/{file}"
             createPathIfNotExists(f"{self.temp_dir}/{file.rsplit('/')[:-1][0]}")
             return asyncio.create_task(
-                s3.meta.client.download_file(self.bucketName, file, filename)
+                s3.meta.client.download_file(self.bucketName, file, filename),
             )
 
         async def getfilesToImport(bucket, prefix, use_meta_files=False):
@@ -120,13 +126,10 @@ class S3Data:
                     f = s3_object.key
                     if str(f).endswith(".meta"):
                         to_import.append(
-                            "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0]
+                            "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0],
                         )
             else:
-                to_import = [
-                    s3_object.key
-                    async for s3_object in bucket.objects.filter(Prefix=prefix)
-                ]
+                to_import = [s3_object.key async for s3_object in bucket.objects.filter(Prefix=prefix)]
             return getNewFiles(to_import)
 
         createPathIfNotExists(self.temp_dir)
@@ -135,7 +138,9 @@ class S3Data:
         async with session.resource("s3") as s3:
             bucket = await s3.Bucket(self.bucketName)
             files, alreadyOnDisk = await getfilesToImport(
-                bucket, prefix, use_meta_files
+                bucket,
+                prefix,
+                use_meta_files,
             )
 
             tasks = [createTask(f) for f in files]
@@ -156,12 +161,15 @@ class S3Data:
 
         if verbose:
             print(
-                f"Completed {prefix}. Imported {len(files)} files, skipped {len(alreadyOnDisk)} files."
+                f"Completed {prefix}. Imported {len(files)} files, skipped {len(alreadyOnDisk)} files.",
             )
         return list(map(localFile, [*files, *alreadyOnDisk]))
 
     async def getDatamartData(
-        self, table, datamart_folder: str = "datamart", verbose: bool = True
+        self,
+        table,
+        datamart_folder: str = "datamart",
+        verbose: bool = True,
     ):
         """Wrapper method to import one of the tables in the datamart.
 
@@ -187,6 +195,7 @@ class S3Data:
             - "snapshot": "Data-DM-Snapshot",
             - "notification": "Data-DM-Notification",
         }
+
         """
         tables = {
             "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
@@ -202,7 +211,9 @@ class S3Data:
         return importedFiles
 
     async def get_ADMDatamart(
-        self, datamart_folder: str = "datamart", verbose: bool = True
+        self,
+        datamart_folder: str = "datamart",
+        verbose: bool = True,
     ):
         """Get the ADMDatamart class directly from files in S3
 
@@ -226,17 +237,23 @@ class S3Data:
         datamart_folder: str, default='datamart'
             The path to the 'datamart' folder within the s3 bucket.
             Typically, this is the top-level folder in the bucket.
+
         Examples
         --------
         >>> dm = await S3Datamart(bucketName='testbucket').get_ADMDatamart()
+
         """
         from pdstools import ADMDatamart
 
         modelData = await self.getDatamartData(
-            "modelSnapshot", datamart_folder, verbose
+            "modelSnapshot",
+            datamart_folder,
+            verbose,
         )
         predictorData = await self.getDatamartData(
-            "predictorSnapshot", datamart_folder, verbose
+            "predictorSnapshot",
+            datamart_folder,
+            verbose,
         )
         return ADMDatamart(
             model_df=File.read_multi_zip(modelData, verbose=verbose),

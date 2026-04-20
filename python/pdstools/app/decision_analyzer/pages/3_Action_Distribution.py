@@ -1,9 +1,12 @@
+import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.utils import NBADScope_Mapping
 from da_streamlit_utils import (
+    contextual_filters,
     get_current_index,
     ensure_data,
+    stage_level_selector,
+    stage_selectbox,
 )
 
 
@@ -15,17 +18,16 @@ from da_streamlit_utils import (
 # TODO consider a plot of how often "winning", at rank x, or is this simply the final stage
 
 """
-# Distribution of the Actions
+# Action Distribution
 
-This is simply showing the overall distribution of the actions at the selected stage. This can help
-answering questions like:
+Understand which offers are being presented to customers at each stage of your decisioning pipeline.
+Use the **Stage Granularity** toggle in the sidebar to switch between high-level stage groups
+and individual stages, then select a stage to analyze.
 
-* What are the most common offers? In which issues/groups?
-
-* What are the most common offers for a certain group of issues, within a certain channel etc - by applying filters first, or using
-the graph controls directly.
-
-* Does the distribution look okay?
+**Key questions:**
+* Which offers dominate your mix? Are they the right ones?
+* How does filtering change which offers reach customers?
+* Is your offer portfolio balanced or concentrated in a few actions?
 """
 
 ensure_data()
@@ -33,54 +35,79 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
 with st.session_state["sidebar"]:
-    scope_options = st.session_state.decision_data.getPossibleScopeValues()
-    stage_options = st.session_state.decision_data.getPossibleStageValues()
+    stage_level_selector()
 
-    stage_index = get_current_index(stage_options, "stage")
-    st.selectbox(
-        "Select Stage",
-        options=stage_options,
-        index=stage_index,
-        key="stage",
-    )
-distribution_data = st.session_state.decision_data.getDistributionData(
-    st.session_state.stage, scope_options
-)
-st.plotly_chart(
-    st.session_state.decision_data.plot.distribution_as_treemap(
-        df=distribution_data,
-        stage=st.session_state.stage,
-        scope_options=scope_options,
-    ),
-    use_container_width=True,
-)
+    scope_options = st.session_state.decision_data.get_possible_scope_values()
 
-"""
-## Trend Chart
+    stage_selectbox()
+    contextual_filters()
 
-NB current sample data is only a few minutes of data from a batch run that
-we artificially stretched to a few weeks.
-"""
+# Apply channel filter to sample data
+filtered_data = st.session_state.decision_data.filtered_sample
+
+# Check for empty results when a specific channel is selected
+if st.session_state.get("page_channel_filter", "Any") != "Any":
+    filtered_count = filtered_data.select(pl.len()).collect().item()
+    if filtered_count == 0:
+        st.warning(
+            f"No data available for {st.session_state.page_channel_filter}. "
+            "Try selecting 'Any' or adjusting global filters."
+        )
+        st.stop()
+
+channel_filter = st.session_state.get("page_channel_expr")
 
 with st.container(border=True):
-    if "scope" not in st.session_state:
-        st.session_state.scope = scope_options[0]
+    "## Offer Mix by Volume"
+
+    st.caption(
+        "Visualize the relative volume of each offer at the selected stage. Box sizes represent "
+        "the number of times each action appears. Explore the hierarchy by clicking through "
+        "Issue → Group → Action to see how your portfolio is composed."
+    )
+
+    distribution_data = st.session_state.decision_data.get_distribution_data(
+        st.session_state.stage,
+        scope_options,
+        additional_filters=channel_filter,
+    )
+    st.plotly_chart(
+        st.session_state.decision_data.plot.distribution_as_treemap(
+            df=distribution_data,
+            stage=st.session_state.stage,
+            scope_options=scope_options,
+        ),
+    )
+
+if "scope" not in st.session_state:
+    st.session_state.scope = scope_options[0]
+
+with st.container(border=True):
+    "## Offer Trends Over Time"
+
+    st.caption(
+        f"Track how often each {st.session_state.scope} appears in customer decisions over time. "
+        f"Spot seasonal patterns, campaign impacts, and shifts in your offer mix. "
+        f"*Note: Since decisions can include multiple {st.session_state.scope.lower()}s, the stacked total "
+        f"may exceed the actual decision count — this is expected when customers see diverse offers.*"
+    )
 
     fig, warning_message = st.session_state.decision_data.plot.trend_chart(
-        st.session_state.stage, st.session_state.scope
+        st.session_state.stage,
+        st.session_state.scope,
+        additional_filters=channel_filter,
     )
     if warning_message:
         st.warning(warning_message)
     st.plotly_chart(
         fig,
-        use_container_width=True,
     )
 
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Granularity:",
         options=scope_options,
-        format_func=lambda option: NBADScope_Mapping[option],
+        # column names are already friendly
         index=scope_index,
         key="scope",
     )

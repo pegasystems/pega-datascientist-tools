@@ -75,7 +75,7 @@ mock_response_notifications = {
             "impact": "High",
             "triggerTime": "20240720T050406.219 GMT",
         },
-    ]
+    ],
 }
 
 
@@ -83,12 +83,14 @@ def test_model_describe(model_client, mocker):
     mock_response = mock_model_describe
 
     mock_get = mocker.patch.object(
-        model_client._client, "get", return_value=mock_response
+        model_client._client,
+        "get",
+        return_value=mock_response,
     )
     result = model_client.describe()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v1/models/@BASECLASS!TESTMODEL_FALCONS"
+        "/prweb/api/PredictionStudio/v1/models/@BASECLASS!TESTMODEL_FALCONS",
     )
 
     # Assertions to verify the Repository object's attributes
@@ -147,12 +149,18 @@ def test_model_describe(model_client, mocker):
     ],
 )
 def test_get_notifications(
-    model_client, return_df, expected_type, additional_checks, mocker
+    model_client,
+    return_df,
+    expected_type,
+    additional_checks,
+    mocker,
 ):
     mock_response = mock_response_notifications
     method_to_patch = "get" if not return_df else "request"
     mocker.patch.object(
-        model_client._client, method_to_patch, return_value=mock_response
+        model_client._client,
+        method_to_patch,
+        return_value=mock_response,
     )
     result = model_client.get_notifications(return_df=return_df)
 

@@ -40,7 +40,7 @@ WITH
             , MIN({LEFT_PREFIX}.minimum) AS minimum
             , MAX({LEFT_PREFIX}.maximum) AS maximum
         FROM grouped_data AS {LEFT_PREFIX}
-        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.minimum, {LEFT_PREFIX}.partition, 
+        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.minimum, {LEFT_PREFIX}.partition,
     ),
     intervals AS (
         SELECT
@@ -55,7 +55,7 @@ WITH
             {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
-            , CASE 
+            , CASE
                 WHEN {RIGHT_PREFIX}.min_interval IS NULL AND {RIGHT_PREFIX}.max_interval IS NOT NULL
                     THEN '<=' || CAST(CAST(({LEFT_PREFIX}.maximum + {RIGHT_PREFIX}.max_interval) / 2.0 AS DECIMAL) AS VARCHAR)
                 WHEN {RIGHT_PREFIX}.max_interval IS NULL AND {RIGHT_PREFIX}.min_interval IS NOT NULL
@@ -96,4 +96,3 @@ UNION
 SELECT
     *
 FROM result_missing
-

@@ -1,39 +1,37 @@
 import datetime
 import itertools
+import logging
 import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Tuple,
     Union,
 )
 
 import polars as pl
-import logging
 
-from ..utils.types import QUERY
-from ..utils.namespaces import LazyNamespace
-
-from ..adm.CDH_Guidelines import CDHGuidelines
-from ..utils import cdh_utils
 from ..pega_io.File import read_ds_export
-
+from ..utils import cdh_utils
+from ..utils.metric_limits import (
+    get_predictions_channel_mapping,
+    is_standard_NBAD_prediction,
+)
+from ..utils.namespaces import LazyNamespace
+from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 try:
     import plotly.express as px
-    import plotly.graph_objects as go
+    import plotly.graph_objects as go  # noqa: F401
 
     from ..utils import pega_template as pega_template
 except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
+    pass
 
-COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
 
 Figure = Union[Any, "go.Figure"]
 
@@ -42,21 +40,26 @@ Figure = Union[Any, "go.Figure"]
 
 
 class PredictionPlots(LazyNamespace):
-    """
-    Plots for visualizing Prediction Studio data.
+    """Plots for visualizing Prediction Studio data.
 
     This class provides various plotting methods to visualize prediction performance,
     lift, CTR, and response counts over time.
     """
 
     dependencies = ["plotly"]
+    dependency_group = "adm"
 
     def __init__(self, prediction):
         self.prediction = prediction
         super().__init__()
 
     def _prediction_trend(
-        self, period: str, query: Optional[QUERY], metric: str, title: str, **kwargs
+        self,
+        period: str,
+        query: QUERY | None,
+        metric: str,
+        title: str,
+        **kwargs,
     ):
         """Internal method to create trend plots for various metrics.
 
@@ -78,33 +81,39 @@ class PredictionPlots(LazyNamespace):
         -------
         tuple
             (plotly figure, dataframe with plot data)
+
         """
-        plot_df = self.prediction.summary_by_channel(by_period=period).with_columns(
-            Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
-        )
-
-        plot_df = (
-            cdh_utils._apply_query(plot_df, query)
-            .with_columns(
-                Period=pl.format(
-                    "{} days",
-                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
-                )
-            )
-            .rename({"DateRange Min": "Date"})
-        )
-
+        # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
+        # where multiple lazy queries from the same LazyFrame can cause crashes
+        queried_data = cdh_utils._apply_query(self.prediction.predictions, query)
         date_range = (
-            cdh_utils._apply_query(self.prediction.predictions, query)
-            .select(
+            queried_data.select(
                 pl.format(
                     "period: {} to {}",
                     pl.col("SnapshotTime").min().dt.to_string("%v"),
                     pl.col("SnapshotTime").max().dt.to_string("%v"),
-                )
+                ),
             )
             .collect()
             .item()
+        )
+
+        # Collect plot_df immediately to avoid having multiple lazy queries from same source
+        plot_df = (
+            self.prediction.summary_by_channel(every=period)
+            .with_columns(
+                Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction),
+            )
+            .pipe(lambda df: cdh_utils._apply_query(df, query))
+            .with_columns(
+                Period=pl.format(
+                    "{} days",
+                    ((pl.col("Duration") / 3600 / 24).round() + 1).cast(pl.Int32),
+                ),
+            )
+            .rename({"DateRange Min": "Date"})
+            .collect()
+            .lazy()
         )
 
         # plt = px.bar(
@@ -137,7 +146,7 @@ class PredictionPlots(LazyNamespace):
         )
 
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
-            legend_title_text="Channel"
+            legend_title_text="Channel",
         )
 
         # Update axis titles if faceting is used
@@ -152,28 +161,47 @@ class PredictionPlots(LazyNamespace):
         self,
         period: str = "1d",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
         """Create a performance trend plot showing AUC over time.
 
+        Displays a line chart showing how prediction performance (AUC) changes over time,
+        with configurable time period aggregation and filtering capabilities.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic performance trend plot
+        >>> pred.plot.performance_trend()
+
+        >>> # Weekly aggregated performance trend
+        >>> pred.plot.performance_trend(period="1w")
+
+        >>> # Performance trend with faceting by prediction
+        >>> pred.plot.performance_trend(facet_row="Prediction")
+
+        >>> # Get underlying data for custom analysis
+        >>> data = pred.plot.performance_trend(return_df=True)
+
         """
         # Default hover data for performance plots
         hover_data = {
@@ -206,6 +234,11 @@ class PredictionPlots(LazyNamespace):
         if return_df:
             return plt_data
 
+        # Scale Performance from 0.5-1.0 internal format to 50-100 for display
+        for trace in plt.data:
+            if hasattr(trace, "y") and trace.y is not None:
+                trace.y = tuple(y * 100 if y is not None else None for y in trace.y)
+
         plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
         return plt
 
@@ -213,28 +246,47 @@ class PredictionPlots(LazyNamespace):
         self,
         period: str = "1d",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
         """Create a lift trend plot showing engagement lift over time.
 
+        Displays a line chart showing how prediction engagement lift changes over time,
+        comparing test group performance against control group baseline.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic lift trend plot
+        >>> pred.plot.lift_trend()
+
+        >>> # Monthly aggregated lift trend
+        >>> pred.plot.lift_trend(period="1mo")
+
+        >>> # Lift trend with custom query
+        >>> pred.plot.lift_trend(query=pl.col("Channel") == "Email")
+
+        >>> # Get underlying data
+        >>> data = pred.plot.lift_trend(return_df=True)
+
         """
         # Default hover data for lift plots
         hover_data = {
@@ -280,30 +332,49 @@ class PredictionPlots(LazyNamespace):
         period: str = "1d",
         facetting=False,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
         """Create a CTR (Click-Through Rate) trend plot over time.
 
+        Displays a line chart showing how prediction click-through rates change over time,
+        with optional faceting capabilities for comparing multiple predictions.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         facetting : bool, optional
-            Whether to create facets by prediction, by default False
+            Whether to create facets by prediction for side-by-side comparison, by default False.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic CTR trend plot
+        >>> pred.plot.ctr_trend()
+
+        >>> # Weekly CTR trend with faceting
+        >>> pred.plot.ctr_trend(period="1w", facetting=True)
+
+        >>> # CTR trend with custom query
+        >>> pred.plot.ctr_trend(query=pl.col("Prediction").str.contains("Email"))
+
+        >>> # Get underlying data
+        >>> data = pred.plot.ctr_trend(return_df=True)
+
         """
         # Default hover data for CTR plots
         hover_data = {
@@ -352,30 +423,49 @@ class PredictionPlots(LazyNamespace):
         period: str = "1d",
         facetting=False,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         return_df: bool = False,
         **kwargs,
     ):
         """Create a response count trend plot showing total responses over time.
 
+        Displays a line chart showing how total response volumes change over time,
+        useful for monitoring prediction usage and data volume trends.
+
         Parameters
         ----------
         period : str, optional
-            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d"
+            Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+            Uses Polars truncate syntax for time period grouping.
         facetting : bool, optional
-            Whether to create facets by prediction, by default False
+            Whether to create facets by prediction for side-by-side comparison, by default False.
         query : Optional[QUERY], optional
-            Optional query to filter the data, by default None
+            Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
         return_df : bool, optional
-            If True, returns the dataframe used for plotting instead of the plot, by default False
+            If True, returns the underlying data instead of the plot, by default False.
         **kwargs
-            Additional keyword arguments passed directly to plotly.express.line
-            See plotly.express.line documentation for all available options
+            Additional keyword arguments passed directly to plotly.express.line.
+            See plotly.express.line documentation for all available options.
 
         Returns
         -------
-        Union[Figure, pl.DataFrame]
-            Either a plotly figure or the dataframe used for plotting if return_df is True
+        Union[plotly.graph_objects.Figure, polars.LazyFrame]
+            A Plotly figure object or the underlying data if return_df is True.
+
+        Examples
+        --------
+        >>> # Basic response count trend plot
+        >>> pred.plot.responsecount_trend()
+
+        >>> # Monthly response count trend with faceting
+        >>> pred.plot.responsecount_trend(period="1mo", facetting=True)
+
+        >>> # Response count trend for specific predictions
+        >>> pred.plot.responsecount_trend(query=pl.col("Channel") == "Web")
+
+        >>> # Get underlying data for analysis
+        >>> data = pred.plot.responsecount_trend(return_df=True)
+
         """
         # Default hover data for response count plots
         hover_data = {
@@ -421,8 +511,7 @@ class PredictionPlots(LazyNamespace):
 
 
 class Prediction:
-    """
-    Monitor and analyze Pega Prediction Studio Predictions.
+    """Monitor and analyze Pega Prediction Studio Predictions.
 
     To initialize this class, either
     1. Initialize directly with the df polars LazyFrame
@@ -458,6 +547,7 @@ class Prediction:
     --------
     pdstools.prediction.PredictionPlots : The out of the box plots on the Prediction data
     pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
     """
 
     predictions: pl.LazyFrame
@@ -486,7 +576,7 @@ class Prediction:
         self,
         df: pl.LazyFrame,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ):
         """Initialize the Prediction class
 
@@ -497,8 +587,8 @@ class Prediction:
         query : QUERY, optional
             An optional query to apply to the input data.
             For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
+
         """
-        self.cdh_guidelines = CDHGuidelines()
         self.plot = PredictionPlots(prediction=self)
 
         predictions_raw_data_prepped = (
@@ -512,22 +602,30 @@ class Prediction:
                         "pyPositives": "Positives",
                         "pyNegatives": "Negatives",
                         "pyCount": "ResponseCount",
-                    }
+                    },
                 )
             )
             # collect/lazy hopefully helps to zoom in into issues
-            .collect().lazy()
+            .collect()
+            .lazy()
         )
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        perf_max = predictions_raw_data_prepped.select(pl.col("Performance").max()).collect().item()
+        if perf_max is not None and perf_max > 1.0:
+            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
+                Performance=pl.col("Performance") / 100.0,
+            )
         schema = predictions_raw_data_prepped.collect_schema()
-        if not schema.get("pySnapShotTime").is_temporal():  # pl.Datetime
+        if schema.get("pySnapShotTime") is not None and not schema.get("pySnapShotTime").is_temporal():  # type: ignore[union-attr]
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
                 SnapshotTime=cdh_utils.parse_pega_date_time_formats(
-                    "pySnapShotTime", timestamp_dtype=pl.Date
-                )
+                    "pySnapShotTime",
+                    timestamp_dtype=pl.Date,
+                ),
             )
         else:
             predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
-                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date)
+                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date),
             )
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
@@ -535,19 +633,19 @@ class Prediction:
         # TODO we may want to assert that this results in exactly one record for
         # every combination of model ID and snapshot time.
         counts_control = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Control"
+            pl.col.pyDataUsage == "Control",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
         counts_test = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Test"
+            pl.col.pyDataUsage == "Test",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
         counts_NBA = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "NBA"
+            pl.col.pyDataUsage == "NBA",
         ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
         )
 
         self.predictions = (
@@ -563,27 +661,26 @@ class Prediction:
                     "Negatives",
                     "ResponseCount",
                     "Performance",
-                ]
+                ],
             )
             .join(counts_test, on=["pyModelId", "SnapshotTime"], suffix="_Test")
             .join(counts_control, on=["pyModelId", "SnapshotTime"], suffix="_Control")
             .join(
-                counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA", how="left"
+                counts_NBA,
+                on=["pyModelId", "SnapshotTime"],
+                suffix="_NBA",
+                how="left",
             )
             .with_columns(
                 Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
                 ModelName=pl.col("pyModelId").str.extract(r".+!(.+)"),
                 CTR=pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives")),
-                CTR_Test=pl.col("Positives_Test")
-                / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
-                CTR_Control=pl.col("Positives_Control")
-                / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
-                CTR_NBA=pl.col("Positives_NBA")
-                / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
+                CTR_Test=pl.col("Positives_Test") / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
+                CTR_Control=pl.col("Positives_Control") / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
+                CTR_NBA=pl.col("Positives_NBA") / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
             )
             .with_columns(
-                CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
-                / pl.col("CTR_Control"),
+                CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control")) / pl.col("CTR_Control"),
                 isValidPrediction=self.prediction_validity_expr,
             )
             .sort(["pyModelId", "SnapshotTime"])
@@ -594,10 +691,11 @@ class Prediction:
     @classmethod
     def from_ds_export(
         cls,
-        predictions_filename: Union[os.PathLike, str],
-        base_path: Union[os.PathLike, str] = ".",
+        predictions_filename: os.PathLike | str,
+        base_path: os.PathLike | str = ".",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
+        infer_schema_length: int = 10000,
     ):
         """Import from a Pega Dataset Export of the PR_DATA_DM_SNAPSHOTS table.
 
@@ -609,6 +707,11 @@ class Prediction:
             A base path to provide if predictions_filename is not given as a full path, by default "."
         query : Optional[QUERY], optional
             An optional argument to filter out selected data, by default None
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON files.
+            For large production datasets, increase this value (e.g., 200000) if columns
+            are not being detected correctly. Higher values use more memory but provide
+            more accurate schema detection. By default 10000
 
         Returns
         -------
@@ -620,6 +723,13 @@ class Prediction:
         >>> from pdstools import Prediction
         >>> pred = Prediction.from_ds_export('predictions.zip', '/my_export_folder')
 
+        >>> # For large datasets with schema detection issues:
+        >>> pred = Prediction.from_ds_export(
+                'predictions.zip',
+                '/my_export_folder',
+                infer_schema_length=200000
+                )
+
         Note
         ----
         By default, the dataset export in Infinity returns a zip file per table.
@@ -630,8 +740,18 @@ class Prediction:
         --------
         pdstools.pega_io.File.read_ds_export : More information on file compatibility
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
         """
-        predictions_raw_data = read_ds_export(predictions_filename, base_path)
+        predictions_raw_data = read_ds_export(
+            predictions_filename,
+            base_path,
+            infer_schema_length=infer_schema_length,
+        )
+        if predictions_raw_data is None:
+            raise ValueError(
+                f"Unable to read prediction data from {predictions_filename}. "
+                "Please check if the file exists and is in a supported format.",
+            )
         return cls(predictions_raw_data, query=query)
 
     @classmethod
@@ -642,8 +762,8 @@ class Prediction:
         -------
         Prediction
             The properly initialized Prediction class
+
         """
-        ...
 
     @classmethod
     def from_dataflow_export(cls):
@@ -653,8 +773,8 @@ class Prediction:
         -------
         Prediction
             The properly initialized Prediction class
+
         """
-        ...
 
     @classmethod
     def from_pdc(
@@ -662,7 +782,7 @@ class Prediction:
         df: pl.LazyFrame,
         *,
         return_df=False,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
     ):
         """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
 
@@ -684,6 +804,7 @@ class Prediction:
         --------
         pdstools.utils.cdh_utils._read_pdc : More information on PDC data processing
         pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+
         """
         pdc_data = cdh_utils._read_pdc(df)
 
@@ -707,14 +828,14 @@ class Prediction:
                     "ResponseCount": "pyCount",
                     "Name": "pyName",
                     "Performance": "pyValue",
-                }
+                },
             )
             .cast(
                 {
                     "pyNegatives": pl.Float64,
                     "pyPositives": pl.Float64,
                     "pyCount": pl.Float64,
-                }
+                },
             )
             .drop(
                 [
@@ -737,7 +858,7 @@ class Prediction:
                         "Group",
                     ]
                     if c in pdc_data.collect_schema().names()
-                ]
+                ],
             )
         )
 
@@ -745,6 +866,68 @@ class Prediction:
             return prediction_data
 
         return cls(prediction_data, query=query)
+
+    def save_data(self, path: os.PathLike | str = ".") -> os.PathLike | None:
+        """Cache predictions to a file.
+
+        Parameters
+        ----------
+        path : Union[os.PathLike, str]
+            Where to place the file
+
+        Returns
+        -------
+        Optional[os.PathLike]
+            The path to the cached prediction data file, or None if no data available
+
+        """
+        from pathlib import Path
+
+        from .. import pega_io
+
+        abs_path = Path(path).resolve()
+        time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
+
+        if self.predictions is not None:
+            predictions_cache = pega_io.cache_to_file(
+                self.predictions,
+                abs_path,
+                name=f"cached_prediction_data_{time}",
+            )
+            return predictions_cache
+
+    @classmethod
+    def from_processed_data(cls, df: pl.LazyFrame):
+        """Load a Prediction from already-processed data (e.g., from cache).
+
+        This bypasses the normal data transformation pipeline and directly
+        assigns the data to self.predictions. Use this when loading data
+        that has already been processed by the Prediction class constructor,
+        such as data saved via save_data().
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            A LazyFrame containing already-processed prediction data with
+            columns like 'Positives', 'CTR', 'Performance', etc. rather than
+            the raw 'pyPositives', 'pyModelType', etc.
+
+        Returns
+        -------
+        Prediction
+            A Prediction instance with the processed data loaded
+
+        Examples
+        --------
+        >>> # Load from a cached file
+        >>> cached_data = pl.scan_parquet('cached_predictions.parquet')
+        >>> pred = Prediction.from_processed_data(cached_data)
+
+        """
+        instance = cls.__new__(cls)
+        instance.plot = PredictionPlots(prediction=instance)
+        instance.predictions = df
+        return instance
 
     @classmethod
     def from_mock_data(cls, days=70):
@@ -765,6 +948,7 @@ class Prediction:
         >>> from pdstools import Prediction
         >>> pred = Prediction.from_mock_data(days=30)
         >>> pred.plot.performance_trend()
+
         """
         n_conditions = 4  # can't change this
         n_predictions = 3  # tied to the data below
@@ -779,33 +963,25 @@ class Prediction:
                     "pySnapShotTime": sorted(
                         [
                             cdh_utils.to_prpc_date_time(
-                                now - datetime.timedelta(days=i)
-                            )[
-                                0:15
-                            ]  # Polars doesn't like time zones like GMT+0200
+                                now - datetime.timedelta(days=i),
+                            )[0:15]  # Polars doesn't like time zones like GMT+0200
                             for i in range(days)
                         ]
                         * n_conditions
-                        * n_predictions
+                        * n_predictions,
                     ),
                     "pyModelId": (
                         [
-                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity"
+                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity",
                         ]
                         * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"]
-                        * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"]
-                        * n_conditions
+                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * n_conditions
+                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * n_conditions
                     )
                     * days,
                     "pyModelType": "PREDICTION",
-                    "pySnapshotType": ["Daily", "Daily", "Daily", None]
-                    * n_predictions
-                    * days,
-                    "pyDataUsage": ["Control", "Test", "NBA", ""]
-                    * n_predictions
-                    * days,  # Control=Random, Test=Model
+                    "pySnapshotType": ["Daily", "Daily", "Daily", None] * n_predictions * days,
+                    "pyDataUsage": ["Control", "Test", "NBA", ""] * n_predictions * days,  # Control=Random, Test=Model
                     # "pyPositives": (
                     #     [100, 160, 120, None] + [200, 420, 250, None] + [350, 700, 380, None]
                     # )
@@ -831,28 +1007,24 @@ class Prediction:
                                     _interpolate(1520, 1520, p, days),
                                     None,
                                 ]
-                                for p in range(0, days)
-                            ]
-                        )
+                                for p in range(days)
+                            ],
+                        ),
                     ),
-                    "pyNegatives": (
-                        [10000] * n_conditions
-                        + [6000] * n_conditions
-                        + [40000] * n_conditions
-                    )
-                    * days,
+                    "pyNegatives": ([10000] * n_conditions + [6000] * n_conditions + [40000] * n_conditions) * days,
                     "pyValue": list(
                         itertools.chain.from_iterable(
                             [
                                 [_interpolate(60.0, 65.0, p, days)] * n_conditions
                                 + [_interpolate(70.0, 73.0, p, days)] * n_conditions
                                 + [_interpolate(66.0, 68.0, p, days)] * n_conditions
-                                for p in range(0, days)
-                            ]
-                        )
+                                for p in range(days)
+                            ],
+                        ),
                     ),
-                }
-            ).sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
+                },
+            )
+            .sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
             # .with_columns(
             #     pl.col("pyPositives").cum_sum().over(["pyModelId", "pySnapshotType"]),
             #     pl.col("pyNegatives").cum_sum().over(["pyModelId", "pySnapshotType"]),
@@ -870,6 +1042,7 @@ class Prediction:
         -------
         bool
             True if prediction data is available, False otherwise
+
         """
         return len(self.predictions.head(1).collect()) > 0
 
@@ -884,41 +1057,46 @@ class Prediction:
         -------
         bool
             True if prediction data is valid, False otherwise
+
         """
         return (
             self.is_available
             # or even stronger: pos = pos_test + pos_control
-            and self.predictions.select(self.prediction_validity_expr.all())
-            .collect()
-            .item()
+            and self.predictions.select(self.prediction_validity_expr.all()).collect().item()
         )
 
     def summary_by_channel(
         self,
-        custom_predictions: Optional[List[List]] = None,
+        custom_predictions: list[list] | None = None,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
 
         Parameters
         ----------
-        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
-            Optional list with custom prediction name to channel mappings. Defaults to None.
+        custom_predictions : Optional[list[list]], optional
+            Optional list with custom prediction name to channel mappings.
+            Each item should be [PredictionName, Channel, Direction, isMultiChannel].
+            Defaults to None.
         start_date : datetime.datetime, optional
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include the Period column in output when `every` is specified.
+            If False, the Period column is dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
@@ -940,7 +1118,7 @@ class Prediction:
             - TestPercentage: Percentage of responses in test group
 
             Performance Metrics:
-            - Performance: Weighted model performance (AUC)
+            - Performance: Weighted model performance (AUC) in range 0.5-1.0
             - Positives: Sum of positive responses
             - Negatives: Sum of negative responses
             - Responses: Sum of all responses
@@ -958,25 +1136,28 @@ class Prediction:
 
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
+
         """
         if not custom_predictions:
             custom_predictions = []
 
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.predictions, start_date, end_date, window
+            self.predictions,
+            start_date,
+            end_date,
+            window,
         )
 
         query = pl.col("SnapshotTime").is_between(start_date, end_date)
         prediction_data = cdh_utils._apply_query(
-            self.predictions, query=query, allow_empty=True
+            self.predictions,
+            query=query,
+            allow_empty=True,
         )
 
-        if by_period is not None:
+        if every is not None:
             period_expr = [
-                pl.col("SnapshotTime")
-                .dt.truncate(by_period)
-                .cast(pl.Date)
-                .alias("Period")
+                pl.col("SnapshotTime").dt.truncate(every).cast(pl.Date).alias("Period"),
             ]
         else:
             period_expr = []
@@ -984,9 +1165,7 @@ class Prediction:
         return (
             prediction_data.with_columns(pl.col("ModelName").str.to_uppercase())
             .join(
-                self.cdh_guidelines.get_predictions_channel_mapping(
-                    custom_predictions
-                ).lazy(),
+                get_predictions_channel_mapping(custom_predictions).lazy(),
                 left_on="ModelName",
                 right_on="Prediction",
                 how="left",
@@ -1002,13 +1181,13 @@ class Prediction:
                     .then(pl.lit("Unknown"))
                     .otherwise(pl.col("Direction"))
                     .alias("Direction"),
-                    self.cdh_guidelines.is_standard_prediction().alias("usesNBAD"),
+                    is_standard_NBAD_prediction().alias("usesNBAD"),
                     pl.when(pl.col("isMultiChannel").is_null())
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
                     .alias("isMultiChannel"),
                 ]
-                + period_expr
+                + period_expr,
             )
             .group_by(
                 [
@@ -1018,14 +1197,12 @@ class Prediction:
                     "usesNBAD",
                     "isMultiChannel",
                 ]
-                + (["Period"] if by_period is not None else [])
+                + (["Period"] if every is not None else []),
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
-                .dt.total_seconds()
-                .alias("Duration"),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min()).dt.total_seconds().alias("Duration"),
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("Negatives").sum(),
@@ -1038,8 +1215,7 @@ class Prediction:
                 pl.col("Negatives_NBA").sum(),
             )
             .with_columns(
-                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0)
-                & (pl.col("Negatives_NBA") > 0),
+                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0) & (pl.col("Negatives_NBA") > 0),
                 ControlPercentage=100.0
                 * (pl.col("Positives_Control") + pl.col("Negatives_Control"))
                 / (
@@ -1061,28 +1237,24 @@ class Prediction:
                     + pl.col("Negatives_NBA")
                 ),
                 CTR=pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives")),
-                CTR_Test=pl.col("Positives_Test")
-                / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
-                CTR_Control=pl.col("Positives_Control")
-                / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
-                CTR_NBA=pl.col("Positives_NBA")
-                / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
+                CTR_Test=pl.col("Positives_Test") / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
+                CTR_Control=pl.col("Positives_Control") / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
+                CTR_NBA=pl.col("Positives_NBA") / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
                 ChannelDirectionGroup=pl.when(
                     pl.col("Channel").is_not_null()
                     & pl.col("Direction").is_not_null()
                     & pl.col("Channel").is_in(["Other", "Unknown", ""]).not_()
                     & pl.col("Direction").is_in(["Other", "Unknown", ""]).not_()
-                    & pl.col("isMultiChannel").not_()
+                    & pl.col("isMultiChannel").not_(),
                 )
                 .then(pl.concat_str(["Channel", "Direction"], separator="/"))
                 .otherwise(pl.lit("Other")),
                 isValid=self.prediction_validity_expr,
             )
             .with_columns(
-                Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
-                / pl.col("CTR_Control"),
+                Lift=(pl.col("CTR_Test") - pl.col("CTR_Control")) / pl.col("CTR_Control"),
             )
-            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .drop([] if debug else ([] + ([] if every is None else ["Period"])))
             .sort("Prediction", "DateRange Min")
         )
 
@@ -1090,30 +1262,36 @@ class Prediction:
     # then use those. If there are valid non-multi-channel predictions then only use those.
     def overall_summary(
         self,
-        custom_predictions: Optional[List[List]] = None,
+        custom_predictions: list[list] | None = None,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
 
         Parameters
         ----------
-        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
-            Optional list with custom prediction name to channel mappings. Defaults to None.
+        custom_predictions : Optional[list[list]], optional
+            Optional list with custom prediction name to channel mappings.
+            Each item should be [PredictionName, Channel, Direction, isMultiChannel].
+            Defaults to None.
         start_date : datetime.datetime, optional
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include the Period column in output when `every` is specified.
+            If False, the Period column is dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
@@ -1129,7 +1307,7 @@ class Prediction:
             - usesNBAD: Boolean indicating if any of the predictions is a standard NBAD prediction
 
             Performance Metrics:
-            - Performance: Weighted average performance across all valid channels
+            - Performance: Weighted average performance (AUC) across all valid channels in range 0.5-1.0
             - Positives Inbound: Sum of positive responses across all valid inbound channels
             - Positives Outbound: Sum of positive responses across all valid outbound channels
             - Responses Inbound: Sum of all responses across all valid inbound channels
@@ -1143,8 +1321,8 @@ class Prediction:
 
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if any channel uses Impact Analyzer
-        """
 
+        """
         # start_date, end_date = cdh_utils.get_start_end_date_args(
         #     self.datamart.model_data, start_date, end_date, window
         # )
@@ -1154,14 +1332,14 @@ class Prediction:
             start_date=start_date,
             end_date=end_date,
             window=window,
-            by_period=by_period,
+            every=every,
             debug=True,  # should give us Period
         )
 
         if (
             # any non-multi-channel valid predictions?
             channel_summary.select(
-                (pl.col("isMultiChannel").not_() & pl.col("isValid")).any()
+                (pl.col("isMultiChannel").not_() & pl.col("isValid")).any(),
             )
             .collect()
             .item()
@@ -1174,7 +1352,7 @@ class Prediction:
             validity_filter_expr = pl.col("isValid")
 
         return (
-            channel_summary.group_by(["Period"] if by_period is not None else None)
+            channel_summary.group_by(["Period"] if every is not None else None)
             .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
@@ -1191,18 +1369,12 @@ class Prediction:
                     pl.col("Performance").filter(validity_filter_expr),
                     pl.col("Responses").filter(validity_filter_expr),
                 ).alias("Performance"),
-                pl.col("Positives")
-                .filter(validity_filter_expr, Direction="Inbound")
-                .sum()
-                .alias("Positives Inbound"),
+                pl.col("Positives").filter(validity_filter_expr, Direction="Inbound").sum().alias("Positives Inbound"),
                 pl.col("Positives")
                 .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
                 .alias("Positives Outbound"),
-                pl.col("Responses")
-                .filter(validity_filter_expr, Direction="Inbound")
-                .sum()
-                .alias("Responses Inbound"),
+                pl.col("Responses").filter(validity_filter_expr, Direction="Inbound").sum().alias("Responses Inbound"),
                 pl.col("Responses")
                 .filter(validity_filter_expr, Direction="Outbound")
                 .sum()
@@ -1210,22 +1382,16 @@ class Prediction:
                 pl.col("Channel")
                 .filter(validity_filter_expr)
                 .filter(
-                    (
-                        pl.col("Lift").filter(validity_filter_expr)
-                        == pl.col("Lift").filter(validity_filter_expr).min()
-                    )
-                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                    (pl.col("Lift").filter(validity_filter_expr) == pl.col("Lift").filter(validity_filter_expr).min())
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()
                 .alias("Channel with Minimum Negative Lift"),
                 pl.col("Lift")
                 .filter(validity_filter_expr)
                 .filter(
-                    (
-                        pl.col("Lift").filter(validity_filter_expr)
-                        == pl.col("Lift").filter(validity_filter_expr).min()
-                    )
-                    & (pl.col("Lift").filter(validity_filter_expr) < 0)
+                    (pl.col("Lift").filter(validity_filter_expr) == pl.col("Lift").filter(validity_filter_expr).min())
+                    & (pl.col("Lift").filter(validity_filter_expr) < 0),
                 )
                 .first()
                 .alias("Minimum Negative Lift"),
@@ -1240,11 +1406,11 @@ class Prediction:
                 ).alias("TestPercentage"),
                 pl.col("usesNBAD").any(ignore_nulls=False),
             )
-            .drop(["literal"] if by_period is None else [])  # created by null group
+            .drop(["literal"] if every is None else [])  # created by null group
             .with_columns(
                 # CTR=(pl.col("Positives")) / (pl.col("Responses")),
                 usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
             )
-            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .drop([] if debug else ([] + ([] if every is None else ["Period"])))
             .sort("DateRange Min")
         )

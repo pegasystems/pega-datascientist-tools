@@ -3,7 +3,7 @@ SET memory_limit = '{MEMORY_LIMIT}GB';
 SET enable_progress_bar = {ENABLE_PROGRESS_BAR};
 
 WITH sym_grp AS (
-  SELECT 
+  SELECT
         {LEFT_PREFIX}.partition
       , {LEFT_PREFIX}.predictor_name
       , {LEFT_PREFIX}.predictor_type
@@ -13,9 +13,9 @@ WITH sym_grp AS (
       , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_min
       , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_max
       , COUNT(*) AS frequency
-  FROM {TABLE_NAME} AS {LEFT_PREFIX} 
+  FROM {TABLE_NAME} AS {LEFT_PREFIX}
   WHERE {WHERE_CONDITION}
-  GROUP BY 
+  GROUP BY
       {LEFT_PREFIX}.partition
     , {LEFT_PREFIX}.predictor_name
     , {LEFT_PREFIX}.predictor_type

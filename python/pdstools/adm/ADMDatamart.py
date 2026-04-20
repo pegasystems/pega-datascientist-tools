@@ -5,9 +5,11 @@ __all__ = ["ADMDatamart"]
 import datetime
 import logging
 import os
+from collections.abc import Iterable
 from functools import cached_property
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Literal
+from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
@@ -21,7 +23,6 @@ from . import Schema
 from .ADMTrees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
-from .CDH_Guidelines import CDHGuidelines
 from .Plots import Plots
 from .Reports import Reports
 
@@ -29,8 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class ADMDatamart:
-    """
-    Monitor and analyze ADM data from the Pega Datamart.
+    """Monitor and analyze ADM data from the Pega Datamart.
 
     To initialize this class, either
     1. Initialize directly with the model_df and predictor_df polars LazyFrames
@@ -89,28 +89,28 @@ class ADMDatamart:
     pdstools.adm.Plots : The out of the box plots on the Datamart data
     pdstools.adm.Reports : Methods to generate the Health Check and Model Report
     pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
+
     """
 
-    model_data: Optional[pl.LazyFrame]
-    predictor_data: Optional[pl.LazyFrame]
-    combined_data: Optional[pl.LazyFrame]
+    model_data: pl.LazyFrame | None
+    predictor_data: pl.LazyFrame | None
+    combined_data: pl.LazyFrame | None
     plot: Plots
     aggregates: Aggregates
     agb: AGB
     generate: Reports
-    cdh_guidelines: CDHGuidelines
     bin_aggregator: BinAggregator
-    first_action_dates: Optional[pl.LazyFrame]
+    first_action_dates: pl.LazyFrame | None
 
     def __init__(
         self,
-        model_df: Optional[pl.LazyFrame] = None,
-        predictor_df: Optional[pl.LazyFrame] = None,
+        model_df: pl.LazyFrame | None = None,
+        predictor_df: pl.LazyFrame | None = None,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         extract_pyname_keys: bool = True,
     ) -> None:
-        self.context_keys: List[str] = [
+        self.context_keys: list[str] = [
             "Channel",
             "Direction",
             "Issue",
@@ -122,52 +122,46 @@ class ADMDatamart:
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
         self.generate = Reports(datamart=self)
-        self.cdh_guidelines = (
-            CDHGuidelines()
-        )  # not sure if this should be part of the ADM DM
 
         model_data_validated = self._validate_model_data(
-            model_df, extract_pyname_keys=extract_pyname_keys
+            model_df,
+            extract_pyname_keys=extract_pyname_keys,
         )
 
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
         self.first_action_dates = self._get_first_action_dates(model_data_validated)
 
-        self.model_data = cdh_utils._apply_query(model_data_validated, query)
+        self.model_data = (
+            cdh_utils._apply_query(model_data_validated, query) if model_data_validated is not None else None
+        )
 
         # TODO @stijn how do we ensure the model IDs intersect, also if there is a query argument?
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(
-            self.model_data, self.predictor_data
+            self.model_data,
+            self.predictor_data,
         )
         self.bin_aggregator = BinAggregator(dm=self)
 
-    def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> pl.LazyFrame:
+    def _get_first_action_dates(
+        self,
+        df: pl.LazyFrame | None,
+    ) -> pl.LazyFrame | None:
         if df is None:
             return df
-        # very_first_date = df.select(pl.col("SnapshotTime").min()).collect().item()
-        return (
-            df.group_by("Name")
-            .agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
-            # .with_columns(
-            #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime")
-            # )
-            .sort("Name")
-            # .filter(
-            #     pl.col("FirstSnapshotTime") > very_first_date
-            # )
-        )
+        return df.group_by("Name").agg(ActionFirstSnapshotTime=pl.col("SnapshotTime").min()).sort("Name")
 
     @classmethod
     def from_ds_export(
         cls,
-        model_filename: Optional[str] = None,
-        predictor_filename: Optional[str] = None,
-        base_path: Union[os.PathLike, str] = ".",
+        model_filename: str | None = None,
+        predictor_filename: str | None = None,
+        base_path: os.PathLike | str = ".",
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         extract_pyname_keys: bool = True,
+        infer_schema_length: int = 10000,
     ):
         """Import the ADMDatamart class from a Pega Dataset Export
 
@@ -187,6 +181,11 @@ class ADMDatamart:
             An optional argument to filter out selected data, by default None
         extract_pyname_keys : bool, optional
             Whether to extract additional keys from the `pyName` column, by default True
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON files.
+            For large production datasets, increase this value (e.g., 200000) if columns
+            are not being detected correctly. Higher values use more memory but provide
+            more accurate schema detection. By default 10000
 
         Returns
         -------
@@ -206,6 +205,12 @@ class ADMDatamart:
                 predictor_df = '/Downloads/predictor_snapshots.parquet'
                 )
 
+        >>> # To use a higher schema inference length for large datasets:
+        >>> dm = ADMDatamart.from_ds_export(
+                base_path='/my_export_folder',
+                infer_schema_length=200000
+                )
+
         Note
         ----
         By default, the dataset export in Infinity returns a zip file per table.
@@ -216,32 +221,43 @@ class ADMDatamart:
         --------
         pdstools.pega_io.File.read_ds_export : More information on file compatibility
         pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
+
         """
         # "model_data"/"predictor_data" are magic keywords
         # to automatically find data files in base_path
-        model_df = read_ds_export(model_filename or "model_data", base_path)
-        predictor_df = read_ds_export(predictor_filename or "predictor_data", base_path)
+        model_df = read_ds_export(
+            model_filename or "model_data",
+            base_path,
+            infer_schema_length=infer_schema_length,
+        )
+        predictor_df = read_ds_export(
+            predictor_filename or "predictor_data",
+            base_path,
+            infer_schema_length=infer_schema_length,
+        )
         return cls(
-            model_df, predictor_df, query=query, extract_pyname_keys=extract_pyname_keys
+            model_df,
+            predictor_df,
+            query=query,
+            extract_pyname_keys=extract_pyname_keys,
         )
 
     @classmethod
     def from_s3(cls):
         """Not implemented yet. Please let us know if you would like this functionality!"""
-        ...
 
     @classmethod
     def from_dataflow_export(
         cls,
-        model_data_files: Union[Iterable[str], str],
-        predictor_data_files: Union[Iterable[str], str],
+        model_data_files: Iterable[str] | str,
+        predictor_data_files: Iterable[str] | str,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         extract_pyname_keys: bool = True,
         cache_file_prefix: str = "",
         extension: Literal["json"] = "json",
         compression: Literal["gzip"] = "gzip",
-        cache_directory: Union[os.PathLike, str] = "cache",
+        cache_directory: os.PathLike | str = "cache",
     ):
         """Read in data generated by a data flow, such as the Prediction Studio export.
 
@@ -288,10 +304,11 @@ class ADMDatamart:
         >>> import glob
         >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
 
-        See also
+        See Also
         --------
         pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
         glob : Makes creating lists of files much easier
+
         """
         model_data = read_dataflow_output(
             model_data_files,
@@ -334,7 +351,7 @@ class ADMDatamart:
                 # ElapsedDays=(pl.col("Day").max() - pl.col("Day")).dt.total_days(),
                 # see US-648869 and related items on the model technique
                 pyModelTechnique=pl.when(
-                    pl.col("ADMModelType").is_in(["GRADIENT_BOOST", "GradientBoost"])
+                    pl.col("ADMModelType").is_in(["GRADIENT_BOOST", "GradientBoost"]),
                 )
                 .then(pl.lit("GradientBoost"))
                 .otherwise(pl.lit("NaiveBayes")),
@@ -351,7 +368,7 @@ class ADMDatamart:
                     "TotalResponses": "pyResponseCount",
                     "SnapshotTime": "pySnapshotTime",
                     "Performance": "pyPerformance",
-                }
+                },
             )
             .with_columns(
                 [
@@ -368,7 +385,7 @@ class ADMDatamart:
                         "Name",
                         "Treatment",
                     ]
-                ]
+                ],
             )
             .drop(
                 [
@@ -392,7 +409,7 @@ class ADMDatamart:
                         "Treatment",
                     ]
                     if c in pdc_data.collect_schema().names()
-                ]
+                ],
             )
         )
 
@@ -403,9 +420,9 @@ class ADMDatamart:
 
     def _validate_model_data(
         self,
-        df: Optional[pl.LazyFrame],
+        df: pl.LazyFrame | None,
         extract_pyname_keys: bool = True,
-    ) -> Optional[pl.LazyFrame]:
+    ) -> pl.LazyFrame | None:
         """Internal method to validate model data"""
         if df is None:
             logger.info("No model data available.")
@@ -426,39 +443,43 @@ class ADMDatamart:
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
-        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+        snapshot_type = schema.get("SnapshotTime")
+        if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(
-                SnapshotTime=cdh_utils.parse_pega_date_time_formats()
+                SnapshotTime=cdh_utils.parse_pega_date_time_formats(),
             ).sort("SnapshotTime", "ModelID")
         else:
             df = df.with_columns(pl.col("SnapshotTime").cast(pl.Datetime)).sort(
-                "SnapshotTime", "ModelID"
+                "SnapshotTime",
+                "ModelID",
             )
 
         df = df.with_columns(
             SuccessRate=(pl.col("Positives") / pl.col("ResponseCount")).fill_nan(
-                pl.lit(0)
+                pl.lit(0),
             ),
-            IsUpdated=(
-                (pl.col("ResponseCount").diff(1) != 0)
-                | (pl.col("Positives").diff(1) != 0)
-            )
+            IsUpdated=((pl.col("ResponseCount").diff(1) != 0) | (pl.col("Positives").diff(1) != 0))
             .fill_null(True)
             .over("ModelID"),
         ).with_columns(
-            LastUpdate=pl.when("IsUpdated")
-            .then("SnapshotTime")
-            .forward_fill()
-            .over("ModelID"),
+            LastUpdate=pl.when("IsUpdated").then("SnapshotTime").forward_fill().over("ModelID"),
         )
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        perf_max = df.select(pl.col("Performance").max()).collect().item()
+        if perf_max is not None and perf_max > 1.0:
+            df = df.with_columns(
+                Performance=pl.col("Performance") / 100.0,
+            )
+
         return df
 
     def _validate_predictor_data(
-        self, df: Optional[pl.LazyFrame]
-    ) -> Optional[pl.LazyFrame]:
+        self,
+        df: pl.LazyFrame | None,
+    ) -> pl.LazyFrame | None:
         """Internal method to validate predictor data"""
         if df is None:
             logger.info("No predictor data available.")
@@ -468,33 +489,39 @@ class ADMDatamart:
 
         if "BinResponseCount" not in schema.names():  # pragma: no cover
             df = df.with_columns(
-                BinResponseCount=(pl.col("BinPositives") + pl.col("BinNegatives"))
+                BinResponseCount=(pl.col("BinPositives") + pl.col("BinNegatives")),
             )
         df = df.with_columns(
             BinPropensity=pl.col("BinPositives") / pl.col("BinResponseCount"),
-            BinAdjustedPropensity=(
-                (pl.col("BinPositives") + pl.lit(0.5))
-                / (pl.col("BinResponseCount") + pl.lit(1))
-            ),
+            BinAdjustedPropensity=((pl.col("BinPositives") + pl.lit(0.5)) / (pl.col("BinResponseCount") + pl.lit(1))),
         )
-        if not schema.get("SnapshotTime").is_temporal():  # pl.Datetime
+        snapshot_type = schema.get("SnapshotTime")
+        if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         if "PredictorCategory" not in schema.names():
             df = self.apply_predictor_categorization(
-                df=df
+                df=df,
             )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
+
+        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
+        if "Performance" in df.collect_schema().names():
+            perf_max = df.select(pl.col("Performance").max()).collect().item()
+            if perf_max is not None and perf_max > 1.0:
+                df = df.with_columns(
+                    Performance=pl.col("Performance") / 100.0,
+                )
         return df
 
     def apply_predictor_categorization(
         self,
-        categorization: Union[
-            pl.Expr, Callable[..., pl.Expr], Dict[str, Union[str, List[str]]]
-        ] = cdh_utils.default_predictor_categorization,
+        categorization: pl.Expr
+        | Callable[..., pl.Expr]
+        | dict[str, str | list[str]] = cdh_utils.default_predictor_categorization,
         *,
         use_regexp: bool = False,
-        df: Optional[pl.LazyFrame] = None,
+        df: pl.LazyFrame | None = None,
     ):
         """Apply a new predictor categorization to the datamart tables
 
@@ -510,7 +537,7 @@ class ADMDatamart:
 
         Parameters
         ----------
-        categorization : Union[pl.Expr, Callable[..., pl.Expr], Dict[str, Union[str, List[str]]]]
+        categorization : Union[pl.Expr, Callable[..., pl.Expr], dict[str, Union[str, list[str]]]]
             A Polars Expression (or method that returns one) that returns the
             predictor categories. Should be based on Polars' when.then.otherwise syntax.
             Alternatively can be a dictionary of categories to (list of) string matches
@@ -528,7 +555,7 @@ class ADMDatamart:
             If not provided, applies it over the predictor data and combined datasets.
             By default, None
 
-        See also
+        See Also
         --------
         pdstools.utils.cdh_utils.default_predictor_categorization : The default method
 
@@ -558,13 +585,11 @@ class ADMDatamart:
                     values = [values]
                 for value in values:
                     expr = expr.when(
-                        pl.col("PredictorName")
-                        .cast(pl.Utf8)
-                        .str.contains(value, literal=not use_regexp, strict=False)
+                        pl.col("PredictorName").cast(pl.Utf8).str.contains(value, literal=not use_regexp, strict=False),
                     ).then(pl.lit(key))
             return expr
 
-        categorization_expr: pl.Expr = None
+        categorization_expr: pl.Expr | None = None
         if isinstance(categorization, dict) and len(categorization) > 0:
             categorization_expr = categorization_dict_to_polars_expr(categorization)
         elif callable(categorization):
@@ -583,13 +608,16 @@ class ADMDatamart:
                     .with_columns(NewPredictorCategory=categorization_expr)
                     .with_columns(
                         PredictorCategory=pl.coalesce(
-                            "NewPredictorCategory", "PredictorCategory"
-                        )
+                            "NewPredictorCategory",
+                            "PredictorCategory",
+                        ),
                     )
                     .drop("NewPredictorCategory")
                 )
                 df = df.drop("PredictorCategory").join(
-                    predictor_mapping, on="PredictorName", how="left"
+                    predictor_mapping,
+                    on="PredictorName",
+                    how="left",
                 )
             else:
                 predictor_mapping = (
@@ -610,22 +638,23 @@ class ADMDatamart:
 
     def save_data(
         self,
-        path: Union[os.PathLike, str] = ".",
-        selected_model_ids: Optional[List[str]] = None,
-    ) -> Tuple[Optional[Path], Optional[Path]]:
+        path: os.PathLike | str = ".",
+        selected_model_ids: list[str] | None = None,
+    ) -> tuple[Path | None, Path | None]:
         """Caches model_data and predictor_data to files.
 
         Parameters
         ----------
         path : str
             Where to place the files
-        selected_model_ids : List[str]
+        selected_model_ids : list[str]
             Optional list of model IDs to restrict to
 
         Returns
         -------
         (Optional[Path], Optional[Path]):
             The paths to the model and predictor data files
+
         """
         abs_path = Path(path).resolve()
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
@@ -633,7 +662,9 @@ class ADMDatamart:
         if self.model_data is not None:
             if selected_model_ids is None:
                 modeldata_cache = pega_io.cache_to_file(
-                    self.model_data, abs_path, name=f"cached_model_data_{time}"
+                    self.model_data,
+                    abs_path,
+                    name=f"cached_model_data_{time}",
                 )
             else:
                 modeldata_cache = pega_io.cache_to_file(
@@ -644,12 +675,14 @@ class ADMDatamart:
         if self.predictor_data is not None:
             if selected_model_ids is None:
                 predictordata_cache = pega_io.cache_to_file(
-                    self.predictor_data, abs_path, name=f"cached_predictor_data_{time}"
+                    self.predictor_data,
+                    abs_path,
+                    name=f"cached_predictor_data_{time}",
                 )
             else:
                 predictordata_cache = pega_io.cache_to_file(
                     self.predictor_data.filter(
-                        pl.col("ModelID").is_in(selected_model_ids)
+                        pl.col("ModelID").is_in(selected_model_ids),
                     ),
                     abs_path,
                     name=f"cached_predictor_data_{time}",
@@ -664,9 +697,7 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent
         """
         return set(
-            self.model_data.select(pl.col("Channel").unique().sort()).collect()[
-                "Channel"
-            ]
+            self.model_data.select(pl.col("Channel").unique().sort()).collect()["Channel"],
         )
 
     @cached_property
@@ -676,9 +707,7 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent
         """
         return set(
-            self.model_data.select(pl.col("Configuration").unique())
-            .collect()["Configuration"]
-            .to_list()
+            self.model_data.select(pl.col("Configuration").unique()).collect()["Configuration"].to_list(),
         )
 
     @cached_property
@@ -688,12 +717,10 @@ class ADMDatamart:
         """
         return set(
             self.model_data.select(
-                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
-                .unique()
-                .alias("ChannelDirection")
+                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").unique().alias("ChannelDirection"),
             )
             .collect()["ChannelDirection"]
-            .to_list()
+            .to_list(),
         )
 
     @cached_property
@@ -710,10 +737,10 @@ class ADMDatamart:
                     separator="/",
                 )
                 .unique()
-                .alias("ChannelDirection")
+                .alias("ChannelDirection"),
             )
             .collect()["ChannelDirection"]
-            .to_list()
+            .to_list(),
         )
 
     @cached_property
@@ -724,8 +751,48 @@ class ADMDatamart:
         return set(
             self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
             .filter(pl.col("PredictorCategory").is_not_null())
-            .collect()["PredictorCategory"]
+            .collect()["PredictorCategory"],
         )
+
+    def get_last_data_for_report(self) -> pl.DataFrame:
+        """Get the last snapshot of data formatted for report display.
+
+        This method provides a standardized view of the most recent model data
+        with formatting suitable for Health Check reports and other documents.
+        It handles null values, type conversions, and creates useful combined
+        columns like "Channel/Direction".
+
+        Returns
+        -------
+        pl.DataFrame
+            Collected DataFrame with the following transformations applied:
+            - Categorical columns cast to strings
+            - String and Null columns filled with "NA"
+            - SuccessRate and Performance filled with 0 for nulls/NaNs
+            - ResponseCount filled with 0 for nulls
+            - Channel/Direction combined column created
+
+        Examples
+        --------
+        >>> datamart = ADMDatamart.from_ds_export(model_filename="models.csv")
+        >>> last_data = datamart.get_last_data_for_report()
+        >>> # Use in reports without additional processing
+        >>> active_models = last_data.filter(pl.col("ResponseCount") > 1000)
+        """
+        return (
+            self.aggregates.last()
+            .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+            .with_columns(
+                [
+                    pl.col(pl.Utf8).fill_null("NA"),
+                    pl.col(pl.Null).fill_null("NA"),
+                    pl.col("SuccessRate").fill_nan(0).fill_null(0),
+                    pl.col("Performance").fill_nan(0).fill_null(0),
+                    pl.col("ResponseCount").fill_null(0),
+                    (pl.concat_str("Channel/Direction".split("/"), separator="/")).alias("Channel/Direction"),
+                ]
+            )
+        ).collect()
 
     # min and max score (sum of log odds) per model, plus some extra summary statistics per model
     @classmethod
@@ -750,23 +817,20 @@ class ADMDatamart:
             minMaxScoresPerPredictor.group_by("ModelID", maintain_order=True)
             .agg(
                 nActivePredictors=(pl.col("EntryType") == "Active").sum(),
-                classifierLogOffset=(
-                    1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()
-                ).log()
+                classifierLogOffset=(1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()).log()
                 - (1.0 + pl.col.totalNeg.filter(EntryType="Classifier").first()).log(),
                 sumMinLogOdds=pl.col.logOddsMin.filter(EntryType="Active").sum(),
                 sumMaxLogOdds=pl.col.logOddsMax.filter(EntryType="Active").sum(),
             )
             .with_columns(
-                score_min=(pl.col.classifierLogOffset + pl.col.sumMinLogOdds)
-                / (1 + pl.col.nActivePredictors),
-                score_max=(pl.col.classifierLogOffset + pl.col.sumMaxLogOdds)
-                / (1 + pl.col.nActivePredictors),
+                score_min=(pl.col.classifierLogOffset + pl.col.sumMinLogOdds) / (1 + pl.col.nActivePredictors),
+                score_max=(pl.col.classifierLogOffset + pl.col.sumMaxLogOdds) / (1 + pl.col.nActivePredictors),
             )
         )
 
     def active_ranges(
-        self, model_ids: Optional[Union[str, List[str]]] = None
+        self,
+        model_ids: str | list[str] | None = None,
     ) -> pl.LazyFrame:
         """Calculate the active, reachable bins in classifiers.
 
@@ -784,7 +848,7 @@ class ADMDatamart:
 
         Parameters
         ----------
-        model_ids : Optional[Union[str, List[str]]], optional
+        model_ids : Optional[Union[str, list[str]]], optional
             An optional list of model id's, or just a single one, to report on. When
             not given, the information is returned for all models.
 
@@ -826,12 +890,14 @@ class ADMDatamart:
             # the exact same thing as numpy searchsorted. We could
             # also use python's native bisect but that seems slower.
             return min(
-                max(1, np.searchsorted(bounds, score, side="right").item()), len(bounds)
+                max(1, np.searchsorted(bounds, score, side="right").item()),
+                len(bounds),
             )
 
         def auc_from_active_bins(pos, neg, idx_min, idx_max):
             return cdh_utils.auc_from_bincounts(
-                pos[idx_min:idx_max], neg[idx_min:idx_max]
+                pos[idx_min:idx_max],
+                neg[idx_min:idx_max],
             )
 
         if isinstance(model_ids, str):
@@ -846,14 +912,13 @@ class ADMDatamart:
         # time is null, due to import/export woes. This is problematic
         # for model data but here we just test for it and assume one snapshot.
         most_recent_binning_data = cdh_utils._apply_query(
-            self.predictor_data.filter(
+            self.predictor_data.filter(  # type: ignore[union-attr]
                 (
                     # TODO consider using the "last" function of the aggregates
                     # last("predictor_data") instead of this, but that currently
                     # doesn't do that per Model ID. Probably should.
-                    (pl.col("SnapshotTime").n_unique() == 1)
-                    | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
-                ).over("ModelID")
+                    (pl.col("SnapshotTime").n_unique() == 1) | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+                ).over("ModelID"),
             ),
             query,
             allow_empty=True,
@@ -883,7 +948,8 @@ class ADMDatamart:
                         pl.col("classifierNeg").explode(),
                     ],
                     function=lambda data: cdh_utils.auc_from_bincounts(
-                        data[0], data[1]
+                        data[0],
+                        data[1],
                     ),
                     return_dtype=pl.Float64,
                     returns_scalar=True,

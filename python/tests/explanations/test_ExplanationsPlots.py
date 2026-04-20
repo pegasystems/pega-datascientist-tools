@@ -3,17 +3,19 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import plotly.graph_objects as go
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _DEFAULT, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import _SPECIAL
 from pdstools.explanations.Plots import Plots
 
 basePath = Path(__file__).parent.parent.parent.parent
 
+
 def clean_up(root_dir):
-    _root_dir = Path(f'{basePath}/{root_dir}')
+    _root_dir = Path(f"{basePath}/{root_dir}")
     if _root_dir.exists():
         for file in _root_dir.iterdir():
             if file.is_file():
@@ -23,12 +25,12 @@ def clean_up(root_dir):
                 shutil.rmtree(file)
         _root_dir.rmdir()
 
+
 @pytest.fixture(scope="module")
 def plots():
     """Fixture to serve as class to call functions from."""
-
     explanations = Explanations(
-        data_folder=f'{basePath}/data/explanations',
+        data_folder=f"{basePath}/data/explanations",
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
         to_date=datetime(2025, 3, 28),
@@ -41,7 +43,6 @@ def plots():
 
 def test_plot_context_table():
     """Test the _plot_context_table method."""
-
     mock_context_info = {"key1": "value1", "key2": "value2"}
     fig = Plots._plot_context_table(mock_context_info)
     # Check that the returned object is a plotly Figure
@@ -56,7 +57,6 @@ def test_plot_context_table():
 
 def test_plot_contributions_for_overall_default_params(plots):
     """Test the plot_contributions_for_overall method with default parameters."""
-
     overall_fig, predictors_figs = plots.plot_contributions_for_overall()
 
     # Assertions
@@ -65,13 +65,16 @@ def test_plot_contributions_for_overall_default_params(plots):
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
     # +1 for the remaining bar
-    _assert_fig_bar_data_overall(overall_fig, _DEFAULT.TOP_N.value + 1, check_condition="le")
+    _assert_fig_bar_data_overall(
+        overall_fig,
+        20 + 1,
+        check_condition="le",
+    )
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
 
 
 def test_plot_contributions_for_overall_custom_params(plots):
     """Test the plot_contributions_for_overall method with custom parameters."""
-
     top_n = 2
     top_k = 3
 
@@ -94,37 +97,49 @@ def test_plot_contributions_for_overall_custom_params(plots):
 def test_plot_contributions_for_overall_with_missing_for_age(plots):
     _, predictors_figs = plots.plot_contributions_for_overall()
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "Age", check_missing=True, exists=True
+        predictors_figs,
+        "Age",
+        check_missing=True,
+        exists=True,
     )
 
 
 def test_plot_contributions_for_overall_without_missing_for_age(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(missing=False)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "Age", check_missing=True, exists=False
+        predictors_figs,
+        "Age",
+        check_missing=True,
+        exists=False,
     )
 
 
 def test_plot_contributions_for_overall_with_remaining_for_eyecolor(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(top_k=2, remaining=True)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "EyeColor", check_remaining=True, exists=True
+        predictors_figs,
+        "EyeColor",
+        check_remaining=True,
+        exists=True,
     )
 
 
 def test_plot_contributions_for_overall_without_remaining_for_eyecolor(plots):
     _, predictors_figs = plots.plot_contributions_for_overall(top_k=2, remaining=False)
     _assert_fig_bar_data_predictors_special_bins(
-        predictors_figs, "EyeColor", check_remaining=True, exists=False
+        predictors_figs,
+        "EyeColor",
+        check_remaining=True,
+        exists=False,
     )
+
 
 def test_plot_contributions_for_overall_with_invalid_contribution_type(plots):
     """Test the plot_contributions_for_overall method with an invalid contribution type."""
-
     # Call the method with an invalid contribution type
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_for_overall(
-            contribution_calculation="invalid"
+            sort_by="invalid",
         )
 
 
@@ -138,7 +153,7 @@ def test_plot_contributions_by_context_default_params(plots):
     }
     # Call the method
     header_fig, overall_fig, predictors_figs = plots.plot_contributions_by_context(
-        context=selected_context
+        context=selected_context,
     )
 
     # Assertions
@@ -175,8 +190,9 @@ def test_plot_contributions_by_context_limit_top(plots):
     assert isinstance(predictors_figs, list)
     assert all(isinstance(fig, go.Figure) for fig in predictors_figs)
 
-    _assert_fig_bar_data_overall(overall_fig, 1 , check_condition="gt")
+    _assert_fig_bar_data_overall(overall_fig, 1, check_condition="gt")
     _assert_fig_bar_data_predictors(predictors_figs, 1, check_condition="gt")
+
 
 def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     """Test the plot_contributions_by_context method with an invalid contribution."""
@@ -191,7 +207,7 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
     with pytest.raises(ValueError, match="Invalid contribution type"):
         _, _, _ = plots.plot_contributions_by_context(
             context=selected_context,
-            contribution_calculation="invalid"
+            sort_by="invalid",
         )
 
 
@@ -219,7 +235,10 @@ def _assert_fig_bar_data_predictors_special_bins(
 
 
 def _assert_fig_bar_data_predictors(
-    figs, top_k, check_condition="eq", check_remaining=False
+    figs,
+    top_k,
+    check_condition="eq",
+    check_remaining=False,
 ):
     for fig in figs:
         if _get_predictor_type_from_fig(fig) == "SYMBOLIC":
@@ -232,7 +251,11 @@ def _assert_fig_bar_data_predictors(
 
 
 def _assert_fig_bar_data_overall(
-    fig, y_len, check_condition="eq", check_remaining=False, check_missing=False
+    fig,
+    y_len,
+    check_condition="eq",
+    check_remaining=False,
+    check_missing=False,
 ):
     bar_data = _get_bar_data_from_fig(fig)
 
@@ -263,4 +286,103 @@ def _get_bar_data_from_fig(fig):
 
 
 def _get_predictor_type_from_fig(fig):
-    return _get_bar_data_from_fig(fig).customdata[0]
+    """Extract predictor type from customdata (column index 1)."""
+    return _get_bar_data_from_fig(fig).customdata[0][1]
+
+
+# --- Tests for contributions() dispatcher ---
+
+
+@patch.object(go.Figure, "show")
+def test_contributions_no_context(mock_show, plots):
+    """Test contributions() dispatches to overall when no context selected."""
+    context_plot, plot_list = plots.contributions()
+    assert context_plot is None
+    assert isinstance(plot_list, list)
+    assert all(isinstance(fig, go.Figure) for fig in plot_list)
+    assert mock_show.call_count == len(plot_list)
+
+
+@patch.object(go.Figure, "show")
+def test_contributions_with_context(mock_show, plots):
+    """Test contributions() dispatches to by-context when context selected."""
+    context = {
+        "pyChannel": "PegaBatch",
+        "pyDirection": "E2E Test",
+        "pyGroup": "E2E Test",
+        "pyIssue": "Batch",
+        "pyName": "P1",
+    }
+    with (
+        patch.object(plots.explanations.filter, "is_context_selected", return_value=True),
+        patch.object(plots.explanations.filter, "get_selected_context", return_value=context),
+    ):
+        context_plot, plot_list = plots.contributions()
+
+    assert isinstance(context_plot, go.Figure)
+    assert isinstance(plot_list, list)
+    assert all(isinstance(fig, go.Figure) for fig in plot_list)
+    # context_plot + overall + predictor plots all get .show()
+    assert mock_show.call_count == 1 + len(plot_list)
+
+
+def test_contributions_invalid_sort_by(plots):
+    """Test contributions() validates sort_by parameter."""
+    with pytest.raises(ValueError, match="Invalid contribution type"):
+        plots.contributions(sort_by="invalid")
+
+
+def test_contributions_invalid_display_by(plots):
+    """Test contributions() validates display_by parameter."""
+    with pytest.raises(ValueError, match="Invalid contribution type"):
+        plots.contributions(display_by="invalid")
+
+
+def test_contributions_unknown_kwarg(plots):
+    """Test contributions() rejects unknown filter kwargs."""
+    with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+        plots.contributions(unknown_param=True)
+
+
+def test_plot_contributions_for_overall_unknown_kwarg(plots):
+    """Test plot_contributions_for_overall() rejects unknown filter kwargs."""
+    with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+        plots.plot_contributions_for_overall(unknown_param=True)
+
+
+def test_plot_contributions_for_overall_no_kwargs_uses_defaults(plots):
+    """Calling with no filter kwargs should produce the same structure as passing explicit defaults."""
+    _, figs_no_kwargs = plots.plot_contributions_for_overall()
+    _, figs_explicit = plots.plot_contributions_for_overall(
+        sort_by="contribution_abs",
+        display_by="contribution",
+        descending=True,
+        missing=True,
+        remaining=True,
+        include_numeric_single_bin=False,
+    )
+    # Same number of predictor figures — same set of top predictors selected
+    assert len(figs_no_kwargs) == len(figs_explicit)
+
+
+def test_plot_contributions_for_overall_with_kwargs_overrides_default(plots):
+    """Passing filter kwargs should override the defaults and change the output."""
+    _, figs_default = plots.plot_contributions_for_overall()
+    _, figs_no_remaining = plots.plot_contributions_for_overall(remaining=False)
+    # Without remaining bar the predictor figures should differ
+    assert any(fig_a.to_json() != fig_b.to_json() for fig_a, fig_b in zip(figs_default, figs_no_remaining))
+
+
+def test_plot_contributions_for_overall_include_numeric_single_bin_default(plots):
+    """Default (False) should produce same output as explicit False."""
+    _, figs_default = plots.plot_contributions_for_overall()
+    _, figs_explicit = plots.plot_contributions_for_overall(include_numeric_single_bin=False)
+    assert len(figs_default) == len(figs_explicit)
+
+
+def test_plot_contributions_for_overall_include_numeric_single_bin_true(plots):
+    """Passing include_numeric_single_bin=True should be accepted and may include extra predictors."""
+    _, figs_default = plots.plot_contributions_for_overall()
+    _, figs_with_single = plots.plot_contributions_for_overall(include_numeric_single_bin=True)
+    # With single-bin numerics included, we should get at least as many predictor figures
+    assert len(figs_with_single) >= len(figs_default)

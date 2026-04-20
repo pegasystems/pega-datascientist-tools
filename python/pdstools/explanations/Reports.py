@@ -4,9 +4,10 @@ import logging
 import os
 import shutil
 import subprocess
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (
@@ -14,7 +15,7 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _DEFAULT, _CONTRIBUTION_TYPE
+from .ExplanationsUtils import _CONTRIBUTION_TYPE, _resolve_plot_filter_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class Reports(LazyNamespace):
 
         self.report_foldername = "reports"
         self.report_folderpath = os.path.join(
-            self.explanations.root_dir, self.report_foldername
+            self.explanations.root_dir,
+            self.report_foldername,
         )
         self.report_output_dir = os.path.join(self.report_folderpath, "_site")
 
@@ -43,26 +45,37 @@ class Reports(LazyNamespace):
     def generate(
         self,
         report_filename: str = "explanations_report.zip",
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
-        contribution_calculation: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
+        top_n: int = 20,
+        top_k: int = 20,
         zip_output: bool = False,
-        verbose: bool = False,
+        **filter_kwargs,
     ):
         """Generate the explanations report.
 
-        Args:
-            report_filename (str):
-                Name of the output report file.
-            top_n (int):
-                Number of top explanations to include.
-            top_k (int):
-                Number of top features to include in explanations.
-            zip_output (bool):
-                Whether to zip the output report.
-                The filename will be used as the zip file name.
-            verbose (bool):
-                Whether to print verbose output during report generation.
+        Parameters
+        ----------
+        report_filename : str
+            Name of the output report file.
+        top_n : int
+            Number of top explanations to include.
+        top_k : int
+            Number of top features to include in explanations.
+        zip_output : bool
+            Whether to zip the output report.
+            The filename will be used as the zip file name.
+        **filter_kwargs:
+            Optional filtering and display controls. Valid keys:
+
+            - ``sort_by`` (str): Column to rank/select top predictors.
+              Default: ``"contribution_abs"``.
+            - ``display_by`` (str): Column to use for the report axis values.
+              Default: ``"contribution"``.
+
+        Notes
+        -----
+        Progress and diagnostic information is logged at DEBUG level.
+        Enable debug logging to see detailed report generation steps.
+
         """
         try:
             self.explanations.aggregate.validate_folder()
@@ -70,9 +83,9 @@ class Reports(LazyNamespace):
             logger.error("Validation failed: %s", e)
             raise
 
-        contribution_type = _CONTRIBUTION_TYPE.validate_and_get_type(
-            contribution_calculation
-        )
+        resolved = _resolve_plot_filter_kwargs(**filter_kwargs)
+        validated_display_by = resolved.pop("display_by")
+        validated_sort_by = resolved.pop("sort_by")
 
         self._validate_report_dir()
 
@@ -88,14 +101,14 @@ class Reports(LazyNamespace):
                 top_k=top_k,
                 from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
                 to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
-                contribution_type=contribution_type.value,
-                contribution_text=contribution_type.text,
-                verbose=verbose,
+                sort_by=validated_sort_by,
+                display_by=validated_display_by,
             )
 
         try:
             return_code = run_quarto(
-                temp_dir=self.report_folderpath, verbose=verbose, output_type=None
+                temp_dir=Path(self.report_folderpath),
+                output_type=None,
             )
         except subprocess.CalledProcessError as e:
             logger.error("Quarto command failed: %s", e)
@@ -113,6 +126,7 @@ class Reports(LazyNamespace):
             os.makedirs(self.report_folderpath, exist_ok=True)
 
     def _copy_report_resources(self):
+        logger.debug(f"Copying report resources to {self.report_folderpath}")
         copy_report_resources(
             resource_dict=[
                 ("GlobalExplanations", self.report_folderpath),
@@ -122,23 +136,24 @@ class Reports(LazyNamespace):
 
     def _set_params(
         self,
-        top_n: int = _DEFAULT.TOP_N.value,
-        top_k: int = _DEFAULT.TOP_K.value,
+        top_n: int = 20,
+        top_k: int = 20,
         from_date: str = "",
         to_date: str = "",
-        contribution_type: str = _CONTRIBUTION_TYPE.CONTRIBUTION.value,
-        contribution_text: str = _CONTRIBUTION_TYPE.CONTRIBUTION.text,
-        verbose: bool = False,
+        sort_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS,
+        display_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
     ):
-        params = {}
+        params: dict[str, str | int] = {}
         params["top_n"] = top_n
         params["top_k"] = top_k
         params["from_date"] = from_date
         params["to_date"] = to_date
-        params["contribution_type"] = contribution_type
-        params["contribution_text"] = contribution_text
-        params["verbose"] = verbose
+        params["sort_by"] = sort_by.value
+        params["sort_by_text"] = sort_by.text
+        params["display_by"] = display_by.value
+        params["display_by_text"] = display_by.text
         params["data_folder"] = self.aggregate_folder.name
 
+        logger.debug(f"Writing report parameters to {self.params_file}")
         with open(self.params_file, "w", encoding="utf-8") as file:
             yaml.safe_dump(params, file)

@@ -1,13 +1,16 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs
 
 from ..utils import cdh_utils
+from ..utils.metric_limits import (
+    get_standard_NBAD_channels,
+    is_standard_NBAD_configuration,
+)
 from ..utils.types import QUERY
-from .CDH_Guidelines import CDHGuidelines
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
@@ -16,12 +19,11 @@ if TYPE_CHECKING:  # pragma: no cover
 class Aggregates:
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
-        self.cdh_guidelines = CDHGuidelines()
 
     def last(
         self,
         *,
-        data: Optional[pl.LazyFrame] = None,
+        data: pl.LazyFrame | None = None,
         table: Literal["model_data", "predictor_data", "combined_data"] = "model_data",
     ) -> pl.LazyFrame:
         """Gets the last snapshot of the given table
@@ -39,6 +41,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             A LazyFrame containing only the rows from the most recent snapshot time
+
         """
         if data is None and not hasattr(self.datamart, table):
             raise ValueError(f"{table} not available in the datamart")
@@ -52,12 +55,14 @@ class Aggregates:
             # get written not in bulk but per model? Downside is that
             # very old model IDs that never got used anymore would still show up.
             pl.col("SnapshotTime").fill_null(strategy="zero")
-            == pl.col("SnapshotTime").fill_null(strategy="zero").max()
+            == pl.col("SnapshotTime").fill_null(strategy="zero").max(),
         )
 
     def _combine_data(
-        self, model_df: Optional[pl.LazyFrame], predictor_df: Optional[pl.LazyFrame]
-    ) -> Optional[pl.LazyFrame]:
+        self,
+        model_df: pl.LazyFrame | None,
+        predictor_df: pl.LazyFrame | None,
+    ) -> pl.LazyFrame | None:
         """Combines the model and predictor tables to the `combined_data` attribute
 
         Parameters
@@ -71,6 +76,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             The resulting data, joined on the ModelID column
+
         """
         if model_df is None or predictor_df is None:
             return None
@@ -83,11 +89,11 @@ class Aggregates:
     def predictor_performance_pivot(
         self,
         *,
-        query: Optional[QUERY] = None,
+        query: QUERY | None = None,
         active_only: bool = False,
         by="Name",
-        top_predictors: Optional[int] = None,
-        top_groups: Optional[int] = None,
+        top_predictors: int | None = None,
+        top_groups: int | None = None,
     ) -> pl.LazyFrame:
         """Creates a pivot table of the predictor performance per 'group'
 
@@ -110,18 +116,24 @@ class Aggregates:
         pl.LazyFrame
             A LazyFrame with a column for each predictor, and a row for each 'group'.
             The values represent the weighted performance for that predictor
+
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
-                (pl.col("EntryType") == "Active")
-                if active_only
-                else (pl.col("EntryType") != "Classifier")
+                (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
         )
-        unique_predictors = df.select(pl.col("PredictorName").unique()).collect()[
-            "PredictorName"
-        ]
+        unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
+
+        # Handle case where there are no predictors
+        if len(unique_predictors) == 0:
+            if isinstance(by, str):
+                by_name = by
+            else:
+                by_name = by.meta.output_name()
+            return pl.LazyFrame({by_name: []})
+
         if isinstance(by, str):
             by_col = pl.col(by)
             by_name = by
@@ -129,6 +141,8 @@ class Aggregates:
             by_col = by
             by_name = by.meta.output_name()
         action_predictor = by_col.meta.root_names() + ["PredictorName"]
+
+        # Filter out null values in the grouping column to avoid transpose errors
         q = (
             (
                 df.filter(pl.col("ResponseCount") > 0)
@@ -139,11 +153,15 @@ class Aggregates:
                 .group_by(action_predictor)
                 .agg(
                     cdh_utils.weighted_average_polars(
-                        "PredictorPerformance", "ResponseCountBin"
-                    )
+                        "PredictorPerformance",
+                        "ResponseCountBin",
+                    ),
                 )
             )
-            .group_by(by_col)
+            # Materialize the by_col expression first, then filter nulls
+            .with_columns(by_col)
+            .filter(pl.col(by_name).is_not_null())
+            .group_by(by_name)  # Use by_name since by_col is now materialized
             .agg(
                 [
                     (
@@ -153,16 +171,14 @@ class Aggregates:
                         .alias(predictor)
                     )
                     for predictor in unique_predictors
-                ]
+                ],
             )
             .with_columns(pl.all().exclude(by_name).list.max())
         ).sort(pl.mean_horizontal(pl.all().exclude(by_name)), descending=True)
 
-        column_order = (
-            q.select(pl.all().exclude(by_name).mean())
-            .collect()
-            .transpose(include_header=True)
-        ).sort("column_0", descending=True)["column"]
+        column_order = (q.select(pl.all().exclude(by_name).mean()).collect().transpose(include_header=True)).sort(
+            "column_0", descending=True
+        )["column"]
 
         if top_predictors:
             column_order = column_order.head(top_predictors)
@@ -175,7 +191,9 @@ class Aggregates:
     # should it also have Performance?
 
     def model_summary(
-        self, by: str = "Name", query: Optional[QUERY] = None
+        self,
+        by: str = "Name",
+        query: QUERY | None = None,
     ) -> pl.LazyFrame:
         """Generate a summary of statistic for each model (based on model ID)
 
@@ -194,6 +212,7 @@ class Aggregates:
         -------
         pl.LazyFrame
             A LazyFrame, with one row for each context key combination
+
         """
         df = cdh_utils._apply_query(self.datamart.aggregates.last(), query)
         aggregate_columns = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
@@ -201,11 +220,7 @@ class Aggregates:
         if by != "ModelID" and by not in self.datamart.context_keys:
             raise ValueError("The 'by' column specified should be a context key.")
 
-        group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by) + 1]
-            if by != "ModelID"
-            else by
-        )
+        group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by) + 1] if by != "ModelID" else by
 
         return (
             df.group_by(group_by)
@@ -217,79 +232,21 @@ class Aggregates:
                 pl.col(aggregate_columns).mean().name.suffix("_mean"),
                 Weighted_performance=cdh_utils.weighted_performance_polars(),
                 Weighted_success_rate=cdh_utils.weighted_average_polars(
-                    "SuccessRate", "ResponseCount"
+                    "SuccessRate",
+                    "ResponseCount",
                 ).fill_nan(0.0),
             )
             .with_columns(
-                Percentage_without_responses=(
-                    pl.col("Count_without_responses") / pl.col("count")
-                ).fill_nan(0.0)
+                Percentage_without_responses=(pl.col("Count_without_responses") / pl.col("count")).fill_nan(0.0),
             )
-        )
-
-    # TODO: how is this used? Shouldn't it be just a group-by on predictorname + category ? May need to be refactored a bit
-
-    def predictor_counts(
-        self,
-        *,
-        facet: str = "Configuration",
-        by: str = "Type",
-        query: Optional[QUERY] = None,
-    ) -> pl.LazyFrame:
-        """Returns the count of each predictor grouped by a certain column
-
-        Parameters
-        ----------
-        facet : str, optional
-            The column to use as a secondary grouping dimension, by default "Configuration"
-        by : str, optional
-            The column to group the data by, by default "Type"
-        query : Optional[QUERY], optional
-            A query to apply to the data, by default None
-
-        Returns
-        -------
-        pl.LazyFrame
-            A LazyFrame with one row per predictor and 'by' combination, containing:
-            - Name - The action name
-            - EntryType - The entry type (Active, Inactive, etc.)
-            - by - The column specified in the 'by' parameter
-            - facet - The column specified in the 'facet' parameter
-            - PredictorCount - The number of unique predictors for this combination
-        """
-        df = (
-            cdh_utils._apply_query(
-                self.datamart.aggregates.last(table="combined_data"), query=query
-            )
-            .select("Name", "EntryType", "PredictorName", by, facet)
-            .filter(pl.col("PredictorName") != "Classifier")
-            .group_by(pl.all().exclude("PredictorName"))
-            .agg(PredictorCount=pl.n_unique("PredictorName"))
-        )
-
-        overall = (
-            df.group_by(pl.all().exclude(["PredictorName", by, "PredictorCount"]))
-            .agg(pl.sum("PredictorCount"))
-            .with_columns(pl.lit("Overall").alias(by))
-        )
-
-        # Collect schema once and use it for casting both DataFrames
-        schema = df.collect_schema()
-
-        return (
-            pl.concat([df, overall.select(schema.names()).cast(schema)])
-            .with_columns(
-                pl.col("PredictorCount").cast(pl.Int64), cs.categorical().cast(pl.Utf8)
-            )
-            .sort(["Name", "EntryType", by, facet, "PredictorCount"])
         )
 
     @staticmethod
     def _top_n(
-        df: pl.DataFrame,
+        df: pl.LazyFrame | pl.DataFrame,
         top_n: int,
         metric: str = "PredictorPerformance",
-        facets: Optional[list] = None,
+        facets: list | None = None,
     ):
         """Subsets DataFrame to contain only top_n predictors.
 
@@ -308,25 +265,25 @@ class Aggregates:
         -------
         pl.DataFrame
             Subsetted dataframe
-        """
 
+        """
         if top_n < 1:
             return df
         if facets:
             return df.join(
-                df.group_by(facets + ["PredictorName"])
+                df.group_by(facets + ["PredictorName"])  # type: ignore[arg-type]
                 .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
                 .agg(
-                    pl.col("PredictorName").sort_by(metric, descending=True).head(top_n)
+                    pl.col("PredictorName").sort_by(metric, descending=True).head(top_n),
                 )
                 .explode("PredictorName"),
                 on=(*facets, "PredictorName"),
             )
 
         return df.join(
-            df.group_by("PredictorName")
+            df.group_by("PredictorName")  # type: ignore[arg-type]
             .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
             .filter(pl.col(metric).is_not_nan())
             .sort(metric, descending=True)
@@ -338,51 +295,49 @@ class Aggregates:
     def _adm_model_summary(
         self,
         *,
-        query: Optional[QUERY] = None,
-        by_period: Optional[str],
+        query: QUERY | None = None,
+        every: str | None,
         by_channel: bool = False,
         debug: bool = False,
-        custom_channels: Optional[Dict[str, str]] = None,
+        custom_channels: dict[str, str] | None = None,
     ) -> pl.LazyFrame:
         custom_channels = custom_channels or {}
 
         def name_normalizer(x):
-            return (
-                pl.col(x)
-                .cast(pl.Utf8)
-                .str.replace_all(r"[ \-_]", "")
-                .str.to_uppercase()
-            )
+            return pl.col(x).cast(pl.Utf8).str.replace_all(r"[ \-_]", "").str.to_uppercase()
 
         if self.datamart.model_data is None:
             raise ValueError("Model summaries needs model data")
 
         model_data = cdh_utils._apply_query(
-            self.datamart.model_data, query=query, allow_empty=True
+            self.datamart.model_data,
+            query=query,
+            allow_empty=True,
         )
         grouping = []
 
-        if by_period:
+        if every:
             model_data = model_data.with_columns(
-                pl.col("SnapshotTime").dt.truncate(by_period).alias("Period")
+                pl.col("SnapshotTime").dt.truncate(every).alias("Period"),
             )
             grouping += ["Period"]
 
         if by_channel:
+            standard_channels = get_standard_NBAD_channels()
             channelGroupMapping = (
                 pl.concat(
                     [
                         pl.DataFrame(
                             {
-                                "Channel": self.cdh_guidelines.standard_channels,
-                                "ChannelGroup": self.cdh_guidelines.standard_channels,
-                            }
+                                "Channel": standard_channels,
+                                "ChannelGroup": standard_channels,
+                            },
                         ),
                         pl.DataFrame(
                             {
                                 "Channel": list(custom_channels.keys()),
                                 "ChannelGroup": list(custom_channels.values()),
-                            }
+                            },
                         ),
                     ],
                     how="diagonal",
@@ -401,7 +356,7 @@ class Aggregates:
                     ChannelDirectionGroup=pl.when(
                         pl.col("ChannelGroup").is_not_null()
                         & pl.col("Direction").is_not_null()
-                        & pl.col("ChannelGroup").is_in(["Other", "Unknown", ""]).not_()
+                        & pl.col("ChannelGroup").is_in(["Other", "Unknown", ""]).not_(),
                     )
                     .then(pl.concat_str(["ChannelGroup", "Direction"], separator="/"))
                     .otherwise(pl.lit("Other")),
@@ -409,7 +364,7 @@ class Aggregates:
             )
             grouping += ["Channel", "Direction", "ChannelDirectionGroup"]
 
-        grouping = None if len(grouping) == 0 else grouping
+        grouping = None if len(grouping) == 0 else grouping  # type: ignore[assignment]
 
         return (
             self._summarize_meta_info(grouping, model_data, debug=debug)
@@ -440,7 +395,10 @@ class Aggregates:
         )
 
     def _summarize_meta_info(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: list[str] | None,
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(grouping)
@@ -448,9 +406,7 @@ class Aggregates:
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
                 pl.col("Configuration").cast(pl.Utf8).unique().sort(),
-                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
-                .dt.total_seconds()
-                .alias("Duration"),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min()).dt.total_seconds().alias("Duration"),
             )
             .with_columns(
                 pl.when(pl.col("Duration") == 0)
@@ -462,7 +418,10 @@ class Aggregates:
         )
 
     def _summarize_model_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: list[str] | None,
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(([] if grouping is None else grouping) + ["ModelID"])
@@ -501,18 +460,20 @@ class Aggregates:
                     "Responses Inbound",
                     "Responses Outbound",
                 ),
-                (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
+                (cdh_utils.weighted_performance_polars()).alias("Performance"),
             )
             .with_columns(
                 # applies to totals not delta
-                isValid=(pl.col("TotalPositives") >= 200)
-                & (pl.col("TotalResponseCount") >= 1000),
+                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
 
     def _summarize_action_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
+        self,
+        grouping: list[str] | None,
+        model_data: pl.LazyFrame,
+        debug: bool,
     ) -> pl.LazyFrame:
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
@@ -526,81 +487,45 @@ class Aggregates:
             )
 
         action_summary = (
-            (
-                model_data.group_by(grouping).agg(
-                    (
-                        pl.col("Issue").n_unique()
-                        if "Issue" in self.datamart.context_keys
-                        else pl.lit(0)
-                    ).alias("Issues"),
-                    (
-                        pl.concat_str(["Issue", "Group"], separator="/").n_unique()
-                        if "Issue" in self.datamart.context_keys
-                        and "Group" in self.datamart.context_keys
-                        else pl.lit(0)
-                    ).alias("Groups"),
-                    pl.col("Name").n_unique().alias("Actions"),
-                    pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
-                    pl.col("Name").unique().alias("AllActions"),
-                    MinSnapshotTime=pl.col("SnapshotTime").min(),
-                )
-            )
-            .collect()
-            .lazy()
-        )
-
-        # Dropping the actions that are there from the very beginning would make interpretation rather difficult.
-        # very_first_date = (
-        #     self.datamart.first_action_dates.select(pl.col("FirstSnapshotTime").min())
-        #     .collect()
-        #     .item()
-        # )
-
-        new_action_summary = (
-            (
-                action_summary.select(
-                    ([] if grouping is None else grouping)
-                    + ["AllActions", "MinSnapshotTime"]
-                )
-                .explode("AllActions")
-                .join_where(
-                    self.datamart.first_action_dates,
-                    pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
-                    # may result in multiple rows...
-                )
-                .group_by(grouping)
-                .agg(
-                    pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
-                    # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
-                )
-                .with_columns(
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .alias("NewActionsList"),
-                    pl.col("AllActions")
-                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
-                    .list.len()
-                    .alias("New Actions"),
-                )
-            )
-            .collect()
-            .lazy()
-        )
-
-        action_summary = (
-            action_summary.drop("MinSnapshotTime")
-            .join(
-                new_action_summary.drop("AllActions"),
-                on=("literal" if grouping is None else grouping),
-                how="left",
+            model_data.join(
+                self.datamart.first_action_dates,  # type: ignore[arg-type]
+                on="Name",
                 nulls_equal=True,
             )
-            .with_columns(pl.col("New Actions").fill_null(0))
-            .drop([] if debug else ["NewActionsList", "NewActionsAtOrAfter"])
+            .with_columns(
+                GlobalMinSnapshotTime=pl.col("SnapshotTime").min(),
+                GlobalMaxSnapshotTime=pl.col("SnapshotTime").max(),
+            )
+            .group_by(grouping)
+            .agg(
+                (pl.col("Issue").n_unique() if "Issue" in self.datamart.context_keys else pl.lit(0)).alias("Issues"),
+                (
+                    pl.concat_str(["Issue", "Group"], separator="/").n_unique()
+                    if "Issue" in self.datamart.context_keys and "Group" in self.datamart.context_keys
+                    else pl.lit(0)
+                ).alias("Groups"),
+                pl.col("Name").n_unique().alias("Actions"),
+                pl.col("Name").filter("IsUpdated").n_unique().alias("Used Actions"),
+                pl.col("Name")
+                .filter(
+                    (pl.col("ActionFirstSnapshotTime") >= pl.col("SnapshotTime").min())
+                    & (pl.col("ActionFirstSnapshotTime") <= pl.col("SnapshotTime").max()),
+                    # additional condition to drop first batch but keep it if there's only one batch
+                    # this is complicated, when partitioning by time makes sense, but when doing by
+                    # channel not so much
+                    # & (
+                    #     (pl.col("SnapshotTime").min() > pl.col("GlobalMinSnapshotTime"))
+                    #     | (
+                    #         pl.col("SnapshotTime").max()
+                    #         == pl.col("GlobalMaxSnapshotTime")
+                    #     )
+                    # )
+                )
+                .n_unique()
+                .alias("New Actions"),
+                # All Actions are used for omni-channel calculations
+                pl.col("Name").unique().alias("AllActions"),
+            )
         )
 
         if "Treatment" in self.datamart.context_keys:
@@ -610,25 +535,20 @@ class Aggregates:
                 nulls_equal=True,
                 how="left",
             ).fill_null(0)
-        else:
-            return action_summary.with_columns(
-                pl.lit(0).alias("Treatments"),
-                pl.lit(0).alias("Used Treatments"),
-            ).fill_null(0)
+        return action_summary.with_columns(
+            pl.lit(0).alias("Treatments"),
+            pl.lit(0).alias("Used Treatments"),
+        ).fill_null(0)
 
     def _summarize_model_usage(
         self,
-        grouping: Optional[List[str]],
+        grouping: list[str] | None,
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
         result = model_data.group_by(grouping).agg(
-            self.cdh_guidelines.is_standard_configuration()
-            .any(ignore_nulls=False)
-            .alias("usesNBAD"),
-            (pl.col("ModelTechnique") == "GradientBoost")
-            .any(ignore_nulls=False)
-            .alias("usesAGB"),
+            is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
+            (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
             # For debugging:
             pl.col("ModelTechnique").unique().sort(),
             pl.col("Configuration").unique().sort().alias("Configurations"),
@@ -636,19 +556,19 @@ class Aggregates:
 
         if debug:
             return result
-        else:
-            return result.drop("ModelTechnique", "Configurations")
+        return result.drop("ModelTechnique", "Configurations")
 
     def summary_by_channel(
         self,
         *,
-        query: Optional[QUERY] = None,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
-        custom_channels: Optional[Dict[str, str]] = None,
+        query: QUERY | None = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
+        custom_channels: dict[str, str] | None = None,
         debug: bool = False,
+        format_flags: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
 
@@ -662,12 +582,19 @@ class Aggregates:
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        custom_channels : Dict[str, str], optional
+        custom_channels : dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include diagnostic columns (ResponseCount, Positives) in output.
+            If False, these intermediate calculation columns are dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
+        format_flags : bool, default False
+            If True, format boolean flag columns (usesNBAD, usesAGB) as "Yes"/"No"/"?" strings
+            for display in reports. If False, keeps original boolean/null values.
 
         Returns
         -------
@@ -710,21 +637,24 @@ class Aggregates:
             Technology Usage Indicators:
             - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
-        """
 
+        """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window
+            self.datamart.model_data,  # type: ignore[arg-type]
+            start_date,
+            end_date,
+            window,
         )
 
         if query is None:
             query = pl.col("SnapshotTime").is_between(start_date, end_date)
         else:
-            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query
+            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query  # type: ignore[operator]
 
         summary_by_channel = (
             self._adm_model_summary(
                 query=query,
-                by_period=by_period,
+                every=every,
                 by_channel=True,
                 debug=debug,
                 custom_channels=custom_channels,
@@ -745,7 +675,7 @@ class Aggregates:
 
         omni_channel_summary = (
             summary_by_channel.filter(pl.col("isValid"))
-            .group_by(None if by_period is None else "Period")
+            .group_by(None if every is None else "Period")
             .agg(
                 pl.col("Channel"),
                 pl.col("Direction"),
@@ -756,39 +686,54 @@ class Aggregates:
             # collect/lazy seems to resolve some polars issues
             .collect()
             .lazy()
-            .drop(["literal"] if by_period is None else [])
+            .drop(["literal"] if every is None else [])
             .explode(["Channel", "Direction", "OmniChannel"])
         )
 
-        return (
+        result = (
             summary_by_channel.drop(["AllActions"])
             .join(
                 omni_channel_summary,
-                on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
+                on=([] if every is None else ["Period"]) + ["Channel", "Direction"],
                 nulls_equal=True,
                 how="left",
             )
             .with_columns(
                 cs.categorical().cast(pl.Utf8),
                 pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")).alias(
-                    "ChannelDirection"
+                    "ChannelDirection",
                 ),
             )
             .drop(
-                []
-                if debug
-                else (
-                    ["TotalPositives", "TotalResponseCount"]
-                    + ([] if by_period is None else ["Period"])
-                )
+                [] if debug else (["TotalPositives", "TotalResponseCount"] + ([] if every is None else ["Period"])),
             )
             .sort("Channel", "Direction", "DateRange Min")
             .with_columns(pl.col("OmniChannel").cast(pl.Float64))
         )
 
+        # Format boolean flags as strings if requested
+        if format_flags:
+            result = result.with_columns(
+                [
+                    pl.when(pl.col("usesNBAD").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesNBAD"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("NBAD"),
+                    pl.when(pl.col("usesAGB").is_null())
+                    .then(pl.lit("?"))
+                    .when(pl.col("usesAGB"))
+                    .then(pl.lit("Yes"))
+                    .otherwise(pl.lit("No"))
+                    .alias("AGB"),
+                ]
+            )
+
+        return result
+
     def summary_by_configuration(self) -> pl.LazyFrame:
-        """
-        Generates a summary of the ADM model configurations.
+        """Generates a summary of the ADM model configurations.
 
         This method provides an overview of model configurations, including information about
         the number of models, actions, treatments, and performance metrics.
@@ -822,50 +767,40 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
 
         """
-
         action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
         if "Treatment" in self.datamart.context_keys:
             action_dim_agg += [
-                pl.col("Treatment").n_unique().alias("Unique Treatments")
+                pl.col("Treatment").n_unique().alias("Unique Treatments"),
             ]
         else:
             action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
 
         if "Issue" in self.datamart.context_keys:
             action_dim_agg += [
-                pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)")
+                pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)"),
             ]
 
-        group_by_cols = ["Configuration"] + [
-            c for c in ["Channel", "Direction"] if c in self.datamart.context_keys
-        ]
+        group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
             self.last(table="model_data")
             .group_by(group_by_cols)
             .agg(
-                self.cdh_guidelines.is_standard_configuration()
-                .any(ignore_nulls=False)
-                .alias("usesNBAD"),
-                (pl.col("ModelTechnique") == "GradientBoost")
-                .any(ignore_nulls=False)
-                .alias("usesAGB"),
+                is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
+                (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
                 pl.col("ModelID").n_unique(),
                 *action_dim_agg,
-                pl.sum(["ResponseCount", "Positives"]),
-                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
-                * 100.0,
+                pl.sum("ResponseCount", "Positives"),
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
             )
             .with_columns(
-                (pl.col("ModelID") / pl.col("Actions"))
-                .round(2)
-                .alias("ModelsPerAction"),
+                (pl.col("ModelID") / pl.col("Actions")).round(2).alias("ModelsPerAction"),
             )
             .sort(group_by_cols)
         )
         if "Issue" in self.datamart.context_keys:
             configuration_summary = configuration_summary.with_columns(
-                pl.col("Used for (Issues)").list.unique().list.sort().list.join(", ")
+                pl.col("Used for (Issues)").list.unique().list.sort().list.join(", "),
             )
 
         return configuration_summary
@@ -873,8 +808,7 @@ class Aggregates:
     def predictors_global_overview(
         self,
     ) -> pl.LazyFrame:
-        """
-        Generate a global overview of all predictors across all models.
+        """Generate a global overview of all predictors across all models.
 
         This method provides a summary of predictor performance and characteristics
         across all models, including the number of responses, positives, and performance metrics.
@@ -888,8 +822,8 @@ class Aggregates:
             - Response Count Min/Max - The total number of responses for this predictor
             - Positives - The total number of positive responses for this predictor
             - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
-        """
 
+        """
         data = self.last(table="predictor_data")
 
         global_overview = (
@@ -901,15 +835,12 @@ class Aggregates:
                     # weighted performance
                     pl.min("ResponseCount").alias("Response Count Min"),
                     pl.max("ResponseCount").alias("Response Count Max"),
-                    pl.col("ModelID")
-                    .filter(EntryType="Active")
-                    .n_unique()
-                    .alias("Active in Models"),
+                    pl.col("ModelID").filter(EntryType="Active").n_unique().alias("Active in Models"),
                     (pl.min("Performance") * 100).alias("Min"),
                     (pl.mean("Performance") * 100).alias("Mean"),
                     (pl.median("Performance") * 100).alias("Median"),
                     (pl.max("Performance") * 100).alias("Max"),
-                ]
+                ],
             )
             .sort("PredictorName")
         )
@@ -917,11 +848,10 @@ class Aggregates:
 
     def predictors_overview(
         self,
-        model_id: Optional[str] = None,
-        additional_aggregations: Optional[list] = None,
-    ) -> Optional[pl.LazyFrame]:
-        """
-        Generate a summary of the last snapshot of predictor data.
+        model_id: str | None = None,
+        additional_aggregations: list | None = None,
+    ) -> pl.LazyFrame | None:
+        """Generate a summary of the last snapshot of predictor data.
 
         This method provides an overview of predictor performance and characteristics
         from the most recent snapshot, either for all models or for a specific model.
@@ -961,6 +891,7 @@ class Aggregates:
             - Residual % - The percentage of responses in the RESIDUAL bin
 
             Returns None if the required data is not available or an error is encountered.
+
         """
         try:
             data = self.last(table="predictor_data")
@@ -981,18 +912,14 @@ class Aggregates:
                 pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
                 pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
                 (
-                    pl.col("BinResponseCount")
-                    .filter(pl.col("BinType") == "MISSING")
-                    .sum()
+                    pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum()
                     * 100
                     / pl.sum("BinResponseCount")
                 )
                 .cast(pl.Float64)
                 .alias("Missing %"),
                 (
-                    pl.col("BinResponseCount")
-                    .filter(pl.col("BinType") == "RESIDUAL")
-                    .sum()
+                    pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
                     * 100
                     / pl.sum("BinResponseCount")
                 )
@@ -1017,10 +944,10 @@ class Aggregates:
     def overall_summary(
         self,
         *,
-        start_date: Optional[datetime.datetime] = None,
-        end_date: Optional[datetime.datetime] = None,
-        window: Optional[Union[int, datetime.timedelta]] = None,
-        by_period: Optional[str] = None,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+        window: int | datetime.timedelta | None = None,
+        every: str | None = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
@@ -1033,10 +960,14 @@ class Aggregates:
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
-        by_period : str, optional
+        every : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        debug : bool, optional
-            If True, enables debug mode for additional logging or outputs. Defaults to False.
+        debug : bool, default False
+            If True, include diagnostic columns (ResponseCount, Positives) in output.
+            If False, these intermediate calculation columns are dropped from the results.
+
+            This parameter affects the return value structure, not logging output.
+            For debug logging, use logging.basicConfig(level=logging.DEBUG).
 
         Returns
         -------
@@ -1078,16 +1009,19 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
 
             Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
-        """
 
+        """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window
+            self.datamart.model_data,  # type: ignore[arg-type]
+            start_date,
+            end_date,
+            window,
         )
 
         overall_summary = (
             self._adm_model_summary(
                 query=pl.col("SnapshotTime").is_between(start_date, end_date),
-                by_period=by_period,
+                every=every,
                 by_channel=False,
                 debug=debug,
             )
@@ -1103,12 +1037,12 @@ class Aggregates:
         best_worst_channel_summary = (
             self._adm_model_summary(
                 query=pl.col("SnapshotTime").is_between(start_date, end_date),
-                by_period=by_period,
+                every=every,
                 by_channel=True,
                 debug=True,  # this gives us Period
             )
             .filter(pl.col("isValid"))
-            .group_by(None if by_period is None else "Period")
+            .group_by(None if every is None else "Period")
             .agg(
                 pl.len().alias("Number of Valid Channels"),
                 pl.col("Performance").min().alias("Minimum Channel Performance"),
@@ -1125,12 +1059,12 @@ class Aggregates:
                 .mean()
                 .alias("OmniChannel"),
             )
-            .drop(["literal"] if by_period is None else [])
+            .drop(["literal"] if every is None else [])
             .collect()
             .lazy()
         )
 
-        if by_period is None:
+        if every is None:
             return (
                 pl.concat(
                     [overall_summary, best_worst_channel_summary],
@@ -1143,20 +1077,19 @@ class Aggregates:
                 .drop([] if debug else ["TotalPositives", "TotalResponseCount"])
             )
 
-        else:
-            return (
-                overall_summary.join(
-                    best_worst_channel_summary,
-                    on="Period",
-                    nulls_equal=True,
-                    how="left",
-                )
-                .with_columns(
-                    cs.categorical().cast(pl.Utf8),
-                    pl.col("Number of Valid Channels").fill_null(0),
-                )
-                .sort("DateRange Min")
-                .drop(
-                    [] if debug else ["TotalPositives", "TotalResponseCount", "Period"]
-                )
+        return (
+            overall_summary.join(
+                best_worst_channel_summary,
+                on="Period",
+                nulls_equal=True,
+                how="left",
             )
+            .with_columns(
+                cs.categorical().cast(pl.Utf8),
+                pl.col("Number of Valid Channels").fill_null(0),
+            )
+            .sort("DateRange Min")
+            .drop(
+                [] if debug else ["TotalPositives", "TotalResponseCount", "Period"],
+            )
+        )

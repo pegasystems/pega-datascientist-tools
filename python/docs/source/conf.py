@@ -32,6 +32,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.mathjax",
     "sphinx_copybutton",
+    "sphinx_tabs.tabs",
     "myst_parser",
     "sphinx.ext.intersphinx",
     "sphinxarg.ext",
@@ -52,8 +53,19 @@ toc_object_entries_show_parents = "hide"
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = ["../../pdstools"]
+autoapi_ignore = [
+    "**/app/*",
+    "**/app.py",
+    "**/pdstools/app/**",
+    "**/queries/*",
+    "queries",
+]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
+
+# -- Sphinx-tabs settings ----------------------------------------------------
+sphinx_tabs_valid_builders = ["html", "singlehtml"]
+sphinx_tabs_disable_tab_closing = True
 
 # -- Napoleon settings -------------------------------------------------------
 napoleon_google_docstring = False
@@ -139,10 +151,14 @@ def remove_block_on_tag(block, tags, template):
 
 
 RST_TEMPLATE = remove_block_on_tag(
-    "input", ["remove_cell", "remove_input"], RST_TEMPLATE
+    "input",
+    ["remove_cell", "remove_input"],
+    RST_TEMPLATE,
 )
 RST_TEMPLATE = remove_block_on_tag(
-    "nboutput", ["remove_cell", "remove_output"], RST_TEMPLATE
+    "nboutput",
+    ["remove_cell", "remove_output"],
+    RST_TEMPLATE,
 )
 nbsphinx.RST_TEMPLATE = RST_TEMPLATE
 

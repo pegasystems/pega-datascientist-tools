@@ -1,10 +1,11 @@
-from typing import Dict, List, Literal, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from collections.abc import Callable
 
 import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
 
 from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
-from ...internal._resource import SyncAPIResource
+from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
 
 class TextInput(TypedDict):
@@ -14,7 +15,7 @@ class TextInput(TypedDict):
 
 class FilterAttributes(TypedDict):
     name: str
-    values: List[Dict[Literal["value"], str]]
+    values: list[dict[Literal["value"], str]]
 
 
 class AttributeValue(BaseModel):
@@ -22,30 +23,31 @@ class AttributeValue(BaseModel):
 
 
 class Attribute(BaseModel):
-    values: List[AttributeValue]
+    values: list[AttributeValue]
     name: str
 
 
 class Chunk(BaseModel):
-    attributes: List[Attribute]
+    attributes: list[Attribute]
     content: str
 
 
 class SearchResultValue(BaseModel):
-    chunks: List[Chunk]
+    chunks: list[Chunk]
 
 
 class SearchResult(BaseModel):
     name: str
-    value: Union[Json[SearchResultValue], SearchResultValue, str]
+    value: Json[SearchResultValue] | SearchResultValue | str
 
 
 class BuddyResponse(BaseModel):
     question_id: str = Field(validation_alias=AliasChoices("questionID", "question_id"))
     answer: str
     status: str
-    search_results: Optional[List[SearchResult]] = Field(
-        None, validation_alias=AliasChoices("searchResults", "search_results")
+    search_results: list[SearchResult] | None = Field(
+        None,
+        validation_alias=AliasChoices("searchResults", "search_results"),
     )
 
 
@@ -57,22 +59,36 @@ class NoAPIAccessError(PegaException):
     """You do not have access to the API. Contact the administrator."""
 
 
-class KnowledgeBuddy(SyncAPIResource):
-    def __init__(self, client):
-        super().__init__(client)
-        self.custom_exception_hook = self.custom_exception_hook
+# ---------------------------------------------------------------------------
+# Write-once mixin: business logic defined as async, works for both
+# sync (via @api_method auto-wrapping) and async (native coroutine).
+# ---------------------------------------------------------------------------
 
-    def question(
+
+class _KnowledgeBuddyMixin:
+    """Knowledge Buddy business logic — defined once."""
+
+    # Declared for mypy — provided by SyncAPIResource / AsyncAPIResource at runtime
+    if TYPE_CHECKING:
+        _a_post: Callable[..., Any]
+        _a_put: Callable[..., Any]
+        custom_exception_hook: Callable[..., Exception | None] | None
+
+    def _install_exception_hook(self):
+        self.custom_exception_hook = self._custom_exception_hook
+
+    @api_method
+    async def question(
         self,
         question: str,
         buddy: str,
         include_search_results: bool = False,
-        question_source: Optional[str] = None,
-        question_tag: Optional[str] = None,
-        additional_text_inputs: Optional[List[TextInput]] = None,
-        filter_attributes: Optional[List[FilterAttributes]] = None,
-        user_name: Optional[str] = None,
-        user_email: Optional[str] = None,
+        question_source: str | None = None,
+        question_tag: str | None = None,
+        additional_text_inputs: list[TextInput] | None = None,
+        filter_attributes: list[FilterAttributes] | None = None,
+        user_name: str | None = None,
+        user_email: str | None = None,
     ) -> BuddyResponse:
         """Send a question to the Knowledge Buddy.
 
@@ -94,18 +110,18 @@ class KnowledgeBuddy(SyncAPIResource):
         question_tag: str (Optional)
             Input a tag for the question based on the use case.
             This information can be used for reporting purposes.
-        additional_text_inputs: List[TextInput]: (Optional)
+        additional_text_inputs: list[TextInput]: (Optional)
             Input the search variable values, where key is the search variable name
             and value is the data that replaces the variable.
             Search variables are defined in the Information section of the Knowledge Buddy.
-        filter_attributes: List[FilterAttributes]: (Optional)
+        filter_attributes: list[FilterAttributes]: (Optional)
             Input the filter attributes to get the filtered chunks from the vector database.
             User-defined attributes ingested with content can be used as filters.
             Filters are recommended to improve the semantic search performance.
             Database indexes can be used further to enhance the search.
-        """
 
-        response = self._post(
+        """
+        response = await self._a_post(
             "/prweb/api/knowledgebuddy/v1/question",
             data=dict(
                 question=question,
@@ -121,11 +137,12 @@ class KnowledgeBuddy(SyncAPIResource):
         )
         return BuddyResponse(**response)
 
-    def feedback(
+    @api_method
+    async def feedback(
         self,
         question_id: str,
         helpful: Literal["Yes", "No", "Unsure"] = "Unsure",
-        comments: Optional[str] = None,
+        comments: str | None = None,
     ):
         """Capture feedback for a question asked to the Knowledge Buddy.
 
@@ -138,9 +155,9 @@ class KnowledgeBuddy(SyncAPIResource):
             Empty value defaults to Unsure.
         comments: str (Optional)
             Text of the comment.
-        """
 
-        response = self._put(
+        """
+        response = await self._a_put(
             "/prweb/api/knowledgebuddy/v1/question/feedback",
             data=dict(
                 questionID=question_id,
@@ -150,20 +167,31 @@ class KnowledgeBuddy(SyncAPIResource):
         )
         return response
 
-    def custom_exception_hook(
-        self,
-        base_url: Union[httpx.URL, str],
+    @staticmethod
+    def _custom_exception_hook(
+        base_url: httpx.URL | str,
         endpoint: str,
-        params: Dict,
+        params: dict,
         response: httpx.Response,
-    ) -> Union[None, Exception]:
+    ) -> None | Exception:
         if "Buddy is not available to ask questions." in response.text:
-            return UnavailableBuddyError(base_url, endpoint, params, response)
+            return UnavailableBuddyError(str(base_url), endpoint, params, response)
         if response.status_code == 401 or response.status_code == 403:
-            return NoAPIAccessError(base_url, endpoint, params, response)
-        elif response.status_code == 400:
-            return InvalidInputs(base_url, endpoint, params, response)
-        elif response.status_code == 500:
-            return InternalServerError(base_url, endpoint, params, response)
-        else:
-            return Exception(response.text)
+            return NoAPIAccessError(str(base_url), endpoint, params, response)
+        if response.status_code == 400:
+            return InvalidInputs(str(base_url), endpoint, params, response)
+        if response.status_code == 500:
+            return InternalServerError(str(base_url), endpoint, params, response)
+        return Exception(response.text)
+
+
+class KnowledgeBuddy(_KnowledgeBuddyMixin, SyncAPIResource):
+    def __init__(self, client):
+        super().__init__(client)
+        self._install_exception_hook()
+
+
+class AsyncKnowledgeBuddy(_KnowledgeBuddyMixin, AsyncAPIResource):
+    def __init__(self, client):
+        super().__init__(client)
+        self._install_exception_hook()

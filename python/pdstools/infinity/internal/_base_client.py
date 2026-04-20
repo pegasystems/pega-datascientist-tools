@@ -1,19 +1,14 @@
 import asyncio
-import json
 import logging
 import os
 import warnings
+from collections.abc import Coroutine
 from typing import (
     TYPE_CHECKING,
     Any,
-    Coroutine,
-    Dict,
     Generic,
-    List,
     Literal,
-    Optional,
     TypeVar,
-    Union,
 )
 
 import httpx
@@ -26,24 +21,19 @@ from anyio import (
 from ._auth import PegaOAuth, _read_client_credential_file
 from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
 
-_HttpxClientT = TypeVar("_HttpxClientT", bound=Union[httpx.Client, httpx.AsyncClient])
+_HttpxClientT = TypeVar("_HttpxClientT", bound=httpx.Client | httpx.AsyncClient)
 logger = logging.getLogger(__name__)
 
 ResponseT = TypeVar(
     "ResponseT",
-    bound=Union[
-        object,
-        str,
-        None,
-        List[Any],
-        Dict[str, Any],
-        httpx.Response,
-    ],
+    bound=object | str | None | list[Any] | dict[str, Any] | httpx.Response,
 )
 
 
 async def execute_and_collect(
-    task_coro: Coroutine, results: List, i: int
+    task_coro: Coroutine,
+    results: list,
+    i: int,
 ):  # pragma: no cover
     try:
         result = await task_coro
@@ -53,8 +43,8 @@ async def execute_and_collect(
     results[i] = result
 
 
-async def get_results(tasks: List[Coroutine]) -> List[Any]:  # pragma: no cover
-    results: List[Any] = [None] * len(tasks)
+async def get_results(tasks: list[Coroutine]) -> list[Any]:  # pragma: no cover
+    results: list[Any] = [None] * len(tasks)
 
     async with create_task_group() as tg:
         for i, task in enumerate(tasks):
@@ -69,11 +59,11 @@ class BaseClient(Generic[_HttpxClientT]):
     def __init__(
         self,
         *,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
-        application_name: Optional[str] = None,
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
@@ -92,30 +82,29 @@ class BaseClient(Generic[_HttpxClientT]):
         self,
         method,
         endpoint: str,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
-        data: Union[httpx._types.RequestData, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        data: httpx._types.RequestData | None = None,
         **params,
     ) -> httpx.Request:
         return httpx.Request(
             method,
             url=self._base_url.join(endpoint),
-            content=json.dumps(data) if data else None,
+            json=data,
             headers=headers,
-            params=params,
+            params=params if params else None,
         )
 
     def _get_version(self, repo):
         if len(repo) == 1 and "repository_name" in repo:
             return "24.1"
-        elif "repository_type" in repo:
+        if "repository_type" in repo:
             return "24.2"
-        else:
-            warnings.warn(
-                """Could not infer Pega version automatically.
+        warnings.warn(
+            """Could not infer Pega version automatically.
 For full compatibility, please supply the pega_version argument to the Infinity class.
 """,
-            )
-            return None
+        )
+        return None
 
     @classmethod
     def from_client_id_and_secret(
@@ -123,9 +112,9 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         base_url: str,
         client_id: str,
         client_secret: str,
-        application_name: Optional[str] = None,
+        application_name: str | None = None,
         verify: bool = False,
-        pega_version: Optional[str] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         return cls(
@@ -147,8 +136,8 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         cls,
         file_path: str,
         verify: bool = False,
-        application_name: Optional[str] = None,
-        pega_version: Union[str, None] = None,
+        application_name: str | None = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         creds = _read_client_credential_file(file_path)
@@ -167,13 +156,13 @@ For full compatibility, please supply the pega_version argument to the Infinity 
     @classmethod
     def from_basic_auth(
         cls,
-        base_url: Optional[str] = None,
-        user_name: Optional[str] = None,
-        password: Optional[str] = None,
+        base_url: str | None = None,
+        user_name: str | None = None,
+        password: str | None = None,
         *,
         verify: bool = True,
-        application_name: Optional[str] = None,
-        pega_version: Union[str, None] = None,
+        application_name: str | None = None,
+        pega_version: str | None = None,
         timeout: int = 90,
     ):
         base_url = base_url or os.environ.get("PEGA_BASE_URL")
@@ -186,7 +175,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
                     "base_url, user_name and password directly in `from_basic_auth` ",
                     "or set the PEGA_BASE_URL, PEGA_USERNAME & PEGA_PASSWORD ",
                     "environment variables before running your code. ",
-                )
+                ),
             )
         auth = httpx.BasicAuth(username=user_name, password=password)
         base_url = base_url.rsplit("/prweb")[0]
@@ -205,11 +194,11 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
     def __init__(
         self,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
-        application_name: Optional[str] = None,
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
         timeout: float = 90,
     ):
         super().__init__(
@@ -229,16 +218,15 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         try:
             response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
-        except APIConnectionError as e:
+        except Exception as e:
             if on_error == "warn":
                 print(
-                    "Could not validate connection to the Infinity system. "
-                    "Please check if the system is up."
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
                 )
-            elif on_error == "error":
-                raise e
-            else:
                 return None
+            if on_error == "error":
+                raise e
+            return None
         return self._get_version(response)
 
     def _request(
@@ -246,13 +234,17 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         *,
         method,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         # cast_to: Type[ResponseT], #TODO(someday): implement casting of responses
         **params,
     ) -> httpx.Response:
         request = self._build_request(
-            method, endpoint, data=data, headers=headers, **params
+            method,
+            endpoint,
+            data=data,
+            headers=headers,
+            **params,
         )
         try:
             response = self._client.send(request)
@@ -266,27 +258,43 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
     def handle_pega_exception(self, endpoint, params, response):
         if hasattr(self, "custom_exception_hook"):
-            exception: Optional[Exception] = self.custom_exception_hook(
-                self._base_url, endpoint, params, response
+            exception: Exception | None = self.custom_exception_hook(
+                self._base_url,
+                endpoint,
+                params,
+                response,
             )
             if exception:
                 raise exception
         raise handle_pega_exception(self._base_url, endpoint, params, response)
 
     def request(self, method, endpoint, **params):
-        if method.lower() == "get":
+        method_lower = method.lower()
+        if method_lower == "get":
             return self.get(endpoint=endpoint, **params)
+        if method_lower == "post":
+            return self.post(endpoint=endpoint, **params)
+        if method_lower == "patch":
+            return self.patch(endpoint=endpoint, **params)
+        if method_lower == "put":
+            return self.put(endpoint=endpoint, **params)
+        if method_lower == "delete":
+            return self.delete(endpoint=endpoint, **params)
+        raise ValueError(f"Unsupported HTTP method: {method}")
 
     def get(
         self,
         endpoint: str,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint, params))
 
         response = self._request(
-            method="get", endpoint=endpoint, headers=headers, **params
+            method="get",
+            endpoint=endpoint,
+            headers=headers,
+            **params,
         )
 
         if response.status_code != 200:
@@ -296,13 +304,17 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def post(
         self,
         endpoint: str,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
         response = self._request(
-            method="post", endpoint=endpoint, headers=headers, data=data, **params
+            method="post",
+            endpoint=endpoint,
+            headers=headers,
+            data=data,
+            **params,
         )
         if response.status_code not in (200, 201, 202):
             raise self.handle_pega_exception(endpoint, params, response)
@@ -315,13 +327,17 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def patch(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
         response = self._request(
-            method="patch", endpoint=endpoint, data=data, headers=headers, **params
+            method="patch",
+            endpoint=endpoint,
+            data=data,
+            headers=headers,
+            **params,
         )
         if response.status_code != 200:
             raise self.handle_pega_exception(endpoint, params, response)
@@ -330,23 +346,44 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     def put(
         self,
         endpoint,
-        data: Union[httpx._types.RequestData, None] = None,
-        headers: Union[httpx._types.HeaderTypes, None] = None,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
     ):
         logger.info((self._base_url, endpoint))
         response = self._request(
-            method="put", endpoint=endpoint, data=data, headers=headers, **params
+            method="put",
+            endpoint=endpoint,
+            data=data,
+            headers=headers,
+            **params,
         )
         if response.status_code != 200:
             raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
-    def delete(self):  # pragma: no cover
-        raise NotImplementedError()
+    def delete(
+        self,
+        endpoint,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
+        logger.info((self._base_url, endpoint))
+        response = self._request(
+            method="delete",
+            endpoint=endpoint,
+            headers=headers,
+            **params,
+        )
+        if response.status_code not in (200, 204):
+            raise self.handle_pega_exception(endpoint, params, response)
+        try:
+            return response.json()
+        except Exception:
+            return response
 
     def get_api_list(self):  # pragma: no cover
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class _DefaultAsyncHttpxClient(httpx.AsyncClient):  # pragma: no cover
@@ -381,22 +418,32 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
 
     def __init__(
         self,
-        base_url: Union[str, httpx.URL],
-        auth: Union[httpx.Auth, PegaOAuth],
+        base_url: str | httpx.URL,
+        auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
-        pega_version: Union[str, None] = None,
+        pega_version: str | None = None,
+        timeout: float = 90,
     ):
         super().__init__(
-            base_url=base_url, auth=auth, verify=verify, pega_version=pega_version
+            base_url=base_url,
+            auth=auth,
+            verify=verify,
+            pega_version=pega_version,
         )
         self._client = AsyncHttpxClientWrapper(
-            base_url=self._base_url, auth=auth, verify=verify
+            base_url=self._base_url,
+            auth=auth,
+            verify=verify,
+            timeout=timeout,
         )
+        self.application_name = application_name
 
     def _collect_awaitable_blocking(
-        self, coros: Union[List[Coroutine], Coroutine]
+        self,
+        coros: list[Coroutine] | Coroutine,
     ) -> Any:
-        if not isinstance(coros, List):
+        if not isinstance(coros, list):
             coros = [coros]
         try:
             awaited = run(get_results, coros)
@@ -407,16 +454,23 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             return awaited
         return awaited[0]
 
-    def _infer_version(self):
+    def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         try:
             repo = self._collect_awaitable_blocking(
-                self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
+                self.get("/prweb/api/PredictionStudio/v3/predictions/repository"),
             )
-        except APIConnectionError:
-            print(
-                "Could not validate connection to the Infinity system."
-                "Please check if the system is up."
-            )
+            # _collect_awaitable_blocking stores exceptions as return values
+            # rather than raising them, so we need to re-raise here.
+            if isinstance(repo, Exception):
+                raise repo
+        except Exception as e:
+            if on_error == "warn":
+                print(
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
+                )
+                return None
+            if on_error == "error":
+                raise e
             return None
         return self._get_version(repo)
 
@@ -425,44 +479,153 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         *,
         method,
         endpoint,
-        # cast_to: Type[ResponseT],
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
         **params,
-        # ) -> ResponseT:
     ) -> httpx.Response:
-        request = self._build_request(method, endpoint, **params)
+        request = self._build_request(
+            method,
+            endpoint,
+            data=data,
+            headers=headers,
+            **params,
+        )
 
         try:
             response = await self._client.send(request)
         except httpx.TimeoutException as err:
-            raise APITimeoutError(request=request) from err
+            raise APITimeoutError(request=str(request)) from err
+        except httpx.ConnectError as err:
+            raise Exception(str(err))
         except Exception as err:
-            raise APIConnectionError(request=request) from err
+            raise APIConnectionError(request=str(request)) from err
         return response
 
-    async def request(self, method, endpoint, **params):
-        if method.lower() == "get":
-            return await self.get(endpoint=endpoint, **params)
+    def handle_pega_exception(self, endpoint, params, response):
+        if hasattr(self, "custom_exception_hook"):
+            exception: Exception | None = self.custom_exception_hook(
+                self._base_url,
+                endpoint,
+                params,
+                response,
+            )
+            if exception:
+                raise exception
+        raise handle_pega_exception(self._base_url, endpoint, params, response)
 
-    async def get(self, endpoint: str, **params):
+    async def request(self, method, endpoint, **params):
+        method_lower = method.lower()
+        if method_lower == "get":
+            return await self.get(endpoint=endpoint, **params)
+        if method_lower == "post":
+            return await self.post(endpoint=endpoint, **params)
+        if method_lower == "patch":
+            return await self.patch(endpoint=endpoint, **params)
+        if method_lower == "put":
+            return await self.put(endpoint=endpoint, **params)
+        if method_lower == "delete":
+            return await self.delete(endpoint=endpoint, **params)
+        raise ValueError(f"Unsupported HTTP method: {method}")
+
+    async def get(
+        self,
+        endpoint: str,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
         logger.info((self._base_url, endpoint, params))
 
-        response = await self._request(method="get", endpoint=endpoint, params=params)
+        response = await self._request(
+            method="get",
+            endpoint=endpoint,
+            headers=headers,
+            **params,
+        )
 
         if response.status_code != 200:
-            raise handle_pega_exception(self._base_url, endpoint, params, response)
+            raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
-    def post(self):
-        raise NotImplementedError()
+    async def post(
+        self,
+        endpoint: str,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
+        logger.info((self._base_url, endpoint))
+        response = await self._request(
+            method="post",
+            endpoint=endpoint,
+            headers=headers,
+            data=data,
+            **params,
+        )
+        if response.status_code not in (200, 201, 202):
+            raise self.handle_pega_exception(endpoint, params, response)
 
-    def patch(self):
-        raise NotImplementedError()
+        try:
+            return response.json()
+        except Exception:
+            return response
 
-    def put(self):
-        raise NotImplementedError()
+    async def patch(
+        self,
+        endpoint,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
+        logger.info((self._base_url, endpoint))
+        response = await self._request(
+            method="patch",
+            endpoint=endpoint,
+            data=data,
+            headers=headers,
+            **params,
+        )
+        if response.status_code != 200:
+            raise self.handle_pega_exception(endpoint, params, response)
+        return response.json()
 
-    def delete(self):
-        raise NotImplementedError()
+    async def put(
+        self,
+        endpoint,
+        data: httpx._types.RequestData | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
+        logger.info((self._base_url, endpoint))
+        response = await self._request(
+            method="put",
+            endpoint=endpoint,
+            data=data,
+            headers=headers,
+            **params,
+        )
+        if response.status_code != 200:
+            raise self.handle_pega_exception(endpoint, params, response)
+        return response.json()
 
-    def get_api_list(self):
+    async def delete(
+        self,
+        endpoint,
+        headers: httpx._types.HeaderTypes | None = None,
+        **params,
+    ):
+        logger.info((self._base_url, endpoint))
+        response = await self._request(
+            method="delete",
+            endpoint=endpoint,
+            headers=headers,
+            **params,
+        )
+        if response.status_code not in (200, 204):
+            raise self.handle_pega_exception(endpoint, params, response)
+        try:
+            return response.json()
+        except Exception:
+            return response
+
+    def get_api_list(self):  # pragma: no cover
         raise NotImplementedError()

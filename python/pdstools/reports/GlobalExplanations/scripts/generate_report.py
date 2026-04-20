@@ -1,3 +1,13 @@
+"""Pre-render script for the GlobalExplanations Quarto website project.
+
+This script is executed by Quarto as a pre-render step (configured in _quarto.yml) before the website is built.
+It reads .qmd templates from assets/templates/, substitutes parameter placeholders (e.g. {TOP_N}, {SORT_BY_TYPE})
+with values from params.yml, and writes the final .qmd files that Quarto then renders into the website.
+
+Templates are located in: assets/templates/
+Generated .qmd files are written to the project root for Quarto to render.
+"""
+
 import json
 import os
 import logging
@@ -13,9 +23,11 @@ TOP_N = 20
 TOP_K = 20
 FROM_DATE_DEFAULT = "N/A"
 TO_DATE_DEFAULT = "N/A"
-CONTRIBUTION_TYPE_DEFAULT = "contribution"
-CONTRIBUTION_TEXT_DEFAULT = "average contribution"
-VERBOSE_DEFAULT = False
+SORT_BY_DEFAULT = "contribution_abs"
+SORT_BY_TEXT_DEFAULT = "absolute average contribution"
+DISPLAY_BY_DEFAULT = "contribution"
+DISPLAY_BY_TEXT_DEFAULT = "average contribution"
+
 DATA_FOLDER = "aggregated_data"
 UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
 
@@ -34,6 +46,14 @@ SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
 
 class ReportGenerator:
+    """Quarto pre-render generator for the GlobalExplanations website project.
+    Reads .qmd templates from assets/templates/, substitutes parameter
+    placeholders with values from params.yml, and writes the rendered .qmd
+    files for Quarto to build. Shared configuration (front matter, theme,
+    branding) is inherited from _quarto.yml; templates only contain
+    page-specific content and code cells.
+    """
+
     def __init__(self):
         self.report_folder = os.getcwd()
 
@@ -43,8 +63,10 @@ class ReportGenerator:
         self.top_k = None
         self.from_date = None
         self.to_date = None
-        self.contribution_type = None
-        self.contribution_text = None
+        self.sort_by = None
+        self.sort_by_text = None
+        self.display_by = None
+        self.display_by_text = None
         self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
@@ -57,18 +79,29 @@ class ReportGenerator:
         self._read_params()
 
     def _log_params(self):
-        logger.info(f"""
-Report generation initialized with the following parameters:
-- Aggregations folder: {self.data_folder}
-- Report folder: {self.report_folder}
-- Context folder: {self.by_context_folder}
-- Plots for batch, filepath basename: {self.plots_for_batch_filepath}
-- Top N: {self.top_n}
-- Top K: {self.top_k}
-- From_date: {self.from_date}
-- To_date: {self.to_date}
-- Contribution type: {self.contribution_type}
-        """)
+        logger.debug(
+            "Report generation initialized with the following parameters:\n"
+            "- Aggregations folder: %s\n"
+            "- Report folder: %s\n"
+            "- Context folder: %s\n"
+            "- Plots for batch, filepath basename: %s\n"
+            "- Top N: %s\n"
+            "- Top K: %s\n"
+            "- From_date: %s\n"
+            "- To_date: %s\n"
+            "- Sort by contribution type: %s\n"
+            "- Display by contribution type: %s\n",
+            self.data_folder,
+            self.report_folder,
+            self.by_context_folder,
+            self.plots_for_batch_filepath,
+            self.top_n,
+            self.top_k,
+            self.from_date,
+            self.to_date,
+            self.sort_by,
+            self.display_by,
+        )
 
     def _read_params(self):
         params_file = os.path.join(self.report_folder, "scripts", PARAMS_FILENAME)
@@ -76,61 +109,61 @@ Report generation initialized with the following parameters:
         if not os.path.exists(params_file):
             self.top_n = TOP_N
             self.top_k = TOP_K
-            self.verbose = VERBOSE_DEFAULT
             self.data_folder = DATA_FOLDER
             self.from_date = FROM_DATE_DEFAULT
             self.to_date = TO_DATE_DEFAULT
-            self.contribution_type = CONTRIBUTION_TYPE_DEFAULT
-            self.contribution_text = CONTRIBUTION_TEXT_DEFAULT
+            self.sort_by = SORT_BY_DEFAULT
+            self.sort_by_text = SORT_BY_TEXT_DEFAULT
+            self.display_by = DISPLAY_BY_DEFAULT
+            self.display_by_text = DISPLAY_BY_TEXT_DEFAULT
 
-            logger.info(
-                "Parameters file %s does not exist. Using defaults.", params_file
-            )
+            logger.info("Parameters file %s does not exist. Using defaults.", params_file)
 
         else:
             with open(params_file, "r", encoding=ENCODING) as file:
                 params = yaml.safe_load(file)
                 self.top_n = params.get("top_n", TOP_N)
                 self.top_k = params.get("top_k", TOP_K)
-                self.verbose = params.get("verbose", VERBOSE_DEFAULT)
                 self.data_folder = params.get("data_folder", DATA_FOLDER)
                 self.from_date = params.get("from_date", FROM_DATE_DEFAULT)
                 self.to_date = params.get("to_date", TO_DATE_DEFAULT)
-                self.contribution_type = params.get(
-                    "contribution_type", CONTRIBUTION_TYPE_DEFAULT
-                )
-                self.contribution_text = params.get(
-                    "contribution_text", CONTRIBUTION_TEXT_DEFAULT
-                )
+                self.sort_by = params.get("sort_by", SORT_BY_DEFAULT)
+                self.sort_by_text = params.get("sort_by_text", SORT_BY_TEXT_DEFAULT)
+                self.display_by = params.get("display_by", DISPLAY_BY_DEFAULT)
+                self.display_by_text = params.get("display_by_text", DISPLAY_BY_TEXT_DEFAULT)
 
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
 
-        self.data_folder = os.path.abspath(
-            os.path.join(self.report_folder, "..", self.data_folder)
-        )
+        self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
         logger.info("Using data folder: %s", self.data_folder)
 
-        if self.verbose:
-            self._log_params()
+        self._log_params()
 
     @staticmethod
     def _get_context_dict(context_info: str) -> dict:
         return json.loads(context_info)["partition"]
 
     def _get_context_string(self, context_info: str) -> str:
-        return "-".join(
-            [
-                v.replace(" ", "")
-                for _, v in self._get_context_dict(context_info).items()
-            ]
-        )
+        return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
 
     @staticmethod
     def _read_template(template_filename: str) -> str:
-        """Read a template file and return its content."""
-        with open(
-            f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING
-        ) as fr:
+        """Read a template file and return its content.
+
+        Templates contain placeholder strings (e.g., {ROOT_DIR}, {TOP_N}) that
+        will be substituted with actual values during report generation.
+
+        Parameters
+        ----------
+        template_filename : str
+            Name of the template file in the templates folder
+
+        Returns
+        -------
+        str
+            Template content with placeholders intact
+        """
+        with open(f"{TEMPLATES_FOLDER}/{template_filename}", "r", encoding=ENCODING) as fr:
             return fr.read()
 
     def _write_single_context_file(
@@ -141,6 +174,7 @@ Report generation initialized with the following parameters:
         context_str: str,
         context_label: str,
     ):
+        # template file: context.qmd
         with open(filename, "w", encoding=ENCODING) as fw:
             f_context_template = f"""{
                 template.format(
@@ -148,12 +182,14 @@ Report generation initialized with the following parameters:
                     CONTEXT_STR=context_str,
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
-                    CONTRIBUTION_TEXT=self.contribution_text,
+                    SORT_BY_TEXT=self.sort_by_text,
                 )
             }"""
             fw.write(f_context_template)
 
     def _write_header_to_file(self, file_batch_nb: str, filename: str):
+        # template file: all_context_header.qmd
+
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
         f_template = f"""{
@@ -162,7 +198,7 @@ Report generation initialized with the following parameters:
                 DATA_FOLDER=self.data_folder,
                 DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
                 TOP_N=self.top_n,
-                CONTRIBUTION_TEXT=self.contribution_text,
+                SORT_BY_TEXT=self.sort_by_text,
             )
         }"""
 
@@ -176,6 +212,7 @@ Report generation initialized with the following parameters:
         context_dict: dict,
         context_label: str,
     ):
+        # template file: all_context_content.qmd
         with open(filename, "a", encoding=ENCODING) as writer:
             f_content_template = f"""{
                 template.format(
@@ -183,7 +220,8 @@ Report generation initialized with the following parameters:
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     TOP_K=self.top_k,
-                    CONTRIBUTION_TYPE=self.contribution_type,
+                    SORT_BY=self.sort_by,
+                    DISPLAY_BY=self.display_by,
                 )
             }"""
 
@@ -208,9 +246,7 @@ Report generation initialized with the following parameters:
         contexts = self._get_unique_contexts()
 
         for file_batch_nb, context_batches in contexts.items():
-            plots_for_batch_filepath = (
-                f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
-            )
+            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
 
             # write header
             self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
@@ -240,9 +276,8 @@ Report generation initialized with the following parameters:
                     )
 
     def _generate_overview_qmd(self):
-        with open(
-            f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING
-        ) as fr:
+        # template file: overview.qmd
+        with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         f_template = f"""{
@@ -251,8 +286,9 @@ Report generation initialized with the following parameters:
                 DATA_FOLDER=self.data_folder,
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
-                CONTRIBUTION_TYPE=self.contribution_type,
-                CONTRIBUTION_TEXT=self.contribution_text,
+                SORT_BY=self.sort_by,
+                SORT_BY_TEXT=self.sort_by_text,
+                DISPLAY_BY=self.display_by,
             )
         }
         """
@@ -261,9 +297,8 @@ Report generation initialized with the following parameters:
             f.write(f_template)
 
     def _generate_introduction_qmd(self):
-        with open(
-            f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING
-        ) as fr:
+        # template file: getting-started.qmd
+        with open(f"{TEMPLATES_FOLDER}/{INTRODUCTION_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
         if self.from_date == self.to_date:
@@ -276,7 +311,7 @@ Report generation initialized with the following parameters:
                 TOP_N=self.top_n,
                 TOP_K=self.top_k,
                 DATE_INFO=date_info,
-                CONTRIBUTION_TEXT=self.contribution_text,
+                SORT_BY_TEXT=self.sort_by_text,
                 MODEL_CONTEXT_LIMIT=self.model_context_limit,
             )
         }"""

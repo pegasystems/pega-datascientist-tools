@@ -33,7 +33,7 @@ def test_min_max():
 
 def test_infer_types():
     df = pl.DataFrame(
-        {"col1": [1, 2, 3], "col2": ["a", "b", "c"], "col3": [1.0, 2.0, 3.0]}
+        {"col1": [1, 2, 3], "col2": ["a", "b", "c"], "col3": [1.0, 2.0, 3.0]},
     )
     types = Anonymization._infer_types(df)
     assert types == {"col1": "numeric", "col2": "symbolic", "col3": "numeric"}

@@ -1,184 +1,165 @@
+# python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
-import os
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Optional, List, Tuple
+
 import polars as pl
 
-from .table_definition import TableConfig
+from ..pega_io.File import _is_artifact
+from .column_schema import TableConfig
+from .utils import ColumnResolver
+
+
+# Decision Analyzer specific data reading utilities
+# Core read_data is now in pega_io.File
 
 
 def read_nested_zip_files(file_buffer) -> pl.DataFrame:
-    """
-    Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
-    which are in fact gzipped ndjson files. Extracts, reads, and concatenates
-    them into a single Polars DataFrame.
+    """Read Pega Action Analysis export format (nested archive with gzipped NDJSON).
+
+    Pega's Action Analysis feature exports decision data as a ZIP archive containing
+    multiple inner files with `.zip` extensions. Despite the extension, these inner files
+    are **gzipped NDJSON** (not ZIP archives). This function handles this format by:
+    1. Opening the outer ZIP archive
+    2. Treating each inner `.zip` file as gzipped NDJSON
+    3. Decompressing and concatenating all data into a single DataFrame
+
+    This format is used for high-volume decision event exports where data is partitioned
+    across multiple compressed files.
 
     Parameters
     ----------
-    file_buffer : UploadedFile
-        The uploaded zip file buffer from Streamlit.
+    file_buffer : UploadedFile or BytesIO
+        ZIP archive buffer (e.g., from Streamlit file upload) containing inner
+        gzipped NDJSON files with misleading `.zip` extensions.
 
     Returns
     -------
     pl.DataFrame
-        A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+        Concatenated DataFrame from all inner files, with consistent column ordering.
+
+    Notes
+    -----
+    This is specific to Pega Action Analysis exports. Modern exports may use
+    hive-partitioned parquet directories instead, which can be read with read_data().
+
     """
-    dfs: List[pl.DataFrame] = []
-    columns: List[str] = []
+    dfs: list[pl.DataFrame] = []
+    columns: list[str] = []
 
     with zipfile.ZipFile(file_buffer, "r") as zip_ref:
         for file_name in zip_ref.namelist():
-            if file_name.endswith(".zip") and not file_name.startswith("__MACOSX/._"):
+            if file_name.endswith(".zip") and not _is_artifact(Path(file_name).name):
                 with zip_ref.open(file_name) as f:
                     data = BytesIO(f.read())
                     df = read_gzipped_data(data)
-                    if columns == []:
-                        columns = (
-                            df.columns
-                        )  # Ensures columns in each DataFrame have the same order.
+                    if df is not None and columns == []:
+                        columns = df.collect_schema().names()
                     if df is not None:
                         dfs.append(df.select(columns))
 
     return pl.concat(dfs, rechunk=True)
 
 
-def read_gzipped_data(data: BytesIO) -> Optional[pl.DataFrame]:
-    """
-    Reads gzipped ndjson data from a BytesIO object and returns a Polars DataFrame.
+def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
+    """Read a single gzipped NDJSON chunk from Pega Action Analysis export.
+
+    Helper function for read_nested_zip_files(). Reads one inner file from the
+    Action Analysis export format, decompresses the gzipped content, and parses
+    the NDJSON data.
 
     Parameters
     ----------
     data : BytesIO
-        The gzipped ndjson data.
+        Gzipped NDJSON data (from an inner file in Action Analysis export).
 
     Returns
     -------
-    Optional[pl.DataFrame]
-        The Polars DataFrame containing the data, or None if reading fails.
+    pl.DataFrame | None
+        Polars DataFrame, or None if decompression/parsing fails.
+
+    Notes
+    -----
+    Returns None on errors to allow processing remaining files even if some are corrupted.
+
     """
     try:
         with gzip.open(data, "rb") as file:
             file_content = file.read()
-            return pl.read_ndjson(BytesIO(file_content)).lazy()
+            return pl.read_ndjson(BytesIO(file_content)).lazy()  # type: ignore[return-value]
     except Exception as e:
         print(f"Error reading gzipped data: {e}")
         return None
 
 
-def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
-    """
-    Iterates over all files with a .zip extension in the given directory, treats them
-    as gzipped ndjson files, reads, and concatenates them into a single Polars DataFrame.
+def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
+    """Read directory of Pega Action Analysis gzipped NDJSON files.
+
+    For extracted Action Analysis exports, this function recursively finds all files with
+    `.zip` extension (which are actually gzipped NDJSON, not ZIP archives) and concatenates
+    them into a single DataFrame. Useful when the outer archive has been extracted to disk.
 
     Parameters
     ----------
     path : str
-        The path to the directory containing the .zip files.
+        Path to directory containing gzipped NDJSON files with `.zip` extension
+        (from extracted Action Analysis export).
 
     Returns
     -------
     pl.DataFrame
-        A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
-    """
-    dfs: List[pl.DataFrame] = []
-    columns: List[str] = []
+        Concatenated DataFrame from all files with consistent column ordering.
 
-    # Iterate over all files in the directory
-    for filename in os.listdir(path):
-        if filename.endswith(".zip"):
-            # Construct the full file path
-            file_path = os.path.join(path, filename)
-            # Read the gzipped file
-            with gzip.open(file_path, "rb") as file:
-                file_content = file.read()
-                df = pl.read_ndjson(BytesIO(file_content)).lazy()
-                if columns == []:
-                    columns = df.columns
-                dfs.append(df.select(columns))
+    Notes
+    -----
+    This is specific to Pega Action Analysis exports. For normal data reading
+    (including hive-partitioned directories), use read_data() from pega_io instead.
+
+    """
+    dfs: list[pl.DataFrame] = []
+    columns: list[str] = []
+
+    for file_path in sorted(Path(path).rglob("*.zip")):
+        if any(part.startswith(".") or _is_artifact(part) for part in file_path.parts):
+            continue
+        with gzip.open(file_path, "rb") as file:
+            file_content = file.read()
+            df = pl.read_ndjson(BytesIO(file_content)).lazy()
+            if columns == []:
+                columns = df.columns
+            dfs.append(df.select(columns))  # type: ignore[arg-type]
 
     return pl.concat(dfs, rechunk=True)
 
 
-def read_data(path):
-    original_path = Path(path)  # save the original path
-    extension = None  # Initialize extension to None
-    if original_path.is_dir():
-        # It's a directory, so we assume it's partitioned
-        # Find the depth of the directory structure by finding the maximum number of parts among all files
-        depth = max(
-            len(p.parts) for p in original_path.glob("**/*") if p.is_file()
-        ) - len(original_path.parts)
-        partition_structure = Path("/".join(["*"] * depth))
-        path = (
-            original_path / partition_structure
-        )  # now path points to the partition structure
-        # Assume the first file extension is the same for all files in the directory
-        for dirpath, dirs, files in os.walk(
-            str(original_path)
-        ):  # walk through the original directory
-            for file in files:
-                extension = Path(file).suffix
-                if extension:
-                    break
-            if extension:
-                break
-    else:
-        # It's a file, so we read based on the extension
-        extension = original_path.suffix
-    if extension == ".parquet":
-        df = pl.scan_parquet(path)
-    elif extension == ".csv":
-        df = pl.scan_csv(path)
-    elif extension == ".arrow":
-        df = pl.scan_ipc(path)
-    elif extension in [".ndjson", ".json"]:
-        df = pl.scan_ndjson(path)
-    elif extension == ".zip":
-        df = read_gzips_with_zip_extension(original_path)
-    elif extension is None:
-        raise ValueError("No files found in directory")
-    else:
-        raise ValueError(f"Unsupported file type: {extension}")
-
-    return df
-
-
-# OneDrive seems to be using different paths on different systems even on the same OS. This
-# way we just find the first valid one. Can be used to support other OS-es as well.
-def get_da_data_path():
-    onedrive_da_paths = [
-        Path(p).expanduser()
-        for p in [
-            "~/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/PRD - 1-1 Customer Engagement Alliance - AI Chapter/projects/Decision Analyzer (Insights)",
-            "~/Library/CloudStorage/OneDrive-PegasystemsInc/AI Chapter/projects/Decision Analyzer (Insights)",
-        ]
-        if Path(p).expanduser().exists()
-    ]
-    if len(onedrive_da_paths) == 0:
-        exit("No valid source path")
-    return onedrive_da_paths[0]
+# Note: read_data and helper functions have been moved to pega_io.File for reuse
+# Import them from there: from ..pega_io.File import read_data
 
 
 def validate_columns(
-    df: pl.LazyFrame, extract_type: Dict[str, TableConfig]
-) -> Tuple[bool, Optional[str]]:
-    """
-    Validate that default columns from table definition exist in the dataframe.
+    df: pl.LazyFrame,
+    extract_type: dict[str, TableConfig],
+) -> tuple[bool, str | None]:
+    """Validate that default columns from table definition exist in the dataframe.
+
+    This function checks if required columns exist in the data, accounting for
+    the fact that columns may be present under either their source name or
+    their target label name.
 
     Args:
         df: The dataframe to validate
         extract_type: Table configuration mapping column names to their properties
 
     Returns:
-        Tuple containing validation success (bool) and error message (str or None)
+        tuple containing validation success (bool) and error message (str or None)
+
     """
-    existing_columns = df.collect_schema().names()
-    default_columns = [
-        col for col, properties in extract_type.items() if properties["default"]
-    ]
-    missing_columns = [col for col in default_columns if col not in existing_columns]
+    resolver = ColumnResolver(
+        table_definition=extract_type,
+        raw_columns=set(df.collect_schema().names()),
+    )
+    missing_columns = resolver.get_missing_columns()
 
     if missing_columns:
         return (

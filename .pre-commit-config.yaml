@@ -4,13 +4,14 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
+        exclude: '\.csv$'
       - id: check-yaml
       - id: check-added-large-files
         exclude: 'uv.lock'
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.7.1
+    rev: v0.15.2
     hooks:
       # Run the linter.
       - id: ruff

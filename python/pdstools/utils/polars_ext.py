@@ -3,7 +3,7 @@ import polars as pl
 
 @pl.api.register_lazyframe_namespace("pdstools")
 class Sample:
-    def __init__(self, ldf: pl.LazyFrame) -> pl.LazyFrame:
+    def __init__(self, ldf: pl.LazyFrame) -> None:
         self._ldf = ldf
 
     def sample(self, n):
@@ -15,16 +15,15 @@ class Sample:
             s_len = s.len()
             if s_len < n:
                 return pl.Series(values=[True] * s_len, dtype=pl.Boolean)
-            else:
-                return pl.Series(
-                    values=np.random.binomial(1, n / s_len, s_len),
-                    dtype=pl.Boolean,
-                )
+            return pl.Series(
+                values=np.random.binomial(1, n / s_len, s_len),
+                dtype=pl.Boolean,
+            )
 
         func = partial(sample_it, n=n)
         return (
             self._ldf.with_columns(
-                pl.first().map_batches(func, return_dtype=pl.Boolean).alias("_sample")
+                pl.first().map_batches(func, return_dtype=pl.Boolean).alias("_sample"),
             )
             .filter(pl.col("_sample"))
             .drop("_sample")

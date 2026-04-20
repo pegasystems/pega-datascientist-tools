@@ -1,0 +1,26 @@
+name: "CodeQL Config"
+
+# Exclude non-production code from security scanning
+paths-ignore:
+  - "python/tests/**"
+  - "examples/**"
+  - "**/*_test.py"
+  - "**/*_tests.py"
+  - "**/test_*.py"
+  - "**/*.ipynb"
+  - "**/conftest.py"
+  - "python/pdstools/docs/**"
+  - "python/pdstools/reports/.quarto/**"
+  - "**/temp_*.py"
+  - "**/tmp_*.py"
+  - "**/*_temp.py"
+  - "**/investigate_*.py"
+  - "**/verify_*.py"
+  - "**/test_*.py"
+  - "**/quick_test.py"
+  - "**/final_test.py"
+  - "**/examine_*.py"
+
+# Only scan production code
+paths:
+  - "python/pdstools/**"

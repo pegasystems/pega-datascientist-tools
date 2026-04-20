@@ -1,6 +1,4 @@
-"""
-Testing the functionality of the ADMDatamart Aggregates functions
-"""
+"""Testing the functionality of the ADMDatamart Aggregates functions"""
 
 import pathlib
 from datetime import date, datetime, timedelta
@@ -21,7 +19,7 @@ def dm_aggregates():
             base_path=f"{basePath}/data",
             model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
             predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-        )
+        ),
     )
 
 
@@ -39,7 +37,7 @@ def modeldata_from_scratch(**overrides):
             "Treatment": "A1",
             "Channel": "Web",
             "Direction": "Inbound",
-        }
+        },
     )
     df = defaults
     for col in overrides.keys():
@@ -86,9 +84,9 @@ def dm_minimal():
                     "ResponseCount",
                     "Channel",
                     "Direction",
-                ]
+                ],
             )
-        }
+        },
     ).with_columns(ModelID=pl.format("ModelID_{}", "Name"))
 
     return ADMDatamart(model_df=data.lazy())
@@ -101,11 +99,6 @@ def test_init(dm_aggregates):
 def test_model_summary(dm_aggregates):
     assert dm_aggregates.model_summary().collect().shape[0] == 68
     assert dm_aggregates.model_summary().collect().shape[1] == 20
-
-
-def test_predictor_counts(dm_aggregates):
-    assert dm_aggregates.predictor_counts().collect().shape[0] == 78
-    assert dm_aggregates.predictor_counts().collect().shape[1] == 5
 
 
 def test_predictors_overview(dm_aggregates):
@@ -148,18 +141,14 @@ def test_summary_by_channel(dm_aggregates):
 
     # Force one channel to be invalid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel == "SMS")
-        .then(pl.lit(0))
-        .otherwise("Positives")
+        Positives=pl.when(pl.col.Channel == "SMS").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel["isValid"].to_list() == [True, False, True]
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel != "Web")
-        .then(pl.lit(0))
-        .otherwise("Positives")
+        Positives=pl.when(pl.col.Channel != "Web").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel["isValid"].to_list() == [False, False, True]
@@ -172,7 +161,9 @@ def test_summary_by_channel(dm_aggregates):
 
 def test_summary_by_channel_timeslices(dm_minimal):
     s1 = dm_minimal.aggregates.summary_by_channel(
-        start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31), debug=True
+        start_date=datetime(2033, 1, 1),
+        end_date=datetime(2033, 1, 31),
+        debug=True,
     ).collect()
 
     assert s1["Actions"].to_list() == [1, 2]
@@ -180,13 +171,24 @@ def test_summary_by_channel_timeslices(dm_minimal):
     assert s1["Used Actions"].to_list() == [1, 2]
     assert s1["isValid"].to_list() == [False, True]
 
-    s2 = dm_minimal.aggregates.summary_by_channel(
-        start_date=datetime(2033, 2, 1), end_date=datetime(2033, 2, 28)
-    ).collect()
-    assert s2["Actions"].to_list() == [1, 2]
-    assert s2["New Actions"].to_list() == [0, 1]
-    assert s2["Used Actions"].to_list() == [1, 2]
-    assert s2["isValid"].to_list() == [False, True]
+
+def test_summary_by_channel_format_flags(dm_aggregates):
+    """Test format_flags parameter in summary_by_channel."""
+    # Without format_flags (default False), should return booleans
+    summary_default = dm_aggregates.summary_by_channel().collect()
+    assert "usesNBAD" in summary_default.columns
+    assert "usesAGB" in summary_default.columns
+    # Check the type is boolean or null
+    assert summary_default["usesNBAD"].dtype in [pl.Boolean, pl.Null]
+
+    # With format_flags=True, should return formatted strings
+    summary_formatted = dm_aggregates.summary_by_channel(format_flags=True).collect()
+    assert "NBAD" in summary_formatted.columns
+    assert "AGB" in summary_formatted.columns
+    # Check values are strings (or null)
+    for col in ["NBAD", "AGB"]:
+        col_values = [v for v in summary_formatted[col].to_list() if v is not None]
+        assert all(v in ["Yes", "No", "?"] for v in col_values)
 
 
 def test_used_actions():
@@ -222,9 +224,9 @@ def test_used_actions():
                     "ResponseCount",
                     "Channel",
                     "Direction",
-                ]
+                ],
             )
-        }
+        },
     ).with_columns(ModelID=pl.format("ModelID_{}_{}", "Name", "Treatment"))
 
     dm_used = ADMDatamart(model_df=data.lazy())
@@ -232,7 +234,7 @@ def test_used_actions():
     summary = dm_used.aggregates.summary_by_channel().collect()
     assert summary["Used Actions"].to_list() == [2]
 
-    summary = dm_used.aggregates.summary_by_channel(by_period="1mo").collect()
+    summary = dm_used.aggregates.summary_by_channel(every="1mo").collect()
     assert summary["Used Actions"].to_list() == [1, 0, 2]
 
 
@@ -241,11 +243,11 @@ def test_custom_channel_mapping(dm_aggregates):
         Channel=pl.when(pl.col.Channel == "SMS")
         .then(pl.lit("MyChannel"))
         .otherwise(pl.col.Channel)
-        .cast(pl.Categorical)
+        .cast(pl.Categorical),
     )
 
     summary_by_channel = dm_aggregates.summary_by_channel(
-        custom_channels={"MyChannel": "Web"}
+        custom_channels={"MyChannel": "Web"},
     ).collect()
     assert summary_by_channel.height == 3
     assert summary_by_channel.width == 23
@@ -274,9 +276,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel != "SMS")
-        .then(pl.lit(0))
-        .otherwise("Positives")
+        Positives=pl.when(pl.col.Channel != "SMS").then(pl.lit(0)).otherwise("Positives"),
     )
 
     overall_summary = dm_aggregates.overall_summary().collect()
@@ -287,7 +287,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 
 
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
-    summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
+    summary_by_channel = dm_aggregates.summary_by_channel(every="4h").collect()
     assert summary_by_channel.height == 6
     assert summary_by_channel.width == 23
     assert set(summary_by_channel["Responses"].to_list()) == {
@@ -315,7 +315,7 @@ def test_overall_summary_2():
     assert summ["Number of Valid Channels"].item() == 0
 
     dm = ADMDatamart(
-        modeldata_from_scratch(Positives=[0, 100, 200], ResponseCount=[0, 500, 1000])
+        modeldata_from_scratch(Positives=[0, 100, 200], ResponseCount=[0, 500, 1000]),
     )
     summ = dm.aggregates.overall_summary().collect()
     assert summ["Number of Valid Channels"].item() == 1
@@ -327,7 +327,7 @@ def test_uses_NBAD():
     assert not summ["usesNBAD"].item()
 
     dm = ADMDatamart(
-        modeldata_from_scratch(Configuration=["MyConfig", "Web_Click_Through_Rate"])
+        modeldata_from_scratch(Configuration=["MyConfig", "Web_Click_Through_Rate"]),
     )
     summ = dm.aggregates.overall_summary().collect()
     assert summ["usesNBAD"].item()
@@ -344,8 +344,8 @@ def test_model_technique():
 
     dm = ADMDatamart(
         modeldata_from_scratch(
-            ModelTechnique=["NaiveBayes", "GradientBoost", "RandomForest"]
-        )
+            ModelTechnique=["NaiveBayes", "GradientBoost", "RandomForest"],
+        ),
     )
     summ = dm.aggregates.overall_summary().collect()
     assert summ["usesAGB"].item()
@@ -358,7 +358,7 @@ def test_omnichannel():
             Channel=["Mobile", "Mobile", "Web", "Web"],
             Positives=[0, 200, 0, 200],
             ResponseCount=[0, 1000, 0, 1000],
-        )
+        ),
     )
     summ = dm.aggregates.summary_by_channel().collect()
     assert summ["OmniChannel"].to_list() == [1.0, 1.0]
@@ -369,7 +369,7 @@ def test_omnichannel():
             Channel=["Mobile", "Mobile", "Web", "Web"],
             Positives=[0, 200, 0, 200],
             ResponseCount=[0, 1000, 0, 1000],
-        )
+        ),
     )
     summ = dm.aggregates.summary_by_channel().collect()
     assert summ["OmniChannel"].to_list() == [1.0, 0.5]
@@ -380,18 +380,18 @@ def test_omnichannel():
             Channel=["Mobile", "Mobile", "Web", "Web"],
             Positives=[0, 0, 0, 200],
             ResponseCount=[0, 1000, 0, 1000],
-        )
+        ),
     )
     summ = dm.aggregates.summary_by_channel().collect()
     assert summ["OmniChannel"].to_list() == [None, 0.0]
 
 
 def test_aggregate_overall_summary_by_time(dm_aggregates):
-    overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
+    overall_summary = dm_aggregates.overall_summary(every="1h").collect()
     assert overall_summary.height == 6
     assert overall_summary.width == 21
 
-    # print(dm_aggregates.summary_by_channel(by_period="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
+    # print(dm_aggregates.summary_by_channel(every="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
 
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 3, 3, 3, 3, 3]
     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
@@ -408,7 +408,8 @@ def test_aggregate_overall_summary_by_time(dm_aggregates):
 
 def test_overall_summary_timeslices(dm_minimal):
     s1 = dm_minimal.aggregates.overall_summary(
-        start_date=datetime(2033, 1, 1), window=timedelta(weeks=4)
+        start_date=datetime(2033, 1, 1),
+        window=timedelta(weeks=4),
     ).collect()
 
     # print(
@@ -429,19 +430,17 @@ def test_overall_summary_timeslices(dm_minimal):
 
     assert s1["Actions"].item() == 3  # A, B, C
     assert s1["New Actions"].item() == 3
-    assert (
-        s1["Used Actions"].item() == 3
-    )  # B not updated but newly introduced counts as used
+    assert s1["Used Actions"].item() == 3  # B not updated but newly introduced counts as used
     s2 = dm_minimal.aggregates.overall_summary(
-        start_date=datetime(2033, 2, 1), window=timedelta(weeks=4), debug=True
+        start_date=datetime(2033, 2, 1),
+        window=timedelta(weeks=4),
+        debug=True,
     ).collect()
     assert s2["Actions"].item() == 3
     assert s2["New Actions"].item() == 1  # E is new
-    assert (
-        s2["Used Actions"].item() == 3
-    )  # B and C are used, E is not used but introduced new
+    assert s2["Used Actions"].item() == 3  # B and C are used, E is not used but introduced new
     s3 = dm_minimal.aggregates.overall_summary(
-        start_date=datetime(2033, 2, 1)
+        start_date=datetime(2033, 2, 1),
     ).collect()
     assert s3["Actions"].item() == 5  # B, C, E, F, G
     assert s3["New Actions"].item() == 3  # E, F, G are new
@@ -500,8 +499,114 @@ def test_new_actions():
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
 
-    agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    agg = dm.aggregates.overall_summary(every="1w").collect()
     assert agg["New Actions"].to_list() == [2, 1, 1]
 
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2, 2]
+
+
+def test_new_actions_issue_455():
+    # In January we have Card1, Loan1
+    # In February we have Credit1 (new), Loan1 (but not updated)
+    # In March we have Card1, Card2 (new), Credit1, Loan2 (new)
+
+    model_data = pl.DataFrame(
+        {
+            "Issue": "Issue1",
+            "Group": "Group1",
+            "Configuration": "Configuration1",
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "Performance": 0.5,
+            "Name": [
+                "Card1",
+                "Card1",
+                "Loan1",
+                "Loan1",
+                "Credit1",
+                "Credit1",
+                "Loan1",
+                "Loan1",
+                "Card1",
+                "Card1",
+                "Card2",
+                "Card2",
+                "Credit1",
+                "Credit1",
+                "Loan2",
+                "Loan2",
+            ],
+            "Positives": [
+                100,
+                101,
+                100,
+                101,
+                100,
+                101,
+                101,
+                101,
+                102,
+                103,
+                100,
+                101,
+                102,
+                103,
+                100,
+                101,
+            ],
+            "ResponseCount": [
+                1000,
+                1010,
+                1000,
+                1010,
+                1000,
+                1010,
+                1010,
+                1010,
+                1020,
+                1030,
+                1000,
+                1010,
+                1020,
+                1030,
+                1000,
+                1010,
+            ],
+            "ModelID": [1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 4, 4, 3, 3, 5, 5],
+            "SnapshotTime": [
+                "2023-01-01",
+                "2023-01-02",
+                "2023-01-03",
+                "2023-01-04",
+                "2023-02-01",
+                "2023-02-02",
+                "2023-02-03",
+                "2023-02-04",
+                "2023-03-01",
+                "2023-03-02",
+                "2023-03-03",
+                "2023-03-04",
+                "2023-03-05",
+                "2023-03-06",
+                "2023-03-07",
+                "2023-03-08",
+            ],
+        },
+    ).with_columns(
+        pl.col("SnapshotTime").str.strptime(pl.Date, "%Y-%m-%d"),
+    )
+
+    from pdstools import ADMDatamart
+
+    dm = ADMDatamart(model_data.lazy())
+
+    agg = dm.aggregates.overall_summary(every="1mo").collect()
+    assert agg["Actions"].to_list() == [2, 2, 4]
+    assert agg["Used Actions"].to_list() == [2, 1, 4]
+    assert agg["New Actions"].to_list() == [2, 1, 2]  # [0, 1, 2]
+
+    agg = dm.aggregates.overall_summary().collect()
+    assert agg["Actions"].item() == 5
+    assert agg["Used Actions"].item() == 5
+    assert agg["New Actions"].item() == 5

@@ -78,14 +78,14 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
           BRANCH_NAME="release/V$NEW_VERSION"
-          
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           # Delete branch if it exists locally or remotely
           git branch -D "$BRANCH_NAME" 2>/dev/null || true
           git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
-          
+
           git checkout -b "$BRANCH_NAME"
           git add python/pdstools/__init__.py
           git commit -m "Bump version to $NEW_VERSION"
@@ -114,7 +114,7 @@ jobs:
             --body "$PR_BODY" \
             --base master \
             --head $BRANCH_NAME
-          
+
           echo "✅ PR created successfully"
           echo "✅ Tests will run automatically on the release branch"
 
@@ -123,14 +123,14 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
           BRANCH_NAME="release/V$NEW_VERSION"
-          
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           # Delete branch if it exists locally or remotely
           git branch -D "$BRANCH_NAME" 2>/dev/null || true
           git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
-          
+
           git checkout -b "$BRANCH_NAME"
           git add python/pdstools/__init__.py
           git commit -m "Bump version to $NEW_VERSION"
@@ -163,7 +163,7 @@ jobs:
             --body "$PR_BODY" \
             --base master \
             --head $BRANCH_NAME
-          
+
           echo "✅ PR created successfully"
           echo "✅ Tests will run automatically on the release branch"
 

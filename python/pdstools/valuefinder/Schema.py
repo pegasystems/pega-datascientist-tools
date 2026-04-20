@@ -14,7 +14,7 @@ class pyValueFinder:
             "Applicability",
             "Suitability",
             "Arbitration",
-        ]
+        ],
     )
     pxRank = pl.UInt16
     pxPriority = pl.Float64

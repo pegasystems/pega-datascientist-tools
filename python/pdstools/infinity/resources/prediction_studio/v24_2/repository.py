@@ -1,7 +1,10 @@
 from ..v24_1 import Repository as RepositoryPrevious
+from ..v24_1.repository import AsyncRepository as AsyncRepositoryPrevious
 
 
-class Repository(RepositoryPrevious):
+class _RepositoryV24_2Mixin:
+    """v24.2 Repository data — defined once."""
+
     def __init__(
         self,
         client,
@@ -20,3 +23,11 @@ class Repository(RepositoryPrevious):
     @property
     def s3_url(self):  # TODO: implement
         return "s3://test"
+
+
+class Repository(_RepositoryV24_2Mixin, RepositoryPrevious):
+    pass
+
+
+class AsyncRepository(_RepositoryV24_2Mixin, AsyncRepositoryPrevious):
+    pass

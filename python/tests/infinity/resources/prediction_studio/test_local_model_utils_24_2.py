@@ -1,21 +1,13 @@
 import re
 
-import polars as pl
 # Compatibility patches
 import onnx
-if not hasattr(onnx, 'mapping') and hasattr(onnx, '_mapping'):
+import polars as pl
+
+if not hasattr(onnx, "mapping") and hasattr(onnx, "_mapping"):
     onnx.mapping = onnx._mapping
 
 import pytest
-from pydantic import ValidationError
-from skl2onnx.common.data_types import FloatTensorType
-from sklearn.compose import ColumnTransformer
-from sklearn.datasets import load_diabetes, load_iris
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-
 from pdstools.infinity.resources.prediction_studio.local_model_utils import (
     Metadata,
     ONNXModel,
@@ -24,6 +16,14 @@ from pdstools.infinity.resources.prediction_studio.local_model_utils import (
     OutcomeType,
     Output,
 )
+from pydantic import ValidationError
+from skl2onnx.common.data_types import FloatTensorType
+from sklearn.compose import ColumnTransformer
+from sklearn.datasets import load_diabetes, load_iris
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def get_regression_pipeline():
@@ -40,10 +40,10 @@ def get_classification_onnx_model():
     cleaned_names = [re.sub(r"\W+", "_", name) for name in iris.feature_names]
     X_df = pl.DataFrame(X, cleaned_names)
     preprocessor = ColumnTransformer(
-        transformers=[("num", StandardScaler(), cleaned_names)]
+        transformers=[("num", StandardScaler(), cleaned_names)],
     )
     pipeline = Pipeline(
-        [("preprocessor", preprocessor), ("regressor", RandomForestClassifier())]
+        [("preprocessor", preprocessor), ("regressor", RandomForestClassifier())],
     )
     pipeline.fit(X_df, y)
     initial_types = [(col, FloatTensorType([None, 1])) for col in cleaned_names]
@@ -56,7 +56,7 @@ def get_classification_onnx_model():
         ),
     )
     return ONNXModel.from_sklearn_pipeline(pipeline, initial_types).add_metadata(
-        metadata
+        metadata,
     ), X_df.head(1)
 
 
@@ -105,14 +105,12 @@ def test_onnx_creation_fails():
                     }
                 }
             """),
-        )
+        ),
     ],
 )
 def test_validate_regression_onnx_model(model, initial_types, metadata):
     assert (
-        ONNXModel.from_sklearn_pipeline(model=model, initial_types=initial_types)
-        .add_metadata(metadata)
-        .validate()
+        ONNXModel.from_sklearn_pipeline(model=model, initial_types=initial_types).add_metadata(metadata).validate()
         is True
     )
 
@@ -124,7 +122,8 @@ def test_validate_regression_onnx_model(model, initial_types, metadata):
 def test_validate_onnx_model_without_metadata(model, initial_types):
     with pytest.raises(ONNXModelValidationError):
         ONNXModel.from_sklearn_pipeline(
-            model=model, initial_types=initial_types
+            model=model,
+            initial_types=initial_types,
         ).validate()
 
 
@@ -298,5 +297,6 @@ def test_onnx_metadata_creation(metadata):
 def test_validate_onnx_model_with_invalid_metadata(model, initial_types, metadata):
     with pytest.raises(ONNXModelValidationError):
         ONNXModel.from_sklearn_pipeline(
-            model=model, initial_types=initial_types
+            model=model,
+            initial_types=initial_types,
         ).add_metadata(metadata).validate()

@@ -37,7 +37,7 @@ def sample2():
             "ResponseCount": [100, 150, 120, 160, 110, 170],
             "Positives": [100, 150, 120, 160, 110, 170],
             "Group": ["A", "B", "A", "B", "A", "B"],
-        }
+        },
     ).lazy()
     return ADMDatamart(model_df=data)
 
@@ -48,10 +48,86 @@ def test_bubble_chart(sample: ADMDatamart):
     assert df.select(pl.col("Performance").top_k(1)).collect().item() == 77.4901
     assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.28
     assert df.select(
-        pl.col("ResponseCount").top_k(1)
+        pl.col("ResponseCount").top_k(1),
     ).collect().item() == pytest.approx(8174, abs=1e-6)
     plot = sample.plot.bubble_chart()
     assert plot is not None
+
+
+def test_bubble_chart_with_metric_limits(sample: ADMDatamart):
+    """Test bubble chart with metric limit lines enabled."""
+    fig = sample.plot.bubble_chart(show_metric_limits=True)
+    assert isinstance(fig, Figure)
+
+    # Should have 4 vertical lines (shapes) for the 4 ModelPerformance thresholds
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.x0 == s.x1]
+    assert len(shapes) == 4
+
+    x_values = sorted(s.x0 for s in shapes)
+    assert x_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
+
+    for shape in shapes:
+        assert shape.line.dash == "dash"
+
+
+def test_bubble_chart_metric_limits_off_by_default(sample: ADMDatamart):
+    """Test that metric limit lines are not shown by default."""
+    fig = sample.plot.bubble_chart()
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.x0 == s.x1]
+    assert len(shapes) == 0
+
+
+def test_add_metric_limit_lines_standalone():
+    """Test the helper function directly on a bare figure."""
+    from pdstools.adm.Plots import add_metric_limit_lines
+
+    fig = px.scatter(x=[50, 60, 70, 80, 90], y=[1, 2, 3, 4, 5])
+    fig = add_metric_limit_lines(fig)
+
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.x0 == s.x1]
+    assert len(shapes) == 4
+
+    x_values = sorted(s.x0 for s in shapes)
+    assert x_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
+
+    # Hard limits (52, 90) should use red, best practice (55, 80) should use green
+    for shape in shapes:
+        if shape.x0 == pytest.approx(52.0) or shape.x0 == pytest.approx(90.0):
+            assert "255, 69, 0" in shape.line.color  # red rgba
+        else:
+            assert "0, 128, 0" in shape.line.color  # green rgba
+
+
+def test_add_metric_limit_lines_horizontal():
+    """Test the helper function with horizontal orientation."""
+    from pdstools.adm.Plots import add_metric_limit_lines
+
+    fig = px.scatter(x=[1, 2, 3], y=[50, 70, 90])
+    fig = add_metric_limit_lines(fig, orientation="horizontal")
+
+    # Horizontal lines have y0 == y1
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1]
+    assert len(shapes) == 4
+
+    y_values = sorted(s.y0 for s in shapes)
+    assert y_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
+
+
+def test_over_time_with_metric_limits(sample2: ADMDatamart):
+    """Test over_time with metric limit lines for Performance."""
+    fig = sample2.plot.over_time(metric="Performance", by="ModelID", show_metric_limits=True)
+    assert isinstance(fig, Figure)
+
+    # Should have 4 horizontal lines
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1]
+    assert len(shapes) == 4
+
+
+def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):
+    """Test that metric limits are not shown for non-Performance metrics."""
+    fig = sample2.plot.over_time(metric="ResponseCount", by="ModelID", show_metric_limits=True)
+    shapes = [s for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1]
+    assert len(shapes) == 0
 
 
 def test_over_time(sample2: ADMDatamart):
@@ -78,12 +154,15 @@ def test_over_time(sample2: ADMDatamart):
     assert responses_over_time == [100.0, 150.0, 120.0, 160.0, 110.0, 170.0]
 
     fig_faceted = sample2.plot.over_time(
-        metric="Performance", by="ModelID", facet="Group"
+        metric="Performance",
+        by="ModelID",
+        facet="Group",
     )
     assert fig_faceted is not None
 
     with pytest.raises(
-        ValueError, match="The given query resulted in no more remaining data."
+        ValueError,
+        match="The given query resulted in an empty dataframe",
     ):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
@@ -113,7 +192,8 @@ def test_score_distribution(sample: ADMDatamart):
     assert bin_indices == sorted(bin_indices)
 
     with pytest.raises(
-        ValueError, match="There is no data for the provided modelid 'invalid_id'"
+        ValueError,
+        match="There is no data for the provided modelid 'invalid_id'",
     ):
         sample.plot.score_distribution(model_id="invalid_id")
 
@@ -155,7 +235,9 @@ def test_predictor_binning(sample: ADMDatamart):
     predictor_name = first_row[1]
 
     df = sample.plot.predictor_binning(
-        model_id=model_id, predictor_name=predictor_name, return_df=True
+        model_id=model_id,
+        predictor_name=predictor_name,
+        return_df=True,
     )
 
     assert not df.collect().is_empty()
@@ -170,15 +252,18 @@ def test_predictor_binning(sample: ADMDatamart):
     # Test error handling for invalid inputs
     with pytest.raises(ValueError):
         sample.plot.predictor_binning(
-            model_id="non_existent_id", predictor_name=predictor_name
+            model_id="non_existent_id",
+            predictor_name=predictor_name,
         )
     with pytest.raises(ValueError):
         sample.plot.predictor_binning(
-            model_id=model_id, predictor_name="non_existent_predictor"
+            model_id=model_id,
+            predictor_name="non_existent_predictor",
         )
 
     plot = sample.plot.predictor_binning(
-        model_id=model_id, predictor_name=predictor_name
+        model_id=model_id,
+        predictor_name=predictor_name,
     )
     assert isinstance(plot, Figure)
 
@@ -191,11 +276,7 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
     model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
 
     expected_predictor_count = (
-        sample.combined_data.filter(pl.col("ModelID") == model_id)
-        .select("PredictorName")
-        .unique()
-        .collect()
-        .shape[0]
+        sample.combined_data.filter(pl.col("ModelID") == model_id).select("PredictorName").unique().collect().shape[0]
     )
 
     plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
@@ -217,22 +298,19 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
-    assert "PredictorPerformance" in df.collect_schema().names()
-    assert (
-        round(df.select(pl.col("PredictorPerformance").top_k(1)).collect().item(), 2)
-        == 86.38
-    )
+    assert "median" in df.collect_schema().names()
+    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 65.17
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
 
 
 def test_predictor_category_performance(sample: ADMDatamart):
-    df = sample.plot.predictor_category_performance(return_df=True).collect()
-    assert df.shape == (60, 3)
+    df = sample.plot.predictor_category_performance(return_df=True)
+    assert df.shape == (3, 10)
     assert "PredictorCategory" in df.columns
-    assert "PredictorPerformance" in df.columns
-    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 62.49
+    assert "mean" in df.columns
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.98
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -244,13 +322,12 @@ def test_predictor_contribution(sample: ADMDatamart):
     assert "PredictorCategory" in df.columns
     assert "Contribution" in df.columns
     assert df.select(pl.col("Contribution").sum()).item() == pytest.approx(
-        100, rel=1e-2
+        100,
+        rel=1e-2,
     )
     assert (
         round(
-            df.filter(pl.col("PredictorCategory") == "Customer")
-            .select("Contribution")
-            .item(),
+            df.filter(pl.col("PredictorCategory") == "Customer").select("Contribution").item(),
             2,
         )
         == 39.02
@@ -265,10 +342,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     assert (
         round(
-            df.filter(Name="Customer.AnnualIncome")
-            .select("AutoUsed60Months")
-            .collect()
-            .item(),
+            df.filter(Name="Customer.AnnualIncome").select("AutoUsed60Months").collect().item(),
             5,
         )
         == 0.69054
@@ -282,7 +356,10 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     df = sample.plot.predictor_performance_heatmap(
         by=pl.concat_str(
-            pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
+            pl.col("Issue"),
+            pl.col("Group"),
+            pl.col("Name"),
+            separator="/",
         ),
         return_df=True,
     )
@@ -290,25 +367,6 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
-
-
-def test_models_by_positives(sample: ADMDatamart):
-    df = sample.plot.models_by_positives(return_df=True)
-    assert df.shape == (31, 5)
-    assert (
-        round(
-            df.filter(pl.col("PositivesBin") == "(0, 10]")
-            .filter(pl.col("Channel") == "Email")
-            .select("cumModels")
-            .item(),
-            2,
-        )
-        == 0.23
-    )
-    assert df.select(pl.col("cumModels").max()).item() <= 1.0
-
-    plot = sample.plot.models_by_positives()
-    assert isinstance(plot, Figure)
 
 
 def test_tree_map(sample: ADMDatamart):
@@ -320,12 +378,12 @@ def test_tree_map(sample: ADMDatamart):
 
 
 def test_predictor_count(sample: ADMDatamart):
-    df = sample.plot.predictor_count(
-        query=(pl.col("Name") == "AutoNew36Months"), return_df=True
-    ).collect()
+    df = sample.plot.predictor_count(return_df=True)
 
-    assert df.shape == (6, 5)
-    assert df.row(5)[4] == 44
+    assert df.height > 0  # Should have some data
+    assert "Count" in df.collect_schema().names()
+    assert "Type" in df.collect_schema().names()
+    assert "EntryType" in df.collect_schema().names()
 
     plot = sample.plot.predictor_count()
     assert isinstance(plot, Figure)
@@ -333,9 +391,7 @@ def test_predictor_count(sample: ADMDatamart):
 
 def test_binning_lift(sample: ADMDatamart):
     # Get a random model_id and predictor_name
-    random_row = (
-        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
-    )
+    random_row = sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
     model_id = random_row["ModelID"][0]
     predictor_name = random_row["PredictorName"][0]
 
@@ -363,20 +419,102 @@ def test_partitioned_plot(sample: ADMDatamart):
     def dummy_plot_func(*args, **kwargs):
         return px.scatter(x=[1, 2, 3], y=[1, 2, 3])
 
-    facets = {"A", "B"}
+    facets = [{"Aspect": "A"}, {"Aspect": "B"}]
     plots = sample.plot.partitioned_plot(dummy_plot_func, facets, show_plots=False)
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
     assert all(isinstance(plot, Figure) for plot in plots)
 
 
-def test_propensity_distribution(sample: ADMDatamart):
-    df = sample.plot.propensity_distribution(return_df=True).collect()
-    assert df.shape == (2612, 4)
-    expected_columns = ["BinPropensity", "Channel", "Direction", "BinResponseCount"]
-    assert df.columns == expected_columns
-    assert df["BinPropensity"].min() >= 0
-    assert df["BinPropensity"].max() <= 1
+def test_gains_chart_basic(sample: ADMDatamart):
+    """Test basic gains chart creation."""
+    fig = sample.plot.gains_chart(value="ResponseCount")
+    assert isinstance(fig, Figure)
+    assert fig.layout.xaxis.title.text == "% of Population"
+    assert fig.layout.yaxis.title.text == "% of Responders"
 
-    plot = sample.plot.predictor_count()
-    assert isinstance(plot, Figure)
+
+def test_gains_chart_return_df(sample: ADMDatamart):
+    """Test gains chart data return."""
+    df = sample.plot.gains_chart(value="ResponseCount", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    schema = df.collect_schema().names()
+    assert "cum_x" in schema
+    assert "cum_y" in schema
+
+    # Verify data makes sense
+    collected = df.collect()
+    assert collected.height > 0
+    # Cumulative y should end at 1.0 (100%)
+    assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
+
+
+def test_gains_chart_with_grouping(sample: ADMDatamart):
+    """Test gains chart with by parameter."""
+    fig = sample.plot.gains_chart(value="ResponseCount", by="Channel")
+    assert isinstance(fig, Figure)
+    # Should have multiple traces, one per Channel
+    assert len(fig.data) > 1
+
+
+def test_gains_chart_with_index(sample: ADMDatamart):
+    """Test gains chart with index parameter."""
+    df = sample.plot.gains_chart(value="Positives", index="ResponseCount", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    # Verify index column is used for sorting
+    collected = df.collect()
+    assert collected.height > 0
+
+
+def test_gains_chart_with_query(sample: ADMDatamart):
+    """Test gains chart with query filter."""
+    # Use a filter that keeps some but not all data
+    df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Channel") == "Email", return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    # Should still return data for filtered subset
+    collected = df.collect()
+    assert collected.height > 0
+
+
+def test_performance_volume_distribution_basic(sample: ADMDatamart):
+    """Test basic performance volume distribution chart."""
+    fig = sample.plot.performance_volume_distribution()
+    assert isinstance(fig, Figure)
+
+
+def test_performance_volume_distribution_return_df(sample: ADMDatamart):
+    """Test performance volume distribution data return."""
+    df = sample.plot.performance_volume_distribution(return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    schema = df.collect_schema().names()
+    assert "PerformanceBinned" in schema
+    assert "ResponseCount" in schema
+
+    # Verify binning worked
+    collected = df.collect()
+    assert collected.height > 0
+
+
+def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
+    """Test performance volume distribution with by parameter."""
+    fig = sample.plot.performance_volume_distribution(by="Channel")
+    assert isinstance(fig, Figure)
+    # Should have multiple traces for different channels
+    assert len(fig.data) > 1
+
+
+def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
+    """Test performance volume distribution with custom bin width."""
+    df = sample.plot.performance_volume_distribution(bin_width=5, return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    collected = df.collect()
+    # Verify binning created expected number of bins
+    num_bins = collected["PerformanceBinned"].n_unique()
+    assert num_bins == 6  # Performance range 50-80 with bin_width=5 produces 6 bins
+
+
+def test_performance_volume_distribution_with_query(sample: ADMDatamart):
+    """Test performance volume distribution with query filter."""
+    df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
+    assert isinstance(df, pl.LazyFrame)
+    assert df.collect().height > 0

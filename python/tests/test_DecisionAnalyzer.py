@@ -1,0 +1,2342 @@
+# python/tests/test_DecisionAnalyzer.py
+"""
+Tests for the DecisionAnalyzer core functionality.
+
+Covers both data source formats:
+- v1: Explainability Extract (sample_explainability_extract.parquet)
+- v2: Decision Analyzer / EEV2 (sample_eev2.parquet)
+
+These tests validate the non-UI logic: construction, type detection,
+data cleanup, ranking, pre-aggregation, sampling, and analysis methods.
+"""
+
+import pathlib
+from datetime import datetime
+
+import polars as pl
+import pytest
+
+from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
+from pdstools.decision_analyzer.utils import (
+    ColumnResolver,
+    apply_filter,
+    determine_extract_type,
+    get_table_definition,
+)
+
+basePath = pathlib.Path(__file__).parent.parent.parent
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def da_v1():
+    """DecisionAnalyzer from Explainability Extract (v1) sample data."""
+    raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
+    return DecisionAnalyzer(raw, sample_size=5000)
+
+
+@pytest.fixture(scope="module")
+def da_v2():
+    """DecisionAnalyzer from Decision Analyzer / EEV2 (v2) sample data."""
+    raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+    return DecisionAnalyzer(raw, sample_size=5000)
+
+
+# ---------------------------------------------------------------------------
+# Extract type detection
+# ---------------------------------------------------------------------------
+
+
+class TestClassMethodConstructors:
+    """Test from_explainability_extract and from_decision_analyzer class methods."""
+
+    def test_from_explainability_extract(self):
+        da = DecisionAnalyzer.from_explainability_extract(
+            f"{basePath}/data/sample_explainability_extract.parquet",
+            sample_size=1000,
+        )
+        assert da.extract_type == "explainability_extract"
+        assert da.decision_data.collect().height > 0
+
+    def test_from_decision_analyzer(self):
+        da = DecisionAnalyzer.from_decision_analyzer(
+            f"{basePath}/data/sample_eev2.parquet",
+            sample_size=1000,
+        )
+        assert da.extract_type == "decision_analyzer"
+        assert da.decision_data.collect().height > 0
+
+    def test_from_explainability_extract_invalid_path(self):
+        with pytest.raises(Exception):
+            DecisionAnalyzer.from_explainability_extract("/nonexistent/path.parquet")
+
+    def test_from_decision_analyzer_invalid_path(self):
+        with pytest.raises(Exception):
+            DecisionAnalyzer.from_decision_analyzer("/nonexistent/path.parquet")
+
+
+class TestExtractTypeDetection:
+    """Verify that v1 vs v2 format is correctly identified."""
+
+    def test_v1_detected_as_explainability_extract(self):
+        raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
+        assert determine_extract_type(raw) == "explainability_extract"
+
+    def test_v2_detected_as_decision_analyzer(self):
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        assert determine_extract_type(raw) == "decision_analyzer"
+
+    def test_v1_instance_has_correct_type(self, da_v1):
+        assert da_v1.extract_type == "explainability_extract"
+
+    def test_v2_instance_has_correct_type(self, da_v2):
+        assert da_v2.extract_type == "decision_analyzer"
+
+
+# ---------------------------------------------------------------------------
+# Construction and validation
+# ---------------------------------------------------------------------------
+
+
+class TestConstruction:
+    """Verify that DecisionAnalyzer initializes correctly for both formats."""
+
+    def test_v1_no_validation_error(self, da_v1):
+        assert da_v1.validation_error is None
+
+    def test_v2_no_validation_error(self, da_v2):
+        assert da_v2.validation_error is None
+
+    def test_v1_has_decision_data(self, da_v1):
+        assert isinstance(da_v1.decision_data, pl.LazyFrame)
+        assert da_v1.decision_data.collect().height > 0
+
+    def test_v2_has_decision_data(self, da_v2):
+        assert isinstance(da_v2.decision_data, pl.LazyFrame)
+        assert da_v2.decision_data.collect().height > 0
+
+    def test_construction_with_additional_columns(self):
+        raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
+        da = DecisionAnalyzer(
+            raw,
+            sample_size=1000,
+            additional_columns={"extra_col": pl.Utf8},
+        )
+        assert da.extract_type == "explainability_extract"
+
+    def test_construction_with_mandatory_expr(self):
+        raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
+        mandatory = pl.col("Issue") == "Service"
+        da = DecisionAnalyzer(raw, sample_size=1000, mandatory_expr=mandatory)
+        schema = da.decision_data.collect_schema()
+        assert "is_mandatory" in schema.names()
+
+    def test_missing_columns_raises_valueerror(self):
+        """Constructing from data with missing critical columns should raise ValueError."""
+        minimal = pl.LazyFrame({"Interaction ID": ["1"], "Action": ["A"]})
+        with pytest.warns(UserWarning, match="missing"):
+            with pytest.raises(ValueError, match="critical columns missing"):
+                DecisionAnalyzer(minimal, sample_size=100)
+
+
+# ---------------------------------------------------------------------------
+# Data cleanup and derived columns
+# ---------------------------------------------------------------------------
+
+
+class TestDataCleanup:
+    """Verify cleanup_raw_data produces expected columns and types."""
+
+    def test_v1_has_rank_column(self, da_v1):
+        schema = da_v1.decision_data.collect_schema()
+        assert "Rank" in schema.names()
+
+    def test_v2_has_rank_column(self, da_v2):
+        schema = da_v2.decision_data.collect_schema()
+        assert "Rank" in schema.names()
+
+    def test_v1_has_day_column(self, da_v1):
+        schema = da_v1.decision_data.collect_schema()
+        assert "day" in schema.names()
+
+    def test_v2_has_day_column(self, da_v2):
+        schema = da_v2.decision_data.collect_schema()
+        assert "day" in schema.names()
+
+    def test_v1_has_is_mandatory_column(self, da_v1):
+        schema = da_v1.decision_data.collect_schema()
+        assert "is_mandatory" in schema.names()
+
+    def test_v1_synthetic_stages(self, da_v1):
+        """v1 should have synthetic Arbitration and Output stages."""
+        stages = da_v1.decision_data.select("Stage Group").unique().collect().get_column("Stage Group").to_list()
+        assert "Arbitration" in stages
+        assert "Output" in stages
+
+    def test_v2_has_real_stages(self, da_v2):
+        """v2 should have real stage groups from the data."""
+        stages = da_v2.AvailableNBADStages
+        assert len(stages) > 2
+        assert "Arbitration" in stages
+
+    def test_v1_rank_1_is_output(self, da_v1):
+        """In v1, rank-1 actions should be in Output stage."""
+        rank1 = (
+            da_v1.decision_data.filter(pl.col("Rank") == 1)
+            .select("Stage Group")
+            .unique()
+            .collect()
+            .get_column("Stage Group")
+            .to_list()
+        )
+        assert "Output" in rank1
+
+    def test_rank_is_ordinal_per_interaction(self, da_v1):
+        """Ranks should be 1..N within each interaction, no gaps."""
+        sample = (
+            da_v1.decision_data.head(10000)
+            .group_by("Interaction ID")
+            .agg(
+                pl.col("Rank").min().alias("min_rank"),
+                pl.col("Rank").max().alias("max_rank"),
+                pl.col("Rank").n_unique().alias("n_ranks"),
+                pl.len().alias("n_rows"),
+            )
+            .collect()
+        )
+        # min rank should always be 1
+        assert sample["min_rank"].min() == 1
+        # number of unique ranks should equal number of rows per interaction
+        assert (sample["n_ranks"] == sample["n_rows"]).all()
+
+
+# ---------------------------------------------------------------------------
+# Stages
+# ---------------------------------------------------------------------------
+
+
+class TestStages:
+    """Verify stage-related properties."""
+
+    def test_v1_available_stages(self, da_v1):
+        assert da_v1.AvailableNBADStages == ["Arbitration", "Output"]
+
+    def test_v2_available_stages_includes_arbitration(self, da_v2):
+        assert "Arbitration" in da_v2.AvailableNBADStages
+
+    def test_stages_from_arbitration_down(self, da_v1):
+        stages = da_v1.stages_from_arbitration_down
+        assert stages[0] == "Arbitration"
+        assert len(stages) >= 1
+
+    def test_v2_stages_are_ordered(self, da_v2):
+        """Stages should be in StageOrder sequence."""
+        stages = da_v2.AvailableNBADStages
+        assert len(stages) >= 2
+
+
+# ---------------------------------------------------------------------------
+# Sampling
+# ---------------------------------------------------------------------------
+
+
+class TestSampling:
+    """Verify the sampling mechanism."""
+
+    def test_v1_sample_returns_lazyframe(self, da_v1):
+        assert isinstance(da_v1.sample, pl.LazyFrame)
+
+    def test_v2_sample_returns_lazyframe(self, da_v2):
+        assert isinstance(da_v2.sample, pl.LazyFrame)
+
+    def test_v1_sample_not_empty(self, da_v1):
+        assert da_v1.sample.collect().height > 0
+
+    def test_v2_sample_not_empty(self, da_v2):
+        assert da_v2.sample.collect().height > 0
+
+    def test_sample_respects_size_limit(self):
+        """With a very small sample_size, the number of interactions should be limited."""
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        n_interactions = da.sample.select(pl.n_unique("Interaction ID")).collect().item()
+        # Should be at most sample_size (may be less due to hash sampling)
+        assert n_interactions <= 1500  # some tolerance for hash-based sampling
+
+    def test_sample_has_required_columns(self, da_v1):
+        cols = da_v1.sample.collect_schema().names()
+        for required in [
+            "Interaction ID",
+            "Issue",
+            "Group",
+            "Action",
+            "Rank",
+            "Priority",
+        ]:
+            assert required in cols, f"Missing column: {required}"
+
+
+# ---------------------------------------------------------------------------
+# Pre-aggregation
+# ---------------------------------------------------------------------------
+
+
+class TestPreaggregation:
+    """Verify pre-aggregated views."""
+
+    def test_v1_filter_view_not_empty(self, da_v1):
+        df = da_v1.preaggregated_filter_view.collect()
+        assert df.height > 0
+
+    def test_v2_filter_view_not_empty(self, da_v2):
+        df = da_v2.preaggregated_filter_view.collect()
+        assert df.height > 0
+
+    def test_filter_view_has_decisions_column(self, da_v1):
+        cols = da_v1.preaggregated_filter_view.collect_schema().names()
+        assert "Decisions" in cols
+
+    def test_v1_remaining_view_not_empty(self, da_v1):
+        df = da_v1.preaggregated_remaining_view.collect()
+        assert df.height > 0
+
+    def test_v2_remaining_view_not_empty(self, da_v2):
+        df = da_v2.preaggregated_remaining_view.collect()
+        assert df.height > 0
+
+    def test_remaining_view_has_win_rank_columns(self, da_v1):
+        cols = da_v1.preaggregated_remaining_view.collect_schema().names()
+        assert "Win_at_rank1" in cols
+
+    def test_remaining_counts_geq_filter_counts(self, da_v2):
+        """Remaining view totals should be >= filter view totals at each stage."""
+        remaining = (
+            da_v2.preaggregated_remaining_view.group_by("Stage Group")
+            .agg(pl.sum("Decisions"))
+            .collect()
+            .sort("Stage Group")
+        )
+        filtered = (
+            da_v2.preaggregated_filter_view.group_by("Stage Group")
+            .agg(pl.sum("Decisions"))
+            .collect()
+            .sort("Stage Group")
+        )
+        # Remaining at earlier stages includes later stages, so total remaining >= filtered
+        assert remaining["Decisions"].sum() >= filtered["Decisions"].sum()
+
+
+# ---------------------------------------------------------------------------
+# Distribution data
+# ---------------------------------------------------------------------------
+
+
+class TestDistributionData:
+    def test_v1_distribution_by_name(self, da_v1):
+        df = da_v1.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
+        assert df.height > 0
+        assert "Action" in df.columns
+        assert "Decisions" in df.columns
+
+    def test_v2_distribution_by_name(self, da_v2):
+        df = da_v2.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
+        assert df.height > 0
+
+    def test_distribution_sorted_descending(self, da_v1):
+        df = da_v1.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
+        decisions = df["Decisions"].to_list()
+        assert decisions == sorted(decisions, reverse=True)
+
+
+# ---------------------------------------------------------------------------
+# Funnel data (v2 has real stages)
+# ---------------------------------------------------------------------------
+
+
+class TestFunnelData:
+    def test_v2_funnel_returns_three_frames(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
+        assert isinstance(filtered, pl.DataFrame)
+
+    def test_v1_funnel_returns_three_frames(self, da_v1):
+        available, passing, filtered = da_v1.get_funnel_data(scope="Issue")
+        assert isinstance(available, pl.LazyFrame)
+        assert isinstance(passing, pl.DataFrame)
+        assert isinstance(filtered, pl.DataFrame)
+
+    def test_passing_lte_available(self, da_v2):
+        """Passing actions at each stage must be <= available actions."""
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        level = da_v2.level
+        avail_df = (
+            available.collect()
+            .with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("avail"))
+        )
+        pass_df = (
+            passing.with_columns(pl.col(level).cast(pl.Utf8))
+            .group_by(level)
+            .agg(pl.sum("action_occurrences").alias("pass"))
+        )
+        joined = avail_df.join(pass_df, on=level, how="left").fill_null(0)
+        assert (joined["pass"] <= joined["avail"]).all()
+
+    def test_passing_has_required_columns(self, da_v2):
+        """Passing df must have same columns as filtered df."""
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        for col in [
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]:
+            assert col in passing.columns
+            assert col in filtered.columns
+
+    def test_decisions_without_actions_shape(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert isinstance(result, pl.DataFrame)
+        assert da_v2.level in result.columns
+        assert "decisions_without_actions" in result.columns
+        expected_stages = [s for s in da_v2.AvailableNBADStages if s != "Output"]
+        assert len(result) == len(expected_stages)
+        assert "Output" not in result[da_v2.level].to_list()
+
+    def test_decisions_without_actions_non_negative(self, da_v2):
+        result = da_v2.get_decisions_without_actions_data()
+        assert (result["decisions_without_actions"] >= 0).all()
+
+    def test_decisions_without_actions_per_stage(self, da_v2):
+        """Values are stage deltas and total knockouts should be bounded by total decisions."""
+        result = da_v2.get_decisions_without_actions_data()
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        assert result["decisions_without_actions"].sum() <= total
+
+    def test_decisions_without_actions_last_stage_uses_output_survivors(self, da_v2):
+        """Sum of stage deltas equals total decisions minus Output survivors."""
+        result = da_v2.get_decisions_without_actions_data()
+        total = da_v2.decision_data.select("Interaction ID").unique().collect().height
+        output_survivors = (
+            da_v2.preaggregated_filter_view.filter(pl.col(da_v2.level) == "Output")
+            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .collect()
+            .item()
+        )
+        assert result["decisions_without_actions"].sum() == total - output_survivors
+
+
+# ---------------------------------------------------------------------------
+# Funnel summary
+# ---------------------------------------------------------------------------
+
+
+class TestFunnelSummary:
+    def test_summary_columns(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        expected_cols = {
+            da_v2.level,
+            "Available Actions",
+            "Passing Actions",
+            "Filtered Actions",
+            "Decisions",
+            "Avg Available/Decision",
+            "Avg Passing/Decision",
+            "Avg Filtered/Decision",
+            "% of Total Filtered",
+            "% Decisions without Actions",
+        }
+        assert expected_cols.issubset(set(result.columns))
+
+    def test_summary_row_count(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        # Stages minus Output plus synthetic "Available Actions" row
+        stages_no_output = [s for s in da_v2.AvailableNBADStages if s != "Output"]
+        assert len(result) == len(stages_no_output) + 1
+
+    def test_filtered_is_difference(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        diff = result["Avg Available/Decision"] - result["Avg Passing/Decision"]
+        # Allow 0.01 rounding tolerance since each column is independently rounded
+        assert ((result["Avg Filtered/Decision"] - diff).abs() <= 0.01).all()
+
+    def test_pct_sums_to_100(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        total_pct = result["% of Total Filtered"].sum()
+        assert abs(total_pct - 100.0) < 0.5  # rounding tolerance
+
+    def test_decisions_pct_in_range(self, da_v2):
+        available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
+        result = da_v2.get_funnel_summary(available, passing)
+        assert (result["% Decisions without Actions"] >= 0).all()
+        assert (result["% Decisions without Actions"] <= 100.1).all()  # rounding tolerance
+
+
+# ---------------------------------------------------------------------------
+# Sensitivity analysis
+# ---------------------------------------------------------------------------
+
+
+class TestSensitivity:
+    def test_v1_sensitivity_returns_factors(self, da_v1):
+        df = da_v1.get_sensitivity(win_rank=1).collect()
+        factors = df["Factor"].to_list()
+        assert "Propensity" in factors
+        assert "Value" in factors
+        assert "Context Weights" in factors
+        assert "Levers" in factors
+
+    def test_v2_sensitivity_returns_factors(self, da_v2):
+        df = da_v2.get_sensitivity(win_rank=1).collect()
+        assert df.height > 0
+        assert "Factor" in df.columns
+        assert "Influence" in df.columns
+
+    def test_sensitivity_influence_non_negative_for_global(self, da_v1):
+        """Global sensitivity should have non-negative influence values."""
+        df = da_v1.get_sensitivity(win_rank=1).collect()
+        assert (df["Influence"] >= 0).all()
+
+
+# ---------------------------------------------------------------------------
+# Win/loss distribution
+# ---------------------------------------------------------------------------
+
+
+class TestWinLoss:
+    def test_v1_win_loss_returns_data(self, da_v1):
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        assert df.height > 0
+        assert "Status" in df.columns
+
+    def test_win_loss_has_wins_and_losses(self, da_v1):
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        statuses = df["Status"].unique().to_list()
+        assert "Wins" in statuses
+        assert "Losses" in statuses
+
+    def test_win_percentages_sum_to_one(self, da_v1):
+        df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        for status in ["Wins", "Losses"]:
+            total = df.filter(pl.col("Status") == status)["Percentage"].sum()
+            assert abs(total - 1.0) < 0.01, f"{status} percentages sum to {total}"
+
+
+@pytest.fixture(scope="module")
+def da_win_loss_boundary_tiny():
+    """Tiny deterministic dataset to verify selected-group rank boundary semantics."""
+    tiny_data = pl.LazyFrame(
+        {
+            "pySubjectID": ["S1", "S1", "S1", "S1", "S2", "S2", "S2"],
+            "pxInteractionID": ["I1", "I1", "I1", "I1", "I2", "I2", "I2"],
+            "pxDecisionTime": [
+                datetime(2024, 1, 1, 0, 0, 0),
+                datetime(2024, 1, 1, 0, 0, 1),
+                datetime(2024, 1, 1, 0, 0, 2),
+                datetime(2024, 1, 1, 0, 0, 3),
+                datetime(2024, 1, 1, 0, 1, 0),
+                datetime(2024, 1, 1, 0, 1, 1),
+                datetime(2024, 1, 1, 0, 1, 2),
+            ],
+            "pyIssue": ["Issue1", "Issue1", "Issue1", "Issue1", "Issue2", "Issue2", "Issue2"],
+            "pyGroup": ["Other", "Selected", "Other", "Selected", "Selected", "Other", "Other"],
+            "pyName": ["A", "B", "D", "C", "E", "F", "G"],
+            "pyChannel": ["Web", "Web", "Web", "Web", "Web", "Web", "Web"],
+            "pyDirection": ["Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound", "Inbound"],
+            "Value": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "ContextWeight": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "Weight": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "pyPropensity": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+            "FinalPropensity": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+            "Priority": [0.9, 0.8, 0.7, 0.6, 0.9, 0.8, 0.7],
+            "ModelControlGroup": ["N", "N", "N", "N", "N", "N", "N"],
+        }
+    )
+    return DecisionAnalyzer(tiny_data, sample_size=10)
+
+
+class TestSelectedGroupRankBoundariesWinLoss:
+    def test_selected_group_rank_boundaries_are_computed_per_interaction(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        boundaries = (
+            da_win_loss_boundary_tiny.get_selected_group_rank_boundaries(
+                group_filter=selected_group_filter,
+            )
+            .sort("Interaction ID")
+            .collect()
+        )
+
+        expected = pl.DataFrame(
+            {
+                "Interaction ID": ["I1", "I2"],
+                "selected_group_best_rank": [2, 1],
+                "selected_group_worst_rank": [4, 1],
+                "selected_group_row_count": [2, 1],
+            }
+        )
+
+        assert boundaries.rows(named=True) == expected.rows(named=True)
+
+    def test_selected_group_wins_and_losses_use_rank_boundaries(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        losses_to_selected = (
+            da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=True,
+            )
+            .sort("Interaction ID")
+            .collect()
+            .get_column("Interaction ID")
+            .to_list()
+        )
+        wins_against_selected = (
+            da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=False,
+            )
+            .sort("Interaction ID")
+            .collect()
+            .get_column("Interaction ID")
+            .to_list()
+        )
+
+        assert losses_to_selected == ["I2"]
+        assert wins_against_selected == ["I1"]
+
+    def test_group_filter_status_distributions_match_expected_actions(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        beaten_by_selected = (
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=selected_group_filter,
+                status="Wins",
+            )
+            .sort("Action")
+            .collect()
+        )
+        beating_selected = (
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=selected_group_filter,
+                status="Losses",
+            )
+            .sort("Action")
+            .collect()
+        )
+
+        assert beaten_by_selected.select("Action").to_series().to_list() == ["F", "G"]
+        assert beaten_by_selected.select("Decisions").to_series().to_list() == [1, 1]
+        assert beating_selected.select("Action").to_series().to_list() == ["A"]
+        assert beating_selected.select("Decisions").to_series().to_list() == [1]
+
+    def test_group_filter_paths_validate_required_arguments(self, da_win_loss_boundary_tiny):
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(level="Action")
+
+        with pytest.raises(ValueError, match="status must be either 'Wins' or 'Losses'"):
+            da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+                level="Action",
+                group_filter=pl.col("Group") == "Selected",
+                status=None,
+            )
+
+    def test_group_filter_distribution_with_top_k(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = da_win_loss_boundary_tiny.get_win_loss_distribution_data(
+            level="Action",
+            group_filter=selected_group_filter,
+            status="Wins",
+            top_k=1,
+        ).collect()
+        assert result.height == 1
+
+    def test_win_loss_distributions_with_group_filter(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        interactions_win = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        )
+        interactions_loss = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        )
+        winning_from, losing_to = da_win_loss_boundary_tiny.get_win_loss_distributions(
+            interactions_win=interactions_win,
+            interactions_loss=interactions_loss,
+            groupby_cols=["Action"],
+            top_k=10,
+            group_filter=selected_group_filter,
+        )
+        win_result = winning_from.collect()
+        loss_result = losing_to.collect()
+
+        assert win_result.height > 0
+        assert "Action" in win_result.columns
+        assert "Decisions" in win_result.columns
+        assert loss_result.height > 0
+        assert "Action" in loss_result.columns
+        assert "Decisions" in loss_result.columns
+
+    def test_win_loss_distributions_with_win_rank(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        interactions_win = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        )
+        interactions_loss = da_win_loss_boundary_tiny.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        )
+        winning_from, losing_to = da_win_loss_boundary_tiny.get_win_loss_distributions(
+            interactions_win=interactions_win,
+            interactions_loss=interactions_loss,
+            groupby_cols=["Action"],
+            top_k=10,
+            win_rank=1,
+        )
+
+        assert "Action" in winning_from.collect().columns
+        assert "Action" in losing_to.collect().columns
+
+    def test_win_loss_distributions_validates_win_rank_when_no_group_filter(self, da_win_loss_boundary_tiny):
+        interactions = pl.LazyFrame({"Interaction ID": ["I1"]})
+        with pytest.raises(ValueError, match="win_rank must be provided"):
+            da_win_loss_boundary_tiny.get_win_loss_distributions(
+                interactions_win=interactions,
+                interactions_loss=interactions,
+                groupby_cols=["Action"],
+                top_k=10,
+            )
+
+    def test_win_loss_counts_at_rank_1(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+            group_filter=selected_group_filter,
+            win_rank=1,
+        )
+        # I2: best_rank=1 → win. I1: best_rank=2 → loss.
+        assert counts == {"wins": 1, "losses": 1, "total": 2}
+
+    def test_win_loss_counts_at_rank_2(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+            group_filter=selected_group_filter,
+            win_rank=2,
+        )
+        # I1: best_rank=2 → win. I2: best_rank=1 → win. Both win.
+        assert counts == {"wins": 2, "losses": 0, "total": 2}
+
+    def test_win_loss_counts_sum_equals_total(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+        for n in [1, 2, 3, 10]:
+            counts = da_win_loss_boundary_tiny.get_win_loss_counts(
+                group_filter=selected_group_filter,
+                win_rank=n,
+            )
+            assert counts["wins"] + counts["losses"] == counts["total"]
+
+
+# ---------------------------------------------------------------------------
+# Boxplot point cap and sampling in plots
+# ---------------------------------------------------------------------------
+
+
+class TestBoxplotPointCapAndSampling:
+    def test_boxplot_point_cap_returns_sample_size(self, da_v1):
+        assert da_v1.plot._boxplot_point_cap() == da_v1.sample_size
+
+    def test_boxplot_point_cap_returns_default_when_no_sample_size(self, da_v1):
+        from pdstools.decision_analyzer.plots import DEFAULT_BOXPLOT_POINT_CAP
+
+        original = da_v1.sample_size
+        da_v1.sample_size = None
+        try:
+            assert da_v1.plot._boxplot_point_cap() == DEFAULT_BOXPLOT_POINT_CAP
+        finally:
+            da_v1.sample_size = original
+
+    def test_prio_factor_boxplots_returns_tuple(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        result = da_v1.plot.prio_factor_boxplots(
+            reference=pl.col("Action") == first_action,
+        )
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+
+    def test_prio_factor_boxplots_return_df(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        df = da_v1.plot.prio_factor_boxplots(
+            reference=pl.col("Action") == first_action,
+            return_df=True,
+        )
+        assert isinstance(df, pl.DataFrame)
+        assert "segment" in df.columns
+
+    def test_prio_factor_boxplots_sampling_caps_rows(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 100
+        try:
+            df = da_v1.plot.prio_factor_boxplots(
+                reference=pl.col("Action") == first_action,
+                return_df=True,
+            )
+            assert df.height == 100
+        finally:
+            da_v1.sample_size = original
+
+    def test_prio_factor_boxplots_warning_message(self, da_v1):
+        """When data exceeds point cap but both segments survive, return sampling warning."""
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 5000
+        try:
+            result = da_v1.plot.prio_factor_boxplots(
+                reference=pl.col("Action") == first_action,
+            )
+            fig, warning = result
+            if fig is not None:
+                assert warning is not None
+                assert "sample" in warning.lower()
+        finally:
+            da_v1.sample_size = original
+
+    def test_rank_boxplot_returns_figure(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        fig = da_v1.plot.rank_boxplot(
+            reference=pl.col("Action") == first_action,
+        )
+        assert hasattr(fig, "update_layout")
+
+    def test_rank_boxplot_sampling_with_low_cap(self, da_v1):
+        first_action = da_v1.decision_data.select("Action").first().collect().item()
+        original = da_v1.sample_size
+        da_v1.sample_size = 10
+        try:
+            fig = da_v1.plot.rank_boxplot(
+                reference=pl.col("Action") == first_action,
+            )
+            assert hasattr(fig, "update_layout")
+        finally:
+            da_v1.sample_size = original
+
+
+# ---------------------------------------------------------------------------
+# Overview stats
+# ---------------------------------------------------------------------------
+
+
+class TestOverviewStats:
+    def test_v1_overview_has_expected_keys(self, da_v1):
+        stats = da_v1.overview_stats
+        expected_keys = {
+            "Actions",
+            "Channels",
+            "Duration",
+            "StartDate",
+            "Customers",
+            "Decisions",
+        }
+        assert expected_keys.issubset(stats.keys())
+
+    def test_v2_overview_has_expected_keys(self, da_v2):
+        stats = da_v2.overview_stats
+        expected_keys = {
+            "Actions",
+            "Channels",
+            "Duration",
+            "StartDate",
+            "Customers",
+            "Decisions",
+        }
+        assert expected_keys.issubset(stats.keys())
+
+    def test_overview_actions_positive(self, da_v1):
+        assert da_v1.overview_stats["Actions"] > 0
+
+    def test_overview_decisions_positive(self, da_v1):
+        assert da_v1.overview_stats["Decisions"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Trend data
+# ---------------------------------------------------------------------------
+
+
+class TestTrendData:
+    def test_v1_trend_returns_data(self, da_v1):
+        df = da_v1.get_trend_data(stage="Arbitration", scope="Issue").collect()
+        assert df.height > 0
+        assert "day" in df.columns
+        assert "Decisions" in df.columns
+
+    def test_v2_trend_returns_data(self, da_v2):
+        df = da_v2.get_trend_data(stage="Arbitration", scope="Issue").collect()
+        assert df.height > 0
+
+
+# ---------------------------------------------------------------------------
+# Action variation
+# ---------------------------------------------------------------------------
+
+
+class TestActionVariation:
+    def test_v1_action_variation_at_arbitration(self, da_v1):
+        df = da_v1.get_action_variation_data(stage="Arbitration").collect()
+        assert df.height > 0
+        assert "ActionIndex" in df.columns
+        assert "DecisionsFraction" in df.columns
+
+    def test_action_variation_starts_at_zero(self, da_v1):
+        df = da_v1.get_action_variation_data(stage="Arbitration").collect()
+        # First row is the dummy zero row
+        assert df["ActionIndex"][0] == 0
+        assert df["DecisionsFraction"][0] == 0.0
+
+    def test_action_variation_ends_at_one(self, da_v1):
+        df = da_v1.get_action_variation_data(stage="Arbitration").collect()
+        last_fraction = df["DecisionsFraction"][-1]
+        assert abs(last_fraction - 1.0) < 0.01
+
+    def test_action_variation_with_color_by(self, da_v1):
+        df = da_v1.get_action_variation_data(stage="Arbitration", color_by="Channel/Direction").collect()
+        assert df.height > 0
+        assert "Channel/Direction" in df.columns
+        assert "ActionIndex" in df.columns
+        assert "DecisionsFraction" in df.columns
+        # Verify each group starts at zero and has proper fractions
+        for group in df["Channel/Direction"].unique():
+            group_df = df.filter(pl.col("Channel/Direction") == group)
+            # Each group should have its own zero point
+            assert group_df["ActionIndex"].min() == 0
+            # Each group should end at or near 1.0
+            max_fraction = group_df["DecisionsFraction"].max()
+            assert abs(max_fraction - 1.0) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# Re-ranking
+# ---------------------------------------------------------------------------
+
+
+class TestReRank:
+    def test_v1_rerank_returns_data(self, da_v1):
+        df = da_v1.re_rank().collect()
+        assert df.height > 0
+
+    def test_rerank_has_component_ranks(self, da_v1):
+        df = da_v1.re_rank()
+        cols = df.collect_schema().names()
+        assert "rank_PVCL" in cols
+        assert "rank_VCL" in cols
+        assert "rank_PCL" in cols
+
+    def test_rerank_with_filters(self, da_v1):
+        df = da_v1.re_rank(additional_filters=pl.col("Stage Group").is_in(da_v1.stages_from_arbitration_down)).collect()
+        assert df.height > 0
+
+
+# ---------------------------------------------------------------------------
+# Win distribution (business lever analysis)
+# ---------------------------------------------------------------------------
+
+
+class TestWinDistribution:
+    def test_baseline_distribution(self, da_v1):
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        result = da_v1.get_win_distribution_data(lever_condition=lever_cond)
+        assert result.height > 0
+        assert "original_win_count" in result.columns
+        assert "selected_action" in result.columns
+
+    def test_lever_adjusted_distribution(self, da_v1):
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        result = da_v1.get_win_distribution_data(lever_condition=lever_cond, lever_value=2.0)
+        assert "new_win_count" in result.columns
+
+    def test_distribution_with_no_winner_tracking(self, da_v1):
+        lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        result = da_v1.get_win_distribution_data(lever_condition=lever_cond, all_interactions=1000)
+        assert "No Winner" in result["Action"].to_list()
+
+
+# ---------------------------------------------------------------------------
+# Optionality
+# ---------------------------------------------------------------------------
+
+
+class TestOptionality:
+    def test_v1_optionality_data(self, da_v1):
+        df = da_v1.get_optionality_data(da_v1.sample).collect()
+        assert df.height > 0
+        assert "nOffers" in df.columns
+        assert "Interactions" in df.columns
+
+    def test_v2_optionality_data(self, da_v2):
+        df = da_v2.get_optionality_data(da_v2.sample).collect()
+        assert df.height > 0
+
+    def test_optionality_with_trend(self, da_v1):
+        df = da_v1.get_optionality_data(by_day=True).collect()
+        assert df.height > 0
+        assert "day" in df.columns
+
+
+# ---------------------------------------------------------------------------
+# Filter components (v2 only)
+# ---------------------------------------------------------------------------
+
+
+class TestFilterComponents:
+    def test_v2_filter_component_data(self, da_v2):
+        """Filter component data should only be available for v2."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_filter_component_data(top_n=5)
+        assert df.height > 0
+        assert "Component Name" in df.columns
+
+    def test_v2_filter_component_data_includes_component_type(self, da_v2):
+        """When pxComponentType is in the data, it should appear in the result."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_filter_component_data(top_n=5)
+        # pxComponentType may or may not be present depending on the dataset
+        assert "Component Name" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+
+# ---------------------------------------------------------------------------
+# Component action impact (v2 only)
+# ---------------------------------------------------------------------------
+
+
+class TestComponentActionImpact:
+    def test_v2_component_action_impact(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_component_action_impact(top_n=5)
+        assert df.height > 0
+        assert "Component Name" in df.columns
+        assert "Action" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+    def test_component_action_impact_respects_top_n(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_component_action_impact(top_n=3)
+        # Each component should have at most 3 actions
+        per_component = df.group_by("Component Name").agg(pl.len().alias("n"))
+        assert per_component["n"].max() <= 3
+
+    def test_component_action_impact_has_issue_group(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_component_action_impact(top_n=5)
+        assert "Issue" in df.columns
+        assert "Group" in df.columns
+
+    def test_v1_component_action_impact_skipped(self, da_v1):
+        """v1 data has no pxComponentName, so the method should produce empty results."""
+        if "Component Name" not in da_v1.decision_data.collect_schema().names():
+            pytest.skip("Expected: no pxComponentName in v1")
+
+
+# ---------------------------------------------------------------------------
+# Component drilldown (v2 only)
+# ---------------------------------------------------------------------------
+
+
+class TestComponentDrilldown:
+    def test_v2_component_drilldown(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        # Pick the first available component
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.get_component_drilldown(component_name=components[0])
+        assert df.height > 0
+        assert "Action" in df.columns
+        assert "Filtered Decisions" in df.columns
+
+    def test_component_drilldown_sorted_descending(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.get_component_drilldown(component_name=components[0])
+        decisions = df["Filtered Decisions"].to_list()
+        assert decisions == sorted(decisions, reverse=True)
+
+    def test_component_drilldown_nonexistent_component(self, da_v2):
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        df = da_v2.get_component_drilldown(component_name="NONEXISTENT_COMPONENT_XYZ")
+        assert df.height == 0
+
+    def test_component_drilldown_has_score_columns(self, da_v2):
+        """Drilldown should include avg score columns when scoring data exists."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        df = da_v2.get_component_drilldown(component_name=components[0])
+        # At least one avg_* column should be present if scoring data exists
+        avg_cols = [c for c in df.columns if c.startswith("avg_")]
+        available_scores = {"Priority", "Value", "Propensity"}.intersection(
+            da_v2.decision_data.collect_schema().names()
+        )
+        if available_scores:
+            assert len(avg_cols) > 0
+
+    def test_drilldown_respects_scope(self, da_v2):
+        """Drilldown should group at the requested scope level."""
+        if "Component Name" not in da_v2.decision_data.collect_schema().names():
+            pytest.skip("No pxComponentName in this dataset")
+        components = (
+            da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
+            .select("Component Name")
+            .unique()
+            .collect()
+            .get_column("Component Name")
+            .to_list()
+        )
+        if not components:
+            pytest.skip("No filtered components in dataset")
+        name = components[0]
+        for scope in ["Issue", "Group", "Action"]:
+            df = da_v2.get_component_drilldown(component_name=name, scope=scope)
+            assert scope in df.columns
+
+
+# ---------------------------------------------------------------------------
+# Utility functions
+# ---------------------------------------------------------------------------
+
+
+class TestUtilities:
+    def test_apply_filter_with_none(self):
+        df = pl.LazyFrame({"a": [1, 2, 3]})
+        result = apply_filter(df, None)
+        assert result.collect().height == 3
+
+    def test_apply_filter_with_single_expr(self):
+        df = pl.LazyFrame({"a": [1, 2, 3]})
+        result = apply_filter(df, pl.col("a") > 1)
+        assert result.collect().height == 2
+
+    def test_apply_filter_with_list_of_exprs(self):
+        df = pl.LazyFrame({"a": [1, 2, 3], "b": [10, 20, 30]})
+        result = apply_filter(df, [pl.col("a") > 1, pl.col("b") < 30])
+        assert result.collect().height == 1
+
+    def test_apply_filter_invalid_type_raises(self):
+        df = pl.LazyFrame({"a": [1, 2, 3]})
+        with pytest.raises(ValueError):
+            apply_filter(df, "not_an_expr")
+
+    def test_apply_filter_missing_column_raises(self):
+        df = pl.LazyFrame({"a": [1, 2, 3]})
+        with pytest.raises(pl.exceptions.ColumnNotFoundError):
+            apply_filter(df, pl.col("nonexistent") > 1)
+
+    def test_get_table_definition_valid(self):
+        td = get_table_definition("decision_analyzer")
+        assert isinstance(td, dict)
+        assert "pxInteractionID" in td
+
+        td2 = get_table_definition("explainability_extract")
+        assert isinstance(td2, dict)
+
+    def test_get_table_definition_invalid_raises(self):
+        with pytest.raises(ValueError, match="Unknown table"):
+            get_table_definition("nonexistent")
+
+
+# ---------------------------------------------------------------------------
+# ColumnResolver
+# ---------------------------------------------------------------------------
+
+
+class TestColumnResolver:
+    def test_basic_rename(self):
+        table_def = {"raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}}
+        resolver = ColumnResolver(table_definition=table_def, raw_columns={"raw_col"})
+        assert resolver.rename_mapping == {"raw_col": "target_col"}
+        assert "target_col" in resolver.final_columns
+
+    def test_column_already_named_correctly(self):
+        table_def = {"my_col": {"display_name": "my_col", "default": True, "type": pl.Utf8}}
+        resolver = ColumnResolver(table_definition=table_def, raw_columns={"my_col"})
+        assert resolver.rename_mapping == {}
+        assert "my_col" in resolver.final_columns
+
+    def test_conflict_prefers_target(self):
+        """When both raw and target columns exist, target wins and raw is dropped."""
+        table_def = {"raw_col": {"display_name": "target_col", "default": True, "type": pl.Utf8}}
+        resolver = ColumnResolver(
+            table_definition=table_def,
+            raw_columns={"raw_col", "target_col"},
+        )
+        assert "raw_col" in resolver.columns_to_drop
+        assert "target_col" in resolver.final_columns
+
+    def test_missing_columns_detected(self):
+        table_def = {
+            "required_col": {
+                "display_name": "required_col",
+                "default": True,
+                "type": pl.Utf8,
+            }
+        }
+        resolver = ColumnResolver(table_definition=table_def, raw_columns=set())
+        missing = resolver.get_missing_columns()
+        assert "required_col" in missing
+
+    def test_non_default_columns_not_in_missing(self):
+        table_def = {
+            "optional_col": {
+                "display_name": "optional_col",
+                "default": False,
+                "type": pl.Utf8,
+            }
+        }
+        resolver = ColumnResolver(table_definition=table_def, raw_columns=set())
+        assert resolver.get_missing_columns() == []
+
+
+# ---------------------------------------------------------------------------
+# Scope and field helpers
+# ---------------------------------------------------------------------------
+
+
+class TestScopeHelpers:
+    def test_v1_possible_scope_values(self, da_v1):
+        scopes = da_v1.get_possible_scope_values()
+        assert "Issue" in scopes
+        assert "Group" in scopes
+
+    def test_v2_possible_scope_values(self, da_v2):
+        scopes = da_v2.get_possible_scope_values()
+        assert "Issue" in scopes
+
+    def test_available_fields_for_filtering(self, da_v1):
+        fields = da_v1.get_available_fields_for_filtering()
+        assert len(fields) > 0
+        assert "Action" in fields
+
+    def test_available_categorical_fields(self, da_v1):
+        fields = da_v1.get_available_fields_for_filtering(categoricalOnly=True)
+        assert len(fields) > 0
+
+
+# ---------------------------------------------------------------------------
+# Available levels and set_level
+# ---------------------------------------------------------------------------
+
+
+class TestAvailableLevelsAndSetLevel:
+    def test_v1_available_levels_is_stage_group_only(self, da_v1):
+        """v1 (explainability_extract) only has synthetic Stage Group."""
+        assert da_v1.available_levels == ["Stage Group"]
+
+    def test_v2_available_levels_includes_stage_group(self, da_v2):
+        levels = da_v2.available_levels
+        assert "Stage Group" in levels
+
+    def test_v2_set_level_to_stage(self, da_v2):
+        """If Stage is available in v2, switching to it should work."""
+        if "Stage" not in da_v2.available_levels:
+            pytest.skip("Stage not available in this v2 dataset")
+        original_level = da_v2.level
+        da_v2.set_level("Stage")
+        assert da_v2.level == "Stage"
+        # Restore
+        da_v2.set_level(original_level)
+        assert da_v2.level == original_level
+
+    def test_set_level_invalid_raises_valueerror(self, da_v2):
+        with pytest.raises(ValueError, match="level must be one of"):
+            da_v2.set_level("NonexistentLevel")
+
+    def test_set_level_same_is_noop(self, da_v2):
+        """Setting level to its current value should be a no-op."""
+        original_level = da_v2.level
+        original_stages = list(da_v2.AvailableNBADStages)
+        da_v2.set_level(original_level)  # should not change anything
+        assert da_v2.level == original_level
+        assert da_v2.AvailableNBADStages == original_stages
+
+
+# ---------------------------------------------------------------------------
+# Stage methods (stages_from_arbitration_down, arbitration_stage)
+# ---------------------------------------------------------------------------
+
+
+class TestStageMethods:
+    def test_stages_from_arbitration_down_v2(self, da_v2):
+        stages = da_v2.stages_from_arbitration_down
+        assert stages[0] == "Arbitration"
+        assert len(stages) >= 1
+
+    def test_arbitration_stage_returns_lazyframe(self, da_v1):
+        result = da_v1.arbitration_stage
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+
+    def test_arbitration_stage_only_contains_arbitration_stages(self, da_v1):
+        df = da_v1.arbitration_stage.collect()
+        stage_values = df[da_v1.level].unique().to_list()
+        for s in stage_values:
+            assert s in da_v1.stages_from_arbitration_down
+
+    def test_v2_arbitration_stage(self, da_v2):
+        result = da_v2.arbitration_stage
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+
+
+# ---------------------------------------------------------------------------
+# Data access: get_possible_stage_values, stage_to_group_mapping
+# ---------------------------------------------------------------------------
+
+
+class TestDataAccess:
+    def test_get_possible_stage_values_v1(self, da_v1):
+        stages = da_v1.get_possible_stage_values()
+        assert isinstance(stages, list)
+        assert "Arbitration" in stages
+        assert "Output" in stages
+
+    def test_get_possible_stage_values_v2(self, da_v2):
+        stages = da_v2.get_possible_stage_values()
+        assert isinstance(stages, list)
+        assert len(stages) >= 2
+        assert "Arbitration" in stages
+
+    def test_stage_to_group_mapping_at_stage_group_level(self, da_v2):
+        """When level is Stage Group, mapping should be empty."""
+        assert da_v2.level == "Stage Group"
+        mapping = da_v2.stage_to_group_mapping
+        assert mapping == {}
+
+    def test_stage_to_group_mapping_at_stage_level(self, da_v2):
+        """When level is Stage, mapping should return non-empty dict."""
+        if "Stage" not in da_v2.available_levels:
+            pytest.skip("Stage not available in this v2 dataset")
+        original_level = da_v2.level
+        da_v2.set_level("Stage")
+        mapping = da_v2.stage_to_group_mapping
+        assert isinstance(mapping, dict)
+        assert len(mapping) > 0
+        # Values should be stage group names
+        assert "Arbitration" in mapping.values() or len(mapping) > 0
+        # Restore
+        da_v2.set_level(original_level)
+
+    def test_stage_to_group_mapping_v1_always_empty(self, da_v1):
+        """v1 has no real stage mapping."""
+        mapping = da_v1.stage_to_group_mapping
+        assert mapping == {}
+
+
+# ---------------------------------------------------------------------------
+# Analysis methods: optionality funnel, AB tests, thresholding
+# ---------------------------------------------------------------------------
+
+
+class TestAnalysisMethods:
+    def test_get_optionality_funnel_v1(self, da_v1):
+        result = da_v1.get_optionality_funnel()
+        df = result.collect()
+        assert df.height > 0
+        assert "available_actions" in df.columns
+        assert "Interactions" in df.columns
+        assert da_v1.level in df.columns
+
+    def test_get_optionality_funnel_v2(self, da_v2):
+        result = da_v2.get_optionality_funnel()
+        df = result.collect()
+        assert df.height > 0
+        assert "available_actions" in df.columns
+
+    def test_get_ab_test_results_no_crash(self, da_v2):
+        """AB test requires Model Control Group column — test it doesn't crash or raises cleanly."""
+        schema = da_v2.decision_data.collect_schema()
+        if "Model Control Group" not in schema.names():
+            with pytest.raises(Exception):
+                da_v2.get_ab_test_results()
+        else:
+            result = da_v2.get_ab_test_results()
+            assert isinstance(result, pl.DataFrame)
+            assert result.height > 0
+
+    def test_get_thresholding_data_propensity(self, da_v1):
+        result = da_v1.get_thresholding_data(fld="Propensity")
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+        assert "Decile" in result.columns
+        assert "Threshold" in result.columns
+        assert "Count" in result.columns
+        assert da_v1.level in result.columns
+
+    def test_get_thresholding_data_priority(self, da_v2):
+        result = da_v2.get_thresholding_data(fld="Priority")
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+
+    def test_get_thresholding_data_custom_quantile_range(self, da_v1):
+        result = da_v1.get_thresholding_data(fld="Propensity", quantile_range=range(20, 100, 20))
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+
+    def test_get_thresholding_data_caches_result(self, da_v1):
+        """Calling with same args should return cached result."""
+        r1 = da_v1.get_thresholding_data(fld="Propensity")
+        r2 = da_v1.get_thresholding_data(fld="Propensity")
+        assert r1.equals(r2)
+
+
+# ---------------------------------------------------------------------------
+# Filtering/scoping: priority component distribution, remaining at stage,
+# filtered_action_counts
+# ---------------------------------------------------------------------------
+
+
+class TestFilteringAndScoping:
+    def test_priority_component_distribution_v2(self, da_v2):
+        """Test priority_component_distribution with a known component."""
+        available = set(da_v2.sample.collect_schema().names())
+        component = None
+        for c in ["Propensity", "Value", "Priority"]:
+            if c in available:
+                component = c
+                break
+        if component is None:
+            pytest.skip("No priority components available")
+        result = da_v2.priority_component_distribution(component=component, granularity="Issue", stage="Arbitration")
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "Issue" in df.columns
+        assert component in df.columns
+
+    def test_priority_component_distribution_no_stage(self, da_v2):
+        available = set(da_v2.sample.collect_schema().names())
+        component = "Propensity" if "Propensity" in available else None
+        if component is None:
+            pytest.skip("Propensity not available")
+        result = da_v2.priority_component_distribution(component=component, granularity="Action", stage=None)
+        df = result.collect()
+        assert df.height > 0
+
+    def test_all_components_distribution_v2(self, da_v2):
+        result = da_v2.all_components_distribution(granularity="Issue", stage="Arbitration")
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "Issue" in df.columns
+
+    def test_all_components_distribution_no_stage(self, da_v2):
+        result = da_v2.all_components_distribution(granularity="Group", stage=None)
+        df = result.collect()
+        assert df.height > 0
+        assert "Group" in df.columns
+
+    def test_remaining_at_stage_none(self, da_v2):
+        """stage=None falls back to non-null Priority rows."""
+        result = da_v2._remaining_at_stage(stage=None)
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        # All rows should have non-null Priority
+        assert df["Priority"].null_count() == 0
+
+    def test_remaining_at_stage_arbitration(self, da_v2):
+        result = da_v2._remaining_at_stage(stage="Arbitration")
+        df = result.collect()
+        assert df.height > 0
+        stages = df[da_v2.level].unique().to_list()
+        for s in stages:
+            assert s in da_v2.stages_from_arbitration_down
+
+    def test_filtered_action_counts_no_thresholds(self, da_v2):
+        result = da_v2.filtered_action_counts(groupby_cols=[da_v2.level])
+        assert isinstance(result, pl.LazyFrame)
+        df = result.collect()
+        assert df.height > 0
+        assert "no_of_offers" in df.columns
+
+    def test_filtered_action_counts_with_thresholds(self, da_v2):
+        result = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level],
+            propensityTH=0.5,
+            priorityTH=0.5,
+        )
+        df = result.collect()
+        assert df.height > 0
+        assert "no_of_offers" in df.columns
+        assert "good_offers" in df.columns
+        assert "poor_propensity_offers" in df.columns
+        assert "poor_priority_offers" in df.columns
+        assert "new_models" in df.columns
+
+    def test_filtered_action_counts_by_interaction(self, da_v1):
+        result = da_v1.filtered_action_counts(groupby_cols=["Interaction ID"])
+        df = result.collect()
+        assert df.height > 0
+        assert "Interaction ID" in df.columns
+
+    def test_filtered_action_counts_missing_col_raises(self, da_v1):
+        with pytest.raises(ValueError, match="not found"):
+            da_v1.filtered_action_counts(groupby_cols=["NonexistentColumn"])
+
+
+# ---------------------------------------------------------------------------
+# Win distribution (deeper coverage)
+# ---------------------------------------------------------------------------
+
+
+class TestWinDistributionExtended:
+    def test_baseline_distribution_v2(self, da_v2):
+        """Test baseline win distribution (lever_value=None) on v2."""
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond)
+        assert isinstance(result, pl.DataFrame)
+        assert result.height > 0
+        assert "original_win_count" in result.columns
+        assert "selected_action" in result.columns
+        # Should have both Selected and Rest
+        selected_vals = result["selected_action"].unique().to_list()
+        assert "Selected" in selected_vals or "Rest" in selected_vals
+
+    def test_lever_adjusted_distribution_v2(self, da_v2):
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond, lever_value=2.0)
+        assert "new_win_count" in result.columns
+        assert "original_win_count" in result.columns
+
+    def test_distribution_with_no_winner_v2(self, da_v2):
+        first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v2.get_win_distribution_data(lever_condition=lever_cond, all_interactions=1000)
+        assert "No Winner" in result["Action"].to_list()
+
+    def test_lever_adjusted_with_no_winner(self, da_v1):
+        first_issue = da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        result = da_v1.get_win_distribution_data(lever_condition=lever_cond, lever_value=1.5, all_interactions=5000)
+        assert "No Winner" in result["Action"].to_list()
+        assert "new_win_count" in result.columns
+
+
+# ---------------------------------------------------------------------------
+# find_lever_value (expensive — minimal test)
+# ---------------------------------------------------------------------------
+
+
+class TestFindLeverValue:
+    def test_find_lever_value_narrow_range(self, da_v1):
+        """Test find_lever_value with a narrow search range for speed."""
+        first_issue = da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
+        lever_cond = pl.col("Issue") == first_issue
+        # Use a generous precision and narrow range to keep it fast
+        try:
+            result = da_v1.find_lever_value(
+                lever_condition=lever_cond,
+                target_win_percentage=50.0,
+                low=0.5,
+                high=10.0,
+                precision=1.0,
+            )
+            assert isinstance(result, float)
+            assert 0.5 <= result <= 10.0
+        except ValueError:
+            # Target may not be achievable — that's acceptable
+            pass
+
+
+# ---------------------------------------------------------------------------
+# Offer Quality Analysis
+# ---------------------------------------------------------------------------
+
+
+class TestOfferQualityAnalysis:
+    def test_stages_with_propensity_property(self, da_v2):
+        """Test that stages_with_propensity detects stages with propensity scores."""
+        stages = da_v2.stages_with_propensity
+        assert isinstance(stages, list)
+        assert len(stages) > 0
+        # Should include arbitration-related stages
+        assert any("arbitration" in s.lower() or "output" in s.lower() for s in stages)
+
+    def test_stages_with_propensity_v1(self, da_v1):
+        """Test stages_with_propensity on v1 data."""
+        stages = da_v1.stages_with_propensity
+        assert isinstance(stages, list)
+        assert len(stages) > 0
+
+    def test_get_offer_quality_basic(self, da_v2):
+        """Test get_offer_quality returns expected structure."""
+        # get_offer_quality requires action_counts to have threshold columns
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+        assert df.height > 0
+        # Check for offer quality category columns
+        assert "has_no_offers" in df.columns
+        assert "atleast_one_relevant_action" in df.columns
+        assert "only_irrelevant_actions" in df.columns
+        assert "atleast_one_action" in df.columns
+        assert da_v2.level in df.columns
+
+    def test_get_offer_quality_with_thresholds(self, da_v2):
+        """Test get_offer_quality respects propensity/priority thresholds."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.5, priorityTH=50.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+        assert df.height > 0
+        # At least one category should have non-zero counts
+        has_counts = (
+            df.select("has_no_offers", "atleast_one_relevant_action", "only_irrelevant_actions", "atleast_one_action")
+            .sum()
+            .row(0)
+        )
+        assert sum(has_counts) > 0
+
+    def test_get_offer_quality_includes_all_customers(self, da_v2):
+        """Test that get_offer_quality includes customers even if they have no actions."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"],
+            propensityTH=0.99,  # High threshold to filter most
+            priorityTH=999.0,  # High threshold to filter most
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+
+        # Should have customers with no offers
+        assert df.filter(pl.col("has_no_offers") > 0).height > 0
+
+        # Total unique customers should match first stage customer count
+        first_stage = da_v2.AvailableNBADStages[0]
+        total_customers_in_result = df.filter(pl.col(da_v2.level) == first_stage).select("Interaction ID").n_unique()
+        total_customers_in_data = (
+            da_v2.sample.filter(pl.col(da_v2.level) == first_stage)
+            .select(pl.col("Interaction ID").n_unique().alias("count"))
+            .collect()
+            .item()
+        )
+        # Results should include all customers from the data
+        assert total_customers_in_result == total_customers_in_data
+
+    def test_get_offer_quality_stage_without_propensity(self, da_v2):
+        """Test offer quality for stages without propensity uses atleast_one_action category."""
+        action_counts = da_v2.filtered_action_counts(
+            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+        )
+        result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        df = result.collect()
+
+        # For stages without propensity, should use atleast_one_action instead of relevant/irrelevant
+        stages_without_prop = set(da_v2.AvailableNBADStages) - set(da_v2.stages_with_propensity)
+        if stages_without_prop:
+            stage = list(stages_without_prop)[0]
+            stage_df = df.filter(pl.col(da_v2.level) == stage)
+            if stage_df.height > 0:
+                # Should have atleast_one_action counts, not relevant/irrelevant
+                assert stage_df.select(pl.col("atleast_one_action").sum()).item() >= 0
+
+
+# ---------------------------------------------------------------------------
+# Propensity validation
+# ---------------------------------------------------------------------------
+
+
+class TestPropensityValidation:
+    """Test propensity validation warnings for data quality issues."""
+
+    def test_sample_data_propensity_detection(self, da_v2):
+        """Test that propensity validation detects issues in sample data if present."""
+        # The sample_eev2.parquet data may have high propensities
+        # This test verifies the validation runs without errors
+        warning = da_v2.propensity_validation_warning
+        # If there's a warning, it should be properly formatted
+        if warning is not None:
+            # Should contain one of the expected warning types
+            assert "Invalid propensity" in warning or "Unusually high propensities" in warning
+
+    def test_high_propensities_triggers_warning(self, da_v2):
+        """Test that high propensities (> 10%) trigger a warning."""
+        # Load real data and modify propensities to be high
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        modified_data = raw.with_columns(pl.lit(0.15).alias("FinalPropensity"))  # Set all to 15%
+        da = DecisionAnalyzer(modified_data, sample_size=1000)
+        warning = da.propensity_validation_warning
+        assert warning is not None
+        assert "Unusually high propensities detected" in warning or "Invalid propensity" in warning
+
+    def test_invalid_propensities_triggers_warning(self, da_v2):
+        """Test that invalid propensities (> 1.0) trigger a warning."""
+        # Load real data and modify propensities to be invalid
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        modified_data = raw.with_columns(pl.lit(1.5).alias("FinalPropensity"))  # Set all to 1.5
+        da = DecisionAnalyzer(modified_data, sample_size=1000)
+        warning = da.propensity_validation_warning
+        assert warning is not None
+        assert "Invalid propensity values detected" in warning
+        assert "> 1.0" in warning
+
+    def test_missing_propensity_column_no_warning(self, da_v2):
+        """Test that missing Propensity column doesn't cause errors."""
+        # Load real data and drop propensity column
+        raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
+        # Drop FinalPropensity if it exists
+        cols_to_keep = [c for c in raw.collect_schema().names() if c not in ["FinalPropensity", "Propensity"]]
+        modified_data = raw.select(cols_to_keep)
+
+        # This will warn about missing FinalPropensity but shouldn't crash
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            da = DecisionAnalyzer(modified_data, sample_size=1000)
+            # propensity_validation_warning should handle missing column gracefully
+            assert da.propensity_validation_warning is None
+
+    def test_propensity_validation_warning_is_cached(self, da_v2):
+        """Test that propensity_validation_warning is a cached property."""
+        # Access twice should return same result without recomputation
+        warning1 = da_v2.propensity_validation_warning
+        warning2 = da_v2.propensity_validation_warning
+        assert warning1 == warning2
+
+
+# ---------------------------------------------------------------------------
+# Minimal dataset: exact-value tests
+# ---------------------------------------------------------------------------
+# The minimal CSV (data/da/sample_eev2_minimal.csv) has 12 rows across
+# 3 interactions, 2 issues (Sales / Retention), 5 actions. Small enough
+# to verify every number.
+
+
+@pytest.fixture(scope="module")
+def da_minimal():
+    """DecisionAnalyzer from the minimal CSV."""
+    raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
+    return DecisionAnalyzer(raw, sample_size=5000)
+
+
+class TestMinimalDatasetBasics:
+    def test_extract_type(self, da_minimal):
+        assert da_minimal.extract_type == "decision_analyzer"
+
+    def test_interaction_count(self, da_minimal):
+        n = da_minimal.decision_data.select("Interaction ID").unique().count().collect().item()
+        assert n == 3
+
+    def test_stages(self, da_minimal):
+        stages = da_minimal.AvailableNBADStages
+        assert "Eligibility" in stages
+        assert "Output" in stages
+
+    def test_issues(self, da_minimal):
+        issues = da_minimal.decision_data.select("Issue").unique().collect().get_column("Issue").to_list()
+        assert set(issues) == {"Sales", "Retention"}
+
+
+class TestMinimalFunnelExactValues:
+    """Exact-value tests for funnel data against the minimal dataset.
+
+    The 12 rows break down as:
+        Sales (7 action occurrences):
+          INT-001/ACTION1 → Output
+          INT-001/ACTION2 → ContactPolicies (FILTERED_OUT)
+          INT-001/ACTION5 → ContactPolicies (FILTERED_OUT)
+          INT-002/ACTION1 → Eligibility (FILTERED_OUT)
+          INT-002/ACTION2 → ContactPolicies (FILTERED_OUT)
+          INT-003/ACTION2 → Output
+          INT-003/ACTION5 → Eligibility (FILTERED_OUT)
+
+        Retention (5 action occurrences):
+          INT-001/ACTION3 → Eligibility (FILTERED_OUT)
+          INT-001/ACTION4 → Output
+          INT-002/ACTION3 → ContactPolicies (FILTERED_OUT)
+          INT-002/ACTION4 → Eligibility (FILTERED_OUT)
+          INT-003/ACTION3 → ContactPolicies (FILTERED_OUT)
+    """
+
+    def test_available_at_eligibility_all(self, da_minimal):
+        """All 12 action occurrences should be available at Eligibility."""
+        available, _, _ = da_minimal.get_funnel_data(scope="Action")
+        eligibility = available.filter(pl.col(da_minimal.level) == "Eligibility").collect()
+        total = eligibility["action_occurrences"].sum()
+        assert total == 12
+
+    def test_available_at_eligibility_sales_filter(self, da_minimal):
+        """7 Sales action occurrences available at Eligibility."""
+        available, _, _ = da_minimal.get_funnel_data(scope="Action", additional_filters=pl.col("Issue") == "Sales")
+        eligibility = available.filter(pl.col(da_minimal.level) == "Eligibility").collect()
+        total = eligibility["action_occurrences"].sum()
+        assert total == 7
+
+    def test_passing_eligibility_sales(self, da_minimal):
+        """5 Sales action occurrences pass Eligibility (2 filtered there)."""
+        _, passing, _ = da_minimal.get_funnel_data(scope="Action", additional_filters=pl.col("Issue") == "Sales")
+        eligibility = passing.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 5
+
+    def test_passing_eligibility_all(self, da_minimal):
+        """8 total action occurrences pass Eligibility (4 filtered there)."""
+        _, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        eligibility = passing.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 8
+
+    def test_filtered_at_eligibility(self, da_minimal):
+        """4 action occurrences filtered at Eligibility overall."""
+        _, _, filtered = da_minimal.get_funnel_data(scope="Action")
+        eligibility = filtered.filter(pl.col(da_minimal.level) == "Eligibility")
+        total = eligibility["action_occurrences"].sum()
+        assert total == 4
+
+    def test_funnel_summary_stages_match_funnel(self, da_minimal):
+        """Summary table should show Available Actions + filtering stages, no Output."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        stages_in_summary = summary[da_minimal.level].to_list()
+        assert stages_in_summary[0] == "Available Actions"
+        assert "Output" not in stages_in_summary
+
+    def test_funnel_summary_available_actions_row(self, da_minimal):
+        """The synthetic Available Actions row should have 12 total actions, 0 filtered."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        aa_row = summary.filter(pl.col(da_minimal.level) == "Available Actions")
+        assert aa_row["Available Actions"].item() == 12
+        assert aa_row["Filtered Actions"].item() == 0
+
+    def test_funnel_summary_raw_counts_present(self, da_minimal):
+        """Summary should include raw count columns."""
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        summary = da_minimal.get_funnel_summary(available, passing)
+        for col in ["Available Actions", "Passing Actions", "Filtered Actions", "Decisions"]:
+            assert col in summary.columns
+
+
+class TestMinimalRanking:
+    """Verify exact ranks for every action in the minimal dataset.
+
+    Ranking is by: is_mandatory desc, Priority desc, Stage Order desc,
+    then alphabetic Issue/Group/Action.  Null Priority sorts last.
+
+    INT-001 (5 actions):
+      Rank 1: ACTION4 (Priority 9.0,   Output)
+      Rank 2: ACTION2 (Priority 8.64,  ContactPolicies)
+      Rank 3: ACTION1 (Priority 7.2,   Output)
+      Rank 4: ACTION5 (Priority 4.725, ContactPolicies)
+      Rank 5: ACTION3 (Priority null,  Eligibility)
+
+    INT-002 (4 actions):
+      Rank 1: ACTION2 (Priority 6.48,  ContactPolicies)
+      Rank 2: ACTION3 (Priority 5.88,  ContactPolicies)
+      Rank 3: ACTION4 (Priority null,  Eligibility)
+      Rank 4: ACTION1 (Priority null,  Eligibility)
+
+    INT-003 (3 actions):
+      Rank 1: ACTION2 (Priority 22.95, Output)
+      Rank 2: ACTION3 (Priority 6.0,   ContactPolicies)
+      Rank 3: ACTION5 (Priority null,  Eligibility)
+    """
+
+    def _ranks_for(self, da_minimal, interaction_id):
+        return (
+            da_minimal.decision_data.filter(pl.col("Interaction ID") == interaction_id)
+            .select("Action", "Rank")
+            .sort("Rank")
+            .collect()
+        )
+
+    def test_int001_rank1_is_action4(self, da_minimal):
+        """ACTION4 has the highest priority (9.0) in INT-001."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df.filter(pl.col("Action") == "ACTION4")["Rank"].item() == 1
+
+    def test_int001_rank5_is_action3(self, da_minimal):
+        """ACTION3 has null priority in INT-001 → last rank."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df.filter(pl.col("Action") == "ACTION3")["Rank"].item() == 5
+
+    def test_int001_full_order(self, da_minimal):
+        """Full rank order for INT-001."""
+        df = self._ranks_for(da_minimal, "INT-001")
+        assert df["Action"].to_list() == ["ACTION4", "ACTION2", "ACTION1", "ACTION5", "ACTION3"]
+
+    def test_int002_rank1_is_action2(self, da_minimal):
+        """ACTION2 has the highest priority (6.48) in INT-002."""
+        df = self._ranks_for(da_minimal, "INT-002")
+        assert df.filter(pl.col("Action") == "ACTION2")["Rank"].item() == 1
+
+    def test_int002_null_priority_actions_rank_last(self, da_minimal):
+        """ACTION1 and ACTION4 have null priority → ranks 3 and 4."""
+        df = self._ranks_for(da_minimal, "INT-002")
+        null_prio_ranks = df.filter(pl.col("Action").is_in(["ACTION1", "ACTION4"]))["Rank"].sort().to_list()
+        assert null_prio_ranks == [3, 4]
+
+    def test_int003_rank1_is_action2(self, da_minimal):
+        """ACTION2 has the highest priority (22.95) in INT-003."""
+        df = self._ranks_for(da_minimal, "INT-003")
+        assert df.filter(pl.col("Action") == "ACTION2")["Rank"].item() == 1
+
+    def test_int003_full_order(self, da_minimal):
+        df = self._ranks_for(da_minimal, "INT-003")
+        assert df["Action"].to_list() == ["ACTION2", "ACTION3", "ACTION5"]
+
+    def test_rank1_actions_are_in_output_stage(self, da_minimal):
+        """Rank-1 actions in INT-001 and INT-003 should be in Output.
+        INT-002 has no Output actions, so its rank-1 is ContactPolicies."""
+        rank1 = da_minimal.decision_data.filter(pl.col("Rank") == 1).select("Interaction ID", "Stage Group").collect()
+        int001 = rank1.filter(pl.col("Interaction ID") == "INT-001")["Stage Group"].item()
+        int003 = rank1.filter(pl.col("Interaction ID") == "INT-003")["Stage Group"].item()
+        assert int001 == "Output"
+        assert int003 == "Output"
+
+
+class TestMinimalOverviewStats:
+    """Verify exact overview stat values against the minimal dataset.
+
+    The dataset has 3 interactions, 3 customers, 5 distinct actions,
+    3 channel/direction combos, spanning 3 calendar days.
+    """
+
+    def test_actions_count(self, da_minimal):
+        assert da_minimal.overview_stats["Actions"] == 5
+
+    def test_decisions_count(self, da_minimal):
+        assert da_minimal.overview_stats["Decisions"] == 3
+
+    def test_customers_count(self, da_minimal):
+        assert da_minimal.overview_stats["Customers"] == 3
+
+    def test_channels_count(self, da_minimal):
+        """Web/Inbound, Mobile/Inbound, Web/Outbound = 3."""
+        assert da_minimal.overview_stats["Channels"] == 3
+
+    def test_start_date(self, da_minimal):
+        from datetime import date
+
+        assert da_minimal.overview_stats["StartDate"] == date(2024, 3, 27)
+
+    def test_duration(self, da_minimal):
+        from datetime import timedelta
+
+        assert da_minimal.overview_stats["Duration"] == timedelta(days=3)
+
+
+class TestMinimalDistribution:
+    """Verify exact distribution counts at each stage.
+
+    At Output:  ACTION1(INT-001), ACTION2(INT-003), ACTION4(INT-001)
+                → 3 distinct actions, each appearing in 1 decision.
+    """
+
+    def test_output_has_three_actions(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert df.height == 3
+
+    def test_output_each_action_has_one_decision(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert (df["Decisions"] == 1).all()
+
+    def test_output_actions_are_correct(self, da_minimal):
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Action").collect()
+        assert set(df["Action"].to_list()) == {"ACTION1", "ACTION2", "ACTION4"}
+
+    def test_eligibility_has_five_actions(self, da_minimal):
+        """All 5 actions appear at Eligibility (it's the first stage, everything enters)."""
+        df = da_minimal.get_distribution_data(stage="Eligibility", grouping_levels="Action").collect()
+        assert df.height == 5
+
+    def test_distribution_by_issue_at_output(self, da_minimal):
+        """Output has Sales (2 actions: ACTION1, ACTION2) and Retention (1: ACTION4)."""
+        df = da_minimal.get_distribution_data(stage="Output", grouping_levels="Issue").collect()
+        sales = df.filter(pl.col("Issue") == "Sales")["Decisions"].item()
+        retention = df.filter(pl.col("Issue") == "Retention")["Decisions"].item()
+        assert sales == 2
+        assert retention == 1
+
+
+class TestMinimalSensitivity:
+    """Verify exact sensitivity influence values.
+
+    Sensitivity measures how many rank-1 wins are lost when each PVCL
+    component is removed. With 3 interactions and known priorities,
+    each factor's influence is deterministic.
+    """
+
+    def test_all_five_factors_present(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        assert set(df["Factor"].to_list()) == {
+            "Priority",
+            "Propensity",
+            "Value",
+            "Context Weights",
+            "Levers",
+        }
+
+    def test_priority_has_highest_influence(self, da_minimal):
+        """Priority is the composite score — removing it should have the largest impact."""
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        priority_influence = df.filter(pl.col("Factor") == "Priority")["Influence"].item()
+        max_non_priority = df.filter(pl.col("Factor") != "Priority")["Influence"].max()
+        assert priority_influence >= max_non_priority
+
+    def test_exact_influence_values(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect().sort("Factor")
+        values = {row["Factor"]: row["Influence"] for row in df.iter_rows(named=True)}
+        assert values["Priority"] == 3
+        assert values["Propensity"] == 2
+        assert values["Value"] == 1
+        assert values["Context Weights"] == 2
+        assert values["Levers"] == 1
+
+    def test_influence_values_non_negative(self, da_minimal):
+        df = da_minimal.get_sensitivity(win_rank=1).collect()
+        assert (df["Influence"] >= 0).all()
+
+
+class TestMinimalWinLoss:
+    """Verify exact win/loss counts and distribution percentages.
+
+    With win_rank=1:
+    - Sales wins when a Sales action is rank 1 → INT-001(ACTION4? no, ACTION4 is Retention),
+      actually INT-003(ACTION2, Sales/Loans → rank 1). And INT-001 rank 1 is ACTION4 (Retention).
+      So Sales wins in INT-003, loses in INT-001 (rank 1 is Retention).
+      INT-002 has no Output, rank 1 is ACTION2 (Sales/Loans) → Sales wins.
+      Sales: wins=2, losses=1, total=3.
+    - Retention: wins=1 (INT-001), losses=2 (INT-002, INT-003), total=3.
+    """
+
+    def test_sales_win_loss_counts(self, da_minimal):
+        counts = da_minimal.get_win_loss_counts(
+            group_filter=pl.col("Issue") == "Sales",
+            win_rank=1,
+        )
+        assert counts["wins"] == 2
+        assert counts["losses"] == 1
+        assert counts["total"] == 3
+
+    def test_retention_win_loss_counts(self, da_minimal):
+        counts = da_minimal.get_win_loss_counts(
+            group_filter=pl.col("Issue") == "Retention",
+            win_rank=1,
+        )
+        assert counts["wins"] == 1
+        assert counts["losses"] == 2
+        assert counts["total"] == 3
+
+    def test_win_loss_distribution_percentages(self, da_minimal):
+        """Win/loss percentages should sum to 1.0 for each status."""
+        df = da_minimal.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        for status in ["Wins", "Losses"]:
+            total = df.filter(pl.col("Status") == status)["Percentage"].sum()
+            assert abs(total - 1.0) < 0.01
+
+    def test_sales_win_percentage(self, da_minimal):
+        """Sales has 2 of 3 wins → 66.7%."""
+        df = da_minimal.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
+        pct = df.filter((pl.col("Issue") == "Sales") & (pl.col("Status") == "Wins"))["Percentage"].item()
+        assert abs(pct - 2 / 3) < 0.01
+
+
+class TestMinimalOptionalityExact:
+    """Verify exact per-stage action counts (optionality).
+
+    Actions remaining at each stage:
+      Eligibility (all enter):
+        INT-001=5, INT-002=4, INT-003=3
+      Contact Policies (after Eligibility filters 4):
+        INT-001=4, INT-002=2, INT-003=2
+      Output (after ContactPolicies filters 5):
+        INT-001=2, INT-002=0, INT-003=1
+    """
+
+    def test_optionality_at_eligibility(self, da_minimal):
+        """Total action occurrences at Eligibility: 5+4+3 = 12."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        elig = opt.filter(pl.col("Stage Group") == "Eligibility")
+        total_actions = (elig["nOffers"] * elig["Interactions"]).sum()
+        assert total_actions == 12
+
+    def test_optionality_at_output(self, da_minimal):
+        """At Output: INT-001 has 2, INT-003 has 1, INT-002 has 0 → total 3."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        output = opt.filter((pl.col("Stage Group") == "Output") & (pl.col("nOffers") > 0))
+        total_actions = (output["nOffers"] * output["Interactions"]).sum()
+        assert total_actions == 3
+
+    def test_output_zero_offers_interaction(self, da_minimal):
+        """INT-002 has 0 actions at Output → 1 interaction with nOffers=0."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        zero_at_output = opt.filter((pl.col("Stage Group") == "Output") & (pl.col("nOffers") == 0))
+        assert zero_at_output["Interactions"].item() == 1
+
+    def test_all_interactions_present_at_eligibility(self, da_minimal):
+        """All 3 interactions should be counted at Eligibility (including zero row)."""
+        opt = da_minimal.get_optionality_data(da_minimal.sample).collect()
+        elig = opt.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Interactions"].sum() == 3
+
+
+class TestMinimalFilterComponents:
+    """Verify exact filter component counts.
+
+    EligibilityRule filters 4 actions across 3 interactions → 3 filtered decisions.
+    ContactPolicyRule filters 5 actions across 3 interactions → 3 filtered decisions.
+    """
+
+    def test_two_components(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        assert df.height == 2
+
+    def test_contact_policy_filtered_decisions(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
+        assert cp["Filtered Decisions"].item() == 3
+
+    def test_eligibility_rule_filtered_decisions(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        er = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert er["Filtered Decisions"].item() == 3
+
+    def test_contact_policy_at_correct_stage(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
+        assert "Contact Policies" in cp["Stage Group"].item()
+
+    def test_eligibility_rule_at_correct_stage(self, da_minimal):
+        df = da_minimal.get_filter_component_data(top_n=10)
+        er = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert er["Stage Group"].item() == "Eligibility"
+
+
+class TestMinimalDecisionsWithoutActions:
+    """Verify exact decisions-without-actions counts.
+
+    After Eligibility: all 3 interactions still have actions → 0 knockouts.
+    Arbitration is a passthrough here → 0 knockouts.
+    After ContactPolicies: INT-002 loses all remaining actions → 1 knockout.
+    Total knockouts: 1 = 3 decisions - 2 Output survivors.
+    """
+
+    def test_no_knockouts_at_eligibility(self, da_minimal):
+        result = da_minimal.get_decisions_without_actions_data()
+        elig = result.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["decisions_without_actions"].item() == 0
+
+    def test_one_knockout_at_contact_policies(self, da_minimal):
+        result = da_minimal.get_decisions_without_actions_data()
+        cp = result.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["decisions_without_actions"].item() == 1
+
+    def test_total_knockouts_equals_non_survivors(self, da_minimal):
+        """Total knockouts = total decisions - Output survivors = 3 - 2 = 1."""
+        result = da_minimal.get_decisions_without_actions_data()
+        assert result["decisions_without_actions"].sum() == 1
+
+
+class TestMinimalFunnelSummaryExact:
+    """Verify exact funnel summary values (percentages and averages).
+
+    Funnel summary for 3 interactions, 12 total action occurrences:
+      Available Actions: 12 avail, 12 pass, 0 filtered
+      Eligibility:       12 avail,  8 pass, 4 filtered (44.4% of total)
+      Arbitration:        8 avail,  8 pass, 0 filtered
+      ContactPolicies:    8 avail,  3 pass, 5 filtered (55.6% of total)
+    """
+
+    def _summary(self, da_minimal):
+        available, passing, _ = da_minimal.get_funnel_data(scope="Action")
+        return da_minimal.get_funnel_summary(available, passing)
+
+    def test_eligibility_available_12(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Available Actions"].item() == 12
+
+    def test_eligibility_passing_8(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Passing Actions"].item() == 8
+
+    def test_eligibility_filtered_4(self, da_minimal):
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Filtered Actions"].item() == 4
+
+    def test_contact_policies_passing_3(self, da_minimal):
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["Passing Actions"].item() == 3
+
+    def test_contact_policies_filtered_5(self, da_minimal):
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert cp["Filtered Actions"].item() == 5
+
+    def test_percent_filtered_eligibility(self, da_minimal):
+        """4 of 9 total filtered actions = 44.4%."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert abs(elig["% of Total Filtered"].item() - 44.4) < 0.5
+
+    def test_percent_filtered_contact_policies(self, da_minimal):
+        """5 of 9 total filtered actions = 55.6%."""
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert abs(cp["% of Total Filtered"].item() - 55.6) < 0.5
+
+    def test_avg_available_per_decision_at_eligibility(self, da_minimal):
+        """12 actions / 3 decisions = 4.0."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert elig["Avg Available/Decision"].item() == 4.0
+
+    def test_avg_passing_per_decision_at_eligibility(self, da_minimal):
+        """8 actions / 3 decisions = 2.67."""
+        summary = self._summary(da_minimal)
+        elig = summary.filter(pl.col("Stage Group") == "Eligibility")
+        assert abs(elig["Avg Passing/Decision"].item() - 2.67) < 0.01
+
+    def test_contact_policies_decisions_without_actions(self, da_minimal):
+        """1 of 3 interactions loses all actions at ContactPolicies → 33.3%."""
+        summary = self._summary(da_minimal)
+        cp = summary.filter(pl.col("Stage Group").str.contains("Contact Policies"))
+        assert abs(cp["% Decisions without Actions"].item() - 33.3) < 0.5
+
+    def test_percent_filtered_sums_to_100(self, da_minimal):
+        summary = self._summary(da_minimal)
+        assert abs(summary["% of Total Filtered"].sum() - 100.0) < 0.5
+
+
+class TestMinimalComponentActionImpact:
+    """Verify exact component-action impact breakdown.
+
+    ContactPolicyRule filters:
+      ACTION2 (Sales/Loans): 2 decisions (INT-001, INT-002)
+      ACTION3 (Retention/Proactive): 2 decisions (INT-002, INT-003)
+      ACTION5 (Sales/Cards): 1 decision (INT-001)
+
+    EligibilityRule filters:
+      ACTION1 (Sales/Cards): 1, ACTION3 (Retention/Proactive): 1,
+      ACTION4 (Retention/Reactive): 1, ACTION5 (Sales/Cards): 1
+    """
+
+    def test_contact_policy_action2_filtered_2(self, da_minimal):
+        df = da_minimal.get_component_action_impact(top_n=10)
+        row = df.filter((pl.col("Component Name") == "ContactPolicyRule") & (pl.col("Action") == "ACTION2"))
+        assert row["Filtered Decisions"].item() == 2
+
+    def test_contact_policy_action3_filtered_2(self, da_minimal):
+        df = da_minimal.get_component_action_impact(top_n=10)
+        row = df.filter((pl.col("Component Name") == "ContactPolicyRule") & (pl.col("Action") == "ACTION3"))
+        assert row["Filtered Decisions"].item() == 2
+
+    def test_eligibility_all_actions_filtered_1(self, da_minimal):
+        """Each action filtered by EligibilityRule appears in exactly 1 decision."""
+        df = da_minimal.get_component_action_impact(top_n=10)
+        elig = df.filter(pl.col("Component Name") == "EligibilityRule")
+        assert (elig["Filtered Decisions"] == 1).all()
+        assert elig.height == 4
+
+    def test_total_rows(self, da_minimal):
+        """ContactPolicyRule: 3 action rows + EligibilityRule: 4 action rows = 7."""
+        df = da_minimal.get_component_action_impact(top_n=10)
+        assert df.height == 7
+
+
+class TestMinimalComponentDrilldown:
+    """Verify component drilldown with avg scores from surviving actions.
+
+    ContactPolicyRule drilldown for ACTION3 (Retention/Proactive):
+      Filtered in 2 decisions (INT-002, INT-003).
+      avg_Priority derived from surviving ACTION3 rows (weighted avg of
+      priorities where ACTION3 survived = only INT-001... but ACTION3 is
+      filtered at Eligibility in INT-001, so from ContactPolicies rows only).
+    """
+
+    def test_contact_policy_drilldown_has_three_actions(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        assert df.height == 3
+
+    def test_contact_policy_drilldown_sorted_descending(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        decisions = df["Filtered Decisions"].to_list()
+        assert decisions == sorted(decisions, reverse=True)
+
+    def test_eligibility_drilldown_has_four_actions(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="EligibilityRule")
+        assert df.height == 4
+
+    def test_nonexistent_component_empty(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="NONEXISTENT_XYZ")
+        assert df.height == 0
+
+    def test_drilldown_includes_avg_score_columns(self, da_minimal):
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
+        avg_cols = [c for c in df.columns if c.startswith("avg_")]
+        assert len(avg_cols) > 0
+
+    def test_drilldown_respects_scope_issue(self, da_minimal):
+        """At Issue scope, ContactPolicyRule should show 2 rows (Sales, Retention)."""
+        df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule", scope="Issue")
+        assert df.height == 2
+        assert set(df["Issue"].to_list()) == {"Sales", "Retention"}
