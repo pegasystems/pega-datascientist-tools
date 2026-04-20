@@ -541,26 +541,26 @@ class TestAsyncMixinIntegration:
     """
 
     def test_get_model_categories_is_coroutinefunction(self):
-        import asyncio
+        import inspect
 
-        assert asyncio.iscoroutinefunction(AsyncPredictionStudio.get_model_categories)
+        assert inspect.iscoroutinefunction(AsyncPredictionStudio.get_model_categories)
 
     def test_upload_model_is_coroutinefunction(self):
-        import asyncio
+        import inspect
 
-        assert asyncio.iscoroutinefunction(AsyncPredictionStudio.upload_model)
+        assert inspect.iscoroutinefunction(AsyncPredictionStudio.upload_model)
 
     def test_model_describe_is_coroutinefunction(self):
-        import asyncio
+        import inspect
 
-        assert asyncio.iscoroutinefunction(AsyncModel.describe)
+        assert inspect.iscoroutinefunction(AsyncModel.describe)
 
     def test_prediction_describe_is_coroutinefunction(self):
-        import asyncio
+        import inspect
 
-        assert asyncio.iscoroutinefunction(AsyncPrediction.describe)
+        assert inspect.iscoroutinefunction(AsyncPrediction.describe)
 
     def test_prediction_get_staged_changes_is_coroutinefunction(self):
-        import asyncio
+        import inspect
 
-        assert asyncio.iscoroutinefunction(AsyncPrediction.get_staged_changes)
+        assert inspect.iscoroutinefunction(AsyncPrediction.get_staged_changes)

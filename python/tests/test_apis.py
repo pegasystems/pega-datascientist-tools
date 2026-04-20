@@ -50,6 +50,7 @@ def test_connection_eror(httpx_mock: HTTPXMock):
         PegaAuth.token
 
 
+@pytest.mark.filterwarnings("ignore:Could not infer Pega version automatically:UserWarning")
 def test_base_client(httpx_mock: HTTPXMock, monkeypatch):
     _base_client.BaseClient(base_url="TEST", auth="Test")  # no validation yet
 

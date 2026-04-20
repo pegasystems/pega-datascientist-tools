@@ -2,6 +2,11 @@ import polars as pl
 import pytest
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
+# The fixture below intentionally omits some columns that DecisionAnalyzer
+# treats as defaults; the resulting "default columns are missing" UserWarning
+# is expected and not under test here.
+pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
+
 
 @pytest.fixture
 def sample_data():

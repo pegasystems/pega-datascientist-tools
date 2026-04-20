@@ -26,6 +26,12 @@ from pdstools.decision_analyzer.utils import (
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
+# Several test fixtures construct DecisionAnalyzer from intentionally minimal
+# datasets that omit some columns DecisionAnalyzer treats as defaults. The
+# resulting "default columns are missing" UserWarning is expected here and
+# distracts from real test signal.
+pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
