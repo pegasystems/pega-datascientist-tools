@@ -8,6 +8,20 @@ from pdstools.utils.report_utils import check_report_for_errors
 basePath = pathlib.Path(__file__).parent.parent.parent
 
 
+def _assert_report_path(actual: pathlib.Path, expected_stem: str) -> None:
+    """Assert ``actual`` is the rendered report for ``expected_stem``.
+
+    The output may be either ``<stem>.html`` (when Quarto did not emit a
+    resources folder, or when ``full_embed=True``) or ``<stem>.zip`` (when
+    the resources folder was bundled). Tests should be agnostic to which.
+    """
+    actual = pathlib.Path(actual)
+    assert actual.parent.resolve() == pathlib.Path(".").resolve()
+    assert actual.stem == expected_stem
+    assert actual.suffix in {".html", ".zip"}, f"Unexpected extension: {actual.suffix}"
+    assert actual.exists()
+
+
 @pytest.fixture
 def sample() -> ADMDatamart:
     return datasets.cdh_sample()
@@ -31,8 +45,7 @@ def sample_prediction_data() -> Prediction:
 
 def test_GenerateHealthCheck(sample: ADMDatamart):
     hc = sample.generate.health_check()
-    assert hc == pathlib.Path("./HealthCheck.zip").resolve()
-    assert pathlib.Path(hc).exists()
+    _assert_report_path(hc, "HealthCheck")
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
@@ -122,8 +135,7 @@ def test_GenerateHealthCheck_ModelDataOnly(
     sample_without_predictor_binning: ADMDatamart,
 ):
     hc = sample_without_predictor_binning.generate.health_check(name="MyOrg")
-    assert hc == pathlib.Path("./HealthCheck_MyOrg.zip").resolve()
-    assert pathlib.Path(hc).exists()
+    _assert_report_path(hc, "HealthCheck_MyOrg")
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
@@ -138,8 +150,7 @@ def test_GenerateHealthCheck_PredictionData(
         prediction=sample_prediction_data,
         name="WithPredictions",
     )
-    assert hc == pathlib.Path("./HealthCheck_WithPredictions.zip").resolve()
-    assert pathlib.Path(hc).exists()
+    _assert_report_path(hc, "HealthCheck_WithPredictions")
     errors = check_report_for_errors(hc)
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
@@ -168,11 +179,7 @@ def test_GenerateModelReport(sample: ADMDatamart):
         name="MyOrg",
         only_active_predictors=True,
     )
-    expected_path = pathlib.Path(
-        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.zip",
-    ).resolve()
-    assert report == expected_path
-    assert pathlib.Path(report).exists()
+    _assert_report_path(report, "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0")
     errors = check_report_for_errors(report)
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
@@ -236,8 +243,7 @@ Test parameters: {{< meta params.title >}}
 """)
 
     hc = sample.generate.health_check(name="CustomTemplate", qmd_file=custom_qmd)
-    assert hc == pathlib.Path("./HealthCheck_CustomTemplate.zip").resolve()
-    assert pathlib.Path(hc).exists()
+    _assert_report_path(hc, "HealthCheck_CustomTemplate")
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
 
@@ -267,10 +273,9 @@ Model ID: {{< meta params.model_id >}}
         name="CustomModel",
         qmd_file=custom_qmd,
     )
-    expected_path = pathlib.Path(
-        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.zip",
-    ).resolve()
-    assert report == expected_path
-    assert pathlib.Path(report).exists()
+    _assert_report_path(
+        report,
+        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0",
+    )
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
