@@ -147,6 +147,14 @@ _STAGE_TO_GROUP: dict[str, str] = {
     stage: group_name for group_name, group in NBAD_PIPELINE.items() for stage in group["stages"]
 }
 
+# Combined display-name lookup: stage groups first (so a name colliding with
+# both is resolved as the group), then stages. Mirrors ``get_display_name``.
+# Suitable for ``pl.Expr.replace_strict(..., default=pl.col(...))``.
+DISPLAY_NAME_LOOKUP: dict[str, str] = {
+    **_STAGE_DISPLAY_NAMES,
+    **{group_name: group["display_name"] for group_name, group in NBAD_PIPELINE.items()},
+}
+
 
 def get_stage_group_display_name(internal_name: str) -> str:
     """Return the display name for a stage group, or ``internal_name`` if not found."""

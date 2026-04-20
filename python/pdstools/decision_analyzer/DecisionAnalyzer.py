@@ -11,7 +11,7 @@ import polars.selectors as cs
 
 from .data_read_utils import validate_columns
 from .plots import Plot
-from .stage_grouping import get_display_name
+from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
     ExplainabilityExtract as ExplainabilityExtract_TD,
@@ -857,7 +857,10 @@ class DecisionAnalyzer:
         if stage_cols:
             df = df.with_columns(
                 [
-                    pl.col(c).cast(pl.Utf8).map_elements(get_display_name, return_dtype=pl.Utf8).cast(pl.Categorical)
+                    pl.col(c)
+                    .cast(pl.Utf8)
+                    .replace_strict(DISPLAY_NAME_LOOKUP, default=pl.col(c).cast(pl.Utf8), return_dtype=pl.Utf8)
+                    .cast(pl.Categorical)
                     for c in stage_cols
                 ]
             )
@@ -1133,7 +1136,7 @@ class DecisionAnalyzer:
         stage_order_no_output = {s: i for i, s in enumerate(stages)}
         decisions_by_stage = (
             without_actions.with_columns(pl.col(level).cast(pl.Utf8))
-            .sort(pl.col(level).map_elements(lambda s: stage_order_no_output.get(s, 999), return_dtype=pl.Int32))
+            .sort(pl.col(level).replace_strict(stage_order_no_output, default=999, return_dtype=pl.Int32))
             .with_columns(pl.col("decisions_without_actions").cum_sum().alias("_cumulative_without_actions"))
             .with_columns((pl.lit(total_interactions) - pl.col("_cumulative_without_actions")).alias("Decisions"))
             .select([level, "Decisions"])
@@ -1166,6 +1169,7 @@ class DecisionAnalyzer:
             summary = pl.concat([synthetic_row, summary], how="diagonal_relaxed")
 
         display_stage_order = [synthetic_label] + stages
+        display_stage_index = {name: idx for idx, name in enumerate(display_stage_order)}
         summary = (
             summary.with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
@@ -1178,12 +1182,7 @@ class DecisionAnalyzer:
                 .round(1)
                 .alias("% Decisions without Actions"),
             )
-            .sort(
-                pl.col(level).map_elements(
-                    lambda s: display_stage_order.index(s) if s in display_stage_order else 999,
-                    return_dtype=pl.Int32,
-                )
-            )
+            .sort(pl.col(level).replace_strict(display_stage_index, default=999, return_dtype=pl.Int32))
             .select(
                 level,
                 "Available Actions",

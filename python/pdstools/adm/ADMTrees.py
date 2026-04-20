@@ -84,7 +84,7 @@ class AGB:
             .group_by(by)
             .agg(pl.col("Modeldata").last())
             .collect()
-            .with_columns(pl.col("Modeldata").map_elements(lambda v: _get_type(v)))
+            .with_columns(pl.col("Modeldata").map_elements(lambda v: _get_type(v), return_dtype=pl.Utf8))
             .to_dicts()
         )
         return {key: value for key, value in [i.values() for i in types]}
