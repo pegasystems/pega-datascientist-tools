@@ -24,7 +24,7 @@ permissions:
 env:
   QUARTO_VERSION: "1.7.23"
   PANDOC_VERSION: "3.1.11"
-  PYTHON_VERSION: "3.13"
+  PYTHON_VERSION: "3.14"
 
 jobs:
   # ── Step 1: Cache Quarto and Pandoc binaries ─────────────────────────

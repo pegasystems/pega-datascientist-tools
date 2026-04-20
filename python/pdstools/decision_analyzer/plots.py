@@ -605,7 +605,7 @@ class Plot:
 
         total_decisions = (
             apply_filter(self._decision_data.preaggregated_filter_view, additional_filters)
-            .select(pl.col("Interaction_IDs").flatten().unique().count())
+            .select(pl.col("Interaction_IDs").list.explode(keep_nulls=False, empty_as_null=False).unique().count())
             .collect()
             .item()
         )

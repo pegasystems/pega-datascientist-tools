@@ -408,23 +408,29 @@ def read_ds_export(
     # fully to disk for pyarrow to read it.
     if file == "Target not found" or file is None:
         logger.debug("Could not find file in directory, checking if URL")
+        url = f"{path_str}/{filename_str}"
 
         try:
             import requests  # type: ignore[import-untyped]
 
-            response = requests.get(f"{path_str}/{filename_str}")
+            response = requests.get(url)
             logger.info(f"Response: {response}")
             if response.status_code == 200:
                 logger.debug("File found online, importing and parsing to BytesIO")
-                file = f"{path_str}/{filename_str}"
                 file = BytesIO(response.content)
                 _, extension = os.path.splitext(filename_str)
                 # Delegate to import_file for Pega-specific handling
                 return import_file(file, extension, **reading_opts)
+            raise FileNotFoundError(
+                f"Could not find '{filename_str}' locally in '{path_str}', "
+                f"and remote fetch from {url} returned HTTP {response.status_code}."
+            )
 
         except ImportError:
             warnings.warn(
-                "Unable to import `requests`, so not able to check for remote files. If you're trying to read in a file from the internet (or, for instance, using the built-in cdh_sample method), try installing the 'requests' package (`uv pip install requests`)",
+                "Unable to import `requests`, so not able to check for remote files. "
+                "If you're trying to read in a file from the internet (or, for instance, "
+                "using the built-in cdh_sample method), please install the 'requests' package.",
                 ImportWarning,
             )
 
@@ -433,6 +439,9 @@ def read_ds_export(
                 "There was an error making a HTTP request call. This is likely due to your certificates not being installed correctly. Please follow these instructions: https://stackoverflow.com/a/70495761",
                 RuntimeWarning,
             )
+
+        except FileNotFoundError:
+            raise
 
         except Exception as e:
             logger.info(e)
@@ -584,7 +593,10 @@ def import_file(
         # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
-    raise ValueError(f"Could not import file: {file}, with extension {extension}")
+    raise ValueError(
+        f"Could not import file {file!r} (extension {extension!r}). "
+        f"Supported extensions: .csv, .json, .parquet, .feather, .ipc, .arrow, .zip."
+    )
 
 
 def read_zipped_file(
