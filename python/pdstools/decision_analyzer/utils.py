@@ -668,7 +668,7 @@ def sample_interactions(
             sampled_ids_df = unique_ids_df.sample(n=target_n, shuffle=True, seed=None)
         else:
             # n-based random sampling
-            if n is None:
+            if n is None:  # pragma: no cover - guarded by the "Exactly one" check above
                 raise ValueError("sample_interactions requires either fraction or n")
             if total <= n:
                 logger.info("Data has %d interactions (≤ requested %d), skipping.", total, n)
@@ -692,7 +692,7 @@ def sample_interactions(
         return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
 
     # n-based hash sampling
-    if n is None:
+    if n is None:  # pragma: no cover - guarded by the "Exactly one" check above
         raise ValueError("sample_interactions requires either fraction or n")
 
     # Deterministic hash-based sampling for n interactions

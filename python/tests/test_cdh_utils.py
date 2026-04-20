@@ -1052,6 +1052,54 @@ def test_safe_flatten_list_none_alist():
     assert result is None
 
 
+def test_safe_flatten_list_unhashable_items():
+    """Polars Exprs are unhashable; ensure dedup falls back to id-based comparison."""
+    expr_a = pl.col("a")
+    expr_b = pl.col("b")
+    result = cdh_utils.safe_flatten_list([expr_a, expr_b, expr_a])
+    assert result is not None
+    assert len(result) == 2
+    assert result[0] is expr_a
+    assert result[1] is expr_b
+
+
+def test_safe_flatten_list_unhashable_extras_dedup():
+    """Same unhashable item in extras and alist should not be duplicated."""
+    expr = pl.col("x")
+    result = cdh_utils.safe_flatten_list([expr], extras=[expr])
+    assert result is not None
+    assert len(result) == 1
+
+
+# ── Tests for setup_logger ───────────────────────────────────────────────────
+
+
+def test_setup_logger_targets_named_logger_not_root():
+    """setup_logger must not touch the root logger."""
+    import logging as _logging
+
+    root_handlers_before = list(_logging.getLogger().handlers)
+    logger, _ = cdh_utils.setup_logger()
+    assert logger.name == "pdstools"
+    assert _logging.getLogger().handlers == root_handlers_before
+
+
+def test_setup_logger_idempotent():
+    """Repeated calls return the same buffer and don't stack handlers."""
+    logger1, buffer1 = cdh_utils.setup_logger()
+    handler_count = len(logger1.handlers)
+    logger2, buffer2 = cdh_utils.setup_logger()
+    assert logger1 is logger2
+    assert buffer1 is buffer2
+    assert len(logger2.handlers) == handler_count
+
+
+def test_setup_logger_buffer_receives_logs():
+    logger, buffer = cdh_utils.setup_logger()
+    logger.info("hello-from-test")
+    assert "hello-from-test" in buffer.getvalue()
+
+
 # ── Tests for process_files_to_bytes ─────────────────────────────────────────
 
 
