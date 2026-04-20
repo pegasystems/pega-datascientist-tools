@@ -7,6 +7,7 @@ import polars as pl
 
 from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
+from ..utils.plot_utils import simplify_facet_titles
 
 DEFAULT_BOXPLOT_POINT_CAP = 20000
 
@@ -709,9 +710,7 @@ class Plot:
             polar_angularaxis_rotation=90,
             showlegend=False,
         )
-        fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1])
-        )  # split plotly facet label, show only right side
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -809,7 +808,6 @@ class Plot:
                     fig.update_xaxes(tickformat=",.0%", row=i, col=1)
 
         fig.update_layout(height=800, width=600, showlegend=False)
-        fig.update_yaxes(automargin=True)
 
         return fig, warning_message
 
@@ -900,7 +898,7 @@ class Plot:
         )
         fig.update_yaxes(matches=None, automargin=True, title="")
         fig.update_xaxes(matches=None, title="")
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
         fig.update_layout(
             height=max(200, 50 * min(top_n, 10)),
             showlegend=False,

@@ -2,10 +2,8 @@ import logging
 from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
-    Any,
     Literal,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -15,9 +13,11 @@ from typing_extensions import ParamSpec
 
 from ..utils.cdh_utils import _apply_query, lazy_sample
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import Figure
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
+
 try:
     import plotly.express as px
     import plotly.graph_objects as go
@@ -28,13 +28,9 @@ except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
-
     from .ValueFinder import ValueFinder
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
-
-Figure = Union[Any, "go.Figure"]
 
 T = TypeVar("T", bound="Plots")
 P = ParamSpec("P")

@@ -1,19 +1,22 @@
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal, Union
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 
 from ..utils.cdh_utils import lift  # only temp needed
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import (
+    LIFT_DIRECTION_COLORS,
+    Figure,
+    abbreviate_label,
+    simplify_facet_titles,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
-    import plotly.graph_objects as go
-
     from .ADMDatamart import ADMDatamart
 
-Figure = Union[Any, "go.Figure"]  # So that this still imports without plotly installed
 logger = logging.getLogger(__name__)
 
 
@@ -822,7 +825,7 @@ class BinAggregator(LazyNamespace):
         pm_plot_binning_table = pm_plot_binning_table.with_columns(
             pl.Series(
                 "BinSymbolAbbreviated",
-                [(s[:25] + "...") if len(s) > 25 else s for s in pm_plot_binning_table["BinSymbol"].to_list()],
+                [abbreviate_label(s) for s in pm_plot_binning_table["BinSymbol"].to_list()],
             ),
         )
 
@@ -831,12 +834,7 @@ class BinAggregator(LazyNamespace):
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
-            color_discrete_map={
-                "neg": "#A01503",
-                "pos": "#5F9F37",
-                "neg_shaded": "#DAA9AB",
-                "pos_shaded": "#C5D9B7",
-            },
+            color_discrete_map=LIFT_DIRECTION_COLORS,
             orientation="h",
             template="pega",
             custom_data=custom_data,
@@ -872,9 +870,7 @@ class BinAggregator(LazyNamespace):
             dtick=1,  # show all bins
             matches=None,  # allow independent y-labels if there are row facets
         )
-        fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1]),
-        )  # split plotly facet label, show only right side
+        simplify_facet_titles(fig)
 
         if return_df:
             return pm_plot_binning_table

@@ -1,15 +1,12 @@
-__all__ = ["Plots"]
+__all__ = ["Plots", "fig_update_facet"]
 import logging
-import math
 from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
-    Any,
     Literal,
     TypeVar,
-    Union,
     overload,
 )
 from collections.abc import Callable
@@ -22,8 +19,17 @@ from typing import Concatenate
 from ..utils import cdh_utils
 from ..utils.metric_limits import MetricLimits
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import get_colorscale
+from ..utils.plot_utils import (
+    LIFT_DIRECTION_COLORS,
+    Figure,
+    abbreviate_label_expr,
+    fig_update_facet,
+    get_colorscale,
+    simplify_facet_titles,
+)
 from ..utils.types import QUERY
+
+__all__ = ["Plots", "fig_update_facet"]
 
 logger = logging.getLogger(__name__)
 try:
@@ -36,8 +42,6 @@ except ImportError as e:  # pragma: no cover
 if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
-
-Figure = Union[Any, "go.Figure"]
 
 T = TypeVar("T", bound="Plots")
 P = ParamSpec("P")
@@ -103,42 +107,6 @@ def requires(
         return wrapper
 
     return decorator
-
-
-def fig_update_facet(
-    fig: Figure,
-    n_cols: int = 2,
-    base_height: int = 250,
-    step_height: int = 270,
-) -> Figure:
-    """Update faceted plot layout with proper height and simplified annotation text.
-
-    This utility function adjusts the height of faceted plots based on the number of
-    facets and columns, and simplifies facet annotation text by showing only the
-    value part after "=" splits.
-
-    Parameters
-    ----------
-    fig : Figure
-        The plotly figure to update
-    n_cols : int, optional
-        Number of columns in the facet layout, by default 2
-    base_height : int, optional
-        Base height for the plot, by default 250
-    step_height : int, optional
-        Additional height per row of facets, by default 270
-
-    Returns
-    -------
-    Figure
-        The updated plotly figure
-
-    """
-    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
-    height = base_height + (n_rows * step_height)
-    return fig.for_each_annotation(
-        lambda a: a.update(text=a.text.split("=")[1]) if "=" in a.text else a,
-    ).update_layout(autosize=True, height=height)
 
 
 def add_bottom_left_text_to_bubble_plot(
@@ -1652,8 +1620,6 @@ class Plots(LazyNamespace):
         if fig is not None and not return_df:
             fig.update_layout(title="Predictors by Type")
             fig.update_xaxes(title="Number of Predictors")
-            # Ensure y-axis labels fit properly by increasing left margin
-            fig.update_yaxes(automargin=True)
             fig.update_layout(margin=dict(l=150))
             fig.update_yaxes(title="")
             # Reverse the legend order
@@ -1723,14 +1689,7 @@ class Plots(LazyNamespace):
             .then(pl.lit("neg"))
             .otherwise(pl.lit("neg_shaded"))
             .alias("Direction"),
-            # TODO generalize this, use it in the standard bin plot as well
-            # and make sure the resulting labels are unique - with just the
-            # truncate they are not necessarily unique
-            BinSymbolAbbreviated=pl.when(pl.col("BinSymbol").str.len_chars() < 25)
-            .then(pl.col("BinSymbol"))
-            .otherwise(
-                pl.concat_str([pl.col("BinSymbol").str.slice(0, 25), pl.lit("...")]),
-            ),
+            BinSymbolAbbreviated=abbreviate_label_expr("BinSymbol"),
         ).sort(["PredictorName", "BinIndex"])
 
         if return_df:
@@ -1741,12 +1700,7 @@ class Plots(LazyNamespace):
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
-            color_discrete_map={
-                "neg": "#A01503",
-                "pos": "#5F9F37",
-                "neg_shaded": "#DAA9AB",
-                "pos_shaded": "#C5D9B7",
-            },
+            color_discrete_map=LIFT_DIRECTION_COLORS,
             orientation="h",
             title=f"Propensity Lift for {predictor_name}",
             template="pega",
@@ -1778,9 +1732,7 @@ class Plots(LazyNamespace):
             dtick=1,  # show all bins
             matches=None,  # allow independent y-labels if there are row facets
         )
-        fig.for_each_annotation(
-            lambda a: a.update(text=a.text.split("=")[-1]),
-        )  # split plotly facet label, show only right side
+        simplify_facet_titles(fig)
         return fig
 
     def action_overlap(

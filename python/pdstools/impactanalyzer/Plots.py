@@ -7,13 +7,12 @@ import polars as pl
 
 from ..utils.cdh_utils import _apply_query
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import Figure
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from plotly.graph_objs import Figure
-
     from .ImpactAnalyzer import ImpactAnalyzer as ImpactAnalyzer_Class
 
 try:

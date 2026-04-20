@@ -33,15 +33,6 @@ positive_negative = [
     (0.8, "#FF853D"),
     (1, "#DE4342"),
 ]
-
-positive_negative = [
-    (0, "#27803E"),
-    (0.01, "#66CB66"),
-    (0.5, "#FCE880"),
-    (0.6, "#FFB546"),
-    (0.8, "#FF853D"),
-    (1, "#DE4342"),
-]
 performance = [
     (0, "#DE4342"),
     (0.1, "#FFB546"),
@@ -54,21 +45,24 @@ performance = [
 success = [(0, "#DE4342"), (0.2, "#66CB66"), (1, "#27803E")]
 
 pio.templates["pega"] = go.layout.Template(
-    # LAYOUT
     layout={
-        # Colorways
         "colorway": colorway,
-        # Keep adding others as needed below
         "hovermode": "closest",
+        "font": {"family": "Open Sans, Arial, sans-serif", "size": 12},
+        "title": {"font": {"size": 16}, "x": 0.02, "xanchor": "left"},
+        "margin": {"l": 60, "r": 30, "t": 60, "b": 50},
+        "legend": {
+            "bgcolor": "rgba(255,255,255,0.7)",
+            "borderwidth": 0,
+        },
+        "xaxis": {"automargin": True, "title": {"standoff": 8}},
+        "yaxis": {"automargin": True, "title": {"standoff": 8}},
+        "annotationdefaults": {"font": {"size": 12}},
     },
 )
 
 pio.templates["neutral_positive"] = go.layout.Template(
     layout={"colorway": colorway, "colorscale": {"sequential": neutral_positive}},
-)
-
-pio.templates["negative_positive"] = go.layout.Template(
-    layout={"colorway": colorway, "colorscale": {"sequential": negative_positive}},
 )
 
 pio.templates["negative_positive"] = go.layout.Template(

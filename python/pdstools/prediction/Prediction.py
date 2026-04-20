@@ -4,8 +4,6 @@ import logging
 import os
 from typing import (
     TYPE_CHECKING,
-    Any,
-    Union,
 )
 
 import polars as pl
@@ -32,8 +30,6 @@ if TYPE_CHECKING:  # pragma: no cover
     pass
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
-
-Figure = Union[Any, "go.Figure"]
 
 # T = TypeVar("T", bound="Plots")
 # P = ParamSpec("P")

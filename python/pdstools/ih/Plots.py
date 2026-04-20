@@ -8,13 +8,12 @@ import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import Figure, simplify_facet_titles
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from plotly.graph_objs import Figure
-
     from .IH import IH as IH_Class
 
 try:
@@ -181,7 +180,7 @@ class Plots(LazyNamespace):
             fig.add_trace(trace1, row=(r + 1), col=(c + 1))
             index = index + 1
 
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -254,7 +253,7 @@ class Plots(LazyNamespace):
         fig.update_coloraxes(showscale=False)
         fig.update_traces(textinfo="label+value+percent parent")
         fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -341,7 +340,7 @@ class Plots(LazyNamespace):
         fig.update_coloraxes(showscale=False)
         fig.update_traces(textinfo="label+value")
         fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -406,7 +405,7 @@ class Plots(LazyNamespace):
         fig.update_layout(barmode="stack")
         fig.update_yaxes(categoryorder="total ascending")
         fig.update_layout(yaxis=dict(title=""))
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -519,7 +518,7 @@ class Plots(LazyNamespace):
         )
 
         fig.update_yaxes(tickformat=",.3%", title=None).update_layout(xaxis_title=None)
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -583,7 +582,7 @@ class Plots(LazyNamespace):
             facet_row=facet,
         )
         fig.update_layout(xaxis_title=None)
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
 
@@ -670,6 +669,6 @@ class Plots(LazyNamespace):
         )
 
         fig.update_layout(yaxis=dict(range=[50, None]), xaxis_title=None)
-        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        simplify_facet_titles(fig)
 
         return fig
