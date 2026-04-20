@@ -12,7 +12,6 @@ values in tables.
 
 import difflib
 import re
-from functools import lru_cache
 from typing import Any, Literal, Optional
 from collections.abc import Callable
 
@@ -49,16 +48,24 @@ class MetricLimits:
     def __new__(cls) -> "MetricLimits":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance._limits_df = None  # type: ignore[attr-defined]
         return cls._instance
 
     @classmethod
-    @lru_cache(maxsize=1)
     def get_limits(cls) -> pl.DataFrame:
         """Get all metric limits as a DataFrame.
+
+        Cached on the singleton instance via ``__new__``; the first call
+        loads + builds the DataFrame, subsequent calls reuse the cached
+        attribute.
 
         The CSV contains numeric values directly. Boolean metrics are detected
         by checking if all defined limit values are either 0.0 or 1.0.
         """
+        instance = cls()
+        if getattr(instance, "_limits_df", None) is not None:
+            return instance._limits_df  # type: ignore[return-value]
+
         limits_df = pl.read_csv(source=get_metric_limits_path()).filter(
             pl.col("MetricID").is_not_null() & (pl.col("MetricID") != ""),
         )
@@ -76,9 +83,10 @@ class MetricLimits:
                 return False
             return all(v in (0.0, 1.0) for v in defined_values)
 
-        return limits_df.with_columns(
+        instance._limits_df = limits_df.with_columns(
             pl.struct(_LIMIT_COLUMNS).map_elements(is_boolean_metric, return_dtype=pl.Boolean).alias("is_boolean"),
         )
+        return instance._limits_df
 
     @classmethod
     def get_limit_for_metric(cls, metric_id: str) -> dict:

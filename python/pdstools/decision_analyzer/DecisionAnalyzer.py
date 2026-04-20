@@ -1738,7 +1738,6 @@ class DecisionAnalyzer:
 
         return optionality_data
 
-    # @cached_property
     def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
         """Optionality funnel: interaction counts bucketed by available-action count.
 

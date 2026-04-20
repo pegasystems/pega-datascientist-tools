@@ -547,15 +547,6 @@ def import_file(
 
     if extension == ".json":
         try:
-            # if isinstance(file, BytesIO):
-            #     from pyarrow import json
-
-            #     return pl.LazyFrame(
-            #         json.read_json(
-            #             file,
-            #         )
-            #     )
-            # else:
             df = pl.scan_ndjson(
                 file,
                 infer_schema_length=reading_opts.pop("infer_schema_length", 10000),

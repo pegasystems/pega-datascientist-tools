@@ -12,8 +12,6 @@ from operator import is_not
 from os import PathLike
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
-    Any,
     TypeVar,
     overload,
 )
@@ -26,13 +24,6 @@ from .types import QUERY
 logger = logging.getLogger(__name__)
 
 F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
-if TYPE_CHECKING:  # pragma: no cover
-    try:
-        import plotly.express as px  # noqa: F401
-
-        Figure = "px.Figure" | Any
-    except ImportError:
-        Figure = Any
 
 
 # Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")

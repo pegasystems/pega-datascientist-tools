@@ -187,7 +187,7 @@ def run(args, unknown):
         from streamlit.web import cli as stcli
     except ImportError:
         print(
-            "Error: streamlit is not installed. Try installing the optionall dependency group 'app'.\n"
+            "Error: streamlit is not installed. Try installing the optional dependency group 'app'.\n"
             "If you are using uvx, try running uvx 'pdstools[app]' instead.",
         )
         sys.exit(1)
