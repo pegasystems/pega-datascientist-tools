@@ -151,14 +151,12 @@ class TestAggregatesQueryOperations:
         """Test getting table name for numeric predictor type"""
         expected_table_name = _TABLE_NAME.NUMERIC
         result = Preprocess._get_table_name(_PREDICTOR_TYPE.NUMERIC)
-        assert result is not None
         assert result == expected_table_name
 
     def test_get_table_name_symbolic(self):
         """Test getting table name for symbolic predictor type"""
         expected_table_name = _TABLE_NAME.SYMBOLIC
         result = Preprocess._get_table_name(_PREDICTOR_TYPE.SYMBOLIC)
-        assert result is not None
         assert result == expected_table_name
 
 

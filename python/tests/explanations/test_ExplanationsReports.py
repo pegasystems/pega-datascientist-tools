@@ -128,9 +128,14 @@ def test_reports_logging(reports, caplog):
         reports._copy_report_resources()
         reports._set_params(top_n=5, top_k=3)
 
-    # Should have debug messages from the operations
+    # Should have debug messages from both operations
     debug_messages = [r.message for r in caplog.records if r.levelname == "DEBUG"]
-    assert len(debug_messages) > 0, "Expected debug log messages"
+    assert any("Copying report resources" in m for m in debug_messages), (
+        f"Expected a 'Copying report resources' debug message; got: {debug_messages}"
+    )
+    assert any("Writing report parameters" in m for m in debug_messages), (
+        f"Expected a 'Writing report parameters' debug message; got: {debug_messages}"
+    )
 
 
 class TestGenerateFilterKwargs:

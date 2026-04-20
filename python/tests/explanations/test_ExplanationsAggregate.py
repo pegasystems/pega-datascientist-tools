@@ -68,18 +68,44 @@ class TestAggregateLoadData:
         assert aggregate.df_overall is None
 
     def test_load_data_success(self, aggregate):
-        """Test successful data loading."""
-        aggregate.initialized
+        """Test successful data loading produces the expected fixture shape."""
         aggregate._load_data()
 
         assert aggregate.initialized is True
         assert aggregate.df_contextual is not None
         assert aggregate.df_overall is not None
 
+        overall = aggregate.df_overall.collect()
+        contextual = aggregate.df_contextual.collect()
+        expected_cols = {
+            "partition",
+            "contribution",
+            "contribution_abs",
+            "frequency",
+            "predictor_type",
+            "predictor_name",
+            "bin_contents",
+            "bin_order",
+            "contribution_min",
+            "contribution_max",
+        }
+        assert set(overall.columns) == expected_cols
+        assert set(contextual.columns) == expected_cols
+        assert overall.height == 1095
+        assert contextual.height == 17743
+
     def test_get_df_overall(self, aggregate):
-        """Test get_df_overall returns a LazyFrame after loading."""
-        df = aggregate.get_df_overall()
-        assert isinstance(df, pl.LazyFrame)
+        """Test get_df_overall returns a populated LazyFrame after loading."""
+        df = aggregate.get_df_overall().collect()
+        assert df.height == 1095
+        assert sorted(df["predictor_name"].unique().to_list()) == [
+            "Age",
+            "CustomerName",
+            "EyeColor",
+            "NumX",
+            "Occupation",
+            "pyName",
+        ]
 
     def test_zero_contribution_rows_filtered(self, aggregate):
         """Test that rows with zero contribution are filtered out during loading."""
@@ -118,16 +144,24 @@ class TestAggregatePredictorContributions:
     """Test cases for Aggregate contribution methods."""
 
     def test_get_predictor_contributions_overall_default_params(self, aggregate):
-        """Test get_predictor_contributions with default parameters."""
+        """Default top_n=20 returns one row per predictor (6 in fixture)."""
         df = aggregate.get_predictor_contributions()
-        assert isinstance(df, pl.DataFrame)
+        assert df.height == 6
+        assert {"predictor_name", "predictor_type", "contribution", "partition"}.issubset(df.columns)
+        assert df["partition"].n_unique() == 1
+        assert sorted(df["predictor_name"].unique().to_list()) == [
+            "Age",
+            "CustomerName",
+            "EyeColor",
+            "NumX",
+            "Occupation",
+            "pyName",
+        ]
 
     def test_get_predictor_contributions_overall_custom_params(self, aggregate):
-        """Test get_predictor_contributions with custom parameters."""
+        """top_n=3 returns 3 top predictors plus 1 'remaining' row per partition."""
         df = aggregate.get_predictor_contributions(top_n=3)
-
-        assert isinstance(df, pl.DataFrame)
-        assert_df_has_top_n(df, 3)
+        assert_predictor_rows_per_partition(df, top_n=3)
 
     def test_get_predictor_contributions_overall_invalid_contribution_type(
         self,
@@ -149,20 +183,19 @@ class TestAggregatePredictorContributions:
         aggregate,
         selected_context,
     ):
-        """Test get_predictor_contributions with default parameters."""
+        """Context-scoped query returns the same 6 predictor rows for that partition."""
         df = aggregate.get_predictor_contributions(context=selected_context)
-        assert isinstance(df, pl.DataFrame)
+        assert df.height == 6
+        assert df["partition"].n_unique() == 1
 
     def test_get_predictor_contributions_for_context_custom_params(
         self,
         aggregate,
         selected_context,
     ):
-        """Test get_predictor_contributions with custom parameters."""
+        """Context-scoped top_n=3 returns 3 top predictors + 1 'remaining' row."""
         df = aggregate.get_predictor_contributions(context=selected_context, top_n=3)
-
-        assert isinstance(df, pl.DataFrame)
-        assert_df_has_top_n(df, 3)
+        assert_predictor_rows_per_partition(df, top_n=3)
 
     def test_get_predictor_contributions_for_context_invalid_contribution_type(
         self,
@@ -194,20 +227,21 @@ class TestAggregatePredictorValueContributions:
         aggregate,
         predictors,
     ):
-        """Test get_predictor_value_contributions with default parameters."""
+        """Default top_k returns all bins for the requested predictors (19 in fixture)."""
         df = aggregate.get_predictor_value_contributions(predictors=predictors)
-        assert isinstance(df, pl.DataFrame)
+        assert df.height == 19
+        assert {"bin_contents", "bin_order", "predictor_name", "contribution"}.issubset(df.columns)
+        assert sorted(df["predictor_name"].unique().to_list()) == ["Age", "EyeColor"]
 
     def test_get_predictor_value_contributions_overall_custom_params(
         self,
         aggregate,
         predictors,
     ):
-        """Test get_predictor_value_contributions with custom parameters."""
+        """top_k=3 returns at most 3 symbolic bins per predictor (8 rows total)."""
         df = aggregate.get_predictor_value_contributions(predictors=predictors, top_k=3)
-
-        assert isinstance(df, pl.DataFrame)
-        assert_df_has_top_k(df, 3)
+        assert df.height == 8
+        assert_symbolic_bins_per_predictor_capped(df, top_k=3)
 
     def test_get_predictor_value_contributions_overall_invalid_contribution_type(
         self,
@@ -236,12 +270,13 @@ class TestAggregatePredictorValueContributions:
         predictors,
         selected_context,
     ):
-        """Test get_predictor_value_contributions with default parameters."""
+        """Context-scoped value contributions return all bins (19 rows in fixture)."""
         df = aggregate.get_predictor_value_contributions(
             predictors=predictors,
             context=selected_context,
         )
-        assert isinstance(df, pl.DataFrame)
+        assert df.height == 19
+        assert sorted(df["predictor_name"].unique().to_list()) == ["Age", "EyeColor"]
 
     def test_get_predictor_value_contributions_for_context_custom_params(
         self,
@@ -249,15 +284,14 @@ class TestAggregatePredictorValueContributions:
         predictors,
         selected_context,
     ):
-        """Test get_predictor_value_contributions with custom parameters."""
+        """Context-scoped top_k=3 returns at most 3 symbolic bins per predictor."""
         df = aggregate.get_predictor_value_contributions(
             predictors=predictors,
             context=selected_context,
             top_k=3,
         )
-
-        assert isinstance(df, pl.DataFrame)
-        assert_df_has_top_k(df, 3)
+        assert df.height == 8
+        assert_symbolic_bins_per_predictor_capped(df, top_k=3)
 
     def test_get_predictor_value_contributions_for_context_invalid_contribution_type(
         self,
@@ -366,8 +400,8 @@ class TestFilterKwargsDefaults:
         df_with_single = aggregate.get_predictor_value_contributions(
             predictors=predictors, include_numeric_single_bin=True
         )
-        # With single-bin numerics included, we should get at least as many rows
-        assert df_with_single.shape[0] >= df_default.shape[0]
+        # In this fixture there are no single-bin numerics, so the two should be identical.
+        assert df_with_single.shape[0] == df_default.shape[0]
 
 
 class TestAggregateFrequencyPct:
@@ -751,16 +785,33 @@ class TestWeightedAverageComputation:
         assert result.is_empty(), "Numeric predictor with only one real bin (plus MISSING) should be filtered"
 
 
-def assert_df_has_top_n(df, top_n):
-    """Assert that the DataFrame has at least top_n rows."""
-    assert df.shape[0] >= top_n, f"DataFrame should have at least {top_n} rows, but has {df.shape[0]} rows."
+def assert_predictor_rows_per_partition(df, top_n):
+    """Assert each partition has exactly top_n + 1 rows (top predictors + remaining row).
+
+    Used for `get_predictor_contributions` outputs where ``remaining=True`` (the default)
+    appends a single aggregated 'remaining' row per partition.
+    """
+    expected_per_partition = top_n + 1
+    counts = df.group_by("partition").agg(pl.len().alias("n")).to_dicts()
+    assert counts, "Expected at least one partition in the result."
+    for row in counts:
+        assert row["n"] == expected_per_partition, (
+            f"Partition {row['partition']!r} has {row['n']} rows, "
+            f"expected {expected_per_partition} (top_n + 1 remaining)."
+        )
 
 
-def assert_df_has_top_k(df, top_k):
-    """Assert that the DataFrame has at least top_k rows."""
-    predictors_list = df.group_by(["predictor_name", "predictor_type"]).agg(pl.len()).to_dicts()
-    for predictor in predictors_list:
-        if predictor["predictor_type"] == "SYMBOLIC":
-            assert predictor["len"] >= top_k, (
-                f"Symbolic predictor {predictor['predictor_name']} should have at least {top_k} rows"
+def assert_symbolic_bins_per_predictor_capped(df, top_k):
+    """Assert each symbolic predictor has at most top_k + 1 rows (top bins + remaining).
+
+    Numeric predictors are not capped by ``top_k``.
+    """
+    expected_max = top_k + 1
+    rows = df.group_by(["predictor_name", "predictor_type"]).agg(pl.len().alias("n")).to_dicts()
+    assert rows, "Expected at least one predictor in the result."
+    for row in rows:
+        if row["predictor_type"] == "SYMBOLIC":
+            assert row["n"] <= expected_max, (
+                f"Symbolic predictor {row['predictor_name']!r} has {row['n']} bins, "
+                f"expected at most {expected_max} (top_k + 1 remaining)."
             )

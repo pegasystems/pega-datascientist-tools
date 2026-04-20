@@ -31,8 +31,8 @@ class Aggregate(LazyNamespace):
         self.explanations = explanations
         self.data_folderpath = explanations.preprocess.data_folderpath
         self.data_pattern = None
-        self.df_contextual = None
-        self.df_overall = None
+        self.df_contextual: pl.LazyFrame | None = None
+        self.df_overall: pl.LazyFrame | None = None
         self.context_operations = ContextOperations(aggregate=self)
         self.initialized = False
         super().__init__()
@@ -52,7 +52,7 @@ class Aggregate(LazyNamespace):
         context: dict[str, str] | None = None,
         top_n: int = 20,
         **filter_kwargs,
-    ):
+    ) -> pl.DataFrame:
         """Get the top-n predictor contributions for a given context or overall.
 
         Args:
@@ -98,7 +98,7 @@ class Aggregate(LazyNamespace):
         context: dict[str, str] | None = None,
         top_k: int = 20,
         **filter_kwargs,
-    ):
+    ) -> pl.DataFrame:
         """Get the top-k predictor value contributions for a given context or overall.
 
         Args:
