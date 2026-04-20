@@ -47,6 +47,7 @@ class PredictionPlots(LazyNamespace):
     """
 
     dependencies = ["plotly"]
+    dependency_group = "adm"
 
     def __init__(self, prediction):
         self.prediction = prediction

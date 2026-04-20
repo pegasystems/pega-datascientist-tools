@@ -510,6 +510,51 @@ class TestGenerateZippedReport:
         assert result is None
 
 
+class TestBundleQuartoResources:
+    """Tests for bundle_quarto_resources."""
+
+    def test_bundles_html_with_resources_folder(self, tmp_path):
+        """When a `<stem>_files` folder exists, both are zipped into `<stem>.zip`."""
+        import zipfile
+
+        html_path = tmp_path / "report.html"
+        html_path.write_text("<html>hi</html>")
+        resources = tmp_path / "report_files"
+        (resources / "libs" / "plotly").mkdir(parents=True)
+        (resources / "libs" / "plotly" / "plotly.js").write_text("/* js */")
+        (resources / "figure-html" / "fig.png").parent.mkdir(parents=True)
+        (resources / "figure-html" / "fig.png").write_text("png")
+
+        result = report_utils.bundle_quarto_resources(html_path)
+
+        assert result == tmp_path / "report.zip"
+        assert result.exists()
+        assert not html_path.exists()
+        assert not resources.exists()
+        with zipfile.ZipFile(result) as zf:
+            names = set(zf.namelist())
+        assert "report.html" in names
+        assert "report_files/libs/plotly/plotly.js" in names
+        assert "report_files/figure-html/fig.png" in names
+
+    def test_no_resources_folder_is_noop(self, tmp_path):
+        """Without a companion folder, the original file path is returned unchanged."""
+        html_path = tmp_path / "solo.html"
+        html_path.write_text("<html>embedded</html>")
+
+        result = report_utils.bundle_quarto_resources(html_path)
+
+        assert result == html_path
+        assert html_path.exists()
+        assert not (tmp_path / "solo.zip").exists()
+
+    def test_missing_file_returns_same_path(self, tmp_path):
+        """A non-existent input is returned unchanged without error."""
+        missing = tmp_path / "ghost.html"
+        result = report_utils.bundle_quarto_resources(missing)
+        assert result == missing
+
+
 class TestDeserializeQuery:
     """Tests for deserialize_query and serialize/deserialize roundtrip."""
 
@@ -799,3 +844,134 @@ class TestCheckReportForErrors:
         errors = report_utils.check_report_for_errors(html_file)
         assert len(errors) > 0
         assert any("Empty dataframe error" in e for e in errors)
+
+    def test_zip_input_scans_inner_html(self, tmp_path):
+        """A `.zip` input is unpacked and its inner HTML is scanned."""
+        import zipfile
+
+        html_content = "<html><body>ValueError: bad input</body></html>"
+        zip_path = tmp_path / "report.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("report.html", html_content)
+            zf.writestr("report_files/libs/plotly/plotly.js", "/* js */")
+
+        errors = report_utils.check_report_for_errors(zip_path)
+        assert any("ValueError exception" in e for e in errors)
+
+    def test_zip_input_without_html_raises(self, tmp_path):
+        """A zip with no HTML member raises IOError."""
+        import zipfile
+
+        zip_path = tmp_path / "no_html.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("data.txt", "hello")
+
+        with pytest.raises(IOError, match="No HTML file"):
+            report_utils.check_report_for_errors(zip_path)
+
+
+class TestGetCmdOutput:
+    """Tests for the _get_cmd_output helper."""
+
+    def test_returns_lines_on_success(self):
+        lines = report_utils._get_cmd_output(["echo", "hello world"])
+        assert lines[0] == "hello world"
+
+    def test_raises_on_missing_executable(self):
+        with pytest.raises(FileNotFoundError, match="Command failed"):
+            report_utils._get_cmd_output(["false"])
+
+
+class TestGetQuartoAndPandoc:
+    """Tests for get_quarto_with_version / get_pandoc_with_version."""
+
+    def test_quarto_missing_raises(self, monkeypatch):
+        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
+        with pytest.raises(FileNotFoundError, match="Quarto executable not found"):
+            report_utils.get_quarto_with_version(verbose=False)
+
+    def test_pandoc_missing_raises(self, monkeypatch):
+        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
+        with pytest.raises(FileNotFoundError, match="Pandoc executable not found"):
+            report_utils.get_pandoc_with_version(verbose=False)
+
+    def test_quarto_success(self, monkeypatch, tmp_path):
+        fake_exe = tmp_path / "quarto"
+        fake_exe.write_text("")
+        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: str(fake_exe))
+        monkeypatch.setattr(
+            report_utils,
+            "_get_cmd_output",
+            lambda _args: ["quarto 1.4.550"],
+        )
+        path, version = report_utils.get_quarto_with_version(verbose=True)
+        assert path == fake_exe
+        assert version == "1.4.550"
+
+    def test_pandoc_success(self, monkeypatch, tmp_path):
+        fake_exe = tmp_path / "pandoc"
+        fake_exe.write_text("")
+        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: str(fake_exe))
+        monkeypatch.setattr(
+            report_utils,
+            "_get_cmd_output",
+            lambda _args: ["pandoc 3.1.2"],
+        )
+        path, version = report_utils.get_pandoc_with_version(verbose=True)
+        assert path == fake_exe
+        assert version == "3.1.2"
+
+
+class TestQuartoCallouts:
+    """Tests for the quarto_print / callout helper functions.
+
+    These wrappers render Markdown via IPython.display; we patch the display
+    function and assert the rendered text contains the expected callout
+    structure and content.
+    """
+
+    @pytest.fixture
+    def captured(self, monkeypatch):
+        captured: list[str] = []
+
+        def _fake_display(md):
+            captured.append(getattr(md, "data", str(md)))
+
+        # Patch the symbol resolved inside the function via lazy import.
+        import IPython.display as ipd
+
+        monkeypatch.setattr(ipd, "display", _fake_display)
+        return captured
+
+    def test_quarto_print(self, captured):
+        report_utils.quarto_print("hello **world**")
+        assert captured == ["hello **world**"]
+
+    def test_callout_info(self, captured):
+        report_utils.quarto_callout_info("be aware")
+        assert "{.callout-note}" in captured[0]
+        assert "be aware" in captured[0]
+
+    def test_callout_important(self, captured):
+        report_utils.quarto_callout_important("read me")
+        assert "{.callout-important}" in captured[0]
+        assert "read me" in captured[0]
+
+    def test_plot_exception(self, captured):
+        try:
+            raise ValueError("bad plot input")
+        except ValueError as e:
+            report_utils.quarto_plot_exception("Foo", e)
+        rendered = captured[0]
+        assert "Error rendering Foo plot" in rendered
+        assert "bad plot input" in rendered
+        assert 'collapse="true"' in rendered
+
+    def test_no_prediction_data_warning(self, captured):
+        report_utils.quarto_callout_no_prediction_data_warning("extra info")
+        assert "Prediction Data is not available" in captured[0]
+        assert "extra info" in captured[0]
+
+    def test_no_predictor_data_warning(self, captured):
+        report_utils.quarto_callout_no_predictor_data_warning()
+        assert "Predictor Data is not available" in captured[0]

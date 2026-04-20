@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import traceback
+import zipfile
 from pathlib import Path
 
 
@@ -370,6 +371,58 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     base_filename = os.path.splitext(output_filename)[0]
     zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
     logger.info(f"created zip file...{zippy}")
+
+
+def bundle_quarto_resources(output_path: Path) -> Path:
+    """Bundle a Quarto-rendered file with its resources folder into a zip.
+
+    When Quarto renders an HTML report without ``embed-resources``, it emits
+    the HTML alongside a ``<basename>_files/`` directory containing the
+    JavaScript and CSS assets the report needs. This helper detects that
+    pattern and wraps both into a single ``<basename>.zip`` archive so the
+    report can be distributed and unpacked as one unit.
+
+    If no companion resources folder exists next to ``output_path`` (e.g. the
+    report was fully embedded, or the format doesn't produce resources), the
+    function is a no-op and returns ``output_path`` unchanged.
+
+    Parameters
+    ----------
+    output_path : Path
+        Path to the rendered report file (typically an HTML file). The
+        companion resources folder is expected at ``<output_path stem>_files``
+        in the same directory.
+
+    Returns
+    -------
+    Path
+        Path to the zip archive when bundling occurred, otherwise the
+        original ``output_path``.
+    """
+    output_path = Path(output_path)
+    if not output_path.exists():
+        return output_path
+
+    resources_dir = output_path.with_name(f"{output_path.stem}_files")
+    if not resources_dir.is_dir():
+        return output_path
+
+    zip_path = output_path.with_suffix(".zip")
+    logger.info(
+        f"Bundling {output_path.name} with resources folder {resources_dir.name} into {zip_path.name}",
+    )
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(output_path, output_path.name)
+        for file in resources_dir.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(output_path.parent))
+
+    shutil.rmtree(resources_dir, ignore_errors=True)
+    try:
+        output_path.unlink()
+    except OSError:  # pragma: no cover
+        pass
+    return zip_path
 
 
 def _get_cmd_output(args: list[str]) -> list[str]:
@@ -1155,7 +1208,14 @@ def check_report_for_errors(html_path: str | Path) -> list[str]:
         raise FileNotFoundError(f"HTML file not found: {html_path}")
 
     try:
-        content = html_path.read_text(encoding="utf-8")
+        if html_path.suffix.lower() == ".zip":
+            with zipfile.ZipFile(html_path) as zf:
+                html_members = [n for n in zf.namelist() if n.endswith(".html")]
+                if not html_members:
+                    raise IOError(f"No HTML file found inside zip: {html_path}")
+                content = zf.read(html_members[0]).decode("utf-8")
+        else:
+            content = html_path.read_text(encoding="utf-8")
     except Exception as e:
         raise IOError(f"Failed to read HTML file: {e}")
 

@@ -1364,7 +1364,7 @@ class ADMTreesModel:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
         figlist = []
         for (name,), data in self.gains_per_split.group_by("predictor"):
             if (subset is not None and name in subset) or subset is None:
@@ -1569,7 +1569,7 @@ class ADMTreesModel:
         try:
             import pydot
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["pydot"], "AGB")
+            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm")
         if isinstance(highlighted, dict):
             highlighted = self.get_visited_nodes(tree_number, highlighted)[0]
         else:  # pragma: no cover
@@ -1717,7 +1717,7 @@ class ADMTreesModel:
             import plotly.express as px
             import plotly.graph_objects as go
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
 
         # Sort by treeID and add row index for plotting order
         scores = (
@@ -1804,7 +1804,7 @@ class ADMTreesModel:
         try:
             import plotly.express as px
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
         if predictor_categorization is not None:  # pragma: no cover
             to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
         else:

@@ -52,6 +52,9 @@ class Plots(LazyNamespace):
 
     """
 
+    dependencies = ["plotly"]
+    dependency_group = "adm"
+
     def __init__(self, ia: "ImpactAnalyzer_Class"):
         """Initialize a Plots instance.
 

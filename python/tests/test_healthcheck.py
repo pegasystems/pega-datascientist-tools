@@ -8,6 +8,20 @@ from pdstools.utils.report_utils import check_report_for_errors
 basePath = pathlib.Path(__file__).parent.parent.parent
 
 
+def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_stem: str) -> None:
+    """Assert ``actual`` is the rendered report for ``expected_stem`` in ``parent``.
+
+    The output may be either ``<stem>.html`` (when Quarto did not emit a
+    resources folder, or when ``full_embed=True``) or ``<stem>.zip`` (when
+    the resources folder was bundled). Tests should be agnostic to which.
+    """
+    actual = pathlib.Path(actual)
+    assert actual.parent.resolve() == pathlib.Path(parent).resolve()
+    assert actual.stem == expected_stem
+    assert actual.suffix in {".html", ".zip"}, f"Unexpected extension: {actual.suffix}"
+    assert actual.exists()
+
+
 @pytest.fixture
 def sample() -> ADMDatamart:
     return datasets.cdh_sample()
@@ -29,28 +43,11 @@ def sample_prediction_data() -> Prediction:
     return Prediction.from_mock_data(days=30)
 
 
-def test_GenerateHealthCheck(sample: ADMDatamart):
-    hc = sample.generate.health_check()
-    assert hc == pathlib.Path("./HealthCheck.html").resolve()
-    assert pathlib.Path(hc).exists()
+def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
+    """Default health-check generation: produces a valid report and contains no errors."""
+    hc = sample.generate.health_check(output_dir=tmp_path)
+    _assert_report_path(hc, tmp_path, "HealthCheck")
     errors = check_report_for_errors(hc)
-    pathlib.Path(hc).unlink()
-    assert not pathlib.Path(hc).exists()
-    assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
-
-
-def test_HealthCheck_NoErrors(sample: ADMDatamart, tmp_path):
-    """Test that HealthCheck report generates without errors."""
-    hc = sample.generate.health_check(output_dir=tmp_path, name="error_check")
-    assert pathlib.Path(hc).exists()
-
-    # Check for errors in the generated HTML
-    errors = check_report_for_errors(hc)
-
-    # Clean up
-    pathlib.Path(hc).unlink()
-
-    # Assert no errors were found
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
@@ -85,7 +82,8 @@ def test_HealthCheck_full_embed(sample: ADMDatamart, tmp_path):
     assert 50 <= full_embed_mb <= 150, f"Embedded size should be large, got {full_embed_mb:.1f} MB"
 
 
-def test_ExportTables(sample: ADMDatamart):
+def test_ExportTables(sample: ADMDatamart, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     excel, warning_messages = sample.generate.excel_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
@@ -96,13 +94,10 @@ def test_ExportTables(sample: ADMDatamart):
         "predictors_overview",
         "predictor_binning",
     ]
-    # TODO we could go further and check the size of the sheets
-    # spreadsheet = read_excel(excel, sheet_name=None)
-    pathlib.Path(excel).unlink()
-    assert not pathlib.Path(excel).exists()
 
 
-def test_ExportTables_NoBinning(sample: ADMDatamart):
+def test_ExportTables_NoBinning(sample: ADMDatamart, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     excel, warining_messages = sample.generate.excel_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
@@ -112,41 +107,35 @@ def test_ExportTables_NoBinning(sample: ADMDatamart):
         "predictors_detail",
         "predictors_overview",
     ]
-    # TODO we could go further and check the size of the sheets
-    # spreadsheet = read_excel(excel, sheet_name=None)
-    pathlib.Path(excel).unlink()
-    assert not pathlib.Path(excel).exists()
 
 
 def test_GenerateHealthCheck_ModelDataOnly(
     sample_without_predictor_binning: ADMDatamart,
+    tmp_path,
 ):
-    hc = sample_without_predictor_binning.generate.health_check(name="MyOrg")
-    assert hc == pathlib.Path("./HealthCheck_MyOrg.html").resolve()
-    assert pathlib.Path(hc).exists()
+    hc = sample_without_predictor_binning.generate.health_check(output_dir=tmp_path, name="MyOrg")
+    _assert_report_path(hc, tmp_path, "HealthCheck_MyOrg")
     errors = check_report_for_errors(hc)
-    pathlib.Path(hc).unlink()
-    assert not pathlib.Path(hc).exists()
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
 def test_GenerateHealthCheck_PredictionData(
     sample: ADMDatamart,
     sample_prediction_data: Prediction,
+    tmp_path,
 ):
     hc = sample.generate.health_check(
+        output_dir=tmp_path,
         prediction=sample_prediction_data,
         name="WithPredictions",
     )
-    assert hc == pathlib.Path("./HealthCheck_WithPredictions.html").resolve()
-    assert pathlib.Path(hc).exists()
+    _assert_report_path(hc, tmp_path, "HealthCheck_WithPredictions")
     errors = check_report_for_errors(hc)
-    pathlib.Path(hc).unlink()
-    assert not pathlib.Path(hc).exists()
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
-def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart):
+def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     excel, warning_messages = sample_without_predictor_binning.generate.excel_report(
         name="ModelTables.xlsx",
         predictor_binning=True,
@@ -157,25 +146,17 @@ def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamar
     assert spreadsheet.sheetnames == [
         "adm_models",
     ]
-    # TODO we could go further and check the size of the sheets
-    # spreadsheet = read_excel(excel, sheet_name=None)
-    pathlib.Path(excel).unlink()
 
 
-def test_GenerateModelReport(sample: ADMDatamart):
+def test_GenerateModelReport(sample: ADMDatamart, tmp_path):
     report = sample.generate.model_reports(
         model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        output_dir=tmp_path,
         name="MyOrg",
         only_active_predictors=True,
     )
-    expected_path = pathlib.Path(
-        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
-    ).resolve()
-    assert report == expected_path
-    assert pathlib.Path(report).exists()
+    _assert_report_path(report, tmp_path, "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0")
     errors = check_report_for_errors(report)
-    pathlib.Path(report).unlink()
-    assert not pathlib.Path(report).exists()
     assert len(errors) == 0, "Model report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
@@ -218,7 +199,6 @@ def test_ModelReport_full_embed(sample: ADMDatamart, tmp_path):
 
 def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):
     """Test health_check with custom qmd_file argument"""
-    # Create a custom qmd file
     custom_qmd = tmp_path / "custom_health.qmd"
     custom_qmd.write_text("""
 ---
@@ -235,16 +215,12 @@ This is a custom health check template.
 Test parameters: {{< meta params.title >}}
 """)
 
-    hc = sample.generate.health_check(name="CustomTemplate", qmd_file=custom_qmd)
-    assert hc == pathlib.Path("./HealthCheck_CustomTemplate.html").resolve()
-    assert pathlib.Path(hc).exists()
-    pathlib.Path(hc).unlink()
-    assert not pathlib.Path(hc).exists()
+    hc = sample.generate.health_check(output_dir=tmp_path, name="CustomTemplate", qmd_file=custom_qmd)
+    _assert_report_path(hc, tmp_path, "HealthCheck_CustomTemplate")
 
 
 def test_GenerateModelReport_CustomQmdFile(sample: ADMDatamart, tmp_path):
     """Test model_reports with custom qmd_file argument"""
-    # Create a custom qmd file
     custom_qmd = tmp_path / "custom_model.qmd"
     custom_qmd.write_text("""
 ---
@@ -264,13 +240,12 @@ Model ID: {{< meta params.model_id >}}
 
     report = sample.generate.model_reports(
         model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        output_dir=tmp_path,
         name="CustomModel",
         qmd_file=custom_qmd,
     )
-    expected_path = pathlib.Path(
-        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0.html",
-    ).resolve()
-    assert report == expected_path
-    assert pathlib.Path(report).exists()
-    pathlib.Path(report).unlink()
-    assert not pathlib.Path(report).exists()
+    _assert_report_path(
+        report,
+        tmp_path,
+        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0",
+    )
