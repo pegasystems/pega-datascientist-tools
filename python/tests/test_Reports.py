@@ -29,7 +29,7 @@ def test_health_check_file_size_optimization():
     try:
         from pdstools.utils.report_utils import get_quarto_with_version
 
-        get_quarto_with_version(verbose=False)
+        get_quarto_with_version()
     except (FileNotFoundError, Exception) as e:
         pytest.skip(f"Quarto not available in this environment: {e}")
 
@@ -48,7 +48,6 @@ def test_health_check_file_size_optimization():
                 output_path = reports.health_check(
                     name="size_test",
                     output_dir=temp_path,
-                    verbose=True,  # Enable verbose for better debugging
                 )
             except Exception as e:
                 pytest.fail(f"Health check generation failed: {e}")
@@ -102,7 +101,7 @@ def test_full_embed_integration():
     try:
         from pdstools.utils.report_utils import get_quarto_with_version
 
-        get_quarto_with_version(verbose=False)
+        get_quarto_with_version()
     except (FileNotFoundError, Exception) as e:
         pytest.skip(f"Quarto not available: {e}")
 
@@ -122,7 +121,6 @@ def test_full_embed_integration():
                 output = reports.health_check(
                     name=f"test_{label}",
                     output_dir=temp_path,
-                    verbose=False,
                     full_embed=full_embed,
                 )
                 if output and isinstance(output, Path) and output.exists():

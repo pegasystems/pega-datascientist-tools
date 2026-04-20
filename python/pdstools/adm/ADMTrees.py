@@ -95,7 +95,6 @@ class AGB:
         by: str = "Configuration",
         n_threads: int = 1,
         query: QUERY | None = None,
-        verbose: bool = True,
         **kwargs,
     ) -> ADMTrees:  # pragma: no cover
         """Method to automatically extract AGB models.
@@ -117,8 +116,6 @@ class AGB:
             helps speed up the import.
         query: Optional[Union[pl.Expr, list[pl.Expr], str, dict[str, list]]]
             Please refer to :meth:`._apply_query`
-        verbose: bool, default = False
-            Whether to print out information while importing
 
         """
         df = self.datamart.model_data
@@ -138,32 +135,28 @@ class AGB:
             return ADMTrees(
                 self.datamart.aggregates.last(data=df),
                 n_threads=n_threads,
-                verbose=verbose,
                 **kwargs,
             )
         return ADMTrees(
             df.select("Configuration", "SnapshotTime", "Modeldata").collect(),
             n_threads=n_threads,
-            verbose=verbose,
             **kwargs,
         )
 
 
 class ADMTrees:  # pragma: no cover
-    def __new__(cls, file, n_threads=6, verbose=True, **kwargs):
+    def __new__(cls, file, n_threads=6, **kwargs):
         if isinstance(file, pl.DataFrame):
             logger.info("DataFrame supplied.")
             file = file.filter(pl.col("Modeldata").is_not_null())
             if len(file) > 1:
-                logger.info("Multiple models found, so creating MultiTrees")
-                if verbose:
-                    print(
-                        f"AGB models found: {file.select(pl.col('Configuration').unique())}",
-                    )
+                logger.info(
+                    "Multiple AGB models found (%s), creating MultiTrees",
+                    file.select(pl.col("Configuration").unique()),
+                )
                 return cls.get_multi_trees(
                     file=file,
                     n_threads=n_threads,
-                    verbose=verbose,
                     **kwargs,
                 )
             logger.info("One model found, so creating ADMTrees")
@@ -177,17 +170,17 @@ class ADMTrees:  # pragma: no cover
         return ADMTreesModel(file, **kwargs)
 
     @staticmethod
-    def get_multi_trees(file: pl.DataFrame, n_threads=1, verbose=True, **kwargs):
+    def get_multi_trees(file: pl.DataFrame, n_threads=1, **kwargs):
         out = {}
         df = file.filter(pl.col("Modeldata").is_not_null()).select(
             pl.col("SnapshotTime").dt.round("1s").cast(pl.Utf8).str.strip_chars_end(".000000000"),
             pl.col("Modeldata").str.decode("base64"),
             pl.col("Configuration").cast(pl.Utf8),
         )
-        if len(df) > 50 and n_threads == 1 and verbose:
-            print(
-                f"""Decoding {len(df)} models,
-            setting n_threads to a higher value may speed up processing time.""",
+        if len(df) > 50 and n_threads == 1:
+            logger.info(
+                "Decoding %d models; setting n_threads higher may speed this up.",
+                len(df),
             )
         df2 = df.select(
             pl.concat_list(["Configuration", "SnapshotTime"]),
@@ -331,12 +324,12 @@ class ADMTreesModel:
         self._post_import_cleanup(decode=decode, **kwargs)
 
     def _decode_trees(self):  # pragma: no cover
-        def quantile_decoder(encoder: dict, index: int, verbose=False):
+        def quantile_decoder(encoder: dict, index: int):
             if encoder["summaryType"] == "INITIAL_SUMMARY":
                 return encoder["summary"]["initialValues"][index]  # Note: could also be index-1
             return encoder["summary"]["list"][index - 1].split("=")[0]
 
-        def string_decoder(encoder: dict, index: int, sign, verbose=False):
+        def string_decoder(encoder: dict, index: int, sign):
             def set_types(split):
                 logger.debug(split)
                 split = split.rsplit("=", 1)
@@ -348,8 +341,7 @@ class ADMTreesModel:
             )
             splitvalues = list()
             for key, value in valuelist.items():
-                if verbose:
-                    print(key, value, index)
+                logger.debug("string_decoder candidate: %s=%s (index=%s)", key, value, index)
                 if int(key) == index - 129 and index == 129 and sign == "<":
                     splitvalues.append("Missing")
                     break
@@ -360,7 +352,7 @@ class ADMTreesModel:
             output = ", ".join(splitvalues)
             return output
 
-        def decode_split(split: str, verbose=False):
+        def decode_split(split: str):
             if not isinstance(split, str):
                 return split
             logger.debug(f"Decoding split: {split}")
@@ -371,8 +363,9 @@ class ADMTreesModel:
             elif sign == "EQ":
                 sign = "=="
             else:
-                print("For now, only supporting less than and equality splits")
-                raise ValueError((predictor, sign, splitval))
+                raise ValueError(
+                    f"Unsupported split operator (only LT/EQ supported): {(predictor, sign, splitval)}",
+                )
             variable = encoderkeys[int(predictor)]
             encoder = encoders[variable]
             variable_type = list(encoder["encoder"].keys())[0]
@@ -384,7 +377,6 @@ class ADMTreesModel:
                     to_decode,
                     int(splitval),
                     sign=sign,
-                    verbose=verbose,
                 )
                 if val == "Missing":
                     sign, val = "is", "Missing"

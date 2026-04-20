@@ -605,12 +605,12 @@ class TestShowCredits:
         monkeypatch.setattr(
             report_utils,
             "get_quarto_with_version",
-            lambda verbose=False: (None, "1.4.0"),
+            lambda: (None, "1.4.0"),
         )
         monkeypatch.setattr(
             report_utils,
             "get_pandoc_with_version",
-            lambda verbose=False: (None, "3.1.0"),
+            lambda: (None, "3.1.0"),
         )
         self.printed_text = ""
 
@@ -888,12 +888,12 @@ class TestGetQuartoAndPandoc:
     def test_quarto_missing_raises(self, monkeypatch):
         monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
         with pytest.raises(FileNotFoundError, match="Quarto executable not found"):
-            report_utils.get_quarto_with_version(verbose=False)
+            report_utils.get_quarto_with_version()
 
     def test_pandoc_missing_raises(self, monkeypatch):
         monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
         with pytest.raises(FileNotFoundError, match="Pandoc executable not found"):
-            report_utils.get_pandoc_with_version(verbose=False)
+            report_utils.get_pandoc_with_version()
 
     def test_quarto_success(self, monkeypatch, tmp_path):
         fake_exe = tmp_path / "quarto"
@@ -904,7 +904,7 @@ class TestGetQuartoAndPandoc:
             "_get_cmd_output",
             lambda _args: ["quarto 1.4.550"],
         )
-        path, version = report_utils.get_quarto_with_version(verbose=True)
+        path, version = report_utils.get_quarto_with_version()
         assert path == fake_exe
         assert version == "1.4.550"
 
@@ -917,7 +917,7 @@ class TestGetQuartoAndPandoc:
             "_get_cmd_output",
             lambda _args: ["pandoc 3.1.2"],
         )
-        path, version = report_utils.get_pandoc_with_version(verbose=True)
+        path, version = report_utils.get_pandoc_with_version()
         assert path == fake_exe
         assert version == "3.1.2"
 

@@ -52,7 +52,6 @@ with health_check:
                     query=st.session_state.get("filters", None),
                     output_type=output_type,
                     keep_temp_files=keep_temp_files,
-                    verbose=False,
                     prediction=st.session_state.get("prediction"),
                     full_embed=True,
                 )

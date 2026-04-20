@@ -46,7 +46,6 @@ class Reports(LazyNamespace):
         only_active_predictors: bool = True,
         output_type: str = "html",
         keep_temp_files: bool = False,
-        verbose: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: PathLike | None = None,
         predictor_file_path: PathLike | None = None,
@@ -75,8 +74,6 @@ class Reports(LazyNamespace):
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
             If True, the temporary directory with temp files will not be deleted after report generation.
-        verbose: bool, optional
-            If True, prints detailed logs during execution.
         progress_callback : Callable[[int, int], None], optional
             A callback function to report progress. Used only in the Streamlit app.
             The function should accept two integers: the current progress and the total.
@@ -162,19 +159,17 @@ class Reports(LazyNamespace):
                         "models": (self.datamart.model_data is not None),
                     },
                     temp_dir=temp_dir,
-                    verbose=verbose,
                     full_embed=full_embed,
                 )
                 output_path = temp_dir / output_filename
-                if verbose or not output_path.exists():
-                    # print parameters so they can be copy/pasted into the quarto docs for debugging
-                    if model_file_path is not None:
-                        print(f'model_file_path = "{model_file_path}"')
-                    if predictor_file_path is not None:
-                        print(f'predictor_file_path = "{predictor_file_path}"')
-                    print(f'model_id = "{model_id}"')
-                    print(f"output_path = {output_path}")
                 if not output_path.exists():
+                    # Log parameters so they can be copy/pasted into the quarto docs for debugging
+                    if model_file_path is not None:
+                        logger.info('model_file_path = "%s"', model_file_path)
+                    if predictor_file_path is not None:
+                        logger.info('predictor_file_path = "%s"', predictor_file_path)
+                    logger.info('model_id = "%s"', model_id)
+                    logger.info("output_path = %s", output_path)
                     raise ValueError(f"Failed to write the report: {output_filename}")
                 output_path = bundle_quarto_resources(output_path)
                 output_file_paths.append(output_path)
@@ -214,7 +209,6 @@ class Reports(LazyNamespace):
         query: QUERY | None = None,
         output_type: str = "html",
         keep_temp_files: bool = False,
-        verbose: bool = False,
         prediction=None,
         model_file_path: PathLike | None = None,
         predictor_file_path: PathLike | None = None,
@@ -242,8 +236,6 @@ class Reports(LazyNamespace):
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
             If True, the temporary directory with temp files will not be deleted after report generation.
-        verbose: bool, optional
-            If True, prints detailed logs during execution.
         prediction : Prediction, optional
             Optional Prediction object to include in the health check. If provided without
             prediction_file_path, the prediction data will be automatically cached to a temporary file.
@@ -328,21 +320,18 @@ class Reports(LazyNamespace):
                     "models": (self.datamart.model_data is not None),
                 },
                 temp_dir=temp_dir,
-                verbose=verbose,
                 full_embed=full_embed,
             )
 
-            # TODO why not print paths earlier, before the quarto call?
             output_path = temp_dir / output_filename
-            if verbose or not output_path.exists():
-                if model_file_path is not None:
-                    print(f'model_file_path = "{model_file_path}"')
-                if predictor_file_path is not None:
-                    print(f'predictor_file_path = "{predictor_file_path}"')
-                if prediction_file_path is not None:
-                    print(f'prediction_file_path = "{prediction_file_path}"')
-                print(f"output_path = {output_path}")
             if not output_path.exists():
+                if model_file_path is not None:
+                    logger.info('model_file_path = "%s"', model_file_path)
+                if predictor_file_path is not None:
+                    logger.info('predictor_file_path = "%s"', predictor_file_path)
+                if prediction_file_path is not None:
+                    logger.info('prediction_file_path = "%s"', prediction_file_path)
+                logger.info("output_path = %s", output_path)
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
             output_path = bundle_quarto_resources(output_path)

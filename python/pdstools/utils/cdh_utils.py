@@ -4,7 +4,6 @@ import logging
 import math
 import re
 import tempfile
-import warnings
 import zipfile
 from collections.abc import Iterable, Sequence
 from functools import partial
@@ -1232,7 +1231,7 @@ def feature_importance(
     return result
 
 
-def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F:
+def _apply_schema_types(df: F, definition, **timestamp_opts) -> F:
     """This function is used to convert the data types of columns in a DataFrame to a desired types.
     The desired types are defined in a `PegaDefaultTables` class.
 
@@ -1242,8 +1241,6 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
         The DataFrame whose columns' data types need to be converted.
     definition : PegaDefaultTables
         A `PegaDefaultTables` object that contains the desired data types for the columns.
-    verbose : bool
-        If True, the function will print a message when a column is not in the default table schema.
     timestamp_opts : str
         Additional arguments for timestamp parsing.
 
@@ -1272,8 +1269,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
             new_type = getattr(definition, typed[renamedCol])
             original_type = schema[col].base_type()
             if original_type == pl.Null:
-                if verbose:
-                    warnings.warn(f"Warning: {col} column is Null data type.")
+                logger.debug("Column %s has Null data type; skipping cast.", col)
             elif original_type != new_type:
                 if original_type == pl.Categorical and new_type in pl.selectors.numeric():  # type: ignore[operator]
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
@@ -1282,10 +1278,10 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
                 else:
                     types.append(pl.col(col).cast(new_type, strict=False))
         except Exception:
-            if verbose:  # pragma: no cover
-                warnings.warn(
-                    f"Column {col} not in default table schema, can't set type.",
-                )
+            logger.debug(
+                "Column %s not in default table schema; can't set type.",
+                col,
+            )
     return df.with_columns(types)
 
 

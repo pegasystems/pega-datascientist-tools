@@ -144,7 +144,6 @@ def run_quarto(
     project: dict = {"type": "default"},
     analysis: dict | None = None,
     temp_dir: Path = Path(),
-    verbose: bool = False,
     *,
     full_embed: bool = False,
 ) -> int:
@@ -166,8 +165,6 @@ def run_quarto(
         Analysis configuration settings, by default None
     temp_dir : Path, optional
         Temporary directory for processing, by default Path(".")
-    verbose : bool, optional
-        Whether to print detailed execution logs, by default False
     full_embed : bool, default=False
         When True, fully embeds all JavaScript libraries (Plotly, itables,
         etc.) into the HTML output (larger file).
@@ -191,7 +188,7 @@ def run_quarto(
     """
 
     def get_command() -> list[str]:
-        quarto_exec, _ = get_quarto_with_version(verbose)
+        quarto_exec, _ = get_quarto_with_version()
         _command = [str(quarto_exec), "render"]
 
         if qmd_file is not None:
@@ -218,8 +215,7 @@ def run_quarto(
     # render file or render project with options
     command = get_command()
 
-    if verbose:
-        print(f"Executing: {' '.join(command)} in temp directory {temp_dir}")
+    logger.info("Executing: %s in temp directory %s", " ".join(command), temp_dir)
 
     # Set QUARTO_PYTHON to ensure Quarto uses the same Python that's running pdstools.
     # This is critical for isolated environments (uv tool, pipx) where the default
@@ -246,8 +242,6 @@ def run_quarto(
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
             output_lines.append(line)
-            if verbose:
-                print(line)
             logger.info(line)
     else:  # pragma: no cover
         logger.warning("subprocess.stdout is None, unable to read output")
@@ -463,7 +457,7 @@ def _get_version_only(versionstr: str) -> str:
     return match.group(1) if match else ""
 
 
-def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
+def get_quarto_with_version() -> tuple[Path, str]:
     """Get Quarto executable path and version."""
     try:
         quarto_path = shutil.which("quarto")
@@ -474,17 +468,14 @@ def get_quarto_with_version(verbose: bool = True) -> tuple[Path, str]:
         executable = Path(quarto_path)
 
         version_string = _get_version_only(_get_cmd_output(["quarto", "--version"])[0])
-        message = f"quarto version: {version_string}"
-        logger.info(message)
-        if verbose:
-            print(message)
+        logger.info("quarto version: %s", version_string)
         return executable, version_string
     except Exception as e:
         logger.error(f"Error getting quarto version: {e}")
         raise
 
 
-def get_pandoc_with_version(verbose: bool = True) -> tuple[Path, str]:
+def get_pandoc_with_version() -> tuple[Path, str]:
     """Get Pandoc executable path and version."""
     try:
         pandoc_path = shutil.which("pandoc")
@@ -499,10 +490,7 @@ def get_pandoc_with_version(verbose: bool = True) -> tuple[Path, str]:
             )
 
         version_string = _get_version_only(_get_cmd_output(["pandoc", "--version"])[0])
-        message = f"pandoc version: {version_string}"
-        logger.info(message)
-        if verbose:
-            print(message)
+        logger.info("pandoc version: %s", version_string)
         return executable, version_string
     except Exception as e:
         logger.error(f"Error getting pandoc version: {e}")
@@ -1029,8 +1017,8 @@ def show_credits(quarto_source: str | None = None):
         standalone reports where knowing the source is useful. Omit for
         Quarto website projects where pages are generated from templates.
     """
-    _, quarto_version = get_quarto_with_version(verbose=False)
-    _, pandoc_version = get_pandoc_with_version(verbose=False)
+    _, quarto_version = get_quarto_with_version()
+    _, pandoc_version = get_pandoc_with_version()
 
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 

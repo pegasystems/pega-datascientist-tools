@@ -321,7 +321,6 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
 def read_ds_export(
     filename: str | os.PathLike | BytesIO,
     path: str | os.PathLike = ".",
-    verbose: bool = False,
     **reading_opts,
 ) -> pl.LazyFrame | None:
     """Read Pega dataset exports with additional capabilities.
@@ -342,8 +341,6 @@ def read_ds_export(
         - BytesIO object (delegates to read_data)
     path : str or os.PathLike, default='.'
         Directory to search for files (ignored for BytesIO or full paths)
-    verbose : bool, default=False
-        Print file selection details
     **reading_opts
         Additional Polars scan_* options. Common options include:
         - infer_schema_length (int, default=10000): Rows to scan for schema inference
@@ -445,8 +442,6 @@ def read_ds_export(
 
         except Exception as e:
             logger.info(e)
-            if verbose:
-                print(f"File {filename_str} not found in dir {path_str}")
             logger.info(f"File not found: {path_str}/{filename_str}")
             return None
 
@@ -601,7 +596,6 @@ def import_file(
 
 def read_zipped_file(
     file: str | BytesIO,
-    verbose: bool = False,
 ) -> tuple[BytesIO, str]:
     """Read a zipped NDJSON file.
     Reads a dataset export file as exported and downloaded from Pega. The export
@@ -612,8 +606,6 @@ def read_zipped_file(
     ----------
     file : str
         The full path to the file
-    verbose : str, default=False
-        Whether to print the names of the files within the unzipped file for debugging purposes
 
     Returns
     -------
@@ -637,15 +629,9 @@ def read_zipped_file(
         zfile = get_valid_files(z.namelist())
         logger.debug(f"Opening file {file}")
         if zfile is not None:
-            logger.debug("data.json found.")
-            if verbose:
-                print(
-                    (
-                        "Zipped json file found. For faster reading, we recommend",
-                        "parsing the files to a format such as arrow or parquet. ",
-                        "See example in docs #TODO",
-                    ),
-                )
+            logger.debug(
+                "data.json found. For faster reading, parse to arrow or parquet.",
+            )
             with z.open(zfile) as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
         else:  # pragma: no cover
@@ -712,7 +698,6 @@ def read_multi_zip(
 def get_latest_file(
     path: str | os.PathLike,
     target: str,
-    verbose: bool = False,
 ) -> str | None:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
@@ -727,8 +712,6 @@ def get_latest_file(
     target : str in ['model_data', 'predictor_data', 'prediction_data']
         Whether to look for data about the predictive models ('model_data')
         or the predictor bins ('predictor_data')
-    verbose : bool, default = False
-        Whether to print all found files before comparing name criteria for debugging purposes
 
     Returns
     -------
@@ -748,15 +731,14 @@ def get_latest_file(
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
-    if verbose:
-        print(files_dir)  # pragma: no cover
+    logger.debug("Candidate files in %s: %s", path, files_dir)
     matches = find_files(files_dir, target)
 
     if len(matches) == 0:  # pragma: no cover
-        if verbose:
-            print(
-                f"Unable to find data for {target}. Please check if the data is available.",
-            )
+        logger.debug(
+            "Unable to find data for %s. Check if the data is available.",
+            target,
+        )
         return None
 
     paths = [os.path.join(path, name) for name in matches]

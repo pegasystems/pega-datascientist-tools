@@ -81,7 +81,6 @@ def test_import_produces_bytes():
             f"{basePath}/data",
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         ),
-        verbose=True,
     )
 
     assert isinstance(ret[0], BytesIO)

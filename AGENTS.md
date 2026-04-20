@@ -15,8 +15,14 @@ dependencies and execution.
   created yourself, or when the user explicitly asks for a commit/PR.
 - **Product naming.** User-facing text: "Decision Analysis Tool",
   "ADM Health Check". Code/CLI: `decision_analyzer`, `adm_healthcheck`.
-- **No `verbose` parameters.** Use `logging.debug()` instead of
-  `if verbose: print(...)`. Remove `verbose` if you encounter it.
+- **`verbose` parameters.** Reserve `verbose` for genuine user-facing
+  progress — tqdm progress bars on long-running I/O, multi-stage CLI
+  output (`"Step 1/3: writing parquet…"`). For anything that prints
+  internal technical detail (subprocess output, decoded values, "file
+  not found in dir X", schema warnings), drop the parameter and use
+  `logger.debug()` / `logger.info()` instead. Never overload `verbose`
+  to control non-output behaviour (e.g. cache invalidation, retry
+  policy) — that's a separate parameter.
 - **Prefer Polars over Pandas** for all data processing.
 
 ## Quick orientation
