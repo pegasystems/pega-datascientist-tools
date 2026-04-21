@@ -6,6 +6,7 @@ from datetime import timedelta
 import polars as pl
 import pytest
 from pdstools import IH
+from pdstools.ih.Schema import REQUIRED_IH_COLUMNS, IHInteraction
 from plotly.graph_objs import Figure
 
 
@@ -471,3 +472,122 @@ def test_plots(ih):
     assert isinstance(ih.plot.response_count(), Figure)
     assert isinstance(ih.plot.model_performance_trend(), Figure)
     assert isinstance(ih.plot.model_performance_trend(by="ModelTechnique"), Figure)
+
+
+# -------------------------------------------------------------------- #
+# Schema and _validate_ih_data
+# -------------------------------------------------------------------- #
+
+
+def _minimal_valid_ih_lf() -> pl.LazyFrame:
+    """Smallest frame that satisfies REQUIRED_IH_COLUMNS, post-capitalization."""
+    return pl.LazyFrame(
+        {
+            "pxInteractionID": ["A", "B", "C"],
+            "pyOutcome": ["Impression", "Clicked", "Impression"],
+            "pxOutcomeTime": [
+                "20240115T120000.000 GMT",
+                "20240115T120100.000 GMT",
+                "20240115T120200.000 GMT",
+            ],
+        }
+    )
+
+
+def test_required_ih_columns_exact_set():
+    """REQUIRED_IH_COLUMNS is the documented minimal set."""
+    assert REQUIRED_IH_COLUMNS == ("InteractionID", "Outcome", "OutcomeTime")
+
+
+def test_schema_dtypes_exact():
+    """IHInteraction declares the exact dtypes documented for each column."""
+    assert IHInteraction.InteractionID == pl.Utf8
+    assert IHInteraction.Outcome == pl.Utf8
+    assert IHInteraction.OutcomeTime == pl.Datetime
+    assert IHInteraction.Channel == pl.Utf8
+    assert IHInteraction.Direction == pl.Utf8
+    assert IHInteraction.Propensity == pl.Float64
+    assert IHInteraction.ModelTechnique == pl.Utf8
+
+
+def test_validate_ih_data_returns_lazyframe_and_capitalises():
+    """Capitalises py/px-prefixed columns and returns a LazyFrame."""
+    out = IH._validate_ih_data(_minimal_valid_ih_lf())
+    assert isinstance(out, pl.LazyFrame)
+    names = out.collect_schema().names()
+    assert "InteractionID" in names
+    assert "Outcome" in names
+    assert "OutcomeTime" in names
+    # py/px prefixes are stripped, originals must be gone:
+    assert "pxInteractionID" not in names
+    assert "pyOutcome" not in names
+
+
+def test_validate_ih_data_parses_string_outcometime_to_datetime():
+    """String OutcomeTime is auto-cast to pl.Datetime via the schema."""
+    out = IH._validate_ih_data(_minimal_valid_ih_lf()).collect()
+    assert out.schema["OutcomeTime"] == pl.Datetime
+    # Exact timestamp value preserved through the parse:
+    assert out["OutcomeTime"][0].year == 2024
+    assert out["OutcomeTime"][0].month == 1
+    assert out["OutcomeTime"][0].day == 15
+    assert out["OutcomeTime"][0].hour == 12
+
+
+def test_validate_ih_data_missing_interactionid_raises():
+    """Missing InteractionID is reported with the column name."""
+    bad = pl.LazyFrame(
+        {
+            "pyOutcome": ["Impression"],
+            "pxOutcomeTime": ["20240115T120000.000 GMT"],
+        }
+    )
+    with pytest.raises(ValueError, match="InteractionID"):
+        IH._validate_ih_data(bad)
+
+
+def test_validate_ih_data_missing_outcome_raises():
+    """Missing Outcome is reported with the column name."""
+    bad = pl.LazyFrame(
+        {
+            "pxInteractionID": ["A"],
+            "pxOutcomeTime": ["20240115T120000.000 GMT"],
+        }
+    )
+    with pytest.raises(ValueError, match="Outcome"):
+        IH._validate_ih_data(bad)
+
+
+def test_validate_ih_data_missing_outcometime_raises():
+    """Missing OutcomeTime is reported with the column name."""
+    bad = pl.LazyFrame(
+        {
+            "pxInteractionID": ["A"],
+            "pyOutcome": ["Impression"],
+        }
+    )
+    with pytest.raises(ValueError, match="OutcomeTime"):
+        IH._validate_ih_data(bad)
+
+
+def test_validate_ih_data_reports_all_missing():
+    """Multiple missing columns are listed sorted in the error message."""
+    bad = pl.LazyFrame({"SomeOtherCol": [1, 2]})
+    with pytest.raises(ValueError) as exc:
+        IH._validate_ih_data(bad)
+    msg = str(exc.value)
+    assert "InteractionID" in msg
+    assert "Outcome" in msg
+    assert "OutcomeTime" in msg
+
+
+def test_ih_init_validates_data():
+    """IH() runs _validate_ih_data and rejects frames without required columns."""
+    with pytest.raises(ValueError, match="Missing required IH columns"):
+        IH(pl.LazyFrame({"foo": [1]}))
+
+
+def test_ih_init_normalises_outcometime_dtype():
+    """After construction, data.OutcomeTime is pl.Datetime (string parsing)."""
+    instance = IH(_minimal_valid_ih_lf())
+    assert instance.data.collect_schema()["OutcomeTime"] == pl.Datetime

@@ -1,6 +1,7 @@
 """Interaction History analysis for Pega CDH."""
 
 import datetime
+import logging
 import math
 import os
 import random
@@ -10,15 +11,20 @@ import polars as pl
 import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
-from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
+from ..utils import cdh_utils
 from ..utils.cdh_utils import (
     _apply_query,
     _polars_capitalize,
     parse_pega_date_time_formats,
 )
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.types import QUERY
+from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
+from .Schema import REQUIRED_IH_COLUMNS
+
+logger = logging.getLogger(__name__)
 
 
 class IH:
@@ -82,16 +88,56 @@ class IH:
             Interaction history data. Column names will be automatically
             capitalized using Pega naming conventions.
 
+        Raises
+        ------
+        ValueError
+            If any column listed in
+            :data:`pdstools.ih.Schema.REQUIRED_IH_COLUMNS` is absent.
+
         Notes
         -----
         Use the class methods :meth:`from_ds_export` or :meth:`from_mock_data`
         to create instances from data sources.
 
         """
-        self.data = _polars_capitalize(data)
+        self.data = self._validate_ih_data(data)
         self.outcome_labels_used = self._scan_outcome_labels()
         self.aggregates = Aggregates(ih=self)
         self.plot = Plots(ih=self)
+
+    @staticmethod
+    def _validate_ih_data(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Internal method to validate and normalise IH data.
+
+        Mirrors the ``_validate_*_data`` pattern used by
+        :class:`pdstools.adm.ADMDatamart`. Capitalises Pega-style column
+        names (stripping ``py``/``px`` prefixes), checks required columns
+        are present, and casts columns to the dtypes declared on
+        :class:`pdstools.ih.Schema.IHInteraction` (which auto-parses
+        string ``OutcomeTime`` values into ``pl.Datetime``).
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            Raw interaction history data.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Capitalised and dtype-normalised frame.
+
+        Raises
+        ------
+        ValueError
+            If any column listed in
+            :data:`pdstools.ih.Schema.REQUIRED_IH_COLUMNS` is absent.
+        """
+        df = _polars_capitalize(df)
+        missing = set(REQUIRED_IH_COLUMNS).difference(df.collect_schema().names())
+        if missing:
+            raise ValueError(f"Missing required IH columns: {sorted(missing)}")
+        df = cdh_utils._apply_schema_types(df, Schema.IHInteraction)
+        return df
 
     def _scan_outcome_labels(self) -> dict | None:
         """Scan data for channel/outcome combinations and resolve defaults.
@@ -211,10 +257,6 @@ class IH:
             b = responses * (1 - propensity)
 
             sampled = random.betavariate(a, b)
-
-            # print(
-            #     f"{a} {b} {propensity} {sampled} {abs((sampled-propensity)/propensity)}"
-            # )
 
             return sampled
 

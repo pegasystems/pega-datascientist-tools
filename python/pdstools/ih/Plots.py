@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import polars as pl
 
@@ -63,6 +63,32 @@ class Plots(LazyNamespace):
         """
         super().__init__()
         self.ih = ih
+
+    @overload
+    def overall_gauges(
+        self,
+        condition: str | pl.Expr,
+        *,
+        metric: str = ...,
+        by: str = ...,
+        reference_values: dict[str, float] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def overall_gauges(
+        self,
+        condition: str | pl.Expr,
+        *,
+        metric: str = ...,
+        by: str = ...,
+        reference_values: dict[str, float] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
 
     def overall_gauges(
         self,
@@ -182,6 +208,26 @@ class Plots(LazyNamespace):
 
         return fig
 
+    @overload
+    def response_count_tree_map(
+        self,
+        *,
+        by: list[str] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def response_count_tree_map(
+        self,
+        *,
+        by: list[str] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
     def response_count_tree_map(
         self,
         *,
@@ -256,6 +302,28 @@ class Plots(LazyNamespace):
         simplify_facet_titles(fig)
 
         return fig
+
+    @overload
+    def success_rate_tree_map(
+        self,
+        *,
+        metric: str = ...,
+        by: list[str] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def success_rate_tree_map(
+        self,
+        *,
+        metric: str = ...,
+        by: list[str] | None = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
 
     def success_rate_tree_map(
         self,
@@ -346,6 +414,30 @@ class Plots(LazyNamespace):
 
         return fig
 
+    @overload
+    def action_distribution(
+        self,
+        *,
+        by: str = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        color: str | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def action_distribution(
+        self,
+        *,
+        by: str = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        color: str | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
     def action_distribution(
         self,
         *,
@@ -412,6 +504,30 @@ class Plots(LazyNamespace):
         simplify_facet_titles(fig)
 
         return fig
+
+    @overload
+    def success_rate(
+        self,
+        *,
+        metric: str = ...,
+        every: str | timedelta = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def success_rate(
+        self,
+        *,
+        metric: str = ...,
+        every: str | timedelta = ...,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
 
     def success_rate(
         self,
@@ -488,6 +604,28 @@ class Plots(LazyNamespace):
 
         return fig
 
+    @overload
+    def response_count(
+        self,
+        *,
+        every: str | timedelta = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def response_count(
+        self,
+        *,
+        every: str | timedelta = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
     def response_count(
         self,
         *,
@@ -553,6 +691,32 @@ class Plots(LazyNamespace):
         simplify_facet_titles(fig)
 
         return fig
+
+    @overload
+    def model_performance_trend(
+        self,
+        *,
+        metric: str = ...,
+        every: str | timedelta = ...,
+        by: str | None = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def model_performance_trend(
+        self,
+        *,
+        metric: str = ...,
+        every: str | timedelta = ...,
+        by: str | None = ...,
+        title: str = ...,
+        query: QUERY | None = ...,
+        facet: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
 
     def model_performance_trend(
         self,
