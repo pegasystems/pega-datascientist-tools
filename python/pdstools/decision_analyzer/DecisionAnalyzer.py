@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_SAMPLE_SIZE = 10_000
 """Default number of unique interactions to sample for resource-intensive analyses."""
 
+MANDATORY_PRIORITY_THRESHOLD = 4_999_999
+"""Priority threshold at or above which actions are treated as mandatory by the
+arbitration engine. Mandatory actions bypass normal ranking and always land in
+the top slot. Used to auto-detect mandatory rows when no explicit
+``mandatory_expr`` is supplied to :class:`DecisionAnalyzer`."""
+
 
 class DecisionAnalyzer:
     """Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
@@ -189,6 +195,11 @@ class DecisionAnalyzer:
             Other examples:
             - `(pl.col("Group") == "Credit") & (pl.col("Priority") > 0.8)`
             - `pl.col("Action").is_in(["CriticalAction1", "CriticalAction2"])`
+
+            When ``None`` (the default), mandatory rows are auto-detected from
+            the ``Priority`` column using
+            ``pl.col("Priority") >= MANDATORY_PRIORITY_THRESHOLD`` — mirroring
+            how the arbitration engine treats high-priority actions.
         additional_columns : dict[str, pl.DataType], optional
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
@@ -200,7 +211,10 @@ class DecisionAnalyzer:
         The ranking function orders actions by: is_mandatory (desc) → Priority (desc) →
         StageOrder (desc) → pyIssue → pyGroup → pyName.
 
-        If mandatory_expr is None, all actions get is_mandatory=0.
+        If mandatory_expr is None, mandatory rows are auto-detected from
+        ``Priority`` using :data:`MANDATORY_PRIORITY_THRESHOLD`. If the
+        ``Priority`` column is unavailable, all rows are treated as
+        non-mandatory.
         The expression gets applied as: `raw_data.with_columns(is_mandatory=mandatory_expr)`
 
         Examples
@@ -258,6 +272,10 @@ class DecisionAnalyzer:
         raw_data = rename_and_cast_types(df=raw_data, table_definition=table_def).sort("Interaction ID")
         if mandatory_expr is not None:
             raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
+        elif "Priority" in raw_data.collect_schema().names():
+            raw_data = raw_data.with_columns(
+                is_mandatory=(pl.col("Priority").fill_null(0) >= MANDATORY_PRIORITY_THRESHOLD).cast(pl.Int8)
+            )
         else:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
         self.decision_data = self.cleanup_raw_data(raw_data)
@@ -395,6 +413,34 @@ class DecisionAnalyzer:
 
         stage_df = stage_df.sort("Stage Order")
         self.AvailableNBADStages = stage_df.get_column(self.level).to_list()
+
+    @cached_property
+    def mandatory_actions(self) -> set[str]:
+        """Set of action names flagged as mandatory in the current data.
+
+        Mandatory actions bypass normal arbitration and always rank in the
+        top slot. Auto-detected from ``Priority`` (see
+        :data:`MANDATORY_PRIORITY_THRESHOLD`) unless an explicit
+        ``mandatory_expr`` was supplied at construction.
+
+        Returns
+        -------
+        set[str]
+            Distinct ``Action`` values where ``is_mandatory`` is truthy.
+            Empty when no mandatory rows or no ``Action`` / ``is_mandatory``
+            column is available.
+        """
+        schema_names = self.decision_data.collect_schema().names()
+        if "is_mandatory" not in schema_names or "Action" not in schema_names:
+            return set()
+        names = (
+            self.decision_data.filter(pl.col("is_mandatory") > 0)
+            .select(pl.col("Action").unique())
+            .collect()
+            .get_column("Action")
+            .to_list()
+        )
+        return {n for n in names if n is not None}
 
     @cached_property
     def color_mappings(self) -> dict[str, dict[str, str]]:

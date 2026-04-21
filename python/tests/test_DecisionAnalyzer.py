@@ -141,6 +141,80 @@ class TestConstruction:
         schema = da.decision_data.collect_schema()
         assert "is_mandatory" in schema.names()
 
+    def test_auto_detect_mandatory_from_priority(self):
+        """Without explicit mandatory_expr, rows with Priority >= 5M auto-flag."""
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when(pl.col("pyName") == "ACTION1")
+            .then(pl.lit(5_000_000.0))
+            .otherwise(pl.col("Priority"))
+            .alias("Priority")
+        )
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flagged = (
+            da.decision_data.group_by("Action")
+            .agg(pl.col("is_mandatory").max().alias("is_mandatory"))
+            .sort("Action")
+            .collect()
+        )
+        actions = flagged.get_column("Action").to_list()
+        flags = flagged.get_column("is_mandatory").to_list()
+        assert dict(zip(actions, flags, strict=True)) == {
+            "ACTION1": 1,
+            "ACTION2": 0,
+            "ACTION3": 0,
+            "ACTION4": 0,
+            "ACTION5": 0,
+        }
+        assert da.mandatory_actions == {"ACTION1"}
+
+    def test_auto_detect_no_mandatory_when_priorities_low(self):
+        """No rows above the threshold → all is_mandatory = 0."""
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flags = da.decision_data.select(pl.col("is_mandatory").unique()).collect().get_column("is_mandatory").to_list()
+        assert flags == [0]
+        assert da.mandatory_actions == set()
+
+    def test_explicit_mandatory_expr_overrides_auto_detect(self):
+        """Explicit mandatory_expr wins even when Priority would auto-flag rows."""
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when(pl.col("pyName") == "ACTION1")
+            .then(pl.lit(5_000_000.0))
+            .otherwise(pl.col("Priority"))
+            .alias("Priority")
+        )
+        # Explicit expression flags ACTION3 (which has Priority < 5M), and
+        # critically does NOT flag ACTION1 (which would be auto-detected).
+        da = DecisionAnalyzer(
+            raw,
+            sample_size=1000,
+            mandatory_expr=(pl.col("Action") == "ACTION3").cast(pl.Int8),
+        )
+        flagged = (
+            da.decision_data.group_by("Action")
+            .agg(pl.col("is_mandatory").max().alias("is_mandatory"))
+            .sort("Action")
+            .collect()
+        )
+        result = dict(
+            zip(flagged.get_column("Action").to_list(), flagged.get_column("is_mandatory").to_list(), strict=True)
+        )
+        assert result == {
+            "ACTION1": 0,
+            "ACTION2": 0,
+            "ACTION3": 1,
+            "ACTION4": 0,
+            "ACTION5": 0,
+        }
+        assert da.mandatory_actions == {"ACTION3"}
+
+    def test_mandatory_priority_threshold_constant(self):
+        from pdstools.decision_analyzer.DecisionAnalyzer import (
+            MANDATORY_PRIORITY_THRESHOLD,
+        )
+
+        assert MANDATORY_PRIORITY_THRESHOLD == 4_999_999
+
     def test_missing_columns_raises_valueerror(self):
         """Constructing from data with missing critical columns should raise ValueError."""
         minimal = pl.LazyFrame({"Interaction ID": ["1"], "Action": ["A"]})

@@ -180,6 +180,14 @@ class Plot:
         wins_df = df_collected.filter(pl.col("Status") == "Wins")
         losses_df = df_collected.filter(pl.col("Status") == "Losses")
 
+        # Star-mark mandatory actions in the slice labels so they are
+        # distinguishable from regular actions in the chart. Only relevant
+        # when the breakdown is at the Action level.
+        mandatory = self._decision_data.mandatory_actions if level == "Action" else set()
+
+        def _label(value: str) -> str:
+            return f"★ {value}" if value in mandatory else value
+
         # Create two side-by-side pie charts
         fig = make_subplots(
             rows=1,
@@ -190,10 +198,11 @@ class Plot:
 
         # Add wins pie chart
         if wins_df.height > 0:
-            colors_wins = [color_discrete_map.get(val, "#cccccc") for val in wins_df[level].to_list()]
+            wins_values = wins_df[level].to_list()
+            colors_wins = [color_discrete_map.get(val, "#cccccc") for val in wins_values]
             fig.add_trace(
                 go.Pie(
-                    labels=wins_df[level],
+                    labels=[_label(v) for v in wins_values],
                     values=wins_df["Percentage"],
                     marker=dict(colors=colors_wins),
                     textposition="auto",
@@ -206,10 +215,11 @@ class Plot:
 
         # Add losses pie chart
         if losses_df.height > 0:
-            colors_losses = [color_discrete_map.get(val, "#cccccc") for val in losses_df[level].to_list()]
+            losses_values = losses_df[level].to_list()
+            colors_losses = [color_discrete_map.get(val, "#cccccc") for val in losses_values]
             fig.add_trace(
                 go.Pie(
-                    labels=losses_df[level],
+                    labels=[_label(v) for v in losses_values],
                     values=losses_df["Percentage"],
                     marker=dict(colors=colors_losses),
                     textposition="auto",
@@ -224,6 +234,18 @@ class Plot:
             font_size=12,
             showlegend=False,  # Labels are shown on the pie slices
         )
+
+        if mandatory:
+            fig.add_annotation(
+                text="★ marks auto-detected mandatory actions (priority ≥ 5M); they bypass arbitration.",
+                xref="paper",
+                yref="paper",
+                x=0,
+                y=-0.12,
+                showarrow=False,
+                font=dict(size=11),
+                xanchor="left",
+            )
 
         return fig
 

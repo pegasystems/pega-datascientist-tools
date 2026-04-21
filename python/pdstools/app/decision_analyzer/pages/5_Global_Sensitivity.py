@@ -71,6 +71,14 @@ with st.container(border=True):
 
     scope_options = st.session_state.decision_data.get_possible_scope_values()
 
+    mandatory_actions = st.session_state.decision_data.mandatory_actions
+    if mandatory_actions:
+        st.info(
+            f"{len(mandatory_actions)} action(s) are auto-detected as mandatory "
+            f"(priority ≥ 5M); they bypass arbitration and always rank top. "
+            "These are marked with ★ in the chart below."
+        )
+
     if "glob_sensitivity_scope" not in st.session_state:
         st.session_state.glob_sensitivity_scope = scope_options[0]
 
