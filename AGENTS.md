@@ -510,3 +510,49 @@ silently-dropped follow-up.
 - When the IDE shows type errors after an edit, distinguish
   **pre-existing** from **newly introduced**. Only fix the new ones
   silently; ask before touching pre-existing issues.
+
+## Parallel sub-agent workflow (git worktrees)
+
+When dispatching multiple background sub-agents that each work on a
+**different branch in parallel**, they MUST be isolated via
+`git worktree` — otherwise they share the user's working directory,
+which is a recipe for:
+
+- One agent's `git checkout <branch>` switching the user's HEAD without
+  warning.
+- Agent A's WIP edits showing up in agent B's `git status` and getting
+  swept into the wrong commit.
+- The user's foreground edits getting tangled with agent edits and
+  ending up on the wrong branch.
+
+### Setup
+
+Create one worktree per parallel branch under a sibling directory:
+
+```bash
+mkdir -p ../pdstools-worktrees
+git worktree add ../pdstools-worktrees/<branch-name> <branch-name>
+```
+
+Each sub-agent is told to `cd ../pdstools-worktrees/<branch-name>` first
+and do **all** work there (edits, tests, commits, push). The agent prompt
+should explicitly forbid touching the main checkout.
+
+After `git worktree add`, run `uv sync --extra tests` once in the new
+worktree — the `.venv` is per-worktree, not shared.
+
+### Cleanup
+
+When a branch is merged or abandoned, prune its worktree:
+
+```bash
+git worktree remove ../pdstools-worktrees/<branch-name>
+```
+
+### When to skip worktrees
+
+- A single background sub-agent + the user staying in read-only mode in
+  the main checkout is usually fine.
+- Sequential sub-agent runs (one finishes before the next starts) don't
+  need worktrees.
+- The moment a second concurrent writer is involved, set up worktrees.
