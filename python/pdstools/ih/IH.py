@@ -530,56 +530,89 @@ class IH:
             customer_sequences.append(tuple(user_actions))
             customer_outcomes.append(tuple(outcome_actions))
 
-        def ngrams_and_bigrams(sequences, outcomes):
-            # Enumerate all candidate ngrams that end in a positive outcome.
+        def accumulate_counts(sequences, outcomes):
+            # Populate ``count_actions`` and ``count_sequences`` directly — no
+            # intermediate lists of emitted ngrams.
             #
-            # Invariants (unchanged from the original implementation):
-            #   * For each customer sequence ``seq`` of length L and binary outcome
-            #     vector ``out`` of equal length, we consider every contiguous
-            #     subsequence ``seq[i:i+n]`` with ``n >= 2`` such that the
-            #     *last* outcome in the window (``out[i+n-1]``) is 1.
-            #   * Each such subsequence is emitted into one of two working lists:
-            #       - length 2 → ``bigrams`` and ``bigrams_all``
-            #       - length ≥ 3 → ``ngrams`` plus its constituent bigrams
-            #         ``ngram[k:k+2]`` into ``bigrams_all``.
-            #   * ``count_sequences[3][ngram]`` is incremented at most once per
-            #     customer per distinct ngram (``ngrams_seen`` is customer-local).
+            # Semantics (unchanged from the original implementation)
+            # ------------------------------------------------------
+            # For each customer sequence ``seq`` of length L with binary
+            # outcome vector ``out``, the reference algorithm considered every
+            # contiguous window ``seq[i:i+n]`` with ``n >= 2`` whose *last*
+            # outcome was positive (``out[i+n-1] == 1``). Each such window was
+            # pushed onto working lists that were then tallied:
             #
-            # Downstream (lines further below in get_sequences) the three
-            # working lists are consumed only by frequency-counting loops, so
-            # emission order within each list is irrelevant — only the final
-            # multisets matter.
+            #   * length-2 windows (bigrams) → appended to both ``bigrams_all``
+            #     and ``bigrams``;
+            #   * length-≥3 windows (ngrams) → appended to ``ngrams``, plus
+            #     every constituent bigram ``ngram[k:k+2]`` appended to
+            #     ``bigrams_all``;
+            #   * ``count_sequences[3][ngram] += 1`` once per *distinct* window
+            #     per customer, gated by a customer-local ``ngrams_seen`` set.
             #
-            # Why the rewrite is faster
-            # -------------------------
-            # The original implementation enumerated every (start, length) pair
-            # with length ≥ 2 — O(L²) per customer — and then discarded any
-            # window whose last outcome wasn't positive. The filter depends
-            # only on the *end position* ``j = i + n - 1``, not on the ngram
-            # content. With typical conversion rates (~5 %), ~95 % of the
-            # O(L²) iterations were dead weight.
+            # The first commit on this branch inverted the outer iteration to
+            # walk only *positive end positions* ``j`` (``out[j] == 1``,
+            # ``j >= 1``), which covers exactly the same set of (start,
+            # length) pairs via the bijection ``i = j - n + 1`` and drops the
+            # outer enumeration from O(L²) to O(P · L), where P is the
+            # per-customer positive count.
             #
-            # Inverting the iteration to loop over positive end positions
-            # directly, and for each such ``j`` emitting ``seq[j-n+1:j+1]`` for
-            # ``n = 2..j+1``, covers *exactly* the same set of (start, length)
-            # pairs (bijection: ``i = j - n + 1``). Complexity drops from
-            # O(L²) candidate-enumeration to O(P · L) with P the per-customer
-            # positive count. Measured speedup on synthetic inputs
-            # (L≈50–150 per customer): ~2× at a 5 % conversion rate, ~5× at
-            # 1 %. The asymptotic ratio L/P grows without bound as conversion
-            # rates fall.
+            # This commit fuses the three lists away
+            # --------------------------------------
+            # The lists ``bigrams_all``, ``bigrams``, ``ngrams`` were only
+            # ever consumed by post-processing loops that built frequency
+            # counters. Since ``defaultdict(int)`` increments commute, only
+            # the *multiset* of emissions matters — and the multiset has a
+            # closed form for a fixed positive end ``j``:
             #
-            # Emission order into the three working lists differs from the
-            # original (positive-end-position order vs. outer-n / inner-start
-            # order), but the final multisets — and therefore every
-            # frequency-count and ``count_sequences[3]`` entry — are bit-
-            # identical. A regression test in
-            # ``python/tests/ih/test_IH_get_sequences.py`` locks this in by
-            # running the old and new implementations side-by-side.
-            ngrams = []
-            bigrams = []
-            bigrams_all = []
-
+            #   * Bigram ``seq[j-1:j+1]`` (the "ending" bigram): emitted into
+            #     ``bigrams_all`` exactly ``j`` times — once from the ``n=2``
+            #     branch, plus once per each of the ``j-1`` ngrams of length
+            #     ``n = 3..j+1`` (every such ngram contains the ending
+            #     bigram as its rightmost pair).
+            #   * Bigram ``seq[k:k+2]`` for ``k = 0..j-2`` (an "earlier"
+            #     bigram): emitted into ``bigrams_all`` exactly ``k + 1``
+            #     times. Reason: such a bigram appears in the ngram of
+            #     length ``n`` iff ``j - n + 1 <= k``, i.e. ``n >= j - k + 1``;
+            #     the count of valid ``n`` in ``[3, j+1]`` is
+            #     ``(j + 1) - (j - k + 1) + 1 = k + 1``.
+            #   * Bigram ``seq[j-1:j+1]`` is pushed into ``bigrams`` exactly
+            #     once per positive ``j`` (only the ``n=2`` branch writes
+            #     to that list).
+            #   * Length-≥3 ngrams ``seq[j-n+1:j+1]`` for ``n = 3..j+1`` each
+            #     appear exactly once in ``ngrams`` per positive ``j``.
+            #
+            # Therefore for every positive end position ``j`` we can
+            # increment the counters *directly*:
+            #
+            #   count_sequences[0][ending]              += j
+            #   count_actions[0][(seq[j-1],)]           += j
+            #   count_actions[1][(seq[j],)]             += j
+            #   count_sequences[2][ending]              += 1
+            #   for k in 0..j-2:
+            #       count_sequences[0][seq[k:k+2]]      += (k + 1)
+            #       count_actions[0][(seq[k],)]         += (k + 1)
+            #       count_actions[1][(seq[k+1],)]       += (k + 1)
+            #   for n in 3..j+1:
+            #       count_sequences[1][seq[j-n+1:j+1]]  += 1
+            #
+            # ``count_sequences[3]`` still requires the ``ngrams_seen`` set
+            # because its uniqueness is per-customer. The full ngram tuple
+            # is needed as a dict key for ``count_sequences[1]`` and
+            # ``count_sequences[3]``, so the O(n) tuple slice there is
+            # genuinely unavoidable — but the per-ngram O(n) *bigram
+            # expansion* loop that used to dominate is now gone.
+            #
+            # Complexity per positive ``j``:
+            #   bigram bookkeeping  : O(j²)   → O(j)
+            #   ngram bookkeeping   : O(sum_{n=3..j+1} n) = O(j²)   (unchanged,
+            #                         inherent to ngram-keyed dicts)
+            #
+            # Correctness of this rewrite is locked in by
+            # ``python/tests/ih/test_IH_get_sequences.py``, which runs the
+            # verbatim pre-rewrite implementation side-by-side and asserts
+            # bit-exact equality of every counter for hand-crafted,
+            # randomised, and end-to-end pipeline inputs.
             for seq, out in zip(sequences, outcomes, strict=False):
                 ngrams_seen = set()
 
@@ -589,42 +622,35 @@ class IH:
                         # Need at least a bigram (n >= 2 => start index j-1 >= 0).
                         continue
 
-                    # Bigram ending at j: seq[j-1:j+1]
-                    bigram = seq[j - 1 : j + 1]
-                    bigrams_all.append(bigram)
-                    bigrams.append(bigram)
-                    if bigram not in ngrams_seen:
-                        count_sequences[3][bigram] += 1
-                        ngrams_seen.add(bigram)
+                    # Ending bigram seq[j-1:j+1] — multiplicity j in bigrams_all,
+                    # 1 in bigrams (n=2 only).
+                    ending = seq[j - 1 : j + 1]
+                    count_sequences[0][ending] += j
+                    count_actions[0][(seq[j - 1],)] += j
+                    count_actions[1][(seq[j],)] += j
+                    count_sequences[2][ending] += 1
+                    if ending not in ngrams_seen:
+                        count_sequences[3][ending] += 1
+                        ngrams_seen.add(ending)
 
-                    # ≥3-grams ending at j: seq[j-n+1:j+1] for n = 3..j+1
+                    # Earlier bigrams seq[k:k+2] for k = 0..j-2 — closed-form
+                    # multiplicity (k + 1) in bigrams_all.
+                    for k in range(j - 1):
+                        bigram = seq[k : k + 2]
+                        mult = k + 1
+                        count_sequences[0][bigram] += mult
+                        count_actions[0][(seq[k],)] += mult
+                        count_actions[1][(seq[k + 1],)] += mult
+
+                    # ≥3-grams ending at j: seq[j-n+1:j+1] for n = 3..j+1.
                     for n in range(3, j + 2):
                         ngram = seq[j - n + 1 : j + 1]
-                        ngrams.append(ngram)
-                        for k in range(len(ngram) - 1):
-                            bigrams_all.append(ngram[k : k + 2])
+                        count_sequences[1][ngram] += 1
                         if ngram not in ngrams_seen:
                             count_sequences[3][ngram] += 1
                             ngrams_seen.add(ngram)
 
-            return ngrams, bigrams, bigrams_all
-
-        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(
-            customer_sequences,
-            customer_outcomes,
-        )
-
-        # Frequency tables
-        for seq in ngrams:
-            count_sequences[1][seq] += 1
-
-        for bigram in bigrams_all:
-            count_sequences[0][bigram] += 1
-            count_actions[0][(bigram[0],)] += 1
-            count_actions[1][(bigram[1],)] += 1
-
-        for bigram in bigrams:
-            count_sequences[2][bigram] += 1
+        accumulate_counts(customer_sequences, customer_outcomes)
 
         return customer_sequences, customer_outcomes, count_actions, count_sequences
 

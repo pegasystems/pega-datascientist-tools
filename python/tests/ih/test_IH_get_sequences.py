@@ -391,36 +391,42 @@ def test_equivalence_on_mock_data():
 if __name__ == "__main__":
     import time
 
-    # Build a 20k-row synthetic corpus with a ~5% conversion rate — matches
-    # the shape of realistic IH feeds and is what the algorithmic argument
-    # is tuned for.
-    rng = random.Random(0)
-    actions = [f"A{i}" for i in range(10)]
-    rows = []
-    while len(rows) < 20_000:
-        cid = f"c{rng.randint(0, 999)}"
-        length = rng.randint(5, 30)
-        for _ in range(length):
-            action = rng.choice(actions)
-            outcome = "Conversion" if rng.random() < 0.05 else "Impression"
-            rows.append((cid, action, outcome))
+    def _build_corpus(length_range, conv_rate, min_rows, seed=0):
+        rng = random.Random(seed)
+        actions = [f"A{i}" for i in range(10)]
+        rows = []
+        while len(rows) < min_rows:
+            cid = f"c{rng.randint(0, 999)}"
+            length = rng.randint(*length_range)
+            for _ in range(length):
+                action = rng.choice(actions)
+                outcome = "Conversion" if rng.random() < conv_rate else "Impression"
+                rows.append((cid, action, outcome))
+        return rows
 
-    ih = _ih_from_rows(rows)
+    configs = [
+        ("5-30", (5, 30), 0.05, 17_544),
+        ("20-80", (20, 80), 0.05, 25_264),
+        ("50-150", (50, 150), 0.05, 30_063),
+        ("50-150", (50, 150), 0.01, 30_063),
+    ]
 
-    t0 = time.perf_counter()
-    _get_sequences_reference(ih, "Conversion", "Action", "Outcome", "CustomerID")
-    t_ref = time.perf_counter() - t0
+    print(f"{'L range':>8} {'conv':>6} {'rows':>7} {'ref(s)':>8} {'new(s)':>8} {'speedup':>9}")
+    for label, length_range, conv, min_rows in configs:
+        rows = _build_corpus(length_range, conv, min_rows)
+        ih = _ih_from_rows(rows)
 
-    t0 = time.perf_counter()
-    ih.get_sequences(
-        positive_outcome_label="Conversion",
-        level="Action",
-        outcome_column="Outcome",
-        customerid_column="CustomerID",
-    )
-    t_new = time.perf_counter() - t0
+        t0 = time.perf_counter()
+        _get_sequences_reference(ih, "Conversion", "Action", "Outcome", "CustomerID")
+        t_ref = time.perf_counter() - t0
 
-    print(f"rows      : {len(rows)}")
-    print(f"reference : {t_ref:.3f}s")
-    print(f"new       : {t_new:.3f}s")
-    print(f"speedup   : {t_ref / t_new:.2f}x")
+        t0 = time.perf_counter()
+        ih.get_sequences(
+            positive_outcome_label="Conversion",
+            level="Action",
+            outcome_column="Outcome",
+            customerid_column="CustomerID",
+        )
+        t_new = time.perf_counter() - t0
+
+        print(f"{label:>8} {conv:>6.0%} {len(rows):>7d} {t_ref:>8.3f} {t_new:>8.3f} {t_ref / t_new:>8.2f}x")
