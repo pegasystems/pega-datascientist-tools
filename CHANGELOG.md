@@ -14,59 +14,21 @@ Major release. **Breaking changes** — see
 [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md) for the upgrade
 guide.
 
-### Removed
+### Added
 
-- `ADMTrees(...)` polymorphic factory shim. Use `ADMTreesModel.from_file`,
-  `ADMTreesModel.from_url`, `ADMTreesModel.from_dict`, or
-  `MultiTrees.from_datamart` instead.
-- `ADMTreesModel(file)` deprecated polymorphic constructor. Use the
-  explicit `from_*` classmethods.
-- `ADMTreesModel.parse_split_values` /
-  `ADMTreesModel.parse_split_values_with_spaces` deprecated helpers.
-  Use `ADMTreesModel.parse_split` instead.
-- `pdstools.adm.ADMTrees` re-export module (file).  Import from
-  `pdstools.adm.trees` directly.
-- `pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index`
-  back-compat re-export.
-- Private `_read_client_credential_file` removed from
-  `pdstools.pega_io.__all__`. Still importable for now but no longer a
-  documented entry point.
+- `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
+- `CHANGELOG.md` (this file).
+- `docs/migration-v4-to-v5.md`.
+- AppTest-based smoke tests for all three Streamlit apps under
+  `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
+  sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
+  (Home + 3 sub-pages). Uses seeded fixtures so pages render the
+  populated branch, not the upload-prompt branch.
+- Unit tests for `cdh_utils.get_latest_pdstools_version` covering the
+  happy path, network failure and malformed-response paths.
 
 ### Changed
 
-<<<<<<< HEAD
-- Decision Analyzer app routes through programmatic `st.navigation()`
-  instead of Streamlit's auto-discovered `pages/` directory. Pages that
-  require loaded data (Overview, Action Distribution, Action Funnel,
-  Global Sensitivity, Win/Loss, Optionality, Offer Quality, Thresholding,
-  Arbitration Distribution, Single Decision) are hidden from the sidebar
-  until data is uploaded — the Home page lists them as "Upload data above
-  to unlock these analysis pages" so users still know what's available.
-  Hidden pages remain reachable by URL; existing `ensure_data()` guards
-  apply unchanged. `standard_page_config()` is now idempotent so per-page
-  `st.set_page_config` calls don't conflict with the entry-script call.
-=======
-<<<<<<< HEAD
-- Decision Analyzer app routes through programmatic `st.navigation()`
-  instead of Streamlit's auto-discovered `pages/` directory. Pages that
-  require loaded data (Overview, Action Distribution, Action Funnel,
-  Global Sensitivity, Win/Loss, Optionality, Offer Quality, Thresholding,
-  Arbitration Distribution, Single Decision) are hidden from the sidebar
-  until data is uploaded — the Home page lists them as "Upload data above
-  to unlock these analysis pages" so users still know what's available.
-  Hidden pages remain reachable by URL; existing `ensure_data()` guards
-  apply unchanged. `standard_page_config()` is now idempotent so per-page
-  `st.set_page_config` calls don't conflict with the entry-script call.
-=======
-- Reorganized `python/tests/` into per-module subfolders mirroring
-  `python/pdstools/` (`adm/`, `decision_analyzer/`, `impact_analyzer/`,
-  `infinity/`, `pega_io/`, `ih/`, `valuefinder/`, `healthcheck/`,
-  `explanations/`, `utils/`). Test paths in CI invocations have been
-  updated; `--ignore=` flag values have changed (e.g.
-  `python/tests/test_healthcheck.py` →
-  `python/tests/healthcheck/test_healthcheck.py`).
->>>>>>> dd3ded34 (test: reorganize python/tests/ into per-module subfolders)
->>>>>>> dd3ded34 (test: reorganize python/tests/ into per-module subfolders)
 - `DecisionAnalyzer` reorganised into a namespace facade (matching the
   `ADMDatamart` pattern): 16 aggregation methods moved to
   `da.aggregates.*` and 12 scoring / ranking / lever methods moved to
@@ -74,35 +36,6 @@ guide.
   helpers stay on the top-level class. See
   [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md#namespace-reorganisation)
   for the complete before/after table.
-- (To be populated by the v5 cleanup PRs.)
-- Internal split of
-  `pdstools.infinity.resources.prediction_studio.v24_2.prediction` and
-  `prediction_studio` into multi-module packages. Public imports unchanged.
-- Decision Analyzer Streamlit pages: converted bare
-  `from da_streamlit_utils import ...` imports to absolute
-  `from pdstools.app.decision_analyzer.da_streamlit_utils import ...`,
-  matching the Health Check and Impact Analyzer apps. This removes the
-  dependency on `streamlit run`'s `sys.path` mutation and unblocks
-  testing DA pages with `streamlit.testing.v1.AppTest` (#724).
-- Decision Analyzer plot helpers: renamed `propensityTH` / `priorityTH`
-  keyword arguments to `propensity_th` / `priority_th` on
-  `DecisionAnalyzer.get_offer_quality`,
-  `pdstools.decision_analyzer.plots.offer_quality_piecharts`, and
-  `pdstools.decision_analyzer.plots.offer_quality_single_pie`. See the
-  migration guide for before/after examples.
-- `pdstools.decision_analyzer.plots` is now a package (split into private
-  topical submodules `_sensitivity`, `_winloss`, `_optionality`,
-  `_funnel`, `_distribution`, `_components`, `_trend`, `_offer_quality`).
-  The public surface (`Plot` class, free helper functions) is unchanged
-  apart from the `propensityTH`/`priorityTH` rename above.
-- Streamlit apps audited and aligned with `AGENTS.md` "Streamlit apps"
-  rules: every page now calls `standard_page_config(...)` before any other
-  Streamlit output (Decision Analyzer pages 2–10 + both Health Check
-  sub-pages were missing it). Removed deprecated `use_container_width=True`
-  / `width="stretch"` arguments (now Streamlit defaults). The single
-  remaining `components.html` usage (Decision Analyzer "Single Decision"
-  tree-grid) is now documented as the only place without a Streamlit-native
-  alternative.
 - `DecisionAnalyzer.__init__` keyword arguments are now keyword-only
   (`level`, `sample_size`, `mandatory_expr`, `additional_columns`,
   `num_samples`). Positional usage now raises `TypeError`.
@@ -113,6 +46,41 @@ guide.
   renamed `categoricalOnly` → `categorical_only` (now keyword-only).
 - `DecisionAnalyzer.cleanup_raw_data` made private:
   `_cleanup_raw_data`. It was always called internally from `__init__`.
+- Decision Analyzer plot helpers: renamed `propensityTH` / `priorityTH`
+  keyword arguments to `propensity_th` / `priority_th` on
+  `DecisionAnalyzer.get_offer_quality`,
+  `pdstools.decision_analyzer.plots.offer_quality_piecharts`, and
+  `pdstools.decision_analyzer.plots.offer_quality_single_pie`. See the
+  migration guide for before/after examples.
+- `pdstools.decision_analyzer.plots` is now a package (split into private
+  topical submodules `_sensitivity`, `_winloss`, `_optionality`,
+  `_funnel`, `_distribution`, `_components`, `_trend`, `_offer_quality`).
+  The public surface (`Plot` class, free helper functions) is unchanged
+  apart from the `propensityTH` / `priorityTH` rename above.
+- Decision Analyzer app routes through programmatic `st.navigation()`
+  instead of Streamlit's auto-discovered `pages/` directory. Pages that
+  require loaded data (Overview, Action Distribution, Action Funnel,
+  Global Sensitivity, Win/Loss, Optionality, Offer Quality, Thresholding,
+  Arbitration Distribution, Single Decision) are hidden from the sidebar
+  until data is uploaded — the Home page lists them as "Upload data above
+  to unlock these analysis pages" so users still know what's available.
+  Hidden pages remain reachable by URL; existing `ensure_data()` guards
+  apply unchanged. `standard_page_config()` is now idempotent so per-page
+  `st.set_page_config` calls don't conflict with the entry-script call.
+- Decision Analyzer Streamlit pages: converted bare
+  `from da_streamlit_utils import ...` imports to absolute
+  `from pdstools.app.decision_analyzer.da_streamlit_utils import ...`,
+  matching the Health Check and Impact Analyzer apps. This removes the
+  dependency on `streamlit run`'s `sys.path` mutation and unblocks
+  testing DA pages with `streamlit.testing.v1.AppTest` (#724).
+- Streamlit apps audited and aligned with `AGENTS.md` "Streamlit apps"
+  rules: every page now calls `standard_page_config(...)` before any other
+  Streamlit output (Decision Analyzer pages 2–10 + both Health Check
+  sub-pages were missing it). Removed deprecated `use_container_width=True`
+  / `width="stretch"` arguments (now Streamlit defaults). The single
+  remaining `components.html` usage (Decision Analyzer "Single Decision"
+  tree-grid) is now documented as the only place without a Streamlit-native
+  alternative.
 - `Reports.excel_report` `predictor_binning` is now keyword-only. Any
   `print()` calls inside the Reports class have been replaced with
   `logging` — redirect the `pdstools.adm.Reports` logger if you relied
@@ -145,23 +113,36 @@ guide.
   `skip_columns_with_prefix` accepts a tuple too.
 - `Anonymization.min_max` parameter `range` renamed to `value_range`
   (shadowed the builtin).
+- Internal split of
+  `pdstools.infinity.resources.prediction_studio.v24_2.prediction` and
+  `prediction_studio` into multi-module packages. Public imports unchanged.
+- Reorganised `python/tests/` into per-module subfolders mirroring
+  `python/pdstools/` (`adm/`, `decision_analyzer/`, `impact_analyzer/`,
+  `infinity/`, `pega_io/`, `ih/`, `valuefinder/`, `healthcheck/`,
+  `explanations/`, `utils/`). Test paths in CI invocations have been
+  updated; `--ignore=` flag values have changed (e.g.
+  `python/tests/test_healthcheck.py` →
+  `python/tests/healthcheck/test_healthcheck.py`).
 
 ### Removed
 
+- `ADMTrees(...)` polymorphic factory shim. Use `ADMTreesModel.from_file`,
+  `ADMTreesModel.from_url`, `ADMTreesModel.from_dict`, or
+  `MultiTrees.from_datamart` instead.
+- `ADMTreesModel(file)` deprecated polymorphic constructor. Use the
+  explicit `from_*` classmethods.
+- `ADMTreesModel.parse_split_values` /
+  `ADMTreesModel.parse_split_values_with_spaces` deprecated helpers.
+  Use `ADMTreesModel.parse_split` instead.
+- `pdstools.adm.ADMTrees` re-export module (file). Import from
+  `pdstools.adm.trees` directly.
+- `pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index`
+  back-compat re-export.
+- Private `_read_client_credential_file` removed from
+  `pdstools.pega_io.__all__`. Still importable for now but no longer a
+  documented entry point.
 - `pdstools.pega_io.File.import_file` (public helper). It was always
   internal to `read_ds_export`; use `read_ds_export` instead.
-### Added
-
-- `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
-- `CHANGELOG.md` (this file).
-- `docs/migration-v4-to-v5.md`.
-- AppTest-based smoke tests for all three Streamlit apps under
-  `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
-  sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
-  (Home + 3 sub-pages). Uses seeded fixtures so pages render the
-  populated branch, not the upload-prompt branch.
-- Unit tests for `cdh_utils.get_latest_pdstools_version` covering
-  happy path, network failure and malformed-response paths.
 
 ---
 

@@ -1,10 +1,14 @@
 # Migration guide: pdstools v4 → v5
 
-This guide lists every breaking change in v5 and the minimum edit needed
-to get your code working again. **Items are added incrementally as v5
-PRs land** — don't treat this file as final until v5 is tagged.
+v5 is the first release after a major cleanup pass. The changes are
+mostly mechanical — deprecated APIs are dropped, types are tightened,
+fat modules are split, and large analyzer classes are reorganised into
+namespace facades. For most users the upgrade is a handful of import
+path or keyword updates.
 
-If you hit something missing from this guide, please file an issue.
+This guide lists every breaking change in v5 and the minimum edit needed
+to get your code working again. If you hit something missing from this
+guide, please file an issue.
 
 ---
 
@@ -187,6 +191,7 @@ da.get_available_fields_for_filtering(categorical_only=True)
 It was only ever called from `__init__` — no public callers in the
 ecosystem. Renamed to `_cleanup_raw_data`. If you were calling it
 externally, build a new `DecisionAnalyzer` instead.
+
 ### Decision Analyzer: `propensityTH` / `priorityTH` → `propensity_th` / `priority_th`
 
 The `propensityTH` and `priorityTH` keyword arguments have been renamed
@@ -324,12 +329,6 @@ Anonymization(path_to_files="*.json", temporary_path="/my/cache")
 `Anonymization.__init__` is now pure — no filesystem side effects.
 `Anonymization.min_max` parameter `range` was renamed to
 `value_range` (it was shadowing the Python builtin).
-
----
-
-## Behaviour changes (no API change, may affect output)
-
-(To be populated by v5 PRs as they land.)
 
 ---
 
