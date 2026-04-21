@@ -99,8 +99,23 @@ def _detect_file_format(uploaded_file) -> str:
     return "unknown"
 
 
+@st.cache_resource
+def load_excel_from_path(path: str) -> ImpactAnalyzer:
+    return ImpactAnalyzer.from_excel(path)
+
+
+def load_excel_from_upload(uploaded_file) -> ImpactAnalyzer:
+    path = _write_uploaded_file(uploaded_file)
+    return load_excel_from_path(path)
+
+
 def load_from_upload_auto(uploaded_file, outcome_labels_json: str | None = None) -> ImpactAnalyzer | None:
     """Load Impact Analyzer data with automatic format detection."""
+    suffix = Path(uploaded_file.name).suffix.lower()
+
+    if suffix == ".xlsx":
+        return load_excel_from_upload(uploaded_file)
+
     format_type = _detect_file_format(uploaded_file)
 
     if format_type == "pdc":
@@ -109,7 +124,6 @@ def load_from_upload_auto(uploaded_file, outcome_labels_json: str | None = None)
         return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
     else:
         # Fall back to extension-based detection
-        suffix = Path(uploaded_file.name).suffix.lower()
         if suffix == ".zip":
             return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
         else:
@@ -445,6 +459,8 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
     suffix = p.suffix.lower()
     if suffix in {".json", ".ndjson"}:
         return load_pdc_from_paths((str(p),))
+    elif suffix == ".xlsx":
+        return load_excel_from_path(str(p))
     elif suffix == ".zip":
         # Auto-load persisted outcome aliases from sidecar file
         st.session_state["ia_data_source_path"] = str(p)
@@ -457,7 +473,7 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
             st.session_state["ia_outcome_aliases_loaded_from"] = str(loaded_from) if loaded_from else str(p)
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     else:
-        st.error(f"Unsupported file type: {suffix}. Use JSON/NDJSON (PDC) or ZIP (VBD).")
+        st.error(f"Unsupported file type: {suffix}. Use JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD).")
         return None
 
 

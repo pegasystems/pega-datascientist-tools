@@ -30,11 +30,14 @@ class ImpactAnalyzer:
     NBA strategies including adaptive models, propensity prioritization, lever usage,
     and engagement policies.
 
-    Data can be loaded from three sources:
+    Data can be loaded from four sources:
 
     - **PDC exports** via :meth:`from_pdc`: Uses pre-aggregated experiment data from
       PDC JSON exports. Value Lift is copied from PDC data as it cannot be
       re-calculated from the available numbers.
+    - **PDC Excel exports** via :meth:`from_excel`: Same data as :meth:`from_pdc`
+      but read from an ``.xlsx`` file. Uses polars' built-in ``calamine`` engine;
+      no extra dependencies required.
     - **VBD exports** via :meth:`from_vbd`: Reconstructs experiment metrics from raw
       VBD Actuals or Scenario Planner Actuals data. Allows flexible time ranges and
       data selection. Value Lift is calculated from ValuePerImpression.
@@ -587,6 +590,35 @@ class ImpactAnalyzer:
         if return_wide_df:
             return wide_data
 
+        return cls._process_wide_df(wide_data, date=date)
+
+    @classmethod
+    def _process_wide_df(
+        cls,
+        wide_data: pl.LazyFrame,
+        *,
+        date: datetime,
+    ) -> pl.LazyFrame:
+        """Transform wide-format PDC IA data into the normalized long format.
+
+        This shared helper is called by both :meth:`_normalize_pdc_ia_data`
+        (JSON path) and :meth:`from_excel` (Excel path).
+
+        Parameters
+        ----------
+        wide_data : pl.LazyFrame
+            Wide-format data with one row per experiment / channel combination.
+            Must contain the columns selected by :meth:`_normalize_pdc_ia_data`.
+        date : datetime
+            Snapshot date to stamp on every row.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Normalized data with columns: SnapshotTime, Channel, ControlGroup,
+            Impressions, Accepts, ValuePerImpression, Pega_ValueLift.
+
+        """
         df = (
             wide_data.filter(pl.col("IsActive"))
             .filter(pl.col("ChannelName") != "All channels")
@@ -695,7 +727,7 @@ class ImpactAnalyzer:
             )
         )
 
-        result = (
+        return (
             pl.concat(
                 [nba_data, model_control_2_data, other_data],
                 how="diagonal_relaxed",
@@ -704,7 +736,118 @@ class ImpactAnalyzer:
             .sort("SnapshotTime", "Channel", "ControlGroup")
         )
 
-        return result
+    @classmethod
+    def from_excel(
+        cls,
+        excel_source: str | Path | os.PathLike,
+        *,
+        snapshot_time: datetime | str | None = None,
+        sheet_name: str | int | None = None,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
+        """Create an ImpactAnalyzer instance from a PDC Excel export.
+
+        Reads a wide-format Excel file produced by Pega Decision Central and
+        normalises it into the same internal format as :meth:`from_pdc`.
+        The expected sheet layout mirrors the flat records in the PDC JSON
+        export: one row per experiment / channel combination with columns
+        such as ``ExperimentName``, ``ChannelName``, ``Impressions_NBA``,
+        ``Impressions_Control``, ``ValueLift``, etc.
+
+        Excel reading is handled by polars' built-in ``calamine`` engine,
+        which ships with polars and requires no extra dependencies.
+
+        Parameters
+        ----------
+        excel_source : Union[str, Path, os.PathLike]
+            Path to the ``.xlsx`` file.
+        snapshot_time : Union[datetime, str, None], optional
+            Snapshot date for the experiment data.  Pass a :class:`datetime`
+            object or an ISO-8601 string (``"2025-03-02T18:28:00.257Z"``).
+            If ``None`` (default) the method tries to read a ``SnapshotTime``
+            column from the sheet; if that column is also absent a
+            ``ValueError`` is raised.
+        sheet_name : Union[str, int, None], optional
+            Sheet to read.  Pass a sheet name string to select by name, or an
+            integer (1-based) to select by position.  ``None`` (default) reads
+            the first sheet.
+        query : Optional[QUERY], optional
+            Polars expression to filter the raw wide-format data before
+            processing.  Default is ``None``.
+        return_df : bool, optional
+            If ``True``, return the normalised data as a :class:`~polars.LazyFrame`
+            instead of an :class:`ImpactAnalyzer` instance.  Default is ``False``.
+
+        Returns
+        -------
+        ImpactAnalyzer or pl.LazyFrame
+            An :class:`ImpactAnalyzer` instance, or a :class:`~polars.LazyFrame`
+            when *return_df* is ``True``.
+
+        Raises
+        ------
+        ValueError
+            If *snapshot_time* is ``None`` and no ``SnapshotTime`` column is
+            present in the sheet.
+
+        Examples
+        --------
+        >>> ia = ImpactAnalyzer.from_excel(
+        ...     "ImpactAnalyzerExport.xlsx",
+        ...     snapshot_time="2025-03-02T18:28:00.257Z",
+        ... )
+        >>> ia.overall_summary().collect()
+
+        """
+        read_kwargs: dict = {}
+        if isinstance(sheet_name, str):
+            read_kwargs["sheet_name"] = sheet_name
+        elif isinstance(sheet_name, int):
+            read_kwargs["sheet_id"] = sheet_name
+        # None → polars default (first sheet)
+
+        df = pl.read_excel(excel_source, **read_kwargs)
+
+        if snapshot_time is None:
+            if "SnapshotTime" not in df.columns:
+                raise ValueError("snapshot_time must be provided when the Excel sheet has no SnapshotTime column.")
+            raw_ts = df["SnapshotTime"][0]
+            if isinstance(raw_ts, str):
+                date = datetime.strptime(raw_ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+            else:
+                date = datetime(raw_ts.year, raw_ts.month, raw_ts.day)
+        elif isinstance(snapshot_time, str):
+            date = datetime.strptime(snapshot_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        else:
+            date = snapshot_time
+
+        _json_only_cols = {
+            "Heading",
+            "RunType",
+            "ApplicationStack",
+            "KeyIdentifier",
+            "pzInsKey",
+            "Guidance",
+            "pxObjClass",
+            "Type",
+            "ExperimentColor",
+            "SnapshotTime",
+        }
+        cols_to_drop = [c for c in df.columns if c in _json_only_cols]
+        wide_data = df.lazy()
+        if cols_to_drop:
+            wide_data = wide_data.drop(cols_to_drop)
+
+        if query is not None:
+            wide_data = _apply_query(wide_data, query=query)
+
+        normalized = cls._process_wide_df(wide_data, date=date)
+
+        if return_df:
+            return normalized
+
+        return ImpactAnalyzer(normalized)
 
     def summary_by_channel(self) -> pl.LazyFrame:
         """Get experiment summary pivoted by channel.

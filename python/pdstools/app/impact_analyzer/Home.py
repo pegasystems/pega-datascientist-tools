@@ -33,10 +33,10 @@ show_version_header()
 Analyze A/B test experiments from PDC exports or VBD Scenario Planner Actuals.
 Two data formats are supported — format is auto-detected on upload:
 
-| | **PDC Export** | **VBD Scenario Planner** | **Interaction History** |
-|---|---|---|---|
-| Format | JSON/NDJSON | ZIP archive | TBD - future |
-| Source | Pega Diagnostic Cloud | Pega Infinity | Pega Infinity |
+| | **PDC Export** | **PDC Excel Export** | **VBD Scenario Planner** | **Interaction History** |
+|---|---|---|---|---|
+| Format | JSON/NDJSON | XLSX | ZIP archive | TBD - future |
+| Source | Pega Diagnostic Cloud | Pega Diagnostic Cloud | Pega Infinity | Pega Infinity |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
@@ -162,14 +162,14 @@ if uploaded_files:
         del st.session_state["ia_is_sample_data"]
 
     # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
-    valid_suffixes = {".json", ".ndjson", ".zip"}
+    valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
     filtered_files = [
         f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
     ]
 
     if not filtered_files:
         st.error(
-            "No valid data files found. Upload JSON/NDJSON (PDC) or ZIP (VBD) files. "
+            "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
             "If you dragged a folder, try uploading just the `data.json` file instead."
         )
     else:
