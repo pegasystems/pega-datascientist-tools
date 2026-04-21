@@ -629,7 +629,7 @@ class ADMDatamart:
         df = _polars_capitalize(df)
         schema = df.collect_schema()
 
-        if "BinResponseCount" not in schema.names():  # pragma: no cover
+        if "BinResponseCount" not in schema.names():
             df = df.with_columns(
                 BinResponseCount=(pl.col("BinPositives") + pl.col("BinNegatives")),
             )

@@ -383,3 +383,316 @@ def test_from_s3_model_only(monkeypatch):
 
     assert dm.model_data is not None
     assert dm.predictor_data is None
+
+# ---------------------------------------------------------------------------
+# Helper-method unit tests (synthetic minimal fixtures, exact-value assertions)
+# ---------------------------------------------------------------------------
+
+
+def _minimal_model_df(**overrides):
+    """Tiny model-snapshot LazyFrame (2 rows, 1 model, 2 snapshots)."""
+    import datetime
+
+    base = {
+        "ModelID": ["m1", "m1"],
+        "SnapshotTime": [
+            datetime.datetime(2024, 1, 1),
+            datetime.datetime(2024, 1, 2),
+        ],
+        "Name": ["Action A", "Action A"],
+        "Channel": ["Web", "Web"],
+        "Direction": ["Inbound", "Inbound"],
+        "Issue": ["Sales", "Sales"],
+        "Group": ["Cards", "Cards"],
+        "Type": ["adaptive", "adaptive"],
+        "Configuration": ["OmniAdaptiveModel", "OmniAdaptiveModel"],
+        "ResponseCount": [100, 200],
+        "Positives": [10, 25],
+        "Performance": [0.7, 0.8],
+    }
+    base.update(overrides)
+    return pl.LazyFrame(base)
+
+
+# ---- _normalize_performance_scale (static) --------------------------------
+
+
+def test_normalize_performance_scale_above_one_divides_by_100():
+    df = pl.LazyFrame({"Performance": [55.0, 80.0, 100.0]})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    assert out["Performance"].to_list() == [0.55, 0.8, 1.0]
+
+
+def test_normalize_performance_scale_below_or_equal_one_unchanged():
+    df = pl.LazyFrame({"Performance": [0.5, 0.75, 1.0]})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    assert out["Performance"].to_list() == [0.5, 0.75, 1.0]
+
+
+def test_normalize_performance_scale_exactly_one_is_no_op():
+    df = pl.LazyFrame({"Performance": [1.0, 1.0]})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    assert out["Performance"].to_list() == [1.0, 1.0]
+
+
+def test_normalize_performance_scale_all_nan_no_op():
+    import math
+
+    df = pl.LazyFrame({"Performance": [float("nan"), float("nan")]})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    vals = out["Performance"].to_list()
+    assert all(math.isnan(v) for v in vals)
+
+
+def test_normalize_performance_scale_all_null_no_op():
+    df = pl.LazyFrame({"Performance": [None, None]}, schema={"Performance": pl.Float64})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    assert out["Performance"].to_list() == [None, None]
+
+
+def test_normalize_performance_scale_no_performance_column():
+    df = pl.LazyFrame({"Other": [1, 2, 3]})
+    out = ADMDatamart._normalize_performance_scale(df).collect()
+    assert out["Other"].to_list() == [1, 2, 3]
+    assert "Performance" not in out.columns
+
+
+# ---- _validate_model_data -------------------------------------------------
+
+
+def test_validate_model_data_none_returns_none():
+    dm = ADMDatamart()
+    assert dm._validate_model_data(None) is None
+
+
+def test_validate_model_data_adds_success_rate_and_modeltechnique():
+    dm = ADMDatamart(model_df=_minimal_model_df())
+    out = dm._require_model_data().collect()
+
+    # Sorted by SnapshotTime, ModelID
+    assert out["ResponseCount"].to_list() == [100, 200]
+    assert out["Positives"].to_list() == [10, 25]
+    # SuccessRate = Positives / ResponseCount
+    assert out["SuccessRate"].to_list() == [0.10, 0.125]
+    # ModelTechnique synthesised when absent
+    assert "ModelTechnique" in out.columns
+    assert out["ModelTechnique"].to_list() == [None, None]
+
+
+def test_validate_model_data_success_rate_zero_when_no_responses():
+    df = _minimal_model_df(ResponseCount=[0, 100], Positives=[0, 5])
+    dm = ADMDatamart(model_df=df)
+    out = dm._require_model_data().collect().sort("SnapshotTime")
+    # 0/0 → NaN → filled with 0
+    assert out["SuccessRate"].to_list() == [0.0, 0.05]
+
+
+def test_validate_model_data_normalizes_performance_above_one():
+    df = _minimal_model_df(Performance=[70.0, 80.0])
+    dm = ADMDatamart(model_df=df)
+    out = dm._require_model_data().collect()
+    assert out["Performance"].to_list() == pytest.approx([0.7, 0.8])
+
+
+def test_validate_model_data_is_updated_flag():
+    df = _minimal_model_df(ResponseCount=[100, 100], Positives=[10, 10])
+    dm = ADMDatamart(model_df=df)
+    out = dm._require_model_data().collect().sort("SnapshotTime")
+    # First row of model is always IsUpdated=True (null diff filled True);
+    # second row has identical counts → not updated
+    assert out["IsUpdated"].to_list() == [True, False]
+
+
+# ---- _validate_predictor_data --------------------------------------------
+
+
+def _minimal_predictor_df():
+    import datetime
+
+    return pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Customer.Age", "Customer.Age", "Classifier"],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 2, 1],
+            "BinPositives": [4.0, 6.0, 10.0],
+            "BinNegatives": [16.0, 14.0, 30.0],
+            "BinResponseCount": [20.0, 20.0, 40.0],
+            "Performance": [0.65, 0.65, 0.65],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 3,
+            "Type": ["numeric", "numeric", "symbolic"],
+        }
+    )
+
+
+def test_validate_predictor_data_none_returns_none():
+    dm = ADMDatamart()
+    assert dm._validate_predictor_data(None) is None
+
+
+def test_validate_predictor_data_adds_propensity_columns_and_categorization():
+    dm = ADMDatamart(predictor_df=_minimal_predictor_df())
+    out = dm._require_predictor_data().collect().sort("PredictorName", "BinIndex")
+
+    # BinPropensity = BinPositives / BinResponseCount
+    assert out["BinPropensity"].to_list() == [10 / 40, 4 / 20, 6 / 20]
+    # BinAdjustedPropensity = (BinPositives + 0.5) / (BinResponseCount + 1)
+    assert out["BinAdjustedPropensity"].to_list() == [
+        (10 + 0.5) / (40 + 1),
+        (4 + 0.5) / (20 + 1),
+        (6 + 0.5) / (20 + 1),
+    ]
+    # Default categorization → "Customer.Age" maps to Customer; Classifier left null
+    cats = dict(
+        zip(
+            out["PredictorName"].to_list(),
+            out["PredictorCategory"].to_list(),
+            strict=True,
+        )
+    )
+    assert cats["Customer.Age"] == "Customer"
+    assert cats["Classifier"] is None
+
+
+def test_validate_predictor_data_synthesises_bin_response_count_when_absent():
+    import datetime
+
+    df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Age", "Classifier"],
+            "EntryType": ["Active", "Classifier"],
+            "BinIndex": [1, 1],
+            "BinPositives": [4.0, 10.0],
+            "BinNegatives": [16.0, 30.0],
+            "Performance": [0.65, 0.65],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 2,
+            "Type": ["numeric", "symbolic"],
+        }
+    )
+    dm = ADMDatamart(predictor_df=df)
+    out = dm._require_predictor_data().collect().sort("PredictorName")
+    # BinResponseCount synthesised as BinPositives + BinNegatives
+    assert out["BinResponseCount"].to_list() == [40.0, 20.0]
+    assert out["BinPropensity"].to_list() == [10 / 40, 4 / 20]
+
+
+# ---- apply_predictor_categorization (df= passthrough mode) ----------------
+
+
+def test_apply_predictor_categorization_df_mode_dict():
+    dm = ADMDatamart()
+    df = pl.LazyFrame(
+        {
+            "PredictorName": ["Customer.Score", "IH.Foo", "Classifier"],
+            "EntryType": ["Active", "Active", "Classifier"],
+        }
+    )
+    out = dm.apply_predictor_categorization(
+        categorization={"Risk": "Score", "History": "IH"},
+        df=df,
+    ).collect()
+    cats = dict(
+        zip(
+            out["PredictorName"].to_list(),
+            out["PredictorCategory"].to_list(),
+            strict=True,
+        )
+    )
+    assert cats == {"Customer.Score": "Risk", "IH.Foo": "History", "Classifier": None}
+
+
+def test_apply_predictor_categorization_invalid_type_returns_df_unchanged():
+    dm = ADMDatamart()
+    df = pl.LazyFrame({"PredictorName": ["X"], "EntryType": ["Active"]})
+    # Non-expr / non-callable / non-dict → method returns df as-is
+    out = dm.apply_predictor_categorization(categorization=42, df=df)  # type: ignore[arg-type]
+    assert out is df
+
+
+# ---- _unique_sorted_from_model_data ---------------------------------------
+
+
+def test_unique_sorted_from_model_data_dedupes_and_sorts():
+    df = _minimal_model_df(
+        ModelID=["m1", "m2"],
+        Channel=["Web", "Email"],
+    )
+    dm = ADMDatamart(model_df=df)
+    assert dm._unique_sorted_from_model_data(pl.col("Channel"), "Channel") == [
+        "Email",
+        "Web",
+    ]
+
+
+def test_unique_sorted_from_model_data_raises_without_model_data():
+    dm = ADMDatamart()
+    with pytest.raises(ValueError, match="requires model data"):
+        dm._unique_sorted_from_model_data(pl.col("Channel"), "Channel")
+
+
+# ---- _get_first_action_dates ---------------------------------------------
+
+
+def test_get_first_action_dates_none_returns_none():
+    dm = ADMDatamart()
+    assert dm._get_first_action_dates(None) is None
+
+
+def test_get_first_action_dates_returns_min_per_action():
+    import datetime
+
+    df = pl.LazyFrame(
+        {
+            "Name": ["A", "A", "B", "B"],
+            "SnapshotTime": [
+                datetime.datetime(2024, 1, 5),
+                datetime.datetime(2024, 1, 1),
+                datetime.datetime(2024, 2, 1),
+                datetime.datetime(2024, 1, 20),
+            ],
+        }
+    )
+    dm = ADMDatamart()
+    out = dm._get_first_action_dates(df).collect()
+    assert out["Name"].to_list() == ["A", "B"]
+    assert out["ActionFirstSnapshotTime"].to_list() == [
+        datetime.datetime(2024, 1, 1),
+        datetime.datetime(2024, 1, 20),
+    ]
+
+
+# ---- _require_* error paths ----------------------------------------------
+
+
+def test_require_model_data_raises_when_missing():
+    dm = ADMDatamart()
+    with pytest.raises(
+        ValueError,
+        match="This operation requires model data, but no model_df was provided",
+    ):
+        dm._require_model_data()
+
+
+def test_require_predictor_data_raises_when_missing():
+    dm = ADMDatamart()
+    with pytest.raises(
+        ValueError,
+        match="This operation requires predictor data, but no predictor_df",
+    ):
+        dm._require_predictor_data()
+
+
+def test_require_first_action_dates_raises_when_missing():
+    dm = ADMDatamart()
+    with pytest.raises(
+        ValueError,
+        match="This operation requires first action dates",
+    ):
+        dm._require_first_action_dates()
+
+
+def test_require_model_data_returns_lazyframe_when_present():
+    dm = ADMDatamart(model_df=_minimal_model_df())
+    assert isinstance(dm._require_model_data(), pl.LazyFrame)
+    assert isinstance(dm._require_first_action_dates(), pl.LazyFrame)
