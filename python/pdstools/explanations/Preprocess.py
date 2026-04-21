@@ -218,8 +218,9 @@ class Preprocess(LazyNamespace):
     def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         if self.contexts is None:
             self._get_contexts(predictor_type=predictor_type)
+        assert self.contexts is not None
 
-        for file_batch_nb, query_batches in self.contexts.items():  # type: ignore[union-attr]
+        for file_batch_nb, query_batches in self.contexts.items():
             self._parquet_in_batches(file_batch_nb, query_batches, predictor_type)
 
         logger.info("Processed all batches for %s", predictor_type)
@@ -469,7 +470,9 @@ class Preprocess(LazyNamespace):
 
         try:
             df = read_ds_export(filename=filename, path=base_path)
-            df.collect().write_parquet(local_path)  # type: ignore[union-attr]
+            if df is None:
+                raise ValueError(f"Failed to download file from {file_url}: no data returned")
+            df.collect().write_parquet(local_path)
             self.selected_files = [str(local_path)]
             logger.info("Downloaded file:= \n %s", self.selected_files)
         except Exception as e:

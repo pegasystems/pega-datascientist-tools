@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped]  # types-PyYAML not in project deps
 
 from ..utils.namespaces import LazyNamespace
 from ..utils.report_utils import (

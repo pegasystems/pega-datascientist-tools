@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -181,14 +181,14 @@ class Plots(LazyNamespace):
             **resolved,
         )
 
-        header_fig = self._plot_context_table(context)  # type: ignore[arg-type]
+        header_fig = self._plot_context_table(cast("ContextInfo", context))
 
         overall_fig = self._plot_overall_contributions(
             df_context,
             x_col=display_by.value,
             y_col=_COL.PREDICTOR_NAME.value,
             x_title=display_by.alt,
-            context=context,  # type: ignore[arg-type]
+            context=cast("ContextInfo", context),
         )
 
         predictors_figs = self._plot_predictor_contributions(

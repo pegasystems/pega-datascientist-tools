@@ -19,7 +19,7 @@ import polars as pl
 from ..utils.namespaces import LazyNamespace
 
 
-def validate(top_n: int | None = None, top_k: int | None = None):
+def validate(top_n: int | None = None, top_k: int | None = None) -> None:
     """Validate the parameters for top_n and top_k."""
     if top_n:
         if not isinstance(top_n, int) or top_n <= 1:
@@ -172,8 +172,8 @@ class ContextOperations(LazyNamespace):
     Attributes
     ----------
         aggregate (Aggregate): The aggregate object.
-        _df (Optional[pl.DataFrame]): DataFrame containing context information.
-        _context_keys (Optional[list[str]]): list of context keys.
+        _df (pl.DataFrame | None): DataFrame containing context information.
+        _context_keys (list[str] | None): list of context keys.
         initialized (bool): Flag indicating if the context operations have been initialized.
 
     Methods
@@ -222,7 +222,7 @@ class ContextOperations(LazyNamespace):
 
         super().__init__()
 
-    def _load(self):
+    def _load(self) -> None:
         if self.initialized:
             return
 
@@ -243,8 +243,9 @@ class ContextOperations(LazyNamespace):
 
         self.initialized = True
 
-    def get_context_keys(self):
+    def get_context_keys(self) -> list[str]:
         self._load()
+        assert self._context_keys is not None
         return self._context_keys
 
     def get_df(
@@ -254,10 +255,11 @@ class ContextOperations(LazyNamespace):
     ) -> pl.DataFrame:
         """Get the DataFrame filtered by the provided context information."""
         self._load()
-        df = self._df if with_partition_col else self._get_clean_df(self._df)  # type: ignore[arg-type]
+        assert self._df is not None
+        df = self._df if with_partition_col else self._get_clean_df(self._df)
 
         if context_infos is None or len(context_infos) == 0:
-            return df  # type: ignore[return-value]
+            return df
 
         return self._filter_df_by_context_infos(df, context_infos)
 
@@ -274,7 +276,11 @@ class ContextOperations(LazyNamespace):
             df.unique().to_dicts(),
         )
 
-    def _filter_df_by_context_infos(self, df, context_infos):
+    def _filter_df_by_context_infos(
+        self,
+        df: pl.DataFrame,
+        context_infos: list[ContextInfo],
+    ) -> pl.DataFrame:
         ret_df = pl.DataFrame()
 
         filter_expressions = self._get_filter_expression(context_infos)
@@ -283,10 +289,14 @@ class ContextOperations(LazyNamespace):
         return ret_df
 
     @staticmethod
-    def _get_filter_expression(context_infos):
-        expressions = []
+    def _get_filter_expression(
+        context_infos: list[ContextInfo],
+    ) -> list[list[pl.Expr]]:
+        expressions: list[list[pl.Expr]] = []
         for context_info in context_infos:
-            expr = [pl.col(column_name) == column_value for column_name, column_value in context_info.items()]
+            expr: list[pl.Expr] = [
+                pl.col(column_name).eq(column_value) for column_name, column_value in context_info.items()
+            ]
             expressions.append(expr)
         return expressions
 

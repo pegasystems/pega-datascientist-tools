@@ -2,7 +2,7 @@ __all__ = ["Aggregate"]
 
 import logging
 import pathlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -40,12 +40,14 @@ class Aggregate(LazyNamespace):
     def get_df_contextual(self) -> pl.LazyFrame:
         """Get the contextual dataframe, loading it if not already loaded."""
         self._load_data()
-        return self.df_contextual  # type: ignore[return-value]
+        assert self.df_contextual is not None
+        return self.df_contextual
 
     def get_df_overall(self) -> pl.LazyFrame:
         """Get the overall dataframe, loading it if not already loaded."""
         self._load_data()
-        return self.df_overall  # type: ignore[return-value]
+        assert self.df_overall is not None
+        return self.df_overall
 
     def get_predictor_contributions(
         self,
@@ -56,7 +58,7 @@ class Aggregate(LazyNamespace):
         """Get the top-n predictor contributions for a given context or overall.
 
         Args:
-            context (Optional[dict[str, str]]):
+            context (dict[str, str] | None):
                 The context to filter contributions by.
                 If None, contributions for all contexts will be returned.
             top_n (int):
@@ -87,7 +89,7 @@ class Aggregate(LazyNamespace):
         self._load_data()
 
         return self._get_predictor_contributions(
-            contexts=[context] if context else None,  # type: ignore[list-item]
+            contexts=cast("list[ContextInfo]", [context]) if context else None,
             limit=top_n,
             **resolved,
         )
@@ -104,7 +106,7 @@ class Aggregate(LazyNamespace):
         Args:
             predictors (list[str]): Required.
                 list of predictors to get the contributions for.
-            context (Optional[dict[str, str]]):
+            context (dict[str, str] | None):
                 The context to filter contributions by.
                 If None, contributions for all contexts will be returned.
             top_k (int):
@@ -135,7 +137,7 @@ class Aggregate(LazyNamespace):
         self._load_data()
 
         return self._get_predictor_value_contributions(
-            contexts=[context] if context else None,  # type: ignore[list-item]
+            contexts=cast("list[ContextInfo]", [context]) if context else None,
             predictors=predictors,
             limit=top_k,
             **resolved,
@@ -487,10 +489,12 @@ class Aggregate(LazyNamespace):
     ) -> pl.LazyFrame:
         if self.df_overall is None or self.df_contextual is None:
             self._load_data()
+        assert self.df_overall is not None
+        assert self.df_contextual is not None
 
         if df_filtered_contexts is None:
-            return self.df_overall  # type: ignore[return-value]
-        return self.df_contextual.join(  # type: ignore[attr-defined]
+            return self.df_overall
+        return self.df_contextual.join(
             df_filtered_contexts.lazy(),
             on=_COL.PARTITON.value,
             how="inner",

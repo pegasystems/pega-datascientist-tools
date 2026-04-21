@@ -63,7 +63,7 @@ class FilterWidget(LazyNamespace):
         """Set the selected context information.
 
         Args:
-            context_info (Optional[ContextInfo]):
+            context_info (ContextInfo | None):
                 If None, initializes the selected context with 'Any' for all keys.
                 i.e overall model contributions
                 If provided, sets the selected context to the given context information.
@@ -163,7 +163,7 @@ class FilterWidget(LazyNamespace):
         ctx_options = {
             ctx_key_name: [self._ANY_CONTEXT]
             + sorted(
-                set(context_info[ctx_key_name] for context_info in self._filtered_list),  # type: ignore[literal-required]
+                set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list),
             )
             for ctx_key_name in (self._selected_context_key or {}).keys()
         }
@@ -262,9 +262,9 @@ class FilterWidget(LazyNamespace):
         options = [self._ANY_CONTEXT] if with_any_option else []
 
         options_list_sorted = sorted(
-            set(context_info[name] for context_info in self._filtered_list),  # type: ignore[literal-required]
+            set(cast("dict[str, str]", context_info)[name] for context_info in self._filtered_list),
         )
-        options += cast("list[str]", options_list_sorted)
+        options += options_list_sorted
         return options
 
     def _get_options_for_context_selector(
@@ -281,8 +281,9 @@ class FilterWidget(LazyNamespace):
     def _filter_contexts_by_selected(self) -> list[ContextInfo]:
         filtered_context_infos = []
         for context_info in self._raw_list:
+            ctx_dict = cast("dict[str, str]", context_info)
             if all(
-                value == self._ANY_CONTEXT or context_info[key] == value  # type: ignore[literal-required]
+                value == self._ANY_CONTEXT or ctx_dict[key] == value
                 for key, value in (self._selected_context_key or {}).items()
             ):
                 filtered_context_infos.append(context_info)
