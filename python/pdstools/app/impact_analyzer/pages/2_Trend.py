@@ -62,4 +62,4 @@ with st.container(border=True):
         every=granularity,
         return_df=True,
     ).collect()
-    st.dataframe(table, width="stretch")
+    st.dataframe(table)

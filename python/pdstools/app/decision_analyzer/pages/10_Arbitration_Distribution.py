@@ -13,6 +13,9 @@ from da_streamlit_utils import (
 )
 
 from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
+from pdstools.utils.streamlit_utils import standard_page_config
+
+standard_page_config(page_title="Arbitration Distribution · Decision Analysis")
 
 
 "# Arbitration Distribution"

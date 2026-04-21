@@ -9,6 +9,10 @@ from da_streamlit_utils import (
     stage_selectbox,
 )
 
+from pdstools.utils.streamlit_utils import standard_page_config
+
+standard_page_config(page_title="Optionality · Decision Analysis")
+
 # Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
 # (Streamlit Pages → Page 7 — Optionality Analysis).
 

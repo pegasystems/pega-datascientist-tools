@@ -1,11 +1,11 @@
-# python/pdstools/app/decision_analyzer/pages/3_Overview.py
 import polars as pl
 import streamlit as st
 from da_streamlit_utils import collect_page_filters, ensure_data, polars_lazyframe_hashing
-from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 2 — Overview), incl. the first-use perf item.
+from pdstools.decision_analyzer.plots import offer_quality_single_pie
+from pdstools.utils.streamlit_utils import standard_page_config
+
+standard_page_config(page_title="Overview · Decision Analysis")
 
 ensure_data()
 st.session_state["sidebar"] = st.sidebar

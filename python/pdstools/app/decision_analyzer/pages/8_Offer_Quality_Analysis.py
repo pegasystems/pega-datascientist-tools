@@ -10,6 +10,10 @@ from da_streamlit_utils import (
     stage_level_selector,
     stage_selectbox,
 )
+from pdstools.utils.streamlit_utils import standard_page_config
+
+standard_page_config(page_title="Offer Quality · Decision Analysis")
+
 # Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
 # (Streamlit Pages → Page 8 — Offer Quality Analysis).
 

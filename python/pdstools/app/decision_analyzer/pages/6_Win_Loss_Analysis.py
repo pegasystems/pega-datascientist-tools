@@ -13,6 +13,9 @@ from pdstools.decision_analyzer.utils import (
     apply_filter,
     get_first_level_stats,
 )
+from pdstools.utils.streamlit_utils import standard_page_config
+
+standard_page_config(page_title="Win/Loss · Decision Analysis")
 
 MAX_COMPARISON_LABEL_LEN = 80
 

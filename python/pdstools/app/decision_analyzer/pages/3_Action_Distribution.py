@@ -10,11 +10,10 @@ from da_streamlit_utils import (
     stage_selectbox,
 )
 
+from pdstools.utils.streamlit_utils import standard_page_config
 
-# st.set_option("global.showWarningOnDirectExecution", False)
+standard_page_config(page_title="Action Distribution · Decision Analysis")
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 3 — Action Distribution).
 
 """
 # Action Distribution

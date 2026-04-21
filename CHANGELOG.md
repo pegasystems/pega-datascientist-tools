@@ -35,6 +35,14 @@ guide.
 ### Changed
 
 - (To be populated by the v5 cleanup PRs.)
+- Streamlit apps audited and aligned with `AGENTS.md` "Streamlit apps"
+  rules: every page now calls `standard_page_config(...)` before any other
+  Streamlit output (Decision Analyzer pages 2–10 + both Health Check
+  sub-pages were missing it). Removed deprecated `use_container_width=True`
+  / `width="stretch"` arguments (now Streamlit defaults). The single
+  remaining `components.html` usage (Decision Analyzer "Single Decision"
+  tree-grid) is now documented as the only place without a Streamlit-native
+  alternative.
 
 ### Added
 

@@ -432,6 +432,12 @@ if pvcl_factors:
 n_all_rows = len(grid_rows)
 estimated_height = 300 + n_all_rows * 45
 
+# components.html with custom JS is used here intentionally: this renders a
+# multi-level expand/collapse tree-grid with per-cell colouring (pass / filtered
+# / skipped / empty) for every (action, stage) pair. Streamlit's native
+# st.dataframe / st.data_editor do not support hierarchical row expansion or
+# custom cell styling at this granularity, so there is no Streamlit-native
+# alternative that preserves the drill-down UX. See AGENTS.md "Streamlit apps".
 components.html(
     f"""
     <style>

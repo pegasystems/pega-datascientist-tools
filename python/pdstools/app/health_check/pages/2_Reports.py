@@ -10,12 +10,12 @@ from pdstools import ADMDatamart
 from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.show_versions import show_versions
 from pdstools.utils.streamlit_utils import (
-    _apply_sidebar_logo,
     get_full_embed,
     model_selection_df,
+    standard_page_config,
 )
 
-_apply_sidebar_logo()
+standard_page_config(page_title="Reports · ADM Health Check")
 
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
@@ -169,7 +169,6 @@ if st.session_state["dm"].predictor_data is not None:
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
                 disabled=st.session_state["dm"].context_keys + ["Name"],
-                use_container_width=True,
             )
             st.session_state["only_active_predictors"] = st.checkbox(
                 label="Show only active predictors",

@@ -5,12 +5,12 @@ import streamlit as st
 
 from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.streamlit_utils import (
-    _apply_sidebar_logo,
     filter_dataframe,
     model_and_row_counts,
+    standard_page_config,
 )
 
-_apply_sidebar_logo()
+standard_page_config(page_title="Data Filters · ADM Health Check")
 
 """# Add custom filters"""
 

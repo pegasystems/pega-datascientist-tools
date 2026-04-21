@@ -35,4 +35,4 @@ with st.container(border=True):
     st.caption("Tabular view of lift metrics with exact values. Use this for detailed analysis and reporting.")
 
     table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
-    st.dataframe(table, width="stretch")
+    st.dataframe(table)
