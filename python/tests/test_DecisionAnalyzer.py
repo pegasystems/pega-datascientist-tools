@@ -803,9 +803,9 @@ class TestBoxplotPointCapAndSampling:
         )
         assert isinstance(df, pl.DataFrame)
         assert "segment" in df.columns
-        # Cannot assert exact height: prio_factor_boxplots mutates sample_size as a side
-        # effect when called by the preceding test, so the sample size seen here is
-        # non-deterministic.  See da-test-tightening-bugs.md for the bug report.
+        # The sample data has more arbitration-stage rows than sample_size (5000),
+        # so the result is capped to exactly sample_size by the point cap logic.
+        assert df.height == da_v1.sample_size
 
     def test_prio_factor_boxplots_sampling_caps_rows(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()

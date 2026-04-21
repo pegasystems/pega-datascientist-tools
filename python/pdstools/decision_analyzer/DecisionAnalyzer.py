@@ -755,9 +755,9 @@ class DecisionAnalyzer:
             .item()
         )
         logger.debug("Sampling from %d total interactions", total_interaction_count)
-        # Set num_sample_interactions attribute - use sample_size if we have more interactions than sample_size
-        self.sample_size = min(total_interaction_count, self.sample_size)
-        target_sample_size = self.sample_size
+        effective_sample_size = min(total_interaction_count, self.sample_size)
+        self._num_sample_interactions = effective_sample_size
+        target_sample_size = effective_sample_size
         sample_rate = min(1.0, target_sample_size / max(1, total_interaction_count))
 
         # Use hash-based sampling for efficiency - this is deterministic per interaction ID
