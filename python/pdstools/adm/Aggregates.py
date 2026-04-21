@@ -732,11 +732,20 @@ class Aggregates:
 
         return result
 
-    def summary_by_configuration(self) -> pl.LazyFrame:
+    def summary_by_configuration(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
         """Generates a summary of the ADM model configurations.
 
         This method provides an overview of model configurations, including information about
         the number of models, actions, treatments, and performance metrics.
+
+        Parameters
+        ----------
+        query : Optional[QUERY], optional
+            A query to apply to the data, by default None, so no filtering applied
 
         Returns
         -------
@@ -783,7 +792,7 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
-            self.last(table="model_data")
+            cdh_utils._apply_query(self.last(table="model_data"), query)
             .group_by(group_by_cols)
             .agg(
                 is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
@@ -807,11 +816,18 @@ class Aggregates:
 
     def predictors_global_overview(
         self,
+        *,
+        query: QUERY | None = None,
     ) -> pl.LazyFrame:
         """Generate a global overview of all predictors across all models.
 
         This method provides a summary of predictor performance and characteristics
         across all models, including the number of responses, positives, and performance metrics.
+
+        Parameters
+        ----------
+        query : Optional[QUERY], optional
+            A query to apply to the data, by default None, so no filtering applied
 
         Returns
         -------
@@ -825,6 +841,17 @@ class Aggregates:
 
         """
         data = self.last(table="predictor_data")
+        if query is not None:
+            # Restrict to predictors of models matching the query on model_data.
+            # We semi-join on ModelID so that queries referencing model-level
+            # columns (e.g. the active-models LastUpdate filter) work even
+            # though those columns are not present on predictor_data.
+            active_model_ids = (
+                cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+                .select("ModelID")
+                .unique()
+            )
+            data = data.join(active_model_ids, on="ModelID", how="semi")
 
         global_overview = (
             data.filter(pl.col("EntryType") != "Classifier")

@@ -212,12 +212,16 @@ We provide guidance and best practices as much as possible. However these guidel
 
 The first plot below is a global view of all the ADM models, with the overall success rate on the vertical axis, and the model performance on the horizontal axis. This is across all channels, issues, groups. More specific analyses are further down in this document. This just gives an overall view. See the [Model Performance](#model-performance) section below for guidance in how to interpret this plot.
 
-::: callout-note
+::: {.callout-important title="Active-Models Filter"}
 ```{python}
 # | echo: false
 report_utils.quarto_print(
     f"""
-Please do note that the data that these analyses are based on are from the ADM model snapshots. These currently do not include information about the active/inactive status of actions or treatments. As a work-around, in many of the analyses here we assume that if there have been no updates to the model counts in **{threshold_updated_days} days**, they are not used/inactive and are filtered out.
+Most current-state analyses in this report are filtered to **active models only**: model instances whose counts have been updated in the last **{threshold_updated_days} days** (i.e. since **{active_models_threshold_date_string}**). This excludes models for actions or treatments that are no longer in use.
+
+The filter is applied to summary tables, treemaps, predictor analyses, and bubble charts. Trend plots over time and cumulative gains charts intentionally use the **full history** so that long-term changes remain visible. Section titles indicate the cut-off date where applicable.
+
+The ADM model snapshots do not carry an explicit active/inactive flag, so we use *recently updated* as a proxy. To change the threshold, set ``threshold_updated_days`` in the report parameters.
 """
 )
 ```
@@ -716,9 +720,8 @@ We're showing the hierarchy of Issues and Groups with a sample of the actions in
 ```{python}
 if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     df_action_hierarchy = (
-        datamart.model_data.group_by(  # .filter(active_models_filter_expr)
-            ["Issue", "Group"]
-        )
+        datamart.model_data.filter(active_models_filter_expr)
+        .group_by(["Issue", "Group"])
         # TODO actions/treatments/used actions/used treatments
         # but only if available. Maybe a few examples too.
         .agg(
@@ -730,7 +733,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     gt = report_utils.create_metric_gttable(
         df_action_hierarchy.collect(),
         title="Action Hierarchy",
-        # subtitle=f"for models updated since {active_models_threshold_date_string}",
+        subtitle=f"for models updated since {active_models_threshold_date_string}",
         rowname_col="Group",
         groupname_col="Issue",
     ).tab_stubhead(label="Issue/Group")
@@ -838,6 +841,7 @@ hover_columns = report_utils.polars_subset_to_existing_cols(
 
 df_success_rates = (
     last_data.lazy()
+    .filter(active_models_filter_expr)
     .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .filter(pl.col("ResponseCount") > responsecount_analysis_threshold)
@@ -875,8 +879,11 @@ try:
         template="pega",
         text="Label",
         title=(
-            "Success Rates per Channel<br><sup>%s</sup>"
-            % "/".join(report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]))
+            "Success Rates per Channel<br><sup>%s — models updated since %s</sup>"
+            % (
+                "/".join(report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"])),
+                active_models_threshold_date_string,
+            )
         ),
         hover_data=hover_data,
     )
@@ -913,7 +920,7 @@ try:
     fig = datamart.plot.tree_map(
         metric="SuccessRate",
         by=datamart.context_keys[-1],
-        query=responsecount_analysis_query,
+        query=responsecount_analysis_query & active_models_filter_expr,
     )
 
     fig = fig.update_coloraxes(showscale=False).update_layout(autosize=True)
@@ -981,7 +988,7 @@ There are **{last_data.filter(active_models_filter_expr).select(pl.col("ModelID"
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
-model_overview = datamart.aggregates.summary_by_configuration()
+model_overview = datamart.aggregates.summary_by_configuration(query=active_models_filter_expr)
 
 display(
     report_utils.create_metric_gttable(
@@ -1000,6 +1007,7 @@ display(
         .drop("usesNBAD", "usesAGB")
         .collect(),
         title="Model Overview",
+        subtitle=f"models updated since {active_models_threshold_date_string}",
         column_to_metric={
             "Actions": "ActionCount",
             "Unique Treatments": "TreatmentCount",
@@ -1038,6 +1046,7 @@ If there are any model configurations that have fewer than {configuration_respon
 
 configuration_overview = (
     datamart.aggregates.last(table="model_data")
+    .filter(active_models_filter_expr)
     .group_by("Configuration")
     .agg(pl.sum("ResponseCount").alias("Responses"), pl.sum("Positives"))
 ).collect()
@@ -1257,10 +1266,11 @@ try:
     fig = datamart.plot.tree_map(
         metric="Performance",
         by="Group" if ("Group" in datamart.context_keys) else datamart.context_keys[-1],
+        query=active_models_filter_expr,
     )
 
     fig = fig.update_layout(
-        title="Overview of Model Performance", showlegend=False
+        title=f"Overview of Model Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>", showlegend=False
     ).update_coloraxes(showscale=False)
 
     fig.show()
@@ -1280,10 +1290,11 @@ try:
     fig = datamart.plot.tree_map(
         metric="ResponseCount",
         by="Group" if ("Group" in datamart.context_keys) else datamart.context_keys[-1],
+        query=active_models_filter_expr,
     )
 
     fig = fig.update_layout(
-        title="Overview of Response Counts", showlegend=False
+        title=f"Overview of Response Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>", showlegend=False
     ).update_coloraxes(showscale=False)
 
     fig.show()
@@ -1324,7 +1335,8 @@ The numbers here can differ from the totals above, these ones are leading.
 ```{python}
 if datamart.predictor_data is not None:
     predictors_per_category = (
-        datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
+        datamart.combined_data.filter(active_models_filter_expr)
+        .filter(pl.col("EntryType") != "Classifier")
         .group_by(["Configuration", "PredictorCategory"])
         .agg([pl.col("PredictorName").n_unique().alias("Predictor Count")])
         .sort(["Configuration", "PredictorCategory"])
@@ -1341,6 +1353,7 @@ if datamart.predictor_data is not None:
     gt = report_utils.create_metric_gttable(
         predictors_per_category,
         "Number of Predictors per Predictor Category",
+        subtitle=f"models updated since {active_models_threshold_date_string}",
         column_to_metric={
             tuple(
                 x for x in predictors_per_category.columns if x not in {"Configuration"}
@@ -1413,7 +1426,7 @@ The data contains many ({len(datamart.unique_configurations)}) model configurati
             metric="Performance",
             top_n=30,
             active_only=False,
-            query=predictor_analysis_query,
+            query=predictor_analysis_query & active_models_filter_expr,
             facets=facets,
             show_plots=False,
         )
@@ -1456,9 +1469,9 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 
 if datamart.predictor_data is not None:
     try:
-        fig = datamart.plot.predictor_category_performance()
+        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr)
         if fig is not None:
-            fig.update_layout(title="Univariate Predictor Performance")
+            fig.update_layout(title=f"Univariate Predictor Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>")
             fig.show()
         else:
             report_utils.quarto_print("No predictor category data available to plot.")
@@ -1476,7 +1489,7 @@ If predictors perform poorly across all models, that may be because of data sour
 ```{python}
 if datamart.predictor_data is not None:
     bad_predictors = (
-        datamart.aggregates.predictors_global_overview()
+        datamart.aggregates.predictors_global_overview(query=active_models_filter_expr)
         .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
         .collect()
     )
@@ -1486,6 +1499,7 @@ if datamart.predictor_data is not None:
         report_utils.create_metric_gttable(
             bad_predictors,
             title="Overview of Poor Predictors",
+            subtitle=f"models updated since {active_models_threshold_date_string}",
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
             column_to_metric={
@@ -1532,7 +1546,8 @@ Showing the number of active and inactive predictors per model.
 if datamart.predictor_data is not None:
     facet_cols = 2
     try:
-        fig = datamart.plot.predictor_count(by=["Type","EntryType","Configuration",])
+        fig = datamart.plot.predictor_count(by=["Type","EntryType","Configuration",], query=active_models_filter_expr)
+        fig.update_layout(title=f"Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
         fig.show()
     except Exception as e:
         report_utils.quarto_plot_exception("Number of Active and Inactive Predictors", e)
@@ -1573,6 +1588,7 @@ if datamart.predictor_data is not None:
             top_predictors=barchart_max_bars,
             top_groups=barchart_max_bars,
             by=by_expr,
+            query=active_models_filter_expr,
         )
         if fig is not None:
             fig.update_layout(
@@ -1585,7 +1601,7 @@ if datamart.predictor_data is not None:
                     ],
                 },
                 font=dict(size=8),
-                title=f"Top predictors per Action<br>Globally, across all models and channels",
+                title=f"Top predictors per Action<br>Globally, across all models and channels — models updated since {active_models_threshold_date_string}",
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
@@ -1613,9 +1629,16 @@ if datamart.predictor_data is not None:
         datamart_all_columns, ["PredictorCategory", "PredictorName"]
     )
 
+    active_model_ids = (
+        datamart.aggregates.last(table="model_data")
+        .filter(active_models_filter_expr)
+        .select("ModelID")
+        .unique()
+    )
 
     missing = (
         datamart.aggregates.last(table="predictor_data")
+        .join(active_model_ids, on="ModelID", how="semi")
         .filter(pl.col("PredictorName") != "Classifier")
         .filter(pl.col("PredictorCategory") != "IH")
         .group_by(gb_cols)
@@ -1650,7 +1673,7 @@ if datamart.predictor_data is not None:
             color="Percentage without responses",
             template="pega",
             hover_data=hover_data,
-            title="Missing Predictor Data",
+            title=f"Missing Predictor Data<br><sup>models updated since {active_models_threshold_date_string}</sup>",
             range_color=[0, 1]
         )
 
@@ -1714,7 +1737,8 @@ maturity_criteria = {
 
 maturity_overview = pl.concat(
     [
-        last_data.group_by(None)
+        last_data.filter(active_models_filter_expr)
+        .group_by(None)
         .agg(
             pl.lit(name).alias("Category"),
             pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
@@ -1735,6 +1759,7 @@ display(
     report_utils.create_metric_gttable(
         maturity_overview,
         title="Model Maturity Overview",
+        subtitle=f"models updated since {active_models_threshold_date_string}",
     ).fmt_number(
         decimals=2,
         columns=["Average Performance"],
@@ -1917,7 +1942,8 @@ A lot of volume on the first bins, where the performance is minimal, means that 
 try:
     fig = datamart.plot.performance_volume_distribution(
         by=["Channel", "Direction"],
-        title="Performance vs Volume"
+        query=active_models_filter_expr,
+        title=f"Performance vs Volume<br><sup>models updated since {active_models_threshold_date_string}</sup>"
     )
     fig.show()
 except Exception as e:
