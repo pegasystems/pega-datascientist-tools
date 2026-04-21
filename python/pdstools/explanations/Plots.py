@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import polars as pl
 
@@ -40,6 +40,8 @@ class Plots(LazyNamespace):
         self,
         top_n: int = 20,
         top_k: int = 20,
+        *,
+        return_df: bool = False,
         **filter_kwargs,
     ):
         """Plots contributions for the overall model or a selected context.
@@ -49,6 +51,11 @@ class Plots(LazyNamespace):
                 Number of top predictors to display.
             top_k (int):
                 Number of top unique values for each categorical predictor to display.
+            return_df (bool, keyword-only):
+                If True, skip plotting and return the underlying dataframes instead.
+                When a context is selected, returns
+                ``(predictor_df, predictor_value_df)``; otherwise returns the same
+                pair computed against the overall model.
             **filter_kwargs:
                 Optional filtering, sorting, and display controls. Valid keys:
 
@@ -72,6 +79,14 @@ class Plots(LazyNamespace):
 
         """
         if self.explanations.filter.is_context_selected():
+            if return_df:
+                return self.plot_contributions_by_context(
+                    context=self.explanations.filter.get_selected_context(),
+                    top_n=top_n,
+                    top_k=top_k,
+                    return_df=True,
+                    **filter_kwargs,
+                )
             context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
                 context=self.explanations.filter.get_selected_context(),
                 top_n=top_n,
@@ -85,8 +100,17 @@ class Plots(LazyNamespace):
 
             return context_plot, plots
 
-        print(
-            "No context selected, plotting overall contributions. Use explanations.filter.interative() to select a context.",
+        if return_df:
+            return self.plot_contributions_for_overall(
+                top_n=top_n,
+                top_k=top_k,
+                return_df=True,
+                **filter_kwargs,
+            )
+
+        logger.info(
+            "No context selected, plotting overall contributions. "
+            "Use explanations.filter.interactive() to select a context.",
         )
 
         overall_plot, predictor_plots = self.plot_contributions_for_overall(
@@ -101,12 +125,34 @@ class Plots(LazyNamespace):
 
         return None, plots
 
+    @overload
+    def plot_contributions_for_overall(
+        self,
+        top_n: int = ...,
+        top_k: int = ...,
+        *,
+        return_df: Literal[False] = ...,
+        **filter_kwargs,
+    ) -> tuple[go.Figure, list[go.Figure]]: ...
+
+    @overload
+    def plot_contributions_for_overall(
+        self,
+        top_n: int = ...,
+        top_k: int = ...,
+        *,
+        return_df: Literal[True],
+        **filter_kwargs,
+    ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
+
     def plot_contributions_for_overall(
         self,
         top_n: int = 20,
         top_k: int = 20,
+        *,
+        return_df: bool = False,
         **filter_kwargs,
-    ) -> tuple[go.Figure, list[go.Figure]]:
+    ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         display_by, resolved = self._resolve_kwargs(**filter_kwargs)
 
         df = self.aggregate.get_predictor_contributions(
@@ -128,6 +174,9 @@ class Plots(LazyNamespace):
             **resolved,
         )
 
+        if return_df:
+            return df, df_predictors
+
         overall_fig = self._plot_overall_contributions(
             df,
             x_col=display_by.value,
@@ -143,13 +192,37 @@ class Plots(LazyNamespace):
 
         return overall_fig, predictors_figs
 
+    @overload
+    def plot_contributions_by_context(
+        self,
+        context: dict[str, str],
+        top_n: int = ...,
+        top_k: int = ...,
+        *,
+        return_df: Literal[False] = ...,
+        **filter_kwargs,
+    ) -> tuple[go.Figure, go.Figure, list[go.Figure]]: ...
+
+    @overload
+    def plot_contributions_by_context(
+        self,
+        context: dict[str, str],
+        top_n: int = ...,
+        top_k: int = ...,
+        *,
+        return_df: Literal[True],
+        **filter_kwargs,
+    ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
+
     def plot_contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = 20,
         top_k: int = 20,
+        *,
+        return_df: bool = False,
         **filter_kwargs,
-    ) -> tuple[go.Figure, go.Figure, list[go.Figure]]:
+    ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         display_by, resolved = self._resolve_kwargs(**filter_kwargs)
 
         df_context = self.aggregate.get_predictor_contributions(
@@ -180,6 +253,9 @@ class Plots(LazyNamespace):
             top_k=top_k,
             **resolved,
         )
+
+        if return_df:
+            return df_context, df
 
         header_fig = self._plot_context_table(cast("ContextInfo", context))
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import plotly.graph_objects as go
+import polars as pl
 import pytest
 from pdstools.explanations import Explanations
 from pdstools.explanations.ExplanationsUtils import _SPECIAL
@@ -209,6 +210,61 @@ def test_plot_contributions_by_context_with_invalid_contribution_type(plots):
             context=selected_context,
             sort_by="invalid",
         )
+
+
+def test_plot_contributions_for_overall_return_df(plots):
+    """return_df=True must skip plotting and yield the underlying frames."""
+    overall_df, predictors_df = plots.plot_contributions_for_overall(
+        top_n=5,
+        top_k=5,
+        return_df=True,
+    )
+
+    assert isinstance(overall_df, pl.DataFrame)
+    assert isinstance(predictors_df, pl.DataFrame)
+
+    fig_overall, _ = plots.plot_contributions_for_overall(top_n=5, top_k=5)
+    fig_overall_y = list(fig_overall.data[0].y)
+
+    # Predictor names plotted on the figure must match the names in the returned df.
+    assert sorted(fig_overall_y) == sorted(overall_df["predictor_name"].to_list())
+
+
+def test_plot_contributions_by_context_return_df(plots):
+    """return_df=True for the context variant returns (context_df, value_df)."""
+    selected_context = {
+        "pyChannel": "PegaBatch",
+        "pyDirection": "E2E Test",
+        "pyGroup": "E2E Test",
+        "pyIssue": "Batch",
+        "pyName": "P1",
+    }
+    context_df, value_df = plots.plot_contributions_by_context(
+        context=selected_context,
+        top_n=3,
+        top_k=3,
+        return_df=True,
+    )
+
+    assert isinstance(context_df, pl.DataFrame)
+    assert isinstance(value_df, pl.DataFrame)
+    # context keys must be filtered out of the predictor frame
+    assert not context_df["predictor_name"].is_in(list(selected_context)).any()
+
+
+def test_contributions_no_context_logs_instead_of_print(plots, caplog, monkeypatch):
+    """The fallback "no context selected" message must be a log record, not a print."""
+    import logging
+
+    monkeypatch.setattr(plots.explanations.filter, "is_context_selected", lambda: False)
+    # avoid actually opening browser windows from .show()
+    monkeypatch.setattr(go.Figure, "show", lambda self, *a, **kw: None)
+    with caplog.at_level(logging.INFO, logger="pdstools.explanations.Plots"):
+        plots.contributions(top_n=3, top_k=3)
+
+    assert any("No context selected" in rec.message and "interactive()" in rec.message for rec in caplog.records), [
+        rec.message for rec in caplog.records
+    ]
 
 
 def _assert_fig_bar_data_predictors_special_bins(
