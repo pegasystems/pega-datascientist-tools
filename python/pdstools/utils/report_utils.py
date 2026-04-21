@@ -10,6 +10,7 @@ import subprocess
 import traceback
 import zipfile
 from pathlib import Path
+from typing import Any
 
 
 import polars as pl
@@ -794,7 +795,7 @@ def create_metric_itable(
     styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
 
     # Set default itable options
-    default_kwargs = {
+    default_kwargs: dict[str, Any] = {
         "paging": False,
         "allow_html": True,  # Required for styled DataFrames
         "classes": "compact",
@@ -820,7 +821,7 @@ def create_metric_itable(
             )
         default_kwargs["columnDefs"] = default_kwargs.get("columnDefs", []) + sort_defs
 
-    return show(styled_df, **default_kwargs)  # type: ignore[arg-type]
+    return show(styled_df, **default_kwargs)
 
 
 def create_metric_gttable(
@@ -1132,12 +1133,12 @@ def deserialize_query(serialized_query: dict | None) -> QUERY | None:
 
     Parameters
     ----------
-    serialized_query : Optional[dict]
+    serialized_query : dict | None
         A serialized query dictionary created by serialize_query
 
     Returns
     -------
-    Optional[QUERY]
+    QUERY | None
         The deserialized query
 
     """

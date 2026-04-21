@@ -39,7 +39,7 @@ def show_versions(
 
     Returns
     -------
-    Optional[str]
+    str | None
         Version information as a string if print_output is False, else None.
 
     Examples

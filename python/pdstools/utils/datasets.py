@@ -11,7 +11,7 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
 
     Parameters
     ----------
-    query : Optional[QUERY], optional
+    query : QUERY | None, optional
         An optional query to apply to the data, by default None
 
     Returns
@@ -56,7 +56,7 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
 
     Parameters
     ----------
-    threshold : Optional[float], optional
+    threshold : float | None, optional
         Optional override of the propensity threshold in the system, by default None
 
     Returns

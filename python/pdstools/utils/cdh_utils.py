@@ -154,7 +154,7 @@ def default_predictor_categorization(
 
     Parameters
     ----------
-    x: Union[str, pl.Expr], default = pl.col('PredictorName')
+    x: str | pl.Expr, default = pl.col('PredictorName')
         The column to parse
 
     """
@@ -202,7 +202,7 @@ def _extract_keys(
 
     Parameters
     ----------
-    df: Union[pl.DataFrame, pl.LazyFrame]
+    df: pl.DataFrame | pl.LazyFrame
         The dataframe to extract the keys from
     key: str
         The column with embedded JSON
@@ -731,7 +731,7 @@ def from_prpc_date_time(
 
     Returns
     -------
-    Union[datetime.datetime, str]
+    datetime.datetime | str
         The converted date in datetime format or string.
 
     Examples
@@ -1419,9 +1419,9 @@ def process_files_to_bytes(
 
     Parameters
     ----------
-    file_paths : list[Union[str, Path]]
+    file_paths : list[str | Path]
         A list of file paths to process. Can be empty, contain a single path, or multiple paths.
-    base_file_name : Union[str, Path]
+    base_file_name : str | Path
         The base name to use for the output file. For a single file, this name is returned as is.
         For multiple files, this is used as part of the generated zip file name.
 
@@ -1494,7 +1494,7 @@ def setup_logger():
             return logger, existing_buffer
     log_buffer = StringIO()
     handler = logging.StreamHandler(log_buffer)
-    handler._pdstools_buffer = log_buffer  # type: ignore[attr-defined]
+    handler._pdstools_buffer = log_buffer
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",

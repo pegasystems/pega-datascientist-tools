@@ -8,7 +8,7 @@ facet-title cleanup, dynamic facet sizing, and report-layout adjustments.
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import polars as pl
 
@@ -19,8 +19,12 @@ logger = logging.getLogger(__name__)
 
 # A ``go.Figure`` alias that survives the optional-plotly import path.
 # Modules use this in annotations (and as a runtime alias) so they can be
-# imported without plotly being installed.
-Figure = Union[Any, "_Figure"]
+# imported without plotly being installed. At runtime it resolves to ``Any``
+# so importers don't need plotly; type checkers see the real ``Figure``.
+if TYPE_CHECKING:  # pragma: no cover
+    Figure: TypeAlias = "_Figure"
+else:
+    Figure = Any
 
 
 # Color map used by all bin-lift plots (BinAggregator + ADM Plots).
@@ -68,7 +72,7 @@ def get_colorscale(
 
     Returns
     -------
-    Union[list[tuple[float, str]], list[str]]
+    list[tuple[float, str]] | list[str]
         A Plotly-compatible colorscale (list of (position, color) tuples or list of colors).
 
     Examples

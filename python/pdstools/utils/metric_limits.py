@@ -12,7 +12,7 @@ values in tables.
 
 import difflib
 import re
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from collections.abc import Callable
 
 import polars as pl
@@ -43,12 +43,13 @@ def _normalize_name(name: str) -> str:
 class MetricLimits:
     """Singleton for accessing metric limits from MetricLimits.csv."""
 
-    _instance: Optional["MetricLimits"] = None
+    _instance: "MetricLimits | None" = None
+    _limits_df: pl.DataFrame | None
 
     def __new__(cls) -> "MetricLimits":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._limits_df = None  # type: ignore[attr-defined]
+            cls._instance._limits_df = None
         return cls._instance
 
     @classmethod
@@ -63,8 +64,8 @@ class MetricLimits:
         by checking if all defined limit values are either 0.0 or 1.0.
         """
         instance = cls()
-        if getattr(instance, "_limits_df", None) is not None:
-            return instance._limits_df  # type: ignore[return-value]
+        if instance._limits_df is not None:
+            return instance._limits_df
 
         limits_df = pl.read_csv(source=get_metric_limits_path()).filter(
             pl.col("MetricID").is_not_null() & (pl.col("MetricID") != ""),
@@ -167,7 +168,7 @@ class MetricLimits:
 
         Returns
         -------
-        Optional[RAGValue]
+        RAGValue | None
             "RED", "AMBER", "GREEN", or None if metric not found or value is None.
 
         Raises
