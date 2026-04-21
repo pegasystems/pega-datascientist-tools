@@ -1,12 +1,19 @@
+"""Report-generation namespace for :class:`ADMDatamart`.
+
+Exposed via the ``dm.generate`` namespace facade. Wraps Quarto-driven
+HealthCheck and ModelReport rendering plus an Excel export.
+"""
+
 from __future__ import annotations
 
 __all__ = ["ReportOptions", "Reports"]
+
 import logging
 import shutil
+from collections.abc import Callable
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 from typing_extensions import TypedDict, Unpack
@@ -23,16 +30,22 @@ from ..utils.report_utils import (
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:
+    from ..prediction.Prediction import Prediction
     from .ADMDatamart import ADMDatamart
+
 logger = logging.getLogger(__name__)
+
+OutputType = Literal["html", "pdf"]
 
 
 class ReportOptions(TypedDict, total=False):
     """Shared rendering/output options for report-generating methods.
 
     Passed via ``**options`` to :meth:`Reports.model_reports` and
-    :meth:`Reports.health_check`. All keys are optional; per-method defaults
-    apply when a key is omitted.
+    :meth:`Reports.health_check`. These eight keys are shared between
+    both methods; each method also takes its own method-specific kwargs
+    as normal parameters. All ``ReportOptions`` keys are optional —
+    per-method defaults apply when a key is omitted.
 
     Keys
     ----
@@ -42,12 +55,12 @@ class ReportOptions(TypedDict, total=False):
         Subtitle shown under the title.
     disclaimer : str
         Disclaimer text included in the report.
-    output_dir : str or Path or None
+    output_dir : str or path-like or None
         Directory for the output file. If None, uses the current working
         directory.
-    output_type : str
-        Output format (e.g. ``"html"``, ``"pdf"``). Defaults to ``"html"``.
-    qmd_file : str or Path or None
+    output_type : {"html", "pdf"}
+        Output format. Defaults to ``"html"``.
+    qmd_file : str or path-like or None
         Path to a custom Quarto template. If None, the built-in template
         is used.
     full_embed : bool
@@ -63,9 +76,9 @@ class ReportOptions(TypedDict, total=False):
     title: str
     subtitle: str
     disclaimer: str
-    output_dir: PathLike | None
-    output_type: str
-    qmd_file: PathLike | None
+    output_dir: str | PathLike[str] | None
+    output_type: OutputType
+    qmd_file: str | PathLike[str] | None
     full_embed: bool
     keep_temp_files: bool
 
@@ -73,11 +86,11 @@ class ReportOptions(TypedDict, total=False):
 _VALID_REPORT_OPTION_KEYS: frozenset[str] = frozenset(ReportOptions.__annotations__)
 
 
-def _resolve_report_options(defaults: "ReportOptions", options: "ReportOptions") -> dict:
+def _resolve_report_options(defaults: ReportOptions, options: ReportOptions) -> dict:
     """Merge per-method defaults with caller-supplied options.
 
-    Raises ``TypeError`` on unknown keys so typos surface at runtime (since
-    ``TypedDict`` is only checked statically).
+    Raises ``TypeError`` on unknown keys so typos surface at runtime
+    (since ``TypedDict`` is only checked statically).
     """
     unknown = set(options) - _VALID_REPORT_OPTION_KEYS
     if unknown:
@@ -111,10 +124,12 @@ _HEALTH_CHECK_DEFAULTS: ReportOptions = {
 
 
 class Reports(LazyNamespace):
+    """Report generation namespace attached to :class:`ADMDatamart` as ``dm.generate``."""
+
     dependencies = ["yaml"]
     dependency_group = "healthcheck"
 
-    def __init__(self, datamart: "ADMDatamart"):
+    def __init__(self, datamart: ADMDatamart):
         self.datamart = datamart
         super().__init__()
 
@@ -125,49 +140,47 @@ class Reports(LazyNamespace):
         name: str | None = None,
         only_active_predictors: bool = True,
         progress_callback: Callable[[int, int], None] | None = None,
-        model_file_path: PathLike | None = None,
-        predictor_file_path: PathLike | None = None,
+        model_file_path: str | PathLike[str] | None = None,
+        predictor_file_path: str | PathLike[str] | None = None,
         **options: Unpack[ReportOptions],
     ) -> Path:
-        """Generates model reports for Naive Bayes ADM models.
+        """Generate model reports for Naive Bayes ADM models.
 
         Parameters
         ----------
-        model_ids : Union[str,list[str]]
+        model_ids : str or list of str
             The model ID (or list of model IDs) to generate reports for.
         name : str, optional
-            The (base) file name of the report.
+            Base file name of the report.
         only_active_predictors : bool, default=True
             Whether to only include active predictor details.
-        progress_callback : Callable[[int, int], None], optional
-            A callback function to report progress. Used only in the Streamlit app.
-            The function should accept two integers: the current progress and the total.
-        model_file_path : Union[str, Path, None], optional
-            Optional name of the actual model data file, so it does not get copied
-        predictor_file_path : Union[str, Path, None], optional
-            Optional name of the actual predictor data file, so it does not get copied
+        progress_callback : callable, optional
+            Function called as ``progress_callback(current, total)`` after each model
+            report is rendered. Used by the Streamlit app.
+        model_file_path : str or path-like, optional
+            Path to an existing model-data file. If provided, skips re-exporting the
+            datamart's model data.
+        predictor_file_path : str or path-like, optional
+            Path to an existing predictor-data file. If provided, skips re-exporting
+            the datamart's predictor data.
         **options : Unpack[ReportOptions]
-            Shared rendering/output options. See :class:`ReportOptions` for
-            the supported keys (``title``, ``subtitle``, ``disclaimer``,
-            ``output_dir``, ``output_type``, ``qmd_file``, ``full_embed``,
-            ``keep_temp_files``). Default ``title`` is ``"ADM Model Report"``.
+            Shared rendering/output options. See :class:`ReportOptions` for the full
+            list (``title``, ``subtitle``, ``disclaimer``, ``output_dir``,
+            ``output_type``, ``qmd_file``, ``full_embed``, ``keep_temp_files``).
 
         Returns
         -------
         Path
-            The path to the generated report file.
+            The path to the generated report file (or zip if multiple model IDs).
 
         Raises
         ------
         ValueError
-            If there's an error in report generation or invalid parameters.
-        TypeError
-            If ``options`` contains an unknown key.
+            If ``model_ids`` is empty or report generation fails.
         FileNotFoundError
-            If required files are not found.
+            If required input files are not found.
         subprocess.SubprocessError
-            If there's an error in running external commands.
-
+            If the Quarto subprocess fails.
         """
         opts = _resolve_report_options(_MODEL_REPORT_DEFAULTS, options)
         title = opts["title"]
@@ -181,23 +194,22 @@ class Reports(LazyNamespace):
 
         if isinstance(model_ids, str):
             model_ids = [model_ids]
-        if not model_ids or not isinstance(model_ids, list) or not all(isinstance(i, str) for i in model_ids):
+        if not model_ids or not all(isinstance(i, str) for i in model_ids):
             raise ValueError("No valid model IDs")
+
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
         try:
-            # Use provided qmd_file or default to "ModelReport.qmd"
             if qmd_file is None:
                 qmd_filename = "ModelReport.qmd"
                 copy_quarto_file(qmd_filename, temp_dir)
             else:
                 qmd_filename = Path(qmd_file).name
-                # Copy the custom qmd file to temp directory
                 shutil.copy(qmd_file, temp_dir / qmd_filename)
 
-            # Copy data to a temp dir only if the files are not passed in already
-            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
-                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
+            # Cache datamart frames to disk only when no pre-existing path was supplied.
+            if (model_file_path is None and self.datamart.model_data is not None) or (
+                predictor_file_path is None and self.datamart.predictor_data is not None
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(
                     temp_dir,
@@ -205,6 +217,7 @@ class Reports(LazyNamespace):
                 )
 
             output_file_paths: list[str | Path] = []
+            output_path = temp_dir
             for i, model_id in enumerate(model_ids):
                 output_filename = get_output_filename(
                     name,
@@ -237,7 +250,6 @@ class Reports(LazyNamespace):
                 )
                 output_path = temp_dir / output_filename
                 if not output_path.exists():
-                    # Log parameters so they can be copy/pasted into the quarto docs for debugging
                     if model_file_path is not None:
                         logger.info('model_file_path = "%s"', model_file_path)
                     if predictor_file_path is not None:
@@ -249,62 +261,64 @@ class Reports(LazyNamespace):
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
-            # Is this just a difficult way to copy the file? Why not shutil.copy? Or
-            # even pass in the output-dir property to the quarto project?
+
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths,
                 base_file_name=output_path,
             )
-            output_path = output_dir.joinpath(file_name)
-            with open(output_path, "wb") as f:
+            final_path = output_dir / file_name
+            with open(final_path, "wb") as f:
                 f.write(file_data)
-            if not output_path.exists():
-                raise ValueError(f"Failed to generate report: {output_filename}")
+            if not final_path.exists():
+                raise ValueError(f"Failed to generate report: {file_name}")
 
-            return output_path
+            return final_path
 
         except Exception as e:
             logger.error(e)
             raise
         finally:
-            if not keep_temp_files:
-                if temp_dir.exists() and temp_dir.is_dir():
-                    shutil.rmtree(temp_dir, ignore_errors=True)
+            if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
     def health_check(
         self,
         name: str | None = None,
         *,
         query: QUERY | None = None,
-        prediction=None,
-        model_file_path: PathLike | None = None,
-        predictor_file_path: PathLike | None = None,
-        prediction_file_path: PathLike | None = None,
+        prediction: Prediction | None = None,
+        model_file_path: str | PathLike[str] | None = None,
+        predictor_file_path: str | PathLike[str] | None = None,
+        prediction_file_path: str | PathLike[str] | None = None,
         **options: Unpack[ReportOptions],
     ) -> Path:
-        """Generates Health Check report for ADM models, optionally including predictor and prediction sections.
+        """Generate the ADM Health Check report.
+
+        Optionally includes predictor and prediction sections when the corresponding
+        data is available on the datamart or supplied via ``prediction``.
 
         Parameters
         ----------
         name : str, optional
-            The (base) file name of the report.
+            Base file name of the report.
         query : QUERY, optional
-            Optional extra filter on the datamart data
+            Extra filter applied to the datamart data before rendering.
         prediction : Prediction, optional
-            Optional Prediction object to include in the health check. If provided without
-            prediction_file_path, the prediction data will be automatically cached to a temporary file.
-        model_file_path : Union[str, Path, None], optional
-            Optional name of the actual model data file, so it does not get copied
-        predictor_file_path : Union[str, Path, None], optional
-            Optional name of the actual predictor data file, so it does not get copied
-        prediction_file_path : Union[str, Path, None], optional
-            Optional name of the actual predictions data file. If not provided but prediction object
-            is given, the data will be automatically cached from the prediction object.
+            Prediction object to include in the report. If provided without
+            ``prediction_file_path``, prediction data is cached to a temporary file.
+        model_file_path : str or path-like, optional
+            Path to an existing model-data file. If provided, skips re-exporting the
+            datamart's model data.
+        predictor_file_path : str or path-like, optional
+            Path to an existing predictor-data file. If provided, skips re-exporting
+            the datamart's predictor data.
+        prediction_file_path : str or path-like, optional
+            Path to an existing prediction-data file. If neither this nor ``prediction``
+            is provided, the prediction section is omitted.
         **options : Unpack[ReportOptions]
-            Shared rendering/output options. See :class:`ReportOptions` for
-            the supported keys (``title``, ``subtitle``, ``disclaimer``,
-            ``output_dir``, ``output_type``, ``qmd_file``, ``full_embed``,
-            ``keep_temp_files``). Default ``title`` is ``"ADM Model Overview"``.
+            Shared rendering/output options. See :class:`ReportOptions` for the full
+            list (``title``, ``subtitle``, ``disclaimer``, ``output_dir``,
+            ``output_type``, ``qmd_file``, ``full_embed``, ``keep_temp_files``).
 
         Returns
         -------
@@ -314,14 +328,11 @@ class Reports(LazyNamespace):
         Raises
         ------
         ValueError
-            If there's an error in report generation or invalid parameters.
-        TypeError
-            If ``options`` contains an unknown key.
+            If report generation fails.
         FileNotFoundError
-            If required files are not found.
+            If required input files are not found.
         subprocess.SubprocessError
-            If there's an error in running external commands.
-
+            If the Quarto subprocess fails.
         """
         opts = _resolve_report_options(_HEALTH_CHECK_DEFAULTS, options)
         title = opts["title"]
@@ -335,13 +346,11 @@ class Reports(LazyNamespace):
 
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
-            # Use provided qmd_file or default to "HealthCheck.qmd"
             if qmd_file is None:
                 qmd_filename = "HealthCheck.qmd"
                 copy_quarto_file(qmd_filename, temp_dir)
             else:
                 qmd_filename = Path(qmd_file).name
-                # Copy the custom qmd file to temp directory
                 shutil.copy(qmd_file, temp_dir / qmd_filename)
 
             output_filename = get_output_filename(
@@ -351,17 +360,14 @@ class Reports(LazyNamespace):
                 output_type,
             )
 
-            # Copy data to a temp dir only if the files are not passed in already
-            if ((model_file_path is None) and (self.datamart.model_data is not None)) or (
-                (predictor_file_path is None) and (self.datamart.predictor_data is not None)
+            if (model_file_path is None and self.datamart.model_data is not None) or (
+                predictor_file_path is None and self.datamart.predictor_data is not None
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
-            # Handle prediction data - cache if prediction object provided but no file path
-            if (prediction_file_path is None) and (prediction is not None):
+            if prediction_file_path is None and prediction is not None:
                 prediction_file_path = prediction.save_data(temp_dir)
 
-            serialized_query = serialize_query(query)
             run_quarto(
                 qmd_file=qmd_filename,
                 output_filename=output_filename,
@@ -371,7 +377,7 @@ class Reports(LazyNamespace):
                     "model_file_path": str(model_file_path) if model_file_path is not None else "",
                     "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
                     "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
-                    "query": serialized_query,
+                    "query": serialize_query(query),
                     "title": title,
                     "subtitle": subtitle,
                     "disclaimer": disclaimer,
@@ -399,7 +405,6 @@ class Reports(LazyNamespace):
 
             output_path = bundle_quarto_resources(output_path)
 
-            # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
             final_path = output_dir / output_path.name
             shutil.copy(output_path, final_path)
 
@@ -411,67 +416,63 @@ class Reports(LazyNamespace):
 
     def excel_report(
         self,
-        name: Path | str = Path("Tables.xlsx"),
+        name: str | PathLike[str] = Path("Tables.xlsx"),
+        *,
         predictor_binning: bool = False,
     ) -> tuple[Path | None, list[str]]:
-        """Export raw data to an Excel file.
+        """Export raw datamart tables to an Excel workbook.
 
-        This method exports the last snapshots of model_data, predictor summary,
-        and optionally predictor_binning data to separate sheets in an Excel file.
-
-        If a specific table is not available or too large, it will be skipped without
-        causing the export to fail.
+        Writes the last snapshots of model data, predictor summaries, and optionally
+        predictor binning data to separate sheets. Sheets that are unavailable or
+        exceed Excel's row / size limits are skipped with a warning rather than
+        failing the whole export.
 
         Parameters
         ----------
-        name: Union[Path, str], optional
-            The path where the Excel file will be saved.
-            Defaults to Path("Tables.xlsx").
-        predictor_binning: bool, optional
-            If True, include predictor_binning data in the export.
-            This is the last snapshot of the raw data, so it can be big.
-            Defaults to False.
+        name : str or path-like, default=Path("Tables.xlsx")
+            Path where the Excel file will be written.
+        predictor_binning : bool, default=False
+            If True, include the (potentially large) predictor binning sheet.
 
         Returns
         -------
-        tuple[Union[Path, None], list[str]]
-            A tuple containing:
-            - The path to the created Excel file if the export was successful, None if no data was available
-            - A list of warning messages (empty if no warnings)
-
+        tuple of (Path or None, list of str)
+            The path to the created Excel file (``None`` if no data was available),
+            and a list of warning messages (empty if nothing was skipped).
         """
         from xlsxwriter import Workbook
 
         EXCEL_ROW_LIMIT = 1048576
-        # Standard ZIP format limit is 4gb but 3gb would already crash most laptops
+        # Standard ZIP format limit is 4 GB but 3 GB would already crash most laptops.
         ZIP_SIZE_LIMIT_MB = 3000
         warning_messages: list[str] = []
 
-        name = Path(name)
-        tabs = {
-            "adm_models": self.datamart.aggregates.last(table="model_data")
-            .with_columns(
-                pl.col("ResponseCount", "Positives", "Negatives").cast(pl.Int64),
-            )
-            .select(
-                ["ModelID"]
-                + self.datamart.context_keys
-                + [
-                    col
-                    for col in self.datamart.model_data.collect_schema().names()  # type: ignore[union-attr]
-                    if col != "ModelID" and col not in self.datamart.context_keys
-                ],
-            )
-            .sort(self.datamart.context_keys),
-        }
+        output_path = Path(name)
+        model_data = self.datamart.model_data
+        predictor_data = self.datamart.predictor_data
 
-        if self.datamart.predictor_data is not None:
-            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()  # type: ignore[assignment]
+        tabs: dict[str, pl.LazyFrame | None] = {}
 
-        if self.datamart.predictor_data is not None:
+        if model_data is not None:
+            model_columns = model_data.collect_schema().names()
+            tabs["adm_models"] = (
+                self.datamart.aggregates.last(table="model_data")
+                .with_columns(
+                    pl.col("ResponseCount", "Positives", "Negatives").cast(pl.Int64),
+                )
+                .select(
+                    ["ModelID"]
+                    + self.datamart.context_keys
+                    + [col for col in model_columns if col != "ModelID" and col not in self.datamart.context_keys],
+                )
+                .sort(self.datamart.context_keys)
+            )
+
+        if predictor_data is not None:
+            tabs["predictors_detail"] = self.datamart.aggregates.predictors_overview()
             tabs["predictors_overview"] = self.datamart.aggregates.predictors_global_overview()
 
-        if predictor_binning and self.datamart.predictor_data is not None:
+        if predictor_binning and predictor_data is not None:
             columns = [
                 pl.col("ModelID").cast(pl.Utf8),
                 pl.col("PredictorName").cast(pl.Utf8),
@@ -489,46 +490,43 @@ class Reports(LazyNamespace):
                 pl.col("BinResponseCount").cast(pl.Int64),
                 pl.col("PredictorCategory").cast(pl.Utf8),
             ]
-            subset_columns = [
-                col
-                for col in columns
-                if col.meta.output_name() in self.datamart.predictor_data.collect_schema().names()
-            ]
+            available = predictor_data.collect_schema().names()
+            subset_columns = [c for c in columns if c.meta.output_name() in available]
             tabs["predictor_binning"] = (
                 self.datamart.aggregates.last(table="predictor_data")
                 .filter(pl.col("PredictorName") != "Classifier")
                 .select(subset_columns)
-            ).sort(
-                ["GroupIndex", "EntryType", "Performance"],
-                descending=[False, True, True],
-                nulls_last=True,
+                .sort(
+                    ["GroupIndex", "EntryType", "Performance"],
+                    descending=[False, True, True],
+                    nulls_last=True,
+                )
             )
 
-        # Remove None values (tables that are not available)
-        tabs = {k: v for k, v in tabs.items() if v is not None}
+        present_tabs: dict[str, pl.LazyFrame] = {k: v for k, v in tabs.items() if v is not None}
 
-        if not tabs:  # pragma: no cover
-            print("No data available to export.")
+        if not present_tabs:  # pragma: no cover
+            logger.warning("No data available to export.")
             return None, warning_messages
 
         try:
             with Workbook(
-                name,
+                output_path,
                 options={"nan_inf_to_errors": True, "remove_timezone": True},
             ) as wb:
-                # Enable ZIP64 extensions to handle large files
+                # Enable ZIP64 extensions to handle large files.
                 wb.use_zip64()
 
-                for tab, data in tabs.items():
+                for tab, data in present_tabs.items():
                     data = data.with_columns(
                         pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
                         .list.eval(pl.element().cast(pl.Utf8))
                         .list.join(", "),
                     )
-                    collected_data = data.collect()
+                    collected = data.collect()
 
-                    # Check data size (with a multiplication factor for Excel XML overhead)
-                    estimated_size_mb = collected_data.estimated_size(unit="mb") * 2.5
+                    # Multiplier accounts for Excel XML overhead vs in-memory size.
+                    estimated_size_mb = collected.estimated_size(unit="mb") * 2.5
                     if estimated_size_mb > ZIP_SIZE_LIMIT_MB:
                         warning_msg = (
                             f"The data for sheet '{tab}' is too large (estimated {estimated_size_mb:.1f} MB). "
@@ -537,25 +535,25 @@ class Reports(LazyNamespace):
                             "Consider exporting this data to CSV format instead."
                         )
                         warning_messages.append(warning_msg)
-                        print(warning_msg)
+                        logger.warning(warning_msg)
                         continue
 
-                    if collected_data.shape[0] > EXCEL_ROW_LIMIT:
+                    if collected.shape[0] > EXCEL_ROW_LIMIT:
                         warning_msg = (
                             f"The data for sheet '{tab}' exceeds Excel's row limit "
-                            f"({collected_data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                            f"({collected.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
                             "This sheet will not be written to the Excel file. "
                             "Please filter your data before generating the Excel report."
                         )
                         warning_messages.append(warning_msg)
-                        print(warning_msg)
+                        logger.warning(warning_msg)
                         continue
-                    collected_data.write_excel(workbook=wb, worksheet=tab)
+                    collected.write_excel(workbook=wb, worksheet=tab)
         except Exception as e:
             warning_msg = f"Error creating Excel file: {e!s}. Try exporting to CSV instead."
             warning_messages.append(warning_msg)
-            print(warning_msg)
+            logger.warning(warning_msg)
             return None, warning_messages
 
-        print(f"Data exported to {name}")
-        return name, warning_messages
+        logger.info("Data exported to %s", output_path)
+        return output_path, warning_messages

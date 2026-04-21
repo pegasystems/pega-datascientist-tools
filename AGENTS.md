@@ -416,6 +416,18 @@ documentation of its defaults. A frozen-dataclass of defaults is
 an engine/enterprise pattern, not a fit for a lightweight analysis
 package.
 
+**Exception — shared option sets across 2+ public entry points.** When
+the *same* set of 5+ options recurs across multiple public methods
+(e.g. report rendering options shared by `model_reports` and
+`health_check`), extract a `TypedDict` and pass it via
+`**options: Unpack[OptionsType]`. This keeps the signatures consistent,
+documents the shared surface in one place, and prevents drift when a
+new option is added (one TypedDict update vs. N signature updates).
+`pdstools.adm.Reports.ReportOptions` is the reference. Do NOT extract
+a TypedDict just to shorten a single method's signature — that's
+indirection without benefit. The trigger is **shared across methods**,
+not signature length.
+
 ### Namespace facade for large analyzer classes
 For any class that grows beyond ~20 public methods, split related
 methods into sub-namespace classes attached as instance attributes.

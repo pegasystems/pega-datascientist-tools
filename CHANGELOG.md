@@ -53,6 +53,10 @@ guide.
   renamed `categoricalOnly` → `categorical_only` (now keyword-only).
 - `DecisionAnalyzer.cleanup_raw_data` made private:
   `_cleanup_raw_data`. It was always called internally from `__init__`.
+- `Reports.excel_report` `predictor_binning` is now keyword-only. Any
+  `print()` calls inside the Reports class have been replaced with
+  `logging` — redirect the `pdstools.adm.Reports` logger if you relied
+  on stdout output.
 ### Added
 
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
