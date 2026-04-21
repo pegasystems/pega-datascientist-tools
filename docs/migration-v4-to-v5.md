@@ -149,10 +149,52 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
-### `Explanations.filter_*`
+### Explanations: explicit filter parameters
 
-Previously `**filter_kwargs`. Now uses explicit parameters per
-`docs/plans/explanations/typed-filter-kwargs.md`.
+The `**filter_kwargs` catch-all on the Explanations `Plots`,
+`Aggregate`, and `Reports` public methods has been replaced with
+explicit, keyword-only parameters: `sort_by`, `display_by`,
+`descending`, `missing`, `remaining`, `include_numeric_single_bin`.
+Affected methods: `Plots.contributions`,
+`Plots.plot_contributions_for_overall`,
+`Plots.plot_contributions_by_context`,
+`Aggregate.get_predictor_contributions`,
+`Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
+Unknown kwargs now raise `TypeError`. New `SortBy` / `DisplayBy`
+`Literal` aliases are exported alongside.
+
+```python
+# Before (v4.x):
+plots.contributions(**{"sort_by": "value", "typo_arg": True})  # silently dropped
+
+# After (v5):
+plots.contributions(sort_by="value")  # unknown kwargs raise TypeError
+```
+
+### `Reports.model_reports` / `Reports.health_check` — explicit kwargs
+
+The `**options: Unpack[ReportOptions]` catch-all is gone. Both methods
+now take explicit keyword-only parameters (`title`, `subtitle`,
+`disclaimer`, `output_dir`, `output_type`, `qmd_file`, `full_embed`,
+`keep_temp_files`), and `output_type` is typed `Literal["html", "pdf"]`.
+The `ReportOptions` `TypedDict` and the
+`pdstools.adm.Reports.ReportOptions` re-export have been removed —
+call-sites that splatted a `ReportOptions` dict must pass the fields
+as plain kwargs instead.
+
+```python
+# Before (v4.x):
+from pdstools.adm.Reports import ReportOptions
+opts: ReportOptions = {"title": "My Report", "output_type": "pdf"}
+dm.generate.model_reports(model_list=models, **opts)
+
+# After (v5):
+dm.generate.model_reports(
+    model_list=models,
+    title="My Report",
+    output_type="pdf",
+)
+```
 
 ### `DecisionAnalyzer.__init__` and `from_*` classmethods
 
