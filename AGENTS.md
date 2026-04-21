@@ -386,6 +386,44 @@ documentation of its defaults. A frozen-dataclass of defaults is
 an engine/enterprise pattern, not a fit for a lightweight analysis
 package.
 
+### Namespace facade for large analyzer classes
+For any class that grows beyond ~20 public methods, split related
+methods into sub-namespace classes attached as instance attributes.
+`ADMDatamart` is the reference: `dm.plot`, `dm.aggregates`, `dm.agb`,
+`dm.generate`, `dm.bin_aggregator`. Each sub-namespace:
+
+- Lives in its own module (`adm/Plots.py`, `adm/Aggregates.py`, …).
+- Takes a single parent argument named **`datamart`** (or the
+  equivalent name used by the parent class) and stores it as
+  `self.datamart`.
+- Uses `if TYPE_CHECKING: from .Parent import Parent` to avoid
+  circular imports for the back-reference.
+- Is instantiated in the parent's `__init__` and assigned to a
+  short, dot-completion-friendly attribute (`self.plot = Plots(self)`).
+
+This keeps the public API discoverable (one class to import; dot
+completion reveals everything) without ballooning the parent into a
+multi-thousand-line god class. Use the same pattern when refactoring
+existing fat classes — don't invent a new convention.
+
+### I/O lives in classmethods, not `__init__`
+Keep `__init__` pure: it should only accept already-loaded data
+structures (typically `pl.LazyFrame`s) and configuration. All file,
+network, and S3 I/O lives in alternative constructors named
+`from_<source>` (e.g. `from_ds_export`, `from_s3`,
+`from_dataflow_export`, `from_pdc`). This mirrors the
+`pl.read_csv` / `pl.scan_csv` idiom and makes the class trivially
+testable with synthesized data — no monkey-patching required.
+
+### `return_df` parameter on plot methods
+Every public method that produces a chart should accept
+`return_df: bool = False` as a keyword-only argument. When `True`,
+return the underlying (Lazy)Frame that drives the chart instead of
+the figure. This pattern (used consistently across `ADMDatamart.plot`)
+makes plots scriptable, testable, and composable without forcing
+users to re-derive the aggregation. Pair with `@overload` so type
+checkers know which return shape applies.
+
 ## Feature backlog / TODO files
 
 Major features maintain a living TODO file in `docs/plans/` (e.g.
