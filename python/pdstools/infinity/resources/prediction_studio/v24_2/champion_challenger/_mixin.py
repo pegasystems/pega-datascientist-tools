@@ -1,23 +1,17 @@
+from __future__ import annotations
+
 import logging
 import random
 import string
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
-import polars as pl
 from pydantic import validate_call
 
-from ....internal._exceptions import PegaException, PegaMLopsError
-from ....internal._pagination import AsyncPaginatedList, PaginatedList
-from ....internal._resource import _maybe_await, api_method
-from ..base import (
-    AsyncChampionChallenger as AsyncChampionChallengerBase,
-)
-from ..base import (
-    ChampionChallenger as ChampionChallengerBase,
-)
-from ..types import AdmModelType
-from .model_upload import UploadedModel
+from .....internal._exceptions import PegaException, PegaMLopsError
+from .....internal._resource import _maybe_await, api_method
+from ...types import AdmModelType
+from ..model_upload import UploadedModel
 
 logger = logging.getLogger(__name__)
 
@@ -697,78 +691,3 @@ class _ChampionChallengerV24_2Mixin:
             raise PegaMLopsError("Error when adding model")
         await self._refresh_champion_challenger()
         logging.info("Clone model: %s", response)
-
-
-# -- Concrete classes --------------------------------------------------------
-# list_available_models_to_add returns PaginatedList / AsyncPaginatedList,
-# so it must be defined separately on sync and async classes.
-
-
-class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
-    def list_available_models_to_add(
-        self,
-        return_df: bool = False,
-    ) -> PaginatedList | pl.DataFrame:
-        """Fetches a list of models eligible to be challengers.
-
-        Queries for models that can be added as challengers to the current
-        prediction for the current active model. Offers the option to return
-        the results in a DataFrame format for easier data handling.
-
-        Parameters
-        ----------
-        return_df : bool, optional
-            Determines the format of the returned data: a DataFrame if True,
-            otherwise a list of model instances. Defaults to False.
-
-        Returns
-        -------
-        PaginatedList[Model] or pl.DataFrame
-            A list of model instances or a DataFrame of models, based on the
-            ``return_df`` parameter choice.
-
-        """
-        from .model import Model
-
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
-        if not return_df:
-            return pages
-        return pl.DataFrame([mod._public_dict for mod in pages])
-
-
-class AsyncChampionChallenger(
-    _ChampionChallengerV24_2Mixin,
-    AsyncChampionChallengerBase,
-):
-    async def list_available_models_to_add(
-        self,
-        return_df: bool = False,
-    ) -> AsyncPaginatedList | pl.DataFrame:
-        """Fetches a list of models eligible to be challengers.
-
-        Parameters
-        ----------
-        return_df : bool, optional
-            Determines the format of the returned data: a DataFrame if True,
-            otherwise an async list of model instances. Defaults to False.
-
-        Returns
-        -------
-        AsyncPaginatedList[AsyncModel] or pl.DataFrame
-            An async list of model instances or a DataFrame of models.
-
-        """
-        from .model import AsyncModel
-
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
-            AsyncModel,
-            self._client,
-            "get",
-            endpoint,
-            _root="models",
-        )
-        if not return_df:
-            return pages
-        return await pages.as_df()
