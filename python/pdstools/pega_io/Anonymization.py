@@ -1,6 +1,12 @@
+"""Hash-based anonymisation of Pega Historical Datasets."""
+
+from __future__ import annotations
+
+import logging
 import math
 import os
-import logging
+import tempfile
+from collections.abc import Iterator
 from glob import glob
 
 import polars as pl
@@ -9,80 +15,74 @@ logger = logging.getLogger(__name__)
 
 
 class Anonymization:
-    """A utility class to efficiently anonymize Pega Datasets
+    """Anonymise Pega datasets (in particular, the Historical Dataset).
 
-    In particular, this class is aimed at anonymizing the Historical Dataset.
+    Numeric columns are min-max scaled to ``[0, 1]``.  Symbolic columns
+    are hashed with SHA-256.  Columns whose name starts with one of the
+    ``skip_columns_with_prefix`` values are passed through unchanged
+    (by default ``Context_*`` and ``Decision_*``).
+
+    Once constructed, call :meth:`anonymize` to run the pipeline.  All
+    file system work happens then; ``__init__`` is pure.
+
+    Parameters
+    ----------
+    path_to_files : str
+        Glob pattern matching the input files, e.g. ``"~/Downloads/*.json"``.
+    temporary_path : str, optional
+        Directory used for intermediate parquet chunks.  Defaults to a
+        fresh ``tempfile.mkdtemp`` directory created on first use.
+    output_file : str, default="anonymised.parquet"
+        Path to write the final anonymised parquet file.
+    skip_columns_with_prefix : list[str], optional
+        Column-name prefixes to leave unchanged. Defaults to
+        ``("Context_", "Decision_")``.
+    batch_size : int, default=500
+        Number of input files combined per intermediate parquet chunk.
+    file_limit : int, optional
+        Process at most this many files (useful for testing).
+
+    Examples
+    --------
+    >>> Anonymization(
+    ...     path_to_files="~/Downloads/*.json",
+    ...     batch_size=1000,
+    ...     file_limit=10,
+    ... ).anonymize()
     """
 
     def __init__(
         self,
         path_to_files: str,
-        temporary_path: str = "/tmp/anonymisation",
+        temporary_path: str | None = None,
         output_file: str = "anonymised.parquet",
-        skip_columns_with_prefix: list[str] | None = None,
+        skip_columns_with_prefix: list[str] | tuple[str, ...] | None = None,
         batch_size: int = 500,
         file_limit: int | None = None,
     ):
-        """Initialize the Anonymization object.
-
-        Once this class is initialised, simply run `.anonymize` to get started.
-
-        Parameters
-        ----------
-        path_to_files : str
-            The `glob pattern` towards the files to read in.
-            For instance, if you have a number of `json` files
-            in your ~/Downloads folder, you would use the following value:
-            "~/Downloads/*.json"
-        temporary_path : str, optional
-            The temporary path to store intermediate files.
-            Defaults to "/tmp/anonymisation".
-        output_file : str, optional
-            The name of the output file. Defaults to "anonymised.parquet".
-        skip_columns_with_prefix : list[str], optional
-            A list of column prefixes to skip during anonymization.
-            Leave empty to use the default values: `Context_` and `Decision_`.
-        batch_size : int, optional
-            The batch size for processing the data. Defaults to 500.
-        file_limit : int, optional
-            The maximum number of files to process. Defaults to None.
-
-        Examples
-        --------
-        >>> anonymizer = Anonymization(
-        ...     path_to_files="~/Downloads/*.json",
-        ...     batch_size=1000,
-        ...     file_limit=10
-        ... )
-        >>> anonymizer.anonymize()
-
-        """
         self.path_to_files = path_to_files
-        self.temp_path = temporary_path
+        self._temp_path: str | None = temporary_path
         self.output_file = output_file
-        self.skip_col_prefix = skip_columns_with_prefix or ("Context_", "Decision_")
+        self.skip_col_prefix: tuple[str, ...] = tuple(skip_columns_with_prefix or ("Context_", "Decision_"))
         self.batch_size = batch_size
         self.file_limit = file_limit
 
-        try:
-            os.mkdir(temporary_path)
-        except FileExistsError:
-            pass
+    @property
+    def temp_path(self) -> str:
+        """Lazily create (and cache) the temp directory."""
+        if self._temp_path is None:
+            self._temp_path = tempfile.mkdtemp(prefix="pdstools_anonymise_")
+        else:
+            os.makedirs(self._temp_path, exist_ok=True)
+        return self._temp_path
 
-    def anonymize(self, verbose: bool = True):
-        """Anonymize the data.
-
-        This method performs the anonymization process on the data files specified
-        during initialization. It writes temporary parquet files, processes and
-        writes the parquet files to a single file, and outputs the anonymized data
-        to the specified output file.
+    def anonymize(self, verbose: bool = True) -> None:
+        """Run the full anonymisation pipeline.
 
         Parameters
         ----------
-        verbose : bool, optional
-            Whether to print verbose output during the anonymization process.
-            Defaults to True.
-
+        verbose : bool, default=True
+            Print progress messages between stages.
         """
         if verbose:
             print("Writing temporary parquet files")
@@ -92,53 +92,42 @@ class Anonymization:
             print("Processing and writing parquet files to single file")
         self.process(chunked_files, verbose=verbose)
         if verbose:
-            print(f"Succesfully anonymized data to {self.output_file}")
+            print(f"Successfully anonymized data to {self.output_file}")
 
     @staticmethod
-    def min_max(column_name: str, range: list[dict[str, float]]) -> pl.Expr:
-        """Normalize the values in a column using the min-max scaling method.
+    def min_max(column_name: str, value_range: list[dict[str, float]]) -> pl.Expr:
+        """Return a min-max scaling expression for ``column_name``.
 
         Parameters
         ----------
         column_name : str
-            The name of the column to be normalized.
-        range : list[dict[str, float]]
-            A list of dictionaries containing the minimum and maximum values for the column.
+            Column to normalise.
+        value_range : list[dict[str, float]]
+            Single-element list whose dict has ``"min"`` and ``"max"``
+            keys, matching the shape produced by Polars when collecting
+            a struct of ``min``/``max`` aggregations.
 
         Returns
         -------
         pl.Expr
-            A Polars expression representing the normalized column.
-
-        Examples
-        --------
-        >>> range = [{"min": 0.0, "max": 100.0}]
-        >>> min_max("age", range)
-        Column "age" normalized using min-max scaling.
-
+            ``(col - min) / (max - min)``, or the literal ``0.0`` when
+            min == max.
         """
-        if range[0]["min"] == range[0]["max"]:  # pragma: no cover
-            print(f"Column {column_name} only contains one value, so returning 0")
+        lo = value_range[0]["min"]
+        hi = value_range[0]["max"]
+        if lo == hi:  # pragma: no cover
+            logger.info("Column %s only contains one value, returning 0", column_name)
             return pl.lit(0.0).alias(column_name)
-        return (pl.col(column_name) - pl.lit(range[0]["min"])) / (pl.lit(range[0]["max"] - range[0]["min"]))
+        return (pl.col(column_name) - pl.lit(lo)) / (pl.lit(hi - lo))
 
     @staticmethod
-    def _infer_types(df: pl.DataFrame):
-        """Infers the types of columns in a DataFrame.
+    def _infer_types(df: pl.DataFrame) -> dict[str, str]:
+        """Classify each column as ``"numeric"`` or ``"symbolic"``.
 
-        Parameters
-        ----------
-        df (pl.DataFrame):
-            The DataFrame for which to infer column types.
-
-        Returns
-        -------
-        dict:
-            A dictionary mapping column names to their inferred types.
-            The inferred types can be either "numeric" or "symbolic".
-
+        A column is considered numeric if its values can be cast to
+        ``Float64`` (after replacing empty strings with null).
         """
-        types = dict()
+        types: dict[str, str] = {}
         for col in df.collect_schema().names():
             try:
                 ser = df.get_column(col)
@@ -151,54 +140,27 @@ class Anonymization:
             except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError, ValueError) as exc:
                 logger.debug("Column %s defaulted to symbolic: %s", col, exc)
                 types[col] = "symbolic"
-
         return types
 
     @staticmethod
-    def chunker(files: list[str], size: int):
-        """Split a list of files into chunks of a specified size.
-
-        Parameters
-        ----------
-        files (list[str]):
-            A list of file names.
-        size (int):
-            The size of each chunk.
-
-        Returns
-        -------
-        generator:
-            A generator that yields chunks of files.
-
-        Examples
-        --------
-            >>> files = ['file1.txt', 'file2.txt', 'file3.txt', 'file4.txt', 'file5.txt']
-            >>> chunks = chunker(files, 2)
-            >>> for chunk in chunks:
-            ...     print(chunk)
-            ['file1.txt', 'file2.txt']
-            ['file3.txt', 'file4.txt']
-            ['file5.txt']
-
-        """
+    def chunker(files: list[str], size: int) -> Iterator[list[str]]:
+        """Yield successive ``size``-element slices of ``files``."""
         return (files[pos : pos + size] for pos in range(0, len(files), size))
 
-    def chunk_to_parquet(self, files: list[str], i) -> str:
-        """Convert a chunk of files to Parquet format.
+    def chunk_to_parquet(self, files: list[str], i: int) -> str:
+        """Read a chunk of NDJSON files and write them as a parquet file.
 
         Parameters
         ----------
-        files (list[str]):
-            list of file paths to be converted.
-        temp_path (str):
-            Path to the temporary directory where the Parquet file will be saved.
-        i:
-            Index of the chunk.
+        files : list[str]
+            NDJSON file paths to combine.
+        i : int
+            Chunk index (used in the output filename).
 
         Returns
         -------
-        str: File path of the converted Parquet file.
-
+        str
+            Path to the parquet file produced.
         """
         init_df = pl.concat([pl.read_ndjson(n) for n in files], how="diagonal_relaxed")
         df = init_df.select(pl.all().exclude(pl.Null))
@@ -214,17 +176,17 @@ class Anonymization:
         return filename
 
     def preprocess(self, verbose: bool) -> list[str]:
-        """Preprocesses the files in the specified path.
+        """Convert input files into intermediate parquet chunks.
 
         Parameters
         ----------
-            verbose (bool):
-                Set to True to get a progress bar for the file count
+        verbose : bool
+            Show a tqdm progress bar over chunks (if installed).
 
         Returns
         -------
-            list[str]: A list of the temporary bundled parquet files
-
+        list[str]
+            Paths to the temporary chunked parquet files.
         """
         files = glob(self.path_to_files)
         files.sort(key=os.path.getmtime)
@@ -232,7 +194,7 @@ class Anonymization:
         if self.file_limit:
             files = files[: self.file_limit]
 
-        chunked_files = []
+        chunked_files: list[str] = []
         length = math.ceil(len(files) / self.batch_size)
 
         try:
@@ -251,32 +213,22 @@ class Anonymization:
 
         return chunked_files
 
-    def process(
-        self,
-        chunked_files: list[str],
-        verbose: bool = True,
-    ):
-        """Process the data for anonymization.
+    def process(self, chunked_files: list[str], verbose: bool = True) -> None:
+        """Hash, scale, and write the final anonymised parquet file.
 
         Parameters
         ----------
-        chunked_files (list[str]):
-            A list of the bundled temporary parquet files to process
-
-        verbose (bool):
-            Whether to print verbose output. Default is True.
+        chunked_files : list[str]
+            Intermediate parquet files produced by :meth:`preprocess`.
+        verbose : bool, default=True
+            Print which columns will be hashed / scaled / preserved.
 
         Raises
         ------
-        MissingDependenciesException:
-            If polars-hash is not installed.
-
-        Returns
-        -------
-            None
-
+        MissingDependenciesException
+            When ``polars-hash`` is not installed.
         """
-        try:  # to make it optional
+        try:
             import polars_hash as plh
         except ImportError:  # pragma: no cover
             from ..utils.namespaces import MissingDependenciesException
@@ -293,14 +245,11 @@ class Anonymization:
         )
         schema = df.collect_schema()
 
-        symb_nonanonymised = [key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))]
-        nums = [key for key, value in schema.items() if (value.is_numeric() and key not in symb_nonanonymised)]
-        symb = [key for key in schema.names() if (key not in nums and key not in symb_nonanonymised)]
+        skipped = [key for key in schema.names() if key.startswith(self.skip_col_prefix)]
+        nums = [key for key, value in schema.items() if value.is_numeric() and key not in skipped]
+        symb = [key for key in schema.names() if key not in nums and key not in skipped]
         if verbose:
-            print(
-                "Context_* and Decision_* columns (not anonymized): ",
-                symb_nonanonymised,
-            )
+            print("Context_* and Decision_* columns (not anonymized):", skipped)
             print("Numeric columns:", nums)
             print("Symbolic columns:", symb)
 
@@ -313,11 +262,10 @@ class Anonymization:
                 for num in nums
             ],
         ).collect()
-
         min_max_map = min_max_df.to_dict(as_series=False)
 
         anonymised_df = df.select(
-            pl.col(symb_nonanonymised),
+            pl.col(skipped),
             plh.col(symb).chash.sha2_256(),
             *[self.min_max(c, min_max_map[c]) for c in nums],
         )

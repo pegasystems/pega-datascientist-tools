@@ -345,103 +345,100 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
 def read_ds_export(
     filename: str | os.PathLike | BytesIO,
     path: str | os.PathLike = ".",
-    **reading_opts,
+    *,
+    infer_schema_length: int = 10000,
+    separator: str = ",",
+    ignore_errors: bool = False,
 ) -> pl.LazyFrame | None:
     """Read Pega dataset exports with additional capabilities.
 
-    This function extends read_data() with:
-    - Smart file finding: accepts 'modelData' or 'predictorData' and searches for matching files (ADM-specific)
-    - URL downloads: fetches remote files when local paths are not found (useful for demos and examples)
-    - Schema overrides: applies Pega-specific type corrections (e.g., PYMODELID as string)
+    Extends :func:`read_data` with:
 
-    For simple file reading without these features, use read_data() instead.
+    - Smart file finding: accepts ``"model_data"`` or ``"predictor_data"``
+      and searches for matching files (ADM-specific).
+    - URL downloads: fetches remote files when local paths are not found
+      (useful for demos and examples).
+    - Schema overrides: applies Pega-specific type corrections (e.g.
+      ``PYMODELID`` as string).
+
+    For simple file reading without these features, use :func:`read_data`.
 
     Parameters
     ----------
     filename : str, os.PathLike, or BytesIO
-        File identifier. Can be:
-        - Full file path
-        - Generic name like 'modelData' or 'predictorData' (triggers smart search)
-        - BytesIO object (delegates to read_data)
+        File identifier. May be a full file path, a generic name like
+        ``"model_data"`` / ``"predictor_data"`` (triggers smart search),
+        or a :class:`io.BytesIO` object (delegates to :func:`read_data`).
     path : str or os.PathLike, default='.'
-        Directory to search for files (ignored for BytesIO or full paths)
-    **reading_opts
-        Additional Polars scan_* options. Common options include:
-        - infer_schema_length (int, default=10000): Rows to scan for schema inference
-        - separator (str): CSV delimiter
-        - ignore_errors (bool): Continue on parse errors
+        Directory to search for files (ignored for BytesIO or full paths).
+    infer_schema_length : int, keyword-only, default=10000
+        Rows to scan for schema inference (CSV/JSON).
+    separator : str, keyword-only, default=","
+        CSV delimiter.
+    ignore_errors : bool, keyword-only, default=False
+        Whether to continue on parse errors (CSV).
 
     Returns
     -------
     pl.LazyFrame or None
-        Lazy dataframe, or None if file not found
+        Lazy dataframe, or ``None`` if the file could not be located.
 
     Examples
     --------
-    Smart file finding:
-
-    >>> df = read_ds_export('modelData', path='data/ADMData')
-
-    Specific file:
-
-    >>> df = read_ds_export('ModelSnapshot_20210101.json', path='data')
-
-    URL download:
-
-    >>> df = read_ds_export('ModelSnapshot.zip', path='https://example.com/exports')
-
-    Schema control:
-
-    >>> df = read_ds_export('export.csv', infer_schema_length=200000)
-
+    >>> df = read_ds_export("model_data", path="data/ADMData")
+    >>> df = read_ds_export("ModelSnapshot_20210101.json", path="data")
+    >>> df = read_ds_export(
+    ...     "ModelSnapshot.zip", path="https://example.com/exports"
+    ... )
+    >>> df = read_ds_export("export.csv", infer_schema_length=200000)
     """
     file: str | BytesIO | None
     # If the data is a BytesIO object, such as an uploaded file
-    # in certain webapps, delegate directly to read_data
+    # in certain webapps, delegate directly to read_data.
     if isinstance(filename, BytesIO):
         logger.debug("Filename is of type BytesIO, delegating to read_data")
-        # NOTE: read_data doesn't support **reading_opts yet, so warn if provided
-        if reading_opts:
-            logger.warning("reading_opts not supported when using BytesIO with read_ds_export, ignoring")
         return read_data(filename)
 
-    # Convert PathLike to string for processing
-    filename_str = str(filename) if isinstance(filename, os.PathLike) else filename
-    path_str = str(path) if isinstance(path, os.PathLike) else path
+    filename_str = os.fspath(filename)
+    path_str = os.fspath(path)
 
-    # ADM-specific: Smart file finding for modelData/predictorData patterns
-    # If the filename is simply a string, then we first
-    # extract the extension of the file, then look for
-    # the file in the user's directory.
+    # ADM-specific: Smart file finding for model_data/predictor_data patterns.
+    _TARGET_NAMES = {"model_data", "predictor_data", "value_finder", "prediction_data"}
     if os.path.isfile(filename_str):
         file = filename_str
     elif os.path.isfile(os.path.join(path_str, filename_str)):
         logger.debug("File found in directory")
         file = os.path.join(path_str, filename_str)
-    else:
-        logger.debug("File not found in directory, scanning for latest file")
+    elif filename_str in _TARGET_NAMES:
+        logger.debug("Scanning for latest %s file", filename_str)
         file = get_latest_file(path_str, filename_str)
+    else:
+        file = None
 
-    # ADM-specific: URL download support
-    # If we can't find the file locally, we can try
-    # if the file's a URL. If it is, we need to wrap
-    # the file in a BytesIO object, and read the file
-    # fully to disk for pyarrow to read it.
-    if file == "Target not found" or file is None:
+    extension: str | None = None
+
+    # ADM-specific: URL download support.  If we can't find the file
+    # locally, try treating ``path/filename`` as a URL.
+    if file is None:
         logger.debug("Could not find file in directory, checking if URL")
         url = f"{path_str}/{filename_str}"
 
         try:
-            import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs by default
+            import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs
 
             response = requests.get(url)
-            logger.info(f"Response: {response}")
+            logger.info("Remote fetch %s → HTTP %s", url, response.status_code)
             if response.status_code == 200:
                 logger.debug("File found online, importing and parsing to BytesIO")
-                file = BytesIO(response.content)
+                buffer = BytesIO(response.content)
                 _, extension = os.path.splitext(filename_str)
-                # Delegate to import_file for Pega-specific handling
-                return import_file(file, extension, **reading_opts)
+                return _import_file(
+                    buffer,
+                    extension,
+                    infer_schema_length=infer_schema_length,
+                    separator=separator,
+                    ignore_errors=ignore_errors,
+                )
             raise FileNotFoundError(
                 f"Could not find '{filename_str}' locally in '{path_str}', "
                 f"and remote fetch from {url} returned HTTP {response.status_code}."
@@ -450,34 +447,40 @@ def read_ds_export(
         except ImportError:
             warnings.warn(
                 "Unable to import `requests`, so not able to check for remote files. "
-                "If you're trying to read in a file from the internet (or, for instance, "
-                "using the built-in cdh_sample method), please install the 'requests' package.",
+                "If you're trying to read in a file from the internet (or, for "
+                "instance, using the built-in cdh_sample method), install the "
+                "'requests' package.",
                 ImportWarning,
+                stacklevel=2,
             )
+            return None
 
         except requests.exceptions.SSLError:
             warnings.warn(
-                "There was an error making a HTTP request call. This is likely due to your certificates not being installed correctly. Please follow these instructions: https://stackoverflow.com/a/70495761",
+                "SSL error during HTTP request — likely a certificate-bundle "
+                "issue. See https://stackoverflow.com/a/70495761 .",
                 RuntimeWarning,
+                stacklevel=2,
             )
+            return None
 
         except FileNotFoundError:
             raise
 
-        except Exception as e:
-            logger.info(e)
-            logger.info(f"File not found: {path_str}/{filename_str}")
+        except Exception as exc:
+            logger.info("File not found: %s/%s (%s)", path_str, filename_str, exc)
             return None
 
-    # For local files, use import_file for Pega-specific schema handling
-    if file is None:
-        logger.debug("Could not resolve a usable file for %s/%s", path_str, filename_str)
-        return None
-    if "extension" not in vars() and not isinstance(file, BytesIO):
+    if not isinstance(file, BytesIO):
         _, extension = os.path.splitext(file)
 
-    # Delegate to import_file which handles Pega-specific features like schema overrides
-    return import_file(file, extension, **reading_opts)
+    return _import_file(
+        file,
+        extension or "",
+        infer_schema_length=infer_schema_length,
+        separator=separator,
+        ignore_errors=ignore_errors,
+    )
 
 
 def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -513,71 +516,68 @@ def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
     return df
 
 
-def import_file(
+def _import_file(
     file: str | BytesIO,
     extension: str,
-    **reading_opts,
+    *,
+    infer_schema_length: int = 10000,
+    separator: str = ",",
+    ignore_errors: bool = False,
 ) -> pl.LazyFrame:
     """Import a file with Pega-specific schema handling.
 
     Applies ADM-specific type corrections and schema overrides during import.
-    Used internally by read_ds_export() for backward compatibility with legacy code.
+    Used internally by :func:`read_ds_export`.
 
     Parameters
     ----------
     file : str or BytesIO
-        File path or BytesIO object
+        File path or BytesIO object.
     extension : str
-        File extension (e.g., '.csv', '.json', '.parquet')
-    **reading_opts
-        Polars reading options (infer_schema_length, separator, ignore_errors, etc.)
+        File extension (e.g., ``.csv``, ``.json``, ``.parquet``).
+    infer_schema_length : int, keyword-only, default=10000
+        Rows to scan for schema inference (CSV/JSON).
+    separator : str, keyword-only, default=","
+        CSV delimiter.
+    ignore_errors : bool, keyword-only, default=False
+        Whether to continue on parse errors (CSV).
 
     Returns
     -------
     pl.LazyFrame
-        Lazy dataframe with schema corrections applied
-
+        Lazy dataframe with schema corrections applied.
     """
     if extension == ".zip":
         logger.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = read_zipped_file(file)
     elif extension == ".gz":
-        import gzip
-
         if isinstance(file, str):
             extension = os.path.splitext(os.path.splitext(file)[0])[1]
-            file = BytesIO(gzip.GzipFile(file).read())
+            with gzip.open(file, "rb") as gz:
+                file = BytesIO(gz.read())
         else:
-            # For BytesIO objects, extract extension from name attribute if available
-            if hasattr(file, "name"):
-                extension = os.path.splitext(os.path.splitext(file.name)[0])[1]
-            else:
-                extension = ""  # Default to empty if we can't determine
+            extension = os.path.splitext(os.path.splitext(file.name)[0])[1] if hasattr(file, "name") else ""
             file.seek(0)
             file = BytesIO(gzip.decompress(file.read()))
 
     if extension == ".csv":
         csv_opts = dict(
-            separator=reading_opts.get("sep", ","),
-            infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+            separator=separator,
+            infer_schema_length=infer_schema_length,
             null_values=["", "NA", "N/A", "NULL"],
             schema_overrides={"PYMODELID": pl.Utf8},
             try_parse_dates=True,
-            ignore_errors=reading_opts.get("ignore_errors", False),
+            ignore_errors=ignore_errors,
         )
         if isinstance(file, BytesIO):
             df = pl.read_csv(file, **csv_opts).lazy()
         else:
             df = pl.scan_csv(file, **csv_opts)
-        # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
     if extension == ".json":
         try:
-            df = pl.scan_ndjson(
-                file,
-                infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
-            )
+            df = pl.scan_ndjson(file, infer_schema_length=infer_schema_length)
         except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, OSError) as exc:  # pragma: no cover
             logger.debug("scan_ndjson failed for %s: %s", file, exc)
             try:
@@ -593,7 +593,6 @@ def import_file(
                     with open(file) as f:
                         raw = f.read()
                 df = pl.from_dicts(json.loads(raw)["pxResults"]).lazy()
-        # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
     if extension == ".parquet":
@@ -602,7 +601,6 @@ def import_file(
             df = pl.read_parquet(file).lazy()
         else:
             df = pl.scan_parquet(file)
-        # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
     if extension.casefold() in {".feather", ".ipc", ".arrow"}:
@@ -610,7 +608,6 @@ def import_file(
             df = pl.read_ipc(file).lazy()
         else:
             df = pl.scan_ipc(file)
-        # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
     raise ValueError(
@@ -619,81 +616,75 @@ def import_file(
     )
 
 
-def read_zipped_file(
-    file: str | BytesIO,
-) -> tuple[BytesIO, str]:
-    """Read a zipped NDJSON file.
-    Reads a dataset export file as exported and downloaded from Pega. The export
-    file is formatted as a zipped multi-line JSON file. It reads the file,
-    and then returns the file as a BytesIO object.
+def read_zipped_file(file: str | BytesIO) -> tuple[BytesIO, str]:
+    """Read a Pega zipped NDJSON dataset export.
+
+    A Pega dataset export is a zip archive that contains a ``data.json``
+    file (NDJSON format) and optionally a ``META-INF/MANIFEST.mf``
+    metadata file.  This helper opens the zip, locates ``data.json``
+    (top-level or nested) and returns its bytes.
 
     Parameters
     ----------
-    file : str
-        The full path to the file
+    file : str or BytesIO
+        Path to the zip file, or an in-memory zip buffer.
 
     Returns
     -------
-    os.BytesIO
-        The raw bytes object to pass through to Polars
+    tuple[BytesIO, str]
+        A pair of ``(buffer, ".json")`` ready to be passed back into a
+        Polars reader.
 
+    Raises
+    ------
+    FileNotFoundError
+        If the archive does not contain a ``data.json`` entry.
     """
-
-    def get_valid_files(files: list[str]):
-        logger.debug(f"Files found: {files}")
-        if "data.json" in files:
-            return "data.json"
-        # pragma: no cover
-        file = [file for file in files if file.endswith("/data.json")]
-        if len(file) != 1:
-            return None
-        return file[0]
-
     with zipfile.ZipFile(file, mode="r") as z:
-        logger.debug("Opened zip file.")
-        zfile = get_valid_files(z.namelist())
-        logger.debug(f"Opening file {file}")
-        if zfile is not None:
-            logger.debug(
-                "data.json found. For faster reading, parse to arrow or parquet.",
-            )
-            with z.open(zfile) as zippedfile:
-                return (BytesIO(zippedfile.read()), ".json")
-        else:  # pragma: no cover
-            raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
+        names = z.namelist()
+        logger.debug("Files in archive: %s", names)
+        if "data.json" in names:
+            target = "data.json"
+        else:
+            nested = [n for n in names if n.endswith("/data.json")]
+            if len(nested) != 1:
+                raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
+            target = nested[0]
+        with z.open(target) as zipped:
+            return BytesIO(zipped.read()), ".json"
 
 
 def read_multi_zip(
     files: Iterable[str],
-    zip_type: Literal["gzip"] = "gzip",
+    *,
     add_original_file_name: bool = False,
     verbose: bool = True,
 ) -> pl.LazyFrame:
-    """Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
+    """Read multiple gzip-compressed NDJSON files and concatenate them.
 
     Parameters
     ----------
-    files : list
-        The list of files to concat
-    zip_type : Literal['gzip']
-        At this point, only 'gzip' is supported
-    verbose : bool, default = True
-        Whether to print out the progress of the import
+    files : Iterable[str]
+        Paths to the ``.json.gz`` files to read.
+    add_original_file_name : bool, keyword-only, default=False
+        If True, add a ``file`` column recording each source path.
+    verbose : bool, keyword-only, default=True
+        Show a tqdm progress bar (if installed) and print a completion
+        line when done.
 
+    Returns
+    -------
+    pl.LazyFrame
+        Concatenated lazy frame across all input files.
     """
-    import gzip
-
-    if zip_type != "gzip":
-        raise NotImplementedError("Only supports gzip for now")
-
-    table = []
-    total_files = len(files) if isinstance(files, (list, tuple)) else None
+    file_list = list(files)
+    total_files = len(file_list)
 
     try:
         from tqdm import tqdm
 
-        files_iterator = tqdm(
-            files,
+        files_iterator: Iterable[str] = tqdm(
+            file_list,
             desc="Reading files...",
             disable=not verbose,
             total=total_files,
@@ -701,13 +692,14 @@ def read_multi_zip(
     except ImportError:
         if verbose:
             warnings.warn(
-                "tqdm is not installed. For a progress bar, install tqdm: pip install tqdm",
+                "tqdm is not installed. For a progress bar, install tqdm.",
                 UserWarning,
+                stacklevel=2,
             )
-        files_iterator = files
-        if verbose:
             print("Reading files...")
+        files_iterator = file_list
 
+    table = []
     for file in files_iterator:
         data = pl.read_ndjson(gzip.open(file).read())
         if add_original_file_name:
@@ -724,33 +716,36 @@ def get_latest_file(
     path: str | os.PathLike,
     target: str,
 ) -> str | None:
-    """Convenience method to find the latest model snapshot.
-    It has a set of default names to search for and finds all files who match it.
-    Once it finds all matching files in the directory, it chooses the most recent one.
-    Supports [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"].
-    Needs a path to the directory and a target of either 'modelData' or 'predictorData'.
+    """Find the most recent Pega snapshot file matching a target type.
+
+    Searches ``path`` for files whose name matches one of the well-known
+    Pega snapshot patterns for ``target``, then returns the most recent
+    one (parsed from the filename's GMT timestamp, falling back to file
+    ctime).  Supports ``.json``, ``.csv``, ``.zip``, ``.parquet``,
+    ``.feather``, ``.ipc``, ``.arrow``.
 
     Parameters
     ----------
-    path : str
-        The filepath where the data is stored
-    target : str in ['model_data', 'predictor_data', 'prediction_data']
-        Whether to look for data about the predictive models ('model_data')
-        or the predictor bins ('predictor_data')
+    path : str or os.PathLike
+        Directory to search.
+    target : str
+        One of ``"model_data"``, ``"predictor_data"``,
+        ``"prediction_data"``, ``"value_finder"``.
 
     Returns
     -------
-    str
-        The most recent file given the file name criteria.
+    str or None
+        Full path to the most recent matching file, or ``None`` when no
+        matching file exists.
 
+    Raises
+    ------
+    ValueError
+        If ``target`` is not one of the supported names.
     """
-    if target not in {
-        "model_data",
-        "predictor_data",
-        "value_finder",
-        "prediction_data",
-    }:
-        return "Target not found"
+    valid_targets = {"model_data", "predictor_data", "value_finder", "prediction_data"}
+    if target not in valid_targets:
+        raise ValueError(f"Unknown target '{target}'. Expected one of: {sorted(valid_targets)}.")
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
@@ -759,66 +754,78 @@ def get_latest_file(
     logger.debug("Candidate files in %s: %s", path, files_dir)
     matches = find_files(files_dir, target)
 
-    if len(matches) == 0:  # pragma: no cover
-        logger.debug(
-            "Unable to find data for %s. Check if the data is available.",
-            target,
-        )
+    if not matches:  # pragma: no cover
+        logger.debug("No files for %s in %s", target, path)
         return None
 
     paths = [os.path.join(path, name) for name in matches]
 
-    def f(x):
+    def parse_timestamp(filepath: str) -> datetime:
         try:
             return from_prpc_date_time(
-                re.search(r"\d.{0,15}GMT", x)[0].replace("_", " "),
+                re.search(r"\d.{0,15}GMT", filepath)[0].replace("_", " "),  # type: ignore[index]
             )
         except (AttributeError, TypeError, ValueError) as exc:
-            logger.debug("Falling back to ctime for %s: %s", x, exc)
-            return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
+            logger.debug("Falling back to ctime for %s: %s", filepath, exc)
+            return datetime.fromtimestamp(os.path.getctime(filepath), tz=timezone.utc)
 
-    dates = pl.Series([f(i) for i in paths])
+    dates = pl.Series([parse_timestamp(p) for p in paths])
     idx = dates.arg_max()
     if idx is None:
         return None
     return paths[idx]
 
 
-def find_files(files_dir, target):
-    matches = []
-    default_model_names = [
-        "Data-Decision-ADM-ModelSnapshot",
-        "PR_DATA_DM_ADMMART_MDL_FACT",
-        "model_snapshots",
-        "MD_FACT",
-        "ADMMART_MDL_FACT_Data",
-        "cached_modelData",
-        "Models_data",
-    ]
-    default_predictor_names = [
-        "Data-Decision-ADM-PredictorBinningSnapshot",
-        "PR_DATA_DM_ADMMART_PRED",
-        "predictor_binning_snapshots",
-        "PRED_FACT",
-        "cached_predictorData",
-    ]
-    value_finder_names = ["Data-Insights_pyValueFinder", "cached_ValueFinder"]
-    default_prediction_names = ["Data-DM-Snapshot_pyGetSnapshot"]
+def find_files(files_dir: Iterable[str], target: str) -> list[str]:
+    """Filter a list of filenames down to those matching a Pega snapshot target.
 
-    if target == "model_data":
-        names = default_model_names
-    elif target == "predictor_data":
-        names = default_predictor_names
-    elif target == "value_finder":
-        names = value_finder_names
-    elif target == "prediction_data":
-        names = default_prediction_names
-    else:
+    Parameters
+    ----------
+    files_dir : Iterable[str]
+        Filenames to scan (typically the contents of a directory).
+    target : str
+        One of ``"model_data"``, ``"predictor_data"``,
+        ``"prediction_data"``, ``"value_finder"``.
+
+    Returns
+    -------
+    list[str]
+        Filenames whose names match one of the known patterns for ``target``.
+
+    Raises
+    ------
+    ValueError
+        If ``target`` is not one of the supported names.
+    """
+    name_groups: dict[str, list[str]] = {
+        "model_data": [
+            "Data-Decision-ADM-ModelSnapshot",
+            "PR_DATA_DM_ADMMART_MDL_FACT",
+            "model_snapshots",
+            "MD_FACT",
+            "ADMMART_MDL_FACT_Data",
+            "cached_modelData",
+            "Models_data",
+        ],
+        "predictor_data": [
+            "Data-Decision-ADM-PredictorBinningSnapshot",
+            "PR_DATA_DM_ADMMART_PRED",
+            "predictor_binning_snapshots",
+            "PRED_FACT",
+            "cached_predictorData",
+        ],
+        "value_finder": ["Data-Insights_pyValueFinder", "cached_ValueFinder"],
+        "prediction_data": ["Data-DM-Snapshot_pyGetSnapshot"],
+    }
+    if target not in name_groups:
         raise ValueError(f"Target {target} not found.")
+    names = name_groups[target]
+    matches: list[str] = []
     for file in files_dir:
-        match = [file for name in names if re.findall(name.casefold(), file.casefold())]
-        if len(match) > 0:
-            matches.append(match[0])
+        for name in names:
+            if re.findall(name.casefold(), file.casefold()):
+                matches.append(file)
+                break
     return matches
 
 
@@ -893,51 +900,35 @@ def read_dataflow_output(
     files: Iterable[str] | str,
     cache_file_name: str | None = None,
     *,
-    extension: Literal["json"] = "json",
-    compression: Literal["gzip"] = "gzip",
     cache_directory: str | os.PathLike = "cache",
 ):
-    """Reads the file output of a dataflow run.
+    """Read the file output of a Pega dataflow run.
 
     By default, the Prediction Studio data export also uses dataflows,
-    thus this function can be used for those use cases as well.
+    so this function applies to those exports as well.
 
-    Because dataflows have good resiliancy, they can produce a great number of files.
-    By default, every few seconds each dataflow node writes a file for each partition.
-    While this helps the system stay healthy, it is a bit more difficult to consume.
-    This function can take in a list of files (or a glob pattern),
-    and read in all of the files.
+    Dataflow nodes write many small ``.json.gz`` files for each
+    partition.  This helper takes a list of files (or a glob pattern)
+    and concatenates them into a single :class:`polars.LazyFrame`.
 
-    If `cache_file_name` is specified, this function caches the data it read before
-    as a `parquet` file. This not only reduces the file size, it is also very fast.
-    When this function is run and there is a pre-existing parquet file with the name
-    specified in `cache_file_name`, it will read all of the files that weren't read in
-    before and add it to the parquet file. If no new files are found, it simply returns
-    the contents of that parquet file - significantly speeding up operations.
-
-    In a future version, the functionality of this function will be extended to also
-    read from S3 or other remote file systems directly using the same caching method.
+    If ``cache_file_name`` is supplied, results are cached as a parquet
+    file.  Subsequent calls only read files that aren't already in the
+    cache, then update it.
 
     Parameters
     ----------
-    files : Union[str, Iterable[str]]
-        An iterable (list or a glob) of file strings to read.
-        If a string is provided, we call glob() on it to find all files corresponding
-    cache_file_name : str, Optional
-        If given, caches the files to a file with the given name.
-        If None, does not use the cache at all
-    extension : Literal["json"]
-        The extension of the files, by default "json"
-    compression : Literal["gzip"]
-        The compression of the files, by default "gzip"
-    cache_directory : os.PathLike
-        The file path to cache the previously read files
+    files : str or Iterable[str]
+        File paths to read.  If a string is provided, it's expanded with
+        :func:`glob.glob`.
+    cache_file_name : str, optional
+        If given, cache results to ``<cache_directory>/<cache_file_name>.parquet``.
+    cache_directory : str or os.PathLike, keyword-only, default="cache"
+        Directory to store the parquet cache.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from glob import glob
     >>> read_dataflow_output(files=glob("model_snapshots_*.json"))
-
     """
     if isinstance(files, str):
         files = glob(files)
@@ -955,11 +946,7 @@ def read_dataflow_output(
                 return cached_data.filter(pl.col("file").is_in(original_files)).drop("file").lazy()
 
     if files:
-        new_data = read_multi_zip(
-            files=files,
-            zip_type=compression,
-            add_original_file_name=True,
-        )
+        new_data = read_multi_zip(files=files, add_original_file_name=True)
 
     if has_cache():
         cached_data = pl.scan_parquet(cache_file)

@@ -176,9 +176,10 @@ class TestReadMultiZip:
         out = F.read_multi_zip([str(f1), str(f2)], verbose=False).collect()
         assert sorted(out["a"].to_list()) == [1, 2]
 
-    def test_unsupported_zip_type_raises(self):
-        with pytest.raises(NotImplementedError):
-            F.read_multi_zip([], zip_type="bzip2")
+    def test_unsupported_zip_type_removed(self):
+        # zip_type kwarg removed in v5; only gzip was ever supported.
+        with pytest.raises(TypeError):
+            F.read_multi_zip([], zip_type="bzip2")  # type: ignore[call-arg]
 
     def test_verbose_prints(self, tmp_path, capsys):
         f1 = tmp_path / "a.json.gz"
@@ -194,9 +195,9 @@ class TestReadMultiZip:
 
 
 class TestGetLatestFile:
-    def test_unknown_target_returns_string(self, tmp_path):
-        result = F.get_latest_file(str(tmp_path), target="something_else")
-        assert result == "Target not found"
+    def test_unknown_target_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="Unknown target"):
+            F.get_latest_file(str(tmp_path), target="something_else")
 
 
 # ---------------------------------------------------------------------------

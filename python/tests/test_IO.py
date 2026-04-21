@@ -53,8 +53,8 @@ def test_file_not_found():
 
 
 def test_wrong_filename():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="combined_data")
-    assert file == "Target not found"
+    with pytest.raises(ValueError, match="Unknown target"):
+        pega_io.get_latest_file(path=f"{basePath}/data", target="combined_data")
 
 
 # Tests for readZippedFile function

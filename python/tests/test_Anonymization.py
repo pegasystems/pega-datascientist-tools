@@ -26,8 +26,8 @@ def test_anonymize(anonymizer):
 
 
 def test_min_max():
-    range = [{"min": 0.0, "max": 100.0}]
-    expr = Anonymization.min_max("age", range)
+    value_range = [{"min": 0.0, "max": 100.0}]
+    expr = Anonymization.min_max("age", value_range)
     assert isinstance(expr, pl.Expr)
 
 

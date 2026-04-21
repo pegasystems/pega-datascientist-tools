@@ -41,7 +41,7 @@ def test_s3_missing_aioboto3_raises_missing_dependencies(hide_module):
     hide_module("aioboto3")
 
     with pytest.raises(MissingDependenciesException) as excinfo:
-        asyncio.run(S3Data("dummy-bucket").getS3Files("some/prefix"))
+        asyncio.run(S3Data(bucket_name="dummy-bucket").get_files("some/prefix"))
 
     assert "aioboto3" in str(excinfo.value)
     assert "pega_io" in str(excinfo.value)

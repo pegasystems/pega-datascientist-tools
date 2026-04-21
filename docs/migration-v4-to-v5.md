@@ -221,6 +221,110 @@ that logger (or the root logger at `INFO`/`WARNING`) if you relied on
 the stdout output — e.g. the "Data exported to …" message and the
 Excel size / row-limit warnings.
 
+### `S3Data` — snake_case method and parameter names
+
+```python
+# Before (v4.x):
+from pdstools.pega_io import S3Data
+s3 = S3Data(bucketName="my-bucket", temp_dir="./s3")
+files = await s3.getS3Files(prefix="data/")
+await s3.getDatamartData("modelSnapshot", "datamart", True)
+dm = await s3.get_ADMDatamart("datamart", True)
+
+# After (v5):
+from pdstools.pega_io import S3Data
+s3 = S3Data(bucket_name="my-bucket", temp_dir="./s3")
+files = await s3.get_files(prefix="data/")
+await s3.get_datamart_data("modelSnapshot", datamart_folder="datamart", verbose=True)
+dm = await s3.get_adm_datamart(datamart_folder="datamart", verbose=True)
+```
+
+`datamart_folder` and `verbose` are now keyword-only.
+
+### `read_ds_export` — explicit reading options
+
+```python
+# Before (v4.x):
+read_ds_export("export.csv", infer_schema_length=200000, sep=";")
+
+# After (v5):
+read_ds_export("export.csv", infer_schema_length=200000, separator=";")
+```
+
+The function no longer accepts arbitrary `**reading_opts`. The
+supported, keyword-only options are `infer_schema_length`,
+`separator`, and `ignore_errors`. The legacy alias `sep=` is gone —
+use `separator=`.
+
+### `read_multi_zip` — dead `zip_type` parameter removed
+
+```python
+# Before (v4.x):
+read_multi_zip(files, zip_type="gzip", add_original_file_name=True, verbose=True)
+
+# After (v5):
+read_multi_zip(files, add_original_file_name=True, verbose=True)
+```
+
+Only gzip was ever implemented. The remaining `add_original_file_name`
+and `verbose` flags are keyword-only.
+
+### `read_dataflow_output` / `from_dataflow_export` — dead params removed
+
+```python
+# Before (v4.x):
+read_dataflow_output(files, "cache", extension="json", compression="gzip")
+ADMDatamart.from_dataflow_export(m, p, extension="json", compression="gzip")
+ValueFinder.from_dataflow_export(f, extension="json", compression="gzip")
+
+# After (v5):
+read_dataflow_output(files, "cache")
+ADMDatamart.from_dataflow_export(m, p)
+ValueFinder.from_dataflow_export(f)
+```
+
+Only the defaults were ever accepted (`Literal["json"]` /
+`Literal["gzip"]`), so no caller was passing anything meaningful.
+
+### `get_latest_file` — raises on unknown target
+
+```python
+# Before (v4.x):
+get_latest_file(path, target="typo")   # returned the string "Target not found"
+
+# After (v5):
+get_latest_file(path, target="typo")   # raises ValueError
+```
+
+Valid targets remain `"model_data"`, `"predictor_data"`,
+`"prediction_data"`, `"value_finder"`. Returning `None` still means
+"target is valid but no matching file exists in the directory".
+
+### `pdstools.pega_io.File.import_file` removed
+
+It was always an internal helper used by `read_ds_export` for
+Pega-specific schema handling. Use `read_ds_export` directly; it
+covers every code path the old `import_file` did.
+
+### `Anonymization` — no more hard-coded `/tmp`
+
+```python
+# Before (v4.x):
+Anonymization(path_to_files="*.json")
+# → silently wrote chunks to /tmp/anonymisation, created in __init__
+
+# After (v5):
+Anonymization(path_to_files="*.json")
+# → lazily creates a fresh tempfile.mkdtemp() dir when you call .anonymize()
+
+Anonymization(path_to_files="*.json", temporary_path="/my/cache")
+# → still works, directory is created on first use (not in __init__)
+```
+
+`Anonymization.__init__` is now pure — no filesystem side effects.
+`Anonymization.min_max` parameter `range` was renamed to
+`value_range` (it was shadowing the Python builtin).
+
 ---
 
 ## Behaviour changes (no API change, may affect output)

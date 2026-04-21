@@ -3,7 +3,6 @@ from collections.abc import Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Literal
 
 import polars as pl
 
@@ -70,15 +69,11 @@ class ValueFinder:
         n_customers: int | None = None,
         threshold: float | None = None,
         cache_file_prefix: str = "",
-        extension: Literal["json"] = "json",
-        compression: Literal["gzip"] = "gzip",
         cache_directory: os.PathLike | str = "cache",
     ):
         df = read_dataflow_output(
             files,
             cache_file_prefix + "value_finder",
-            extension=extension,
-            compression=compression,
             cache_directory=cache_directory,
         )
 

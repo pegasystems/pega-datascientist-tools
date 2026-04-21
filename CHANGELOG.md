@@ -74,6 +74,39 @@ guide.
   `print()` calls inside the Reports class have been replaced with
   `logging` — redirect the `pdstools.adm.Reports` logger if you relied
   on stdout output.
+- `S3Data` renamed for snake_case compliance: constructor param
+  `bucketName` → `bucket_name`; methods `getS3Files` → `get_files`,
+  `getDatamartData` → `get_datamart_data`, `get_ADMDatamart` →
+  `get_adm_datamart`. The `datamart_folder` parameter is now
+  keyword-only on both methods. `DATAMART_TABLE_PREFIXES` is now a
+  module-level dict for user extension.
+- `pdstools.pega_io.read_ds_export` no longer accepts arbitrary
+  `**reading_opts`. Only `infer_schema_length`, `separator`, and
+  `ignore_errors` are supported, all keyword-only.
+- `pdstools.pega_io.read_multi_zip` parameters `add_original_file_name`
+  and `verbose` are now keyword-only. Dead `zip_type` parameter removed
+  (only gzip was ever implemented).
+- `pdstools.pega_io.read_dataflow_output` dead `extension` and
+  `compression` parameters removed (only the defaults were ever
+  implemented). `ADMDatamart.from_dataflow_export` and
+  `ValueFinder.from_dataflow_export` drop the matching pass-through
+  kwargs.
+- `pdstools.pega_io.get_latest_file` now raises `ValueError` when
+  passed an unknown `target` instead of returning the string sentinel
+  `"Target not found"`. Returning `None` still signals "no matching
+  file present in the directory".
+- `Anonymization` constructor: default `temporary_path` is now `None`
+  (lazily creates a fresh `tempfile.mkdtemp` directory on first use)
+  instead of the hard-coded `/tmp/anonymisation`. No directory is
+  created at construction time. Parameter
+  `skip_columns_with_prefix` accepts a tuple too.
+- `Anonymization.min_max` parameter `range` renamed to `value_range`
+  (shadowed the builtin).
+
+### Removed
+
+- `pdstools.pega_io.File.import_file` (public helper). It was always
+  internal to `read_ds_export`; use `read_ds_export` instead.
 ### Added
 
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).

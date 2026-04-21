@@ -1,88 +1,91 @@
-import asyncio
+"""Async S3 helper for downloading Pega dataset exports."""
 
-from . import File
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+from typing import TYPE_CHECKING
+
+from .File import read_multi_zip
+
+if TYPE_CHECKING:
+    from ..adm.ADMDatamart import ADMDatamart
+
+logger = logging.getLogger(__name__)
+
+
+# Datamart table → S3 key prefix.  Public so users can extend.
+DATAMART_TABLE_PREFIXES: dict[str, str] = {
+    "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
+    "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
+    "binaryDistribution": "Data-DM-BinaryDistribution",
+    "contingencyTable": "Data-DM-ContingencyTable",
+    "histogram": "Data-DM-Histogram",
+    "snapshot": "Data-DM-Snapshot",
+    "notification": "Data-DM-Notification",
+}
 
 
 class S3Data:
-    def __init__(
-        self,
-        bucketName: str,
-        temp_dir="./s3_download",
-    ):
-        """A class to interact with datasets exported to an S3 repository.
+    """Asynchronous helper for downloading Pega datasets from S3.
 
-        Any files that are downloaded are copied into the `temp_dir` folder.
-        Recommended to configure this to point to an empty folder on your computer.
+    Use this when Prediction Studio is configured to export monitoring
+    tables to an S3 bucket: it downloads the partitioned ``.json.gz``
+    files into a local directory and (optionally) hands them off to
+    :class:`pdstools.adm.ADMDatamart`.
 
-        Parameters
-        ----------
-        bucketName: str
-            The name of the bucket the datamart folder is in
-        temp_dir: str, default = './s3_download'
-            The directory to download the s3 files to before reading them
+    Parameters
+    ----------
+    bucket_name : str
+        Name of the S3 bucket containing the dataset folder.
+    temp_dir : str, default="./s3_download"
+        Directory where downloaded files are placed.  Should be a folder
+        you don't mind being filled with cached exports.
+    """
 
-        """
-        self.bucketName = bucketName
+    def __init__(self, bucket_name: str, temp_dir: str = "./s3_download"):
+        self.bucket_name = bucket_name
         self.temp_dir = temp_dir
 
-    async def getS3Files(self, prefix, use_meta_files=False, verbose=True):
-        """OOTB file exports can be written in many very small files.
+    async def get_files(
+        self,
+        prefix: str,
+        *,
+        use_meta_files: bool = False,
+        verbose: bool = True,
+    ) -> list[str]:
+        """Download files from the bucket whose key starts with ``prefix``.
 
-        This method asyncronously retrieves these files, and puts them in
-        a temporary directory.
+        Pega data exports are split into many small files.  This method
+        fetches them concurrently into :attr:`temp_dir`, skipping any
+        file that already exists locally.
 
-        The logic, if `use_meta_files` is True, is:
+        When ``use_meta_files`` is True, each real export file ``X`` is
+        accompanied by a ``.X.meta`` sentinel file that signals the
+        export has finished. We list keys under the dotted prefix
+        (``path/to/.files``), keep entries ending in ``.meta``, and map
+        them back to the underlying file (``path/to/files_001.json``).
+        ``.meta`` files themselves are never copied locally.
 
-        1. Take the prefix, add a `.` in front of it
-        (`'path/to/files'` becomes (`'path/to/.files'`)
-
-        * rsplit on `/` (`['path/to', 'files']`)
-
-        * take the last element (`'files'`)
-
-        * add `.` in front of it (`'.files'`)
-
-        * concat back to a filepath  (`'path/to/.files'`)
-
-        3. fetch all files in the repo that adhere to the prefix (`'path/to/.files*'`)
-
-        4. For each file, if the file ends with `.meta`:
-
-        * rsplit on '/' (`['path/to', '.files_001.json.meta']`)
-
-        * for the last element (just the filename), strip the period and the .meta (`['path/to', 'files_001.json']`)
-
-        * concat back to a filepath (`'path/to/files_001.json'`)
-
-        5. Import all files in the list
-
-        If `use_meta_files` is False, the logic is as simple as:
-
-        1. Import all files starting with the prefix
-        (`'path/to/files'` gives
-        `['path/to/files_001.json', 'path/to/files_002.json', etc]`,
-        irrespective of whether a `.meta` file exists).
+        When ``use_meta_files`` is False, every key under ``prefix`` is
+        downloaded.
 
         Parameters
         ----------
-        prefix: str
-            The prefix, pointing to the s3 files. See boto3 docs for filter.
-        use_meta_files: bool, default=False
-            Whether to use the meta files to check for eligible files
+        prefix : str
+            S3 key prefix (see boto3 ``Bucket.objects.filter(Prefix=...)``).
+        use_meta_files : bool, keyword-only, default=False
+            Whether to use companion ``.meta`` files to gate downloads.
+        verbose : bool, keyword-only, default=True
+            Show a tqdm progress bar (if installed) and print a summary.
 
-        Notes
-        -----
-        We don't import/copy over the .meta files at all.
-        There is an internal function, getNewFiles(), that checks if the filename
-        exists in the local file system. Since the meta files are not really useful for
-        local processing, there's no sense in copying them over. This logic also still
-        works with the use_meta_files - we first check which files are 'eligible' in S3
-        because they have a meta file, then we check if the 'real' files exist on disk.
-        If the file is already on disk, we don't copy it over.
-
+        Returns
+        -------
+        list[str]
+            Local paths of all files that match ``prefix`` (newly
+            downloaded *and* already cached).
         """
-        import os
-
         try:
             import aioboto3
         except ImportError:
@@ -94,56 +97,48 @@ class S3Data:
                 deps_group="pega_io",
             )
 
-        def createPathIfNotExists(path):
+        def ensure_path(path: str) -> None:
             if not os.path.exists(path):
                 os.mkdir(path)
 
-        def localFile(file):
+        def local_path(file: str) -> str:
             return f"{self.temp_dir}/{file}"
 
-        def getNewFiles(files):
-            newFiles, alreadyOnDisk = [], []
+        def split_new_files(files: list[str]) -> tuple[list[str], list[str]]:
+            new_files, already_on_disk = [], []
             for file in files:
-                localFileName = localFile(file)
-                if os.path.exists(localFileName):
-                    alreadyOnDisk.append(file)
-                else:
-                    newFiles.append(file)
-            return newFiles, alreadyOnDisk
+                (already_on_disk if os.path.exists(local_path(file)) else new_files).append(file)
+            return new_files, already_on_disk
 
-        def createTask(file):
+        def make_download_task(file: str):
             filename = f"{self.temp_dir}/{file}"
-            createPathIfNotExists(f"{self.temp_dir}/{file.rsplit('/')[:-1][0]}")
+            ensure_path(f"{self.temp_dir}/{file.rsplit('/')[:-1][0]}")
             return asyncio.create_task(
-                s3.meta.client.download_file(self.bucketName, file, filename),
+                s3.meta.client.download_file(self.bucket_name, file, filename),
             )
 
-        async def getfilesToImport(bucket, prefix, use_meta_files=False):
+        async def discover_files(bucket, prefix: str, use_meta_files: bool):
             if use_meta_files:
-                to_import = []
-                prefix2 = "/.".join(prefix.rsplit("/", 1))
-                async for s3_object in bucket.objects.filter(Prefix=prefix2):
-                    f = s3_object.key
-                    if str(f).endswith(".meta"):
+                to_import: list[str] = []
+                dotted_prefix = "/.".join(prefix.rsplit("/", 1))
+                async for s3_object in bucket.objects.filter(Prefix=dotted_prefix):
+                    key = s3_object.key
+                    if str(key).endswith(".meta"):
                         to_import.append(
-                            "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0],
+                            "/".join(key.rsplit("/.", 1)).rsplit(".meta", 1)[0],
                         )
             else:
                 to_import = [s3_object.key async for s3_object in bucket.objects.filter(Prefix=prefix)]
-            return getNewFiles(to_import)
+            return split_new_files(to_import)
 
-        createPathIfNotExists(self.temp_dir)
+        ensure_path(self.temp_dir)
 
         session = aioboto3.Session()
         async with session.resource("s3") as s3:
-            bucket = await s3.Bucket(self.bucketName)
-            files, alreadyOnDisk = await getfilesToImport(
-                bucket,
-                prefix,
-                use_meta_files,
-            )
+            bucket = await s3.Bucket(self.bucket_name)
+            files, already_on_disk = await discover_files(bucket, prefix, use_meta_files)
 
-            tasks = [createTask(f) for f in files]
+            tasks = [make_download_task(f) for f in files]
 
             try:
                 from tqdm.asyncio import tqdm
@@ -157,105 +152,82 @@ class S3Data:
             except ImportError:
                 iterable = tasks
 
-            _ = [await task_ for task_ in iterable]
+            for task in iterable:
+                await task
 
         if verbose:
             print(
-                f"Completed {prefix}. Imported {len(files)} files, skipped {len(alreadyOnDisk)} files.",
+                f"Completed {prefix}. Imported {len(files)} files, skipped {len(already_on_disk)} files.",
             )
-        return list(map(localFile, [*files, *alreadyOnDisk]))
+        return [local_path(f) for f in (*files, *already_on_disk)]
 
-    async def getDatamartData(
+    async def get_datamart_data(
         self,
-        table,
+        table: str,
+        *,
         datamart_folder: str = "datamart",
         verbose: bool = True,
-    ):
-        """Wrapper method to import one of the tables in the datamart.
+    ) -> list[str]:
+        """Download a single datamart table from S3.
 
         Parameters
         ----------
-        table: str
-            One of the datamart tables. See notes for the full list.
-        datamart_folder: str, default='datamart'
-            The path to the 'datamart' folder within the s3 bucket.
-            Typically, this is the top-level folder in the bucket.
-        verbose: bool, default = True
-            Whether to print out the progress of the import
+        table : str
+            Datamart table name. One of the keys in
+            :data:`DATAMART_TABLE_PREFIXES`: ``"modelSnapshot"``,
+            ``"predictorSnapshot"``, ``"binaryDistribution"``,
+            ``"contingencyTable"``, ``"histogram"``, ``"snapshot"``,
+            ``"notification"``.
+        datamart_folder : str, keyword-only, default="datamart"
+            Top-level folder inside the bucket that contains the
+            datamart export.
+        verbose : bool, keyword-only, default=True
+            Show download progress.
 
-        Note
-        ----
-        Supports the following tables:
-        {
-            - "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
-            - "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
-            - "binaryDistribution": "Data-DM-BinaryDistribution",
-            - "contingencyTable": "Data-DM-ContingencyTable",
-            - "histogram": "Data-DM-Histogram",
-            - "snapshot": "Data-DM-Snapshot",
-            - "notification": "Data-DM-Notification",
-        }
-
+        Returns
+        -------
+        list[str]
+            Local paths of the downloaded files.
         """
-        tables = {
-            "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
-            "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
-            "binaryDistribution": "Data-DM-BinaryDistribution",
-            "contingencyTable": "Data-DM-ContingencyTable",
-            "histogram": "Data-DM-Histogram",
-            "snapshot": "Data-DM-Snapshot",
-            "notification": "Data-DM-Notification",
-        }
-        prefix = f"{datamart_folder}/{tables[table]}"
-        importedFiles = await self.getS3Files(prefix=prefix, verbose=verbose)
-        return importedFiles
+        prefix = f"{datamart_folder}/{DATAMART_TABLE_PREFIXES[table]}"
+        return await self.get_files(prefix=prefix, verbose=verbose)
 
-    async def get_ADMDatamart(
+    async def get_adm_datamart(
         self,
+        *,
         datamart_folder: str = "datamart",
         verbose: bool = True,
-    ):
-        """Get the ADMDatamart class directly from files in S3
+    ) -> ADMDatamart:
+        """Construct an :class:`ADMDatamart` directly from S3.
 
-        In the Prediction Studio settings, you can configure an automatic
-        export of the monitoring tables to a chosen repository. This method
-        interacts with that repository to retrieve files.
-
-        Because this is an async function, you need to await it.
-        See `Examples` for an example on how to use this (in a jupyter notebook).
-
-        It checks for files that are already on your local device, but it always
-        concatenates the raw zipped files together when calling the function, which can
-        potentially make it slow. If you don't always need the latest data, just use
-        :meth:`pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
-        digestible files.
+        Convenience wrapper that downloads the model and predictor
+        snapshot exports and feeds them into :class:`ADMDatamart`.
+        Because this is an async function, it must be awaited.
 
         Parameters
         ----------
-        verbose:
-            Whether to print out the progress of the imports
-        datamart_folder: str, default='datamart'
-            The path to the 'datamart' folder within the s3 bucket.
-            Typically, this is the top-level folder in the bucket.
+        datamart_folder : str, keyword-only, default="datamart"
+            Top-level folder inside the bucket that contains the
+            datamart export.
+        verbose : bool, keyword-only, default=True
+            Show download progress.
+
+        Returns
+        -------
+        ADMDatamart
+            A datamart populated with the freshly downloaded files.
 
         Examples
         --------
-        >>> dm = await S3Datamart(bucketName='testbucket').get_ADMDatamart()
-
+        >>> dm = await S3Data(bucket_name="testbucket").get_adm_datamart()
         """
-        from pdstools import ADMDatamart
+        from ..adm.ADMDatamart import ADMDatamart
 
-        modelData = await self.getDatamartData(
-            "modelSnapshot",
-            datamart_folder,
-            verbose,
-        )
-        predictorData = await self.getDatamartData(
-            "predictorSnapshot",
-            datamart_folder,
-            verbose,
+        model_files = await self.get_datamart_data("modelSnapshot", datamart_folder=datamart_folder, verbose=verbose)
+        predictor_files = await self.get_datamart_data(
+            "predictorSnapshot", datamart_folder=datamart_folder, verbose=verbose
         )
         return ADMDatamart(
-            model_df=File.read_multi_zip(modelData, verbose=verbose),
-            predictor_df=File.read_multi_zip(predictorData, verbose=verbose),
+            model_df=read_multi_zip(model_files, verbose=verbose),
+            predictor_df=read_multi_zip(predictor_files, verbose=verbose),
         )

@@ -60,26 +60,26 @@ def _patch_aioboto3(monkeypatch, keys):
 
 class TestConstructor:
     def test_defaults(self):
-        s3 = S3Data(bucketName="my-bucket")
-        assert s3.bucketName == "my-bucket"
+        s3 = S3Data(bucket_name="my-bucket")
+        assert s3.bucket_name == "my-bucket"
         assert s3.temp_dir == "./s3_download"
 
     def test_custom_temp_dir(self):
-        s3 = S3Data(bucketName="b", temp_dir="/tmp/x")
-        assert s3.temp_dir == "/tmp/x"
+        s3 = S3Data(bucket_name="b", temp_dir="/var/tmp/x")
+        assert s3.temp_dir == "/var/tmp/x"
 
 
 class TestMissingAioboto3:
     def test_raises_missing_dependencies_exception(self, monkeypatch):
-        # Force "import aioboto3" inside getS3Files to fail
+        # Force "import aioboto3" inside get_files to fail
         monkeypatch.setitem(sys.modules, "aioboto3", None)
         from pdstools.utils.namespaces import MissingDependenciesException
 
-        s3 = S3Data(bucketName="b", temp_dir="/tmp/no")
+        s3 = S3Data(bucket_name="b", temp_dir="/var/tmp/no")
         import asyncio
 
         with pytest.raises(MissingDependenciesException):
-            asyncio.run(s3.getS3Files(prefix="x"))
+            asyncio.run(s3.get_files(prefix="x"))
 
 
 class TestGetS3Files:
@@ -87,10 +87,10 @@ class TestGetS3Files:
         keys = ["data/file1.json", "data/file2.json"]
         download_file = _patch_aioboto3(monkeypatch, keys)
 
-        s3 = S3Data(bucketName="b", temp_dir=str(tmp_path / "dl"))
+        s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path / "dl"))
         import asyncio
 
-        result = asyncio.run(s3.getS3Files(prefix="data/", verbose=False))
+        result = asyncio.run(s3.get_files(prefix="data/", verbose=False))
 
         assert download_file.await_count == 2
         # All returned paths should be inside temp_dir
@@ -110,10 +110,10 @@ class TestGetS3Files:
         (sub / "file1.json").write_text("x")
         (sub / "file2.json").write_text("x")
 
-        s3 = S3Data(bucketName="b", temp_dir=str(temp))
+        s3 = S3Data(bucket_name="b", temp_dir=str(temp))
         import asyncio
 
-        result = asyncio.run(s3.getS3Files(prefix="data/", verbose=False))
+        result = asyncio.run(s3.get_files(prefix="data/", verbose=False))
         # No downloads since both already on disk
         assert download_file.await_count == 0
         assert len(result) == 2
@@ -129,11 +129,11 @@ class TestGetS3Files:
         ]
         download_file = _patch_aioboto3(monkeypatch, keys)
 
-        s3 = S3Data(bucketName="b", temp_dir=str(tmp_path / "dl"))
+        s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path / "dl"))
         import asyncio
 
         result = asyncio.run(
-            s3.getS3Files(prefix="data/files", use_meta_files=True, verbose=False),
+            s3.get_files(prefix="data/files", use_meta_files=True, verbose=False),
         )
         # Two .meta files → two real files downloaded
         assert download_file.await_count == 2
@@ -145,10 +145,10 @@ class TestGetS3Files:
 
     def test_verbose_prints_summary(self, monkeypatch, tmp_path, capsys):
         _patch_aioboto3(monkeypatch, ["d/a.json"])
-        s3 = S3Data(bucketName="b", temp_dir=str(tmp_path / "dl"))
+        s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path / "dl"))
         import asyncio
 
-        asyncio.run(s3.getS3Files(prefix="d/", verbose=True))
+        asyncio.run(s3.get_files(prefix="d/", verbose=True))
         captured = capsys.readouterr()
         assert "Completed d/" in captured.out
         assert "Imported 1 files" in captured.out
@@ -158,37 +158,37 @@ class TestGetS3Files:
         # Hide tqdm.asyncio so the ImportError fallback path runs
         monkeypatch.setitem(sys.modules, "tqdm.asyncio", None)
 
-        s3 = S3Data(bucketName="b", temp_dir=str(tmp_path / "dl"))
+        s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path / "dl"))
         import asyncio
 
-        asyncio.run(s3.getS3Files(prefix="d/", verbose=False))
+        asyncio.run(s3.get_files(prefix="d/", verbose=False))
         assert download_file.await_count == 1
 
 
 class TestGetDatamartData:
     def test_routes_modelSnapshot_to_correct_prefix(self, monkeypatch, tmp_path):
-        with patch.object(S3Data, "getS3Files", new=AsyncMock(return_value=["x"])) as mock_files:
-            s3 = S3Data(bucketName="b", temp_dir=str(tmp_path))
+        with patch.object(S3Data, "get_files", new=AsyncMock(return_value=["x"])) as mock_files:
+            s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path))
             import asyncio
 
-            result = asyncio.run(s3.getDatamartData("modelSnapshot", verbose=False))
+            result = asyncio.run(s3.get_datamart_data("modelSnapshot", verbose=False))
         assert result == ["x"]
         kwargs = mock_files.await_args.kwargs
         assert kwargs["prefix"] == "datamart/Data-Decision-ADM-ModelSnapshot_pzModelSnapshots"
 
     def test_custom_datamart_folder(self, monkeypatch, tmp_path):
-        with patch.object(S3Data, "getS3Files", new=AsyncMock(return_value=[])) as mock_files:
-            s3 = S3Data(bucketName="b", temp_dir=str(tmp_path))
+        with patch.object(S3Data, "get_files", new=AsyncMock(return_value=[])) as mock_files:
+            s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path))
             import asyncio
 
             asyncio.run(
-                s3.getDatamartData("histogram", datamart_folder="dm2", verbose=False),
+                s3.get_datamart_data("histogram", datamart_folder="dm2", verbose=False),
             )
         assert mock_files.await_args.kwargs["prefix"] == "dm2/Data-DM-Histogram"
 
     def test_unknown_table_raises(self, tmp_path):
-        s3 = S3Data(bucketName="b", temp_dir=str(tmp_path))
+        s3 = S3Data(bucket_name="b", temp_dir=str(tmp_path))
         import asyncio
 
         with pytest.raises(KeyError):
-            asyncio.run(s3.getDatamartData("nonexistent_table"))
+            asyncio.run(s3.get_datamart_data("nonexistent_table"))
