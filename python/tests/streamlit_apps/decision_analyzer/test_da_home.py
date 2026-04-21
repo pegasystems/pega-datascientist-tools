@@ -19,8 +19,11 @@ def test_home_renders_without_data(da_app_dir: Path):
     This is the first thing a user sees — if it raises we have a
     boot-time regression. Checks:
     - No exception bubbles out of the script.
-    - The page title appears (proves ``standard_page_config`` ran).
-    - At least one input widget rendered (the sample-size spinner).
+    - The page branding markdown appears (proves
+      ``show_sidebar_branding`` and the first ``st.write`` ran).
+    - The sample-size ``number_input`` rendered.
+    - A ``file_uploader`` widget rendered so the user actually has
+      a way to load data.
     """
     at = AppTest.from_file(str(da_app_dir / "Home.py"), default_timeout=30)
     at.run()
@@ -30,3 +33,5 @@ def test_home_renders_without_data(da_app_dir: Path):
     headings += [str(m.value) for m in at.markdown]
     assert any("Decision Analysis" in s for s in headings), "Expected 'Decision Analysis' header/title not found"
     assert list(at.number_input), "Expected at least one number_input (sample size)"
+    file_uploaders = at.get("file_uploader") if hasattr(at, "get") else []
+    assert list(file_uploaders), "Expected a file_uploader widget for data entry"
