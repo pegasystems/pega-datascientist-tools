@@ -19,7 +19,7 @@ from .ExplanationsUtils import (
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     import plotly.graph_objects as go
 
     from .Explanations import Explanations

@@ -16,7 +16,7 @@ import polars as pl
 
 from .utils import apply_filter, gini_coefficient
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .DecisionAnalyzer import DecisionAnalyzer
 
 

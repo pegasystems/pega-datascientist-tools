@@ -30,7 +30,7 @@ from ._nodes import (
     parse_split,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     import pydot
 
 # Pinned to the original module path so existing log filters and the

@@ -24,7 +24,7 @@ from typing_extensions import ParamSpec
 from ...utils.metric_limits import MetricLimits
 from ...utils.plot_utils import Figure
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from ._base import _PlotsBase
 
 logger = logging.getLogger(__name__)

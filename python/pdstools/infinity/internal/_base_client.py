@@ -392,7 +392,7 @@ class _DefaultAsyncHttpxClient(httpx.AsyncClient):  # pragma: no cover
         super().__init__(**kwargs)
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     DefaultAsyncHttpxClient = httpx.AsyncClient
     """An alias to `httpx.AsyncClient` that provides the same defaults that this SDK
     uses internally.

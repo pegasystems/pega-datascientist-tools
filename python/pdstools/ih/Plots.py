@@ -15,7 +15,7 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .IH import IH as IH_Class
 
 

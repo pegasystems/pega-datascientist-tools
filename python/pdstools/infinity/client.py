@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from ..utils.namespaces import MissingDependenciesException
 from .internal._base_client import AsyncAPIClient, SyncAPIClient
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     import httpx
 
     from .internal._auth import PegaOAuth

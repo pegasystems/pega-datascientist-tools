@@ -16,7 +16,7 @@ import polars.selectors as cs
 
 from .utils import apply_filter
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .DecisionAnalyzer import DecisionAnalyzer
 
 

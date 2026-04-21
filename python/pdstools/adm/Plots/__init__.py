@@ -43,7 +43,7 @@ from ._performance import _PerformancePlotsMixin
 from ._predictors import _PredictorPlotsMixin
 from ._score import _ScorePlotsMixin
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from ..ADMDatamart import ADMDatamart
 
 __all__ = [

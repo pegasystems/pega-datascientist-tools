@@ -15,7 +15,7 @@ from ..utils.metric_limits import (
 )
 from ..utils.types import QUERY
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)

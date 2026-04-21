@@ -9,7 +9,7 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from plotly.graph_objects import Figure
 
     from .Prediction import Prediction

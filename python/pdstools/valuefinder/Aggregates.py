@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .ValueFinder import ValueFinder
 
 

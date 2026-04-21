@@ -20,7 +20,7 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .ValueFinder import ValueFinder
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]

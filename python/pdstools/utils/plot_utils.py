@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 import polars as pl
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from plotly.graph_objs import Figure as _Figure
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Modules use this in annotations (and as a runtime alias) so they can be
 # imported without plotly being installed. At runtime it resolves to ``Any``
 # so importers don't need plotly; type checkers see the real ``Figure``.
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     Figure: TypeAlias = "_Figure"
 else:
     Figure = Any

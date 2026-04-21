@@ -16,7 +16,7 @@ from ..utils.plot_utils import (
     simplify_facet_titles,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
