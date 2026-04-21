@@ -531,88 +531,11 @@ class IH:
             customer_outcomes.append(tuple(outcome_actions))
 
         def accumulate_counts(sequences, outcomes):
-            # Populate ``count_actions`` and ``count_sequences`` directly — no
-            # intermediate lists of emitted ngrams.
-            #
-            # Semantics (unchanged from the original implementation)
-            # ------------------------------------------------------
-            # For each customer sequence ``seq`` of length L with binary
-            # outcome vector ``out``, the reference algorithm considered every
-            # contiguous window ``seq[i:i+n]`` with ``n >= 2`` whose *last*
-            # outcome was positive (``out[i+n-1] == 1``). Each such window was
-            # pushed onto working lists that were then tallied:
-            #
-            #   * length-2 windows (bigrams) → appended to both ``bigrams_all``
-            #     and ``bigrams``;
-            #   * length-≥3 windows (ngrams) → appended to ``ngrams``, plus
-            #     every constituent bigram ``ngram[k:k+2]`` appended to
-            #     ``bigrams_all``;
-            #   * ``count_sequences[3][ngram] += 1`` once per *distinct* window
-            #     per customer, gated by a customer-local ``ngrams_seen`` set.
-            #
-            # The first commit on this branch inverted the outer iteration to
-            # walk only *positive end positions* ``j`` (``out[j] == 1``,
-            # ``j >= 1``), which covers exactly the same set of (start,
-            # length) pairs via the bijection ``i = j - n + 1`` and drops the
-            # outer enumeration from O(L²) to O(P · L), where P is the
-            # per-customer positive count.
-            #
-            # This commit fuses the three lists away
-            # --------------------------------------
-            # The lists ``bigrams_all``, ``bigrams``, ``ngrams`` were only
-            # ever consumed by post-processing loops that built frequency
-            # counters. Since ``defaultdict(int)`` increments commute, only
-            # the *multiset* of emissions matters — and the multiset has a
-            # closed form for a fixed positive end ``j``:
-            #
-            #   * Bigram ``seq[j-1:j+1]`` (the "ending" bigram): emitted into
-            #     ``bigrams_all`` exactly ``j`` times — once from the ``n=2``
-            #     branch, plus once per each of the ``j-1`` ngrams of length
-            #     ``n = 3..j+1`` (every such ngram contains the ending
-            #     bigram as its rightmost pair).
-            #   * Bigram ``seq[k:k+2]`` for ``k = 0..j-2`` (an "earlier"
-            #     bigram): emitted into ``bigrams_all`` exactly ``k + 1``
-            #     times. Reason: such a bigram appears in the ngram of
-            #     length ``n`` iff ``j - n + 1 <= k``, i.e. ``n >= j - k + 1``;
-            #     the count of valid ``n`` in ``[3, j+1]`` is
-            #     ``(j + 1) - (j - k + 1) + 1 = k + 1``.
-            #   * Bigram ``seq[j-1:j+1]`` is pushed into ``bigrams`` exactly
-            #     once per positive ``j`` (only the ``n=2`` branch writes
-            #     to that list).
-            #   * Length-≥3 ngrams ``seq[j-n+1:j+1]`` for ``n = 3..j+1`` each
-            #     appear exactly once in ``ngrams`` per positive ``j``.
-            #
-            # Therefore for every positive end position ``j`` we can
-            # increment the counters *directly*:
-            #
-            #   count_sequences[0][ending]              += j
-            #   count_actions[0][(seq[j-1],)]           += j
-            #   count_actions[1][(seq[j],)]             += j
-            #   count_sequences[2][ending]              += 1
-            #   for k in 0..j-2:
-            #       count_sequences[0][seq[k:k+2]]      += (k + 1)
-            #       count_actions[0][(seq[k],)]         += (k + 1)
-            #       count_actions[1][(seq[k+1],)]       += (k + 1)
-            #   for n in 3..j+1:
-            #       count_sequences[1][seq[j-n+1:j+1]]  += 1
-            #
-            # ``count_sequences[3]`` still requires the ``ngrams_seen`` set
-            # because its uniqueness is per-customer. The full ngram tuple
-            # is needed as a dict key for ``count_sequences[1]`` and
-            # ``count_sequences[3]``, so the O(n) tuple slice there is
-            # genuinely unavoidable — but the per-ngram O(n) *bigram
-            # expansion* loop that used to dominate is now gone.
-            #
-            # Complexity per positive ``j``:
-            #   bigram bookkeeping  : O(j²)   → O(j)
-            #   ngram bookkeeping   : O(sum_{n=3..j+1} n) = O(j²)   (unchanged,
-            #                         inherent to ngram-keyed dicts)
-            #
-            # Correctness of this rewrite is locked in by
-            # ``python/tests/ih/test_IH_get_sequences.py``, which runs the
-            # verbatim pre-rewrite implementation side-by-side and asserts
-            # bit-exact equality of every counter for hand-crafted,
-            # randomised, and end-to-end pipeline inputs.
+            # Iterate over positive end positions j only, and use the
+            # closed-form multiplicity of each (bigram, ending j) pair to
+            # increment the counters directly — no intermediate ngram lists.
+            # Equivalence to the original triple-list implementation is
+            # locked in by python/tests/ih/test_IH_get_sequences.py.
             for seq, out in zip(sequences, outcomes, strict=False):
                 ngrams_seen = set()
 
