@@ -52,7 +52,7 @@ def requires(
         func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
     ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
         @overload
-        def wrapper(  # type: ignore[valid-type]
+        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
             self: T,
             *args: P.args,
             return_df: Literal[False] = ...,
@@ -60,7 +60,7 @@ def requires(
         ) -> Figure: ...
 
         @overload
-        def wrapper(  # type: ignore[valid-type]
+        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
             self: T,
             *args: P.args,
             return_df: Literal[True],
@@ -68,7 +68,7 @@ def requires(
         ) -> pl.LazyFrame: ...
 
         @wraps(func)
-        def wrapper(  # type: ignore[valid-type]
+        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
             self: T,
             *args: P.args,
             return_df: bool = False,
@@ -98,7 +98,7 @@ def requires(
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
-            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]
+            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]  # ParamSpec forwarding: mypy loses track of kwargs type through *args/**kwargs
 
         return wrapper
 
@@ -304,7 +304,7 @@ class Plots(LazyNamespace):
         else:
             facet_name = None
         df = (
-            (self.datamart.aggregates.last() if last else self.datamart.model_data)  # type: ignore[union-attr]
+            (self.datamart.aggregates.last() if last else self.datamart._require_model_data())
             .select(*columns_to_select)
             .with_columns((pl.col("Performance") * pl.lit(100)).round(rounding))
         )
@@ -1571,15 +1571,15 @@ class Plots(LazyNamespace):
         """
         from ..utils import cdh_utils
 
-        # Get model data
-        df = self.datamart.model_data
+        # Get model data (raises ValueError if not loaded)
+        df = self.datamart._require_model_data()
 
         # Apply query if provided
         if query is not None:
             df = cdh_utils._apply_query(df, query)
 
         # Determine grouping columns
-        group_cols = []
+        group_cols: list[str] = []
         if by is not None:
             by_list = by if isinstance(by, list) else [by]
             group_cols = by_list.copy()
@@ -1612,10 +1612,10 @@ class Plots(LazyNamespace):
         else:
             df = df.with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum()).alias("Proportion"))
 
-        df = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
+        collected_df: pl.DataFrame = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
 
         if return_df:
-            return df.lazy()
+            return collected_df.lazy()
 
         import plotly.graph_objects as go
 
@@ -1624,9 +1624,9 @@ class Plots(LazyNamespace):
 
         if group_cols:
             # Multiple curves
-            groups = df[group_cols[0]].unique().sort()
+            groups = collected_df[group_cols[0]].unique().sort()
             for group in groups:
-                group_df = df.filter(pl.col(group_cols[0]) == group)
+                group_df = collected_df.filter(pl.col(group_cols[0]) == group)
                 fig.add_trace(
                     go.Scatter(
                         x=group_df["PerformanceBinned"],
@@ -1639,8 +1639,8 @@ class Plots(LazyNamespace):
             # Single curve
             fig.add_trace(
                 go.Scatter(
-                    x=df["PerformanceBinned"],
-                    y=df["Proportion"],
+                    x=collected_df["PerformanceBinned"],
+                    y=collected_df["Proportion"],
                     line_shape="spline",
                     name="All Channels",
                 )
@@ -1652,7 +1652,7 @@ class Plots(LazyNamespace):
             .update_xaxes(
                 type="category",
                 categoryorder="array",
-                categoryarray=df["PerformanceBinned"].unique().sort().to_list(),
+                categoryarray=collected_df["PerformanceBinned"].unique().sort().to_list(),
             )
             .update_layout(
                 template="pega",
@@ -1799,25 +1799,28 @@ class Plots(LazyNamespace):
         >>> df = dm.plot.predictor_count(return_df=True)
 
         """
+        # Normalize to list[str] — if `by` is a bare string, treating it as
+        # Iterable[str] would iterate over characters, giving wrong group_by keys.
+        by_list: list[str] = [by] if isinstance(by, str) else by
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data"),
             query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        collected = df.group_by(["ModelID"] + by).agg(Count=pl.n_unique("PredictorName")).collect()
+        collected = df.group_by(["ModelID"] + by_list).agg(Count=pl.n_unique("PredictorName")).collect()
 
-        if len(by) > 1:
+        if len(by_list) > 1:
             collected = pl.concat(
                 [
                     collected,
-                    collected.group_by(["ModelID"] + by[1:])
+                    collected.group_by(["ModelID"] + by_list[1:])
                     .agg(pl.col("Count").sum())
-                    .with_columns(pl.lit("Overall").alias(by[0])),
+                    .with_columns(pl.lit("Overall").alias(by_list[0])),
                 ],
                 how="diagonal_relaxed",
             )
-        collected = collected.sort(by)
+        collected = collected.sort(by_list)
 
         if return_df:
             return collected
@@ -1825,10 +1828,10 @@ class Plots(LazyNamespace):
         import plotly.express as px
 
         fig = px.box(
-            collected.with_columns(_Type=pl.concat_str(reversed(by), separator=" / ")),
+            collected.with_columns(_Type=pl.concat_str(reversed(by_list), separator=" / ")),
             x="Count",
             y="_Type",
-            color=by[0],
+            color=by_list[0],
             template="pega",
         )
 
@@ -2016,7 +2019,7 @@ class Plots(LazyNamespace):
 
         """
         df = cdh_utils._apply_query(
-            (self.datamart.model_data),  # type: ignore[arg-type]
+            self.datamart._require_model_data(),
             query,
         )
 
