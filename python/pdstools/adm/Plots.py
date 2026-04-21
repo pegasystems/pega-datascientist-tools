@@ -916,6 +916,7 @@ class Plots(LazyNamespace):
         metric_col: str,
         metric_weight_col: str | None = None,
         legend_col: str | None = None,
+        color_discrete_map: dict[str, str] | None = None,
         return_df: bool = False,
     ):
         if legend_col is None:
@@ -952,37 +953,22 @@ class Plots(LazyNamespace):
             return None
 
         import plotly.graph_objects as go
+        from ..utils.pega_template import colorway
 
         fig = go.Figure()
 
-        # Fixed colors for specific predictor categories
-        # TODO move elsewhere
-        fixed_colors = {
-            "IH": "#1f77b4",  # Blue
-            "Param": "#ff7f0e",  # Orange
-            "Primary": "#2ca02c",  # Green
-            "Other": "#d62728",  # Red
-        }
-
-        # Fallback colors from pega template for other categories
-        template_colors = [
-            "#9467bd",
-            "#8c564b",
-            "#e377c2",
-            "#7f7f7f",
-            "#bcbd22",
-            "#17becf",
-        ]
-
-        # TODO bad code below
-        color_map = {}
-        template_color_index = 0
-        for cat in pre_aggs.select(pl.col(legend_col).unique())[legend_col].to_list():
-            if cat in fixed_colors:
-                color_map[cat] = fixed_colors[cat]
+        # Build a color map from the provided global map, falling back to the
+        # pega colorway for any category not covered.
+        present_categories = sorted(pre_aggs.select(pl.col(legend_col).unique())[legend_col].to_list())
+        base_map: dict[str, str] = color_discrete_map or {}
+        fallback_index = 0
+        color_map: dict[str, str] = {}
+        for cat in present_categories:
+            if cat in base_map:
+                color_map[cat] = base_map[cat]
             else:
-                color_map[cat] = template_colors[template_color_index % len(template_colors)]
-                template_color_index += 1
+                color_map[cat] = colorway[fallback_index % len(colorway)]
+                fallback_index += 1
 
         # Track which categories have been added to legend
         legend_added = set()
@@ -1120,6 +1106,7 @@ class Plots(LazyNamespace):
             # count for a predictor. It is the sum of BinResponseCount. Thanks SK :)
             metric_weight_col="ResponseCountBin",
             legend_col="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
             return_df=return_df,
         )
 
@@ -1203,6 +1190,7 @@ class Plots(LazyNamespace):
             y_col="PredictorCategory",
             metric_col="PredictorPerformance",
             legend_col="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
             return_df=return_df,
         )
         if fig is not None and not return_df:

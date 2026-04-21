@@ -518,3 +518,59 @@ def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
     assert isinstance(df, pl.LazyFrame)
     assert df.collect().height > 0
+
+
+# ---------------------------------------------------------------------------
+# Color-consistency tests for box plots
+# ---------------------------------------------------------------------------
+
+
+def test_predictor_category_color_map_stable(sample: ADMDatamart):
+    """predictor_category_color_map returns a non-empty, stable mapping."""
+    color_map = sample.predictor_category_color_map
+    assert isinstance(color_map, dict)
+    assert len(color_map) > 0
+    # All values should be valid hex color strings
+    for cat, color in color_map.items():
+        assert isinstance(color, str), f"Color for {cat!r} is not a string"
+        assert color.startswith("#"), f"Color {color!r} for {cat!r} is not a hex color"
+    # Calling twice returns the same object (cached_property)
+    assert sample.predictor_category_color_map is color_map
+
+
+def test_predictor_performance_consistent_colors(sample: ADMDatamart):
+    """Same predictor category gets the same colour in two different filtered plots."""
+    fig_all = sample.plot.predictor_performance()
+    assert isinstance(fig_all, Figure)
+
+    # Filter to a subset of models so a different subset of categories may appear
+    fig_subset = sample.plot.predictor_performance(active_only=True)
+    assert isinstance(fig_subset, Figure)
+
+    # Build {name -> marker.color} from each figure's traces
+    def trace_colors(fig: Figure) -> dict[str, str]:
+        return {trace.name: trace.marker.color for trace in fig.data}
+
+    colors_all = trace_colors(fig_all)
+    colors_subset = trace_colors(fig_subset)
+
+    # Any category present in both plots must have the same color
+    shared = set(colors_all) & set(colors_subset)
+    assert shared, "No shared categories between full and subset plot — cannot test consistency"
+    for cat in shared:
+        assert colors_all[cat] == colors_subset[cat], (
+            f"Category {cat!r} has color {colors_all[cat]!r} in full plot but {colors_subset[cat]!r} in subset plot"
+        )
+
+
+def test_predictor_category_performance_consistent_colors(sample: ADMDatamart):
+    """predictor_category_performance colors match the global color map."""
+    fig = sample.plot.predictor_category_performance()
+    assert isinstance(fig, Figure)
+
+    color_map = sample.predictor_category_color_map
+    for trace in fig.data:
+        assert trace.name in color_map, f"Category {trace.name!r} missing from color map"
+        assert trace.marker.color == color_map[trace.name], (
+            f"Category {trace.name!r}: expected {color_map[trace.name]!r}, got {trace.marker.color!r}"
+        )

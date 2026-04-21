@@ -803,6 +803,31 @@ class ADMDatamart:
         )
 
     @cached_property
+    def predictor_category_color_map(self) -> dict[str, str]:
+        """Stable color mapping for predictor categories across all plots.
+
+        Assigns a consistent color to each ``PredictorCategory`` value found
+        in the full dataset, using the Pega colorway and alphabetical ordering.
+        This prevents the same category from receiving different colors when
+        different subsets of categories appear in different chart partitions.
+
+        Returns
+        -------
+        dict[str, str]
+            Mapping from category name to hex color, e.g.
+            ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
+        """
+        from ..utils.color_mapping import create_categorical_color_mappings
+        from ..utils.pega_template import colorway
+
+        mappings = create_categorical_color_mappings(
+            self._require_predictor_data(),
+            ["PredictorCategory"],
+            colorway,
+        )
+        return mappings.get("PredictorCategory", {})
+
+    @cached_property
     def has_single_snapshot(self) -> bool:
         """True when the model data contains only one unique SnapshotTime.
 
