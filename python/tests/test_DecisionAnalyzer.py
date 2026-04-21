@@ -38,14 +38,14 @@ pytestmark = pytest.mark.filterwarnings("ignore:The following default columns ar
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def da_v1():
     """DecisionAnalyzer from Explainability Extract (v1) sample data."""
     raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
     return DecisionAnalyzer(raw, sample_size=5000)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def da_v2():
     """DecisionAnalyzer from Decision Analyzer / EEV2 (v2) sample data."""
     raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
@@ -549,7 +549,7 @@ class TestWinLoss:
             assert abs(total - 1.0) < 0.01, f"{status} percentages sum to {total}"
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def da_win_loss_boundary_tiny():
     """Tiny deterministic dataset to verify selected-group rank boundary semantics."""
     tiny_data = pl.LazyFrame(
@@ -1791,7 +1791,7 @@ class TestPropensityValidation:
 # to verify every number.
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def da_minimal():
     """DecisionAnalyzer from the minimal CSV."""
     raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
