@@ -762,9 +762,10 @@ def get_latest_file(
 
     def parse_timestamp(filepath: str) -> datetime:
         try:
-            return from_prpc_date_time(
-                re.search(r"\d.{0,15}GMT", filepath)[0].replace("_", " "),  # type: ignore[index]
-            )
+            match = re.search(r"\d.{0,15}GMT", filepath)
+            if match is None:
+                raise ValueError(f"No GMT timestamp pattern found in {filepath}")
+            return from_prpc_date_time(match[0].replace("_", " "))
         except (AttributeError, TypeError, ValueError) as exc:
             logger.debug("Falling back to ctime for %s: %s", filepath, exc)
             return datetime.fromtimestamp(os.path.getctime(filepath), tz=timezone.utc)

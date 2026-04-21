@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 
@@ -184,10 +184,11 @@ class BinAggregator(LazyNamespace):
                     )
 
                 if is_numeric:
+                    assert empty_numeric_binning is not None  # set above when is_numeric
                     cum_binning = self.accumulate_num_binnings(
                         predictor,
                         ids,
-                        empty_numeric_binning.clone(),  # type: ignore[union-attr]
+                        empty_numeric_binning.clone(),
                     )
                 else:
                     cum_binning = self.accumulate_sym_binnings(
@@ -558,19 +559,19 @@ class BinAggregator(LazyNamespace):
         if len(boundaries) == 1:
             boundaries = boundaries * 2
 
-        boundaries = np.array(boundaries, dtype=np.float64)  # type: ignore[assignment]
+        boundaries_arr = np.array(boundaries, dtype=np.float64)
 
         target_binning = pl.DataFrame(
             {
                 "PredictorName": predictor,
-                "BinIndex": list(range(1, len(boundaries))),
-                "BinLowerBound": boundaries[:-1],
-                "BinUpperBound": boundaries[1:],
+                "BinIndex": list(range(1, len(boundaries_arr))),
+                "BinLowerBound": boundaries_arr[:-1],
+                "BinUpperBound": boundaries_arr[1:],
             },
         ).with_columns(
             # Creating a simple representation of the intervals
             # TODO: the round(2) should be generalized
-            pl.when(pl.col("BinIndex") < len(boundaries))
+            pl.when(pl.col("BinIndex") < len(boundaries_arr))
             .then(pl.format("<{}", pl.col("BinUpperBound").round(2)))
             .otherwise(pl.format("<={}", pl.col("BinUpperBound").round(2)))
             .alias("BinSymbol"),
@@ -901,20 +902,23 @@ class BinAggregator(LazyNamespace):
 
         n_channels = self.all_predictorbinning.select(["Channel", "Direction"]).unique().collect().shape[0]
 
-        fig = self.plot_binning_lift(
-            binning.with_columns(
-                (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage"),
+        fig = cast(
+            "Figure",
+            self.plot_binning_lift(
+                binning.with_columns(
+                    (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage"),
+                ),
+                col_facet=model_facet,
+                row_facet=predictor_facet,
+                custom_data=[
+                    "PredictorName",
+                    "BinSymbol",
+                    "RelativeBinCoverage",
+                    "BinResponses",
+                ],
             ),
-            col_facet=model_facet,
-            row_facet=predictor_facet,
-            custom_data=[
-                "PredictorName",
-                "BinSymbol",
-                "RelativeBinCoverage",
-                "BinResponses",
-            ],
         )
-        fig.update_traces(  # type: ignore[union-attr]
+        fig.update_traces(
             hovertemplate="<br>".join(
                 [
                     "<b>%{customdata[0]}</b>",
@@ -937,7 +941,7 @@ class BinAggregator(LazyNamespace):
         else:
             title = f"Propensity lift in {n_models} models across {n_channels} channels"
 
-        fig.update_layout(  # type: ignore[union-attr]
+        fig.update_layout(
             title=title,
         )
 

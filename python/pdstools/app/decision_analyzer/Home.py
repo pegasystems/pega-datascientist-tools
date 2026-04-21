@@ -1,6 +1,7 @@
 # python/pdstools/app/decision_analyzer/Home.py
 import polars as pl
 import streamlit as st
+from typing import cast
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_data_path,
@@ -193,8 +194,8 @@ if raw_data is not None:
             with st.spinner(sampling_msg):
                 raw_data, sample_path = prepare_and_save(
                     raw_data,
-                    n=sample_kwargs.get("n"),  # type: ignore[arg-type]
-                    fraction=sample_kwargs.get("fraction"),  # type: ignore[arg-type]
+                    n=cast("int | None", sample_kwargs.get("n")),
+                    fraction=cast("float | None", sample_kwargs.get("fraction")),
                     output_dir=get_temp_dir(),
                     source_path=data_source_path,
                 )

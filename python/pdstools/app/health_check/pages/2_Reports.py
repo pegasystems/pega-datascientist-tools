@@ -33,9 +33,8 @@ with health_check:
     st.title("Generate Health Check")
     """To begin monitoring your models, you can create a Health Check document that provides a summary of all models and predictors."""
     with st.expander("Health Check options"):
-        name = st.text_input("Customer name")
-        if name == "":
-            name = None  # type: ignore[assignment]
+        name_input = st.text_input("Customer name")
+        name: str | None = name_input if name_input != "" else None
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
         keep_temp_files = st.checkbox("Keep temporary files", False)
@@ -118,10 +117,11 @@ with health_check:
                     predictor_binning=include_binning,
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
-                st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
-                    tables,  # type: ignore[arg-type]
-                    "rb",
-                )
+                if tables is not None:
+                    st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
+                        tables,
+                        "rb",
+                    )
                 for message in warning_messages:
                     st.warning(message)
 
@@ -156,7 +156,7 @@ if st.session_state["dm"].predictor_data is not None:
     with model_report:
         try:
             if "working_dir" not in locals():
-                working_dir = "healthCheckDir"  # type: ignore[assignment]
+                working_dir = Path("healthCheckDir")
             if "model_selection_df" not in st.session_state:
                 st.session_state["model_selection_df"] = model_selection_df(
                     df=_apply_query(

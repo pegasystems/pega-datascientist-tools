@@ -42,7 +42,7 @@ def _write_params_files(
     None
 
     """
-    import yaml  # type: ignore[import-untyped]
+    import yaml  # type: ignore[import-untyped]  # types-PyYAML not in project deps
 
     params = params or {}
     analysis = analysis or {}

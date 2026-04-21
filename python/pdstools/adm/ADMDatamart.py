@@ -1092,7 +1092,7 @@ class ADMDatamart:
         # time is null, due to import/export woes. This is problematic
         # for model data but here we just test for it and assume one snapshot.
         most_recent_binning_data = cdh_utils._apply_query(
-            self.predictor_data.filter(  # type: ignore[union-attr]
+            self._require_predictor_data().filter(
                 (
                     # TODO consider using the "last" function of the aggregates
                     # last("predictor_data") instead of this, but that currently

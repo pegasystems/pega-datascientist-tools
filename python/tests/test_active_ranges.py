@@ -99,7 +99,7 @@ def test_active_ranges_edge_cases():
     """Test active_ranges with edge cases."""
     # Test with empty data
     dm_empty = ADMDatamart(model_df=None, predictor_df=None)
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError, match="requires predictor data"):
         dm_empty.active_ranges().collect()
 
     # Test with model data but no predictor data
@@ -108,7 +108,7 @@ def test_active_ranges_edge_cases():
         model_df=pl.scan_csv(test_data_mdls),
         predictor_df=None,
     )
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError, match="requires predictor data"):
         dm_no_predictors.active_ranges().collect()
 
 
