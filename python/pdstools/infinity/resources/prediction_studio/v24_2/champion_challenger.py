@@ -238,7 +238,7 @@ class _ChampionChallengerV24_2Mixin:
             from tqdm import tqdm
         except ImportError:
             # Fall back to a no-op progress bar when tqdm isn't installed.
-            class tqdm:  # type: ignore[no-redef]
+            class tqdm:  # type: ignore[no-redef]  # intentional fallback shadowing the imported name
                 def __init__(self, total=None):
                     self.n = 0
 
@@ -534,7 +534,7 @@ class _ChampionChallengerV24_2Mixin:
         challenger_response_share: float,
         predictor_mapping: list[dict[str, str | int]] | None = None,
         model_label: str | None = None,
-        learn_independently: bool | None = True,
+        learn_independently: bool = True,
     ):
         """Add a new model as a challenger in the prediction setup.
 
@@ -606,7 +606,7 @@ class _ChampionChallengerV24_2Mixin:
 
             response = await self._check_then_update(
                 champion_response_share=champion_response_share,
-                learn_independently=learn_independently,  # type: ignore[arg-type]
+                learn_independently=learn_independently,
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
@@ -626,7 +626,7 @@ class _ChampionChallengerV24_2Mixin:
         adm_model_type: AdmModelType | str,
         model_label: str | None = None,
         predictor_mapping: list[dict] | None = None,
-        learn_independently: bool | None = True,
+        learn_independently: bool = True,
     ):
         """Clones the current active model to create a challenger with specific
         settings.
@@ -689,7 +689,7 @@ class _ChampionChallengerV24_2Mixin:
             champion_response_percentage = float(1 - challenger_response_share)
             response = await self._check_then_update(
                 champion_response_share=champion_response_percentage,
-                learn_independently=learn_independently,  # type: ignore[arg-type]
+                learn_independently=learn_independently,
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e

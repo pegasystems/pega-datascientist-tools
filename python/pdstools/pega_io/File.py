@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, overload
+from typing import Literal, cast, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -395,7 +395,7 @@ def read_ds_export(
     >>> df = read_ds_export('export.csv', infer_schema_length=200000)
 
     """
-    file: str | BytesIO
+    file: str | BytesIO | None
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, delegate directly to read_data
     if isinstance(filename, BytesIO):
@@ -420,7 +420,7 @@ def read_ds_export(
         file = os.path.join(path_str, filename_str)
     else:
         logger.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path_str, filename_str)  # type: ignore[assignment]
+        file = get_latest_file(path_str, filename_str)
 
     # ADM-specific: URL download support
     # If we can't find the file locally, we can try
@@ -432,7 +432,7 @@ def read_ds_export(
         url = f"{path_str}/{filename_str}"
 
         try:
-            import requests  # type: ignore[import-untyped]
+            import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs by default
 
             response = requests.get(url)
             logger.info(f"Response: {response}")
@@ -470,6 +470,9 @@ def read_ds_export(
             return None
 
     # For local files, use import_file for Pega-specific schema handling
+    if file is None:
+        logger.debug("Could not resolve a usable file for %s/%s", path_str, filename_str)
+        return None
     if "extension" not in vars() and not isinstance(file, BytesIO):
         _, extension = os.path.splitext(file)
 
@@ -583,8 +586,13 @@ def import_file(
                 logger.debug("read_json fallback failed for %s: %s", file, exc)
                 import json
 
-                with open(file) as f:  # type: ignore[arg-type]
-                    df = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
+                if isinstance(file, BytesIO):
+                    file.seek(0)
+                    raw = file.read().decode("utf-8")
+                else:
+                    with open(file) as f:
+                        raw = f.read()
+                df = pl.from_dicts(json.loads(raw)["pxResults"]).lazy()
         # Fill nulls in context fields to prevent issues in downstream operations
         return _fill_context_field_nulls(df)
 
@@ -874,10 +882,10 @@ def cache_to_file(
         outpath = outpath.with_suffix(".arrow")
         # Cast categorical to string since Arrow IPC doesn't support dictionary replacement across batches
         df = df.with_columns(cs.categorical().cast(pl.Utf8))
-        df.write_ipc(outpath, compression=compression)  # type: ignore[arg-type]
+        df.write_ipc(outpath, compression=cast("pl._typing.IpcCompression", compression))
     if cache_type == "parquet":
         outpath = outpath.with_suffix(".parquet")
-        df.write_parquet(outpath, compression=compression)
+        df.write_parquet(outpath, compression=cast("pl._typing.ParquetCompression", compression))
     return outpath
 
 

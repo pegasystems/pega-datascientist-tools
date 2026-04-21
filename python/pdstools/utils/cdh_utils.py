@@ -1256,7 +1256,7 @@ def _apply_schema_types(df: F, definition, **timestamp_opts) -> F:
             if original_type == pl.Null:
                 logger.debug("Column %s has Null data type; skipping cast.", col)
             elif original_type != new_type:
-                if original_type == pl.Categorical and new_type in pl.selectors.numeric():  # type: ignore[operator]
+                if original_type == pl.Categorical and new_type.is_numeric():
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
                 elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
@@ -1319,10 +1319,10 @@ def gains_table(df, value: str, index=None, by=None):
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
-        sort_expr: list[str | pl.Expr] = by_as_list + [sort_expr]  # type: ignore[no-redef]
+        sort_exprs: list[str | pl.Expr] = by_as_list + [sort_expr]
         gains_df = (
             df.lazy()
-            .sort(sort_expr, descending=True)
+            .sort(sort_exprs, descending=True)
             .select(
                 by_as_list
                 + [
@@ -1467,7 +1467,7 @@ def process_files_to_bytes(
 
 
 def get_latest_pdstools_version():
-    import requests  # type: ignore[import-untyped]
+    import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs by default
 
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json", timeout=5)
@@ -1574,9 +1574,8 @@ def _get_start_end_date_args(
 
     # print(f"**ENTER** Start={start_date}, End={end_date}, Window={window}, Data Min={data_min_date}, Data Max={data_max_date}")
 
-    if window:
-        if not isinstance(window, datetime.timedelta):
-            window = datetime.timedelta(days=window)
+    if window is not None and not isinstance(window, datetime.timedelta):
+        window = datetime.timedelta(days=window)
 
     if start_date and end_date and window:
         raise ValueError(
@@ -1585,13 +1584,13 @@ def _get_start_end_date_args(
     if not end_date:
         if window is None or start_date is None:
             end_date = data_max_date
-        elif start_date:
-            end_date = start_date + window - datetime.timedelta(days=1)  # type: ignore[operator]
+        else:
+            end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
-        if window is None:
+        if window is None or end_date is None:
             start_date = data_min_date
-        elif end_date:
-            start_date = end_date - window + datetime.timedelta(days=1)  # type: ignore[operator]
+        else:
+            start_date = end_date - window + datetime.timedelta(days=1)
 
     # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
 

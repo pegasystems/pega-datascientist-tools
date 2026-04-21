@@ -932,7 +932,7 @@ def create_metric_gttable(
                 # Wrap column label in span with title attribute for tooltip
                 label_kwargs[col] = html(f'<span title="{escaped_desc}">{col}</span>')
         if label_kwargs:
-            gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]
+            gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]  # great_tables overload routes **kwargs to first positional
 
     # Expand tuple keys to individual columns
     expanded_mapping = {}

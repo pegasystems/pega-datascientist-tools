@@ -98,16 +98,19 @@ class PaginatedList(Generic[T]):
             "To pass a string as index for a paginated list, the content class needs an 'id' field."
         )
         for element in self.__iter__():
-            if element["id"] == index:  # type: ignore[index]
+            if getattr(element, "id", None) == index:
                 return element
 
         raise IndexError(index)
 
     @overload
-    def get(self, __key: int | str, __default: str | None) -> T: ...
+    def get(self, __key: int | str, __default: str | None = None) -> T: ...
 
     @overload
-    def get(self, __key: slice, __default: str | None) -> _Slice[T]: ...
+    def get(self, __key: slice, __default: str | None = None) -> _Slice[T]: ...
+
+    @overload
+    def get(self, __key: None = None, __default: str | None = None, **kwargs: Any) -> T | None: ...
 
     def get(
         self,
@@ -137,8 +140,10 @@ class PaginatedList(Generic[T]):
             for element in self:
                 if all(getattr(element, name) == value for name, value in kwargs.items()):
                     return element
+        if __key is None:
+            return __default
         try:
-            response = self.__getitem__(__key)  # type: ignore[index]
+            response = self.__getitem__(__key)
             if not response:
                 raise ValueError(__key)
             return response
@@ -284,7 +289,7 @@ class AsyncPaginatedList(Generic[T]):
     async def get(
         self,
         __key: int | slice | str | None = None,
-        __default: str | None = None,
+        __default: T | None = None,
         **kwargs: Any,
     ) -> T | None:
         """Async version of PaginatedList.get()."""
@@ -303,7 +308,7 @@ class AsyncPaginatedList(Generic[T]):
                             return el
             except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
-        return __default  # type: ignore[return-value]
+        return __default
 
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""
