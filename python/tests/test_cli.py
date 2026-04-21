@@ -76,6 +76,7 @@ class TestArgumentParsing:
         assert args.data_path is None
         assert args.sample is None
         assert args.temp_dir is None
+        assert args.full_embed is False
 
     def test_app_argument(self):
         parser = create_parser()
@@ -120,6 +121,21 @@ class TestArgumentParsing:
         assert args.data_path == "/data/extract"
         assert args.sample == "50000"
         assert args.temp_dir == "/tmp/work"
+
+    def test_full_embed_flag(self):
+        parser = create_parser()
+        args = parser.parse_args(["health_check", "--full-embed"])
+        assert args.full_embed is True
+
+    def test_no_full_embed_flag(self):
+        parser = create_parser()
+        args = parser.parse_args(["health_check", "--no-full-embed"])
+        assert args.full_embed is False
+
+    def test_full_embed_default_is_false(self):
+        parser = create_parser()
+        args = parser.parse_args(["health_check"])
+        assert args.full_embed is False
 
     def test_invalid_app_raises_error(self):
         parser = create_parser()
@@ -248,6 +264,7 @@ def _make_args(**overrides):
         "sample": None,
         "filter": None,
         "temp_dir": None,
+        "full_embed": False,
     }
     defaults.update(overrides)
     return MagicMock(**defaults)
@@ -272,6 +289,7 @@ class TestRunEnvVarPropagation:
             "PDSTOOLS_SAMPLE_LIMIT",
             "PDSTOOLS_FILTER",
             "PDSTOOLS_TEMP_DIR",
+            "PDSTOOLS_FULL_EMBED",
         ):
             monkeypatch.delenv(var, raising=False)
 
@@ -314,6 +332,19 @@ class TestRunEnvVarPropagation:
         self._run(_make_args(filter=["Channel=Web", "Score>=0.5"]))
         loaded = json.loads(os.environ["PDSTOOLS_FILTER"])
         assert loaded == ["Channel=Web", "Score>=0.5"]
+
+    def test_full_embed_true_sets_env_var(self):
+        import os
+
+        self._run(_make_args(full_embed=True))
+        assert os.environ.get("PDSTOOLS_FULL_EMBED") == "true"
+
+    def test_full_embed_false_does_not_set_env_var(self):
+        """When --full-embed is absent (default False), env var must not be set."""
+        import os
+
+        self._run(_make_args(full_embed=False))
+        assert "PDSTOOLS_FULL_EMBED" not in os.environ
 
     def test_decision_analyzer_disables_xsrf(self):
         _, fake_stcli = self._run(_make_args(app="decision_analyzer"))

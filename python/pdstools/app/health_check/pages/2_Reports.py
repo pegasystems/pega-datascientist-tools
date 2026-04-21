@@ -9,7 +9,11 @@ import streamlit as st
 from pdstools import ADMDatamart
 from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.show_versions import show_versions
-from pdstools.utils.streamlit_utils import _apply_sidebar_logo, model_selection_df
+from pdstools.utils.streamlit_utils import (
+    _apply_sidebar_logo,
+    get_full_embed,
+    model_selection_df,
+)
 
 _apply_sidebar_logo()
 
@@ -17,6 +21,7 @@ if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
 logger = logging.getLogger(__name__)
+_cli_full_embed = get_full_embed()
 health_check, model_report = st.tabs(
     [
         "Overall Health Check",
@@ -34,6 +39,21 @@ with health_check:
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
         keep_temp_files = st.checkbox("Keep temporary files", False)
+
+    _FULL_EMBED_HELP = (
+        "When checked, all JavaScript and CSS libraries (Plotly, itables, etc.) "
+        "are bundled directly into the HTML file. "
+        "The report works offline and in air-gapped environments, but the file is larger "
+        "and esbuild is required. "
+        "When unchecked, libraries are loaded from CDN — smaller file, "
+        "but requires an internet connection when viewing the report."
+    )
+    with st.expander("Advanced"):
+        full_embed = st.checkbox(
+            "Embed JS/CSS for offline viewing (slower, larger file)",
+            value=_cli_full_embed if _cli_full_embed is not None else True,
+            help=_FULL_EMBED_HELP,
+        )
 
     outfile = ""
     if "run" not in st.session_state:
@@ -53,7 +73,7 @@ with health_check:
                     output_type=output_type,
                     keep_temp_files=keep_temp_files,
                     prediction=st.session_state.get("prediction"),
-                    full_embed=True,
+                    full_embed=full_embed,
                 )
                 if os.path.isfile(outfile):
                     file = open(outfile, "rb")
@@ -160,6 +180,13 @@ if st.session_state["dm"].predictor_data is not None:
                 edited_df.filter(pl.col("Generate Report")).get_column("ModelID").to_list()
             )
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
+            with st.expander("Advanced"):
+                model_report_full_embed = st.checkbox(
+                    "Embed JS/CSS for offline viewing (slower, larger file)",
+                    value=_cli_full_embed if _cli_full_embed is not None else True,
+                    help=_FULL_EMBED_HELP,
+                    key="model_report_full_embed",
+                )
             if len(st.session_state["selected_models"]) > 0:
                 if st.button("Create Model Report(s) for selected model(s)"):
                     with st.spinner("Running Model Reports..."):
@@ -184,7 +211,7 @@ if st.session_state["dm"].predictor_data is not None:
                             output_type="html",
                             keep_temp_files=keep_temp_files,
                             progress_callback=update_progress,
-                            full_embed=True,
+                            full_embed=model_report_full_embed,
                         )
                         if os.path.isfile(outfile):
                             file = open(outfile, "rb")

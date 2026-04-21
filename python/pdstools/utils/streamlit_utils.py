@@ -175,6 +175,18 @@ def get_temp_dir() -> str | None:
     return os.environ.get("PDSTOOLS_TEMP_DIR")
 
 
+def get_full_embed() -> bool | None:
+    """Return the full-embed setting set via ``--full-embed`` / ``--no-full-embed`` CLI flag.
+
+    Returns ``None`` when the flag was not provided (caller should apply its
+    own default).
+    """
+    raw = os.environ.get("PDSTOOLS_FULL_EMBED")
+    if raw is None:
+        return None
+    return raw.lower() in ("1", "true", "yes")
+
+
 def parse_sample_spec(value: str) -> dict[str, int | float]:
     """Parse a ``--sample`` flag value into keyword arguments.
 

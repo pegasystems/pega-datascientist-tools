@@ -113,6 +113,31 @@ def create_parser():
             "Exposed to the app as the PDSTOOLS_TEMP_DIR env var."
         ),
     )
+    parser.add_argument(
+        "--full-embed",
+        dest="full_embed",
+        action="store_true",
+        default=False,
+        help=(
+            "Bundle all JS/CSS libraries (Plotly, itables, etc.) directly into the "
+            "generated HTML report, producing a fully self-contained file that works "
+            "offline and in air-gapped environments. "
+            "The file will be larger and esbuild is required. "
+            "Without this flag (default) libraries are loaded from CDN — "
+            "smaller file, but requires an internet connection at viewing time. "
+            "Exposed to the app as the PDSTOOLS_FULL_EMBED env var."
+        ),
+    )
+    parser.add_argument(
+        "--no-full-embed",
+        dest="full_embed",
+        action="store_false",
+        help=(
+            "Load JS/CSS libraries from CDN (default). "
+            "Produces a smaller report file but requires internet access when viewing. "
+            "Use --full-embed for offline/air-gapped environments."
+        ),
+    )
     return parser
 
 
@@ -155,7 +180,15 @@ def main():
         args.app = ALIASES[args.app]
 
     # Check for likely typos in pdstools arguments
-    known_pdstools_args = ["--version", "--data-path", "--sample", "--filter", "--temp-dir"]
+    known_pdstools_args = [
+        "--version",
+        "--data-path",
+        "--sample",
+        "--filter",
+        "--temp-dir",
+        "--full-embed",
+        "--no-full-embed",
+    ]
     typos = check_for_typos(unknown, known_pdstools_args)
 
     if typos:
@@ -274,6 +307,10 @@ def run(args, unknown):
         os.environ["PDSTOOLS_FILTER"] = json.dumps(args.filter)
     if args.temp_dir:
         os.environ["PDSTOOLS_TEMP_DIR"] = args.temp_dir
+    # Propagate full_embed; only set the env var when explicitly provided
+    # so the Streamlit app can keep its own default when the flag is absent.
+    if args.full_embed:
+        os.environ["PDSTOOLS_FULL_EMBED"] = "true"
 
     display_name = APPS[args.app]["display_name"]
     print(f"Running {display_name} app...")
