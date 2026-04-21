@@ -43,7 +43,16 @@ guide.
   remaining `components.html` usage (Decision Analyzer "Single Decision"
   tree-grid) is now documented as the only place without a Streamlit-native
   alternative.
-
+- `DecisionAnalyzer.__init__` keyword arguments are now keyword-only
+  (`level`, `sample_size`, `mandatory_expr`, `additional_columns`,
+  `num_samples`). Positional usage now raises `TypeError`.
+- `DecisionAnalyzer.from_explainability_extract` /
+  `from_decision_analyzer` now have explicit keyword-only parameters
+  instead of `**kwargs`, matching `__init__`.
+- `DecisionAnalyzer.get_available_fields_for_filtering` parameter
+  renamed `categoricalOnly` → `categorical_only` (now keyword-only).
+- `DecisionAnalyzer.cleanup_raw_data` made private:
+  `_cleanup_raw_data`. It was always called internally from `__init__`.
 ### Added
 
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).

@@ -1,5 +1,6 @@
 # python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
+import logging
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +10,8 @@ import polars as pl
 from ..pega_io.File import _is_artifact
 from .column_schema import TableConfig
 from .utils import ColumnResolver
+
+logger = logging.getLogger(__name__)
 
 
 # Decision Analyzer specific data reading utilities
@@ -90,7 +93,7 @@ def read_gzipped_data(data: BytesIO) -> pl.LazyFrame | None:
             file_content = file.read()
             return pl.read_ndjson(BytesIO(file_content)).lazy()
     except Exception as e:
-        print(f"Error reading gzipped data: {e}")
+        logger.warning("Error reading gzipped data: %s", e)
         return None
 
 

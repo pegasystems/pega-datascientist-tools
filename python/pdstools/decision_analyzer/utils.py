@@ -13,6 +13,8 @@ from .column_schema import (
     ExplainabilityExtract,
 )
 
+logger = logging.getLogger(__name__)
+
 # As long as this is run once, anywhere, it's enabled globally.
 # Putting it here AND in the Home.py file should therefore be enough,
 # because every other file imports from utils.py (hence running this part too.)
@@ -490,8 +492,6 @@ def get_scope_config(
             "plot_title_prefix": "Win Count by Issue",
         }
 
-
-logger = logging.getLogger(__name__)
 
 _INTERACTION_ID_RAW_KEY = "pxInteractionID"
 

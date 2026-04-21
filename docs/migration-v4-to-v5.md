@@ -150,6 +150,44 @@ parameters matching the documented constructor signature.
 Previously `**filter_kwargs`. Now uses explicit parameters per
 `docs/plans/explanations/typed-filter-kwargs.md`.
 
+### `DecisionAnalyzer.__init__` and `from_*` classmethods
+
+Previously accepted positional arguments and `**kwargs`. Now all
+configuration is keyword-only and the `from_*` classmethods spell out
+each parameter explicitly (no more silent `**kwargs` drop-through).
+
+```python
+# Before (v4.x):
+da = DecisionAnalyzer(raw_data, "Stage Group", 50_000)
+da = DecisionAnalyzer.from_decision_analyzer(
+    "data.parquet", sample_size=10_000, foo="ignored-silently"
+)
+
+# After (v5):
+da = DecisionAnalyzer(raw_data, level="Stage Group", sample_size=50_000)
+da = DecisionAnalyzer.from_decision_analyzer(
+    "data.parquet", sample_size=10_000  # unknown kwargs now raise TypeError
+)
+```
+
+### `DecisionAnalyzer.get_available_fields_for_filtering`
+
+Parameter renamed and made keyword-only.
+
+```python
+# Before:
+da.get_available_fields_for_filtering(categoricalOnly=True)
+
+# After (v5):
+da.get_available_fields_for_filtering(categorical_only=True)
+```
+
+### `DecisionAnalyzer.cleanup_raw_data` is now private
+
+It was only ever called from `__init__` — no public callers in the
+ecosystem. Renamed to `_cleanup_raw_data`. If you were calling it
+externally, build a new `DecisionAnalyzer` instead.
+
 ---
 
 ## Behaviour changes (no API change, may affect output)

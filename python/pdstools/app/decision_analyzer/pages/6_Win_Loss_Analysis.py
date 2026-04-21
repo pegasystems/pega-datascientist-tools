@@ -78,7 +78,7 @@ with st.session_state["sidebar"]:
     comparison_filter_columns = [
         c
         for c in st.session_state.decision_data.get_available_fields_for_filtering(
-            categoricalOnly=True,
+            categorical_only=True,
         )
         if c not in {"Stage", "Channel", "Direction"}
     ]

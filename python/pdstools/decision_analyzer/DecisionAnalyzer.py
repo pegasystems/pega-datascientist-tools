@@ -81,7 +81,12 @@ class DecisionAnalyzer:
     def from_explainability_extract(
         cls,
         source: str | os.PathLike,
-        **kwargs,
+        *,
+        level: str = "Stage Group",
+        sample_size: int = DEFAULT_SAMPLE_SIZE,
+        mandatory_expr: pl.Expr | None = None,
+        additional_columns: dict[str, pl.DataType] | None = None,
+        num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
 
@@ -89,9 +94,8 @@ class DecisionAnalyzer:
         ----------
         source : str | os.PathLike
             Path to the Explainability Extract parquet file, or a URL.
-        **kwargs
-            Additional keyword arguments passed to ``__init__`` (e.g.
-            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+        level, sample_size, mandatory_expr, additional_columns, num_samples
+            See :meth:`__init__` for details.
 
         Returns
         -------
@@ -104,13 +108,25 @@ class DecisionAnalyzer:
         raw_data = read_ds_export(str(source))
         if raw_data is None:
             raise ValueError(f"Could not read data from {source}")
-        return cls(raw_data, **kwargs)
+        return cls(
+            raw_data,
+            level=level,
+            sample_size=sample_size,
+            mandatory_expr=mandatory_expr,
+            additional_columns=additional_columns,
+            num_samples=num_samples,
+        )
 
     @classmethod
     def from_decision_analyzer(
         cls,
         source: str | os.PathLike,
-        **kwargs,
+        *,
+        level: str = "Stage Group",
+        sample_size: int = DEFAULT_SAMPLE_SIZE,
+        mandatory_expr: pl.Expr | None = None,
+        additional_columns: dict[str, pl.DataType] | None = None,
+        num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
 
@@ -118,9 +134,8 @@ class DecisionAnalyzer:
         ----------
         source : str | os.PathLike
             Path to the Decision Analyzer parquet file, or a URL.
-        **kwargs
-            Additional keyword arguments passed to ``__init__`` (e.g.
-            ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+        level, sample_size, mandatory_expr, additional_columns, num_samples
+            See :meth:`__init__` for details.
 
         Returns
         -------
@@ -133,7 +148,14 @@ class DecisionAnalyzer:
         raw_data = read_ds_export(str(source))
         if raw_data is None:
             raise ValueError(f"Could not read data from {source}")
-        return cls(raw_data, **kwargs)
+        return cls(
+            raw_data,
+            level=level,
+            sample_size=sample_size,
+            mandatory_expr=mandatory_expr,
+            additional_columns=additional_columns,
+            num_samples=num_samples,
+        )
 
     # Preferred fields for data filtering, in display order.
     # Subsetting to actual available columns happens in __init__.
@@ -153,8 +175,9 @@ class DecisionAnalyzer:
     def __init__(
         self,
         raw_data: pl.LazyFrame,
-        level="Stage Group",
-        sample_size=DEFAULT_SAMPLE_SIZE,
+        *,
+        level: str = "Stage Group",
+        sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
         additional_columns: dict[str, pl.DataType] | None = None,
         num_samples: int = 1,
@@ -209,7 +232,7 @@ class DecisionAnalyzer:
         Notes
         -----
         The ranking function orders actions by: is_mandatory (desc) → Priority (desc) →
-        StageOrder (desc) → pyIssue → pyGroup → pyName.
+        StageOrder (desc) → Issue → Group → Action.
 
         If mandatory_expr is None, mandatory rows are auto-detected from
         ``Priority`` using :data:`MANDATORY_PRIORITY_THRESHOLD`. If the
@@ -250,7 +273,7 @@ class DecisionAnalyzer:
         self.validation_error = validation_error if not validation_result else None
         if not validation_result and validation_error is not None:
             warnings.warn(validation_error, UserWarning)
-        # Bail out early if critical columns are missing — cleanup_raw_data
+        # Bail out early if critical columns are missing — _cleanup_raw_data
         # would crash with an opaque ColumnNotFoundError otherwise.
         # Check using display names; account for both raw keys and display
         # names already present in the data (rename hasn't happened yet).
@@ -278,7 +301,7 @@ class DecisionAnalyzer:
             )
         else:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))
-        self.decision_data = self.cleanup_raw_data(raw_data)
+        self.decision_data = self._cleanup_raw_data(raw_data)
         available_columns = set(self.decision_data.collect_schema().names())
         self.fields_for_data_filtering = [f for f in self._default_filter_fields if f in available_columns]
         self.preaggregation_columns = {
@@ -585,7 +608,7 @@ class DecisionAnalyzer:
         ).row(0, named=True)
 
         # Build warning messages
-        warnings = []
+        messages: list[str] = []
 
         # Check for invalid propensities (> 1.0)
         if stats["invalid_count"] > 0:
@@ -603,7 +626,7 @@ class DecisionAnalyzer:
                 else f"{', '.join(invalid_stages[:3])}, and {len(invalid_stages) - 3} more"
             )
 
-            warnings.append(
+            messages.append(
                 f"⚠️ **Invalid propensity values detected:**\n\n"
                 f"• {stats['invalid_count']:,} records ({invalid_pct:.2f}%) have propensities > 1.0\n\n"
                 f"• Maximum propensity: {stats['max']:.2f}\n\n"
@@ -628,7 +651,7 @@ class DecisionAnalyzer:
                     else f"{', '.join(high_stages[:3])}, and {len(high_stages) - 3} more"
                 )
 
-                warnings.append(
+                messages.append(
                     f"ℹ️ **Unusually high propensities detected:**\n\n"
                     f"• {high_pct:.1f}% of records have propensities > 10%\n\n"
                     f"• 95th percentile propensity: {stats['p95'] * 100:.1f}%\n\n"
@@ -640,7 +663,7 @@ class DecisionAnalyzer:
                     f"Consider reviewing your model configuration if this seems unexpected."
                 )
 
-        return warnings[0] if warnings else None
+        return messages[0] if messages else None
 
     @cached_property
     def arbitration_stage(self) -> pl.LazyFrame:
@@ -853,21 +876,21 @@ class DecisionAnalyzer:
             return self.sample
         return apply_filter(self.sample, filters)
 
-    def get_available_fields_for_filtering(self, categoricalOnly=False) -> list[str]:
+    def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.
 
         Parameters
         ----------
-        categoricalOnly : bool, default False
+        categorical_only : bool, default False
             If True, return only string/categorical columns.
         """
-        if not categoricalOnly:
+        if not categorical_only:
             return list(self.fields_for_data_filtering)
 
         string_cols = set(self.decision_data.select(cs.string(include_categorical=True)).collect_schema().keys())
         return [f for f in self.fields_for_data_filtering if f in string_cols]
 
-    def cleanup_raw_data(self, df: pl.LazyFrame):
+    def _cleanup_raw_data(self, df: pl.LazyFrame) -> pl.LazyFrame:
         """This method cleans up the raw data we read from parquet/S3/whatever.
 
         This likely needs to change as and when we get closer to product, to
@@ -927,9 +950,7 @@ class DecisionAnalyzer:
             .with_columns(
                 pl.col(self.level).cast(pl.Categorical),
             )
-            .filter(
-                pl.col("Action").is_not_null()
-            )  # Why do we have null pyName values? this takes too much processing time
+            .filter(pl.col("Action").is_not_null())  # Drop rows with null Action; this takes some processing time
         )
         return preproc_df
 
@@ -1004,7 +1025,7 @@ class DecisionAnalyzer:
         return distribution_data
 
     def get_funnel_data(
-        self, scope, additional_filters: pl.Expr | list[pl.Expr] | None = None
+        self, scope: str, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
         filtered_df = apply_filter(self.preaggregated_filter_view, additional_filters)
 
@@ -1324,7 +1345,7 @@ class DecisionAnalyzer:
         Returns
         -------
         pl.DataFrame
-            Columns include pxComponentName, StageGroup, scope columns, and
+            Columns include Component Name, StageGroup, scope columns, and
             Filtered Decisions. Sorted by component then descending count.
         """
         filtered_data = apply_filter(self.decision_data, additional_filters).filter(
@@ -1373,7 +1394,7 @@ class DecisionAnalyzer:
         Parameters
         ----------
         component_name : str
-            The pxComponentName to drill into.
+            The Component Name to drill into.
         scope : str, default "Action"
             Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
         additional_filters : pl.Expr or list of pl.Expr, optional
@@ -1728,7 +1749,7 @@ class DecisionAnalyzer:
             dist = dist.with_columns(pl.lit(0.0).alias("Avg per Decision"))
         return dist
 
-    def get_optionality_data(self, df=None, by_day: bool = False) -> pl.LazyFrame:
+    def get_optionality_data(self, df: pl.LazyFrame | None = None, by_day: bool = False) -> pl.LazyFrame:
         """Average number of actions per stage, optionally broken down by day.
 
         Computes per-interaction action counts at each stage using
@@ -1792,7 +1813,7 @@ class DecisionAnalyzer:
 
         return optionality_data
 
-    def get_optionality_funnel(self, df=None) -> pl.LazyFrame:
+    def get_optionality_funnel(self, df: pl.LazyFrame | None = None) -> pl.LazyFrame:
         """Optionality funnel: interaction counts bucketed by available-action count.
 
         Buckets action counts into 0–6 and 7+, then counts interactions per
@@ -1826,7 +1847,11 @@ class DecisionAnalyzer:
         )
         return optionality_funnel
 
-    def get_action_variation_data(self, stage, color_by=None):
+    def get_action_variation_data(
+        self,
+        stage: str,
+        color_by: str | None = None,
+    ) -> pl.LazyFrame:
         """Get action variation data, optionally broken down by a categorical dimension.
 
         Args:
@@ -2041,7 +2066,13 @@ class DecisionAnalyzer:
         self._thresholding_cache[cache_key] = thresholds_long
         return thresholds_long
 
-    def priority_component_distribution(self, component, granularity, stage=None, additional_filters=None):
+    def priority_component_distribution(
+        self,
+        component: str,
+        granularity: str,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         """Data for a single component's distribution, grouped by granularity.
 
         Parameters
@@ -2060,7 +2091,12 @@ class DecisionAnalyzer:
         df = self._remaining_at_stage(stage, additional_filters=additional_filters)
         return df.select(cols).sort(granularity)
 
-    def all_components_distribution(self, granularity, stage=None, additional_filters=None):
+    def all_components_distribution(
+        self,
+        granularity: str,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         """Data for the overview panel: all prioritization components at once.
 
         Parameters
@@ -2079,7 +2115,11 @@ class DecisionAnalyzer:
         df = self._remaining_at_stage(stage, additional_filters=additional_filters)
         return df.select([granularity] + cols).sort(granularity)
 
-    def _remaining_at_stage(self, stage=None, additional_filters=None):
+    def _remaining_at_stage(
+        self,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         """Return sample rows remaining at *stage*.
 
         Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
@@ -2094,7 +2134,10 @@ class DecisionAnalyzer:
         return base.filter(pl.col(self.level).is_in(remaining_stages))
 
     def aggregate_remaining_per_stage(
-        self, df: pl.LazyFrame, group_by_columns: list[str], aggregations: list | None = None
+        self,
+        df: pl.LazyFrame,
+        group_by_columns: list[str],
+        aggregations: list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """
         Workhorse function to convert the raw Decision Analyzer data (filter view) to
@@ -2136,7 +2179,7 @@ class DecisionAnalyzer:
 
     def filtered_action_counts(
         self,
-        groupby_cols: list,
+        groupby_cols: list[str],
         propensityTH: float | None = None,
         priorityTH: float | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
@@ -2145,7 +2188,7 @@ class DecisionAnalyzer:
 
         Parameters
         ----------
-        groupby_cols : list
+        groupby_cols : list of str
             Column names to group by.
         propensityTH : float, optional
             Propensity threshold for classifying offers.
@@ -2355,7 +2398,12 @@ class DecisionAnalyzer:
 
         return {k: kpis[k].item() for k in kpis.columns}
 
-    def get_sensitivity(self, win_rank=1, group_filter=None, additional_filters=None):
+    def get_sensitivity(
+        self,
+        win_rank: int = 1,
+        group_filter: pl.Expr | list[pl.Expr] | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         """Global or local sensitivity of the prioritization factors.
 
         Parameters
@@ -2652,7 +2700,7 @@ class DecisionAnalyzer:
         -------
         pl.DataFrame
             DataFrame containing win distribution with columns:
-            - pyIssue, pyGroup, pyName: Action identifiers
+            - Issue, Group, Action: Action identifiers
             - original_win_count: Number of rank-1 wins in baseline scenario
             - new_win_count: Number of rank-1 wins after lever adjustment (only if lever_value provided)
             - n_decisions_survived_to_arbitration: Number of arbitration decisions the action participated in

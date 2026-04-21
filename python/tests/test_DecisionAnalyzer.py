@@ -1368,7 +1368,7 @@ class TestScopeHelpers:
         assert "Action" in fields
 
     def test_available_categorical_fields(self, da_v1):
-        fields = da_v1.get_available_fields_for_filtering(categoricalOnly=True)
+        fields = da_v1.get_available_fields_for_filtering(categorical_only=True)
         assert len(fields) == 5
 
 
