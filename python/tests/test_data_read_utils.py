@@ -115,7 +115,7 @@ class TestReadData:
         assert collected.shape[0] == 6  # 3 rows x 2 partitions
 
     def test_unsupported_extension_raises_valueerror(self, tmp_path):
-        path = tmp_path / "data.xlsx"
+        path = tmp_path / "data.unknownformat"
         path.write_text("fake data")
 
         with pytest.raises(ValueError, match="Unsupported file type"):
