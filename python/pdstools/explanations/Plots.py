@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["Plots"]
 
 import logging
@@ -16,13 +18,9 @@ from .ExplanationsUtils import (
 
 logger = logging.getLogger(__name__)
 
-
-try:
+if TYPE_CHECKING:  # pragma: no cover
     import plotly.graph_objects as go
-except ImportError as e:
-    logger.debug("Failed to import optional dependencies: %s", e)
 
-if TYPE_CHECKING:
     from .Explanations import Explanations
 
 
@@ -254,6 +252,8 @@ class Plots(LazyNamespace):
         y_title: str = Y_AXIS_TITLE_DEFAULT,
         context: ContextInfo | None = None,
     ) -> go.Figure:
+        import plotly.graph_objects as go
+
         title = "Overall average predictor contributions for "
         if context is None:
             title += "the whole model"
@@ -297,6 +297,8 @@ class Plots(LazyNamespace):
         x_title: str = X_AXIS_TITLE_DEFAULT,
         y_title: str = Y_AXIS_TITLE_DEFAULT,
     ) -> list[go.Figure]:
+        import plotly.graph_objects as go
+
         df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
             df, group_by=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         )
@@ -339,6 +341,8 @@ class Plots(LazyNamespace):
 
     @staticmethod
     def _plot_context_table(context_info: ContextInfo) -> go.Figure:
+        import plotly.graph_objects as go
+
         fig = go.Figure(
             data=[
                 go.Table(

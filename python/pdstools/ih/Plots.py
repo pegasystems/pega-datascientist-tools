@@ -1,8 +1,10 @@
 """Plotting utilities for Interaction History visualization."""
 
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -13,14 +15,8 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .IH import IH as IH_Class
-
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-except ImportError as e:  # pragma: no cover
-    logger.debug(f"Failed to import optional dependencies: {e}")
 
 
 class Plots(LazyNamespace):
@@ -78,7 +74,7 @@ class Plots(LazyNamespace):
         title: str | None = None,
         query: QUERY | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create gauge charts showing success rates by condition and dimension.
 
         Generates a grid of gauge charts displaying success rates for combinations
@@ -121,6 +117,8 @@ class Plots(LazyNamespace):
 
         if return_df:
             return plot_data
+
+        import plotly.graph_objects as go
 
         if title is None:
             title = f"{metric} Overall Rates"
@@ -191,7 +189,7 @@ class Plots(LazyNamespace):
         title: str | None = None,
         query: QUERY | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a treemap of response count distribution.
 
         Displays hierarchical response counts across dimensions, allowing
@@ -239,6 +237,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         fig = px.treemap(
             plot_data.collect(),
             path=[px.Constant("ALL")] + ["Outcome"] + by,
@@ -265,7 +265,7 @@ class Plots(LazyNamespace):
         title: str | None = None,
         query: QUERY | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a treemap colored by success rates.
 
         Displays hierarchical success rates across dimensions, with color
@@ -311,6 +311,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         if title is None:
             title = f"{metric} Rates for All Actions"
 
@@ -353,7 +355,7 @@ class Plots(LazyNamespace):
         color: str | None = None,
         facet: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a bar chart of action distribution.
 
         Displays action counts across categories, optionally colored and
@@ -392,6 +394,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         fig = px.bar(
             plot_data.collect(),
             x="Count",
@@ -418,7 +422,7 @@ class Plots(LazyNamespace):
         query: QUERY | None = None,
         facet: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a line chart of success rates over time.
 
         Displays success rate trends for the specified metric, optionally
@@ -463,6 +467,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         if title is None:
             title = f"Success Rates Trend of {metric}"
 
@@ -490,7 +496,7 @@ class Plots(LazyNamespace):
         query: QUERY | None = None,
         facet: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a bar chart of response counts over time.
 
         Displays response counts colored by outcome type, optionally
@@ -532,6 +538,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data.lazy()
 
+        import plotly.express as px
+
         fig = px.bar(
             plot_data,
             x="OutcomeTime",
@@ -556,7 +564,7 @@ class Plots(LazyNamespace):
         query: QUERY | None = None,
         facet: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a line chart of model AUC over time.
 
         Displays model performance (Area Under the ROC Curve) calculated from
@@ -617,6 +625,8 @@ class Plots(LazyNamespace):
 
         if return_df:
             return plot_data
+
+        import plotly.express as px
 
         fig = px.line(
             plot_data.collect(),

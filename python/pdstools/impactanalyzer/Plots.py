@@ -1,7 +1,9 @@
 """Plotting utilities for Impact Analyzer visualization."""
 
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -12,13 +14,8 @@ from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .ImpactAnalyzer import ImpactAnalyzer as ImpactAnalyzer_Class
-
-try:
-    import plotly.express as px
-except ImportError as e:  # pragma: no cover
-    logger.debug(f"Failed to import optional dependencies: {e}")
 
 
 class Plots(LazyNamespace):
@@ -127,7 +124,7 @@ class Plots(LazyNamespace):
         metric: str = "CTR_Lift",
         facet: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a bar chart comparing experiment performance.
 
         Displays a horizontal bar chart comparing Impact Analyzer experiments
@@ -177,6 +174,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
@@ -219,7 +218,7 @@ class Plots(LazyNamespace):
         facet: str | None = None,
         every: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a line chart of control group metrics over time.
 
         Displays how different control groups perform over time for
@@ -273,6 +272,8 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        import plotly.express as px
+
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
@@ -314,7 +315,7 @@ class Plots(LazyNamespace):
         facet: str | None = None,
         every: str | None = None,
         return_df: bool = False,
-    ) -> Union["Figure", pl.LazyFrame]:
+    ) -> Figure | pl.LazyFrame:
         """Create a line chart of experiment lift metrics over time.
 
         Displays how different experiments' lift metrics evolve over time.
@@ -366,6 +367,8 @@ class Plots(LazyNamespace):
 
         if return_df:
             return plot_data
+
+        import plotly.express as px
 
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)

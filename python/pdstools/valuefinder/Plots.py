@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Iterable
 from typing import (
@@ -17,15 +19,6 @@ from ..utils.plot_utils import Figure
 from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
-
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-
-    from ..utils import pega_template as pega_template
-except ImportError as e:  # pragma: no cover
-    logger.debug(f"Failed to import optional dependencies: {e}")
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ValueFinder import ValueFinder
@@ -77,6 +70,8 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
+        import plotly.express as px
+
         fig = px.funnel(
             df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).collect(),
             y="Count",
@@ -93,6 +88,8 @@ class Plots(LazyNamespace):
 
     def propensity_distribution(self, sample_size: int = 10_000) -> Figure:
         import plotly.figure_factory as ff
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
 
         i = 0
         figs = make_subplots(
@@ -147,6 +144,8 @@ class Plots(LazyNamespace):
         stage="Eligibility",
     ) -> Figure:
         import plotly.figure_factory as ff
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
 
         colors = ["#001F5F", "#10A5AC", "#F76923"]
         propensities = ["FinalPropensity", "Propensity", "ModelPropensity"]
@@ -242,6 +241,9 @@ class Plots(LazyNamespace):
         quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
         thresholds = self._get_thresholds(thresholds, quantiles)
         df = pl.concat(
             [
@@ -340,6 +342,10 @@ class Plots(LazyNamespace):
         quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
+        import plotly.express as px
+
+        from ..utils import pega_template as pega_template  # noqa: F401
+
         thresholds = self._get_thresholds(
             thresholds,
             quantiles,
