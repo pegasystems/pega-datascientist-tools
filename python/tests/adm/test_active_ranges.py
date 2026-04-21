@@ -6,7 +6,7 @@ import polars as pl
 import pytest
 from pdstools import ADMDatamart
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture

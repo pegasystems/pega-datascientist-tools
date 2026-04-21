@@ -7,7 +7,7 @@ import pytest
 from pdstools import ADMDatamart
 from plotly.graph_objs import Figure
 
-basePath = Path(__file__).parent.parent.parent
+basePath = Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture

@@ -206,7 +206,7 @@ class TestGetLatestFile:
 
 
 class TestReadDataExcel:
-    FIXTURE = Path(__file__).parent / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
+    FIXTURE = Path(__file__).parent.parent / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
 
     def test_read_data_xlsx_returns_lazyframe(self):
         result = F.read_data(self.FIXTURE)

@@ -6,7 +6,7 @@ omit =
     python/pdstools/explanations/FilterWidget.py
     python/pdstools/adm/Reports.py
     **/__init__.py
-    python/tests/test_healthcheck.py
+    python/tests/healthcheck/test_healthcheck.py
 
 [report]
 exclude_also =

@@ -115,7 +115,7 @@ jobs:
           uv run python --version
 
       - name: Run healthcheck report tests
-        run: uv run pytest python/tests/test_healthcheck.py -n auto
+        run: uv run pytest python/tests/healthcheck/test_healthcheck.py -n auto
 
   # ── Step 2a-batch: Batch healthcheck integration test ──────────────
   batch-healthcheck-tests:
@@ -151,7 +151,7 @@ jobs:
         run: uv sync --extra healthcheck --extra tests
 
       - name: Run batch healthcheck integration test
-        run: uv run pytest python/tests/test_batch_healthcheck.py -n auto
+        run: uv run pytest python/tests/healthcheck/test_batch_healthcheck.py -n auto
 
   # ── Step 2a-no-esbuild: Healthcheck without esbuild (DJS simulation) ─
   healthcheck-tests-no-esbuild:
@@ -194,7 +194,7 @@ jobs:
           find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
 
       - name: Run healthcheck tests (CDN mode only)
-        run: uv run pytest python/tests/test_healthcheck.py -k "not full_embed" -n auto
+        run: uv run pytest python/tests/healthcheck/test_healthcheck.py -k "not full_embed" -n auto
 
   # ── Step 2a-batch-no-esbuild: Batch healthcheck without esbuild ────
   batch-healthcheck-tests-no-esbuild:
@@ -237,7 +237,7 @@ jobs:
           find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
 
       - name: Run batch healthcheck integration test (CDN only, no esbuild)
-        run: uv run pytest python/tests/test_batch_healthcheck.py -k "not full_embed" -n auto
+        run: uv run pytest python/tests/healthcheck/test_batch_healthcheck.py -k "not full_embed" -n auto
 
   # ── Step 2b: Explanations report tests ───────────────────────────────
   explanations-tests:
@@ -279,7 +279,7 @@ jobs:
           uv run python --version
 
       - name: Run explanations report tests
-        run: uv run pytest python/tests/test_explanations_report.py
+        run: uv run pytest python/tests/explanations/test_explanations_report.py
 
   # ── Step 2b-no-esbuild: Explanations without esbuild (DJS simulation) ─
   explanations-tests-no-esbuild:
@@ -322,4 +322,4 @@ jobs:
           find "$HOME/quarto" -name "esbuild" -type f | grep -c . && exit 1 || echo "No esbuild found - good"
 
       - name: Run explanations report tests
-        run: uv run pytest python/tests/test_explanations_report.py
+        run: uv run pytest python/tests/explanations/test_explanations_report.py

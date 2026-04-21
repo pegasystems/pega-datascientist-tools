@@ -24,7 +24,7 @@ from pdstools.decision_analyzer.utils import (
     get_table_definition,
 )
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 # Several test fixtures construct DecisionAnalyzer from intentionally minimal
 # datasets that omit some columns DecisionAnalyzer treats as defaults. The

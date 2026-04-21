@@ -5,7 +5,7 @@ import polars as pl
 import pytest
 from pdstools import Anonymization
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture

@@ -82,9 +82,9 @@ uv run pytest \
   --cov=./python/pdstools \
   --cov-report=xml \
   --cov-config=./python/tests/.coveragerc \
-  --ignore=python/tests/test_healthcheck.py \
-  --ignore=python/tests/test_explanations_report.py \
-  --ignore=python/tests/test_batch_healthcheck.py \
+  --ignore=python/tests/healthcheck/test_healthcheck.py \
+  --ignore=python/tests/explanations/test_explanations_report.py \
+  --ignore=python/tests/healthcheck/test_batch_healthcheck.py \
   --ignore=python/tests/explanations \
   -n auto
 ```
@@ -98,13 +98,13 @@ uv run pytest python/tests
 Run a single test file:
 
 ```bash
-uv run pytest python/tests/test_Reports.py
+uv run pytest python/tests/healthcheck/test_Reports.py
 ```
 
 Run a single test function:
 
 ```bash
-uv run pytest python/tests/test_Reports.py::test_html_deduplication
+uv run pytest python/tests/healthcheck/test_Reports.py::test_html_deduplication
 ```
 
 Run by keyword:
@@ -116,7 +116,7 @@ uv run pytest python/tests -k "healthcheck"
 Healthcheck tests (requires Quarto + Pandoc):
 
 ```bash
-uv run pytest python/tests/test_healthcheck.py
+uv run pytest python/tests/healthcheck/test_healthcheck.py
 ```
 
 ### Docs

@@ -5,7 +5,7 @@ from openpyxl import load_workbook
 from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
 from pdstools.utils.report_utils import check_report_for_errors
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_stem: str) -> None:

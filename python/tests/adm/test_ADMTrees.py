@@ -6,7 +6,7 @@ import re
 import pytest
 from pdstools.adm.trees import ADMTreesModel, parse_split
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture

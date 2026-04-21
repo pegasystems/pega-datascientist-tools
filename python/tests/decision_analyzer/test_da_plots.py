@@ -23,7 +23,7 @@ from pdstools.decision_analyzer.plots import (
 
 pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 # ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
 
-basePath = pathlib.Path(__file__).parent.parent.parent
+basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture

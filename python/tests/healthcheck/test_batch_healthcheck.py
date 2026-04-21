@@ -11,8 +11,8 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-SCRIPT = Path(__file__).parent.parent.parent / "scripts" / "batch_healthcheck.py"
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
+SCRIPT = Path(__file__).parent.parent.parent.parent / "scripts" / "batch_healthcheck.py"
 
 
 @pytest.fixture
