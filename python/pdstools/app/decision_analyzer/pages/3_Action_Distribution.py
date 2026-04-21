@@ -64,7 +64,7 @@ with st.container(border=True):
         "Issue → Group → Action to see how your portfolio is composed."
     )
 
-    distribution_data = st.session_state.decision_data.get_distribution_data(
+    distribution_data = st.session_state.decision_data.aggregates.get_distribution_data(
         st.session_state.stage,
         scope_options,
         additional_filters=channel_filter,

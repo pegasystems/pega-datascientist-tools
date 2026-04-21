@@ -10,7 +10,7 @@ from ._common import _boxplot_point_cap
 
 
 def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
-    df = self._decision_data.get_thresholding_data(thresholding_on)
+    df = self._decision_data.scoring.get_thresholding_data(thresholding_on)
     if return_df:
         return df
 
@@ -57,7 +57,7 @@ def sensitivity(
     relative to that number and the hover includes both the absolute
     influence count and the total decisions.
     """
-    df = self._decision_data.get_sensitivity(
+    df = self._decision_data.scoring.get_sensitivity(
         win_rank, group_filter=reference_group, additional_filters=additional_filters
     )
     if return_df:

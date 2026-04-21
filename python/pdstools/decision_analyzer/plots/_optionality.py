@@ -11,7 +11,9 @@ from ...utils.pega_template import colorway
 def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
     if df is None:
         df = self._decision_data.sample
-    plotData = self._decision_data.get_optionality_data(df).filter(pl.col(self._decision_data.level) == stage)
+    plotData = self._decision_data.aggregates.get_optionality_data(df).filter(
+        pl.col(self._decision_data.level) == stage
+    )
     if return_df:
         return plotData
     plotData = plotData.collect()
@@ -70,7 +72,7 @@ def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=Fals
 
 
 def optionality_per_stage(self, return_df=False):
-    df = self._decision_data.get_optionality_data(self._decision_data.sample)
+    df = self._decision_data.aggregates.get_optionality_data(self._decision_data.sample)
     if return_df:
         return df
 

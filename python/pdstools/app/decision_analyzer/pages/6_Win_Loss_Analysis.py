@@ -166,14 +166,14 @@ def get_groupby_columns(scope_options, current_scope_key):
 
 if st.session_state.local_filters != []:
     groupby_cols = get_groupby_columns(scope_options, "scope")
-    winning_from = st.session_state.decision_data.get_win_loss_distribution_data(
+    winning_from = st.session_state.decision_data.scoring.get_win_loss_distribution_data(
         level=groupby_cols,
         group_filter=st.session_state["local_filters"],
         status="Wins",
         top_k=top_k,
         additional_filters=channel_filter,
     )
-    losing_to = st.session_state.decision_data.get_win_loss_distribution_data(
+    losing_to = st.session_state.decision_data.scoring.get_win_loss_distribution_data(
         level=groupby_cols,
         group_filter=st.session_state["local_filters"],
         status="Losses",
@@ -186,7 +186,7 @@ if st.session_state.local_filters != []:
 
     win_rank = st.session_state.win_rank
 
-    counts = st.session_state.decision_data.get_win_loss_counts(
+    counts = st.session_state.decision_data.scoring.get_win_loss_counts(
         group_filter=st.session_state["local_filters"],
         win_rank=win_rank,
         additional_filters=channel_filter,

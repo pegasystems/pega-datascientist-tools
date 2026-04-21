@@ -8,7 +8,9 @@ from plotly.subplots import make_subplots
 
 
 def global_winloss_distribution(self, level, win_rank, return_df=False, additional_filters=None):
-    df = self._decision_data.get_win_loss_distribution_data(level, win_rank, additional_filters=additional_filters)
+    df = self._decision_data.scoring.get_win_loss_distribution_data(
+        level, win_rank, additional_filters=additional_filters
+    )
     if return_df:
         return df
 

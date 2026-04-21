@@ -89,7 +89,7 @@ with st.container(border=True):
         "violin shape reveals the full density — skew, bimodality, long tails — "
         "that histograms and box plots alone can hide."
     )
-    overview_data = st.session_state.decision_data.all_components_distribution(
+    overview_data = st.session_state.decision_data.scoring.all_components_distribution(
         st.session_state.scope,
         stage=st.session_state.stage,
         additional_filters=channel_filter,
@@ -103,7 +103,7 @@ with st.container(border=True):
 with st.container(border=True):
     "## Component Detail"
 
-    value_data = st.session_state.decision_data.priority_component_distribution(
+    value_data = st.session_state.decision_data.scoring.priority_component_distribution(
         component=st.session_state.prioritization_component,
         granularity=st.session_state.scope,
         stage=st.session_state.stage,

@@ -462,7 +462,7 @@ class TestOptionalityTrend:
     def _build_trend_df(self, da_v2):
         level = da_v2.level
         return (
-            da_v2.get_optionality_data(da_v2.sample, by_day=True)
+            da_v2.aggregates.get_optionality_data(da_v2.sample, by_day=True)
             .group_by(["day", level])
             .agg(avg_actions=(pl.col("nOffers") * pl.col("Interactions")).sum() / pl.col("Interactions").sum())
             .sort("day")
@@ -494,14 +494,14 @@ class TestOfferQualityPiecharts:
         from pdstools.decision_analyzer.plots import offer_quality_piecharts
 
         # Step 1: Get filtered action counts (mimicking the Streamlit page workflow)
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
         # Step 2: Get offer quality data
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         # Step 3: Create pie charts
         fig = offer_quality_piecharts(
@@ -517,13 +517,13 @@ class TestOfferQualityPiecharts:
         """Test that all stages are included (no 5-stage limit)."""
         from pdstools.decision_analyzer.plots import offer_quality_piecharts
 
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
@@ -540,13 +540,13 @@ class TestOfferQualityPiecharts:
         """Test graceful handling when no stages match the data."""
         from pdstools.decision_analyzer.plots import offer_quality_piecharts
 
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
@@ -563,13 +563,13 @@ class TestOfferQualityPiecharts:
         """Test with single stage (edge case)."""
         from pdstools.decision_analyzer.plots import offer_quality_piecharts
 
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
@@ -590,13 +590,13 @@ class TestOfferQualitySinglePie:
         """Test single pie chart for Arbitration stage."""
         from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
             propensity_th=0.05,
             priority_th=50,
         )
 
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_single_pie(
             quality_data,
@@ -613,13 +613,13 @@ class TestOfferQualitySinglePie:
         """Test single pie chart for Output stage."""
         from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
             propensity_th=0.05,
             priority_th=50,
         )
 
-        quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_single_pie(
             quality_data,
@@ -640,14 +640,14 @@ class TestGetTrendChart:
         from pdstools.decision_analyzer.plots import getTrendChart
 
         # Step 1: Get filtered action counts
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
         # Step 2: Get offer quality data with day grouping
-        quality_data = da_v2.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
         # Step 3: Create trend chart
         fig = getTrendChart(quality_data, stage="Output", level=da_v2.level)
@@ -659,14 +659,14 @@ class TestGetTrendChart:
         from pdstools.decision_analyzer.plots import getTrendChart
 
         # Step 1: Get filtered action counts
-        action_counts = da_v2.filtered_action_counts(
+        action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
             propensity_th=0.5,
             priority_th=50,
         )
 
         # Step 2: Get offer quality data with day grouping
-        quality_data = da_v2.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+        quality_data = da_v2.aggregates.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
         # Step 3: Get dataframe instead of figure
         df = getTrendChart(quality_data, stage="Output", level=da_v2.level, return_df=True)
@@ -682,7 +682,7 @@ class TestPlotPriorityComponentDistribution:
         from pdstools.decision_analyzer.plots import plot_priority_component_distribution
 
         # Use the correct method name: priority_component_distribution
-        value_data = da_v2.priority_component_distribution(
+        value_data = da_v2.scoring.priority_component_distribution(
             component="Value",
             granularity="Action",
             stage="Output",
@@ -707,7 +707,7 @@ class TestPlotComponentOverview:
         from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
 
         # Use the correct method: all_components_distribution
-        overview_data = da_v2.all_components_distribution(
+        overview_data = da_v2.scoring.all_components_distribution(
             granularity="Action",
             stage="Output",
         )

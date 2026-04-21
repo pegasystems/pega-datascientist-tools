@@ -6,7 +6,7 @@ import polars as pl
 
 
 def trend_chart(self, stage: str, scope: str, return_df=False, additional_filters=None) -> tuple[go.Figure, str | None]:
-    df = self._decision_data.get_trend_data(stage, scope, additional_filters=additional_filters).collect()
+    df = self._decision_data.aggregates.get_trend_data(stage, scope, additional_filters=additional_filters).collect()
 
     if return_df:
         return df.lazy()

@@ -229,6 +229,78 @@ Excel size / row-limit warnings.
 
 ---
 
+## Namespace reorganisation
+
+### `DecisionAnalyzer` — methods moved to sub-namespaces
+
+`DecisionAnalyzer` grew past 40 public methods and was refactored into a
+thin orchestrator with two sub-namespaces, matching the "Namespace facade
+for large analyzer classes" pattern already used by `ADMDatamart` (see
+`AGENTS.md`). Data-loading classmethods, properties and core state stay
+on the top-level class; analysis methods moved to `da.aggregates` and
+`da.scoring`.
+
+**Mechanical upgrade**: prefix the method call with the new namespace.
+The signatures and return shapes are unchanged.
+
+#### Aggregation methods — now under `da.aggregates`
+
+| v4 call                                            | v5 call                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| `da.aggregate_remaining_per_stage(...)`            | `da.aggregates.aggregate_remaining_per_stage(...)`            |
+| `da.get_distribution_data(...)`                    | `da.aggregates.get_distribution_data(...)`                    |
+| `da.get_funnel_data(...)`                          | `da.aggregates.get_funnel_data(...)`                          |
+| `da.get_decisions_without_actions_data(...)`       | `da.aggregates.get_decisions_without_actions_data(...)`       |
+| `da.get_funnel_summary(...)`                       | `da.aggregates.get_funnel_summary(...)`                       |
+| `da.get_optionality_data(...)`                     | `da.aggregates.get_optionality_data(...)`                     |
+| `da.get_optionality_funnel(...)`                   | `da.aggregates.get_optionality_funnel(...)`                   |
+| `da.get_action_variation_data(...)`                | `da.aggregates.get_action_variation_data(...)`                |
+| `da.get_offer_variability_stats(...)`              | `da.aggregates.get_offer_variability_stats(...)`              |
+| `da.get_offer_quality(...)`                        | `da.aggregates.get_offer_quality(...)`                        |
+| `da.filtered_action_counts(...)`                   | `da.aggregates.filtered_action_counts(...)`                   |
+| `da.get_trend_data(...)`                           | `da.aggregates.get_trend_data(...)`                           |
+| `da.get_filter_component_data(...)`                | `da.aggregates.get_filter_component_data(...)`                |
+| `da.get_component_action_impact(...)`              | `da.aggregates.get_component_action_impact(...)`              |
+| `da.get_component_drilldown(...)`                  | `da.aggregates.get_component_drilldown(...)`                  |
+| `da.get_ab_test_results(...)`                      | `da.aggregates.get_ab_test_results(...)`                      |
+
+#### Scoring / ranking / lever methods — now under `da.scoring`
+
+| v4 call                                            | v5 call                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| `da.re_rank(...)`                                  | `da.scoring.re_rank(...)`                                     |
+| `da.get_selected_group_rank_boundaries(...)`       | `da.scoring.get_selected_group_rank_boundaries(...)`          |
+| `da.get_sensitivity(...)`                          | `da.scoring.get_sensitivity(...)`                             |
+| `da.get_thresholding_data(...)`                    | `da.scoring.get_thresholding_data(...)`                       |
+| `da.priority_component_distribution(...)`          | `da.scoring.priority_component_distribution(...)`             |
+| `da.all_components_distribution(...)`              | `da.scoring.all_components_distribution(...)`                 |
+| `da.get_win_loss_distribution_data(...)`           | `da.scoring.get_win_loss_distribution_data(...)`              |
+| `da.get_winning_or_losing_interactions(...)`       | `da.scoring.get_winning_or_losing_interactions(...)`          |
+| `da.get_win_loss_counts(...)`                      | `da.scoring.get_win_loss_counts(...)`                         |
+| `da.get_win_loss_distributions(...)`               | `da.scoring.get_win_loss_distributions(...)`                  |
+| `da.get_win_distribution_data(...)`                | `da.scoring.get_win_distribution_data(...)`                   |
+| `da.find_lever_value(...)`                         | `da.scoring.find_lever_value(...)`                            |
+
+Private helpers `_remaining_at_stage`, `_winning_from` and `_losing_to`
+also moved to `da.scoring` — if you were calling them (outside pdstools),
+prefix accordingly.
+
+#### What stayed on `DecisionAnalyzer`
+
+Data-loading (`from_explainability_extract`, `from_decision_analyzer`,
+`__init__`), properties (`decision_data`, `sample`,
+`preaggregated_filter_view`, `preaggregated_remaining_view`,
+`arbitration_stage`, `mandatory_actions`, `color_mappings`,
+`stages_from_arbitration_down`, `stages_with_propensity`,
+`propensity_validation_warning`, `overview_stats`, `available_levels`,
+`num_sample_interactions`, `stage_to_group_mapping`), and lifecycle /
+filter helpers (`set_level`, `filtered`,
+`get_available_fields_for_filtering`, `get_possible_scope_values`,
+`get_possible_stage_values`). `da.plot` — already introduced in v4 —
+is unchanged.
+
+---
+
 ## Things that did NOT change
 
 - `pdstools.ADMDatamart`, `pdstools.IH`, `pdstools.Prediction`,

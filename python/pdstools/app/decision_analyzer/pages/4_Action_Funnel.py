@@ -50,11 +50,11 @@ def decisions_without_actions_plot(level=None, channel_filter=None):
 
 @st.cache_data(hash_funcs=polars_lazyframe_hashing)
 def funnel_summary(scope, level=None, channel_filter=None):
-    available_df, passing_df, filtered_df = st.session_state.decision_data.get_funnel_data(
+    available_df, passing_df, filtered_df = st.session_state.decision_data.aggregates.get_funnel_data(
         scope=scope,
         additional_filters=channel_filter,
     )
-    return st.session_state.decision_data.get_funnel_summary(
+    return st.session_state.decision_data.aggregates.get_funnel_summary(
         available_df, passing_df, additional_filters=channel_filter
     )
 
@@ -223,7 +223,7 @@ if has_components:
             )
             st.plotly_chart(impact_fig)
 
-            drilldown_df = da.get_component_drilldown(
+            drilldown_df = da.aggregates.get_component_drilldown(
                 component_name=selected_component,
                 scope=st.session_state.scope,
                 additional_filters=combined_filters,

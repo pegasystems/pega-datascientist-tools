@@ -10,7 +10,7 @@ from ..utils import apply_filter
 
 def optionality_funnel(self, df):
     level = self._decision_data.level
-    plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
+    plot_data = self._decision_data.aggregates.get_optionality_funnel(df=df).collect()
     total_interactions = plot_data.filter(pl.col(level) == plot_data.row(0)[0]).select(pl.sum("Interactions")).row(0)[0]
     fig = go.Figure()
 
@@ -75,7 +75,7 @@ def decision_funnel(
     passing_fig shows actions that exit each stage (Passing Actions tab).
     filtered_fig shows actions removed at each stage (Filtered Actions tab).
     """
-    available_df, passing_df, filtered_df = self._decision_data.get_funnel_data(scope, additional_filters)
+    available_df, passing_df, filtered_df = self._decision_data.aggregates.get_funnel_data(scope, additional_filters)
     if return_df:
         return available_df, passing_df, filtered_df
 
@@ -247,7 +247,7 @@ def decisions_without_actions_plot(
     return_df=False,
 ):
     """Bar chart showing decisions with no remaining actions per stage, as % of total."""
-    df = self._decision_data.get_decisions_without_actions_data(additional_filters)
+    df = self._decision_data.aggregates.get_decisions_without_actions_data(additional_filters)
     if return_df:
         return df
 

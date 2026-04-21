@@ -19,7 +19,7 @@ def filtering_components(
     additional_filters: pl.Expr | list[pl.Expr] | None = None,
     return_df=False,
 ):
-    df = self._decision_data.get_filter_component_data(top_n, additional_filters)
+    df = self._decision_data.aggregates.get_filter_component_data(top_n, additional_filters)
     if return_df:
         return df
     top_n_actions_dict = {}
@@ -105,7 +105,7 @@ def component_action_impact(
     -------
     go.Figure or pl.DataFrame
     """
-    df = self._decision_data.get_component_action_impact(
+    df = self._decision_data.aggregates.get_component_action_impact(
         top_n=top_n, scope=scope, additional_filters=additional_filters
     )
     if return_df:
@@ -178,7 +178,7 @@ def component_drilldown(
     -------
     go.Figure or pl.DataFrame
     """
-    df = self._decision_data.get_component_drilldown(
+    df = self._decision_data.aggregates.get_component_drilldown(
         component_name=component_name,
         scope=scope,
         additional_filters=additional_filters,

@@ -47,8 +47,10 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(st.session_state.decision_data.get_thresholding_data("Propensity", [0, 10, 100]))
-priority_th = _safe_thresholds(st.session_state.decision_data.get_thresholding_data("Priority", [0, 10, 100]))
+propensity_th = _safe_thresholds(
+    st.session_state.decision_data.scoring.get_thresholding_data("Propensity", [0, 10, 100])
+)
+priority_th = _safe_thresholds(st.session_state.decision_data.scoring.get_thresholding_data("Priority", [0, 10, 100]))
 
 if propensity_th is None or priority_th is None:
     st.warning(
@@ -99,7 +101,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
 
 channel_filter = st.session_state.get("page_channel_expr")
 
-action_counts = st.session_state.decision_data.filtered_action_counts(
+action_counts = st.session_state.decision_data.aggregates.filtered_action_counts(
     groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
     priority_th=priority_th,
     propensity_th=propensity_th,
@@ -109,7 +111,7 @@ action_counts = st.session_state.decision_data.filtered_action_counts(
 with st.container(border=True):
     "## Customer Segments by Offer Quality"
 
-    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by="Interaction ID")
+    vf = st.session_state.decision_data.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
     st.plotly_chart(
         offer_quality_piecharts(
@@ -128,7 +130,7 @@ with st.container(border=True):
     default_stage = stages_with_prop[0] if stages_with_prop else None
     stage_selectbox(default=default_stage)
 
-    vf = st.session_state.decision_data.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
+    vf = st.session_state.decision_data.aggregates.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
     st.plotly_chart(
         getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
@@ -152,7 +154,7 @@ with st.container(border=True):
             color_by="Channel/Direction",
         ),
     )
-    action_variability_stats = st.session_state.decision_data.get_offer_variability_stats("Output")
+    action_variability_stats = st.session_state.decision_data.aggregates.get_offer_variability_stats("Output")
     st.caption(
         f"**{action_variability_stats['n90']}** actions account for 90% of final decisions. "
         f"The personalization index is **{round(action_variability_stats['gini'], 3)}** "

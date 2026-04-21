@@ -34,6 +34,13 @@ guide.
 
 ### Changed
 
+- `DecisionAnalyzer` reorganised into a namespace facade (matching the
+  `ADMDatamart` pattern): 16 aggregation methods moved to
+  `da.aggregates.*` and 12 scoring / ranking / lever methods moved to
+  `da.scoring.*`. Data-loading classmethods, properties and lifecycle
+  helpers stay on the top-level class. See
+  [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md#namespace-reorganisation)
+  for the complete before/after table.
 - (To be populated by the v5 cleanup PRs.)
 - Decision Analyzer Streamlit pages: converted bare
   `from da_streamlit_utils import ...` imports to absolute

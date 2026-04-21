@@ -34,7 +34,7 @@ def action_variation(self, stage="Final", color_by=None, return_df=False):
         color_by: Optional dimension to color by (e.g., "Channel/Direction")
         return_df: If True, return the data instead of the figure
     """
-    df = self._decision_data.get_action_variation_data(stage, color_by=color_by)
+    df = self._decision_data.aggregates.get_action_variation_data(stage, color_by=color_by)
     if return_df:
         return df
 
