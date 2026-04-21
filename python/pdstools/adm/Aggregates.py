@@ -246,11 +246,11 @@ class Aggregates:
 
     @staticmethod
     def _top_n(
-        df: pl.LazyFrame | pl.DataFrame,
+        df: pl.LazyFrame,
         top_n: int,
         metric: str = "PredictorPerformance",
-        facets: list | None = None,
-    ):
+        facets: list[str] | None = None,
+    ) -> pl.LazyFrame:
         """Subsets DataFrame to contain only top_n predictors.
 
         Parameters
@@ -274,7 +274,7 @@ class Aggregates:
             return df
         if facets:
             return df.join(
-                df.group_by(facets + ["PredictorName"])  # type: ignore[arg-type]
+                df.group_by(facets + ["PredictorName"])
                 .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
@@ -286,7 +286,7 @@ class Aggregates:
             )
 
         return df.join(
-            df.group_by("PredictorName")  # type: ignore[arg-type]
+            df.group_by("PredictorName")
             .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
             .filter(pl.col(metric).is_not_nan())
             .sort(metric, descending=True)
@@ -309,15 +309,12 @@ class Aggregates:
         def name_normalizer(x):
             return pl.col(x).cast(pl.Utf8).str.replace_all(r"[ \-_]", "").str.to_uppercase()
 
-        if self.datamart.model_data is None:
-            raise ValueError("Model summaries needs model data")
-
         model_data = cdh_utils._apply_query(
-            self.datamart.model_data,
+            self.datamart._require_model_data(),
             query=query,
             allow_empty=True,
         )
-        grouping = []
+        grouping: list[str] = []
 
         if every:
             model_data = model_data.with_columns(
@@ -367,34 +364,34 @@ class Aggregates:
             )
             grouping += ["Channel", "Direction", "ChannelDirectionGroup"]
 
-        grouping = None if len(grouping) == 0 else grouping  # type: ignore[assignment]
+        grouping_cols: list[str] | None = None if len(grouping) == 0 else grouping
 
         return (
-            self._summarize_meta_info(grouping, model_data, debug=debug)
+            self._summarize_meta_info(grouping_cols, model_data, debug=debug)
             .join(
-                self._summarize_model_analytics(grouping, model_data, debug=debug),
-                on=("literal" if grouping is None else grouping),
+                self._summarize_model_analytics(grouping_cols, model_data, debug=debug),
+                on=("literal" if grouping_cols is None else grouping_cols),
                 nulls_equal=True,
                 how="left",
             )
             .join(
-                self._summarize_action_analytics(grouping, model_data, debug=debug),
-                on=("literal" if grouping is None else grouping),
+                self._summarize_action_analytics(grouping_cols, model_data, debug=debug),
+                on=("literal" if grouping_cols is None else grouping_cols),
                 nulls_equal=True,
                 how="left",
             )
             .join(
                 self._summarize_model_usage(
-                    grouping,
+                    grouping_cols,
                     model_data,
                     debug=debug,
                 ),
-                on=("literal" if grouping is None else grouping),
+                on=("literal" if grouping_cols is None else grouping_cols),
                 nulls_equal=True,
                 how="left",
             )
-            .drop(["literal"] if grouping is None else [])
-            .sort([] if grouping is None else grouping)
+            .drop(["literal"] if grouping_cols is None else [])
+            .sort([] if grouping_cols is None else grouping_cols)
         )
 
     def _summarize_meta_info(
@@ -491,7 +488,7 @@ class Aggregates:
 
         action_summary = (
             model_data.join(
-                self.datamart.first_action_dates,  # type: ignore[arg-type]
+                self.datamart._require_first_action_dates(),
                 on="Name",
                 nulls_equal=True,
             )
@@ -643,16 +640,14 @@ class Aggregates:
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data,  # type: ignore[arg-type]
+            self.datamart._require_model_data(),
             start_date,
             end_date,
             window,
         )
 
-        if query is None:
-            query = pl.col("SnapshotTime").is_between(start_date, end_date)
-        else:
-            query = pl.col("SnapshotTime").is_between(start_date, end_date) & query  # type: ignore[operator]
+        date_filter = pl.col("SnapshotTime").is_between(start_date, end_date)
+        query = date_filter if query is None else cdh_utils._combine_queries(query, date_filter)
 
         summary_by_channel = (
             self._adm_model_summary(
@@ -1054,7 +1049,7 @@ class Aggregates:
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
-            self.datamart.model_data,  # type: ignore[arg-type]
+            self.datamart._require_model_data(),
             start_date,
             end_date,
             window,

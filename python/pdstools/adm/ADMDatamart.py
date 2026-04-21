@@ -156,6 +156,46 @@ class ADMDatamart:
             return df
         return df.group_by("Name").agg(ActionFirstSnapshotTime=pl.col("SnapshotTime").min()).sort("Name")
 
+    def _require_model_data(self) -> pl.LazyFrame:
+        """Return ``model_data`` or raise a clear error if it isn't loaded.
+
+        Use this in any method that fundamentally needs model data — it
+        eliminates ``Optional`` narrowing at every call site and gives the
+        user an actionable error instead of an opaque ``AttributeError``
+        on ``None``.
+        """
+        if self.model_data is None:
+            raise ValueError(
+                "This operation requires model data, but no model_df was provided when constructing this ADMDatamart.",
+            )
+        return self.model_data
+
+    def _require_predictor_data(self) -> pl.LazyFrame:
+        """Return ``predictor_data`` or raise a clear error if it isn't loaded.
+
+        See :meth:`_require_model_data` for rationale.
+        """
+        if self.predictor_data is None:
+            raise ValueError(
+                "This operation requires predictor data, but no predictor_df "
+                "was provided when constructing this ADMDatamart.",
+            )
+        return self.predictor_data
+
+    def _require_first_action_dates(self) -> pl.LazyFrame:
+        """Return ``first_action_dates`` or raise a clear error.
+
+        ``first_action_dates`` is derived from ``model_data`` during
+        construction, so it's only ``None`` when no model data was supplied.
+        """
+        if self.first_action_dates is None:
+            raise ValueError(
+                "This operation requires first action dates, which are derived "
+                "from model data — but no model_df was provided when "
+                "constructing this ADMDatamart.",
+            )
+        return self.first_action_dates
+
     @classmethod
     def from_ds_export(
         cls,
@@ -694,13 +734,23 @@ class ADMDatamart:
 
         return modeldata_cache, predictordata_cache
 
+    def _unique_sorted_from_model_data(self, expr: pl.Expr, alias: str) -> list[str]:
+        """Helper for the ``unique_*`` cached_properties on model data.
+
+        Selects ``expr`` from ``model_data``, deduplicates and sorts it, then
+        materialises to a Python ``list[str]``. Centralises both the
+        ``Optional`` narrowing and the repeated ``select / unique / sort /
+        collect / to_list`` chain.
+        """
+        return self._require_model_data().select(expr.unique().sort().alias(alias)).collect()[alias].to_list()
+
     @cached_property
     def unique_channels(self) -> list[str]:
         """Sorted list of unique channels in the data.
 
         Used for making the color schemes in different plots consistent.
         """
-        return self.model_data.select(pl.col("Channel").unique().sort()).collect()["Channel"].to_list()
+        return self._unique_sorted_from_model_data(pl.col("Channel"), "Channel")
 
     @cached_property
     def unique_configurations(self) -> list[str]:
@@ -708,7 +758,7 @@ class ADMDatamart:
 
         Used for making the color schemes in different plots consistent.
         """
-        return self.model_data.select(pl.col("Configuration").unique().sort()).collect()["Configuration"].to_list()
+        return self._unique_sorted_from_model_data(pl.col("Configuration"), "Configuration")
 
     @cached_property
     def unique_channel_direction(self) -> list[str]:
@@ -716,15 +766,9 @@ class ADMDatamart:
 
         Used for making the color schemes in different plots consistent.
         """
-        return (
-            self.model_data.select(
-                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
-                .unique()
-                .sort()
-                .alias("ChannelDirection"),
-            )
-            .collect()["ChannelDirection"]
-            .to_list()
+        return self._unique_sorted_from_model_data(
+            pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/"),
+            "ChannelDirection",
         )
 
     @cached_property
@@ -733,20 +777,14 @@ class ADMDatamart:
 
         Used for making the color schemes in different plots consistent.
         """
-        return (
-            self.model_data.select(
-                pl.concat_str(
-                    pl.col("Configuration"),
-                    pl.col("Channel"),
-                    pl.col("Direction"),
-                    separator="/",
-                )
-                .unique()
-                .sort()
-                .alias("ChannelDirection"),
-            )
-            .collect()["ChannelDirection"]
-            .to_list()
+        return self._unique_sorted_from_model_data(
+            pl.concat_str(
+                pl.col("Configuration"),
+                pl.col("Channel"),
+                pl.col("Direction"),
+                separator="/",
+            ),
+            "ChannelDirection",
         )
 
     @cached_property
@@ -756,7 +794,8 @@ class ADMDatamart:
         Used for making the color schemes in different plots consistent.
         """
         return (
-            self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
+            self._require_predictor_data()
+            .select(pl.col("PredictorCategory").unique().sort())
             .filter(pl.col("PredictorCategory").is_not_null())
             .collect()["PredictorCategory"]
             .to_list()

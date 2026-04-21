@@ -35,41 +35,30 @@ Priority levels: P1 = high, P2 = medium, P3 = nice-to-have.
 
 ### DRY-ups
 
-- [ ] **P2 — Extract `_require_model_data()` / `_require_predictor_data()`
-  helpers.** Multiple sites in `Plots.py` and `Aggregates.py` carry
-  `# type: ignore[union-attr]` because `model_data` is typed
-  `pl.LazyFrame | None`. A small helper that returns the LazyFrame
-  or raises a clear `ValueError("Model data not available — …")`
-  eliminates the type:ignores and replaces silent `None`-propagation
-  with an actionable error.
 - [ ] **P3 — Factor out Performance auto-rescale.** The
   `50–100 → 0.5–1.0` rescale block is duplicated verbatim in
   `_validate_model_data` and `_validate_predictor_data`
   (`ADMDatamart.py:474-479` and `:512-518`). Pull into a single
   `_normalize_performance_scale(df)` helper.
-- [ ] **P3 — DRY-up the `unique_*` cached properties.** The five
-  `cached_property` lookups (`unique_channels`,
-  `unique_configurations`, `unique_channel_direction`,
-  `unique_configuration_channel_direction`,
-  `unique_predictor_categories`) are all the same shape:
-  `.select(pl.col(X).unique().sort()).collect()[X].to_list()`. A
-  generic `_unique_sorted(col_or_expr)` helper compresses all five
-  into one-liners while keeping the cached_properties as the public
-  surface.
 
 ### Pre-existing typing debt (out of scope until DA sweep is merged)
 
-- [ ] **P2 — `ADMDatamart.py:737, 759` mypy errors.** "Item 'None' of
-  'LazyFrame | None' has no attribute 'select'". Resolved
-  automatically once `_require_model_data()` helper above is in
-  place.
 - [ ] **P2 — `Plots.py` pre-existing mypy errors** at lines 751, 1144,
   1573, 1596, 1604 (arg-type / assignment). Triage as part of the
   planned `typing-adm-plots` PR.
 
 ## Done
 
-(none yet — file initialized 2026-04-21)
+- [x] **P2 — Extract `_require_*` helpers** — added
+  `_require_model_data`, `_require_predictor_data`, and
+  `_require_first_action_dates` on `ADMDatamart`. Eliminates
+  `# type: ignore[union-attr]` across `Aggregates.py` and gives users
+  an actionable `ValueError` instead of an `AttributeError` on `None`.
+- [x] **P3 — DRY-up the `unique_*` cached properties** — collapsed all
+  five (`unique_channels`, `unique_configurations`, etc.) onto a
+  single `_unique_sorted_from_model_data(expr, alias)` helper.
+- [x] **P2 — Resolved `ADMDatamart.py:737, 759` mypy errors** — gone
+  with the `_require_*` helpers above.
 
 ---
 
