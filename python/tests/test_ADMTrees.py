@@ -673,8 +673,143 @@ def test_splits_and_gains_lengths_aligned(tree_sample):
 def test_score_missing_predictor_raises_helpful_keyerror(tree_sample, sampledX):
     """Calling score with an incomplete feature dict should raise a KeyError
     that names the missing predictor (not a bare KeyError on the variable)."""
+    # Pick a predictor that's actually referenced by at least one split,
+    # otherwise score() may complete without ever needing it.
+    used_predictors = set(tree_sample.predictors) & set(sampledX)
+    assert used_predictors, "fixture sanity: sampledX must overlap with model predictors"
+    a_predictor = next(iter(used_predictors))
     incomplete = dict(sampledX)
-    a_predictor = next(iter(incomplete))
     incomplete.pop(a_predictor)
     with pytest.raises(KeyError, match=re.escape(repr(a_predictor))):
         tree_sample.score(incomplete)
+
+
+# ---------------------------------------------------------------------------
+# AGB datamart-helper tests (synthetic fixture)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def agb_datamart_stub():
+    """Build a stub object that quacks like ADMDatamart for AGB's purposes.
+
+    AGB only touches ``datamart.model_data`` (a LazyFrame) and
+    ``datamart.aggregates.last(table=...)`` — so a SimpleNamespace with
+    those attributes is enough to exercise discover_model_types and
+    get_agb_models without standing up a real ADMDatamart.
+
+    The frame contains two synthetic configurations:
+    - ``WebClickthroughAGB`` — a real AGB blob (re-encoded from the
+      shipped sample model JSON), so its _serialClass ends with
+      ``GbModel``.
+    - ``CaseModelNB`` — a hand-written NaiveBayes blob, which AGB
+      should *exclude* from get_agb_models.
+    """
+    import base64
+    import json
+    import zlib
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    import polars as pl
+
+    sample_path = basePath / "data" / "agb" / "_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt"
+    raw_agb_save_model = json.loads(sample_path.read_text())
+    # The "save model" export omits _serialClass and isn't wrapped the way a
+    # datamart Modeldata blob is. Wrap it so that trees["model"]["model"]
+    # ["boosters"][0]["trees"] resolves to the actual tree list.
+    datamart_payload = {
+        "_serialClass": "com.pega.decision.adm.client.impl.GbModel",
+        "model": raw_agb_save_model["model"],
+    }
+    agb_blob = base64.b64encode(zlib.compress(json.dumps(datamart_payload).encode())).decode()
+
+    nb_obj = {"_serialClass": "com.pega.decision.adm.client.impl.NaiveBayesModel"}
+    nb_blob = base64.b64encode(zlib.compress(json.dumps(nb_obj).encode())).decode()
+
+    df = pl.LazyFrame(
+        {
+            "Configuration": ["WebClickthroughAGB", "WebClickthroughAGB", "CaseModelNB"],
+            "Modeldata": [agb_blob, agb_blob, nb_blob],
+            "SnapshotTime": [
+                datetime(2024, 1, 1),
+                datetime(2024, 1, 2),
+                datetime(2024, 1, 1),
+            ],
+        }
+    )
+    aggregates = SimpleNamespace(last=lambda table="model_data": df)
+    return SimpleNamespace(model_data=df, aggregates=aggregates)
+
+
+def test_agb_discover_model_types_returns_serial_classes(agb_datamart_stub):
+    from pdstools.adm.ADMTrees import AGB
+
+    agb = AGB(agb_datamart_stub)
+    types = agb.discover_model_types(agb_datamart_stub.model_data, by="Configuration")
+    assert types["WebClickthroughAGB"].endswith("GbModel")
+    assert types["CaseModelNB"].endswith("NaiveBayesModel")
+
+
+def test_agb_discover_model_types_rejects_missing_modeldata():
+    import polars as pl
+    from pdstools.adm.ADMTrees import AGB
+
+    df = pl.LazyFrame({"Configuration": ["x"]})
+    agb = AGB(datamart=None)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Modeldata column"):
+        agb.discover_model_types(df)
+
+
+def test_agb_get_agb_models_filters_to_gb_only(agb_datamart_stub, monkeypatch):
+    """``get_agb_models`` should filter to ``GbModel`` configs and call
+    ``MultiTrees.from_datamart`` on each. We monkeypatch the blob decoder
+    because the save-model JSON we use as a fixture lacks the
+    ``inputsEncoder`` block that real datamart blobs carry; the actual
+    decoding path is covered by ``tree_sample``.
+    """
+    from pdstools.adm import ADMTrees as mod
+    from pdstools.adm.ADMTrees import AGB, MultiTrees
+
+    monkeypatch.setattr(
+        mod.ADMTreesModel,
+        "from_datamart_blob",
+        staticmethod(
+            lambda blob, **_: mod.ADMTreesModel.from_file(
+                str(basePath / "data" / "agb" / "_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt"),
+            )
+        ),
+    )
+
+    agb = AGB(agb_datamart_stub)
+    result = agb.get_agb_models(n_threads=1)
+    assert set(result) == {"WebClickthroughAGB"}, "non-AGB configs must be excluded"
+    assert isinstance(result["WebClickthroughAGB"], MultiTrees)
+    # Two snapshots in the fixture -> two trees decoded into the MultiTrees
+    assert len(result["WebClickthroughAGB"].trees) == 2
+
+
+def test_agb_get_agb_models_with_last_uses_aggregates(agb_datamart_stub, monkeypatch):
+    from pdstools.adm import ADMTrees as mod
+    from pdstools.adm.ADMTrees import AGB
+
+    monkeypatch.setattr(
+        mod.ADMTreesModel,
+        "from_datamart_blob",
+        staticmethod(
+            lambda blob, **_: mod.ADMTreesModel.from_file(
+                str(basePath / "data" / "agb" / "_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt"),
+            )
+        ),
+    )
+
+    calls: list[str] = []
+
+    def spy_last(table="model_data"):
+        calls.append(table)
+        return agb_datamart_stub.model_data
+
+    agb_datamart_stub.aggregates.last = spy_last
+    agb = AGB(agb_datamart_stub)
+    agb.get_agb_models(last=True, n_threads=1)
+    assert calls == ["model_data"]
