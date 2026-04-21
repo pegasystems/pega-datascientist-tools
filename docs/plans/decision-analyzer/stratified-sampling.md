@@ -1,7 +1,7 @@
 # Stratified sampling
 
 **Priority:** P3
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`
 
 Current sampling is random. For analysis across channels/directions, random sampling may under-represent small groups.
 

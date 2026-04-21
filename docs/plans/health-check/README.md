@@ -44,10 +44,5 @@ grep -l 'Priority:** P1' docs/plans/health-check/*.md
 | Slug | Area |
 |---|---|
 | `improve-pega-plotly-template` | Plots & Plotly template (#600) |
-| `consistent-legend-coloring` | Plots & Plotly template |
-| `hide-trend-single-snapshot` | Quarto reports |
 | `consistent-active-model-filtering` | Quarto reports (#594) |
-| `inline-css-cdn-mode` | Quarto reports / report utils (#620) |
-| `expose-full-embed-cli` | CLI & Streamlit UI |
-| `over-time-multi-by` | `adm/Plots.py` |
-| `move-report-plot-helpers` | `reports/ModelReport.qmd`, `adm/Plots.py` |
+| `move-report-plot-helpers` | `reports/ModelReport.qmd`, `adm/Plots/` |

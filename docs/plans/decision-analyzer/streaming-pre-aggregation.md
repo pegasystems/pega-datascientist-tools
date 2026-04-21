@@ -1,7 +1,7 @@
 # Streaming pre-aggregation
 
 **Priority:** P3
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`
 
 `preaggregated_filter_view` calls `.collect()` on the full dataset, which blocks and consumes memory for GB-scale inputs.
 

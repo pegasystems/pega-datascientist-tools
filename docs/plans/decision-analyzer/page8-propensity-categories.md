@@ -1,7 +1,7 @@
 # Support propensity-based categories per stage (Page 8 — Offer Quality Analysis)
 
 **Priority:** P3
-**Touches:** `python/pdstools/app/decision_analyzer/pages/8_Offer_Quality.py`, `plots.py`
+**Touches:** `python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py`, `plots.py`
 
 Some stages can categorise actions by propensity bucket; this is not currently surfaced.
 

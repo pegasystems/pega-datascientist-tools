@@ -1,7 +1,7 @@
 # Treatment support
 
 **Priority:** P3
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`, `column_schema.py`, Streamlit pages
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`, `column_schema.py`, Streamlit pages
 
 The Treatment column is commented out in the schema. When present, the same action can appear multiple times per interaction with different propensities (~0.6% of rows).
 

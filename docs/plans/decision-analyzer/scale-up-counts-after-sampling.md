@@ -1,7 +1,7 @@
 # Scale up counts after sampling
 
 **Priority:** P3
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`, Streamlit UI
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`, Streamlit UI
 
 The sampling infrastructure (sample fraction metadata) is in place but UI still shows raw sampled counts rather than estimated full-volume counts.
 

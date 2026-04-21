@@ -1,7 +1,7 @@
 # Pre-aggregated data support
 
 **Priority:** P3
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`
 
 Infinity Action Analysis can produce pre-computed results. Currently `DecisionAnalyzer` always re-aggregates.
 

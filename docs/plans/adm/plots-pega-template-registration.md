@@ -1,14 +1,14 @@
-# `adm/Plots.py` relies on cross-module side effect for "pega" template
+# `adm/Plots/ (package)` relies on cross-module side effect for "pega" template
 
 Priority: P2
 
-Files touched: `python/pdstools/adm/Plots.py`,
+Files touched: `python/pdstools/adm/Plots/ (package)`,
 possibly `python/pdstools/utils/pega_template.py`,
 `python/pdstools/__init__.py`.
 
 ## Problem
 
-Several methods in `adm/Plots.py` (e.g. `bubble_chart`, `over_time`)
+Several methods in `adm/Plots/ (package)` (e.g. `bubble_chart`, `over_time`)
 pass `template="pega"` to Plotly without importing
 `pdstools.utils.pega_template`. Those methods only work because some
 *other* module — historically `prediction/Plots.py` — imports
@@ -34,7 +34,7 @@ underlying coupling remains brittle.
 
 Two reasonable options, in order of preference:
 
-1. **Lazy import in each adm/Plots.py method** that uses
+1. **Lazy import in each adm/Plots/ (package) method** that uses
    `template="pega"` — `from ..utils import pega_template  # noqa: F401`
    alongside the existing inline `import plotly.express as px`. This
    matches the gold-standard pattern (each method owns its imports)

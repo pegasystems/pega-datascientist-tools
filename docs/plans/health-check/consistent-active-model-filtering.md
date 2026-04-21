@@ -1,7 +1,7 @@
 # Consistent active model filtering
 
 **Priority:** P2
-**Touches:** `python/pdstools/adm/Plots.py`, `reports/HealthCheck.qmd`, `reports/ModelReport.qmd`
+**Touches:** `python/pdstools/adm/Plots/ (package)`, `reports/HealthCheck.qmd`, `reports/ModelReport.qmd`
 
 Related: [#594](https://github.com/pegasystems/pega-datascientist-tools/issues/594)
 

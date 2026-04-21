@@ -1,7 +1,7 @@
 # Move offer quality logic to DecisionAnalyzer (Page 8 — Offer Quality Analysis)
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/decision_analyzer/pages/8_Offer_Quality.py`, `decision_analyzer.py`
+**Touches:** `python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py`, `DecisionAnalyzer.py`
 
 Offer quality calculations are currently embedded in the Streamlit page code, making them untestable and non-reusable.
 

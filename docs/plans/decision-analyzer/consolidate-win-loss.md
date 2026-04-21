@@ -1,7 +1,7 @@
 # Consolidate win/loss methods
 
 **Priority:** P2
-**Touches:** `python/pdstools/decision_analyzer/decision_analyzer.py`
+**Touches:** `python/pdstools/decision_analyzer/DecisionAnalyzer.py`
 
 `_winning_from` / `_losing_to` duplicate logic — only the rank comparison differs. Similarly `get_win_loss_distribution_data` and `get_win_loss_distributions` have overlapping concerns.
 

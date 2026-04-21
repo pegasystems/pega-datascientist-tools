@@ -51,8 +51,8 @@ resolves it. The deletion is the audit trail.
 
 | Slug prefix | Area |
 |---|---|
-| *(no prefix)* | Core library (`decision_analyzer.py`, schema, utils) |
-| `custom-sidebar`, `add-issue-filter`, `add-cascading-group-filter`, `improve-file-upload`, `dynamic-stage-ui`, `promote-data-read-utils` | Streamlit app architecture |
+| *(no prefix)* | Core library (`DecisionAnalyzer.py`, `column_schema.py`, `utils.py`) |
+| `custom-sidebar`, `add-issue-filter`, `add-cascading-group-filter`, `dynamic-stage-ui`, `promote-data-read-utils` | Streamlit app architecture |
 | `page2-*` | Page 2 — Overview |
 | `page3-*` | Page 3 — Action Distribution |
 | `page4-*` | Page 4 — Action Funnel |
@@ -61,7 +61,6 @@ resolves it. The deletion is the audit trail.
 | `page7-*` | Page 7 — Optionality Analysis |
 | `page8-*` | Page 8 — Offer Quality Analysis |
 | `page9-*` | Page 9 — Thresholding Analysis |
-| `page10-*` | Page 10 — Arbitration Component Distribution |
-| `business-lever-*` | Hidden — Business Lever Analysis (stashed, needs rework) |
-| `plots-*` | `plots.py` |
+| `page10-*` | Page 10 — Arbitration Distribution |
+| `plots-*` | `decision_analyzer/plots.py` |
 | `data-size-warning` | Performance |

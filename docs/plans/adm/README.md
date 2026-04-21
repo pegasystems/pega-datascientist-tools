@@ -53,6 +53,4 @@ removal of the file is the audit trail. No "Done" section to maintain.
 - AGENTS.md → "`return_df` parameter on plot methods"
 - AGENTS.md → "Surfacing follow-up work" — when to file an issue vs add
   a plan-file entry.
-- `docs/plans/decision-analyzer-TODO.md` — DA module backlog (will be
-  converted to the same per-item layout when it next sees significant
-  churn).
+- `docs/plans/decision-analyzer/` — DA module backlog (per-item layout).

@@ -1,7 +1,7 @@
-# Move report-local plot helpers into `adm/Plots.py`
+# Move report-local plot helpers into `adm/Plots/ (package)`
 
 **Priority:** P3
-**Touches:** `reports/ModelReport.qmd`, `python/pdstools/adm/Plots.py`, `python/pdstools/adm/BinAggregator.py`
+**Touches:** `reports/ModelReport.qmd`, `python/pdstools/adm/Plots/ (package)`, `python/pdstools/adm/BinAggregator.py`
 
 `ModelReport.qmd` defines several Plotly figures inline:
 - Cumulative gains/lift area charts

@@ -1,7 +1,7 @@
 # Audit "rank of winning" usage (Page 6 — Win/Loss Analysis)
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/decision_analyzer/pages/6_Win_Loss_Analysis.py`, `decision_analyzer.py`
+**Touches:** `python/pdstools/app/decision_analyzer/pages/6_Win_Loss_Analysis.py`, `DecisionAnalyzer.py`
 
 "Rank of winning" may not be correctly plumbed through all win/loss analyses.
 
