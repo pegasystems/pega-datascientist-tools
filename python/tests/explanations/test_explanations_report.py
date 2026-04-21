@@ -14,7 +14,7 @@ import pytest
 from pdstools.explanations import Explanations
 from pdstools.utils.report_utils import check_report_for_errors
 
-basePath = Path(__file__).parent.parent.parent
+basePath = Path(__file__).parent.parent.parent.parent
 
 
 def clean_up(root_dir):
