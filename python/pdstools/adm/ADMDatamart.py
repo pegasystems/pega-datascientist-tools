@@ -71,7 +71,7 @@ class ADMDatamart:
              query = {"Configuration":["Web_Click_Through"]}
              )
     >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
-    >>> dm = ADMDatamart.from_s3("pega_export")
+    >>> dm = ADMDatamart.from_s3("pega_export", "model_snapshots.parquet")
     >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
 
     Note
@@ -287,8 +287,111 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_s3(cls):
-        """Not implemented yet. Please let us know if you would like this functionality!"""
+    def from_s3(
+        cls,
+        bucket: str,
+        model_key: str,
+        predictor_key: str | None = None,
+        *,
+        region: str | None = None,
+        boto3_client=None,
+        query: QUERY | None = None,
+        extract_pyname_keys: bool = True,
+        infer_schema_length: int = 10000,
+    ) -> "ADMDatamart":
+        """Import the ADMDatamart class from objects stored in S3.
+
+        Downloads the model snapshot (and optional predictor snapshot) from
+        the given S3 bucket to a temporary directory, then delegates to
+        :meth:`from_ds_export` for parsing.
+
+        Parameters
+        ----------
+        bucket : str
+            Name of the S3 bucket holding the export files.
+        model_key : str
+            S3 object key for the model snapshot file.
+        predictor_key : str | None, optional
+            S3 object key for the predictor binning snapshot file. If omitted,
+            only the model data is loaded.
+        region : str | None, optional
+            AWS region name. Ignored if ``boto3_client`` is provided.
+        boto3_client : optional
+            Pre-configured ``boto3`` S3 client. Use this to inject custom
+            credentials, endpoints, or sessions. When omitted, a default
+            client is created via ``boto3.client("s3", region_name=region)``.
+        query : QUERY | None, optional
+            An optional argument to filter the data, by default None.
+        extract_pyname_keys : bool, optional
+            Whether to extract additional keys from the ``pyName`` column,
+            by default True.
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON
+            files. By default 10000.
+
+        Returns
+        -------
+        ADMDatamart
+            The properly initialized ADMDatamart class.
+
+        Examples
+        --------
+        >>> from pdstools import ADMDatamart
+        >>> dm = ADMDatamart.from_s3(
+        ...     bucket="my-pega-exports",
+        ...     model_key="datamart/model_snapshots.parquet",
+        ...     predictor_key="datamart/predictor_snapshots.parquet",
+        ... )
+
+        Note
+        ----
+        ``boto3`` is an optional dependency; install the ``pega_io`` extra
+        (or install ``boto3`` directly) before calling this method.
+
+        See Also
+        --------
+        ADMDatamart.from_ds_export : Underlying parser for downloaded files.
+        pdstools.pega_io.S3.S3Data : Async helper for bulk dataflow exports.
+
+        """
+        if boto3_client is None:
+            try:
+                import boto3
+            except ImportError:
+                from ..utils.namespaces import MissingDependenciesException
+
+                raise MissingDependenciesException(
+                    ["boto3"],
+                    namespace="ADMDatamart.from_s3",
+                    deps_group="pega_io",
+                )
+            boto3_client = boto3.client("s3", region_name=region)
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            model_filename = cls._download_from_s3(boto3_client, bucket, model_key, tmp_dir)
+            predictor_filename = (
+                cls._download_from_s3(boto3_client, bucket, predictor_key, tmp_dir)
+                if predictor_key is not None
+                else None
+            )
+            return cls.from_ds_export(
+                model_filename=model_filename,
+                predictor_filename=predictor_filename,
+                base_path=tmp_dir,
+                query=query,
+                extract_pyname_keys=extract_pyname_keys,
+                infer_schema_length=infer_schema_length,
+            )
+
+    @staticmethod
+    def _download_from_s3(client, bucket: str, key: str, dest_dir: str) -> str:
+        """Download a single S3 object into ``dest_dir`` and return its basename."""
+        basename = os.path.basename(key) or key.replace("/", "_")
+        local_path = os.path.join(dest_dir, basename)
+        client.download_file(bucket, key, local_path)
+        return basename
 
     @classmethod
     def from_dataflow_export(

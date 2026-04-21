@@ -330,3 +330,56 @@ def test_has_single_snapshot_two_snapshots():
         )
     )
     assert dm.has_single_snapshot is False
+
+
+def test_from_s3_downloads_and_delegates(monkeypatch, tmp_path):
+    """from_s3 downloads model + predictor objects and delegates to from_ds_export."""
+    pytest.importorskip("moto")
+    pytest.importorskip("boto3")
+    import boto3
+    from moto import mock_aws
+
+    model_src = f"{basePath}/data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
+    pred_src = (
+        f"{basePath}/data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
+    )
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="test-bucket")
+        client.upload_file(model_src, "test-bucket", "exports/models.zip")
+        client.upload_file(pred_src, "test-bucket", "exports/predictors.zip")
+
+        dm = ADMDatamart.from_s3(
+            bucket="test-bucket",
+            model_key="exports/models.zip",
+            predictor_key="exports/predictors.zip",
+            boto3_client=client,
+        )
+
+    assert dm.model_data is not None
+    assert dm.predictor_data is not None
+    assert dm.model_data.collect().height > 0
+
+
+def test_from_s3_model_only(monkeypatch):
+    """from_s3 works without a predictor key."""
+    pytest.importorskip("moto")
+    import boto3
+    from moto import mock_aws
+
+    model_src = f"{basePath}/data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="test-bucket")
+        client.upload_file(model_src, "test-bucket", "models.zip")
+
+        dm = ADMDatamart.from_s3(
+            bucket="test-bucket",
+            model_key="models.zip",
+            boto3_client=client,
+        )
+
+    assert dm.model_data is not None
+    assert dm.predictor_data is None

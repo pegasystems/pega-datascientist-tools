@@ -45,7 +45,7 @@ adm = [
     'pydot',
     'requests',
 ]
-pega_io = ['aioboto3', 'polars_hash']
+pega_io = ['aioboto3', 'boto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot', 'ipykernel']
 explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
