@@ -119,6 +119,8 @@ def parse_split(raw: str) -> Split:
         raise ValueError(f"Cannot parse split: {raw!r}")
     variable = match.group("variable")
     op = match.group("operator")
+    if op not in _SPLIT_OPERATORS:  # pragma: no cover - guarded by regex
+        raise ValueError(f"Unsupported split operator {op!r} in {raw!r}")
     value_text = match.group("value").strip()
 
     value: float | str | tuple[str, ...]
@@ -136,7 +138,7 @@ def parse_split(raw: str) -> Split:
         # Single-value 'in', 'is', '==' — keep as a string.
         value = value_text
 
-    return Split(variable=variable, operator=op, value=value, raw=raw)  # type: ignore[arg-type]
+    return Split(variable=variable, operator=op, value=value, raw=raw)
 
 
 @dataclass(frozen=True)
@@ -182,6 +184,12 @@ def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
 
 
 class AGB:
+    """Datamart helper for discovering and extracting AGB models.
+
+    Reachable as ``ADMDatamart.agb``; not intended to be instantiated
+    directly.
+    """
+
     def __init__(self, datamart: ADMDatamart):  # pragma: no cover
         self.datamart = datamart
 
@@ -189,32 +197,27 @@ class AGB:
         self,
         df: pl.LazyFrame,
         by: str = "Configuration",
-    ) -> dict:  # pragma: no cover
-        """Discovers the type of model embedded in the pyModelData column.
+    ) -> dict[str, str]:  # pragma: no cover
+        """Discover the type of model embedded in the ``Modeldata`` column.
 
-        By default, we do a group_by Configuration, because a model rule can only
-        contain one type of model. Then, for each configuration, we look into the
-        pyModelData blob and find the _serialClass, returning it in a dict.
+        Groups by ``by`` (typically Configuration, since one model rule
+        contains one model type) and decodes the first ``Modeldata`` blob
+        per group to extract its ``_serialClass``.
 
         Parameters
         ----------
-        df: pl.LazyFrame
-            The dataframe to search for model types
-        by: str
-            The column to look for types in. Configuration is recommended.
-
+        df : pl.LazyFrame
+            Datamart slice including ``Modeldata``.  Collected internally.
+        by : str
+            Grouping column.  ``Configuration`` is recommended.
         """
-        if "Modeldata" not in df.columns:
+        if "Modeldata" not in df.collect_schema().names():
             raise ValueError(
                 "Modeldata column not in the data. Please make sure to include it by setting 'subset' to False.",
             )
 
-        def _get_type(val):
-            import base64
-
-            return json.loads(
-                zlib.decompress(base64.b64decode(val)),
-            )["_serialClass"]
+        def _get_type(val: str) -> str:
+            return json.loads(zlib.decompress(base64.b64decode(val)))["_serialClass"]
 
         types = df.filter(pl.col("Modeldata").is_not_null()).group_by(by).agg(pl.col("Modeldata").first()).collect()
         return {row[by]: _get_type(row["Modeldata"]) for row in types.to_dicts()}
@@ -222,31 +225,38 @@ class AGB:
     def get_agb_models(
         self,
         last: bool = False,
-        by_configuration: bool = True,
         n_threads: int = 6,
         query: QUERY | None = None,
-        verbose: bool = True,
-        **kwargs,
-    ) -> dict:  # pragma: no cover
-        """Get all AGB models in the datamart, indexed by configuration.
+    ) -> dict[str, MultiTrees]:  # pragma: no cover
+        """Get all AGB models in the datamart, indexed by Configuration.
 
-        Filters down the model data to those rows whose ``_serialClass``
-        ends with ``GbModel`` and decodes them via :class:`MultiTrees`.
+        Filters down to models whose ``_serialClass`` ends with
+        ``GbModel`` and decodes them via :class:`MultiTrees`.
+
+        Parameters
+        ----------
+        last : bool
+            If True, use only the latest snapshot per model.
+        n_threads : int
+            Worker count for parallel blob decoding.
+        query : QUERY | None
+            Optional pre-filter applied before discovery.
         """
-        df = cdh_utils._apply_query(self.datamart.model_data, query)
+        df = self.datamart.aggregates.last(table="model_data") if last else self.datamart.model_data  # type: ignore[arg-type]
+        df = cdh_utils._apply_query(df, query)
         if "Modeldata" not in df.collect_schema().names():
             raise ValueError(
                 "Modeldata column not in the data. Please make sure to include it by setting 'subset' to False.",
             )
-        if last:
-            df = self.datamart.aggregates.last(table="model_data")  # type: ignore[arg-type]
-            df = cdh_utils._apply_query(df, query)
         types = self.discover_model_types(df, by="Configuration")
         agb_configs = [config for config, t in types.items() if t.endswith("GbModel")]
-        if verbose:
-            logger.info("Found %d AGB configurations: %s", len(agb_configs), agb_configs)
-        df = df.filter(pl.col("Configuration").is_in(agb_configs))
-        return MultiTrees.from_datamart(df.collect(), n_threads=n_threads, **kwargs)
+        logger.info("Found %d AGB configurations: %s", len(agb_configs), agb_configs)
+        df_collected = df.filter(pl.col("Configuration").is_in(agb_configs)).collect()
+        result: dict[str, MultiTrees] = {}
+        for config in agb_configs:
+            sub = df_collected.filter(pl.col("Configuration") == config)
+            result[config] = MultiTrees.from_datamart(sub, n_threads=n_threads, configuration=config)
+        return result
 
 
 # =============================================================================
@@ -273,14 +283,16 @@ class ADMTrees:  # pragma: no cover
         warnings.warn(
             "ADMTrees(...) is deprecated; use ADMTreesModel.from_file / "
             "from_url / from_datamart_blob / from_dict, or "
-            "MultiTrees.from_datamart for datamart DataFrames.",
+            "MultiTrees.from_datamart / from_datamart_grouped for "
+            "datamart DataFrames.",
             DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(file, pl.DataFrame):
             file = file.filter(pl.col("Modeldata").is_not_null())
             if len(file) > 1:
-                return MultiTrees.from_datamart(file, n_threads=n_threads, **kwargs)
+                # Multiple snapshots → return a dict for backward compatibility.
+                return MultiTrees.from_datamart_grouped(file, n_threads=n_threads, **kwargs)
             return ADMTreesModel.from_datamart_blob(
                 file.select("Modeldata").item(),
                 **kwargs,
@@ -359,12 +371,21 @@ class ADMTreesModel:
     def __init__(self, file: str | None = None, **kwargs):
         """Backward-compatible constructor.
 
-        Prefer the ``from_*`` classmethods for new code.  When ``file``
-        is a string, this dispatches to :meth:`_from_anything` which
-        tries (in order) base64 decode, local file, URL.
+        .. deprecated::
+            Prefer the ``from_*`` classmethods (``from_file``,
+            ``from_url``, ``from_datamart_blob``, ``from_dict``).  The
+            string-dispatch constructor will be removed in a future
+            release.
         """
         if file is None:
             return  # allow classmethods to populate self
+        warnings.warn(
+            "ADMTreesModel(file) is deprecated; use one of the explicit "
+            "factory classmethods: ADMTreesModel.from_file / from_url / "
+            "from_datamart_blob / from_dict.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._init_from_anything(file, **kwargs)
 
     @classmethod
@@ -389,11 +410,14 @@ class ADMTreesModel:
         return instance
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> ADMTreesModel:
-        """Load a model from a URL pointing at the JSON export."""
+    def from_url(cls, url: str, *, timeout: float = 30.0, **kwargs) -> ADMTreesModel:
+        """Load a model from a URL pointing at the JSON export.
+
+        ``timeout`` is the per-request timeout in seconds (default 30).
+        """
         import requests  # type: ignore[import-untyped]
 
-        content = requests.get(url)
+        content = requests.get(url, timeout=timeout)
         content.raise_for_status()
         data = json.loads(content.content)
         instance = cls.__new__(cls)
@@ -474,10 +498,8 @@ class ADMTreesModel:
                 split[1] = int(split[1])
                 return tuple(reversed(split))
 
-            valuelist = collections.OrderedDict(
-                sorted([set_types(i) for i in encoder["symbols"]]),
-            )
-            splitvalues = list()
+            valuelist = dict(sorted(set_types(i) for i in encoder["symbols"]))
+            splitvalues = []
             for key, value in valuelist.items():
                 logger.debug("string_decoder candidate: %s=%s (index=%s)", key, value, index)
                 if int(key) == index - 129 and index == 129 and sign == "<":
@@ -520,7 +542,7 @@ class ADMTreesModel:
             encoders = self.trees["model"]["model"]["inputsEncoder"]["encoders"]
         except KeyError:
             encoders = self.trees["model"]["inputsEncoder"]["encoders"]
-        encoderkeys = collections.OrderedDict()
+        encoderkeys: dict[int, str] = {}
         for encoder in encoders:
             encoderkeys[encoder["value"]["index"]] = encoder["key"]
         encoders = {encoder["key"]: encoder["value"] for encoder in encoders}
@@ -592,6 +614,9 @@ class ADMTreesModel:
             return left != right
         raise ValueError(f"Unsupported operator: {operator}")
 
+    # Class-level dedupe so repeated per-row scoring failures don't spam logs.
+    _safe_eval_seen_errors: set[tuple[str, str]] = set()
+
     @staticmethod
     def _safe_condition_evaluate(
         value: Any,
@@ -600,11 +625,11 @@ class ADMTreesModel:
     ) -> bool:
         """Safely evaluate split conditions without using ``eval()``.
 
-        Returns ``False`` (with a debug log) on type-conversion errors.
-        Type errors here are common in production scoring — the predictor
-        is present but its value can't be coerced to the comparison's
-        expected type — so we log at DEBUG to avoid swamping callers with
-        per-record warnings.  Set the logger to DEBUG to surface them.
+        Returns ``False`` on type-conversion errors after logging the
+        first occurrence per (operator, error-type) pair at INFO level.
+        Subsequent matching failures log at DEBUG only — we don't want
+        per-row scoring to swamp the application logs, but the first
+        failure for each error class is worth surfacing.
         """
         try:
             if operator == "in":
@@ -617,13 +642,20 @@ class ADMTreesModel:
                 return str(value).strip("'") == str(comparison_set)
             raise ValueError(f"Unsupported operator: {operator}")
         except (ValueError, TypeError) as e:
-            logger.debug(
-                "Safe evaluation failed for %r %s %r: %s — returning False",
-                value,
-                operator,
-                comparison_set,
-                e,
-            )
+            key = (operator, type(e).__name__)
+            if key in ADMTreesModel._safe_eval_seen_errors:
+                logger.debug("Safe evaluation failed (%s %s): %s — returning False", operator, type(e).__name__, e)
+            else:
+                ADMTreesModel._safe_eval_seen_errors.add(key)
+                logger.info(
+                    "Safe scoring evaluation failed for %r %s %r: %s — returning "
+                    "False. Subsequent failures with the same operator/error "
+                    "type will be logged at DEBUG only.",
+                    value,
+                    operator,
+                    comparison_set,
+                    e,
+                )
             return False
 
     # ------------------------------------------------------------------
@@ -848,7 +880,7 @@ class ADMTreesModel:
 
         m: dict[str, Any] = {}
         # Properties-level
-        m["auc"] = props.get("auc", props.get("performance"))
+        m["auc"] = props.get("auc") or props.get("performance")
         m["success_rate"] = props.get("successRate")
         m["factory_update_time"] = props.get("factoryUpdateTime")
         m["response_positive_count"] = training.get("positiveCount")
@@ -947,6 +979,11 @@ class ADMTreesModel:
             m["max_saturation_rate_on_context_key_predictors"] = round(max_saturation_ctx * 100, 1)
         return m
 
+    _ENCODER_PATHS: tuple[tuple[str, ...], ...] = (
+        ("model", "inputsEncoder", "encoders"),
+        ("model", "model", "inputsEncoder", "encoders"),
+    )
+
     def _get_encoder_info(self) -> dict[str, dict[str, Any]] | None:
         """Extract predictor metadata from the inputsEncoder if present.
 
@@ -954,14 +991,11 @@ class ADMTreesModel:
         exported/decoded models).
         """
         raw_encoders = None
-        for path in [
-            lambda: self.trees["model"]["inputsEncoder"]["encoders"],
-            lambda: self.trees["model"]["model"]["inputsEncoder"]["encoders"],
-        ]:
+        for path in self._ENCODER_PATHS:
             try:
-                raw_encoders = path()
+                raw_encoders = _traverse(self.trees, path)
                 break
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, IndexError):
                 continue
 
         if raw_encoders is None:
@@ -1000,7 +1034,7 @@ class ADMTreesModel:
     # ------------------------------------------------------------------
 
     @cached_property
-    def predictors(self) -> dict | None:
+    def predictors(self) -> dict[str, str] | None:
         logger.debug("Extracting predictors.")
         return self.get_predictors()
 
@@ -1027,7 +1061,7 @@ class ADMTreesModel:
         return self.get_grouped_gains_per_split()
 
     @cached_property
-    def all_values_per_split(self) -> dict:
+    def all_values_per_split(self) -> dict[str, set]:
         logger.debug("Calculating all values per split.")
         return self.get_all_values_per_split()
 
@@ -1053,6 +1087,12 @@ class ADMTreesModel:
             :class:`Split` instance.  This shim is retained so existing
             callers keep working.
         """
+        warnings.warn(
+            "ADMTreesModel.parse_split_values is deprecated; use the "
+            "module-level parse_split() which returns a typed Split.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(value, (tuple, pl.Series)):  # pragma: no cover
             value = value[0]
         try:
@@ -1069,7 +1109,16 @@ class ADMTreesModel:
 
     @staticmethod
     def parse_split_values_with_spaces(value) -> tuple[str, str, str]:  # pragma: no cover
-        """Legacy stateful parser; kept for API compatibility."""
+        """Legacy stateful parser; kept for API compatibility.
+
+        .. deprecated::
+            Prefer :func:`parse_split`.
+        """
+        warnings.warn(
+            "parse_split_values_with_spaces is deprecated; use parse_split().",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         splittypes = {">", "<", "in", "is", "=="}
         stage = "predictor"
         variable = ""
@@ -1097,7 +1146,7 @@ class ADMTreesModel:
     # Predictor extraction
     # ------------------------------------------------------------------
 
-    def get_predictors(self) -> dict | None:
+    def get_predictors(self) -> dict[str, str] | None:
         """Extract predictor names and types from model metadata.
 
         Tries explicit metadata first (``configuration.predictors`` then
@@ -1115,7 +1164,7 @@ class ADMTreesModel:
             result[predictor["name"]] = predictor["type"]
         return result
 
-    def _infer_predictors_from_splits(self) -> dict | None:
+    def _infer_predictors_from_splits(self) -> dict[str, str] | None:
         """Infer predictor names + types by walking all tree splits."""
         var_ops: dict[str, set[str]] = collections.defaultdict(set)
         for tree in self.model:
@@ -1150,6 +1199,11 @@ class ADMTreesModel:
         because lru_cache holds a strong reference to ``self`` and would
         leak the entire ADMTreesModel instance for the lifetime of the
         cache.
+
+        Zero-gain splits are kept (with ``gains == 0.0``) in
+        ``gains_per_split`` so the per-split DataFrame is always aligned
+        with ``splits_per_tree``.  ``gains_per_tree`` continues to keep
+        only positive gains for backward compatibility.
         """
         # Touch predictors so legacy callers still see them populated.
         self.predictors
@@ -1161,49 +1215,34 @@ class ADMTreesModel:
         all_predictors: list[str] = []
         for tree_id, tree in enumerate(self.model):
             tsplits: list[str] = []
-            tgains: list[float] = []
+            tgains_positive: list[float] = []
             for node in _iter_nodes(tree):
                 if node.split is not None:
                     tsplits.append(node.split.raw)
                     all_splits.append(node.split.raw)
                     all_predictors.append(node.split.variable)
+                    all_gains.append(node.gain)
                     if node.gain > 0:
-                        tgains.append(node.gain)
-                        all_gains.append(node.gain)
+                        tgains_positive.append(node.gain)
             splits_per_tree[tree_id] = tsplits
-            gains_per_tree[tree_id] = tgains
+            gains_per_tree[tree_id] = tgains_positive
 
-        gains_per_split = (
-            pl.DataFrame(
-                {"split": all_splits, "gains": all_gains, "predictor": all_predictors},
-            )
-            if len(all_splits) == len(all_gains)
-            else pl.DataFrame(
-                # Fallback: zip what we have if zero-gain splits caused length mismatch.
-                list(zip(all_splits, all_gains, strict=False)),
-                schema=["split", "gains"],
-                orient="row",
-            ).with_columns(
-                predictor=pl.col("split").map_elements(
-                    lambda x: parse_split(x).variable,
-                    return_dtype=pl.Utf8,
-                ),
-            )
+        gains_per_split = pl.DataFrame(
+            {"split": all_splits, "gains": all_gains, "predictor": all_predictors},
         )
         return splits_per_tree, gains_per_tree, gains_per_split
 
     def get_grouped_gains_per_split(self) -> pl.DataFrame:
         """Gains per split, grouped by split string with helpful aggregates."""
 
-        def _sign(raw: str) -> str:
+        def _sign_and_values(raw: str) -> dict[str, Any]:
             split = parse_split(raw)
-            return "in" if split.operator == "is" else split.operator
-
-        def _values(raw: str) -> set[str]:
-            split = parse_split(raw)
+            sign = "in" if split.operator == "is" else split.operator
             if isinstance(split.value, tuple):
-                return set(split.value)
-            return {str(split.value)}
+                values = set(split.value)
+            else:
+                values = {str(split.value)}
+            return {"sign": sign, "values": values}
 
         return (
             self.gains_per_split.group_by("split", maintain_order=True)
@@ -1212,11 +1251,15 @@ class ADMTreesModel:
                     pl.first("predictor"),
                     pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
-                    pl.first("split").map_elements(_sign, return_dtype=pl.Utf8).alias("sign"),
-                    pl.first("split").map_elements(_values, return_dtype=pl.Object).alias("values"),
+                    pl.first("split").map_elements(_sign_and_values, return_dtype=pl.Object).alias("_parsed"),
                 ],
             )
-            .with_columns(n=pl.col("gains").list.len())
+            .with_columns(
+                sign=pl.col("_parsed").map_elements(lambda d: d["sign"], return_dtype=pl.Utf8),
+                values=pl.col("_parsed").map_elements(lambda d: d["values"], return_dtype=pl.Object),
+                n=pl.col("gains").list.len(),
+            )
+            .drop("_parsed")
         )
 
     def plot_splits_per_variable(self, subset: set | None = None, show: bool = True):
@@ -1283,7 +1326,7 @@ class ADMTreesModel:
             )
         return pl.from_dicts(rows)
 
-    def get_all_values_per_split(self) -> dict:
+    def get_all_values_per_split(self) -> dict[str, set]:
         """All distinct split values seen for each predictor."""
         splitvalues: dict[str, set] = {}
         for (name,), group in self.grouped_gains_per_split.group_by("predictor"):
@@ -1462,9 +1505,16 @@ class ADMTreesModel:
         )
 
     def score(self, x: dict) -> float:
-        """Compute the (sigmoid-normalised) propensity score for ``x``."""
-        score = self.get_all_visited_nodes(x)["score"].sum()
-        return 1 / (1 + exp(-score))
+        """Compute the (sigmoid-normalised) propensity score for ``x``.
+
+        Calls :meth:`get_visited_nodes` per tree and sums the resulting
+        leaf scores; avoids building the full per-tree DataFrame that
+        :meth:`get_all_visited_nodes` would produce.
+        """
+        total = 0.0
+        for tree_id in range(len(self.model)):
+            total += self.get_visited_nodes(tree_id, x)[1]
+        return 1 / (1 + exp(-total))
 
     def plot_contribution_per_tree(self, x: dict, show: bool = True):
         """Plot the per-tree contribution toward the final propensity."""
@@ -1659,9 +1709,15 @@ class MultiTrees:
                 context_keys=self.context_keys or other.context_keys,
             )
         if isinstance(other, ADMTreesModel):
-            timestamp = str(other.metrics.get("factory_update_time"))
+            timestamp = other.metrics.get("factory_update_time")
+            if not timestamp:
+                raise ValueError(
+                    "Cannot add ADMTreesModel to MultiTrees: model has no "
+                    "'factory_update_time' to use as a snapshot key. Add it "
+                    "to a fresh MultiTrees with an explicit timestamp key.",
+                )
             return MultiTrees(
-                trees={**self.trees, timestamp: other},
+                trees={**self.trees, str(timestamp): other},
                 model_name=self.model_name,
                 context_keys=self.context_keys,
             )
@@ -1680,12 +1736,66 @@ class MultiTrees:
         cls,
         df: pl.DataFrame,
         n_threads: int = 1,
-    ) -> dict[str, MultiTrees]:
-        """Decode every Modeldata blob in ``df`` and group by Configuration.
+        configuration: str | None = None,
+    ) -> MultiTrees:
+        """Decode every Modeldata blob in ``df`` for a single configuration.
 
-        Returns a mapping of configuration name to :class:`MultiTrees`,
-        each containing one :class:`ADMTreesModel` per snapshot.
+        Returns one :class:`MultiTrees` containing one
+        :class:`ADMTreesModel` per snapshot.
+
+        Parameters
+        ----------
+        df : pl.DataFrame
+            Datamart slice.  Must contain ``Modeldata``, ``SnapshotTime``
+            and ``Configuration`` columns and cover exactly one
+            Configuration.  Use :meth:`from_datamart_grouped` if ``df``
+            spans multiple configurations.
+        n_threads : int
+            Worker count for parallel base64+zlib decoding.
+        configuration : str | None
+            Optional explicit Configuration name; required if ``df``
+            doesn't already contain a single Configuration.
         """
+        decoded = cls._decode_datamart_frame(df, n_threads=n_threads)
+        configs = {cfg for cfg, _, _ in decoded}
+        if configuration is not None:
+            decoded = [(cfg, ts, mdl) for (cfg, ts, mdl) in decoded if cfg == configuration]
+            chosen = configuration
+        elif len(configs) == 1:
+            chosen = next(iter(configs))
+        else:
+            raise ValueError(
+                f"from_datamart received {len(configs)} configurations "
+                f"({sorted(configs)!r}); pass `configuration=` to pick one, "
+                "or call from_datamart_grouped to get one MultiTrees per config.",
+            )
+        trees = {ts: mdl for _, ts, mdl in decoded}
+        return cls(trees=trees, model_name=chosen)
+
+    @classmethod
+    def from_datamart_grouped(
+        cls,
+        df: pl.DataFrame,
+        n_threads: int = 1,
+    ) -> dict[str, MultiTrees]:
+        """Decode every Modeldata blob in ``df``, grouped by Configuration.
+
+        Returns a mapping of configuration name to :class:`MultiTrees`.
+        Use :meth:`from_datamart` instead when the input has only one
+        configuration.
+        """
+        decoded = cls._decode_datamart_frame(df, n_threads=n_threads)
+        per_config: dict[str, dict[str, ADMTreesModel]] = {}
+        for cfg, ts, mdl in decoded:
+            per_config.setdefault(cfg, {})[ts] = mdl
+        return {cfg: cls(trees=trees, model_name=cfg) for cfg, trees in per_config.items()}
+
+    @staticmethod
+    def _decode_datamart_frame(
+        df: pl.DataFrame,
+        n_threads: int = 1,
+    ) -> list[tuple[str, str, ADMTreesModel]]:
+        """Decode every blob in ``df`` and return ``(config, timestamp, model)`` rows."""
         df = df.filter(pl.col("Modeldata").is_not_null()).select(
             # Format SnapshotTime explicitly — strip_chars_end strips a *set*
             # of characters, not a literal suffix, so it would mangle
@@ -1699,31 +1809,19 @@ class MultiTrees:
                 "Decoding %d models; setting n_threads higher may speed this up.",
                 len(df),
             )
-        df2 = df.select(
-            pl.concat_list(["Configuration", "SnapshotTime"]),
-            "Modeldata",
-        ).to_dict()
-
+        configs = df["Configuration"].to_list()
+        timestamps = df["SnapshotTime"].to_list()
+        blobs = df["Modeldata"].to_list()
         try:
             from tqdm import tqdm
 
-            iterable = tqdm(df2["Modeldata"])
+            iterable: Any = tqdm(blobs)
         except ImportError:  # pragma: no cover
-            iterable = df2["Modeldata"]
-
+            iterable = blobs
         with multiprocessing.Pool(n_threads) as p:
-            f: Any = map if n_threads < 2 else p.imap
-            out = dict(
-                zip(
-                    map(tuple, df2["Configuration"].to_list()),
-                    list(f(ADMTreesModel.from_datamart_blob, iterable)),
-                    strict=False,
-                ),
-            )
-        per_config: dict[Any, dict[str, ADMTreesModel]] = {key[0]: {} for key in out}
-        for (configuration, timestamp), value in out.items():
-            per_config[configuration][timestamp] = value
-        return {cfg: cls(trees=trees, model_name=cfg) for cfg, trees in per_config.items()}
+            decoder = map if n_threads < 2 else p.imap
+            models = list(decoder(ADMTreesModel.from_datamart_blob, iterable))
+        return list(zip(configs, timestamps, models, strict=True))
 
     def compute_over_time(
         self,
@@ -1742,7 +1840,7 @@ class MultiTrees:
                 to_plot = tree.splits_per_variable_type[0]
             outdf.append(
                 pl.DataFrame(to_plot).with_columns(
-                    SnapshotTime=pl.lit(timestamp).str.to_date(format="%Y-%m-%d %X"),
+                    SnapshotTime=pl.lit(timestamp).str.to_datetime(format="%Y-%m-%d %H:%M:%S").dt.date(),
                 ),
             )
         return pl.concat(outdf, how="diagonal")

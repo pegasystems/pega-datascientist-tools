@@ -322,14 +322,23 @@ def test_safe_condition_evaluate_unsupported_operator(tree_sample):
 
 
 def test_safe_condition_evaluate_handles_bad_numeric(tree_sample, caplog):
-    # Non-numeric string with "<" triggers ValueError -> debug log -> False
+    """First failure logs at INFO; subsequent identical failures log at DEBUG."""
     import logging
+    from pdstools.adm.ADMTrees import ADMTreesModel
 
+    # Reset the dedupe set so we get a deterministic INFO on first call.
+    ADMTreesModel._safe_eval_seen_errors.clear()
     with caplog.at_level(logging.DEBUG, logger="pdstools.adm.ADMTrees"):
         assert tree_sample._safe_condition_evaluate("not_a_number", "<", 2.0) is False
-    assert any("Safe evaluation failed" in r.message for r in caplog.records)
-    # Verify we log at DEBUG, not WARNING — the function is hot in scoring loops.
-    assert all(r.levelno <= logging.DEBUG for r in caplog.records if "Safe evaluation failed" in r.message)
+        assert tree_sample._safe_condition_evaluate("also_bad", "<", 3.0) is False
+    info_records = [r for r in caplog.records if r.levelno == logging.INFO]
+    debug_records = [r for r in caplog.records if r.levelno == logging.DEBUG]
+    assert any("Safe scoring evaluation failed" in r.message for r in info_records), (
+        "First failure should log at INFO so users notice scoring is degraded."
+    )
+    assert any("Safe evaluation failed" in r.message for r in debug_records), (
+        "Subsequent failures should log at DEBUG to avoid spamming logs."
+    )
 
 
 # --- top-level Split / parse_split helpers ---------------------------------
@@ -554,3 +563,107 @@ def test_multitrees_from_datamart_timestamp_formatting():
     assert "12:30:20" not in legacy_buggy[0]  # confirms the bug exists
     # Reference MultiTrees so it's exercised even though we don't construct it.
     assert callable(MultiTrees.from_datamart)
+
+
+def test_multitrees_add_admtreesmodel_without_timestamp_raises(exported_model):
+    """A model without ``factory_update_time`` would silently use 'None'
+    as a key in legacy code; now we raise instead."""
+    from pdstools.adm.ADMTrees import MultiTrees
+
+    mt = MultiTrees(trees={})
+    # Wipe the factory timestamp on the underlying _properties and clear
+    # the metrics cached_property so __add__ sees a falsy timestamp.
+    exported_model._properties = {**exported_model._properties, "factoryUpdateTime": None}
+    exported_model.__dict__.pop("metrics", None)
+    with pytest.raises(ValueError, match="factory_update_time"):
+        mt + exported_model
+
+
+def test_multitrees_from_datamart_rejects_multi_config(exported_model):
+    """Passing a multi-config DataFrame to from_datamart should raise —
+    callers must use from_datamart_grouped or pass `configuration=`."""
+    import polars as pl
+    from datetime import datetime
+    from pdstools.adm.ADMTrees import MultiTrees, ADMTreesModel
+    import pdstools.adm.ADMTrees as mod
+
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 2)],
+            # Valid base64 (any string works since we stub the decoder).
+            "Modeldata": ["YQ==", "Yg=="],
+            "Configuration": ["cfg_a", "cfg_b"],
+        }
+    )
+    real = ADMTreesModel.from_datamart_blob
+
+    def fake(_):
+        return exported_model
+
+    mod.ADMTreesModel.from_datamart_blob = staticmethod(fake)  # type: ignore[assignment]
+    try:
+        with pytest.raises(ValueError, match="2 configurations"):
+            MultiTrees.from_datamart(df)
+        # ...but explicit configuration= picks one cleanly.
+        picked = MultiTrees.from_datamart(df, configuration="cfg_a")
+        assert picked.model_name == "cfg_a"
+        assert len(picked.trees) == 1
+    finally:
+        mod.ADMTreesModel.from_datamart_blob = real  # type: ignore[assignment]
+
+
+def test_multitrees_from_datamart_grouped(exported_model):
+    """from_datamart_grouped returns a {config: MultiTrees} dict."""
+    import polars as pl
+    from datetime import datetime
+    from pdstools.adm.ADMTrees import MultiTrees, ADMTreesModel
+    import pdstools.adm.ADMTrees as mod
+
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 2), datetime(2024, 1, 3)],
+            "Modeldata": ["YQ==", "Yg==", "Yw=="],
+            "Configuration": ["cfg_a", "cfg_a", "cfg_b"],
+        }
+    )
+    real = ADMTreesModel.from_datamart_blob
+    mod.ADMTreesModel.from_datamart_blob = staticmethod(lambda _: exported_model)  # type: ignore[assignment]
+    try:
+        out = MultiTrees.from_datamart_grouped(df)
+    finally:
+        mod.ADMTreesModel.from_datamart_blob = real  # type: ignore[assignment]
+    assert set(out) == {"cfg_a", "cfg_b"}
+    assert len(out["cfg_a"]) == 2
+    assert len(out["cfg_b"]) == 1
+    assert out["cfg_a"].model_name == "cfg_a"
+
+
+def test_parse_split_values_emits_deprecation_warning(tree_sample):
+    with pytest.warns(DeprecationWarning, match="parse_split_values"):
+        tree_sample.parse_split_values("Age < 42")
+
+
+def test_admtreesmodel_string_constructor_emits_deprecation_warning():
+    """The legacy ``ADMTreesModel(file)`` constructor must warn."""
+    with pytest.warns(DeprecationWarning, match="from_file"):
+        ADMTreesModel(f"{basePath}/data/agb/ModelExportExample.json")
+
+
+def test_score_matches_per_tree_sum(tree_sample, sampledX):
+    """``score(x)`` is sigmoid of the sum of per-tree leaf scores; the
+    refactored fast path must match the equivalent
+    ``get_all_visited_nodes`` aggregation exactly."""
+    from math import exp
+
+    fast = tree_sample.score(sampledX)
+    df = tree_sample.get_all_visited_nodes(sampledX)
+    slow = 1 / (1 + exp(-df["score"].sum()))
+    assert fast == pytest.approx(slow, rel=1e-12)
+
+
+def test_splits_and_gains_lengths_aligned(tree_sample):
+    """Regression: ``gains_per_split`` rows must match ``splits_per_tree``
+    in count.  Legacy code dropped zero-gain splits from the gains list,
+    silently misaligning split→gain pairs in the fallback path."""
+    total_splits = sum(len(s) for s in tree_sample.splits_per_tree.values())
+    assert tree_sample.gains_per_split.height == total_splits
