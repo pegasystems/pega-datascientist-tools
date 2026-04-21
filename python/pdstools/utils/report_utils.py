@@ -280,7 +280,67 @@ def run_quarto(
             f"Quarto rendering failed with return code {return_code}.{hint_block}\nOutput:\n{captured_output}",
         )
 
+    if not full_embed and output_type == "html" and output_filename is not None:
+        html_path = temp_dir / output_filename
+        if html_path.is_file():
+            n_inlined = _inline_css(html_path, temp_dir)
+            logger.info("Inlined %d CSS stylesheet(s) into %s", n_inlined, output_filename)
+
     return return_code
+
+
+_LINK_STYLESHEET_RE = re.compile(
+    r"<link\b[^>]*\brel=[\"']stylesheet[\"'][^>]*>",
+    re.IGNORECASE,
+)
+_HREF_ATTR_RE = re.compile(r"\bhref=[\"']([^\"']+)[\"']", re.IGNORECASE)
+
+
+def _inline_css(html_path: Path, base_dir: Path) -> int:
+    """Inline relative CSS ``<link>`` tags in an HTML file.
+
+    Replaces each ``<link rel="stylesheet" href="...">`` whose ``href`` is a
+    relative path with an inline ``<style>`` block containing the CSS text.
+    Absolute URLs (``http://``, ``https://``, ``//``) are left untouched.
+    Missing files are logged as warnings and left alone.
+
+    Parameters
+    ----------
+    html_path : Path
+        HTML file to patch in-place.
+    base_dir : Path
+        Directory used to resolve relative ``href`` values.
+
+    Returns
+    -------
+    int
+        Number of CSS files successfully inlined.
+    """
+    content = html_path.read_text(encoding="utf-8")
+    inlined = 0
+
+    def _replace(match: re.Match) -> str:
+        nonlocal inlined
+        tag = match.group(0)
+        href_match = _HREF_ATTR_RE.search(tag)
+        if not href_match:
+            return tag
+        href = href_match.group(1)
+        if href.startswith(("http://", "https://", "//")):
+            return tag
+        css_path = (base_dir / href).resolve()
+        if not css_path.is_file():
+            logger.warning("CSS file not found, leaving <link> tag intact: %s", css_path)
+            return tag
+        css_content = css_path.read_text(encoding="utf-8")
+        inlined += 1
+        return f"<style>\n{css_content}\n</style>"
+
+    patched = _LINK_STYLESHEET_RE.sub(_replace, content)
+    if inlined:
+        html_path.write_text(patched, encoding="utf-8")
+        logger.debug("Inlined %d CSS file(s) into %s", inlined, html_path.name)
+    return inlined
 
 
 def _set_command_options(

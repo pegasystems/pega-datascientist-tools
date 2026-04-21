@@ -986,3 +986,107 @@ class TestQuartoCallouts:
     def test_no_predictor_data_warning(self, captured):
         report_utils.quarto_callout_no_predictor_data_warning()
         assert "Predictor Data is not available" in captured[0]
+
+
+# ---------------------------------------------------------------------------
+# _inline_css tests
+# ---------------------------------------------------------------------------
+
+
+class TestInlineCss:
+    def test_relative_link_is_inlined(self, tmp_path):
+        css = "body { color: red; }"
+        css_file = tmp_path / "style.css"
+        css_file.write_text(css, encoding="utf-8")
+
+        html = '<html><head><link rel="stylesheet" href="style.css"></head><body></body></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 1
+        assert css in result
+        assert "<style>" in result
+        assert 'href="style.css"' not in result
+
+    def test_href_before_rel_is_inlined(self, tmp_path):
+        css = "h1 { font-size: 2em; }"
+        (tmp_path / "theme.css").write_text(css, encoding="utf-8")
+
+        html = '<html><head><link href="theme.css" rel="stylesheet" type="text/css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 1
+        assert css in result
+        assert "<style>" in result
+
+    def test_absolute_url_is_left_alone(self, tmp_path):
+        html = '<html><head><link rel="stylesheet" href="https://cdn.example.com/bootstrap.css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 0
+        assert 'href="https://cdn.example.com/bootstrap.css"' in result
+
+    def test_protocol_relative_url_is_left_alone(self, tmp_path):
+        html = '<html><head><link rel="stylesheet" href="//cdn.example.com/bootstrap.css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+        assert n == 0
+
+    def test_missing_file_logs_warning_and_leaves_tag(self, tmp_path, caplog):
+        import logging
+
+        html = '<html><head><link rel="stylesheet" href="missing.css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        with caplog.at_level(logging.WARNING):
+            n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 0
+        assert 'href="missing.css"' in result
+        assert "missing.css" in caplog.text
+
+    def test_multiple_links_inlined(self, tmp_path):
+        (tmp_path / "a.css").write_text("a { color: blue; }", encoding="utf-8")
+        (tmp_path / "b.css").write_text("b { font-weight: bold; }", encoding="utf-8")
+
+        html = '<html><head><link rel="stylesheet" href="a.css"><link rel="stylesheet" href="b.css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 2
+        assert "color: blue" in result
+        assert "font-weight: bold" in result
+
+    def test_subdirectory_href_resolved(self, tmp_path):
+        libs = tmp_path / "report_files" / "libs"
+        libs.mkdir(parents=True)
+        css = "pre { background: #eee; }"
+        (libs / "theme.css").write_text(css, encoding="utf-8")
+
+        html = '<html><head><link rel="stylesheet" href="report_files/libs/theme.css"></head></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 1
+        assert css in result
