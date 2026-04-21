@@ -1,24 +1,27 @@
 import json
+import logging
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Optional, Union, overload
-from collections.abc import Callable
+from typing import Literal, overload
 
 import polars as pl
 import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
-from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.cdh_utils import (
     _apply_query,
     _polars_capitalize,
     parse_pega_date_time_formats,
     weighted_average_polars,
 )
+from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.types import QUERY
 from .Plots import Plots
+from .Schema import REQUIRED_IA_COLUMNS
+
+logger = logging.getLogger(__name__)
 
 
 class ImpactAnalyzer:
@@ -146,21 +149,36 @@ class ImpactAnalyzer:
 
         """
         self.plot = Plots(ia=self)
-
-        required_cols = [
-            "SnapshotTime",
-            "ControlGroup",
-            "Impressions",
-            "Accepts",
-            "ValuePerImpression",
-            "Channel",
-        ]
-        missing_cols = set(required_cols).difference(raw_data.collect_schema().names())
-        if len(missing_cols) > 0:
-            raise ValueError(f"Missing required columns: {missing_cols}")
-
-        self.ia_data = raw_data
+        self.ia_data = self._validate_ia_data(raw_data)
         self.outcome_labels_used = None
+
+    @staticmethod
+    def _validate_ia_data(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Validate that the input frame has the required Impact Analyzer columns.
+
+        Mirrors the ``_validate_*_data`` pattern used by
+        :class:`pdstools.adm.ADMDatamart`.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            Pre-processed experiment data.
+
+        Returns
+        -------
+        pl.LazyFrame
+            The same frame, unchanged, once validation passes.
+
+        Raises
+        ------
+        ValueError
+            If any column listed in
+            :data:`pdstools.impactanalyzer.Schema.REQUIRED_IA_COLUMNS` is absent.
+        """
+        missing_cols = set(REQUIRED_IA_COLUMNS).difference(df.collect_schema().names())
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+        return df
 
     # When return_wide_df=True, always returns LazyFrame
     @classmethod
@@ -208,7 +226,7 @@ class ImpactAnalyzer:
         query: QUERY | None = None,
         return_wide_df: bool = False,
         return_df: bool = False,
-    ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
+    ) -> "ImpactAnalyzer | pl.LazyFrame":
         """Create an ImpactAnalyzer instance from PDC JSON export(s).
 
         Loads pre-aggregated experiment data from Pega Decision Central JSON exports.
@@ -346,7 +364,7 @@ class ImpactAnalyzer:
         *,
         outcome_labels: dict | None = None,
         return_df: bool = False,
-    ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
+    ) -> "ImpactAnalyzer | pl.LazyFrame | None":
         """Create an ImpactAnalyzer instance from VBD data.
 
         Processes VBD Actuals or Scenario Planner Actuals data to reconstruct
@@ -487,7 +505,7 @@ class ImpactAnalyzer:
     def from_ih(
         cls,
         ih_source: os.PathLike | str,
-    ) -> Optional["ImpactAnalyzer"]: ...
+    ) -> "ImpactAnalyzer | None": ...
 
     @classmethod
     def from_ih(
@@ -495,7 +513,7 @@ class ImpactAnalyzer:
         ih_source: os.PathLike | str,
         *,
         return_df: bool = False,
-    ) -> Union["ImpactAnalyzer", pl.LazyFrame, None]:
+    ) -> "ImpactAnalyzer | pl.LazyFrame | None":
         """Create an ImpactAnalyzer instance from Interaction History data.
 
         .. note::
@@ -745,7 +763,7 @@ class ImpactAnalyzer:
         sheet_name: str | int | None = None,
         query: QUERY | None = None,
         return_df: bool = False,
-    ) -> Union["ImpactAnalyzer", pl.LazyFrame]:
+    ) -> "ImpactAnalyzer | pl.LazyFrame":
         """Create an ImpactAnalyzer instance from a PDC Excel export.
 
         Reads a wide-format Excel file produced by Pega Decision Central and
@@ -965,10 +983,10 @@ class ImpactAnalyzer:
         """
         if by is None:
             group_by: list[str | pl.Expr] = []
-        elif isinstance(by, (list, tuple)):
-            group_by = list(by)
+        elif isinstance(by, (str, pl.Expr)):
+            group_by = [by]
         else:
-            group_by = [by]  # type: ignore[list-item]
+            group_by = list(by)
 
         agg_exprs = [
             pl.sum("Impressions", "Accepts"),

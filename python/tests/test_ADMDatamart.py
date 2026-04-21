@@ -384,6 +384,7 @@ def test_from_s3_model_only(monkeypatch):
     assert dm.model_data is not None
     assert dm.predictor_data is None
 
+
 # ---------------------------------------------------------------------------
 # Helper-method unit tests (synthetic minimal fixtures, exact-value assertions)
 # ---------------------------------------------------------------------------

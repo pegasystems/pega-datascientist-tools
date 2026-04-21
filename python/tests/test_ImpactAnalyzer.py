@@ -768,3 +768,107 @@ def test_from_excel_query_filter():
 def test_from_excel_outcome_labels_unused(excel_ia):
     """Excel (PDC-equivalent) data has no raw outcome labels — outcome_labels_used is None."""
     assert excel_ia.outcome_labels_used is None
+
+
+# ---------------------------------------------------------------------------
+# Schema validation helpers (gold-standard alignment)
+# ---------------------------------------------------------------------------
+
+
+def _make_minimal_ia_lf() -> pl.LazyFrame:
+    """Build a minimal valid Impact Analyzer LazyFrame for validation tests."""
+    import datetime as _dt
+
+    return pl.LazyFrame(
+        {
+            "SnapshotTime": [_dt.datetime(2024, 1, 1)],
+            "ControlGroup": ["NBA"],
+            "Impressions": [100.0],
+            "Accepts": [10.0],
+            "ValuePerImpression": [1.5],
+            "Channel": ["Web"],
+        }
+    )
+
+
+def test_validate_ia_data_accepts_valid_frame():
+    """_validate_ia_data returns the frame unchanged when all required cols are present."""
+    lf = _make_minimal_ia_lf()
+    result = ImpactAnalyzer._validate_ia_data(lf)
+    assert result is lf
+    # Round-trip preserves the row count and column set exactly.
+    df = result.collect()
+    assert df.height == 1
+    assert set(df.columns) == {
+        "SnapshotTime",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "ValuePerImpression",
+        "Channel",
+    }
+
+
+def test_validate_ia_data_missing_single_column():
+    """Missing a single required column is reported in the error message."""
+    lf = _make_minimal_ia_lf().drop("Channel")
+    with pytest.raises(ValueError) as exc:
+        ImpactAnalyzer._validate_ia_data(lf)
+    assert "Channel" in str(exc.value)
+    assert "Missing required columns" in str(exc.value)
+
+
+def test_validate_ia_data_missing_multiple_columns():
+    """All missing required columns are listed in the error."""
+    lf = _make_minimal_ia_lf().drop("Channel", "Accepts")
+    with pytest.raises(ValueError) as exc:
+        ImpactAnalyzer._validate_ia_data(lf)
+    msg = str(exc.value)
+    assert "Channel" in msg
+    assert "Accepts" in msg
+
+
+def test_init_invokes_validation():
+    """ImpactAnalyzer(...) raises when required columns are missing."""
+    lf = _make_minimal_ia_lf().drop("ValuePerImpression")
+    with pytest.raises(ValueError, match="ValuePerImpression"):
+        ImpactAnalyzer(lf)
+
+
+def test_init_pure_no_extra_columns_added():
+    """__init__ stores the raw LazyFrame unchanged — no implicit IO or rewrites."""
+    lf = _make_minimal_ia_lf()
+    ia = ImpactAnalyzer(lf)
+    # No extra columns should have been injected by __init__.
+    assert ia.ia_data.collect().columns == lf.collect().columns
+    assert ia.outcome_labels_used is None
+
+
+def test_required_columns_constant_matches_init_check():
+    """REQUIRED_IA_COLUMNS is the single source of truth used by validation."""
+    from pdstools.impactanalyzer.Schema import REQUIRED_IA_COLUMNS
+
+    assert set(REQUIRED_IA_COLUMNS) == {
+        "SnapshotTime",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "ValuePerImpression",
+        "Channel",
+    }
+
+
+def test_summarize_control_groups_with_single_str_by(simple_ia):
+    """A single string `by=` (the branch that previously needed `# type: ignore`) works."""
+    result = simple_ia.summarize_control_groups(by="Channel").collect()
+    assert "Channel" in result.columns
+    assert "ControlGroup" in result.columns
+    # Each (Channel, ControlGroup) pair should appear exactly once.
+    assert result.height == result.select("Channel", "ControlGroup").unique().height
+
+
+def test_summarize_control_groups_with_pl_expr_by(simple_ia):
+    """A single pl.Expr `by=` is correctly wrapped into a list."""
+    result = simple_ia.summarize_control_groups(by=pl.col("Channel")).collect()
+    assert "Channel" in result.columns
+    assert "ControlGroup" in result.columns

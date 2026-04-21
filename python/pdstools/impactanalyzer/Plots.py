@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, overload
 
 import polars as pl
 
@@ -116,6 +116,28 @@ class Plots(LazyNamespace):
             return {"facet_col": facet, "facet_col_wrap": 2}
         return {"facet_col": facet, "facet_col_wrap": 3}
 
+    @overload
+    def overview(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def overview(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
     def overview(
         self,
         *,
@@ -209,6 +231,30 @@ class Plots(LazyNamespace):
 
         return fig
 
+    @overload
+    def control_groups_trend(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        every: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def control_groups_trend(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        every: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
     def control_groups_trend(
         self,
         *,
@@ -257,10 +303,11 @@ class Plots(LazyNamespace):
         >>> ia.plot.control_groups_trend(facet="Channel", every="1mo")
 
         """
+        grouping_columns: list[str | pl.Expr]
         if every is not None:
             grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
+            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
 
         plot_data = self.ia.summarize_control_groups(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
@@ -305,6 +352,30 @@ class Plots(LazyNamespace):
         fig.update_xaxes(title="")
 
         return fig
+
+    @overload
+    def trend(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        every: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def trend(
+        self,
+        *,
+        title: str | None = ...,
+        query: QUERY | None = ...,
+        metric: str = ...,
+        facet: str | None = ...,
+        every: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
 
     def trend(
         self,
@@ -353,10 +424,11 @@ class Plots(LazyNamespace):
         >>> ia.plot.trend(facet="Channel", every="1mo")
 
         """
+        grouping_columns: list[str | pl.Expr]
         if every is not None:
             grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
         else:
-            grouping_columns: list[str | pl.Expr] = ["SnapshotTime"] + ([facet] if facet is not None else [])  # type: ignore[no-redef]
+            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
 
         plot_data = self.ia.summarize_experiments(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
