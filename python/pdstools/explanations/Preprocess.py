@@ -14,6 +14,7 @@ import polars as pl
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import _COL, _PREDICTOR_TYPE, _TABLE_NAME
 from .resources import queries as queries_data
+from .Schema import REQUIRED_RAW_COLUMNS, RawExplanationData
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,12 @@ class Preprocess(LazyNamespace):
             logger.error("Failed to populate selected files: %s", e)
             raise
 
+        try:
+            self._validate_raw_data(self.selected_files)
+        except ValueError as e:
+            logger.error("Raw explanation parquet failed schema validation: %s", e)
+            raise
+
         self._conn = duckdb.connect(database=":memory:")
 
         try:
@@ -145,6 +152,56 @@ class Preprocess(LazyNamespace):
             if any(self.explanations_folder.iterdir()):
                 return True
         return False
+
+    @staticmethod
+    def _validate_raw_data(file_paths: list[str]) -> None:
+        """Validate that raw explanation parquet files have the expected schema.
+
+        Reads only the parquet metadata (no row scan) for each file and checks
+        that every required column is present. Also verifies that at least one
+        of ``symbolic_value`` / ``numeric_value`` is present, since the SQL
+        aggregations need at least one of them to bin against.
+
+        Raises
+        ------
+        ValueError
+            If any required column is missing, or neither ``symbolic_value``
+            nor ``numeric_value`` is present, with a message naming the
+            offending file and missing columns.
+
+        """
+        for path in file_paths:
+            try:
+                schema = pl.scan_parquet(path).collect_schema()
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to read parquet schema for {path}: {e}",
+                ) from e
+
+            present = set(schema.names())
+            missing = [c for c in REQUIRED_RAW_COLUMNS if c not in present]
+            if missing:
+                raise ValueError(
+                    f"Raw explanation parquet {path} is missing required "
+                    f"columns: {missing}. Expected schema includes "
+                    f"{list(REQUIRED_RAW_COLUMNS)}.",
+                )
+
+            if "symbolic_value" not in present and "numeric_value" not in present:
+                raise ValueError(
+                    f"Raw explanation parquet {path} must contain at least one of 'symbolic_value' or 'numeric_value'.",
+                )
+
+            for col, expected_dtype in (
+                ("shap_coeff", RawExplanationData.shap_coeff),
+                ("numeric_value", RawExplanationData.numeric_value),
+            ):
+                if col in present and not schema[col].is_numeric():
+                    raise ValueError(
+                        f"Raw explanation parquet {path} column '{col}' has "
+                        f"dtype {schema[col]}; expected numeric "
+                        f"(e.g. {expected_dtype}).",
+                    )
 
     def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:

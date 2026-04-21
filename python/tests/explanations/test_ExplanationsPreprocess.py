@@ -247,3 +247,102 @@ class TestDataFileSupport:
                 preprocess._populate_selected_files_from_url(
                     "https://example.com/file.parquet",
                 )
+
+
+class TestValidateRawData:
+    """Exact-value tests for the raw-parquet schema validator."""
+
+    @staticmethod
+    def _write_parquet(path, schema_overrides=None, drop_cols=()):
+        import polars as pl
+
+        cols = {
+            "pySubjectID": ["S1"],
+            "pyInteractionID": ["I1"],
+            "predictor_name": ["pyAge"],
+            "predictor_type": ["NUMERIC"],
+            "symbolic_value": [None],
+            "numeric_value": [42.0],
+            "shap_coeff": [0.123],
+            "score": [0.5],
+            "partition": ['{"partition":{"pyChannel":"Web"}}'],
+        }
+        for col in drop_cols:
+            cols.pop(col, None)
+        df = pl.DataFrame(cols, schema_overrides=schema_overrides or {})
+        df.write_parquet(path)
+
+    def test_valid_file_passes(self, tmp_path):
+        path = tmp_path / "ok.parquet"
+        self._write_parquet(path)
+        # Must not raise.
+        Preprocess._validate_raw_data([str(path)])
+
+    def test_missing_required_column_raises(self, tmp_path):
+        path = tmp_path / "missing.parquet"
+        self._write_parquet(path, drop_cols=("shap_coeff",))
+        with pytest.raises(ValueError, match=r"missing required columns: \['shap_coeff'\]"):
+            Preprocess._validate_raw_data([str(path)])
+
+    def test_missing_partition_raises(self, tmp_path):
+        path = tmp_path / "no_partition.parquet"
+        self._write_parquet(path, drop_cols=("partition",))
+        with pytest.raises(ValueError, match=r"missing required columns: \['partition'\]"):
+            Preprocess._validate_raw_data([str(path)])
+
+    def test_missing_both_value_columns_raises(self, tmp_path):
+        path = tmp_path / "no_values.parquet"
+        self._write_parquet(path, drop_cols=("symbolic_value", "numeric_value"))
+        with pytest.raises(
+            ValueError,
+            match=r"must contain at least one of 'symbolic_value' or 'numeric_value'",
+        ):
+            Preprocess._validate_raw_data([str(path)])
+
+    def test_only_symbolic_value_passes(self, tmp_path):
+        path = tmp_path / "sym_only.parquet"
+        self._write_parquet(path, drop_cols=("numeric_value",))
+        Preprocess._validate_raw_data([str(path)])
+
+    def test_only_numeric_value_passes(self, tmp_path):
+        path = tmp_path / "num_only.parquet"
+        self._write_parquet(path, drop_cols=("symbolic_value",))
+        Preprocess._validate_raw_data([str(path)])
+
+    def test_non_numeric_shap_raises(self, tmp_path):
+        import polars as pl
+
+        path = tmp_path / "bad_shap.parquet"
+        df = pl.DataFrame(
+            {
+                "pyInteractionID": ["I1"],
+                "predictor_name": ["pyAge"],
+                "predictor_type": ["NUMERIC"],
+                "symbolic_value": [None],
+                "numeric_value": [42.0],
+                "shap_coeff": ["not-a-number"],
+                "partition": ['{"p":1}'],
+            },
+        )
+        df.write_parquet(path)
+        with pytest.raises(ValueError, match=r"column 'shap_coeff' has dtype .*expected numeric"):
+            Preprocess._validate_raw_data([str(path)])
+
+    def test_unreadable_file_raises(self, tmp_path):
+        path = tmp_path / "broken.parquet"
+        path.write_text("not a parquet file")
+        with pytest.raises(ValueError, match="Failed to read parquet schema"):
+            Preprocess._validate_raw_data([str(path)])
+
+    def test_validates_each_file_in_list(self, tmp_path):
+        good = tmp_path / "good.parquet"
+        bad = tmp_path / "bad.parquet"
+        self._write_parquet(good)
+        self._write_parquet(bad, drop_cols=("partition",))
+        with pytest.raises(ValueError, match=r"missing required columns: \['partition'\]"):
+            Preprocess._validate_raw_data([str(good), str(bad)])
+
+    def test_real_sample_parquet_passes(self):
+        """The shipped sample parquet must satisfy the schema validator."""
+        sample = basePath / "data" / "explanations" / "AdaptiveBoostCT_20250328064604.parquet"
+        Preprocess._validate_raw_data([str(sample)])
