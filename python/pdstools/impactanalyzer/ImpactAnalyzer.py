@@ -12,6 +12,7 @@ import polars.selectors as cs
 from ..pega_io.File import read_ds_export
 from ..utils.cdh_utils import (
     _apply_query,
+    _apply_schema_types,
     _polars_capitalize,
     parse_pega_date_time_formats,
     weighted_average_polars,
@@ -19,7 +20,7 @@ from ..utils.cdh_utils import (
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from ..utils.types import QUERY
 from .Plots import Plots
-from .Schema import REQUIRED_IA_COLUMNS
+from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,7 @@ class ImpactAnalyzer:
         missing_cols = set(REQUIRED_IA_COLUMNS).difference(df.collect_schema().names())
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
-        return df
+        return _apply_schema_types(df, ImpactAnalyzerData)
 
     # When return_wide_df=True, always returns LazyFrame
     @classmethod

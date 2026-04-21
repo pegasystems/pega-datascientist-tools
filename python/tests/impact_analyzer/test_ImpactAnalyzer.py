@@ -678,10 +678,10 @@ def test_from_excel_channels(excel_ia):
 
 def test_from_excel_snapshot_time_yesterday_adjustment(excel_ia):
     """LastDataReceived='Yesterday' shifts snapshot back by one day (2025-03-02 → 2025-03-01)."""
-    from datetime import date
+    from datetime import datetime
 
     snapshot_dates = excel_ia.ia_data.select(pl.col("SnapshotTime").unique()).collect()["SnapshotTime"].to_list()
-    assert snapshot_dates == [date(2025, 3, 1)]
+    assert snapshot_dates == [datetime(2025, 3, 1)]
 
 
 def test_from_excel_exact_impressions_and_accepts(excel_ia):
@@ -792,10 +792,10 @@ def _make_minimal_ia_lf() -> pl.LazyFrame:
 
 
 def test_validate_ia_data_accepts_valid_frame():
-    """_validate_ia_data returns the frame unchanged when all required cols are present."""
+    """_validate_ia_data returns a frame with the schema dtypes applied when all required cols are present."""
     lf = _make_minimal_ia_lf()
     result = ImpactAnalyzer._validate_ia_data(lf)
-    assert result is lf
+    assert isinstance(result, pl.LazyFrame)
     # Round-trip preserves the row count and column set exactly.
     df = result.collect()
     assert df.height == 1
@@ -872,3 +872,42 @@ def test_summarize_control_groups_with_pl_expr_by(simple_ia):
     result = simple_ia.summarize_control_groups(by=pl.col("Channel")).collect()
     assert "Channel" in result.columns
     assert "ControlGroup" in result.columns
+
+
+# ---------------------------------------------------------------------------
+# Schema dtype contract — every from_* path must land on identical dtypes
+# ---------------------------------------------------------------------------
+
+
+_EXPECTED_IA_DTYPES = {
+    "SnapshotTime": pl.Datetime,
+    "ControlGroup": pl.Utf8,
+    "Impressions": pl.Float64,
+    "Accepts": pl.Float64,
+    "ValuePerImpression": pl.Float64,
+    "Channel": pl.Utf8,
+}
+
+
+def _assert_required_ia_dtypes(ia: ImpactAnalyzer) -> None:
+    schema = ia.ia_data.collect_schema()
+    for col, expected in _EXPECTED_IA_DTYPES.items():
+        actual = schema[col]
+        # Datetime carries time-unit / time-zone parameters — compare base type.
+        assert actual.base_type() == expected, f"{col}: expected {expected}, got {actual}"
+
+
+def test_from_pdc_schema_dtypes(simple_ia):
+    """from_pdc lands on the ImpactAnalyzerData dtypes."""
+    _assert_required_ia_dtypes(simple_ia)
+
+
+def test_from_excel_schema_dtypes(excel_ia):
+    """from_excel lands on the ImpactAnalyzerData dtypes."""
+    _assert_required_ia_dtypes(excel_ia)
+
+
+def test_from_vbd_schema_dtypes(minimal_vbd_parquet):
+    """from_vbd lands on the ImpactAnalyzerData dtypes."""
+    ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
+    _assert_required_ia_dtypes(ia)
