@@ -750,6 +750,102 @@ class TestGainsTable:
         assert "cum_y" in result.columns
 
 
+class _FakeDM:
+    """Minimal stand-in for an ADMDatamart-like object exposing .model_data."""
+
+    def __init__(self, df):
+        self.model_data = df.lazy() if isinstance(df, pl.DataFrame) else df
+
+
+class TestHierarchyHelpers:
+    """Exact-value tests for n_unique_values, max_by_hierarchy, avg_by_hierarchy, sample_values."""
+
+    def _dm(self):
+        df = pl.DataFrame(
+            {
+                "Channel": ["Web", "Web", "Web", "Email", "Email", "SMS"],
+                "Issue": ["Sales", "Sales", "Retention", "Sales", "Retention", "Sales"],
+                "Action": ["A", "B", "C", "A", "D", "E"],
+                "Name": ["a", "b", "c", "a", "d", "e"],
+                "Nulls": [None, None, None, None, None, None],
+            }
+        )
+        return _FakeDM(df), df.columns
+
+    def test_n_unique_values_single_field(self):
+        dm, cols = self._dm()
+        # 5 distinct Action values ("A" appears twice)
+        assert report_utils.n_unique_values(dm, cols, "Action") == 5
+
+    def test_n_unique_values_field_as_list(self):
+        dm, cols = self._dm()
+        # Channel+Issue combinations: Web/Sales, Web/Retention, Email/Sales, Email/Retention, SMS/Sales
+        assert report_utils.n_unique_values(dm, cols, ["Channel", "Issue"]) == 5
+
+    def test_n_unique_values_missing_field_returns_zero(self):
+        dm, cols = self._dm()
+        assert report_utils.n_unique_values(dm, cols, "DoesNotExist") == 0
+        assert report_utils.n_unique_values(dm, cols, ["DoesNotExist"]) == 0
+
+    def test_max_by_hierarchy(self):
+        dm, cols = self._dm()
+        # Per Channel: Web has 3 unique actions, Email has 2, SMS has 1 -> max=3
+        assert report_utils.max_by_hierarchy(dm, cols, "Action", ["Channel"]) == 3
+
+    def test_max_by_hierarchy_missing_field(self):
+        dm, cols = self._dm()
+        assert report_utils.max_by_hierarchy(dm, cols, "Missing", ["Channel"]) == 0
+
+    def test_max_by_hierarchy_missing_grouping(self):
+        dm, cols = self._dm()
+        assert report_utils.max_by_hierarchy(dm, cols, "Action", ["Missing"]) == 0
+
+    def test_avg_by_hierarchy(self):
+        dm, cols = self._dm()
+        # Per Channel: Web=3, Email=2, SMS=1 -> mean=(3+2+1)/3=2.0
+        assert report_utils.avg_by_hierarchy(dm, cols, "Action", ["Channel"]) == pytest.approx(2.0)
+
+    def test_avg_by_hierarchy_missing_field(self):
+        dm, cols = self._dm()
+        assert report_utils.avg_by_hierarchy(dm, cols, "Missing", ["Channel"]) == 0
+
+    def test_avg_by_hierarchy_missing_grouping(self):
+        dm, cols = self._dm()
+        assert report_utils.avg_by_hierarchy(dm, cols, "Action", ["Missing"]) == 0
+
+    def test_sample_values_default(self):
+        dm, cols = self._dm()
+        result = report_utils.sample_values(dm, cols, "Action")
+        # Sorted unique: A, B, C, D, E
+        assert result == ["A", "B", "C", "D", "E"]
+
+    def test_sample_values_truncated(self):
+        dm, cols = self._dm()
+        result = report_utils.sample_values(dm, cols, "Action", n=2)
+        assert result == ["A", "B"]
+
+    def test_sample_values_concat_fields(self):
+        dm, cols = self._dm()
+        result = report_utils.sample_values(dm, cols, ["Channel", "Action"])
+        # Unique (Channel/Action) combos sorted lexicographically
+        assert result == ["Email/A", "Email/D", "SMS/E", "Web/A", "Web/B", "Web/C"]
+
+    def test_sample_values_missing_field_returns_dash(self):
+        dm, cols = self._dm()
+        assert report_utils.sample_values(dm, cols, "Missing") == "-"
+        assert report_utils.sample_values(dm, cols, ["Missing"]) == "-"
+
+
+class TestPolarsColExistsNullType:
+    """polars_col_exists should treat all-Null columns as non-existent."""
+
+    def test_null_dtype_column_is_false(self):
+        df = pl.DataFrame({"A": [1, 2, 3], "B": [None, None, None]}).lazy()
+        assert report_utils.polars_col_exists(df, "A")
+        # "B" has dtype pl.Null because all values are None at construction time
+        assert not report_utils.polars_col_exists(df, "B")
+
+
 class TestCheckReportForErrors:
     """Tests for check_report_for_errors utility function."""
 
