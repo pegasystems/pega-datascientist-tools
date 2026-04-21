@@ -272,3 +272,61 @@ def test_get_last_data_for_report(sample: ADMDatamart):
     # Verify no categorical columns remain (all should be cast to string)
     for col in report_data.columns:
         assert report_data[col].dtype != pl.Categorical
+
+
+def test_has_single_snapshot_multi(sample: ADMDatamart):
+    """Sample data has multiple snapshots — has_single_snapshot must be False."""
+    assert sample.has_single_snapshot is False
+
+
+def test_has_single_snapshot_single():
+    """When model_df contains exactly one SnapshotTime, has_single_snapshot is True."""
+    import datetime
+
+    single_ts = datetime.datetime(2024, 1, 1)
+    dm = ADMDatamart(
+        model_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1", "m2"],
+                "SnapshotTime": [single_ts, single_ts],
+                "Name": ["Action A", "Action B"],
+                "Channel": ["Web", "Web"],
+                "Direction": ["Inbound", "Inbound"],
+                "Issue": ["Sales", "Sales"],
+                "Group": ["Cards", "Loans"],
+                "Type": ["adaptive", "adaptive"],
+                "Configuration": ["OmniAdaptiveModel", "OmniAdaptiveModel"],
+                "ResponseCount": [100, 200],
+                "Positives": [10, 20],
+                "Performance": [0.7, 0.72],
+            }
+        )
+    )
+    assert dm.has_single_snapshot is True
+
+
+def test_has_single_snapshot_two_snapshots():
+    """When model_df contains two distinct SnapshotTimes, has_single_snapshot is False."""
+    import datetime
+
+    ts1 = datetime.datetime(2024, 1, 1)
+    ts2 = datetime.datetime(2024, 1, 2)
+    dm = ADMDatamart(
+        model_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1", "m1"],
+                "SnapshotTime": [ts1, ts2],
+                "Name": ["Action A", "Action A"],
+                "Channel": ["Web", "Web"],
+                "Direction": ["Inbound", "Inbound"],
+                "Issue": ["Sales", "Sales"],
+                "Group": ["Cards", "Cards"],
+                "Type": ["adaptive", "adaptive"],
+                "Configuration": ["OmniAdaptiveModel", "OmniAdaptiveModel"],
+                "ResponseCount": [100, 150],
+                "Positives": [10, 15],
+                "Performance": [0.7, 0.71],
+            }
+        )
+    )
+    assert dm.has_single_snapshot is False

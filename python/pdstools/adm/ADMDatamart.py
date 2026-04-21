@@ -802,6 +802,21 @@ class ADMDatamart:
             .to_list()
         )
 
+    @cached_property
+    def has_single_snapshot(self) -> bool:
+        """True when the model data contains only one unique SnapshotTime.
+
+        Trend / over-time plots are meaningless with a single snapshot.
+        Use this property to skip or replace those sections in reports.
+
+        Examples
+        --------
+        >>> dm = ADMDatamart.from_ds_export(model_filename="models.parquet")
+        >>> if dm.has_single_snapshot:
+        ...     print("No trend data available")
+        """
+        return self._require_model_data().select(pl.col("SnapshotTime").n_unique()).collect().item() <= 1
+
     def get_last_data_for_report(self) -> pl.DataFrame:
         """Get the last snapshot of data formatted for report display.
 

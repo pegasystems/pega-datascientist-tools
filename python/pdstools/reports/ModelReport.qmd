@@ -424,45 +424,51 @@ except Exception as e:
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
 
 # But maybe .data[0] gives the trace
-try:
-    fig = (
-        datamart.plot.over_time("Performance")
-        .update_layout(
-            title="Model Performance Trend",
-            yaxis_title="ROC-AUC",
-            xaxis_title="",
-            showlegend=False,
-            autosize=False,
-            width=400,
-            height=300,
+if datamart.has_single_snapshot:
+    display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
+else:
+    try:
+        fig = (
+            datamart.plot.over_time("Performance")
+            .update_layout(
+                title="Model Performance Trend",
+                yaxis_title="ROC-AUC",
+                xaxis_title="",
+                showlegend=False,
+                autosize=False,
+                width=400,
+                height=300,
+            )
         )
-    )
 
-    fig.show()
-except Exception as e:
-    report_utils.quarto_plot_exception("Model Performance Trend", e)
+        fig.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("Model Performance Trend", e)
 
 ```
 
 ```{python}
-try:
-    fig = (
-        datamart.plot.over_time("SuccessRate")
-        .update_layout(
-            title="Success Rate Trend",
-            yaxis_title="Success Rate",
-            xaxis_title="",
-            showlegend=False,
-            autosize=False,
-            width=400,
-            height=300,
+if datamart.has_single_snapshot:
+    pass
+else:
+    try:
+        fig = (
+            datamart.plot.over_time("SuccessRate")
+            .update_layout(
+                title="Success Rate Trend",
+                yaxis_title="Success Rate",
+                xaxis_title="",
+                showlegend=False,
+                autosize=False,
+                width=400,
+                height=300,
+            )
+            .update_yaxes(rangemode="tozero")
         )
-        .update_yaxes(rangemode="tozero")
-    )
 
-    fig.show()
-except Exception as e:
-    report_utils.quarto_plot_exception("Success Rate Trend", e)
+        fig.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("Success Rate Trend", e)
 ```
 :::
 
