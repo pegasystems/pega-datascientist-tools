@@ -614,12 +614,12 @@ class TestShowCredits:
     def _mock_dependencies(self, monkeypatch):
         """Mock external dependencies for deterministic output."""
         monkeypatch.setattr(
-            report_utils,
+            report_utils._quarto,
             "get_quarto_with_version",
             lambda: (None, "1.4.0"),
         )
         monkeypatch.setattr(
-            report_utils,
+            report_utils._quarto,
             "get_pandoc_with_version",
             lambda: (None, "3.1.0"),
         )
@@ -628,7 +628,7 @@ class TestShowCredits:
         def capture_print(text):
             self.printed_text = text
 
-        monkeypatch.setattr(report_utils, "quarto_print", capture_print)
+        monkeypatch.setattr(report_utils._quarto, "quarto_print", capture_print)
 
     def test_with_source(self):
         """Test output includes notebook path when quarto_source is provided."""
@@ -897,21 +897,21 @@ class TestGetQuartoAndPandoc:
     """Tests for get_quarto_with_version / get_pandoc_with_version."""
 
     def test_quarto_missing_raises(self, monkeypatch):
-        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
+        monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda _name: None)
         with pytest.raises(FileNotFoundError, match="Quarto executable not found"):
             report_utils.get_quarto_with_version()
 
     def test_pandoc_missing_raises(self, monkeypatch):
-        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: None)
+        monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda _name: None)
         with pytest.raises(FileNotFoundError, match="Pandoc executable not found"):
             report_utils.get_pandoc_with_version()
 
     def test_quarto_success(self, monkeypatch, tmp_path):
         fake_exe = tmp_path / "quarto"
         fake_exe.write_text("")
-        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: str(fake_exe))
+        monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda _name: str(fake_exe))
         monkeypatch.setattr(
-            report_utils,
+            report_utils._quarto,
             "_get_cmd_output",
             lambda _args: ["quarto 1.4.550"],
         )
@@ -922,9 +922,9 @@ class TestGetQuartoAndPandoc:
     def test_pandoc_success(self, monkeypatch, tmp_path):
         fake_exe = tmp_path / "pandoc"
         fake_exe.write_text("")
-        monkeypatch.setattr(report_utils.shutil, "which", lambda _name: str(fake_exe))
+        monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda _name: str(fake_exe))
         monkeypatch.setattr(
-            report_utils,
+            report_utils._quarto,
             "_get_cmd_output",
             lambda _args: ["pandoc 3.1.2"],
         )
