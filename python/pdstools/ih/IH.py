@@ -120,9 +120,9 @@ class IH:
 
         Parameters
         ----------
-        ih_filename : Union[os.PathLike, str]
+        ih_filename : os.PathLike or str
             Path to the dataset export file (parquet, csv, ndjson, or zip).
-        query : Optional[QUERY], optional
+        query : QUERY, optional
             Polars expression to filter the data. Default is None.
 
         Returns
@@ -555,7 +555,7 @@ class IH:
 
         Returns
         -------
-        dict[tuple[str, ...], Union[float, dict]]
+        dict[tuple[str, ...], float | dict]
             PMI scores for sequences:
             - Bigrams: Direct PMI value (float)
             - N-grams (n≥3): dict with 'average_pmi' and 'links' (constituent bigram PMIs)
@@ -630,7 +630,7 @@ class IH:
 
         Parameters
         ----------
-        ngrams_pmi : dict[tuple[str, ...], Union[float, dict]]
+        ngrams_pmi : dict[tuple[str, ...], float | dict]
             PMI scores from :meth:`calculate_pmi`.
         count_sequences : list[defaultdict]
             Sequence frequency counts from :meth:`get_sequences`.
@@ -669,8 +669,10 @@ class IH:
         freq_all = count_sequences[1] | count_sequences[2]
 
         for seq, pmi_val in ngrams_pmi.items():
-            if len(seq) > 2:
-                pmi_val = pmi_val["average_pmi"]  # type: ignore[index]
+            if isinstance(pmi_val, dict):
+                avg_pmi: float = pmi_val["average_pmi"]
+            else:
+                avg_pmi = pmi_val
 
             count = freq_all.get(seq, 0)
 
@@ -681,10 +683,10 @@ class IH:
                 {
                     "Sequence": seq,
                     "Length": len(seq),
-                    "Avg PMI": pmi_val,
+                    "Avg PMI": avg_pmi,
                     "Frequency": count,
                     "Unique freq": count_sequences[3][seq],
-                    "Score": pmi_val * math.log(count),  # type: ignore[operator]
+                    "Score": avg_pmi * math.log(count),
                 },
             )
 

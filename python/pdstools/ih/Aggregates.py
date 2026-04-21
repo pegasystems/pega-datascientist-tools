@@ -1,5 +1,6 @@
 """Aggregation methods for Interaction History analysis."""
 
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -58,7 +59,7 @@ class Aggregates(LazyNamespace):
 
     def summarize_by_interaction(
         self,
-        by: str | list[str] | pl.Expr | None = None,
+        by: str | Sequence[str | pl.Expr] | pl.Expr | None = None,
         every: str | timedelta | None = None,
         query: QUERY | None = None,
         debug: bool = False,
@@ -113,10 +114,14 @@ class Aggregates(LazyNamespace):
         else:
             source = self.ih.data
 
-        if not isinstance(by, list):
-            by = [by] if by is not None else []  # type: ignore[list-item]
-        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
-        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
+        if by is None:
+            by_seq: list[str | pl.Expr] = []
+        elif isinstance(by, (str, pl.Expr)):
+            by_seq = [by]
+        else:
+            by_seq = list(by)
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by_seq if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by_seq if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
             by_pl_exprs,
@@ -228,7 +233,7 @@ class Aggregates(LazyNamespace):
 
     def summary_success_rates(
         self,
-        by: str | list[str] | pl.Expr | None = None,
+        by: str | Sequence[str | pl.Expr] | pl.Expr | None = None,
         every: str | timedelta | None = None,
         query: QUERY | None = None,
         debug: bool = False,
@@ -285,10 +290,14 @@ class Aggregates(LazyNamespace):
         >>> ih.aggregates.summary_success_rates(by="Channel", every="1w").collect()
 
         """
-        if not isinstance(by, list):
-            by = [by] if by is not None else []  # type: ignore[list-item]
-        by_pl_exprs: list[str] = [x.meta.output_name() for x in by if isinstance(x, pl.Expr)]  # type: ignore[attr-defined]
-        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
+        if by is None:
+            by_seq: list[str | pl.Expr] = []
+        elif isinstance(by, (str, pl.Expr)):
+            by_seq = [by]
+        else:
+            by_seq = list(by)
+        by_pl_exprs: list[str] = [x.meta.output_name() for x in by_seq if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by_seq if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             by_pl_exprs + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
         )
@@ -346,7 +355,7 @@ class Aggregates(LazyNamespace):
 
     def summary_outcomes(
         self,
-        by: str | list[str] | pl.Expr | None = None,
+        by: str | Sequence[str | pl.Expr] | pl.Expr | None = None,
         every: str | timedelta | None = None,
         query: QUERY | None = None,
     ) -> pl.LazyFrame:
@@ -388,10 +397,14 @@ class Aggregates(LazyNamespace):
         else:
             source = self.ih.data
 
-        if not isinstance(by, list):
-            by = [by] if by is not None else []  # type: ignore[list-item]
-        by_pl_exprs: list[str | pl.Expr] = [x for x in by if isinstance(x, pl.Expr)]
-        by_non_pl_exprs = [x for x in by if not isinstance(x, pl.Expr)]
+        if by is None:
+            by_seq: list[str | pl.Expr] = []
+        elif isinstance(by, (str, pl.Expr)):
+            by_seq = [by]
+        else:
+            by_seq = list(by)
+        by_pl_exprs: list[str | pl.Expr] = [x for x in by_seq if isinstance(x, pl.Expr)]
+        by_non_pl_exprs = [x for x in by_seq if not isinstance(x, pl.Expr)]
         group_by_clause = cdh_utils.safe_flatten_list(
             ["Outcome"] + by_non_pl_exprs + (["OutcomeTime"] if every is not None else []),
             by_pl_exprs,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -83,7 +83,7 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        condition : Union[str, pl.Expr]
+        condition : str or pl.Expr
             Column to condition on (e.g., "Experiment", "Issue").
         metric : str, default "Engagement"
             Metric to display: "Engagement", "Conversion", or "OpenRate".
@@ -111,7 +111,7 @@ class Plots(LazyNamespace):
         from plotly.subplots import make_subplots
 
         plot_data = self.ih.aggregates.summary_success_rates(
-            by=[condition, by],  # type: ignore[list-item]
+            by=[condition, by],
             query=query,
         )
 
@@ -126,9 +126,9 @@ class Plots(LazyNamespace):
         df = plot_data.collect()
 
         cols = df[by].unique().shape[0]  # TODO can be None
-        rows = (
-            df[condition].unique().shape[0]  # type: ignore[index]
-        )  # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
+        # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
+        condition_col = cast(str, condition)
+        rows = df[condition_col].unique().shape[0]
 
         fig = make_subplots(
             rows=rows,
@@ -171,7 +171,7 @@ class Plots(LazyNamespace):
                 number={"valueformat": ",.2%"},
                 value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
-                title={"text": f"{row[by]}: {row[condition]}"},  # type: ignore[index]
+                title={"text": f"{row[by]}: {row[condition_col]}"},
                 gauge=gauge,
             )
             r, c = divmod(index, cols)
@@ -387,7 +387,7 @@ class Plots(LazyNamespace):
 
         """
         plot_data = self.ih.aggregates.summary_outcomes(
-            by=[by, color, facet],  # type: ignore[list-item]
+            by=[c for c in [by, color, facet] if c is not None],
             query=query,
         )
 
