@@ -15,7 +15,6 @@ from pdstools.decision_analyzer.plots import (
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
-    get_current_index,  # noqa: F401 — re-exported for backward compat
     get_data_path,
 )
 

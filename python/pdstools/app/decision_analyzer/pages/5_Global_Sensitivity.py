@@ -1,6 +1,7 @@
 import polars as pl
 import streamlit as st
-from da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data, get_current_index
+from da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.utils.streamlit_utils import get_current_index
 
 from pdstools.decision_analyzer.utils import apply_filter
 

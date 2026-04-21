@@ -5,12 +5,12 @@ from da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
-    get_current_index,
     stage_level_selector,
     stage_selectbox,
     st_component_overview,
     st_priority_component_distribution,
 )
+from pdstools.utils.streamlit_utils import get_current_index
 
 from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
 

@@ -4,11 +4,11 @@ import streamlit as st
 from da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
-    get_current_index,
     ensure_data,
     stage_level_selector,
     stage_selectbox,
 )
+from pdstools.utils.streamlit_utils import get_current_index
 
 
 # st.set_option("global.showWarningOnDirectExecution", False)

@@ -6,11 +6,11 @@ from da_streamlit_utils import (
     contextual_filters,
     ensure_data,
     ensure_funnel,
-    get_current_index,
     polars_lazyframe_hashing,
     stage_level_selector,
     stage_selectbox,
 )
+from pdstools.utils.streamlit_utils import get_current_index
 
 "# Action Funnel"
 

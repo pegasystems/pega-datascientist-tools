@@ -4,10 +4,10 @@ from da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
-    get_current_index,
     get_data_filters,
     show_filtered_counts,
 )
+from pdstools.utils.streamlit_utils import get_current_index
 
 from pdstools.decision_analyzer.utils import (
     apply_filter,
