@@ -426,19 +426,45 @@ checkers know which return shape applies.
 
 ## Feature backlog / TODO files
 
-Major features maintain a living TODO file in `docs/plans/` (e.g.
-`decision-analyzer-TODO.md`, `health-check-TODO.md`,
-`impact-analyzer-TODO.md`). These track open work items, bugs, and
-improvement ideas that are not otherwise captured in GitHub issues.
+Major features maintain a living backlog in `docs/plans/`. Two layouts
+are in use, with the per-item-file layout preferred for any new or
+churning area:
+
+### Per-item-file layout (preferred)
+
+`docs/plans/<feature>/<slug>.md` — one Markdown file per open item,
+plus a `README.md` describing the convention. The `adm/` backlog is the
+reference example.
+
+- **Adding an item** = create a new file. No shared state; no merge
+  conflicts with parallel PRs.
+- **Resolving an item** = `git rm` the file in the PR that resolves it.
+  The deletion is the audit trail; the PR description / commit message
+  captures the *what* and *why*.
+- **Listing open items** = `ls docs/plans/<feature>/`.
+- **Filename**: short kebab-case slug (`lazy-plotly.md`,
+  `binagg-rename.md`).
+- **Contents**: title, priority (P1/P2/P3), files touched, problem
+  statement, proposed approach, any cross-refs. Aim for under one
+  screen.
+
+### Single-file layout (legacy)
+
+Some areas (e.g. `decision-analyzer-TODO.md`, `health-check-TODO.md`,
+`impact-analyzer-TODO.md`) still use a single Markdown file with Open
+and Done sections. This works fine when the file sees little churn.
+Convert to the per-item-file layout the next time the area sees
+significant parallel PR activity (the recurring conflict on the Done
+section is the trigger).
+
+### Common rules (both layouts)
 
 - **Check before working.** When starting work on a feature area, read
-  its TODO file first for context on known issues and planned work.
-- **Update as you go.** Mark items done (`[x]`) when they land on
-  master. Add new items when you discover bugs, limitations, or ideas
-  during development.
+  its plan file/dir first.
+- **Update as you go.** Mark items done (or `git rm` them) when they
+  land on master. Add new items when you discover bugs, limitations, or
+  ideas during development.
 - **Priority levels:** P1 = high, P2 = medium, P3 = nice-to-have.
-- **Keep them current.** Remove or archive completed sections
-  periodically so the files stay useful.
 
 ### Inline `# TODO` vs plan-file entries
 
