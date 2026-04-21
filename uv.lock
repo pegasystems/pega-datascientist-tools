@@ -1069,6 +1069,24 @@ wheels = [
 ]
 
 [[package]]
+name = "fastexcel"
+version = "0.19.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/c8/3b09911348e9c64dbf41096d3e8f0e93c141a23990ec9f32514111bd5f55/fastexcel-0.19.0.tar.gz", hash = "sha256:216c3719ee90963bd93a0bf8c10b177233046ac975b67651152fdaedd3c99aa1", size = 60323, upload-time = "2026-01-20T11:17:37.253Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/e0/3820e93ea606549cfddb8c437141dd69f2b245e74785efc8bd7511ba909d/fastexcel-0.19.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:68601072a0b4b4277c165b68f1055f88ef7ffe7ed6f08c1eeda0f0271e3f7da0", size = 3082362, upload-time = "2026-01-20T11:17:27.157Z" },
+    { url = "https://files.pythonhosted.org/packages/66/0f/b42dc09515879192919942157292912393584045fd8bad98bd92961d4c30/fastexcel-0.19.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:c8a87d94445678e7e3f46a6aa39d2afaee5b88a983ec3661143a6488d8955f44", size = 2864365, upload-time = "2026-01-20T11:17:28.786Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/4a/bc358b20fcff64b4c14ff7d7a0e1f797792b8b77e30ae755873c02362538/fastexcel-0.19.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e94fc1be6642555f277af792c22a9f80ec9b4d640d9690f00abb822b6d865069", size = 3186426, upload-time = "2026-01-20T11:17:19.087Z" },
+    { url = "https://files.pythonhosted.org/packages/58/ae/d2ffdc5ad14190153e2422fc90a1052a4b0c3086d24cb8ae8967575321d8/fastexcel-0.19.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:334f9f40cd68b5924a712b6c104949757a0b8ad8a7e3fa3f3fad1c1ebc00258b", size = 3365628, upload-time = "2026-01-20T11:17:21.116Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/67/5f6d4e7760dc3dd8244cd124dabdd5bb7622bf1197edcc2513648847690e/fastexcel-0.19.0-cp310-abi3-win_amd64.whl", hash = "sha256:fbbdf9de79c3ef3572809bb187927c0dc5840968ffe513ea015a383024b7c6b0", size = 2905173, upload-time = "2026-01-20T11:17:33.687Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/a4/4290e356cfe028b11db8d96f8d5bca43bde8ed1fd9a491661df4d57551de/fastexcel-0.19.0-cp314-cp314t-macosx_10_12_x86_64.whl", hash = "sha256:26eb85d98087b3c13e083a1fb51a3dfcd57607865fb44d8d6db451948ef65c63", size = 3069723, upload-time = "2026-01-20T11:17:30.521Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/1e/1364b08c1d5449236af23366ac3beaabbc63b283f354fc1aa6ad0b95cc37/fastexcel-0.19.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:42d48b077b7ec070de6ea34c99f9a0c97e45cd767fbadd135fc30fa70de24b42", size = 2852643, upload-time = "2026-01-20T11:17:32.079Z" },
+    { url = "https://files.pythonhosted.org/packages/85/1b/57a5e2441ab29ecb774f642f66d5e9f9246cdc14ca4ee85ada5b081f4656/fastexcel-0.19.0-cp314-cp314t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e3c49fac330cc306bb0bd73d96138f438441d8254eed19ca6c1800aaa9d69054", size = 3182805, upload-time = "2026-01-20T11:17:23.068Z" },
+    { url = "https://files.pythonhosted.org/packages/76/50/0e5c416b990d153bad1e63b8268ea751fc8a319d134de14e3bbba38000c7/fastexcel-0.19.0-cp314-cp314t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:75aad96c34836eca90fc6d0e061240c145795f8754424698e2aadfd634abb4cf", size = 3360260, upload-time = "2026-01-20T11:17:24.711Z" },
+    { url = "https://files.pythonhosted.org/packages/48/38/b3faa12a74f387e037ff33adae761c22fc3aa44eed15a2c09d653b4eb194/fastexcel-0.19.0-cp314-cp314t-win_amd64.whl", hash = "sha256:7ef8e41cb0118f90d5f9a636fcdc0e9d635938cdaa54a3182328f3d34ce9ee1a", size = 2897686, upload-time = "2026-01-20T11:17:35.453Z" },
+]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.21.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2801,6 +2819,7 @@ all = [
     { name = "aioboto3" },
     { name = "anyio" },
     { name = "duckdb" },
+    { name = "fastexcel" },
     { name = "great-tables" },
     { name = "httpx" },
     { name = "humanize" },
@@ -2884,6 +2903,9 @@ healthcheck = [
     { name = "requests" },
     { name = "xlsxwriter" },
 ]
+impactanalyzer = [
+    { name = "fastexcel" },
+]
 onnx = [
     { name = "anyio" },
     { name = "httpx" },
@@ -2906,6 +2928,7 @@ tests = [
     { name = "anyio" },
     { name = "coverage" },
     { name = "duckdb" },
+    { name = "fastexcel" },
     { name = "great-tables" },
     { name = "httpx" },
     { name = "humanize" },
@@ -2951,6 +2974,7 @@ requires-dist = [
     { name = "coverage", marker = "extra == 'tests'" },
     { name = "duckdb", marker = "extra == 'docs'" },
     { name = "duckdb", marker = "extra == 'explanations'" },
+    { name = "fastexcel", marker = "extra == 'impactanalyzer'", specifier = ">=0.7.0" },
     { name = "furo", marker = "extra == 'docs'" },
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13" },
     { name = "httpx", marker = "extra == 'api'" },
@@ -2970,7 +2994,7 @@ requires-dist = [
     { name = "pdstools", extras = ["adm"], marker = "extra == 'healthcheck'" },
     { name = "pdstools", extras = ["all"], marker = "extra == 'tests'" },
     { name = "pdstools", extras = ["api"], marker = "extra == 'onnx'" },
-    { name = "pdstools", extras = ["app", "explanations", "onnx", "pega-io"], marker = "extra == 'all'" },
+    { name = "pdstools", extras = ["app", "explanations", "impactanalyzer", "onnx", "pega-io"], marker = "extra == 'all'" },
     { name = "pdstools", extras = ["healthcheck"], marker = "extra == 'app'" },
     { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0" },
     { name = "plotly", extras = ["express"], marker = "extra == 'explanations'" },
@@ -3007,7 +3031,7 @@ requires-dist = [
     { name = "xgboost", marker = "extra == 'docs'" },
     { name = "xlsxwriter", marker = "extra == 'healthcheck'", specifier = ">=3.0" },
 ]
-provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "app", "onnx", "all", "dev", "docs", "tests"]
+provides-extras = ["adm", "pega-io", "api", "impactanalyzer", "healthcheck", "explanations", "app", "onnx", "all", "dev", "docs", "tests"]
 
 [[package]]
 name = "pexpect"

@@ -807,7 +807,16 @@ class ImpactAnalyzer:
             read_kwargs["sheet_id"] = sheet_name
         # None → polars default (first sheet)
 
-        df = pl.read_excel(excel_source, **read_kwargs)
+        try:
+            df = pl.read_excel(excel_source, **read_kwargs)
+        except ModuleNotFoundError:
+            from ..utils.namespaces import MissingDependenciesException
+
+            raise MissingDependenciesException(
+                ["fastexcel"],
+                namespace="ImpactAnalyzer.from_excel",
+                deps_group="impactanalyzer",
+            ) from None
 
         if snapshot_time is None:
             if "SnapshotTime" not in df.columns:
