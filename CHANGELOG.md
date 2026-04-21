@@ -35,6 +35,12 @@ guide.
 ### Changed
 
 - (To be populated by the v5 cleanup PRs.)
+- Decision Analyzer Streamlit pages: converted bare
+  `from da_streamlit_utils import ...` imports to absolute
+  `from pdstools.app.decision_analyzer.da_streamlit_utils import ...`,
+  matching the Health Check and Impact Analyzer apps. This removes the
+  dependency on `streamlit run`'s `sys.path` mutation and unblocks
+  testing DA pages with `streamlit.testing.v1.AppTest` (#724).
 - Decision Analyzer plot helpers: renamed `propensityTH` / `priorityTH`
   keyword arguments to `propensity_th` / `priority_th` on
   `DecisionAnalyzer.get_offer_quality`,

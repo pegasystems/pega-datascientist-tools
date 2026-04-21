@@ -5,7 +5,7 @@ import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import standard_page_config
 

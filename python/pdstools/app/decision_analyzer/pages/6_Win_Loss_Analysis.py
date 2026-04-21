@@ -1,6 +1,6 @@
 import polars as pl
 import streamlit as st
-from da_streamlit_utils import (
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,

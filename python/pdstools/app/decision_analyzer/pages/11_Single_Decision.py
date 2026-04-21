@@ -5,7 +5,7 @@ from itertools import groupby
 import polars as pl
 import streamlit as st
 import streamlit.components.v1 as components
-from da_streamlit_utils import (
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
     ensure_data,
     stage_level_selector,
 )
