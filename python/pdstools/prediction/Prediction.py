@@ -85,12 +85,13 @@ class Prediction:
         *,
         query: QUERY | None = None,
     ):
-        """Initialize the Prediction class
+        """Initialize the Prediction class.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            The read in data as a Polars LazyFrame
+            Already-loaded raw prediction data (e.g. from
+            ``pl.scan_parquet`` or one of the ``from_*`` classmethods).
         query : QUERY, optional
             An optional query to apply to the input data.
             For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
@@ -98,7 +99,22 @@ class Prediction:
         """
         self.plot = PredictionPlots(prediction=self)
 
-        predictions_raw_data_prepped = (
+        validated = self._validate_prediction_data(df)
+        self.predictions = cdh_utils._apply_query(validated, query)
+
+    @classmethod
+    def _validate_prediction_data(cls, df: pl.LazyFrame) -> pl.LazyFrame:
+        """Normalize raw prediction snapshot data into the standard shape.
+
+        Filters to ``pyModelType == "PREDICTION"``, renames the raw
+        ``py*`` columns to pdstools conventions, normalizes the
+        Performance scale, parses ``pySnapShotTime``, and pivots the
+        per-``pyDataUsage`` rows into wide form with ``_Test``,
+        ``_Control``, and ``_NBA`` suffixes.
+
+        Returns the resulting LazyFrame; does not mutate ``df``.
+        """
+        prepped = (
             (
                 df.filter(pl.col.pyModelType == "PREDICTION")
                 .with_columns(
@@ -116,50 +132,23 @@ class Prediction:
             .collect()
             .lazy()
         )
-        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
-        perf_max = predictions_raw_data_prepped.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
-                Performance=pl.col("Performance") / 100.0,
-            )
-        schema = predictions_raw_data_prepped.collect_schema()
-        if schema.get("pySnapShotTime") is not None and not schema.get("pySnapShotTime").is_temporal():  # type: ignore[union-attr]
-            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
-                SnapshotTime=cdh_utils.parse_pega_date_time_formats(
-                    "pySnapShotTime",
-                    timestamp_dtype=pl.Date,
-                ),
-            )
-        else:
-            predictions_raw_data_prepped = predictions_raw_data_prepped.with_columns(
-                SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date),
-            )
+        prepped = cls._normalize_performance_scale(prepped)
+        prepped = cls._parse_snapshot_time(prepped)
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
         # TODO we may want to assert that this results in exactly one record for
         # every combination of model ID and snapshot time.
-        counts_control = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Control",
-        ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
-        )
-        counts_test = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "Test",
-        ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
-        )
-        counts_NBA = predictions_raw_data_prepped.filter(
-            pl.col.pyDataUsage == "NBA",
-        ).select(
-            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"],
-        )
+        usage_cols = ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        counts_control = prepped.filter(pl.col.pyDataUsage == "Control").select(usage_cols)
+        counts_test = prepped.filter(pl.col.pyDataUsage == "Test").select(usage_cols)
+        counts_NBA = prepped.filter(pl.col.pyDataUsage == "NBA").select(usage_cols)
 
-        self.predictions = (
+        return (
             # Performance is taken for the records with a filled in "snapshot type".
             # The numbers of positives, negatives may not make sense but are included
             # anyways.
-            predictions_raw_data_prepped.filter(pl.col.pySnapshotType == "Daily")
+            prepped.filter(pl.col.pySnapshotType == "Daily")
             .select(
                 [
                     "pyModelId",
@@ -188,12 +177,40 @@ class Prediction:
             )
             .with_columns(
                 CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control")) / pl.col("CTR_Control"),
-                isValidPrediction=self.prediction_validity_expr,
+                isValidPrediction=cls.prediction_validity_expr,
             )
             .sort(["pyModelId", "SnapshotTime"])
         )
 
-        self.predictions = cdh_utils._apply_query(self.predictions, query)
+    @staticmethod
+    def _normalize_performance_scale(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
+        if "Performance" not in df.collect_schema().names():
+            return df
+        perf_max = df.select(pl.col("Performance").max()).collect().item()
+        if perf_max is not None and perf_max > 1.0:
+            df = df.with_columns(Performance=pl.col("Performance") / 100.0)
+        return df
+
+    @staticmethod
+    def _parse_snapshot_time(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Add a ``SnapshotTime`` column parsed from ``pySnapShotTime``.
+
+        If ``pySnapShotTime`` is already a temporal dtype it is cast
+        directly to :class:`polars.Date`; otherwise the Pega timestamp
+        format is parsed.
+        """
+        snapshot_dtype = df.collect_schema().get("pySnapShotTime")
+        if snapshot_dtype is not None and not snapshot_dtype.is_temporal():
+            return df.with_columns(
+                SnapshotTime=cdh_utils.parse_pega_date_time_formats(
+                    "pySnapShotTime",
+                    timestamp_dtype=pl.Date,
+                ),
+            )
+        return df.with_columns(
+            SnapshotTime=pl.col("pySnapShotTime").cast(pl.Date),
+        )
 
     @classmethod
     def from_ds_export(

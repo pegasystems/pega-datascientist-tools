@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Literal, overload
 
 import polars as pl
 
@@ -6,13 +9,22 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
 
-logger = logging.getLogger(__name__)
-try:
-    import plotly.express as px
+if TYPE_CHECKING:  # pragma: no cover
+    from plotly.graph_objects import Figure
 
-    from ..utils import pega_template as pega_template
-except ImportError as e:  # pragma: no cover
-    logger.debug(f"Failed to import optional dependencies: {e}")
+    from .Prediction import Prediction
+
+logger = logging.getLogger(__name__)
+
+# Importing pega_template at module load registers the "pega" Plotly
+# template (and friends) as a side effect. Several plot methods across
+# pdstools — including some in adm/Plots.py — pass `template="pega"`
+# without importing pega_template themselves and rely on this side effect.
+# Tracked in docs/plans/adm/plots-pega-template-registration.md.
+try:
+    from ..utils import pega_template as _pega_template  # noqa: F401
+except ImportError:  # pragma: no cover
+    logger.debug("plotly not installed; pega template not registered.")
 
 
 class PredictionPlots(LazyNamespace):
@@ -25,7 +37,7 @@ class PredictionPlots(LazyNamespace):
     dependencies = ["plotly"]
     dependency_group = "adm"
 
-    def __init__(self, prediction):
+    def __init__(self, prediction: Prediction):
         self.prediction = prediction
         super().__init__()
 
@@ -59,6 +71,10 @@ class PredictionPlots(LazyNamespace):
             (plotly figure, dataframe with plot data)
 
         """
+        import plotly.express as px
+
+        from ..utils import pega_template as pega_template  # noqa: F401  (registers template)
+
         # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
         # where multiple lazy queries from the same LazyFrame can cause crashes
         queried_data = cdh_utils._apply_query(self.prediction.predictions, query)
@@ -133,6 +149,24 @@ class PredictionPlots(LazyNamespace):
 
         return plt, plot_df
 
+    @overload
+    def performance_trend(
+        self,
+        period: str = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+        **kwargs,
+    ) -> Figure: ...
+    @overload
+    def performance_trend(
+        self,
+        period: str = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+        **kwargs,
+    ) -> pl.LazyFrame: ...
     def performance_trend(
         self,
         period: str = "1d",
@@ -218,6 +252,24 @@ class PredictionPlots(LazyNamespace):
         plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
         return plt
 
+    @overload
+    def lift_trend(
+        self,
+        period: str = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+        **kwargs,
+    ) -> Figure: ...
+    @overload
+    def lift_trend(
+        self,
+        period: str = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+        **kwargs,
+    ) -> pl.LazyFrame: ...
     def lift_trend(
         self,
         period: str = "1d",
@@ -303,6 +355,26 @@ class PredictionPlots(LazyNamespace):
         )
         return plt
 
+    @overload
+    def ctr_trend(
+        self,
+        period: str = ...,
+        facetting: bool = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+        **kwargs,
+    ) -> Figure: ...
+    @overload
+    def ctr_trend(
+        self,
+        period: str = ...,
+        facetting: bool = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+        **kwargs,
+    ) -> pl.LazyFrame: ...
     def ctr_trend(
         self,
         period: str = "1d",
@@ -394,6 +466,26 @@ class PredictionPlots(LazyNamespace):
         plt.update_yaxes(tickformat=",.3%", rangemode="tozero")
         return plt
 
+    @overload
+    def responsecount_trend(
+        self,
+        period: str = ...,
+        facetting: bool = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+        **kwargs,
+    ) -> Figure: ...
+    @overload
+    def responsecount_trend(
+        self,
+        period: str = ...,
+        facetting: bool = ...,
+        *,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+        **kwargs,
+    ) -> pl.LazyFrame: ...
     def responsecount_trend(
         self,
         period: str = "1d",
