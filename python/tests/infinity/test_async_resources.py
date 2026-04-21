@@ -377,6 +377,73 @@ class TestAsyncPredictionStudio:
     async def test_version_attribute(self, async_ps):
         assert async_ps.version == "24.2"
 
+    @pytest.mark.asyncio
+    async def test_upload_model_file_path(self, async_ps, async_client, tmp_path):
+        """upload_model should base64-encode a file-based LocalModel and POST it."""
+        from pdstools.infinity.resources.prediction_studio.local_model_utils import (
+            PMMLModel,
+        )
+
+        model_path = tmp_path / "test.model"
+        model_path.write_bytes(b"hello model bytes")
+
+        async_client.post.return_value = {
+            "repositoryName": "AWSFalcons",
+            "filePath": "model-staging/test.model",
+        }
+
+        result = await async_ps.upload_model(
+            PMMLModel(str(model_path)),
+            file_name="test.model",
+        )
+
+        # Verify the correct endpoint + base64-encoded payload
+        import base64
+
+        expected_b64 = base64.encodebytes(b"hello model bytes").decode("ascii")
+        async_client.post.assert_awaited_once_with(
+            "/prweb/api/PredictionStudio/v1/model",
+            data={"fileSource": expected_b64, "fileName": "test.model"},
+        )
+
+        assert result.repository_name == "AWSFalcons"
+        assert result.file_path == "model-staging/test.model"
+
+    @pytest.mark.asyncio
+    async def test_upload_model_onnx(self, async_ps, async_client, monkeypatch):
+        """ONNX branch serialises via SerializeToString + base64."""
+        import base64
+        from unittest.mock import MagicMock
+
+        from pdstools.infinity.resources.prediction_studio.local_model_utils import (
+            ONNXModel,
+        )
+
+        # Build an ONNXModel without running the real constructor (which requires onnx).
+        model = ONNXModel.__new__(ONNXModel)
+        from pdstools.infinity.resources.prediction_studio.base import LocalModel
+
+        LocalModel.__init__(model)
+        inner = MagicMock()
+        inner.SerializeToString.return_value = b"\x08\x01onnx-bytes"
+        model._model = inner
+        # Skip the real onnx validation
+        monkeypatch.setattr(ONNXModel, "validate", lambda self: True)
+
+        async_client.post.return_value = {
+            "repositoryName": "Repo",
+            "filePath": "path/model.onnx",
+        }
+        result = await async_ps.upload_model(model, file_name="model.onnx")
+
+        expected_b64 = base64.encodebytes(b"\x08\x01onnx-bytes").decode("ascii")
+        async_client.post.assert_awaited_once_with(
+            "/prweb/api/PredictionStudio/v1/model",
+            data={"fileSource": expected_b64, "fileName": "model.onnx"},
+        )
+        assert result.repository_name == "Repo"
+        assert result.file_path == "path/model.onnx"
+
 
 # ---------------------------------------------------------------------------
 # AsyncPrediction
@@ -434,6 +501,207 @@ class TestAsyncPrediction:
         async_client.get.return_value = mock_response_notifications
         result = await async_prediction.get_notifications(return_df=False)
         assert isinstance(result, AsyncPaginatedList)
+
+    @pytest.mark.asyncio
+    async def test_get_notifications_as_df(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        async_client.get.return_value = mock_response_notifications
+        async_client.request.return_value = mock_response_notifications
+        result = await async_prediction.get_notifications(return_df=True)
+        assert isinstance(result, pl.DataFrame)
+        assert result.shape == (2, 10)
+
+    @pytest.mark.asyncio
+    async def test_get_notifications_with_category(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        async_client.get.return_value = mock_response_notifications
+        result = await async_prediction.get_notifications(category="Performance")
+        assert isinstance(result, AsyncPaginatedList)
+
+    @pytest.mark.asyncio
+    async def test_get_champion_challengers_only_active(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        """All models in mock_prediction_describe are ACTIVE with no challenger percentages
+        -> all fall into the `only_active` branch."""
+        async_client.get.return_value = mock_prediction_describe
+        result = await async_prediction.get_champion_challengers()
+
+        # 3 models (1 default + 1 category + 1 supporting) -> 3 CCs
+        assert len(result) == 3
+        for cc in result:
+            assert cc.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
+            assert cc.challenger_model is None
+            assert cc.active_model is not None
+
+        # Category model entry carries its category; default/supporting do not
+        categories = [cc.category for cc in result]
+        assert "Retention" in categories
+        assert categories.count(None) == 2
+
+    @pytest.mark.asyncio
+    async def test_get_champion_challengers_with_non_active(
+        self,
+        async_client,
+    ):
+        """Exercises the non_active branch (models with challengerPercentage)."""
+        describe = {
+            "context": [
+                {
+                    "contextName": "NoContext",
+                    "defaultModels": [
+                        {
+                            "id": "ACTIVE_MODEL",
+                            "label": "Active",
+                            "role": "ACTIVE",
+                            "type": "Adaptive model",
+                            "componentName": "Active",
+                            "modelingTechnique": "Adaptive model - Bayesian",
+                        },
+                        {
+                            "id": "CHALLENGER_MODEL",
+                            "label": "Challenger",
+                            "role": "CHALLENGER",
+                            "type": "Adaptive model",
+                            "componentName": "Challenger",
+                            "modelingTechnique": "Adaptive model - Bayesian",
+                            "championPercentage": 70,
+                            "challengerPercentage": 30,
+                            "activeModel": "ACTIVE_MODEL",
+                        },
+                    ],
+                    "categoryModels": [],
+                },
+            ],
+            "supportingModels": [],
+        }
+        async_client.get.return_value = describe
+        prediction = AsyncPrediction(
+            client=async_client,
+            predictionId="P1",
+            label="l",
+            objective="o",
+            subject="s",
+            status="Completed",
+            lastUpdateTime="20240718T120557.925 GMT",
+        )
+        result = await prediction.get_champion_challengers()
+
+        # Two CCs: one from non_active (the CHALLENGER) and one from only_active
+        # (the ACTIVE model, which has no champion/challenger percentages).
+        assert len(result) == 2
+
+        # Find the challenger entry and the only-active entry
+        non_active_cc = next(cc for cc in result if cc.challenger_model is not None)
+        only_active_cc = next(cc for cc in result if cc.challenger_model is None)
+
+        # champion_percentage = 100 - challengerPercentage(30) = 70
+        assert non_active_cc.champion_percentage == 70
+        assert non_active_cc.challenger_model.model_id == "CHALLENGER_MODEL"
+        assert non_active_cc.active_model.model_id == "ACTIVE_MODEL"
+        assert non_active_cc.category is None
+        assert non_active_cc.context == "NoContext"
+
+        assert only_active_cc.active_model.model_id == "ACTIVE_MODEL"
+
+    @pytest.mark.asyncio
+    async def test_add_conditional_model(self, async_prediction, async_client):
+        """add_conditional_model posts, then resolves the new CC via get_champion_challengers."""
+        async_client.post.return_value = {"referenceID": "M-6011"}
+        async_client.get.return_value = mock_prediction_describe
+
+        result = await async_prediction.add_conditional_model(
+            new_model="@baseclass!testModel_falcons",
+            category="Retention",
+        )
+
+        async_client.post.assert_awaited_once_with(
+            "prweb/api/PredictionStudio/v4/predictions/"
+            "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS/"
+            "category/Retention/models/@baseclass!testModel_falcons",
+            data={"contextName": "NoContext"},
+        )
+        assert result is not None
+        assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
+        assert result.category == "Retention"
+
+    @pytest.mark.asyncio
+    async def test_add_conditional_model_with_model_object(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        """When `new_model` is an AsyncModel, its model_id is extracted."""
+        from pdstools.infinity.resources.prediction_studio.v24_2.model import AsyncModel
+
+        async_client.post.return_value = {"referenceID": "M-6011"}
+        async_client.get.return_value = mock_prediction_describe
+
+        model_obj = AsyncModel(
+            client=async_client,
+            modelId="@baseclass!testModel_falcons",
+            label="testModel_falcons",
+            modelType="Adaptive model",
+            status="Completed",
+        )
+        result = await async_prediction.add_conditional_model(
+            new_model=model_obj,
+            category="Retention",
+            context="NoContext",
+        )
+        assert result is not None
+        assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
+
+    @pytest.mark.asyncio
+    async def test_add_conditional_model_post_failure_raises(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        """When _a_post raises PegaException, wrap in PegaMLopsError."""
+        from httpx import Response
+
+        from pdstools.infinity.internal._exceptions import PegaException, PegaMLopsError
+
+        async def _raise(*args, **kwargs):
+            exc = PegaException.__new__(PegaException)
+            Exception.__init__(exc, "boom")
+            exc.override_message = "boom"
+            raise exc
+
+        async_client.post.side_effect = _raise
+        del Response  # silence unused import; Response not actually needed
+
+        with pytest.raises(PegaMLopsError, match="Error when adding Conditional model"):
+            await async_prediction.add_conditional_model(
+                new_model="@baseclass!testModel_falcons",
+                category="Retention",
+            )
+
+    @pytest.mark.asyncio
+    async def test_add_conditional_model_empty_response_raises(
+        self,
+        async_prediction,
+        async_client,
+    ):
+        """Falsy response from _a_post triggers PegaMLopsError."""
+        from pdstools.infinity.internal._exceptions import PegaMLopsError
+
+        async_client.post.return_value = None
+
+        with pytest.raises(PegaMLopsError, match="Add conditional model failed"):
+            await async_prediction.add_conditional_model(
+                new_model="@baseclass!testModel_falcons",
+                category="Retention",
+            )
 
     @pytest.mark.asyncio
     async def test_get_staged_changes(self, async_prediction, async_client):
