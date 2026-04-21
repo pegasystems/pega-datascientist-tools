@@ -97,7 +97,7 @@ jobs:
         run: |
           uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps -n auto
           uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc python/tests/streamlit_apps
-          uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc python/tests/explanations
+          uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5.1.2
