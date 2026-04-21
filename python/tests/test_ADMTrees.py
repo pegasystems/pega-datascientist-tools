@@ -673,11 +673,19 @@ def test_splits_and_gains_lengths_aligned(tree_sample):
 def test_score_missing_predictor_raises_helpful_keyerror(tree_sample, sampledX):
     """Calling score with an incomplete feature dict should raise a KeyError
     that names the missing predictor (not a bare KeyError on the variable)."""
-    # Pick a predictor that's actually referenced by at least one split,
-    # otherwise score() may complete without ever needing it.
-    used_predictors = set(tree_sample.predictors) & set(sampledX)
-    assert used_predictors, "fixture sanity: sampledX must overlap with model predictors"
-    a_predictor = next(iter(used_predictors))
+    # Capture the predictors actually accessed when scoring the full dict —
+    # picking from the model's full predictor list isn't enough because some
+    # predictors may never be hit on this particular traversal path.
+    accessed: set[str] = set()
+
+    class _RecordingDict(dict):
+        def __getitem__(self, key):
+            accessed.add(key)
+            return super().__getitem__(key)
+
+    tree_sample.score(_RecordingDict(sampledX))
+    assert accessed, "fixture sanity: scoring sampledX should access at least one predictor"
+    a_predictor = next(iter(accessed))
     incomplete = dict(sampledX)
     incomplete.pop(a_predictor)
     with pytest.raises(KeyError, match=re.escape(repr(a_predictor))):
