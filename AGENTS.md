@@ -426,68 +426,56 @@ checkers know which return shape applies.
 
 ## Feature backlog / TODO files
 
-Major features maintain a living backlog in `docs/plans/`. Two layouts
-are in use, with the per-item-file layout preferred for any new or
-churning area:
+Each feature area maintains a backlog in `docs/plans/<feature>/` — one
+Markdown file per open item, plus a `README.md`. All four active areas
+(`adm/`, `decision-analyzer/`, `health-check/`, `impact-analyzer/`) use
+this layout. Do not add new single-file `*-TODO.md` backlogs.
 
-### Per-item-file layout (preferred)
-
-`docs/plans/<feature>/<slug>.md` — one Markdown file per open item,
-plus a `README.md` describing the convention. The `adm/` backlog is the
-reference example.
-
-- **Adding an item** = create a new file. No shared state; no merge
-  conflicts with parallel PRs.
-- **Resolving an item** = `git rm` the file in the PR that resolves it.
-  The deletion is the audit trail; the PR description / commit message
-  captures the *what* and *why*.
-- **Listing open items** = `ls docs/plans/<feature>/`.
-- **Filename**: short kebab-case slug (`lazy-plotly.md`,
-  `binagg-rename.md`).
-- **Contents**: title, priority (P1/P2/P3), files touched, problem
-  statement, proposed approach, any cross-refs. Aim for under one
-  screen.
-
-### Single-file layout (legacy)
-
-Some areas (e.g. `decision-analyzer-TODO.md`, `health-check-TODO.md`,
-`impact-analyzer-TODO.md`) still use a single Markdown file with Open
-and Done sections. This works fine when the file sees little churn.
-Convert to the per-item-file layout the next time the area sees
-significant parallel PR activity (the recurring conflict on the Done
-section is the trigger).
-
-### Common rules (both layouts)
-
+- **Adding an item** = create `docs/plans/<feature>/<slug>.md`. No
+  shared state; no merge conflicts with parallel PRs.
+- **Resolving an item** = `git rm docs/plans/<feature>/<slug>.md` in
+  the PR that resolves it. The deletion is the audit trail; the PR
+  description / commit message captures the *what* and *why*.
 - **Check before working.** When starting work on a feature area, read
-  its plan file/dir first.
-- **Update as you go.** Mark items done (or `git rm` them) when they
-  land on master. Add new items when you discover bugs, limitations, or
-  ideas during development.
+  its plan directory first.
+- **Update as you go.** `git rm` items when they land on master. Add
+  new files when you discover bugs, limitations, or ideas during
+  development.
 - **Priority levels:** P1 = high, P2 = medium, P3 = nice-to-have.
+- **Filename**: short kebab-case slug (`lazy-plotly.md`,
+  `binagg-rename.md`). For Streamlit page items, prefix with the page
+  number (`page3-topk-limiter.md`).
+- **Contents**: title, priority, files touched, problem statement,
+  proposed approach, any cross-refs. Aim for under one screen.
+
+**Listing open items** across a feature:
+
+```
+ls docs/plans/decision-analyzer/
+```
+
+**Finding P1 items** across all features:
+
+```
+find docs/plans -name '*.md' | xargs grep -l 'Priority:** P1'
+```
 
 ### Inline `# TODO` vs plan-file entries
 
-Use the right venue for the right kind of note:
-
-- **Plan file (`docs/plans/<feature>-TODO.md`)** — substantive backlog
-  items: missing features, refactors that span more than a few lines,
-  known limitations, bugs worth tracking, design questions. Anything a
-  future contributor would want to discover by reading the backlog
-  rather than by stumbling onto a comment.
+- **Plan file** (`docs/plans/<feature>/<slug>.md`) — substantive backlog
+  items: missing features, multi-line refactors, known limitations, bugs
+  worth tracking, design questions. Anything a future contributor would
+  want to discover by reading the backlog rather than by stumbling onto
+  a comment.
 - **Inline `# TODO`** — small, code-local hints tied to a specific line:
-  "consider a faster path here", "revisit when polars supports X",
-  "this branch is only hit in tests". Should be self-contained — no
-  required cross-reference for a reader to act on it.
-- **Anchor when both apply.** If an inline note has a meaningful
-  backlog entry, link them with
-  `# Tracked in docs/plans/<file>.md (P<n>: <item title>) — <one-liner>`
-  so the call site stays searchable and the rationale is visible
-  locally. Don't leave dangling inline TODOs that duplicate a backlog
-  item without the anchor.
+  "consider a faster path here", "revisit when polars supports X".
+  Should be self-contained.
+- **Anchor when both apply.** If an inline note has a matching plan
+  entry, link them:
+  `# Tracked in docs/plans/<feature>/<slug>.md — <one-liner>`
 - **Don't park lists of TODOs at the top of a file/page.** Lift them
-  into the relevant plan file and replace the block with a single
-  pointer comment.
+  into the plan directory and replace the block with a single pointer
+  comment.
 
 ## Surfacing follow-up work
 
@@ -501,7 +489,7 @@ venue and either file it or hand the user a draft they can file:
   on this repo (EMU restrictions) — write a ready-to-paste draft
   (title + body in markdown) and hand it to the user. Keep one issue
   per concern, not omnibus dumps.
-- **Plan-file entry** (`docs/plans/<feature>-TODO.md`) for backlog
+- **Plan-file entry** (`docs/plans/<feature>/<slug>.md`) for backlog
   items scoped to a specific feature area that aren't substantial
   enough to be their own issue, or that need design work before they
   can be filed.
