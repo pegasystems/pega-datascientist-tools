@@ -336,29 +336,42 @@ def overlap_matrix(
     └───────────────────┴───────────────┴───────────────┴─────────┘
 
     """
-    list_col_series = df[list_col]
-    nrows = list_col_series.len()
-    result = []
-    for i in range(nrows):
-        set_i = set(list_col_series[i].to_list())
-        if show_fraction:
-            overlap_w_other_rows = [
-                (
-                    len(set_i & set(list_col_series[j].to_list())) / len(set(list_col_series[j].to_list()))
-                    if i != j
-                    else None
-                )
-                for j in range(nrows)
-            ]
-        else:
-            overlap_w_other_rows = [len(set_i & set(list_col_series[j].to_list())) for j in range(nrows)]
-        result.append(
-            pl.Series(
-                name=f"Overlap_{list_col_series.name}_{df[by][i]}",
-                values=overlap_w_other_rows,
-            ),
+    n = df.height
+    by_values = df[by].to_list()
+
+    if n == 0:
+        return pl.DataFrame().with_columns(pl.Series(df[by]))
+
+    list_expr = pl.col(list_col)
+    if df.schema[list_col] == pl.List(pl.Null):
+        list_expr = list_expr.cast(pl.List(pl.Int64))
+
+    df_sets = df.lazy().select(list_expr.list.unique().alias("__L")).with_row_index("__idx")
+
+    left = df_sets.rename({"__L": "__L_j", "__idx": "__j"})
+    right = df_sets.rename({"__L": "__L_i", "__idx": "__i"})
+
+    pairs = left.join(right, how="cross").with_columns(
+        pl.col("__L_i").list.set_intersection(pl.col("__L_j")).list.len().alias("__isect"),
+        pl.col("__L_j").list.len().alias("__len_j"),
+    )
+    if show_fraction:
+        pairs = pairs.with_columns(
+            pl.when(pl.col("__i") == pl.col("__j"))
+            .then(pl.lit(None, dtype=pl.Float64))
+            .otherwise(pl.col("__isect").cast(pl.Float64) / pl.col("__len_j").cast(pl.Float64))
+            .alias("__val"),
         )
-    return pl.DataFrame(result).with_columns(pl.Series(df[by]))
+    else:
+        pairs = pairs.with_columns(pl.col("__isect").cast(pl.Int64).alias("__val"))
+
+    pairs_df = pairs.sort("__j", "__i").collect()
+    wide = pairs_df.pivot(values="__val", index="__j", on="__i", sort_columns=False).sort("__j").drop("__j")
+
+    cur_cols = wide.columns
+    rename_map = {cur_cols[i]: f"Overlap_{list_col}_{by_values[i]}" for i in range(n)}
+    wide = wide.rename(rename_map)
+    return wide.with_columns(pl.Series(df[by]))
 
 
 def overlap_lists_polars(col: pl.Series) -> pl.Series:
@@ -415,19 +428,53 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
     └─────────┴─────────┘
 
     """
-    nrows = col.len()
-    average_overlap = []
-    for i in range(nrows):
-        set_i = set(col[i].to_list())
-        overlap_w_other_rows = [len(set_i & set(col[j].to_list())) for j in range(nrows) if i != j]
-        if len(overlap_w_other_rows) > 0 and len(set_i) > 0:
-            average_overlap += [
-                sum(overlap_w_other_rows) / len(overlap_w_other_rows) / len(set_i),
-            ]
-        else:
-            average_overlap += [0.0]
+    n = col.len()
+    if n == 0:
+        return pl.Series([], dtype=pl.Float64)
+    if n == 1:
+        return pl.Series([0.0], dtype=pl.Float64)
 
-    return pl.Series(average_overlap)  # ,dtype=pl.list(inner=pl.Float64))
+    col_for_lazy = col
+    if col.dtype == pl.List(pl.Null):
+        col_for_lazy = col.cast(pl.List(pl.Int64))
+
+    df_sets = (
+        pl.DataFrame({"__L": col_for_lazy})
+        .lazy()
+        .select(pl.col("__L").list.unique().alias("__L"))
+        .with_columns(pl.col("__L").list.len().alias("__len"))
+        .with_row_index("__i")
+    )
+
+    left = df_sets.rename({"__L": "__L_i", "__len": "__len_i"})
+    right = df_sets.select(pl.col("__L").alias("__L_j"), pl.col("__i").alias("__j"))
+
+    pairs = (
+        left.join(right, how="cross")
+        .filter(pl.col("__i") != pl.col("__j"))
+        .with_columns(
+            pl.col("__L_i").list.set_intersection(pl.col("__L_j")).list.len().alias("__isect"),
+        )
+    )
+
+    agg = (
+        pairs.group_by("__i", maintain_order=False)
+        .agg(
+            pl.sum("__isect").alias("__sum"),
+            pl.first("__len_i").alias("__len_i"),
+        )
+        .sort("__i")
+        .with_columns(
+            pl.when(pl.col("__len_i") == 0)
+            .then(pl.lit(0.0))
+            .otherwise(pl.col("__sum").cast(pl.Float64) / (n - 1) / pl.col("__len_i"))
+            .alias("__avg"),
+        )
+        .select("__avg")
+        .collect()
+    )
+
+    return agg["__avg"].rename("")
 
 
 def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
