@@ -211,6 +211,7 @@ class TestCachingFunctions:
     @patch("pdstools.utils.cdh_utils.get_latest_pdstools_version")
     def test_st_get_latest_pdstools_version(self, mock_version):
         """Test getting latest pdstools version."""
+        streamlit_utils.st_get_latest_pdstools_version.clear()
         mock_version.return_value = "4.0.0"
 
         result = streamlit_utils.st_get_latest_pdstools_version()
