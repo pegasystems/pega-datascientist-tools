@@ -151,6 +151,7 @@ class DecisionAnalyzer:
         sample_size=DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
         additional_columns: dict[str, pl.DataType] | None = None,
+        num_samples: int = 1,
     ):
         """Initialize DecisionAnalyzer with raw decision data.
 
@@ -171,6 +172,11 @@ class DecisionAnalyzer:
         sample_size : int, default 50000
             Maximum number of unique interactions to sample for analysis. Larger values
             provide more statistical accuracy but slower performance. Minimum 1000.
+        num_samples : int, default 1
+            Number of Propensity/Priority values to sample per preaggregation group.
+            Higher values produce smoother quantile estimates in thresholding analysis
+            at the cost of a proportionally larger pre-aggregated cache. Values above
+            10–20 rarely add meaningful precision.
         mandatory_expr : pl.Expr, optional
             Polars expression to create the `is_mandatory` column used in ranking.
             The expression should return True/False values that get converted to 1/0.
@@ -209,6 +215,7 @@ class DecisionAnalyzer:
         self.plot = Plot(self)
         self.level = level
         self.sample_size = sample_size
+        self._num_samples = num_samples
         self._thresholding_cache: dict[tuple[str, tuple[int, ...]], pl.DataFrame] = {}
         self._sensitivity_cache: dict[int, pl.LazyFrame] = {}
         # Normalize alternative column names (e.g. "Issue" → "Issue")
@@ -638,11 +645,12 @@ class DecisionAnalyzer:
         in that it records the actions that get filtered out at stages. From this
         a "remaining" view is easily derived.
         """
-        # Tracked in docs/plans/decision-analyzer-TODO.md (P1: Fix
-        # num_samples > 1) — locked at 1 because .explode() in
-        # get_thresholding_data biases quantiles when groups have multiple
-        # samples.
-        num_samples = 1
+        # Number of Propensity/Priority values sampled per preaggregation group.
+        # Each group contributes exactly num_samples values (sampled with
+        # replacement), so equal weighting per group is preserved regardless of
+        # num_samples. Higher values reduce quantile variance at the cost of a
+        # proportionally larger pre-aggregated cache.
+        num_samples = self._num_samples
         stats_cols = ["Decision Time", "Value", "Propensity", "Priority"]
         exprs = [
             pl.col("Interaction ID").filter(pl.col("Rank") <= i).count().alias(f"Win_at_rank{i}")
@@ -684,16 +692,14 @@ class DecisionAnalyzer:
                     pl.max("Decision Time_max"),
                     pl.min("Value_min"),
                     pl.max("Value_max"),
-                    # pl.col("Propensity").sample(
-                    #     n=num_samples, with_replacement=True, shuffle=True
-                    # ),  # a list sample values - for distribution plots
-                    pl.first("Propensity"),
+                    pl.col("Propensity")
+                    .list.explode(keep_nulls=False, empty_as_null=False)
+                    .sample(n=self._num_samples, with_replacement=True, shuffle=True),
                     pl.min("Propensity_min"),
                     pl.max("Propensity_max"),
-                    # pl.col("Priority")
-                    # .sample(n=num_samples, with_replacement=True, shuffle=True)
-                    # .alias("Priority"),
-                    pl.first("Priority"),
+                    pl.col("Priority")
+                    .list.explode(keep_nulls=False, empty_as_null=False)
+                    .sample(n=self._num_samples, with_replacement=True, shuffle=True),
                     pl.min("Priority_min"),
                     pl.max("Priority_max"),
                 ]

@@ -2365,3 +2365,99 @@ class TestMinimalComponentDrilldown:
         df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule", scope="Issue")
         assert df.height == 2
         assert set(df["Issue"].to_list()) == {"Sales", "Retention"}
+
+
+# ---------------------------------------------------------------------------
+# num_samples parameter — unlock higher sample counts per preagg group
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def da_minimal_n1():
+    """Minimal dataset, num_samples=1 (default, backward-compatible)."""
+    raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
+    return DecisionAnalyzer(raw, sample_size=5000, num_samples=1)
+
+
+@pytest.fixture(scope="module")
+def da_minimal_n5():
+    """Minimal dataset, num_samples=5."""
+    raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv")
+    return DecisionAnalyzer(raw, sample_size=5000, num_samples=5)
+
+
+class TestNumSamples:
+    """Tests for num_samples parameter on get_thresholding_data.
+
+    The minimal CSV has 3 interactions on different days with distinct
+    action/channel combinations, so every preaggregation group contains
+    exactly one row.  With a single-row group, sample(n=k, with_replacement)
+    returns k identical copies of the same value.  Equal-length lists per
+    group preserve equal weighting, so quantile *thresholds* are identical
+    for num_samples=1 and num_samples=5; only the raw counts scale by k.
+    """
+
+    @pytest.mark.parametrize("fixture_name", ["da_minimal_n1", "da_minimal_n5"])
+    def test_thresholding_returns_dataframe(self, fixture_name, request):
+        da = request.getfixturevalue(fixture_name)
+        result = da.get_thresholding_data(fld="Propensity")
+        assert isinstance(result, pl.DataFrame)
+
+    @pytest.mark.parametrize("fixture_name", ["da_minimal_n1", "da_minimal_n5"])
+    def test_thresholding_correct_height(self, fixture_name, request):
+        da = request.getfixturevalue(fixture_name)
+        result = da.get_thresholding_data(fld="Propensity")
+        # Default quantile_range(10, 100, 10) → 9 deciles
+        assert result.height == 9
+
+    @pytest.mark.parametrize("fixture_name", ["da_minimal_n1", "da_minimal_n5"])
+    def test_threshold_values_monotonically_nondecreasing(self, fixture_name, request):
+        da = request.getfixturevalue(fixture_name)
+        thresholds = da.get_thresholding_data(fld="Propensity")["Threshold"].to_list()
+        assert thresholds == sorted(thresholds)
+
+    @pytest.mark.parametrize("fixture_name", ["da_minimal_n1", "da_minimal_n5"])
+    def test_count_values_monotonically_nondecreasing(self, fixture_name, request):
+        da = request.getfixturevalue(fixture_name)
+        counts = da.get_thresholding_data(fld="Propensity")["Count"].to_list()
+        assert counts == sorted(counts)
+
+    def test_n1_exact_thresholds(self, da_minimal_n1):
+        """Exact threshold values for num_samples=1 on the minimal dataset."""
+        thresholds = da_minimal_n1.get_thresholding_data(fld="Propensity")["Threshold"].to_list()
+        assert thresholds == [0.4, 0.4, 0.5, 0.5, 0.7, 0.7, 0.85, 0.9, 0.9]
+
+    def test_n1_exact_counts(self, da_minimal_n1):
+        """Exact count values for num_samples=1 on the minimal dataset."""
+        counts = da_minimal_n1.get_thresholding_data(fld="Propensity")["Count"].to_list()
+        assert counts == [1, 1, 2, 2, 4, 4, 5, 6, 6]
+
+    def test_n5_exact_thresholds(self, da_minimal_n5):
+        """Exact threshold values for num_samples=5 on the minimal dataset."""
+        thresholds = da_minimal_n5.get_thresholding_data(fld="Propensity")["Threshold"].to_list()
+        assert thresholds == [0.3, 0.4, 0.5, 0.5, 0.7, 0.7, 0.85, 0.9, 0.9]
+
+    def test_n5_counts_scale_by_num_samples(self, da_minimal_n5):
+        """With 5-copy lists per group, total sample count = 5 × num groups."""
+        counts = da_minimal_n5.get_thresholding_data(fld="Propensity")["Count"].to_list()
+        # The maximum Count equals the total number of samples (all below the
+        # highest threshold).  With num_samples=1 max is 6; with 5 it is 30.
+        assert counts[-1] == 30
+
+    def test_n5_preagg_list_lengths(self, da_minimal_n5):
+        """Filter view stores lists of length num_samples for Propensity and Priority."""
+        fv = da_minimal_n5.preaggregated_filter_view.collect()
+        prop_lengths = fv["Propensity"].list.len().to_list()
+        assert all(length == 5 for length in prop_lengths)
+
+    def test_n1_preagg_list_lengths(self, da_minimal_n1):
+        """Filter view stores lists of length 1 (default) for Propensity and Priority."""
+        fv = da_minimal_n1.preaggregated_filter_view.collect()
+        prop_lengths = fv["Propensity"].list.len().to_list()
+        assert all(length == 1 for length in prop_lengths)
+
+    def test_remaining_view_list_lengths_n5(self, da_minimal_n5):
+        """Remaining view also stores lists of length num_samples."""
+        rv = da_minimal_n5.preaggregated_remaining_view.collect()
+        prop_lengths = rv["Propensity"].list.len().to_list()
+        assert all(length == 5 for length in prop_lengths)
