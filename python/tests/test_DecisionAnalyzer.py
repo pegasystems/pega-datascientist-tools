@@ -1262,6 +1262,16 @@ class TestColumnResolver:
         resolver = ColumnResolver(table_definition=table_def, raw_columns=set())
         assert resolver.get_missing_columns() == []
 
+    def test_propensity_display_names_are_distinct(self):
+        """Model and final propensity must surface as distinct labels in DA UI."""
+        from pdstools.decision_analyzer.column_schema import ExplainabilityExtract
+
+        model = ExplainabilityExtract["pyPropensity"]["display_name"]
+        final = ExplainabilityExtract["FinalPropensity"]["display_name"]
+        assert model != final
+        assert model == "Model Propensity"
+        assert final == "Propensity"
+
 
 # ---------------------------------------------------------------------------
 # Scope and field helpers

@@ -225,11 +225,12 @@ ExplainabilityExtract: dict[str, TableConfig] = {
     },
     # V1 has multiple propensity columns: pyPropensity (model propensity)
     # and FinalPropensity (after adjustments). V2 only has FinalPropensity.
-    # Tracked in docs/plans/decision-analyzer-TODO.md (P2: Distinct
-    # propensity display names) — give these distinct display names
-    # ("Model Propensity" vs "Final Propensity") and update PVCL refs.
+    # The arbitration-side column keeps the canonical "Propensity" display
+    # name (used throughout the codebase in PVCL / plots / thresholding);
+    # the model-side column is surfaced as "Model Propensity" so the two
+    # are distinguishable in DA UI plots and tables.
     "pyPropensity": {
-        "display_name": "pyPropensity",
+        "display_name": "Model Propensity",
         "default": True,
         "type": pl.Float64,
     },
