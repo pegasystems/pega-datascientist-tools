@@ -344,14 +344,11 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=".3%")
         return fig
 
-    # Tracked in docs/plans/health-check-TODO.md (P3: `over_time` multi-by
-    # support) — currently accepts a single `by` column only.
-
     @requires({"SnapshotTime"})
     def over_time(
         self,
         metric: str = "Performance",
-        by: pl.Expr | str = "ModelID",
+        by: pl.Expr | str | list[str] = "ModelID",
         *,
         every: str | timedelta = "1d",
         cumulative: bool = True,
@@ -366,8 +363,12 @@ class Plots(LazyNamespace):
         ----------
         metric : str, optional
             The metric to plot, by default "Performance"
-        by : Union[pl.Expr, str], optional
-            The column to group by, by default "ModelID"
+        by : Union[pl.Expr, str, list[str]], optional
+            The column(s) to group by, by default "ModelID". When a list of
+            column names is passed, the values are concatenated with " / " into
+            a single combined dimension that is encoded as colour. To keep the
+            chart readable, the top 10 combinations by total ``metric`` are
+            kept and the rest are dropped with a warning.
         every : Union[str, timedelta], optional
             By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
             for periods.
@@ -397,6 +398,10 @@ class Plots(LazyNamespace):
         >>> # SuccessRate over time, grouped by Channel
         >>> fig = dm.plot.over_time(metric="SuccessRate", by="Channel")
 
+        >>> # Group by multiple dimensions at once (combined into a single
+        >>> # colour-encoded series)
+        >>> fig = dm.plot.over_time(by=["Channel", "Direction"])
+
         >>> # Period-over-period response-count changes, faceted by Direction
         >>> fig = dm.plot.over_time(
         ...     metric="ResponseCount",
@@ -415,7 +420,18 @@ class Plots(LazyNamespace):
             "Positives": ":.d",
             "ResponseCount": ":.d",
         }
-        if not isinstance(by, pl.Expr):
+        if isinstance(by, list):
+            if len(by) == 0:
+                raise ValueError("`by` must contain at least one column name")
+            if len(by) == 1:
+                by = pl.col(by[0])
+            else:
+                by_name = " / ".join(by)
+                by = pl.concat_str(
+                    [pl.col(c).cast(pl.Utf8).fill_null("<null>") for c in by],
+                    separator=" / ",
+                ).alias(by_name)
+        elif not isinstance(by, pl.Expr):
             by = pl.col(by)
         by_col = by.meta.output_name()
 
@@ -487,6 +503,31 @@ class Plots(LazyNamespace):
         if return_df:
             return df
         final_df = df.collect()
+
+        max_series = 10
+        unique_series = final_df.get_column(by_col).unique().to_list()
+        if len(unique_series) > max_series:
+            ranking_metric = "ResponseCount" if is_percentage else metric
+            top_series = (
+                final_df.group_by(by_col)
+                .agg(pl.sum(ranking_metric).alias("__total"))
+                .sort("__total", descending=True, nulls_last=True)
+                .head(max_series)
+                .get_column(by_col)
+                .to_list()
+            )
+            dropped = len(unique_series) - len(top_series)
+            logger.warning(
+                "over_time: %d unique values for `%s` exceeds the cap of %d; "
+                "keeping the top %d by total %s and dropping %d.",
+                len(unique_series),
+                by_col,
+                max_series,
+                max_series,
+                ranking_metric,
+                dropped,
+            )
+            final_df = final_df.filter(pl.col(by_col).is_in(top_series))
 
         import plotly.express as px
 

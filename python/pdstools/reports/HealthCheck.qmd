@@ -1838,9 +1838,7 @@ else:
     try:
         response_counts = datamart.plot.over_time(
             "ResponseCount",
-            # Tracked in docs/plans/health-check-TODO.md (P3: `over_time`
-            # multi-by support) — single column for now.
-            by="Channel",
+            by=["Channel", "Direction"],
             cumulative=False,
             # facet="Configuration",
         )

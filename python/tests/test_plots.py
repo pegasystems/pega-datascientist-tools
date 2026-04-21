@@ -167,6 +167,38 @@ def test_over_time(sample2: ADMDatamart):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
 
+def test_over_time_multi_by(sample2: ADMDatamart):
+    """`by` accepts a list — values are combined into one colour-encoded series."""
+    fig = sample2.plot.over_time(metric="ResponseCount", by=["ModelID", "Group"])
+    assert isinstance(fig, Figure)
+
+    # Two ModelID/Group combinations -> two traces in the line chart
+    trace_names = sorted(t.name for t in fig.data)
+    assert trace_names == ["1 / A", "2 / B"]
+
+    df = (
+        sample2.plot.over_time(
+            metric="ResponseCount",
+            by=["ModelID", "Group"],
+            return_df=True,
+        )
+        .collect()
+        .sort("ModelID / Group", "SnapshotTime")
+    )
+    assert df.get_column("ModelID / Group").unique().sort().to_list() == [
+        "1 / A",
+        "2 / B",
+    ]
+    assert df.get_column("ResponseCount").to_list() == [
+        100.0,
+        120.0,
+        110.0,
+        150.0,
+        160.0,
+        170.0,
+    ]
+
+
 def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 
