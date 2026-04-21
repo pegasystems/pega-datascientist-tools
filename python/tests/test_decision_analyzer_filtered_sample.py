@@ -55,13 +55,6 @@ def test_filtered_with_list_of_expressions(mock_decision_analyzer):
     assert result["Action"][0] == "A1"
 
 
-def test_filtered_sample_is_deprecated(mock_decision_analyzer, sample_data_v2):
-    """The legacy ``filtered_sample`` alias should warn but still return the sample."""
-    with pytest.warns(DeprecationWarning, match="filtered_sample is deprecated"):
-        result = mock_decision_analyzer.filtered_sample
-    assert result.collect().equals(sample_data_v2.lazy().collect())
-
-
 def test_filtered_does_not_import_streamlit(mock_decision_analyzer, monkeypatch):
     """``filtered`` must not look at Streamlit state even when it's set."""
     from pdstools.app.decision_analyzer import da_streamlit_utils

@@ -784,31 +784,6 @@ class DecisionAnalyzer:
 
         return df
 
-    @property
-    def filtered_sample(self):
-        """Deprecated: use `filtered(filters)` and pass filters explicitly.
-
-        Kept as a thin alias that returns the unfiltered sample. Apps that
-        need page-level filtering should collect the relevant Polars
-        expressions in the app layer (see
-        ``pdstools.app.decision_analyzer.da_streamlit_utils.collect_page_filters``)
-        and call :meth:`filtered` instead.
-
-        Returns
-        -------
-        pl.LazyFrame
-            The unfiltered sample. Equivalent to ``self.sample``.
-        """
-        import warnings
-
-        warnings.warn(
-            "DecisionAnalyzer.filtered_sample is deprecated; "
-            "call filtered(filters) with explicit page filters instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.sample
-
     def filtered(self, filters: list[pl.Expr] | pl.Expr | None = None) -> pl.LazyFrame:
         """Return ``self.sample`` with the given filter expressions applied.
 
@@ -982,8 +957,6 @@ class DecisionAnalyzer:
 
         return distribution_data
 
-    # import streamlit as st
-    # @st.cache_data
     def get_funnel_data(
         self, scope, additional_filters: pl.Expr | list[pl.Expr] | None = None
     ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
