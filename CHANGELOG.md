@@ -119,6 +119,13 @@ guide.
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
 - `CHANGELOG.md` (this file).
 - `docs/migration-v4-to-v5.md`.
+- AppTest-based smoke tests for all three Streamlit apps under
+  `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
+  sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
+  (Home + 3 sub-pages). Uses seeded fixtures so pages render the
+  populated branch, not the upload-prompt branch.
+- Unit tests for `cdh_utils.get_latest_pdstools_version` covering
+  happy path, network failure and malformed-response paths.
 
 ---
 

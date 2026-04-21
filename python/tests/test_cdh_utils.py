@@ -1370,3 +1370,34 @@ def test_is_valid_polars_duration_custom_max_length():
 
     # Should reject with smaller limit
     assert not cdh_utils.is_valid_polars_duration("1d", max_length=1)
+
+
+class TestGetLatestPdstoolsVersion:
+    """Targeted tests for the PyPI version-check helper.
+
+    The helper is mocked out at the AppTest layer (see
+    ``python/tests/streamlit_apps/conftest.py``) so it doesn't slow
+    those tests down — these unit tests exercise the actual call
+    behaviour instead.
+    """
+
+    def test_happy_path(self, mocker):
+        mock_response = mocker.Mock()
+        mock_response.json.return_value = {"info": {"version": "9.9.9"}}
+        mocker.patch("requests.get", return_value=mock_response)
+        assert cdh_utils.get_latest_pdstools_version() == "9.9.9"
+
+    def test_returns_none_on_request_failure(self, mocker):
+        import requests
+
+        mocker.patch(
+            "requests.get",
+            side_effect=requests.RequestException("network down"),
+        )
+        assert cdh_utils.get_latest_pdstools_version() is None
+
+    def test_returns_none_on_malformed_response(self, mocker):
+        mock_response = mocker.Mock()
+        mock_response.json.return_value = {"unexpected": "shape"}
+        mocker.patch("requests.get", return_value=mock_response)
+        assert cdh_utils.get_latest_pdstools_version() is None
