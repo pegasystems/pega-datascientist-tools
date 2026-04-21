@@ -470,9 +470,7 @@ def test_feature_importance_unscaled(feature_importance_test_data):
         .agg(pl.first("FeatureImportance"))
     )
 
-    # Verify calculation completes and produces non-negative value
-    assert result["FeatureImportance"][0] >= 0
-    assert result["FeatureImportance"][0] < 10  # Reasonable range
+    assert result["FeatureImportance"][0] == pytest.approx(0.8952462074331636, rel=1e-6)
 
 
 def test_feature_importance_scaled(feature_importance_test_data):
@@ -520,12 +518,9 @@ def test_feature_importance_scaled_multiple_predictors():
     # Maximum predictor should be scaled to 100.0
     assert scaled_values[0] == pytest.approx(100.0, abs=1e-4)
 
-    # Other predictors should have proportionally lower values
-    assert 0 < scaled_values[1] < 100.0
-    assert 0 < scaled_values[2] < 100.0
-
-    # Values should be ordered correctly
-    assert scaled_values[0] > scaled_values[1] > scaled_values[2]
+    # Other predictors have proportionally lower exact values
+    assert scaled_values[1] == pytest.approx(23.866756484477126, rel=1e-6)
+    assert scaled_values[2] == pytest.approx(2.75757708808204, rel=1e-6)
 
 
 def test_log_odds_polars_laplace_smoothing():
@@ -591,8 +586,8 @@ def test_feature_importance_edge_cases():
     )
 
     result = single_bin.with_columns(cdh_utils.feature_importance(scaled=False))
-    # Single bin: importance should be the absolute log odds value
-    assert result["FeatureImportance"][0] >= 0
+    # Single bin: log-odds is undefined (only one bin, no contrast), so importance is 0.0
+    assert result["FeatureImportance"][0] == pytest.approx(0.0, abs=1e-10)
 
 
 def test_feature_importance_with_sample_datamart():
@@ -609,11 +604,11 @@ def test_feature_importance_with_sample_datamart():
         .collect()
     )
 
-    # Verify all values are non-negative and reasonable
-    assert result["FeatureImportance"].min() >= 0
-    assert result["FeatureImportance"].is_not_null().all()
-    # Feature importance should be bounded (log odds typically < 10)
-    assert result["FeatureImportance"].max() < 20
+    # Verify exact values from the CDH sample dataset (1780 predictor×model rows)
+    assert result.height == 1780
+    assert result["FeatureImportance"].null_count() == 0
+    assert result["FeatureImportance"].min() == pytest.approx(0.011369702282117651, rel=1e-6)
+    assert result["FeatureImportance"].max() == pytest.approx(2.6500638337812847, rel=1e-6)
 
 
 # Test _capitalize function
@@ -865,10 +860,7 @@ def test_extract_keys():
     assert cdh_utils._extract_keys(empty_df).is_empty()
 
     df = pl.DataFrame({"Name": ["TEST"]})
-    assert not cdh_utils._extract_keys(df, capitalize=False).is_empty()
-
-    df = pl.DataFrame({"Name": ["TEST"]})
-    assert not cdh_utils._extract_keys(df, capitalize=True).is_empty()
+    assert cdh_utils._extract_keys(df, capitalize=False).equals(df)
 
     df = pl.DataFrame({"Name": ["TEST"]})
     assert cdh_utils._extract_keys(df, capitalize=True).equals(df)
@@ -1176,7 +1168,7 @@ def test_lazy_sample_without_replacement():
     df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
     sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=False)
     assert isinstance(sampled, pl.DataFrame)
-    # Without replacement uses binomial sampling so result is approximate
+    # binomial sampling has no seed: exact count is non-deterministic; bounds are the best we can assert
     assert sampled.shape[0] > 0
     assert sampled.shape[0] <= 100
     assert sampled.columns == ["x", "y"]
