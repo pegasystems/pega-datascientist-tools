@@ -1,0 +1,153 @@
+# Migration guide: pdstools v4 → v5
+
+This guide lists every breaking change in v5 and the minimum edit needed
+to get your code working again. **Items are added incrementally as v5
+PRs land** — don't treat this file as final until v5 is tagged.
+
+If you hit something missing from this guide, please file an issue.
+
+---
+
+## Removed APIs
+
+### `ADMTrees(...)` factory function
+
+The polymorphic factory was deprecated in v4.x and is removed in v5.
+
+```python
+# Before (v4.x):
+from pdstools.adm.ADMTrees import ADMTrees
+model = ADMTrees("model.json")
+multi  = ADMTrees(datamart_df)
+
+# After (v5):
+from pdstools.adm.trees import ADMTreesModel, MultiTrees
+model = ADMTreesModel.from_file("model.json")
+multi = MultiTrees.from_datamart(datamart_df)
+```
+
+### `ADMTreesModel(file=...)` constructor
+
+Same story — explicit constructors only.
+
+```python
+# Before:
+ADMTreesModel("model.json")
+ADMTreesModel.from_dict(my_dict)   # also supported
+
+# After (v5):
+ADMTreesModel.from_file("model.json")
+ADMTreesModel.from_dict(my_dict)
+```
+
+### `parse_split_values` / `parse_split_values_with_spaces`
+
+Replaced by the cleaner `parse_split` API.
+
+```python
+# Before:
+model.parse_split_values("Color < 5")
+model.parse_split_values_with_spaces("Color < 5")
+
+# After (v5):
+model.parse_split("Color < 5")
+```
+
+### `pdstools.adm.ADMTrees` module
+
+The single-file re-export module was removed. The package layout is now:
+
+```python
+# Before:
+from pdstools.adm.ADMTrees import ADMTreesModel, MultiTrees
+
+# After (v5):
+from pdstools.adm.trees import ADMTreesModel, MultiTrees
+```
+
+### Streamlit-internal re-exports
+
+`get_current_index` is no longer re-exported from
+`pdstools.app.decision_analyzer.da_streamlit_utils` for the legacy
+import path. Import it directly from its defining module.
+
+### Private API name removals from `__all__`
+
+`pdstools.pega_io._read_client_credential_file` is no longer in
+`pega_io.__all__`. The function still exists (leading underscore = private)
+but is no longer a documented entry point.
+
+---
+
+## Subpackage layout fixes
+
+### `pdstools.valuefinder`
+
+Now exports `ValueFinder`. Previously you had to import from the deeper
+path:
+
+```python
+# Before:
+from pdstools.valuefinder.ValueFinder import ValueFinder
+
+# After (v5, both still work; first one is preferred):
+from pdstools.valuefinder import ValueFinder
+from pdstools import ValueFinder            # also works (top-level export)
+```
+
+### `pdstools.decision_analyzer`
+
+Stops re-exporting internal modules. The following now require explicit
+imports:
+
+```python
+# Before:
+from pdstools.decision_analyzer import plots, utils, da_streamlit_utils
+
+# After (v5):
+from pdstools.decision_analyzer import plots               # ← still works (in __all__)
+from pdstools.decision_analyzer import utils               # ← still works
+from pdstools.app.decision_analyzer import da_streamlit_utils
+```
+
+(The `da_streamlit_utils` re-export was Streamlit-only and only available
+when `streamlit` was already imported — fragile, removed.)
+
+---
+
+## Tightened keyword arguments
+
+### `ADMTreesModel.from_file`, `from_url`, `from_dict`, `from_datamart_blob`
+
+Previously accepted `**kwargs` that were silently dropped. Now all
+parameters are explicit. If you were passing extra kwargs, your code was
+already a no-op.
+
+### `Infinity(...)` / `AsyncInfinity(...)`
+
+Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
+parameters matching the documented constructor signature.
+
+### `Explanations.filter_*`
+
+Previously `**filter_kwargs`. Now uses explicit parameters per
+`docs/plans/explanations/typed-filter-kwargs.md`.
+
+---
+
+## Behaviour changes (no API change, may affect output)
+
+(To be populated by v5 PRs as they land.)
+
+---
+
+## Things that did NOT change
+
+- `pdstools.ADMDatamart`, `pdstools.IH`, `pdstools.Prediction`,
+  `pdstools.ImpactAnalyzer`, `pdstools.ValueFinder`, `pdstools.Infinity`,
+  `pdstools.AsyncInfinity` — all still importable from the top level.
+- All `from_<source>` classmethods on the top-level analysis classes.
+- All public plot methods (`return_df` parameter remains opt-in).
+- The Streamlit apps (`pdstools-app health-check`, etc.) — same UX.
+- Polars version requirements — unchanged.
+- Python version: same minimum (3.10+).
