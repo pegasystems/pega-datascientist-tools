@@ -254,6 +254,28 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly scatter figure or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> from pdstools import ADMDatamart
+        >>> dm = ADMDatamart.from_ds_export(base_path="/my_export_folder")
+
+        >>> # Basic bubble chart using the latest snapshot
+        >>> fig = dm.plot.bubble_chart()
+
+        >>> # Facet by Channel to see performance per channel
+        >>> fig = dm.plot.bubble_chart(facet="Channel")
+
+        >>> # Include all snapshots and show metric-limit guidelines
+        >>> fig = dm.plot.bubble_chart(last=False, show_metric_limits=True)
+
+        >>> # Return the underlying data instead of the figure
+        >>> df = dm.plot.bubble_chart(return_df=True)
+
         """
         # why do we need this select? it's not ideal because columns used in the query are not always selected
         columns_to_select = list(
@@ -360,6 +382,29 @@ class Plots(LazyNamespace):
             Only applies when metric is "Performance".
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
+
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly line chart or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Default: performance over time, one line per model
+        >>> fig = dm.plot.over_time()
+
+        >>> # SuccessRate over time, grouped by Channel
+        >>> fig = dm.plot.over_time(metric="SuccessRate", by="Channel")
+
+        >>> # Period-over-period response-count changes, faceted by Direction
+        >>> fig = dm.plot.over_time(
+        ...     metric="ResponseCount",
+        ...     cumulative=False,
+        ...     facet="Direction",
+        ... )
+
+        >>> # Return the data instead of the figure
+        >>> df = dm.plot.over_time(return_df=True)
 
         """
         percentage_metrics = ["Performance", "SuccessRate"]
@@ -501,6 +546,25 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a DataFrame instead of the graph, by default False
 
+        Returns
+        -------
+        Figure | pl.LazyFrame
+            Plotly histogram figure or LazyFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Default: average success rate per proposition
+        >>> fig = dm.plot.proposition_success_rates()
+
+        >>> # Top-10 propositions by success rate, faceted by Channel
+        >>> fig = dm.plot.proposition_success_rates(top_n=10, facet="Channel")
+
+        >>> # Use ResponseCount as the metric grouped by Configuration
+        >>> fig = dm.plot.proposition_success_rates(
+        ...     metric="ResponseCount",
+        ...     by="Configuration",
+        ... )
+
         """
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
@@ -574,6 +638,17 @@ class Plots(LazyNamespace):
         ValueError
             If no data is available for the provided model ID
 
+        Examples
+        --------
+        >>> # Score distribution for a specific model (active range only)
+        >>> fig = dm.plot.score_distribution(model_id="M-1001")
+
+        >>> # Include the full score range rather than just the active range
+        >>> fig = dm.plot.score_distribution(model_id="M-1001", active_range=False)
+
+        >>> # Retrieve the underlying binning data
+        >>> df = dm.plot.score_distribution(model_id="M-1001", return_df=True)
+
         """
         df = (
             self.datamart.aggregates.last(table="combined_data")
@@ -646,6 +721,20 @@ class Plots(LazyNamespace):
         list[go.Figure]
             A list of Plotly charts, one for each model instance
 
+        Examples
+        --------
+        >>> # Generate and display score distributions for all models
+        >>> figs = dm.plot.multiple_score_distributions()
+
+        >>> # Collect figures without displaying them
+        >>> figs = dm.plot.multiple_score_distributions(show_all=False)
+
+        >>> # Limit to a specific channel before generating all distributions
+        >>> figs = dm.plot.multiple_score_distributions(
+        ...     query={"Channel": "Web"},
+        ...     show_all=False,
+        ... )
+
         """
         plots = []
         for model_id in (
@@ -700,6 +789,21 @@ class Plots(LazyNamespace):
         ------
         ValueError
             If no data is available for the provided model ID and predictor name
+
+        Examples
+        --------
+        >>> # Predictor binning for a single predictor on a model
+        >>> fig = dm.plot.predictor_binning(
+        ...     model_id="M-1001",
+        ...     predictor_name="Customer.Age",
+        ... )
+
+        >>> # Retrieve the underlying binning data
+        >>> df = dm.plot.predictor_binning(
+        ...     model_id="M-1001",
+        ...     predictor_name="Customer.Age",
+        ...     return_df=True,
+        ... )
 
         """
         df = (
@@ -768,6 +872,18 @@ class Plots(LazyNamespace):
         -------
         list[Figure]
             A list of Plotly figures, one for each predictor in the model
+
+        Examples
+        --------
+        >>> # Plot binning for every predictor in a model
+        >>> figs = dm.plot.multiple_predictor_binning(model_id="M-1001")
+
+        >>> # Collect figures without displaying, filtered to IH predictors
+        >>> figs = dm.plot.multiple_predictor_binning(
+        ...     model_id="M-1001",
+        ...     query={"PredictorCategory": "IH"},
+        ...     show_all=False,
+        ... )
 
         """
         plots = []
@@ -943,9 +1059,28 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
+        Returns
+        -------
+        Figure | pl.LazyFrame | None
+            Plotly box plot figure, LazyFrame if return_df=True, or None if no data
+
         See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
+        Examples
+        --------
+        >>> # Default: all predictors ranked by performance
+        >>> fig = dm.plot.predictor_performance()
+
+        >>> # Top-15 active predictors only
+        >>> fig = dm.plot.predictor_performance(top_n=15, active_only=True)
+
+        >>> # Filter to a specific channel and return the raw data
+        >>> df = dm.plot.predictor_performance(
+        ...     query={"Channel": "Web"},
+        ...     return_df=True,
+        ... )
 
         """
         # in combined_data, the performance metric is renamed to PredictorPerformance
@@ -1027,6 +1162,20 @@ class Plots(LazyNamespace):
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
 
+        Examples
+        --------
+        >>> # Default: performance box plot per predictor category
+        >>> fig = dm.plot.predictor_category_performance()
+
+        >>> # Active predictors only, filtered to a specific channel
+        >>> fig = dm.plot.predictor_category_performance(
+        ...     active_only=True,
+        ...     query={"Channel": "Web"},
+        ... )
+
+        >>> # Return underlying data for further analysis
+        >>> df = dm.plot.predictor_category_performance(return_df=True)
+
         """
         metric = "PredictorPerformance" if metric == "Performance" else metric
 
@@ -1088,6 +1237,17 @@ class Plots(LazyNamespace):
         See Also
         --------
         pdstools.adm.ADMDatamart.apply_predictor_categorization : how to override the out of the box predictor categorization
+
+        Examples
+        --------
+        >>> # Default: contribution per Configuration
+        >>> fig = dm.plot.predictor_contribution()
+
+        >>> # Contribution grouped by Channel
+        >>> fig = dm.plot.predictor_contribution(by="Channel")
+
+        >>> # Return the contribution data for further processing
+        >>> df = dm.plot.predictor_contribution(return_df=True)
 
         """
         df = (
@@ -1164,6 +1324,22 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly heatmap figure or DataFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Default: top-20 predictors vs proposition (Name)
+        >>> fig = dm.plot.predictor_performance_heatmap()
+
+        >>> # Top-10 predictors across top-5 configurations, active only
+        >>> fig = dm.plot.predictor_performance_heatmap(
+        ...     top_predictors=10,
+        ...     top_groups=5,
+        ...     by="Configuration",
+        ...     active_only=True,
+        ... )
+
+        >>> # Return the pivot data for further processing
+        >>> df = dm.plot.predictor_performance_heatmap(return_df=True)
 
         """
         if isinstance(by, str):
@@ -1508,6 +1684,17 @@ class Plots(LazyNamespace):
         Union[Figure, pl.LazyFrame]
             Plotly treemap figure or DataFrame if return_df=True
 
+        Examples
+        --------
+        >>> # Default: Performance tree map grouped by proposition name
+        >>> fig = dm.plot.tree_map()
+
+        >>> # ResponseCount tree map grouped by Channel
+        >>> fig = dm.plot.tree_map(metric="ResponseCount", by="Channel")
+
+        >>> # Return underlying summary data
+        >>> df = dm.plot.tree_map(return_df=True)
+
         """
         # TODO: clean up implementation a bit
 
@@ -1583,9 +1770,18 @@ class Plots(LazyNamespace):
         Union[Figure, pl.LazyFrame]
             Plotly box plot figure or DataFrame if return_df=True
 
+        Examples
+        --------
+        >>> # Default: predictor count distribution by EntryType and Type
+        >>> fig = dm.plot.predictor_count()
+
+        >>> # Distribution by EntryType only
+        >>> fig = dm.plot.predictor_count(by="EntryType")
+
+        >>> # Return the raw counts
+        >>> df = dm.plot.predictor_count(return_df=True)
+
         """
-        if isinstance(by, str):
-            by = [by]
 
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data"),
@@ -1653,6 +1849,21 @@ class Plots(LazyNamespace):
         -------
         Union[Figure, pl.LazyFrame]
             Plotly bar chart showing binning lift or DataFrame if return_df=True
+
+        Examples
+        --------
+        >>> # Lift chart for a single predictor on a model
+        >>> fig = dm.plot.binning_lift(
+        ...     model_id="M-1001",
+        ...     predictor_name="Customer.Age",
+        ... )
+
+        >>> # Return the lift data for further analysis
+        >>> df = dm.plot.binning_lift(
+        ...     model_id="M-1001",
+        ...     predictor_name="Customer.Age",
+        ...     return_df=True,
+        ... )
 
         """
         df = cdh_utils._apply_query(
@@ -1765,6 +1976,23 @@ class Plots(LazyNamespace):
         Union[Figure, pl.LazyFrame]
             Plotly heatmap showing action overlap or DataFrame if return_df=True
 
+        Examples
+        --------
+        >>> # Default: action overlap across Channels
+        >>> fig = dm.plot.action_overlap()
+
+        >>> # Overlap shown as absolute counts rather than fractions
+        >>> fig = dm.plot.action_overlap(show_fraction=False)
+
+        >>> # Overlap of configurations across Channel/Direction combinations
+        >>> fig = dm.plot.action_overlap(
+        ...     group_col=["Channel", "Direction"],
+        ...     overlap_col="Configuration",
+        ... )
+
+        >>> # Return the overlap matrix as a DataFrame
+        >>> df = dm.plot.action_overlap(return_df=True)
+
         """
         df = cdh_utils._apply_query(
             (self.datamart.model_data),  # type: ignore[arg-type]
@@ -1840,6 +2068,21 @@ class Plots(LazyNamespace):
         -------
         list[Figure]
             list of Plotly figures, one for each facet condition
+
+        Examples
+        --------
+        >>> # Bubble chart separately for Web and Email channels
+        >>> figs = dm.plot.partitioned_plot(
+        ...     dm.plot.bubble_chart,
+        ...     facets=[{"Channel": "Web"}, {"Channel": "Email"}],
+        ... )
+
+        >>> # Same but suppress auto-display
+        >>> figs = dm.plot.partitioned_plot(
+        ...     dm.plot.bubble_chart,
+        ...     facets=[{"Channel": "Web"}, {"Channel": "Email"}],
+        ...     show_plots=False,
+        ... )
 
         """
         figs = []
