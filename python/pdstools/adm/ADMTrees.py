@@ -27,6 +27,7 @@ import logging
 import math
 import multiprocessing
 import re
+import threading
 import warnings
 import zlib
 from dataclasses import dataclass
@@ -534,13 +535,15 @@ class ADMTreesModel:
             to_decode = list(encoder["encoder"].values())[0]
             if variable_type == "quantileArray":
                 val = quantile_decoder(to_decode, int(splitval))
-            if variable_type == "stringTranslator":
+            elif variable_type == "stringTranslator":
                 val = string_decoder(to_decode, int(splitval), sign=sign)
                 if val == "Missing":
                     sign, val = "is", "Missing"
                 else:
                     val = "{ " + val + " }"
                     sign = "in"
+            else:
+                raise ValueError(f"Unsupported encoder variable_type: {variable_type!r}")
             logger.debug("Decoded split: %s %s %s", variable, sign, val)
             return f"{variable} {sign} {val}"
 
@@ -622,6 +625,7 @@ class ADMTreesModel:
 
     # Class-level dedupe so repeated per-row scoring failures don't spam logs.
     _safe_eval_seen_errors: set[tuple[str, str]] = set()
+    _safe_eval_lock: threading.Lock = threading.Lock()
 
     @staticmethod
     def _safe_condition_evaluate(
@@ -649,19 +653,20 @@ class ADMTreesModel:
             raise ValueError(f"Unsupported operator: {operator}")
         except (ValueError, TypeError) as e:
             key = (operator, type(e).__name__)
-            if key in ADMTreesModel._safe_eval_seen_errors:
-                logger.debug("Safe evaluation failed (%s %s): %s — returning False", operator, type(e).__name__, e)
-            else:
-                ADMTreesModel._safe_eval_seen_errors.add(key)
-                logger.info(
-                    "Safe scoring evaluation failed for %r %s %r: %s — returning "
-                    "False. Subsequent failures with the same operator/error "
-                    "type will be logged at DEBUG only.",
-                    value,
-                    operator,
-                    comparison_set,
-                    e,
-                )
+            with ADMTreesModel._safe_eval_lock:
+                if key in ADMTreesModel._safe_eval_seen_errors:
+                    logger.debug("Safe evaluation failed (%s %s): %s — returning False", operator, type(e).__name__, e)
+                else:
+                    ADMTreesModel._safe_eval_seen_errors.add(key)
+                    logger.info(
+                        "Safe scoring evaluation failed for %r %s %r: %s — returning "
+                        "False. Subsequent failures with the same operator/error "
+                        "type will be logged at DEBUG only.",
+                        value,
+                        operator,
+                        comparison_set,
+                        e,
+                    )
             return False
 
     # ------------------------------------------------------------------

@@ -821,3 +821,72 @@ def test_agb_get_agb_models_with_last_uses_aggregates(agb_datamart_stub, monkeyp
     agb = AGB(agb_datamart_stub)
     agb.get_agb_models(last=True, n_threads=1)
     assert calls == ["model_data"]
+
+
+# --- Issue #659 fixes -------------------------------------------------------
+
+
+def test_decode_split_unknown_encoder_type_raises():
+    """_decode_trees raises ValueError for unknown encoder variable_type (Fix 1)."""
+    # Minimal model with one encoder of unknown type and one split referencing it.
+    # Booster path: model.boosters[0].trees  (matches _BOOSTER_PATHS[0])
+    # Encoder path: model.inputsEncoder.encoders  (fallback path in _decode_trees)
+    model_data = {
+        "model": {
+            "boosters": [{"trees": [{"split": "0 LT 1"}]}],
+            "inputsEncoder": {
+                "encoders": [
+                    {
+                        "key": "predictor_A",
+                        "value": {
+                            "index": 0,
+                            "encoder": {"unknownType": {}},
+                        },
+                    }
+                ]
+            },
+        }
+    }
+    m = ADMTreesModel.from_dict(model_data)
+    with pytest.raises(ValueError, match="Unsupported encoder variable_type: 'unknownType'"):
+        m._decode_trees()
+
+
+def test_safe_eval_warn_once_thread_safe():
+    """warn-once in _safe_condition_evaluate fires exactly once under concurrency (Fix 2)."""
+    import concurrent.futures
+    import logging
+
+    # Reset class state so this test is independent.
+    ADMTreesModel._safe_eval_seen_errors.clear()
+
+    warn_count = 0
+
+    class _CountingHandler(logging.Handler):
+        def emit(self, record):
+            nonlocal warn_count
+            if record.levelno == logging.INFO and "Safe scoring evaluation failed" in record.getMessage():
+                warn_count += 1
+
+    handler = _CountingHandler()
+    logger = logging.getLogger("pdstools.adm.ADMTrees")
+    logger.addHandler(handler)
+    original_level = logger.level
+    logger.setLevel(logging.DEBUG)
+
+    try:
+
+        def trigger():
+            # "not_a_number" can't be cast to float → TypeError/ValueError
+            ADMTreesModel._safe_condition_evaluate("not_a_number", "<", 1.0)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+            futs = [ex.submit(trigger) for _ in range(50)]
+            for f in futs:
+                f.result()
+
+        assert warn_count == 1, f"Expected exactly 1 INFO log, got {warn_count}"
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(original_level)
+        ADMTreesModel._safe_eval_seen_errors.clear()
