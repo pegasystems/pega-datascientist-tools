@@ -511,12 +511,7 @@ class ADMDatamart:
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
-        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
-        perf_max = df.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            df = df.with_columns(
-                Performance=pl.col("Performance") / 100.0,
-            )
+        df = self._normalize_performance_scale(df)
 
         return df
 
@@ -549,13 +544,19 @@ class ADMDatamart:
             )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
-        # Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale
-        if "Performance" in df.collect_schema().names():
-            perf_max = df.select(pl.col("Performance").max()).collect().item()
-            if perf_max is not None and perf_max > 1.0:
-                df = df.with_columns(
-                    Performance=pl.col("Performance") / 100.0,
-                )
+        df = self._normalize_performance_scale(df)
+        return df
+
+    @staticmethod
+    def _normalize_performance_scale(df: pl.LazyFrame) -> pl.LazyFrame:
+        """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
+        if "Performance" not in df.collect_schema().names():
+            return df
+        perf_max = df.select(pl.col("Performance").max()).collect().item()
+        if perf_max is not None and perf_max > 1.0:
+            df = df.with_columns(
+                Performance=pl.col("Performance") / 100.0,
+            )
         return df
 
     def apply_predictor_categorization(
