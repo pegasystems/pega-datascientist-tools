@@ -336,3 +336,74 @@ class TestReadNestedZipFiles:
         result = read_nested_zip_files(outer_buf)
         result = result.collect()
         assert result.shape == (1, 2)
+
+
+# ---------------------------------------------------------------------------
+# read_gzipped_ndjson_directory
+# ---------------------------------------------------------------------------
+
+
+from pdstools.decision_analyzer.data_read_utils import (  # noqa: E402
+    read_gzipped_ndjson_directory,
+)
+
+
+class TestReadGzippedNdjsonDirectory:
+    def _write_gz(self, path, records):
+        path.write_bytes(_make_ndjson_gz(records))
+
+    def test_reads_flat_directory(self, tmp_path):
+        """Flat dir: multiple .zip files (actually gzipped ndjson) are concatenated."""
+        self._write_gz(tmp_path / "a.zip", [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}])
+        self._write_gz(tmp_path / "b.zip", [{"a": 3, "b": "z"}])
+
+        result = read_gzipped_ndjson_directory(str(tmp_path)).collect()
+        assert result.shape == (3, 2)
+        # Files are read sorted by name: a.zip first, then b.zip
+        assert result["a"].to_list() == [1, 2, 3]
+        assert result["b"].to_list() == ["x", "y", "z"]
+
+    def test_recursive_subdirectories(self, tmp_path):
+        """Function should rglob subdirectories."""
+        sub = tmp_path / "sub"
+        sub.mkdir()
+        self._write_gz(tmp_path / "root.zip", [{"a": 1, "b": "root"}])
+        self._write_gz(sub / "inner.zip", [{"a": 2, "b": "inner"}])
+
+        result = read_gzipped_ndjson_directory(str(tmp_path)).collect()
+        assert result.shape == (2, 2)
+        # Sorted by full path: "root.zip" < "sub/inner.zip" lexically? rglob + sorted
+        # sorted() uses full path, so tmp_path/root.zip comes before tmp_path/sub/inner.zip
+        assert set(zip(result["a"].to_list(), result["b"].to_list(), strict=True)) == {
+            (1, "root"),
+            (2, "inner"),
+        }
+
+    def test_skips_hidden_and_macosx_files(self, tmp_path):
+        """Files in dotted paths or matching _is_artifact (e.g. __MACOSX/._foo) are skipped."""
+        self._write_gz(tmp_path / "data.zip", [{"a": 1, "b": "kept"}])
+
+        # Hidden directory
+        hidden = tmp_path / ".hidden"
+        hidden.mkdir()
+        (hidden / "skip.zip").write_bytes(b"not actually valid")
+
+        # macOS resource fork
+        macos = tmp_path / "__MACOSX"
+        macos.mkdir()
+        (macos / "._skip.zip").write_bytes(b"junk")
+
+        result = read_gzipped_ndjson_directory(str(tmp_path)).collect()
+        assert result.shape == (1, 2)
+        assert result["b"].to_list() == ["kept"]
+
+    def test_column_alignment_across_files(self, tmp_path):
+        """Columns from the first file are used to select from subsequent files."""
+        self._write_gz(tmp_path / "a.zip", [{"a": 1, "b": "x"}])
+        # Second file has same columns but would be re-ordered — select keeps a,b order
+        self._write_gz(tmp_path / "b.zip", [{"b": "y", "a": 2}])
+
+        result = read_gzipped_ndjson_directory(str(tmp_path)).collect()
+        assert result.columns == ["a", "b"]
+        assert result["a"].to_list() == [1, 2]
+        assert result["b"].to_list() == ["x", "y"]
