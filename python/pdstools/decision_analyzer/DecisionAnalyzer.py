@@ -67,6 +67,10 @@ class DecisionAnalyzer:
     >>> da.plot.sensitivity()
     """
 
+    # Lazily-set attribute populated when ``sample`` is first accessed.
+    # Declared here so type-checkers see it on the class.
+    _num_sample_interactions: int
+
     @classmethod
     def from_explainability_extract(
         cls,
@@ -599,7 +603,7 @@ class DecisionAnalyzer:
         if not hasattr(self, "_num_sample_interactions"):
             # Trigger sample calculation to set _num_sample_interactions
             _ = self.sample
-        return self._num_sample_interactions  # type: ignore[attr-defined]
+        return self._num_sample_interactions
 
     def _invalidate_cached_properties(self):
         """Resets the properties of the class. Needed for global filters."""
@@ -695,7 +699,7 @@ class DecisionAnalyzer:
                 ]
                 + [pl.sum(f"Win_at_rank{i}") for i in range(1, self.max_win_rank + 1)],
             )
-            .collect()  # type: ignore[union-attribute]  # materialize to cache
+            .collect()  # materialize to cache
             .lazy()  # re-wrap so downstream consumers stay lazy
         )
         return self.preaggregated_decision_data_remainingview
@@ -2636,7 +2640,7 @@ class DecisionAnalyzer:
                 additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
 
-            result: pl.DataFrame = (  # type: ignore[assignment]
+            result = (
                 original_winners.group_by(["Issue", "Group", "Action"])
                 .agg(
                     original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
@@ -2651,7 +2655,7 @@ class DecisionAnalyzer:
 
             # Add no winner count if all_interactions is provided
             if all_interactions is not None:
-                winner_df: pl.DataFrame = original_winners.select("Interaction ID").collect()  # type: ignore[assignment]
+                winner_df = original_winners.select("Interaction ID").collect()
                 interactions_with_winners = winner_df.n_unique()
                 no_winner_count = max(0, all_interactions - interactions_with_winners)  # Ensure non-negative
 
@@ -2691,14 +2695,12 @@ class DecisionAnalyzer:
                     selected_action=pl.when(lever_condition).then(pl.lit("Selected")).otherwise(pl.lit("Rest"))
                 )
             )
-            result: pl.DataFrame = result_lf.collect().sort("new_win_count", descending=True)  # type: ignore[assignment]
+            result = result_lf.collect().sort("new_win_count", descending=True)
 
             # Add no winner count if all_interactions is provided
             if all_interactions is not None:
                 # Calculate no winner count based on new ranking
-                new_winner_df: pl.DataFrame = (  # type: ignore[assignment]
-                    recalculated_winners.filter(pl.col("rank_PVCL") == 1).select("Interaction ID").collect()
-                )
+                new_winner_df = recalculated_winners.filter(pl.col("rank_PVCL") == 1).select("Interaction ID").collect()
                 interactions_with_new_winners = new_winner_df.n_unique()
                 no_winner_count = max(0, all_interactions - interactions_with_new_winners)  # Ensure non-negative
 
@@ -2805,11 +2807,9 @@ class DecisionAnalyzer:
                 additional_filters=pl.col(self.level).is_in(self.stages_from_arbitration_down),
             ).filter(pl.col("rank_PVCL") <= win_rank)
 
-            selected_wins_df: pl.DataFrame = (  # type: ignore[assignment]
-                ranked_df.filter(lever_condition).select("Interaction ID").collect()
-            )
+            selected_wins_df = ranked_df.filter(lever_condition).select("Interaction ID").collect()
             selected_wins = selected_wins_df.height
-            selected_total_df: pl.DataFrame = ranked_df.select("Interaction ID").collect()  # type: ignore[assignment]  # noqa: E501
+            selected_total_df = ranked_df.select("Interaction ID").collect()
             selected_total = selected_total_df.height
             percentage = (selected_wins / selected_total) * 100
             return percentage

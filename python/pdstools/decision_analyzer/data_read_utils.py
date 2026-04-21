@@ -15,7 +15,7 @@ from .utils import ColumnResolver
 # Core read_data is now in pega_io.File
 
 
-def read_nested_zip_files(file_buffer) -> pl.DataFrame:
+def read_nested_zip_files(file_buffer) -> pl.LazyFrame:
     """Read Pega Action Analysis export format (nested archive with gzipped NDJSON).
 
     Pega's Action Analysis feature exports decision data as a ZIP archive containing
@@ -23,7 +23,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
     are **gzipped NDJSON** (not ZIP archives). This function handles this format by:
     1. Opening the outer ZIP archive
     2. Treating each inner `.zip` file as gzipped NDJSON
-    3. Decompressing and concatenating all data into a single DataFrame
+    3. Decompressing and concatenating all data into a single LazyFrame
 
     This format is used for high-volume decision event exports where data is partitioned
     across multiple compressed files.
@@ -36,8 +36,9 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
 
     Returns
     -------
-    pl.DataFrame
-        Concatenated DataFrame from all inner files, with consistent column ordering.
+    pl.LazyFrame
+        Concatenated LazyFrame from all inner files, with consistent column ordering.
+        Call ``.collect()`` to materialize.
 
     Notes
     -----
@@ -45,7 +46,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
     hive-partitioned parquet directories instead, which can be read with read_data().
 
     """
-    dfs: list[pl.DataFrame] = []
+    dfs: list[pl.LazyFrame] = []
     columns: list[str] = []
 
     with zipfile.ZipFile(file_buffer, "r") as zip_ref:
@@ -62,7 +63,7 @@ def read_nested_zip_files(file_buffer) -> pl.DataFrame:
     return pl.concat(dfs, rechunk=True)
 
 
-def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
+def read_gzipped_data(data: BytesIO) -> pl.LazyFrame | None:
     """Read a single gzipped NDJSON chunk from Pega Action Analysis export.
 
     Helper function for read_nested_zip_files(). Reads one inner file from the
@@ -76,8 +77,8 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
 
     Returns
     -------
-    pl.DataFrame | None
-        Polars DataFrame, or None if decompression/parsing fails.
+    pl.LazyFrame | None
+        Polars LazyFrame, or None if decompression/parsing fails.
 
     Notes
     -----
@@ -87,18 +88,18 @@ def read_gzipped_data(data: BytesIO) -> pl.DataFrame | None:
     try:
         with gzip.open(data, "rb") as file:
             file_content = file.read()
-            return pl.read_ndjson(BytesIO(file_content)).lazy()  # type: ignore[return-value]
+            return pl.read_ndjson(BytesIO(file_content)).lazy()
     except Exception as e:
         print(f"Error reading gzipped data: {e}")
         return None
 
 
-def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
+def read_gzipped_ndjson_directory(path: str) -> pl.LazyFrame:
     """Read directory of Pega Action Analysis gzipped NDJSON files.
 
     For extracted Action Analysis exports, this function recursively finds all files with
     `.zip` extension (which are actually gzipped NDJSON, not ZIP archives) and concatenates
-    them into a single DataFrame. Useful when the outer archive has been extracted to disk.
+    them into a single LazyFrame. Useful when the outer archive has been extracted to disk.
 
     Parameters
     ----------
@@ -108,8 +109,9 @@ def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
 
     Returns
     -------
-    pl.DataFrame
-        Concatenated DataFrame from all files with consistent column ordering.
+    pl.LazyFrame
+        Concatenated LazyFrame from all files with consistent column ordering.
+        Call ``.collect()`` to materialize.
 
     Notes
     -----
@@ -117,7 +119,7 @@ def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
     (including hive-partitioned directories), use read_data() from pega_io instead.
 
     """
-    dfs: list[pl.DataFrame] = []
+    dfs: list[pl.LazyFrame] = []
     columns: list[str] = []
 
     for file_path in sorted(Path(path).rglob("*.zip")):
@@ -127,8 +129,8 @@ def read_gzipped_ndjson_directory(path: str) -> pl.DataFrame:
             file_content = file.read()
             df = pl.read_ndjson(BytesIO(file_content)).lazy()
             if columns == []:
-                columns = df.columns
-            dfs.append(df.select(columns))  # type: ignore[arg-type]
+                columns = df.collect_schema().names()
+            dfs.append(df.select(columns))
 
     return pl.concat(dfs, rechunk=True)
 

@@ -395,7 +395,7 @@ def create_hierarchical_selectors(
     """
 
     # Step 1: Get all available issues
-    issues_df: pl.DataFrame = data.select("Issue").unique().collect()  # type: ignore[assignment]
+    issues_df = data.select("Issue").unique().collect()
     available_issues = issues_df.get_column("Issue").to_list()
     issue_index = 0
     if selected_issue and selected_issue in available_issues:
@@ -406,9 +406,7 @@ def create_hierarchical_selectors(
 
     # Step 2: Get groups for current issue
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
-    groups_df: pl.DataFrame = (
-        filtered_by_issue.select("Group").unique().collect()  # type: ignore[assignment]
-    )
+    groups_df = filtered_by_issue.select("Group").unique().collect()
     available_groups = groups_df.get_column("Group").to_list()
     group_options = ["All"] + available_groups
     group_index = 0  # Default to "All"
@@ -424,9 +422,7 @@ def create_hierarchical_selectors(
     else:
         filtered_by_issue_group = filtered_by_issue.filter(pl.col("Group") == current_group)
 
-    actions_df: pl.DataFrame = (
-        filtered_by_issue_group.select("Action").unique().collect()  # type: ignore[assignment]
-    )
+    actions_df = filtered_by_issue_group.select("Action").unique().collect()
     available_actions = actions_df.get_column("Action").to_list()
     action_options = ["All"] + available_actions
     action_index = 0  # Default to "All"

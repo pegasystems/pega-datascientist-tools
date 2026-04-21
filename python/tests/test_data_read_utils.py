@@ -53,11 +53,7 @@ class TestReadGzippedData:
         gz_bytes = _make_ndjson_gz(SAMPLE_RECORDS)
         result = read_gzipped_data(BytesIO(gz_bytes))
         assert result is not None
-        # The function returns .lazy(), so it's actually a LazyFrame
-        if isinstance(result, pl.LazyFrame):
-            df = result.collect()
-        else:
-            df = result
+        df = result.collect()
         assert df.shape == (3, 2)
         assert df["col_a"].to_list() == [1, 2, 3]
         assert df["col_b"].to_list() == ["x", "y", "z"]
@@ -302,9 +298,8 @@ class TestReadNestedZipFiles:
         outer_buf.seek(0)
 
         result = read_nested_zip_files(outer_buf)
-        # Result should be a DataFrame (concat of all parts)
-        if isinstance(result, pl.LazyFrame):
-            result = result.collect()
+        # Function returns LazyFrame; collect for assertions
+        result = result.collect()
         assert isinstance(result, pl.DataFrame)
         assert result.shape == (3, 2)
         assert sorted(result["a"].to_list()) == [1, 2, 3]
@@ -321,8 +316,7 @@ class TestReadNestedZipFiles:
         outer_buf.seek(0)
 
         result = read_nested_zip_files(outer_buf)
-        if isinstance(result, pl.LazyFrame):
-            result = result.collect()
+        result = result.collect()
         assert isinstance(result, pl.DataFrame)
         assert result.shape == (1, 2)
         assert result["a"].to_list() == [1]
@@ -340,6 +334,5 @@ class TestReadNestedZipFiles:
         outer_buf.seek(0)
 
         result = read_nested_zip_files(outer_buf)
-        if isinstance(result, pl.LazyFrame):
-            result = result.collect()
+        result = result.collect()
         assert result.shape == (1, 2)

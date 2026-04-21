@@ -5,6 +5,8 @@ from plotly.subplots import make_subplots
 
 import polars as pl
 
+from typing import cast
+
 from .utils import PRIO_FACTORS, apply_filter
 from ..utils.pega_template import colorway
 from ..utils.plot_utils import simplify_facet_titles
@@ -1098,15 +1100,10 @@ def offer_quality_piecharts(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    all_frames = (
-        df.group_by(level)
-        .agg(pl.sum(*value_finder_names))
-        .collect()  # type: ignore[union-attribute]
-        .partition_by(level, as_dict=True)
-    )
+    all_frames = df.group_by(level).agg(pl.sum(*value_finder_names)).collect().partition_by(level, as_dict=True)
 
     # Filter to only include stages that exist in the data
-    df_dict = {}  # type: ignore[assignment]
+    df_dict: dict[tuple, pl.DataFrame] = {}
     stages_to_plot = []
     for stage in AvailableNBADStages:
         if (stage,) in all_frames:
@@ -1272,9 +1269,7 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, leve
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    trend_df = (
-        df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect().sort("day")  # type: ignore[union-attribute]
-    )
+    trend_df = df.filter(pl.col(level) == stage).group_by("day").agg(pl.sum(*value_finder_names)).collect().sort("day")
     if return_df:
         return trend_df.lazy()
     status_labels = {
@@ -1411,7 +1406,7 @@ def plot_component_overview(value_data: pl.LazyFrame, components: list[str], gra
         fig.add_annotation(text="No component columns available", showarrow=False)
         return fig
 
-    collected: pl.DataFrame = value_data.select([granularity] + components).collect()  # type: ignore[assignment]
+    collected = value_data.select([granularity] + components).collect()
     groups = collected.get_column(granularity).unique().sort().to_list()
 
     n_cols = min(3, len(components))
@@ -1540,7 +1535,7 @@ def create_win_distribution_plot(
             # If we have "No Winner" data, we need to select only the columns that match aggregated_regular
             if no_winner_data.height > 0:
                 # Select only the columns that exist in aggregated_regular
-                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                group_cols = list(cast(list[str], scope_config["group_cols"]))
                 columns_to_keep = group_cols + [win_count_col]
                 no_winner_data_selected = no_winner_data.select(columns_to_keep)
                 plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
@@ -1549,7 +1544,7 @@ def create_win_distribution_plot(
         else:
             # If no regular data, just use no_winner_data (select appropriate columns)
             if no_winner_data.height > 0:
-                group_cols = list(scope_config["group_cols"])  # type: ignore[arg-type]
+                group_cols = list(cast(list[str], scope_config["group_cols"]))
                 columns_to_keep = group_cols + [win_count_col]
                 plot_data = no_winner_data.select(columns_to_keep)
             else:
