@@ -395,14 +395,14 @@ def test_contributions_invalid_display_by(plots):
 
 
 def test_contributions_unknown_kwarg(plots):
-    """Test contributions() rejects unknown filter kwargs."""
-    with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+    """Test contributions() rejects unknown kwargs via the explicit signature."""
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
         plots.contributions(unknown_param=True)
 
 
 def test_plot_contributions_for_overall_unknown_kwarg(plots):
-    """Test plot_contributions_for_overall() rejects unknown filter kwargs."""
-    with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+    """Test plot_contributions_for_overall() rejects unknown kwargs."""
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
         plots.plot_contributions_for_overall(unknown_param=True)
 
 

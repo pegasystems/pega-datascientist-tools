@@ -6,13 +6,14 @@ __all__ = [
     "_TABLE_NAME",
     "ContextInfo",
     "ContextOperations",
-    "_resolve_agg_filter_kwargs",
-    "_resolve_plot_filter_kwargs",
+    "ContributionType",
+    "DisplayBy",
+    "SortBy",
 ]
 
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 import polars as pl
 
@@ -111,46 +112,25 @@ class _SPECIAL(Enum):
     MISSING = "missing"
 
 
-def _resolve_agg_filter_kwargs(**kwargs) -> dict:
-    """Extract and validate aggregate-layer filter kwargs, filling defaults.
-
-    Valid keys: ``sort_by``, ``descending``, ``missing``, ``remaining``,
-    ``include_numeric_single_bin``.
-    Any other key raises ``TypeError``.
-    ``sort_by`` is validated against the accepted ``_CONTRIBUTION_TYPE`` values.
-    """
-    sort_by = kwargs.pop("sort_by", "contribution_abs")
-    _CONTRIBUTION_TYPE.validate_and_get_type(sort_by)
-    result = {
-        "sort_by": sort_by,
-        "descending": kwargs.pop("descending", True),
-        "missing": kwargs.pop("missing", True),
-        "remaining": kwargs.pop("remaining", True),
-        "include_numeric_single_bin": kwargs.pop("include_numeric_single_bin", False),
-    }
-    if kwargs:
-        raise TypeError(
-            f"Unexpected filter kwargs: {set(kwargs)}. Valid keys: sort_by, descending, missing, remaining, include_numeric_single_bin"
-        )
-    return result
+def _resolve_contribution_type(value: "ContributionType") -> _CONTRIBUTION_TYPE:
+    """Validate ``sort_by`` / ``display_by`` and return the matching enum member."""
+    return _CONTRIBUTION_TYPE.validate_and_get_type(value)
 
 
-def _resolve_plot_filter_kwargs(**kwargs) -> dict:
-    """Extract and validate plot-layer filter kwargs, filling defaults.
-
-    Extends aggregate filter kwargs with ``display_by``. Any other key raises
-    ``TypeError``. Both ``sort_by`` and ``display_by`` are validated against the
-    accepted ``_CONTRIBUTION_TYPE`` values.
-
-    ``sort_by`` and ``display_by`` are returned as ``_CONTRIBUTION_TYPE`` enum
-    members so callers can use ``.value`` and ``.alt`` without re-validating.
-    """
-    display_by = kwargs.pop("display_by", "contribution")
-    display_by_enum = _CONTRIBUTION_TYPE.validate_and_get_type(display_by)
-    result = _resolve_agg_filter_kwargs(**kwargs)
-    result["sort_by"] = _CONTRIBUTION_TYPE.validate_and_get_type(result["sort_by"])
-    result["display_by"] = display_by_enum
-    return result
+# Public type aliases used in keyword-only signatures across Aggregate, Plots,
+# and Reports. Kept as `Literal[...]` so IDE tooltips show valid choices and
+# static type-checkers can flag typos at call sites.
+SortBy = Literal[
+    "contribution",
+    "contribution_abs",
+    "contribution_weighted",
+    "contribution_weighted_abs",
+    "frequency",
+    "contribution_min",
+    "contribution_max",
+]
+DisplayBy = SortBy
+ContributionType = SortBy
 
 
 class ContextInfo(TypedDict):

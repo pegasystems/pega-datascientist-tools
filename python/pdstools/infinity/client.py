@@ -1,32 +1,38 @@
 __all__ = ["AsyncInfinity", "Infinity"]
 
 from importlib.util import find_spec
+from typing import TYPE_CHECKING
 
 from ..utils.namespaces import MissingDependenciesException
 from .internal._base_client import AsyncAPIClient, SyncAPIClient
 
-instructions = """To initialize the Infinity API client, please use one of the constructor methods:
-`Infinity.from_basic_auth` or "`Infinity.from_client_credentials`.
+if TYPE_CHECKING:  # pragma: no cover
+    import httpx
 
-`.from_basic_auth` takes in the user credentials you use to login to Infinity,
-and it assumes the same permissions as the operator with which you've logged in.
-
-`.from_client_credentials` uses an OAuth credentials file,
-which you can create by first going to Dev Studio, then navigating to
-Create -> Security -> OAuth 2.0 Client Registration. If the OAuth Client does not show up in the
-Security tab, this is likely due to insufficient permissions for your operator.
-"""
+    from .internal._auth import PegaOAuth
 
 
 class Infinity(SyncAPIClient):
-    """The Pega Infinity DX API client"""
+    """The Pega Infinity DX API client.
+
+    Prefer one of the :py:meth:`from_basic_auth`,
+    :py:meth:`from_client_credentials`, or
+    :py:meth:`from_client_id_and_secret` constructors over calling
+    ``Infinity(...)`` directly — they handle auth construction for you.
+    """
 
     version: str
 
-    def __init__(self, *args, **kwargs):
-        if not args and not kwargs:
-            raise RuntimeError(instructions)
-
+    def __init__(
+        self,
+        *,
+        base_url: "str | httpx.URL",
+        auth: "httpx.Auth | PegaOAuth",
+        application_name: str | None = None,
+        verify: bool = False,
+        pega_version: str | None = None,
+        timeout: float = 90,
+    ):
         if not find_spec("pydantic"):
             raise MissingDependenciesException(
                 ["pydantic"],
@@ -34,11 +40,16 @@ class Infinity(SyncAPIClient):
                 "api",
             )
 
-        super().__init__(*args, **kwargs)
-
-        self.version = kwargs.get("pega_version") or self._infer_version(
-            on_error="ignore",
+        super().__init__(
+            base_url=base_url,
+            auth=auth,
+            application_name=application_name,
+            verify=verify,
+            pega_version=pega_version,
+            timeout=timeout,
         )
+
+        self.version = pega_version or self._infer_version(on_error="ignore")
 
         from . import resources
 
@@ -69,14 +80,25 @@ class AsyncInfinity(AsyncAPIClient):
     Provides the same functionality as :class:`Infinity` but with
     native ``async``/``await`` support.  Resources expose ``async def``
     methods that can be awaited directly.
+
+    Prefer one of the :py:meth:`from_basic_auth`,
+    :py:meth:`from_client_credentials`, or
+    :py:meth:`from_client_id_and_secret` constructors over calling
+    ``AsyncInfinity(...)`` directly.
     """
 
     version: str
 
-    def __init__(self, *args, **kwargs):
-        if not args and not kwargs:
-            raise RuntimeError(instructions)
-
+    def __init__(
+        self,
+        *,
+        base_url: "str | httpx.URL",
+        auth: "httpx.Auth | PegaOAuth",
+        application_name: str | None = None,
+        verify: bool = False,
+        pega_version: str | None = None,
+        timeout: float = 90,
+    ):
         if not find_spec("pydantic"):
             raise MissingDependenciesException(
                 ["pydantic"],
@@ -84,11 +106,16 @@ class AsyncInfinity(AsyncAPIClient):
                 "api",
             )
 
-        super().__init__(*args, **kwargs)
-
-        self.version = kwargs.get("pega_version") or self._infer_version(
-            on_error="ignore",
+        super().__init__(
+            base_url=base_url,
+            auth=auth,
+            application_name=application_name,
+            verify=verify,
+            pega_version=pega_version,
+            timeout=timeout,
         )
+
+        self.version = pega_version or self._infer_version(on_error="ignore")
 
         from . import resources
 

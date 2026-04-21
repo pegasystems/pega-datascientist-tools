@@ -13,7 +13,8 @@ from .ExplanationsUtils import (
     _SPECIAL,
     ContextInfo,
     ContextOperations,
-    _resolve_agg_filter_kwargs,
+    SortBy,
+    _resolve_contribution_type,
     validate,
 )
 
@@ -53,7 +54,12 @@ class Aggregate(LazyNamespace):
         self,
         context: dict[str, str] | None = None,
         top_n: int = 20,
-        **filter_kwargs,
+        *,
+        sort_by: SortBy = "contribution_abs",
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        include_numeric_single_bin: bool = False,
     ) -> pl.DataFrame:
         """Get the top-n predictor contributions for a given context or overall.
 
@@ -63,22 +69,23 @@ class Aggregate(LazyNamespace):
                 If None, contributions for all contexts will be returned.
             top_n (int):
                 Number of top predictors.
-            **filter_kwargs:
-                Optional filtering and sorting controls. Valid keys:
-
-                - ``sort_by`` (str): Column to rank/select top predictors.
-                  Options: ``contribution``, ``contribution_abs``,
-                  ``contribution_weighted``, ``contribution_weighted_abs``.
-                  Default: ``"contribution_abs"``.
-                - ``descending`` (bool): Sort most- or least-impactful first.
-                  Default: ``True``.
-                - ``missing`` (bool): Include missing-value bins. Default: ``True``.
-                - ``remaining`` (bool): Include an aggregated "remaining" row for
-                  predictors outside the top-n. Default: ``True``.
-                - ``include_numeric_single_bin`` (bool): Include numeric predictors
-                  that have only a single bin. Default: ``False``.
+            sort_by (str, keyword-only):
+                Column to rank/select top predictors. One of
+                ``contribution``, ``contribution_abs``,
+                ``contribution_weighted``, ``contribution_weighted_abs``.
+                Default: ``"contribution_abs"``.
+            descending (bool, keyword-only):
+                Sort most- or least-impactful first. Default: ``True``.
+            missing (bool, keyword-only):
+                Include missing-value bins. Default: ``True``.
+            remaining (bool, keyword-only):
+                Include an aggregated "remaining" row for predictors outside
+                the top-n. Default: ``True``.
+            include_numeric_single_bin (bool, keyword-only):
+                Include numeric predictors that have only a single bin.
+                Default: ``False``.
         """
-        resolved = _resolve_agg_filter_kwargs(**filter_kwargs)
+        _resolve_contribution_type(sort_by)
 
         try:
             validate(top_n=top_n)
@@ -91,7 +98,11 @@ class Aggregate(LazyNamespace):
         return self._get_predictor_contributions(
             contexts=cast("list[ContextInfo]", [context]) if context else None,
             limit=top_n,
-            **resolved,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
     def get_predictor_value_contributions(
@@ -99,7 +110,12 @@ class Aggregate(LazyNamespace):
         predictors: list[str],
         context: dict[str, str] | None = None,
         top_k: int = 20,
-        **filter_kwargs,
+        *,
+        sort_by: SortBy = "contribution_abs",
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        include_numeric_single_bin: bool = False,
     ) -> pl.DataFrame:
         """Get the top-k predictor value contributions for a given context or overall.
 
@@ -111,22 +127,23 @@ class Aggregate(LazyNamespace):
                 If None, contributions for all contexts will be returned.
             top_k (int):
                 Number of unique categorical predictor values to return.
-            **filter_kwargs:
-                Optional filtering and sorting controls. Valid keys:
-
-                - ``sort_by`` (str): Column to rank/select top predictors.
-                  Options: ``contribution``, ``contribution_abs``,
-                  ``contribution_weighted``, ``contribution_weighted_abs``.
-                  Default: ``"contribution_abs"``.
-                - ``descending`` (bool): Sort most- or least-impactful first.
-                  Default: ``True``.
-                - ``missing`` (bool): Include missing-value bins. Default: ``True``.
-                - ``remaining`` (bool): Include an aggregated "remaining" row for
-                  values outside the top-k. Default: ``True``.
-                - ``include_numeric_single_bin`` (bool): Include numeric predictors
-                  that have only a single bin. Default: ``False``.
+            sort_by (str, keyword-only):
+                Column to rank/select top predictors. One of
+                ``contribution``, ``contribution_abs``,
+                ``contribution_weighted``, ``contribution_weighted_abs``.
+                Default: ``"contribution_abs"``.
+            descending (bool, keyword-only):
+                Sort most- or least-impactful first. Default: ``True``.
+            missing (bool, keyword-only):
+                Include missing-value bins. Default: ``True``.
+            remaining (bool, keyword-only):
+                Include an aggregated "remaining" row for values outside
+                the top-k. Default: ``True``.
+            include_numeric_single_bin (bool, keyword-only):
+                Include numeric predictors that have only a single bin.
+                Default: ``False``.
         """
-        resolved = _resolve_agg_filter_kwargs(**filter_kwargs)
+        _resolve_contribution_type(sort_by)
 
         try:
             validate(top_k=top_k)
@@ -140,7 +157,11 @@ class Aggregate(LazyNamespace):
             contexts=cast("list[ContextInfo]", [context]) if context else None,
             predictors=predictors,
             limit=top_k,
-            **resolved,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
     def validate_folder(self):

@@ -326,11 +326,11 @@ class TestFilterKwargsValidation:
     """Test that unknown filter kwargs raise TypeError."""
 
     def test_get_predictor_contributions_unknown_kwarg(self, aggregate):
-        with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
             aggregate.get_predictor_contributions(unknown_param=True)
 
     def test_get_predictor_value_contributions_unknown_kwarg(self, aggregate, predictors):
-        with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
             aggregate.get_predictor_value_contributions(predictors=predictors, unknown_param=True)
 
 

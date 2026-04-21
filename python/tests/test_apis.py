@@ -168,8 +168,8 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
 
 
 def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
-    with pytest.raises(RuntimeError):
-        Infinity()
+    with pytest.raises(TypeError):
+        Infinity()  # type: ignore[call-arg]
 
     httpx_mock.add_response(
         url=re.compile(".*/repository"),

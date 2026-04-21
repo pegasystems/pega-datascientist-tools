@@ -142,8 +142,8 @@ class TestGenerateFilterKwargs:
     """Tests for filter_kwargs resolution inside generate()."""
 
     def test_generate_unknown_kwarg(self, reports):
-        """Unknown filter kwargs should raise TypeError before any IO."""
-        with pytest.raises(TypeError, match="Unexpected filter kwargs"):
+        """Unknown kwargs should be rejected by Python — explicit signature."""
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
             reports.generate(unknown_param=True)
 
     def test_generate_resolves_defaults(self, reports):

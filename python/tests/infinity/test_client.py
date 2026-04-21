@@ -17,9 +17,15 @@ class TestInfinity:
         assert not client.version
         assert not hasattr(client, "prediction_studio")
 
-    def test_init_no_args_raises_runtime_error(self):
-        with pytest.raises(RuntimeError, match="constructor methods"):
-            Infinity()
+    def test_init_no_args_raises_type_error(self):
+        """Direct ``Infinity()`` with no args is rejected by Python — explicit signature."""
+        with pytest.raises(TypeError, match="missing .* required keyword-only argument"):
+            Infinity()  # type: ignore[call-arg]
+
+    def test_init_rejects_unknown_kwarg(self):
+        """Unknown kwargs are rejected by Python — no silent **kwargs swallow."""
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            Infinity(base_url="x", auth=None, bogus=True)  # type: ignore[call-arg]
 
     def test_init_with_explicit_version(self, mocker):
         """When pega_version is passed, _infer_version should NOT be called."""
@@ -97,9 +103,14 @@ class TestInfinity:
 
 
 class TestAsyncInfinity:
-    def test_init_no_args_raises_runtime_error(self):
-        with pytest.raises(RuntimeError, match="constructor methods"):
-            AsyncInfinity()
+    def test_init_no_args_raises_type_error(self):
+        """Direct ``AsyncInfinity()`` with no args is rejected — explicit signature."""
+        with pytest.raises(TypeError, match="missing .* required keyword-only argument"):
+            AsyncInfinity()  # type: ignore[call-arg]
+
+    def test_init_rejects_unknown_kwarg(self):
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            AsyncInfinity(base_url="x", auth=None, bogus=True)  # type: ignore[call-arg]
 
     def test_init_with_explicit_version(self, mocker):
         mocker.patch.object(

@@ -15,7 +15,12 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import _CONTRIBUTION_TYPE, _resolve_plot_filter_kwargs
+from .ExplanationsUtils import (
+    _CONTRIBUTION_TYPE,
+    DisplayBy,
+    SortBy,
+    _resolve_contribution_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +53,9 @@ class Reports(LazyNamespace):
         top_n: int = 20,
         top_k: int = 20,
         zip_output: bool = False,
-        **filter_kwargs,
+        *,
+        sort_by: SortBy = "contribution_abs",
+        display_by: DisplayBy = "contribution",
     ):
         """Generate the explanations report.
 
@@ -63,13 +70,10 @@ class Reports(LazyNamespace):
         zip_output : bool
             Whether to zip the output report.
             The filename will be used as the zip file name.
-        **filter_kwargs:
-            Optional filtering and display controls. Valid keys:
-
-            - ``sort_by`` (str): Column to rank/select top predictors.
-              Default: ``"contribution_abs"``.
-            - ``display_by`` (str): Column to use for the report axis values.
-              Default: ``"contribution"``.
+        sort_by : str, keyword-only
+            Column to rank/select top predictors. Default: ``"contribution_abs"``.
+        display_by : str, keyword-only
+            Column to use for the report axis values. Default: ``"contribution"``.
 
         Notes
         -----
@@ -83,9 +87,8 @@ class Reports(LazyNamespace):
             logger.error("Validation failed: %s", e)
             raise
 
-        resolved = _resolve_plot_filter_kwargs(**filter_kwargs)
-        validated_display_by = resolved.pop("display_by")
-        validated_sort_by = resolved.pop("sort_by")
+        validated_sort_by = _resolve_contribution_type(sort_by)
+        validated_display_by = _resolve_contribution_type(display_by)
 
         self._validate_report_dir()
 

@@ -10,10 +10,11 @@ import polars as pl
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
-    _CONTRIBUTION_TYPE,
     _SPECIAL,
     ContextInfo,
-    _resolve_plot_filter_kwargs,
+    DisplayBy,
+    SortBy,
+    _resolve_contribution_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,12 @@ class Plots(LazyNamespace):
         top_k: int = 20,
         *,
         return_df: bool = False,
-        **filter_kwargs,
+        sort_by: SortBy = "contribution_abs",
+        display_by: DisplayBy = "contribution",
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        include_numeric_single_bin: bool = False,
     ):
         """Plots contributions for the overall model or a selected context.
 
@@ -56,28 +62,38 @@ class Plots(LazyNamespace):
                 When a context is selected, returns
                 ``(predictor_df, predictor_value_df)``; otherwise returns the same
                 pair computed against the overall model.
-            **filter_kwargs:
-                Optional filtering, sorting, and display controls. Valid keys:
+            sort_by (str, keyword-only):
+                Column to rank/select top predictors. One of
+                ``contribution``, ``contribution_abs``,
+                ``contribution_weighted``, ``contribution_weighted_abs``.
+                Default: ``"contribution_abs"``.
+            display_by (str, keyword-only):
+                Column to use for the chart axis values.
+                Default: ``"contribution"``.
+            descending (bool, keyword-only):
+                Sort most- or least-impactful first. Default: ``True``.
+            missing (bool, keyword-only):
+                Include missing-value bins. Default: ``True``.
+            remaining (bool, keyword-only):
+                Include an aggregated "remaining" row. Default: ``True``.
+            include_numeric_single_bin (bool, keyword-only):
+                Include numeric predictors that have only a single bin.
+                Default: ``False``.
 
-                - ``sort_by`` (str): Column to rank/select top predictors.
-                  Options: ``contribution``, ``contribution_abs``,
-                  ``contribution_weighted``, ``contribution_weighted_abs``.
-                  Default: ``"contribution_abs"``.
-                - ``display_by`` (str): Column to use for the chart axis values.
-                  Default: ``"contribution"``.
-                - ``descending`` (bool): Sort most- or least-impactful first.
-                  Default: ``True``.
-                - ``missing`` (bool): Include missing-value bins. Default: ``True``.
-                - ``remaining`` (bool): Include an aggregated "remaining" row.
-                  Default: ``True``.
-                - ``include_numeric_single_bin`` (bool): Include numeric predictors
-                  that have only a single bin. Default: ``False``.
         Returns:
             tuple[go.Figure, list[go.Figure]]:
                 - left: context header if context is selected, otherwise None
                 - right: overall contributions plot and a list of predictor contribution plots.
 
         """
+        common_kwargs = {
+            "sort_by": sort_by,
+            "display_by": display_by,
+            "descending": descending,
+            "missing": missing,
+            "remaining": remaining,
+            "include_numeric_single_bin": include_numeric_single_bin,
+        }
         if self.explanations.filter.is_context_selected():
             if return_df:
                 return self.plot_contributions_by_context(
@@ -85,13 +101,13 @@ class Plots(LazyNamespace):
                     top_n=top_n,
                     top_k=top_k,
                     return_df=True,
-                    **filter_kwargs,
+                    **common_kwargs,
                 )
             context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
                 context=self.explanations.filter.get_selected_context(),
                 top_n=top_n,
                 top_k=top_k,
-                **filter_kwargs,
+                **common_kwargs,
             )
 
             plots = [overall_plot] + predictor_plots
@@ -105,7 +121,7 @@ class Plots(LazyNamespace):
                 top_n=top_n,
                 top_k=top_k,
                 return_df=True,
-                **filter_kwargs,
+                **common_kwargs,
             )
 
         logger.info(
@@ -116,7 +132,7 @@ class Plots(LazyNamespace):
         overall_plot, predictor_plots = self.plot_contributions_for_overall(
             top_n=top_n,
             top_k=top_k,
-            **filter_kwargs,
+            **common_kwargs,
         )
 
         plots = [overall_plot] + predictor_plots
@@ -132,7 +148,12 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        **filter_kwargs,
+        sort_by: SortBy = ...,
+        display_by: DisplayBy = ...,
+        descending: bool = ...,
+        missing: bool = ...,
+        remaining: bool = ...,
+        include_numeric_single_bin: bool = ...,
     ) -> tuple[go.Figure, list[go.Figure]]: ...
 
     @overload
@@ -142,7 +163,12 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        **filter_kwargs,
+        sort_by: SortBy = ...,
+        display_by: DisplayBy = ...,
+        descending: bool = ...,
+        missing: bool = ...,
+        remaining: bool = ...,
+        include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
     def plot_contributions_for_overall(
@@ -151,13 +177,25 @@ class Plots(LazyNamespace):
         top_k: int = 20,
         *,
         return_df: bool = False,
-        **filter_kwargs,
+        sort_by: SortBy = "contribution_abs",
+        display_by: DisplayBy = "contribution",
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
-        display_by, resolved = self._resolve_kwargs(**filter_kwargs)
+        display_by_enum = _resolve_contribution_type(display_by)
+        agg_kwargs = {
+            "sort_by": sort_by,
+            "descending": descending,
+            "missing": missing,
+            "remaining": remaining,
+            "include_numeric_single_bin": include_numeric_single_bin,
+        }
 
         df = self.aggregate.get_predictor_contributions(
             top_n=top_n,
-            **resolved,
+            **agg_kwargs,
         )
 
         predictors = (
@@ -171,7 +209,7 @@ class Plots(LazyNamespace):
         df_predictors = self.aggregate.get_predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
-            **resolved,
+            **agg_kwargs,
         )
 
         if return_df:
@@ -179,15 +217,15 @@ class Plots(LazyNamespace):
 
         overall_fig = self._plot_overall_contributions(
             df,
-            x_col=display_by.value,
+            x_col=display_by_enum.value,
             y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by.alt,
+            x_title=display_by_enum.alt,
         )
         predictors_figs = self._plot_predictor_contributions(
             df_predictors,
-            x_col=display_by.value,
+            x_col=display_by_enum.value,
             y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by.alt,
+            x_title=display_by_enum.alt,
         )
 
         return overall_fig, predictors_figs
@@ -200,7 +238,12 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        **filter_kwargs,
+        sort_by: SortBy = ...,
+        display_by: DisplayBy = ...,
+        descending: bool = ...,
+        missing: bool = ...,
+        remaining: bool = ...,
+        include_numeric_single_bin: bool = ...,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]]: ...
 
     @overload
@@ -211,7 +254,12 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        **filter_kwargs,
+        sort_by: SortBy = ...,
+        display_by: DisplayBy = ...,
+        descending: bool = ...,
+        missing: bool = ...,
+        remaining: bool = ...,
+        include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
     def plot_contributions_by_context(
@@ -221,14 +269,26 @@ class Plots(LazyNamespace):
         top_k: int = 20,
         *,
         return_df: bool = False,
-        **filter_kwargs,
+        sort_by: SortBy = "contribution_abs",
+        display_by: DisplayBy = "contribution",
+        descending: bool = True,
+        missing: bool = True,
+        remaining: bool = True,
+        include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
-        display_by, resolved = self._resolve_kwargs(**filter_kwargs)
+        display_by_enum = _resolve_contribution_type(display_by)
+        agg_kwargs = {
+            "sort_by": sort_by,
+            "descending": descending,
+            "missing": missing,
+            "remaining": remaining,
+            "include_numeric_single_bin": include_numeric_single_bin,
+        }
 
         df_context = self.aggregate.get_predictor_contributions(
             context,
             top_n=top_n,
-            **resolved,
+            **agg_kwargs,
         )
 
         # filter out the context rows for plotting by context
@@ -251,7 +311,7 @@ class Plots(LazyNamespace):
             predictors,
             context=context,
             top_k=top_k,
-            **resolved,
+            **agg_kwargs,
         )
 
         if return_df:
@@ -261,35 +321,20 @@ class Plots(LazyNamespace):
 
         overall_fig = self._plot_overall_contributions(
             df_context,
-            x_col=display_by.value,
+            x_col=display_by_enum.value,
             y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by.alt,
+            x_title=display_by_enum.alt,
             context=cast("ContextInfo", context),
         )
 
         predictors_figs = self._plot_predictor_contributions(
             df,
-            x_col=display_by.value,
+            x_col=display_by_enum.value,
             y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by.alt,
+            x_title=display_by_enum.alt,
         )
 
         return header_fig, overall_fig, predictors_figs
-
-    @staticmethod
-    def _resolve_kwargs(
-        **filter_kwargs,
-    ) -> tuple[_CONTRIBUTION_TYPE, dict]:
-        """Resolve plot filter kwargs into a display_by enum and aggregate kwargs.
-
-        Returns the ``display_by`` enum member and a dict suitable for spreading
-        into ``Aggregate`` methods (``sort_by`` as a string, plus ``descending``,
-        ``missing``, ``remaining``).
-        """
-        resolved = _resolve_plot_filter_kwargs(**filter_kwargs)
-        display_by = resolved.pop("display_by")
-        resolved["sort_by"] = resolved["sort_by"].value
-        return display_by, resolved
 
     @staticmethod
     def _build_hover_customdata(
