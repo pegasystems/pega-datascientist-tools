@@ -219,26 +219,24 @@ class BinAggregator(LazyNamespace):
     ) -> pl.DataFrame:
         for id in modelids:
             logger.debug(f"Model ID: {id}")
-            source_binning = self.get_source_numbinning(predictor, id)
 
-            # TODO consider quick escape if all of source binning is empty (sum of BinResponses)
-
-            logger.debug(str(source_binning))
-
-            # fig = self.plot_binning_attribution(source_binning, target_binning)
-            # fig.update_layout(title=f"{predictor}, model={id}")
-            # fig.show()
-
-            target_binning = self.combine_two_numbinnings(
-                source_binning,
-                target_binning,
+        if len(modelids) == 0:
+            sources = target_binning.head(0).select(
+                pl.lit(None, dtype=pl.Utf8).alias("ModelID"),
+                pl.col("BinLowerBound"),
+                pl.col("BinUpperBound"),
+                pl.col("Lift"),
+                pl.col("BinResponses"),
             )
+        else:
+            per_model = [self.get_source_numbinning(predictor, id) for id in modelids]
+            sources = pl.concat(per_model, how="vertical_relaxed")
 
-            logger.debug(str(target_binning))
-
-            # fig = self.plot_lift_binning(target_binning)
-            # fig.update_layout(width=800, height=300, showlegend=False)
-            # fig.show()
+        target_binning = self._combine_many_numbinnings(
+            sources,
+            target_binning,
+            n_models=len(modelids),
+        )
 
         logger.debug(str(target_binning))
 
@@ -676,6 +674,95 @@ class BinAggregator(LazyNamespace):
                 pl.repeat(model_count, pl.len()).alias("Models"),
             )
         )
+
+    def _combine_many_numbinnings(
+        self,
+        sources: pl.DataFrame,
+        target: pl.DataFrame,
+        n_models: int,
+    ) -> pl.DataFrame:
+        """Batched, vectorised equivalent of looping ``combine_two_numbinnings``.
+
+        For each (target bin, source bin) overlap, the two-pointer merge in
+        ``combine_two_numbinnings`` mutates the target bin's Lift / BinResponses /
+        BinCoverage with a weighted-average update. Because the update is a
+        weighted average over per-source-bin attributions, applying it iteratively
+        across many source models is mathematically equivalent to a single
+        weighted average over *all* (source_bin, target_bin) overlap triples.
+
+        We exploit that here: cross-join target with the union of all source bins,
+        keep only overlapping pairs, and sum the contributions per target bin.
+
+        ``n_models`` is added to ``target.Models`` regardless of how many of those
+        models actually overlap any target bin — matching the original behaviour
+        where each call to ``combine_two_numbinnings`` increments Models by 1.
+        """
+        target_with_idx = target.with_row_index("__target_idx")
+
+        if sources.height == 0:
+            return target_with_idx.drop("__target_idx").with_columns(
+                (pl.col("Models") + n_models).alias("Models"),
+            )
+
+        target_keys = target_with_idx.select(
+            "__target_idx",
+            pl.col("BinLowerBound").alias("__t_lo"),
+            pl.col("BinUpperBound").alias("__t_hi"),
+        )
+        source_keys = sources.select(
+            pl.col("BinLowerBound").alias("__s_lo"),
+            pl.col("BinUpperBound").alias("__s_hi"),
+            pl.col("Lift").alias("__s_lift"),
+            pl.col("BinResponses").alias("__s_resps"),
+        )
+
+        contributions = (
+            target_keys.join(source_keys, how="cross")
+            .with_columns(
+                (pl.min_horizontal("__s_hi", "__t_hi") - pl.max_horizontal("__s_lo", "__t_lo")).alias("__overlap"),
+            )
+            .filter(pl.col("__overlap") > 0)
+            .with_columns(
+                (pl.col("__overlap") / (pl.col("__s_hi") - pl.col("__s_lo"))).alias(
+                    "__source_fraction",
+                ),
+                (pl.col("__overlap") / (pl.col("__t_hi") - pl.col("__t_lo"))).alias(
+                    "__target_attr",
+                ),
+            )
+            .group_by("__target_idx")
+            .agg(
+                pl.col("__target_attr").sum().alias("__attr_sum"),
+                (pl.col("__target_attr") * pl.col("__s_lift")).sum().alias("__lift_weighted"),
+                (pl.col("__source_fraction") * pl.col("__s_resps")).sum().alias("__resps_added"),
+            )
+        )
+
+        joined = target_with_idx.join(contributions, on="__target_idx", how="left")
+
+        attr_sum = pl.col("__attr_sum").fill_null(0.0)
+        lift_weighted = pl.col("__lift_weighted").fill_null(0.0)
+        resps_added = pl.col("__resps_added").fill_null(0.0)
+        denom = pl.col("BinCoverage") + attr_sum
+
+        updated = joined.with_columns(
+            pl.when(denom > 0)
+            .then(
+                (pl.col("BinCoverage") * pl.col("Lift") + lift_weighted) / denom,
+            )
+            .otherwise(pl.col("Lift"))
+            .alias("Lift"),
+            (pl.col("BinResponses") + resps_added).alias("BinResponses"),
+            denom.alias("BinCoverage"),
+            (pl.col("Models") + n_models).alias("Models"),
+        ).drop(
+            "__target_idx",
+            "__attr_sum",
+            "__lift_weighted",
+            "__resps_added",
+        )
+
+        return updated.select(target.columns)
 
     def plot_binning_attribution(
         self,
