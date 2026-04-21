@@ -66,7 +66,7 @@ class TestClassMethodConstructors:
             sample_size=1000,
         )
         assert da.extract_type == "explainability_extract"
-        assert da.decision_data.collect().height > 0
+        assert da.decision_data.collect().height == 7297
 
     def test_from_decision_analyzer(self):
         da = DecisionAnalyzer.from_decision_analyzer(
@@ -74,7 +74,7 @@ class TestClassMethodConstructors:
             sample_size=1000,
         )
         assert da.extract_type == "decision_analyzer"
-        assert da.decision_data.collect().height > 0
+        assert da.decision_data.collect().height == 1342623
 
     def test_from_explainability_extract_invalid_path(self):
         with pytest.raises(Exception):
@@ -119,11 +119,11 @@ class TestConstruction:
 
     def test_v1_has_decision_data(self, da_v1):
         assert isinstance(da_v1.decision_data, pl.LazyFrame)
-        assert da_v1.decision_data.collect().height > 0
+        assert da_v1.decision_data.collect().height == 7297
 
     def test_v2_has_decision_data(self, da_v2):
         assert isinstance(da_v2.decision_data, pl.LazyFrame)
-        assert da_v2.decision_data.collect().height > 0
+        assert da_v2.decision_data.collect().height == 1342623
 
     def test_construction_with_additional_columns(self):
         raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
@@ -186,7 +186,7 @@ class TestDataCleanup:
     def test_v2_has_real_stages(self, da_v2):
         """v2 should have real stage groups from the data."""
         stages = da_v2.AvailableNBADStages
-        assert len(stages) > 2
+        assert len(stages) == 5
         assert "Arbitration" in stages
 
     def test_v1_rank_1_is_output(self, da_v1):
@@ -237,12 +237,12 @@ class TestStages:
     def test_stages_from_arbitration_down(self, da_v1):
         stages = da_v1.stages_from_arbitration_down
         assert stages[0] == "Arbitration"
-        assert len(stages) >= 1
+        assert len(stages) == 2
 
     def test_v2_stages_are_ordered(self, da_v2):
         """Stages should be in StageOrder sequence."""
         stages = da_v2.AvailableNBADStages
-        assert len(stages) >= 2
+        assert len(stages) == 5
 
 
 # ---------------------------------------------------------------------------
@@ -255,15 +255,17 @@ class TestSampling:
 
     def test_v1_sample_returns_lazyframe(self, da_v1):
         assert isinstance(da_v1.sample, pl.LazyFrame)
+        assert da_v1.sample.collect().height == 7297
 
     def test_v2_sample_returns_lazyframe(self, da_v2):
         assert isinstance(da_v2.sample, pl.LazyFrame)
+        assert da_v2.sample.collect().height == 956675
 
     def test_v1_sample_not_empty(self, da_v1):
-        assert da_v1.sample.collect().height > 0
+        assert da_v1.sample.collect().height == 7297
 
     def test_v2_sample_not_empty(self, da_v2):
-        assert da_v2.sample.collect().height > 0
+        assert da_v2.sample.collect().height == 956675
 
     def test_sample_respects_size_limit(self):
         """With a very small sample_size, the number of interactions should be limited."""
@@ -296,11 +298,11 @@ class TestPreaggregation:
 
     def test_v1_filter_view_not_empty(self, da_v1):
         df = da_v1.preaggregated_filter_view.collect()
-        assert df.height > 0
+        assert df.height == 769
 
     def test_v2_filter_view_not_empty(self, da_v2):
         df = da_v2.preaggregated_filter_view.collect()
-        assert df.height > 0
+        assert df.height == 3797
 
     def test_filter_view_has_decisions_column(self, da_v1):
         cols = da_v1.preaggregated_filter_view.collect_schema().names()
@@ -308,11 +310,11 @@ class TestPreaggregation:
 
     def test_v1_remaining_view_not_empty(self, da_v1):
         df = da_v1.preaggregated_remaining_view.collect()
-        assert df.height > 0
+        assert df.height == 769
 
     def test_v2_remaining_view_not_empty(self, da_v2):
         df = da_v2.preaggregated_remaining_view.collect()
-        assert df.height > 0
+        assert df.height == 6818
 
     def test_remaining_view_has_win_rank_columns(self, da_v1):
         cols = da_v1.preaggregated_remaining_view.collect_schema().names()
@@ -344,13 +346,13 @@ class TestPreaggregation:
 class TestDistributionData:
     def test_v1_distribution_by_name(self, da_v1):
         df = da_v1.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
-        assert df.height > 0
+        assert df.height == 152
         assert "Action" in df.columns
         assert "Decisions" in df.columns
 
     def test_v2_distribution_by_name(self, da_v2):
         df = da_v2.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
-        assert df.height > 0
+        assert df.height == 27
 
     def test_distribution_sorted_descending(self, da_v1):
         df = da_v1.get_distribution_data(stage="Arbitration", grouping_levels="Action").collect()
@@ -369,12 +371,18 @@ class TestFunnelData:
         assert isinstance(available, pl.LazyFrame)
         assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
+        assert available.collect().height == 12
+        assert passing.height == 9
+        assert filtered.height == 10
 
     def test_v1_funnel_returns_three_frames(self, da_v1):
         available, passing, filtered = da_v1.get_funnel_data(scope="Issue")
         assert isinstance(available, pl.LazyFrame)
         assert isinstance(passing, pl.DataFrame)
         assert isinstance(filtered, pl.DataFrame)
+        assert available.collect().height == 7
+        assert passing.height == 2
+        assert filtered.height == 5
 
     def test_passing_lte_available(self, da_v2):
         """Passing actions at each stage must be <= available actions."""
@@ -414,11 +422,13 @@ class TestFunnelData:
         assert "decisions_without_actions" in result.columns
         expected_stages = [s for s in da_v2.AvailableNBADStages if s != "Output"]
         assert len(result) == len(expected_stages)
+        assert result.height == 4
         assert "Output" not in result[da_v2.level].to_list()
 
     def test_decisions_without_actions_non_negative(self, da_v2):
         result = da_v2.get_decisions_without_actions_data()
-        assert (result["decisions_without_actions"] >= 0).all()
+        assert result["decisions_without_actions"].min() == 0.0
+        assert result["decisions_without_actions"].sum() == 6693.0
 
     def test_decisions_without_actions_per_stage(self, da_v2):
         """Values are stage deltas and total knockouts should be bounded by total decisions."""
@@ -485,8 +495,8 @@ class TestFunnelSummary:
     def test_decisions_pct_in_range(self, da_v2):
         available, passing, filtered = da_v2.get_funnel_data(scope="Issue")
         result = da_v2.get_funnel_summary(available, passing)
-        assert (result["% Decisions without Actions"] >= 0).all()
-        assert (result["% Decisions without Actions"] <= 100.1).all()  # rounding tolerance
+        assert result["% Decisions without Actions"].min() == 0.0
+        assert result["% Decisions without Actions"].max() == pytest.approx(94.7, abs=0.2)
 
 
 # ---------------------------------------------------------------------------
@@ -505,14 +515,14 @@ class TestSensitivity:
 
     def test_v2_sensitivity_returns_factors(self, da_v2):
         df = da_v2.get_sensitivity(win_rank=1).collect()
-        assert df.height > 0
+        assert df.height == 5
         assert "Factor" in df.columns
         assert "Influence" in df.columns
 
     def test_sensitivity_influence_non_negative_for_global(self, da_v1):
         """Global sensitivity should have non-negative influence values."""
         df = da_v1.get_sensitivity(win_rank=1).collect()
-        assert (df["Influence"] >= 0).all()
+        assert df["Influence"].min() == 29
 
 
 # ---------------------------------------------------------------------------
@@ -523,7 +533,7 @@ class TestSensitivity:
 class TestWinLoss:
     def test_v1_win_loss_returns_data(self, da_v1):
         df = da_v1.get_win_loss_distribution_data(level="Issue", win_rank=1).collect()
-        assert df.height > 0
+        assert df.height == 10
         assert "Status" in df.columns
 
     def test_win_loss_has_wins_and_losses(self, da_v1):
@@ -692,10 +702,10 @@ class TestSelectedGroupRankBoundariesWinLoss:
         win_result = winning_from.collect()
         loss_result = losing_to.collect()
 
-        assert win_result.height > 0
+        assert win_result.height == 2
         assert "Action" in win_result.columns
         assert "Decisions" in win_result.columns
-        assert loss_result.height > 0
+        assert loss_result.height == 1
         assert "Action" in loss_result.columns
         assert "Decisions" in loss_result.columns
 
@@ -793,6 +803,9 @@ class TestBoxplotPointCapAndSampling:
         )
         assert isinstance(df, pl.DataFrame)
         assert "segment" in df.columns
+        # Cannot assert exact height: prio_factor_boxplots mutates sample_size as a side
+        # effect when called by the preceding test, so the sample size seen here is
+        # non-deterministic.  See da-test-tightening-bugs.md for the bug report.
 
     def test_prio_factor_boxplots_sampling_caps_rows(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()
@@ -874,10 +887,10 @@ class TestOverviewStats:
         assert expected_keys.issubset(stats.keys())
 
     def test_overview_actions_positive(self, da_v1):
-        assert da_v1.overview_stats["Actions"] > 0
+        assert da_v1.overview_stats["Actions"] == 152
 
     def test_overview_decisions_positive(self, da_v1):
-        assert da_v1.overview_stats["Decisions"] > 0
+        assert da_v1.overview_stats["Decisions"] == 100
 
 
 # ---------------------------------------------------------------------------
@@ -888,13 +901,13 @@ class TestOverviewStats:
 class TestTrendData:
     def test_v1_trend_returns_data(self, da_v1):
         df = da_v1.get_trend_data(stage="Arbitration", scope="Issue").collect()
-        assert df.height > 0
+        assert df.height == 35
         assert "day" in df.columns
         assert "Decisions" in df.columns
 
     def test_v2_trend_returns_data(self, da_v2):
         df = da_v2.get_trend_data(stage="Arbitration", scope="Issue").collect()
-        assert df.height > 0
+        assert df.height == 14
 
 
 # ---------------------------------------------------------------------------
@@ -905,7 +918,7 @@ class TestTrendData:
 class TestActionVariation:
     def test_v1_action_variation_at_arbitration(self, da_v1):
         df = da_v1.get_action_variation_data(stage="Arbitration").collect()
-        assert df.height > 0
+        assert df.height == 153
         assert "ActionIndex" in df.columns
         assert "DecisionsFraction" in df.columns
 
@@ -922,7 +935,7 @@ class TestActionVariation:
 
     def test_action_variation_with_color_by(self, da_v1):
         df = da_v1.get_action_variation_data(stage="Arbitration", color_by="Channel/Direction").collect()
-        assert df.height > 0
+        assert df.height == 153
         assert "Channel/Direction" in df.columns
         assert "ActionIndex" in df.columns
         assert "DecisionsFraction" in df.columns
@@ -944,7 +957,7 @@ class TestActionVariation:
 class TestReRank:
     def test_v1_rerank_returns_data(self, da_v1):
         df = da_v1.re_rank().collect()
-        assert df.height > 0
+        assert df.height == 7297
 
     def test_rerank_has_component_ranks(self, da_v1):
         df = da_v1.re_rank()
@@ -955,7 +968,7 @@ class TestReRank:
 
     def test_rerank_with_filters(self, da_v1):
         df = da_v1.re_rank(additional_filters=pl.col("Stage Group").is_in(da_v1.stages_from_arbitration_down)).collect()
-        assert df.height > 0
+        assert df.height == 7297
 
 
 # ---------------------------------------------------------------------------
@@ -967,7 +980,7 @@ class TestWinDistribution:
     def test_baseline_distribution(self, da_v1):
         lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         result = da_v1.get_win_distribution_data(lever_condition=lever_cond)
-        assert result.height > 0
+        assert result.height == 152
         assert "original_win_count" in result.columns
         assert "selected_action" in result.columns
 
@@ -990,17 +1003,17 @@ class TestWinDistribution:
 class TestOptionality:
     def test_v1_optionality_data(self, da_v1):
         df = da_v1.get_optionality_data(da_v1.sample).collect()
-        assert df.height > 0
+        assert df.height == 25
         assert "nOffers" in df.columns
         assert "Interactions" in df.columns
 
     def test_v2_optionality_data(self, da_v2):
         df = da_v2.get_optionality_data(da_v2.sample).collect()
-        assert df.height > 0
+        assert df.height == 123
 
     def test_optionality_with_trend(self, da_v1):
         df = da_v1.get_optionality_data(by_day=True).collect()
-        assert df.height > 0
+        assert df.height == 73
         assert "day" in df.columns
 
 
@@ -1015,7 +1028,7 @@ class TestFilterComponents:
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.get_filter_component_data(top_n=5)
-        assert df.height > 0
+        assert df.height == 8
         assert "Component Name" in df.columns
 
     def test_v2_filter_component_data_includes_component_type(self, da_v2):
@@ -1038,7 +1051,7 @@ class TestComponentActionImpact:
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
         df = da_v2.get_component_action_impact(top_n=5)
-        assert df.height > 0
+        assert df.height == 289
         assert "Component Name" in df.columns
         assert "Action" in df.columns
         assert "Filtered Decisions" in df.columns
@@ -1073,8 +1086,8 @@ class TestComponentDrilldown:
     def test_v2_component_drilldown(self, da_v2):
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
-        # Pick the first available component
-        components = (
+        # Sort for deterministic selection
+        components = sorted(
             da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
@@ -1085,14 +1098,14 @@ class TestComponentDrilldown:
         if not components:
             pytest.skip("No filtered components in dataset")
         df = da_v2.get_component_drilldown(component_name=components[0])
-        assert df.height > 0
+        assert df.height == 3
         assert "Action" in df.columns
         assert "Filtered Decisions" in df.columns
 
     def test_component_drilldown_sorted_descending(self, da_v2):
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
-        components = (
+        components = sorted(
             da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
@@ -1116,7 +1129,7 @@ class TestComponentDrilldown:
         """Drilldown should include avg score columns when scoring data exists."""
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
-        components = (
+        components = sorted(
             da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
@@ -1127,19 +1140,18 @@ class TestComponentDrilldown:
         if not components:
             pytest.skip("No filtered components in dataset")
         df = da_v2.get_component_drilldown(component_name=components[0])
-        # At least one avg_* column should be present if scoring data exists
         avg_cols = [c for c in df.columns if c.startswith("avg_")]
         available_scores = {"Priority", "Value", "Propensity"}.intersection(
             da_v2.decision_data.collect_schema().names()
         )
         if available_scores:
-            assert len(avg_cols) > 0
+            assert len(avg_cols) == 3
 
     def test_drilldown_respects_scope(self, da_v2):
         """Drilldown should group at the requested scope level."""
         if "Component Name" not in da_v2.decision_data.collect_schema().names():
             pytest.skip("No pxComponentName in this dataset")
-        components = (
+        components = sorted(
             da_v2.decision_data.filter(pl.col("Record Type") == "FILTERED_OUT")
             .select("Component Name")
             .unique()
@@ -1268,12 +1280,12 @@ class TestScopeHelpers:
 
     def test_available_fields_for_filtering(self, da_v1):
         fields = da_v1.get_available_fields_for_filtering()
-        assert len(fields) > 0
+        assert len(fields) == 6
         assert "Action" in fields
 
     def test_available_categorical_fields(self, da_v1):
         fields = da_v1.get_available_fields_for_filtering(categoricalOnly=True)
-        assert len(fields) > 0
+        assert len(fields) == 5
 
 
 # ---------------------------------------------------------------------------
@@ -1329,7 +1341,7 @@ class TestStageMethods:
         result = da_v1.arbitration_stage
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 7297
 
     def test_arbitration_stage_only_contains_arbitration_stages(self, da_v1):
         df = da_v1.arbitration_stage.collect()
@@ -1341,7 +1353,7 @@ class TestStageMethods:
         result = da_v2.arbitration_stage
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 21133
 
 
 # ---------------------------------------------------------------------------
@@ -1359,7 +1371,7 @@ class TestDataAccess:
     def test_get_possible_stage_values_v2(self, da_v2):
         stages = da_v2.get_possible_stage_values()
         assert isinstance(stages, list)
-        assert len(stages) >= 2
+        assert len(stages) == 5
         assert "Arbitration" in stages
 
     def test_stage_to_group_mapping_at_stage_group_level(self, da_v2):
@@ -1376,9 +1388,8 @@ class TestDataAccess:
         da_v2.set_level("Stage")
         mapping = da_v2.stage_to_group_mapping
         assert isinstance(mapping, dict)
-        assert len(mapping) > 0
-        # Values should be stage group names
-        assert "Arbitration" in mapping.values() or len(mapping) > 0
+        assert len(mapping) == 7
+        assert "Arbitration" in mapping.values()
         # Restore
         da_v2.set_level(original_level)
 
@@ -1397,7 +1408,7 @@ class TestAnalysisMethods:
     def test_get_optionality_funnel_v1(self, da_v1):
         result = da_v1.get_optionality_funnel()
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 4
         assert "available_actions" in df.columns
         assert "Interactions" in df.columns
         assert da_v1.level in df.columns
@@ -1405,7 +1416,7 @@ class TestAnalysisMethods:
     def test_get_optionality_funnel_v2(self, da_v2):
         result = da_v2.get_optionality_funnel()
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 28
         assert "available_actions" in df.columns
 
     def test_get_ab_test_results_no_crash(self, da_v2):
@@ -1427,7 +1438,7 @@ class TestAnalysisMethods:
     def test_get_thresholding_data_propensity(self, da_v1):
         result = da_v1.get_thresholding_data(fld="Propensity")
         assert isinstance(result, pl.DataFrame)
-        assert result.height > 0
+        assert result.height == 9
         assert "Decile" in result.columns
         assert "Threshold" in result.columns
         assert "Count" in result.columns
@@ -1436,12 +1447,12 @@ class TestAnalysisMethods:
     def test_get_thresholding_data_priority(self, da_v2):
         result = da_v2.get_thresholding_data(fld="Priority")
         assert isinstance(result, pl.DataFrame)
-        assert result.height > 0
+        assert result.height == 9
 
     def test_get_thresholding_data_custom_quantile_range(self, da_v1):
         result = da_v1.get_thresholding_data(fld="Propensity", quantile_range=range(20, 100, 20))
         assert isinstance(result, pl.DataFrame)
-        assert result.height > 0
+        assert result.height == 4
 
     def test_get_thresholding_data_caches_result(self, da_v1):
         """Calling with same args should return cached result."""
@@ -1470,7 +1481,7 @@ class TestFilteringAndScoping:
         result = da_v2.priority_component_distribution(component=component, granularity="Issue", stage="Arbitration")
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 21133
         assert "Issue" in df.columns
         assert component in df.columns
 
@@ -1481,19 +1492,19 @@ class TestFilteringAndScoping:
             pytest.skip("Propensity not available")
         result = da_v2.priority_component_distribution(component=component, granularity="Action", stage=None)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 816372
 
     def test_all_components_distribution_v2(self, da_v2):
         result = da_v2.all_components_distribution(granularity="Issue", stage="Arbitration")
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 21133
         assert "Issue" in df.columns
 
     def test_all_components_distribution_no_stage(self, da_v2):
         result = da_v2.all_components_distribution(granularity="Group", stage=None)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 816372
         assert "Group" in df.columns
 
     def test_remaining_at_stage_none(self, da_v2):
@@ -1501,14 +1512,14 @@ class TestFilteringAndScoping:
         result = da_v2._remaining_at_stage(stage=None)
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 816372
         # All rows should have non-null Priority
         assert df["Priority"].null_count() == 0
 
     def test_remaining_at_stage_arbitration(self, da_v2):
         result = da_v2._remaining_at_stage(stage="Arbitration")
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 21133
         stages = df[da_v2.level].unique().to_list()
         for s in stages:
             assert s in da_v2.stages_from_arbitration_down
@@ -1517,7 +1528,7 @@ class TestFilteringAndScoping:
         result = da_v2.filtered_action_counts(groupby_cols=[da_v2.level])
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 5
         assert "no_of_offers" in df.columns
 
     def test_filtered_action_counts_with_thresholds(self, da_v2):
@@ -1527,7 +1538,7 @@ class TestFilteringAndScoping:
             priorityTH=0.5,
         )
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 5
         assert "no_of_offers" in df.columns
         assert "good_offers" in df.columns
         assert "poor_propensity_offers" in df.columns
@@ -1537,7 +1548,7 @@ class TestFilteringAndScoping:
     def test_filtered_action_counts_by_interaction(self, da_v1):
         result = da_v1.filtered_action_counts(groupby_cols=["Interaction ID"])
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 100
         assert "Interaction ID" in df.columns
 
     def test_filtered_action_counts_missing_col_raises(self, da_v1):
@@ -1557,7 +1568,7 @@ class TestWinDistributionExtended:
         lever_cond = pl.col("Issue") == first_issue
         result = da_v2.get_win_distribution_data(lever_condition=lever_cond)
         assert isinstance(result, pl.DataFrame)
-        assert result.height > 0
+        assert result.height == 71
         assert "original_win_count" in result.columns
         assert "selected_action" in result.columns
         # Should have both Selected and Rest
@@ -1621,15 +1632,17 @@ class TestOfferQualityAnalysis:
         """Test that stages_with_propensity detects stages with propensity scores."""
         stages = da_v2.stages_with_propensity
         assert isinstance(stages, list)
-        assert len(stages) > 0
-        # Should include arbitration-related stages
-        assert any("arbitration" in s.lower() or "output" in s.lower() for s in stages)
+        assert len(stages) == 5
+        assert "Arbitration" in stages
+        assert "Output" in stages
 
     def test_stages_with_propensity_v1(self, da_v1):
         """Test stages_with_propensity on v1 data."""
         stages = da_v1.stages_with_propensity
         assert isinstance(stages, list)
-        assert len(stages) > 0
+        assert len(stages) == 2
+        assert "Arbitration" in stages
+        assert "Output" in stages
 
     def test_get_offer_quality_basic(self, da_v2):
         """Test get_offer_quality returns expected structure."""
@@ -1639,7 +1652,7 @@ class TestOfferQualityAnalysis:
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 25190
         # Check for offer quality category columns
         assert "has_no_offers" in df.columns
         assert "atleast_one_relevant_action" in df.columns
@@ -1654,14 +1667,14 @@ class TestOfferQualityAnalysis:
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
-        assert df.height > 0
+        assert df.height == 25190
         # At least one category should have non-zero counts
         has_counts = (
             df.select("has_no_offers", "atleast_one_relevant_action", "only_irrelevant_actions", "atleast_one_action")
             .sum()
             .row(0)
         )
-        assert sum(has_counts) > 0
+        assert sum(has_counts) == 25190
 
     def test_get_offer_quality_includes_all_customers(self, da_v2):
         """Test that get_offer_quality includes customers even if they have no actions."""
@@ -1674,7 +1687,7 @@ class TestOfferQualityAnalysis:
         df = result.collect()
 
         # Should have customers with no offers
-        assert df.filter(pl.col("has_no_offers") > 0).height > 0
+        assert df.filter(pl.col("has_no_offers") > 0).height == 11655
 
         # Total unique customers should match first stage customer count
         first_stage = da_v2.AvailableNBADStages[0]
@@ -2061,7 +2074,7 @@ class TestMinimalSensitivity:
 
     def test_influence_values_non_negative(self, da_minimal):
         df = da_minimal.get_sensitivity(win_rank=1).collect()
-        assert (df["Influence"] >= 0).all()
+        assert df["Influence"].min() == 1
 
 
 class TestMinimalWinLoss:
@@ -2344,7 +2357,8 @@ class TestMinimalComponentDrilldown:
     def test_drilldown_includes_avg_score_columns(self, da_minimal):
         df = da_minimal.get_component_drilldown(component_name="ContactPolicyRule")
         avg_cols = [c for c in df.columns if c.startswith("avg_")]
-        assert len(avg_cols) > 0
+        assert len(avg_cols) == 3
+        assert set(avg_cols) == {"avg_Priority", "avg_Value", "avg_Propensity"}
 
     def test_drilldown_respects_scope_issue(self, da_minimal):
         """At Issue scope, ContactPolicyRule should show 2 rows (Sales, Retention)."""
