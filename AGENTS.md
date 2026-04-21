@@ -216,6 +216,36 @@ suspicious during any refactor — they often hide real bugs.
   `pxInteractionID`, etc.) in new code. Internal working columns
   (`pxRank`, `is_mandatory`, `day`) are exceptions.
 
+#### Polars gotchas worth memorising
+
+- **`filter(~bool_expr)` and nulls.** `~null` evaluates to null, and
+  `filter` treats null the same as `False` — the row is dropped. If the
+  boolean expression you're negating can produce nulls (e.g. a comparison
+  against a column that may be null), explicitly `.fill_null(False)`
+  before negating, or rewrite using `is_null() | (...)` so the predicate
+  is total. Bit us in the AGB-empty-context fix (#667).
+- **`agg(...).any(ignore_nulls=False)`.** Default `any` ignores nulls,
+  which silently turns "we have no data" into `False`. When the
+  distinction matters (e.g. tri-state `usesNBAD` / `usesAGB` flags
+  that need to render as `?`), pass `ignore_nulls=False` and let the
+  null propagate.
+
+#### Filter sentinel rows at the IO boundary
+
+External systems (Pega, third-party exports) sometimes ship "totals" or
+"summary" rows mixed into the same table as real instances — e.g. AGB
+models emit a per-configuration row with empty context keys that
+duplicates aggregate data and can carry a miscomputed AUC. **Drop these
+in the `_validate_*_data` helpers**, not in the report layer. That way
+every consumer (Quarto reports, Streamlit pages, scripts) sees a
+consistent view, and nobody has to remember to re-apply the filter.
+
+When the discriminator (e.g. `ModelTechnique == "GradientBoost"`) can
+be null because the column wasn't always emitted in older sources,
+**only filter when the discriminator is known**. Falling through on
+unknown values surfaces genuine data-quality issues instead of hiding
+them.
+
 ### Tests
 - Use pytest fixtures for shared setup.
 - Keep tests deterministic and data-driven.
@@ -415,6 +445,52 @@ network, and S3 I/O lives in alternative constructors named
 `pl.read_csv` / `pl.scan_csv` idiom and makes the class trivially
 testable with synthesized data — no monkey-patching required.
 
+When the source is a cloud service (S3, GCS, Azure Blob), keep the
+heavy SDK (`boto3`, `google-cloud-storage`, …) as a **lazy import
+inside the classmethod** and gate it via `MissingDependenciesException`
+with a `deps_group` pointing at the right optional extra (e.g.
+`pega_io`). Test the classmethod with **`moto`** (or the equivalent
+mocking library for the provider) added to the `tests` extra, and
+factor a small `_download_from_<provider>` helper so tests can mock
+at one well-defined seam. Reference: `ADMDatamart.from_s3`.
+
+### The "gold-standard" checklist for top-level analyzer classes
+
+`ADMDatamart` and `DecisionAnalyzer` are the reference implementations
+for any new (or refactored) top-level data-science class. When adding
+or rewriting one, hold yourself to all of these:
+
+1. **Pure `__init__`** — accepts already-loaded `pl.LazyFrame`s and
+   plain configuration only. No file paths, URLs, S3 keys, network
+   calls, or sub-process invocations.
+2. **All IO lives in `from_<source>` classmethods** (see the section
+   above). Each one delegates to `__init__` after loading.
+3. **Schema in a dedicated module** (`Schema.py`) using polars schemas;
+   apply via `cdh_utils._apply_schema_types(df, Schema.X)`.
+4. **`_validate_*_data` helpers** do type coercion, default columns,
+   sentinel-row filtering, and any other normalisation needed so that
+   downstream consumers can assume a clean shape.
+5. **Namespace facade for >20 public methods** — split related methods
+   into sub-classes attached as instance attributes (`.plot`,
+   `.aggregates`, `.generate`, `.bin_aggregator`). See
+   "Namespace facade for large analyzer classes" above.
+6. **Optional dependencies lazy-imported** inside the method that needs
+   them and gated via `MissingDependenciesException(deps_group=...)`.
+7. **`return_df: bool = False`** on every public plot method, paired
+   with `@overload` so type checkers know which return shape applies.
+8. **Zero `# type: ignore`** in core files. Peripherals may carry one
+   or two with comments explaining the genuinely external problem
+   (third-party stub gap, library bug).
+9. **Helpers small enough to unit-test individually** with synthetic
+   LazyFrames — exact-value assertions, not just structural checks.
+10. **Logger via `logging.getLogger(__name__)`** at module top; no
+    `print()` in library code.
+
+When auditing an existing class, walk the list, file plan items for
+each gap under `docs/plans/<feature>/`, and tackle them in priority
+order (typing < tests < refactoring) so the riskiest work lands on
+the most-tested code.
+
 ### `return_df` parameter on plot methods
 Every public method that produces a chart should accept
 `return_df: bool = False` as a keyword-only argument. When `True`,
@@ -512,6 +588,26 @@ Default to nudging the user: *"This is out of scope for the current
 PR — want me to draft an issue?"* — better one too many drafts than a
 silently-dropped follow-up.
 
+### Read the whole issue thread before fixing
+
+For any GitHub issue with comments, **read the full discussion before
+designing the fix**. The resolution often shifts from the title:
+#667 started as "filter in the report layer" and converged on "filter
+in `ADMDatamart` at load time" by the third comment. Acting on the
+title alone would have produced a correct-looking but wrongly-placed
+fix that another reviewer would have to redo.
+
+### Don't land a "plan-files-only" PR
+
+Plan files (`docs/plans/<feature>/<slug>.md`) are designed to be
+created and resolved *alongside* code changes — they're audit trail,
+not standalone deliverables. Avoid landing a PR that only adds plan
+files. If a sweep produces follow-up work that won't be picked up
+immediately, **embed the context inline in subsequent agent prompts**
+rather than committing dedicated backlog files. The next PR that
+touches the area can file (and resolve) plan entries as part of its
+diff.
+
 ## Contrib and workflow notes
 - Main tests are `python/tests`; CI runs multi-OS and multi-Python.
 - Healthcheck tests are separate and require extra deps/tools.
@@ -555,6 +651,35 @@ should explicitly forbid touching the main checkout.
 After `git worktree add`, run `uv sync --extra tests` once in the new
 worktree — the `.venv` is per-worktree, not shared.
 
+**Pre-commit hooks are not installed in new worktrees.** The
+`.git/hooks/` directory is per-worktree, so the symlinks created by
+`pre-commit install` in the main checkout don't carry over. A
+sub-agent that just runs `git commit` in a fresh worktree will bypass
+the hooks entirely, and the lint failure shows up later in CI. Two
+fixes, pick one:
+
+- **Install hooks in the worktree:** `uv run pre-commit install` once
+  per worktree, after `uv sync`. Then `git commit` is gated by the
+  same hooks as the main checkout.
+- **Run hooks explicitly before committing:**
+  `uv run pre-commit run --all-files` as the final step of the
+  agent's workflow. Mirrors what CI runs and catches everything.
+
+Either is fine; the second is a hard requirement when dispatching
+sub-agents (they don't get the developer-side `pre-commit install`
+muscle memory).
+
+If a batch of agent PRs all fail the lint check at once, the rescue
+loop is:
+
+```bash
+for wt in <branch-1> <branch-2> ...; do
+  cd ../pdstools-worktrees/$wt
+  uv run pre-commit run --all-files || true   # auto-fixes most things
+  git diff --quiet || { git add -u && git commit --amend --no-edit && git push -f; }
+done
+```
+
 ### Cleanup
 
 When a branch is merged or abandoned, prune its worktree:
@@ -570,3 +695,22 @@ git worktree remove ../pdstools-worktrees/<branch-name>
 - Sequential sub-agent runs (one finishes before the next starts) don't
   need worktrees.
 - The moment a second concurrent writer is involved, set up worktrees.
+
+### Rescuing a worktree after a session restart
+
+When a session restart kills an agent mid-edit, its worktree is left
+with uncommitted modifications. Don't blindly discard or commit them.
+Workflow:
+
+```bash
+cd ../pdstools-worktrees/<branch-name>
+git status                          # what changed?
+uv run ruff check <changed-paths>   # does it lint?
+uv run pytest <targeted-tests> -q   # do tests still pass?
+```
+
+If clean: commit-as-is, rebase onto current `origin/master`, push.
+If broken: `git restore .` (or cherry-pick the salvageable parts) and
+re-dispatch the agent. Either way, **decide explicitly** — leaving a
+worktree in a half-finished state silently rots and tangles with the
+next sweep.
