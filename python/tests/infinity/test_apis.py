@@ -194,10 +194,8 @@ def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
 
 
 def test_error_handling(httpx_mock: HTTPXMock, mock_auth):
-    httpx_mock.add_response(
-        url=re.compile(".*/repository"),
-        json={"repository_name": "Repo"},
-    )
+    # Version is resolved lazily on first .version access, so no
+    # /repository mock is needed for construction.
     client = Infinity(base_url="https://pega.com", auth=mock_auth)
 
     httpx_mock.add_response(status_code=205, json={"no_error": "details"})

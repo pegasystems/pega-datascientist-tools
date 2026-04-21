@@ -19,9 +19,15 @@ class Infinity(SyncAPIClient):
     :py:meth:`from_client_credentials`, or
     :py:meth:`from_client_id_and_secret` constructors over calling
     ``Infinity(...)`` directly — they handle auth construction for you.
-    """
 
-    version: str
+    The Pega version is resolved lazily on first access of
+    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    HTTP request is ever made; otherwise the first read of
+    ``client.version`` (or any version-dependent resource such as
+    ``client.prediction_studio``) issues a single
+    ``GET /prweb/api/PredictionStudio/v3/predictions/repository`` and
+    caches the result on the instance.
+    """
 
     def __init__(
         self,
@@ -49,20 +55,41 @@ class Infinity(SyncAPIClient):
             timeout=timeout,
         )
 
-        self.version = pega_version or self._infer_version(on_error="ignore")
+        self._version: str | None = pega_version
+        self._version_resolved: bool = pega_version is not None
 
         from . import resources
 
         self.knowledge_buddy = resources.KnowledgeBuddy(client=self)
-        if self.version:
-            self.prediction_studio = resources.prediction_studio.get(self.version)(
-                client=self,
-            )
+
+    @property
+    def version(self) -> str | None:
+        """The Pega platform version (e.g. ``"24.2"``).
+
+        Resolved lazily on first access by calling the prediction-studio
+        repository endpoint. Returns ``None`` if the version could not be
+        inferred (e.g. the host is unreachable). Pass ``pega_version=``
+        to the constructor or any ``from_*`` classmethod to skip the
+        round-trip entirely.
+        """
+        if not self._version_resolved:
+            self._version = self._infer_version(on_error="warn")
+            self._version_resolved = True
+        return self._version
 
     _VERSION_DEPENDENT_RESOURCES = frozenset({"prediction_studio"})
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
+            version = self.version
+            if version:
+                from . import resources
+
+                resource_cls = resources.prediction_studio.get(version)
+                if resource_cls is not None:
+                    instance = resource_cls(client=self)
+                    object.__setattr__(self, name, instance)
+                    return instance
             raise AttributeError(
                 f"'{name}' is not available because the Pega version could "
                 "not be determined. Pass 'pega_version' explicitly when "
@@ -85,9 +112,14 @@ class AsyncInfinity(AsyncAPIClient):
     :py:meth:`from_client_credentials`, or
     :py:meth:`from_client_id_and_secret` constructors over calling
     ``AsyncInfinity(...)`` directly.
-    """
 
-    version: str
+    The Pega version is resolved lazily on first access of
+    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    HTTP request is ever made; otherwise the first read of
+    ``client.version`` (or any version-dependent resource such as
+    ``client.prediction_studio``) issues a single HTTP probe and caches
+    the result on the instance.
+    """
 
     def __init__(
         self,
@@ -115,20 +147,41 @@ class AsyncInfinity(AsyncAPIClient):
             timeout=timeout,
         )
 
-        self.version = pega_version or self._infer_version(on_error="ignore")
+        self._version: str | None = pega_version
+        self._version_resolved: bool = pega_version is not None
 
         from . import resources
 
         self.knowledge_buddy = resources.AsyncKnowledgeBuddy(client=self)
-        if self.version:
-            self.prediction_studio = resources.prediction_studio.get_async(
-                self.version,
-            )(client=self)
+
+    @property
+    def version(self) -> str | None:
+        """The Pega platform version (e.g. ``"24.2"``).
+
+        Resolved lazily on first access. The underlying
+        ``_infer_version`` helper bridges to the async HTTP client via a
+        blocking portal, so reading ``client.version`` from synchronous
+        code is supported. Pass ``pega_version=`` to the constructor or
+        any ``from_*`` classmethod to skip the round-trip entirely.
+        """
+        if not self._version_resolved:
+            self._version = self._infer_version(on_error="warn")
+            self._version_resolved = True
+        return self._version
 
     _VERSION_DEPENDENT_RESOURCES = frozenset({"prediction_studio"})
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
+            version = self.version
+            if version:
+                from . import resources
+
+                resource_cls = resources.prediction_studio.get_async(version)
+                if resource_cls is not None:
+                    instance = resource_cls(client=self)
+                    object.__setattr__(self, name, instance)
+                    return instance
             raise AttributeError(
                 f"'{name}' is not available because the Pega version could "
                 "not be determined. Pass 'pega_version' explicitly when "
