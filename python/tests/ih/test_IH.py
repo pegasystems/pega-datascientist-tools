@@ -12,11 +12,12 @@ from plotly.graph_objs import Figure
 
 @pytest.fixture
 def ih():
-    return IH.from_mock_data()
+    # seed=42 makes from_mock_data deterministic so tests can assert exact values.
+    return IH.from_mock_data(seed=42)
 
 
 def test_mockdata(ih):
-    assert ih.data.collect().height > 100000  # interactions
+    assert ih.data.collect().height == 102294  # interactions (n=100000 + multi-outcome rows)
     assert ih.data.collect().width == 13  # nr of IH properties in the sample data
 
     summary = ih.aggregates.summarize_by_interaction().collect()
@@ -28,44 +29,53 @@ def test_summarize_by_interaction_basic(ih):
     # Basic call without parameters
     result = ih.aggregates.summarize_by_interaction().collect()
     assert result.height == 100000
-    assert "InteractionID" in result.columns
-    assert "Interaction_Outcome_Engagement" in result.columns
-    assert "Interaction_Outcome_Conversion" in result.columns
-    assert "Interaction_Outcome_OpenRate" in result.columns
+    assert result.columns == [
+        "InteractionID",
+        "Interaction_Outcome_Engagement",
+        "Interaction_Outcome_OpenRate",
+        "Interaction_Outcome_Conversion",
+        "Propensity",
+    ]
 
 
 def test_summarize_by_interaction_with_by(ih):
     """Test summarize_by_interaction with 'by' parameter"""
     # Test with string parameter
     result_channel = ih.aggregates.summarize_by_interaction(by="Channel").collect()
-    assert "Channel" in result_channel.columns
+    assert result_channel.columns[0] == "Channel"
     assert result_channel.height == 100000
 
     # Test with list parameter
     result_multi = ih.aggregates.summarize_by_interaction(
         by=["Channel", "Direction"],
     ).collect()
-    assert "Channel" in result_multi.columns
-    assert "Direction" in result_multi.columns
+    assert result_multi.columns[:2] == ["Channel", "Direction"]
+    assert result_multi.height == 100000
 
     # Test with Polars expression
     result_expr = ih.aggregates.summarize_by_interaction(
         by=pl.col("Channel").alias("ChannelRenamed"),
     ).collect()
-    assert "ChannelRenamed" in result_expr.columns
+    assert result_expr.columns[0] == "ChannelRenamed"
+    assert result_expr.height == 100000
 
 
 def test_summarize_by_interaction_with_every(ih):
     """Test summarize_by_interaction with 'every' parameter"""
-    # Test with string parameter
+    # Test with string parameter — height is approximately deterministic.
+    # The mock data anchors on datetime.now(), so the exact number of
+    # interaction-day pairs shifts by ±a handful when day-boundary placement
+    # differs across CI runs. Tight tolerance keeps the value test meaningful.
     result_daily = ih.aggregates.summarize_by_interaction(every="1d").collect()
-    assert "OutcomeTime" in result_daily.columns
+    assert result_daily.columns[0] == "OutcomeTime"
+    assert result_daily.height == pytest.approx(100570, abs=20)
 
-    # Test with timedelta
+    # Test with timedelta — must produce identical result to "1d"
     result_td = ih.aggregates.summarize_by_interaction(
         every=timedelta(days=1),
     ).collect()
-    assert "OutcomeTime" in result_td.columns
+    assert result_td.columns[0] == "OutcomeTime"
+    assert result_td.height == result_daily.height
 
 
 def test_summarize_by_interaction_with_query(ih):
@@ -74,15 +84,14 @@ def test_summarize_by_interaction_with_query(ih):
     result_web = ih.aggregates.summarize_by_interaction(
         query=pl.col("Channel") == "Web",
     ).collect()
-    assert result_web.height < 100000  # Should be filtered
+    assert result_web.height == 49934  # filtered Web subset
 
-    # Test with complex query
+    # Test with complex query — all Web channel interactions are Inbound
+    # in the mock data, so the additional Direction filter is a no-op.
     result_complex = ih.aggregates.summarize_by_interaction(
         query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
-    # In the mock data, all Web channel interactions have Direction as "Inbound"
-    # So we just verify that the complex query still returns results
-    assert result_complex.height > 0
+    assert result_complex.height == 49934
     assert result_complex.height <= result_web.height
 
 
@@ -95,11 +104,10 @@ def test_summarize_by_interaction_complex(ih):
         debug=True,
     ).collect()
 
-    assert "Channel" in result.columns
-    assert "Direction" in result.columns
-    assert "OutcomeTime" in result.columns
-    assert "Outcomes" in result.columns
-    assert result.height > 0
+    assert {"Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
+    # See note on every="1d" above — week-bucket placement varies slightly with
+    # the system date that mock data anchors on.
+    assert result.height == pytest.approx(100189, abs=20)
 
 
 def test_summary_success_rates_basic(ih):
@@ -114,58 +122,61 @@ def test_summary_success_rates_basic(ih):
         assert f"StdErr_{metric}" in result.columns
 
     assert "Interactions" in result.columns
-    assert result.height > 0
+    # Without grouping, summary_success_rates collapses to a single row.
+    assert result.height == 1
+    assert result["Interactions"].item() == 100000
 
 
 def test_summary_success_rates_with_by(ih):
     """Test summary_success_rates with 'by' parameter"""
-    # Test with string parameter
+    # Test with string parameter — mock data has exactly 2 channels (Web, Email)
     result_channel = ih.aggregates.summary_success_rates(by="Channel").collect()
     assert "Channel" in result_channel.columns
-    assert result_channel.height > 0
+    assert result_channel.height == 2
 
-    # Test with list parameter
+    # Test with list parameter — Web is always Inbound and Email always Outbound,
+    # so (Channel, Direction) yields the same 2 rows.
     result_multi = ih.aggregates.summary_success_rates(
         by=["Channel", "Direction"],
     ).collect()
-    assert "Channel" in result_multi.columns
-    assert "Direction" in result_multi.columns
-    assert result_multi.height > 0
+    assert {"Channel", "Direction"}.issubset(result_multi.columns)
+    assert result_multi.height == 2
 
     # Test with Polars expression
     result_expr = ih.aggregates.summary_success_rates(
         by=pl.col("Channel").alias("ChannelRenamed"),
     ).collect()
     assert "ChannelRenamed" in result_expr.columns
-    assert result_expr.height > 0
+    assert result_expr.height == 2
 
 
 def test_summary_success_rates_with_every(ih):
     """Test summary_success_rates with 'every' parameter"""
-    # Test with string parameter
+    # Roughly 90 days of mock data. Exact bucket count drifts ±1 because the
+    # mock data is anchored on the current system date.
     result_daily = ih.aggregates.summary_success_rates(every="1d").collect()
     assert "OutcomeTime" in result_daily.columns
-    assert result_daily.height > 0
+    assert result_daily.height == pytest.approx(91, abs=2)
 
-    # Test with timedelta
+    # timedelta must produce identical result
     result_td = ih.aggregates.summary_success_rates(every=timedelta(days=1)).collect()
     assert "OutcomeTime" in result_td.columns
-    assert result_td.height > 0
+    assert result_td.height == result_daily.height
 
 
 def test_summary_success_rates_with_query(ih):
     """Test summary_success_rates with 'query' parameter"""
-    # Test with simple query
+    # Test with simple query — collapses to one summary row for Web subset
     result_web = ih.aggregates.summary_success_rates(
         query=pl.col("Channel") == "Web",
     ).collect()
-    assert result_web.height > 0
+    assert result_web.height == 1
 
-    # Test with complex query
+    # All Web is Inbound in mock data, so adding Direction is a no-op.
     result_complex = ih.aggregates.summary_success_rates(
         query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
-    assert result_complex.height > 0
+    assert result_complex.height == 1
     assert result_complex.height <= result_web.height
 
     # Verify that the query affects the data — use Conversion (global metric,
@@ -190,12 +201,11 @@ def test_summary_success_rates_complex(ih):
         debug=True,
     ).collect()
 
-    assert "PropensityBin" in result.columns
-    assert "Channel" in result.columns
-    assert "Direction" in result.columns
-    assert "OutcomeTime" in result.columns
-    assert "Outcomes" in result.columns
-    assert result.height > 0
+    assert {"PropensityBin", "Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
+    # 10 propensity bins × ~14 weeks × 2 channel/direction combos, with some
+    # bins empty in some weeks. Slight drift with system date; see the every="1d"
+    # note above.
+    assert result.height == pytest.approx(279, abs=20)
 
     # Verify calculations
     for metric in ih.positive_outcome_labels.keys():
@@ -218,56 +228,60 @@ def test_summary_outcomes_basic(ih):
     """Test basic functionality of summary_outcomes"""
     result = ih.aggregates.summary_outcomes().collect()
 
-    # Check that the result contains the expected columns
-    assert "Outcome" in result.columns
-    assert "Count" in result.columns
-    assert result.height > 0
+    # Mock data emits exactly these 5 outcome labels with deterministic counts
+    # under seed=42.
+    assert result.columns == ["Outcome", "Count"]
+    assert result.height == 5
+    assert dict(zip(result["Outcome"].to_list(), result["Count"].to_list(), strict=True)) == {
+        "Accepted": 588,
+        "Conversion": 639,
+        "Clicked": 1067,
+        "Impression": 49934,
+        "Pending": 50066,
+    }
 
 
 def test_summary_outcomes_with_by(ih):
     """Test summary_outcomes with 'by' parameter"""
-    # Test with string parameter
+    # Test with string parameter — 5 outcomes × Web/Email, with one outcome
+    # appearing only on Email and another only on Web => 6 rows.
     result_channel = ih.aggregates.summary_outcomes(by="Channel").collect()
-    assert "Channel" in result_channel.columns
-    assert "Outcome" in result_channel.columns
-    assert result_channel.height > 0
+    assert {"Channel", "Outcome"}.issubset(result_channel.columns)
+    assert result_channel.height == 6
 
-    # Test with list parameter
+    # Direction is fully determined by Channel, so the row count is unchanged.
     result_multi = ih.aggregates.summary_outcomes(by=["Channel", "Direction"]).collect()
-    assert "Channel" in result_multi.columns
-    assert "Direction" in result_multi.columns
-    assert "Outcome" in result_multi.columns
-    assert result_multi.height > 0
+    assert {"Channel", "Direction", "Outcome"}.issubset(result_multi.columns)
+    assert result_multi.height == 6
 
 
 def test_summary_outcomes_with_every(ih):
     """Test summary_outcomes with 'every' parameter"""
-    # Test with string parameter
+    # ~5 outcomes × ~91 days, minus some (outcome, day) combos that don't appear.
+    # Drifts slightly with system date.
     result_daily = ih.aggregates.summary_outcomes(every="1d").collect()
-    assert "OutcomeTime" in result_daily.columns
-    assert "Outcome" in result_daily.columns
-    assert result_daily.height > 0
+    assert {"OutcomeTime", "Outcome"}.issubset(result_daily.columns)
+    assert result_daily.height == pytest.approx(452, abs=20)
 
-    # Test with timedelta
+    # timedelta must produce identical result
     result_td = ih.aggregates.summary_outcomes(every=timedelta(days=1)).collect()
-    assert "OutcomeTime" in result_td.columns
-    assert "Outcome" in result_td.columns
-    assert result_td.height > 0
+    assert {"OutcomeTime", "Outcome"}.issubset(result_td.columns)
+    assert result_td.height == result_daily.height
 
 
 def test_summary_outcomes_with_query(ih):
     """Test summary_outcomes with 'query' parameter"""
-    # Test with simple query
+    # Test with simple query — Web subset has Impression/Clicked/Pending only.
     result_web = ih.aggregates.summary_outcomes(
         query=pl.col("Channel") == "Web",
     ).collect()
-    assert result_web.height > 0
+    assert result_web.height == 3
 
-    # Test with complex query
+    # Adding Direction is a no-op (all Web is Inbound)
     result_complex = ih.aggregates.summary_outcomes(
         query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
-    assert result_complex.height > 0
+    assert result_complex.height == 3
 
     # Verify that the complex query returns fewer or equal rows
     assert result_complex.height <= result_web.height
@@ -285,12 +299,10 @@ def test_summary_outcomes_complex(ih):
         query=pl.col("Channel").is_not_null(),
     ).collect()
 
-    assert "Channel" in result.columns
-    assert "Direction" in result.columns
-    assert "OutcomeTime" in result.columns
-    assert "Outcome" in result.columns
-    assert "Count" in result.columns
-    assert result.height > 0
+    assert {"Channel", "Direction", "OutcomeTime", "Outcome", "Count"}.issubset(result.columns)
+    # ~14 weeks × 2 channel/direction × ~3 outcomes per channel.
+    # Slight drift with system date; see the every="1d" note above.
+    assert result.height == pytest.approx(84, abs=15)
 
     # Verify sorting
     # The result should be sorted by Count (descending) and then by the group_by columns
@@ -364,20 +376,22 @@ def ih_discriminating():
 
 def test_ih_from_mock_data_sets_outcome_labels_used():
     """from_mock_data always resolves and stores outcome_labels_used."""
-    ih = IH.from_mock_data(n=1000)
-    assert hasattr(ih, "outcome_labels_used")
-    assert ih.outcome_labels_used is not None
-    assert isinstance(ih.outcome_labels_used, dict)
+    ih = IH.from_mock_data(n=1000, seed=42)
+    # With seed=42 the mock data deterministically yields these channel-aware
+    # labels (Email may surface no Accepts at this small n, which is fine).
+    assert ih.outcome_labels_used == {
+        "Email/Outbound": {"Impressions": [], "Accepts": []},
+        "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+    }
 
 
 def test_ih_outcome_labels_used_channel_aware():
     """Web uses Clicked; Call Center uses Accepted."""
-    ih = IH.from_mock_data(n=1000)
+    ih = IH.from_mock_data(n=1000, seed=42)
     labels = ih.outcome_labels_used
-    web_key = next((k for k in labels if k.startswith("Web/")), None)
-    assert web_key is not None
-    assert "Clicked" in labels[web_key]["Accepts"]
-    assert "Accepted" not in labels[web_key]["Accepts"]
+    assert "Web/Inbound" in labels
+    assert labels["Web/Inbound"]["Accepts"] == ["Clicked"]
+    assert "Accepted" not in labels["Web/Inbound"]["Accepts"]
 
 
 def test_ih_channel_aware_engagement_web_accepted_not_positive(ih_discriminating):
@@ -513,7 +527,8 @@ def test_schema_dtypes_exact():
 def test_validate_ih_data_returns_lazyframe_and_capitalises():
     """Capitalises py/px-prefixed columns and returns a LazyFrame."""
     out = IH._validate_ih_data(_minimal_valid_ih_lf())
-    assert isinstance(out, pl.LazyFrame)
+    # Return type is annotated pl.LazyFrame on the production code,
+    # so an isinstance check would be obviously redundant.
     names = out.collect_schema().names()
     assert "InteractionID" in names
     assert "Outcome" in names
