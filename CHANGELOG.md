@@ -34,6 +34,16 @@ guide.
 
 ### Changed
 
+- Decision Analyzer app routes through programmatic `st.navigation()`
+  instead of Streamlit's auto-discovered `pages/` directory. Pages that
+  require loaded data (Overview, Action Distribution, Action Funnel,
+  Global Sensitivity, Win/Loss, Optionality, Offer Quality, Thresholding,
+  Arbitration Distribution, Single Decision) are hidden from the sidebar
+  until data is uploaded — the Home page lists them as "Upload data above
+  to unlock these analysis pages" so users still know what's available.
+  Hidden pages remain reachable by URL; existing `ensure_data()` guards
+  apply unchanged. `standard_page_config()` is now idempotent so per-page
+  `st.set_page_config` calls don't conflict with the entry-script call.
 - `DecisionAnalyzer` reorganised into a namespace facade (matching the
   `ADMDatamart` pattern): 16 aggregation methods moved to
   `da.aggregates.*` and 12 scoring / ranking / lever methods moved to

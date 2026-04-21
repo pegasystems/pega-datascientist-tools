@@ -66,6 +66,13 @@ def _apply_sidebar_logo():
 def standard_page_config(page_title: str, layout: Literal["centered", "wide"] = "wide", **kwargs):
     """Apply a consistent ``st.set_page_config`` across all pdstools apps.
 
+    Idempotent: when called more than once in the same script run (e.g. an
+    ``st.navigation()`` entry script calls it before routing, and the routed
+    page calls it again), the second call is a no-op rather than the
+    ``StreamlitAPIException`` Streamlit normally raises. This lets the same
+    page module work both standalone (direct ``AppTest.from_file`` /
+    ``streamlit run pages/X.py``) and inside a navigation router.
+
     Parameters
     ----------
     page_title : str
@@ -76,11 +83,16 @@ def standard_page_config(page_title: str, layout: Literal["centered", "wide"] = 
         Extra keyword arguments forwarded to ``st.set_page_config``.
 
     """
+    from streamlit.errors import StreamlitAPIException
+
     kwargs.setdefault("menu_items", _MENU_ITEMS)
     logo_path = _ASSETS_DIR / "pega-logo.svg"
     if logo_path.exists():
         kwargs.setdefault("page_icon", str(logo_path))
-    st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+    try:
+        st.set_page_config(layout=layout, page_title=page_title, **kwargs)
+    except StreamlitAPIException:
+        pass
     _apply_sidebar_logo()
 
 
