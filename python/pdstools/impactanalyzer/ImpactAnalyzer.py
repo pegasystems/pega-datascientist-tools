@@ -815,7 +815,6 @@ class ImpactAnalyzer:
             raise MissingDependenciesException(
                 ["fastexcel"],
                 namespace="ImpactAnalyzer.from_excel",
-                deps_group="impactanalyzer",
             ) from None
 
         if snapshot_time is None:

@@ -2852,6 +2852,7 @@ api = [
     { name = "pydantic" },
 ]
 app = [
+    { name = "fastexcel" },
     { name = "great-tables" },
     { name = "humanize" },
     { name = "ipykernel" },
@@ -2902,9 +2903,6 @@ healthcheck = [
     { name = "quarto" },
     { name = "requests" },
     { name = "xlsxwriter" },
-]
-impactanalyzer = [
-    { name = "fastexcel" },
 ]
 onnx = [
     { name = "anyio" },
@@ -2974,7 +2972,7 @@ requires-dist = [
     { name = "coverage", marker = "extra == 'tests'" },
     { name = "duckdb", marker = "extra == 'docs'" },
     { name = "duckdb", marker = "extra == 'explanations'" },
-    { name = "fastexcel", marker = "extra == 'impactanalyzer'", specifier = ">=0.7.0" },
+    { name = "fastexcel", marker = "extra == 'app'", specifier = ">=0.7.0" },
     { name = "furo", marker = "extra == 'docs'" },
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13" },
     { name = "httpx", marker = "extra == 'api'" },
@@ -2994,7 +2992,7 @@ requires-dist = [
     { name = "pdstools", extras = ["adm"], marker = "extra == 'healthcheck'" },
     { name = "pdstools", extras = ["all"], marker = "extra == 'tests'" },
     { name = "pdstools", extras = ["api"], marker = "extra == 'onnx'" },
-    { name = "pdstools", extras = ["app", "explanations", "impactanalyzer", "onnx", "pega-io"], marker = "extra == 'all'" },
+    { name = "pdstools", extras = ["app", "explanations", "onnx", "pega-io"], marker = "extra == 'all'" },
     { name = "pdstools", extras = ["healthcheck"], marker = "extra == 'app'" },
     { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0" },
     { name = "plotly", extras = ["express"], marker = "extra == 'explanations'" },
@@ -3031,7 +3029,7 @@ requires-dist = [
     { name = "xgboost", marker = "extra == 'docs'" },
     { name = "xlsxwriter", marker = "extra == 'healthcheck'", specifier = ">=3.0" },
 ]
-provides-extras = ["adm", "pega-io", "api", "impactanalyzer", "healthcheck", "explanations", "app", "onnx", "all", "dev", "docs", "tests"]
+provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "app", "onnx", "all", "dev", "docs", "tests"]
 
 [[package]]
 name = "pexpect"
