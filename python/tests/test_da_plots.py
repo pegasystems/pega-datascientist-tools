@@ -496,8 +496,8 @@ class TestOfferQualityPiecharts:
         # Step 1: Get filtered action counts (mimicking the Streamlit page workflow)
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         # Step 2: Get offer quality data
@@ -506,7 +506,7 @@ class TestOfferQualityPiecharts:
         # Step 3: Create pie charts
         fig = offer_quality_piecharts(
             quality_data,
-            propensityTH=0.5,
+            propensity_th=0.5,
             AvailableNBADStages=da_v2.AvailableNBADStages,
             level=da_v2.level,
         )
@@ -519,15 +519,15 @@ class TestOfferQualityPiecharts:
 
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
-            propensityTH=0.5,
+            propensity_th=0.5,
             AvailableNBADStages=da_v2.AvailableNBADStages,
             level=da_v2.level,
         )
@@ -542,15 +542,15 @@ class TestOfferQualityPiecharts:
 
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
-            propensityTH=0.5,
+            propensity_th=0.5,
             AvailableNBADStages=["NonExistent_Stage"],
             level=da_v2.level,
         )
@@ -565,15 +565,15 @@ class TestOfferQualityPiecharts:
 
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
 
         fig = offer_quality_piecharts(
             quality_data,
-            propensityTH=0.5,
+            propensity_th=0.5,
             AvailableNBADStages=["Arbitration"],
             level=da_v2.level,
         )
@@ -592,8 +592,8 @@ class TestOfferQualitySinglePie:
 
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
-            propensityTH=0.05,
-            priorityTH=50,
+            propensity_th=0.05,
+            priority_th=50,
         )
 
         quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
@@ -601,7 +601,7 @@ class TestOfferQualitySinglePie:
         fig = offer_quality_single_pie(
             quality_data,
             stage="Arbitration",
-            propensityTH=0.05,
+            propensity_th=0.05,
             level=da_v2.level,
         )
 
@@ -615,8 +615,8 @@ class TestOfferQualitySinglePie:
 
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
-            propensityTH=0.05,
-            priorityTH=50,
+            propensity_th=0.05,
+            priority_th=50,
         )
 
         quality_data = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
@@ -624,7 +624,7 @@ class TestOfferQualitySinglePie:
         fig = offer_quality_single_pie(
             quality_data,
             stage="Output",
-            propensityTH=0.05,
+            propensity_th=0.05,
             level=da_v2.level,
         )
 
@@ -642,8 +642,8 @@ class TestGetTrendChart:
         # Step 1: Get filtered action counts
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         # Step 2: Get offer quality data with day grouping
@@ -661,8 +661,8 @@ class TestGetTrendChart:
         # Step 1: Get filtered action counts
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID", "day"],
-            propensityTH=0.5,
-            priorityTH=50,
+            propensity_th=0.5,
+            priority_th=50,
         )
 
         # Step 2: Get offer quality data with day grouping

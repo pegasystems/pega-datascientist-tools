@@ -94,19 +94,19 @@ def _offer_quality_pie(best_stage: str, level: str):
     if all(v is None for v in prop_values) or all(v is None for v in prio_values):
         return None
 
-    propensityTH = prop_values[1] if prop_values[1] is not None else 0.10
-    priorityTH = prio_values[0] if prio_values[0] is not None else 0.0
+    propensity_th = prop_values[1] if prop_values[1] is not None else 0.10
+    priority_th = prio_values[0] if prio_values[0] is not None else 0.0
 
     action_counts = _da.filtered_action_counts(
         groupby_cols=["Stage Group", "Interaction ID"],
-        priorityTH=priorityTH,
-        propensityTH=propensityTH,
+        priority_th=priority_th,
+        propensity_th=propensity_th,
     )
     quality_data = _da.get_offer_quality(action_counts, group_by="Interaction ID")
     return offer_quality_single_pie(
         quality_data,
         stage=best_stage,
-        propensityTH=propensityTH,
+        propensity_th=propensity_th,
         level="Stage Group",
     )
 

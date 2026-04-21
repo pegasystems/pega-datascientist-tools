@@ -1618,8 +1618,8 @@ class TestFilteringAndScoping:
     def test_filtered_action_counts_with_thresholds(self, da_v2):
         result = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level],
-            propensityTH=0.5,
-            priorityTH=0.5,
+            propensity_th=0.5,
+            priority_th=0.5,
         )
         df = result.collect()
         assert df.height == 5
@@ -1732,7 +1732,7 @@ class TestOfferQualityAnalysis:
         """Test get_offer_quality returns expected structure."""
         # get_offer_quality requires action_counts to have threshold columns
         action_counts = da_v2.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1747,7 +1747,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_with_thresholds(self, da_v2):
         """Test get_offer_quality respects propensity/priority thresholds."""
         action_counts = da_v2.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.5, priorityTH=50.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.5, priority_th=50.0
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1764,8 +1764,8 @@ class TestOfferQualityAnalysis:
         """Test that get_offer_quality includes customers even if they have no actions."""
         action_counts = da_v2.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
-            propensityTH=0.99,  # High threshold to filter most
-            priorityTH=999.0,  # High threshold to filter most
+            propensity_th=0.99,  # High threshold to filter most
+            priority_th=999.0,  # High threshold to filter most
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1788,7 +1788,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_stage_without_propensity(self, da_v2):
         """Test offer quality for stages without propensity uses atleast_one_action category."""
         action_counts = da_v2.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensityTH=0.1, priorityTH=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
         )
         result = da_v2.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()

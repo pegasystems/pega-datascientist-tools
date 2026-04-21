@@ -2180,8 +2180,8 @@ class DecisionAnalyzer:
     def filtered_action_counts(
         self,
         groupby_cols: list[str],
-        propensityTH: float | None = None,
-        priorityTH: float | None = None,
+        propensity_th: float | None = None,
+        priority_th: float | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """Return action counts from the sample, optionally classified by propensity/priority thresholds.
@@ -2190,9 +2190,9 @@ class DecisionAnalyzer:
         ----------
         groupby_cols : list of str
             Column names to group by.
-        propensityTH : float, optional
+        propensity_th : float, optional
             Propensity threshold for classifying offers.
-        priorityTH : float, optional
+        priority_th : float, optional
             Priority threshold for classifying offers.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Extra filters applied to the sample (e.g. channel filter).
@@ -2210,7 +2210,7 @@ class DecisionAnalyzer:
             if col not in df.collect_schema().names():
                 raise ValueError(f"Column '{col}' not found in the dataframe.")
 
-        if propensityTH is None or priorityTH is None:
+        if propensity_th is None or priority_th is None:
             return df.group_by(groupby_cols).agg(
                 no_of_offers=pl.count("Action"),
             )
@@ -2225,19 +2225,19 @@ class DecisionAnalyzer:
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Propensity") < propensity_th) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Priority") < priority_th) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
                 has_propensity
-                & (pl.col("Propensity") >= propensityTH)
+                & (pl.col("Propensity") >= propensity_th)
                 & (pl.col("Propensity") != 0.5)
-                & (pl.col("Priority") >= priorityTH)
+                & (pl.col("Priority") >= priority_th)
             )
             .count()
             .alias("good_offers"),

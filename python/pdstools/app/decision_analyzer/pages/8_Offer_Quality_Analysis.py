@@ -61,7 +61,7 @@ if propensity_th is None or priority_th is None:
 with st.session_state["sidebar"]:
     stage_level_selector()
 
-    propensityTH = (
+    propensity_th = (
         st.slider(
             "Minimum propensity for relevance",
             propensity_th[0] * 100,
@@ -72,7 +72,7 @@ with st.session_state["sidebar"]:
         )
         / 100
     )
-    priorityTH = st.slider(
+    priority_th = st.slider(
         "Minimum priority for relevance",
         priority_th[0],
         priority_th[2],
@@ -101,8 +101,8 @@ channel_filter = st.session_state.get("page_channel_expr")
 
 action_counts = st.session_state.decision_data.filtered_action_counts(
     groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
-    priorityTH=priorityTH,
-    propensityTH=propensityTH,
+    priority_th=priority_th,
+    propensity_th=propensity_th,
     additional_filters=channel_filter,
 )
 
@@ -114,7 +114,7 @@ with st.container(border=True):
     st.plotly_chart(
         offer_quality_piecharts(
             vf,
-            propensityTH=propensityTH,
+            propensity_th=propensity_th,
             AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
             level=st.session_state.decision_data.level,
         ),

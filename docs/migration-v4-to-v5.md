@@ -187,6 +187,23 @@ da.get_available_fields_for_filtering(categorical_only=True)
 It was only ever called from `__init__` — no public callers in the
 ecosystem. Renamed to `_cleanup_raw_data`. If you were calling it
 externally, build a new `DecisionAnalyzer` instead.
+### Decision Analyzer: `propensityTH` / `priorityTH` → `propensity_th` / `priority_th`
+
+The `propensityTH` and `priorityTH` keyword arguments have been renamed
+to snake_case across the Decision Analyzer API. Affected callables:
+`DecisionAnalyzer.get_offer_quality(...)`,
+`pdstools.decision_analyzer.plots.offer_quality_piecharts(...)`, and
+`pdstools.decision_analyzer.plots.offer_quality_single_pie(...)`.
+
+```python
+# Before:
+da.get_offer_quality(propensityTH=0.5, priorityTH=50)
+offer_quality_piecharts(df, propensityTH=0.5, AvailableNBADStages=stages)
+
+# After (v5):
+da.get_offer_quality(propensity_th=0.5, priority_th=50)
+offer_quality_piecharts(df, propensity_th=0.5, AvailableNBADStages=stages)
+```
 
 ---
 

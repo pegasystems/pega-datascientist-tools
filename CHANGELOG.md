@@ -35,6 +35,17 @@ guide.
 ### Changed
 
 - (To be populated by the v5 cleanup PRs.)
+- Decision Analyzer plot helpers: renamed `propensityTH` / `priorityTH`
+  keyword arguments to `propensity_th` / `priority_th` on
+  `DecisionAnalyzer.get_offer_quality`,
+  `pdstools.decision_analyzer.plots.offer_quality_piecharts`, and
+  `pdstools.decision_analyzer.plots.offer_quality_single_pie`. See the
+  migration guide for before/after examples.
+- `pdstools.decision_analyzer.plots` is now a package (split into private
+  topical submodules `_sensitivity`, `_winloss`, `_optionality`,
+  `_funnel`, `_distribution`, `_components`, `_trend`, `_offer_quality`).
+  The public surface (`Plot` class, free helper functions) is unchanged
+  apart from the `propensityTH`/`priorityTH` rename above.
 - Streamlit apps audited and aligned with `AGENTS.md` "Streamlit apps"
   rules: every page now calls `standard_page_config(...)` before any other
   Streamlit output (Decision Analyzer pages 2–10 + both Health Check
