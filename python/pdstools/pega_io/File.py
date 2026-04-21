@@ -33,11 +33,32 @@ _SUPPORTED_EXTENSIONS: set[str] = {
     ".ndjson",
     ".jsonl",
     ".json",
+    ".xlsx",
+    ".xls",
     ".zip",
     ".tar",
     ".tgz",
     ".gz",
 }
+
+
+def _read_excel(path, **kwargs) -> pl.DataFrame:
+    """Read an Excel file via polars, surfacing the optional-dependency requirement.
+
+    Polars dispatches Excel reading to ``fastexcel``/``calamine`` and raises a
+    bare :class:`ModuleNotFoundError` when that backend is missing.  We catch it
+    here and re-raise as :class:`MissingDependenciesException` so the rest of
+    the codebase can rely on a single, package-manager-neutral error path.
+    """
+    try:
+        return pl.read_excel(path, **kwargs)
+    except ModuleNotFoundError:
+        from ..utils.namespaces import MissingDependenciesException
+
+        raise MissingDependenciesException(
+            ["fastexcel"],
+            namespace="pega_io.read_data (Excel support)",
+        ) from None
 
 
 def _is_artifact(name: str) -> bool:
@@ -146,7 +167,7 @@ def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
 def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
     """Read data from various file formats and sources.
 
-    Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, zip, tar, tar.gz, tgz, gz.
+    Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, xlsx, xls, zip, tar, tar.gz, tgz, gz.
     Handles both individual files and directories (including Hive-partitioned structures).
     Archives (zip, tar) are automatically extracted to temporary directories.
     Gzip files (.gz) are automatically decompressed.
@@ -162,6 +183,7 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         - CSV files
         - Arrow/IPC/Feather files
         - NDJSON/JSONL files
+        - Excel files (.xlsx, .xls — requires the optional ``fastexcel`` package)
         - GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)
         - ZIP archives including Pega Dataset Export format (extracted automatically)
         - TAR archives including .tar.gz and .tgz (extracted automatically)
@@ -310,6 +332,8 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         df = pl.scan_ipc(path)
     elif extension in {".ndjson", ".jsonl", ".json"}:
         df = pl.scan_ndjson(path)
+    elif extension in {".xlsx", ".xls"}:
+        df = _read_excel(path).lazy()
     elif extension is None:
         raise ValueError("No data files found in directory")
     else:

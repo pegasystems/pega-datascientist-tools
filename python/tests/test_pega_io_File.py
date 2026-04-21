@@ -197,3 +197,25 @@ class TestGetLatestFile:
     def test_unknown_target_returns_string(self, tmp_path):
         result = F.get_latest_file(str(tmp_path), target="something_else")
         assert result == "Target not found"
+
+
+# ---------------------------------------------------------------------------
+# Excel support in read_data
+# ---------------------------------------------------------------------------
+
+
+class TestReadDataExcel:
+    FIXTURE = Path(__file__).parent / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
+
+    def test_read_data_xlsx_returns_lazyframe(self):
+        result = F.read_data(self.FIXTURE)
+        assert isinstance(result, pl.LazyFrame)
+
+    def test_read_data_xlsx_known_columns_and_value(self):
+        df = F.read_data(self.FIXTURE).collect()
+        assert "ExperimentName" in df.columns
+        assert "ChannelName" in df.columns
+        assert df.height == 8
+        # Round-trip parity with a direct pl.read_excel call on the same fixture.
+        expected = pl.read_excel(self.FIXTURE)
+        assert df.equals(expected)

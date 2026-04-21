@@ -807,15 +807,14 @@ class ImpactAnalyzer:
             read_kwargs["sheet_id"] = sheet_name
         # None → polars default (first sheet)
 
-        try:
-            df = pl.read_excel(excel_source, **read_kwargs)
-        except ModuleNotFoundError:
-            from ..utils.namespaces import MissingDependenciesException
+        from ..pega_io.File import _read_excel, read_data
 
-            raise MissingDependenciesException(
-                ["fastexcel"],
-                namespace="ImpactAnalyzer.from_excel",
-            ) from None
+        if read_kwargs:
+            # Sheet selection isn't part of read_data's contract — call the
+            # shared Excel helper so we still get the fastexcel shim.
+            df = _read_excel(excel_source, **read_kwargs)
+        else:
+            df = read_data(excel_source).collect()
 
         if snapshot_time is None:
             if "SnapshotTime" not in df.columns:
