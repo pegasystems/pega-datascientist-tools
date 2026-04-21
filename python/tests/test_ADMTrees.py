@@ -1,6 +1,7 @@
 """Tests for ADM Gradient Boosting (ADMTrees) functionality."""
 
 import pathlib
+import re
 
 import pytest
 from pdstools.adm.ADMTrees import ADMTreesModel, parse_split
@@ -667,3 +668,13 @@ def test_splits_and_gains_lengths_aligned(tree_sample):
     silently misaligning split→gain pairs in the fallback path."""
     total_splits = sum(len(s) for s in tree_sample.splits_per_tree.values())
     assert tree_sample.gains_per_split.height == total_splits
+
+
+def test_score_missing_predictor_raises_helpful_keyerror(tree_sample, sampledX):
+    """Calling score with an incomplete feature dict should raise a KeyError
+    that names the missing predictor (not a bare KeyError on the variable)."""
+    incomplete = dict(sampledX)
+    a_predictor = next(iter(incomplete))
+    incomplete.pop(a_predictor)
+    with pytest.raises(KeyError, match=re.escape(repr(a_predictor))):
+        tree_sample.score(incomplete)

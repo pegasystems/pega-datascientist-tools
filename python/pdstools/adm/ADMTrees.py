@@ -38,6 +38,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
 )
 from collections.abc import Callable, Iterator
 
@@ -138,7 +139,7 @@ def parse_split(raw: str) -> Split:
         # Single-value 'in', 'is', '==' — keep as a string.
         value = value_text
 
-    return Split(variable=variable, operator=op, value=value, raw=raw)
+    return Split(variable=variable, operator=cast(SplitOperator, op), value=value, raw=raw)
 
 
 @dataclass(frozen=True)
@@ -242,7 +243,11 @@ class AGB:
         query : QUERY | None
             Optional pre-filter applied before discovery.
         """
-        df = self.datamart.aggregates.last(table="model_data") if last else self.datamart.model_data  # type: ignore[arg-type]
+        df = self.datamart.aggregates.last(table="model_data") if last else self.datamart.model_data
+        if df is None:
+            raise ValueError(
+                "Datamart has no model_data; cannot extract AGB models.",
+            )
         df = cdh_utils._apply_query(df, query)
         if "Modeldata" not in df.collect_schema().names():
             raise ValueError(
@@ -309,7 +314,7 @@ class ADMTrees:  # pragma: no cover
 
 # Locations to try for the boosters/trees list inside the raw model JSON.
 # Each entry is a tuple of dict keys to traverse.
-_BOOSTER_PATHS: tuple[tuple[str, ...], ...] = (
+_BOOSTER_PATHS: tuple[tuple[str | int, ...], ...] = (
     ("model", "boosters", 0, "trees"),
     ("model", "model", "boosters", 0, "trees"),
     ("model", "booster", "trees"),
@@ -363,6 +368,7 @@ class ADMTreesModel:
 
     learning_rate: float | None = None
     context_keys: list | None = None
+    _properties: dict[str, Any]
 
     # ------------------------------------------------------------------
     # Construction
@@ -1402,16 +1408,16 @@ class ADMTreesModel:
                 if split_obj.operator == "in" and isinstance(split_obj.value, tuple):
                     members = split_obj.value
                     if len(members) <= 3:
-                        labelname = set(members)
+                        members_label: str = str(set(members))
                     else:
                         totallen = len(self.all_values_per_split[split_obj.variable])
-                        labelname = f"{list(members[:2]) + ['...']} ({len(members)}/{totallen})"
-                    label += f"\nSplit: {split_obj.variable} in {labelname}\nGain: {node['gain']}"
+                        members_label = f"{list(members[:2]) + ['...']} ({len(members)}/{totallen})"
+                    label += f"\nSplit: {split_obj.variable} in {members_label}\nGain: {node['gain']}"
                 else:
                     label += f"\nSplit: {node['split']}\nGain: {node['gain']}"
                 graph.add_node(
                     pydot.Node(
-                        name=key,
+                        name=str(key),
                         label=label,
                         shape="box",
                         style="filled",
@@ -1421,7 +1427,7 @@ class ADMTreesModel:
             else:
                 graph.add_node(
                     pydot.Node(
-                        name=key,
+                        name=str(key),
                         label=label,
                         shape="ellipse",
                         style="filled",
@@ -1429,7 +1435,7 @@ class ADMTreesModel:
                     )
                 )
             if "parent_node" in node:
-                graph.add_edge(pydot.Edge(key, node["parent_node"]))
+                graph.add_edge(pydot.Edge(str(key), str(node["parent_node"])))
 
         if show:  # pragma: no cover
             try:
@@ -1465,11 +1471,18 @@ class ADMTreesModel:
             if "split" in current_node:
                 split_obj = parse_split(current_node["split"])
                 op = split_obj.operator
+                try:
+                    feature_value = x[split_obj.variable]
+                except KeyError as exc:
+                    raise KeyError(
+                        f"Missing predictor {split_obj.variable!r} required by tree "
+                        f"{treeID} at node {current_node_id}; provide it in `x`.",
+                    ) from exc
                 if op in {"in", "is"}:
-                    splitvalue = f"'{x[split_obj.variable]}'"
+                    splitvalue = f"'{feature_value}'"
                     op = "in"
                 else:
-                    splitvalue = x[split_obj.variable]
+                    splitvalue = feature_value
                 if save_all:
                     scores.append({current_node["split"]: current_node["gain"]})
                 # Resolve the right-hand side of the comparison.
