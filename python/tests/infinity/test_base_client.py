@@ -274,12 +274,15 @@ class TestSyncInferVersion:
         with pytest.raises(Exception, match="network down"):
             client._infer_version(on_error="error")
 
-    def test_infer_version_warn_mode_prints(self, mocker, capsys):
+    def test_infer_version_warn_mode_logs(self, mocker, caplog):
         client = self._make_client()
         mocker.patch.object(client, "get", side_effect=Exception("network down"))
-        client._infer_version(on_error="warn")
-        captured = capsys.readouterr()
-        assert "Could not validate connection" in captured.out
+        with caplog.at_level("WARNING", logger="pdstools.infinity.internal._base_client"):
+            client._infer_version(on_error="warn")
+        assert any(
+            "Could not validate connection" in record.message and record.levelname == "WARNING"
+            for record in caplog.records
+        )
 
     def test_infer_version_ignore_mode_returns_none(self, mocker):
         client = self._make_client()

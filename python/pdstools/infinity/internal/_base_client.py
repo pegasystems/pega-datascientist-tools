@@ -220,8 +220,9 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
         except Exception as e:
             if on_error == "warn":
-                print(
+                logger.warning(
                     "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
                 )
                 return None
             if on_error == "error":
@@ -465,8 +466,9 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
                 raise repo
         except Exception as e:
             if on_error == "warn":
-                print(
+                logger.warning(
                     "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
                 )
                 return None
             if on_error == "error":
