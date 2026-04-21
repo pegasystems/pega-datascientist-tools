@@ -75,6 +75,9 @@ guide.
   [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md#namespace-reorganisation)
   for the complete before/after table.
 - (To be populated by the v5 cleanup PRs.)
+- Internal split of
+  `pdstools.infinity.resources.prediction_studio.v24_2.prediction` and
+  `prediction_studio` into multi-module packages. Public imports unchanged.
 - Decision Analyzer Streamlit pages: converted bare
   `from da_streamlit_utils import ...` imports to absolute
   `from pdstools.app.decision_analyzer.da_streamlit_utils import ...`,
