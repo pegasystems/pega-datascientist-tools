@@ -86,17 +86,17 @@ jobs:
         run: uv sync --extra tests
 
       - name: Run tests
-        # Run in three passes:
+        # Run in two passes:
         #   1. Parallel for the bulk of the suite.
-        #   2. Sequential for streamlit_apps AppTests — they share Streamlit's
-        #      in-process global state (st.cache_data / st.cache_resource and
-        #      registered polars namespaces), and the cross-test isolation
-        #      breaks under xdist when distributed alongside other tests.
-        #   3. Sequential for python/tests/explanations which shares state via
+        #   2. Sequential for python/tests/explanations which shares state via
         #      a hardcoded `.tmp/` working directory.
+        # streamlit_apps runs in a separate job (see StreamlitTests below)
+        # because its in-process global state (st.cache_data / st.cache_resource,
+        # registered polars namespaces) breaks under xdist when distributed
+        # alongside other tests. Splitting it into its own job lets it run in
+        # parallel to this one instead of tacked on at the end.
         run: |
           uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps -n auto
-          uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc python/tests/streamlit_apps
           uv run pytest --cov=./python/pdstools --cov-append --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
 
       - name: Upload coverage reports to Codecov
@@ -105,3 +105,56 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.codecov_token }}
         with:
           fail_ci_if_error: false
+
+  StreamlitTests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false)
+
+    # Streamlit AppTests share in-process global state
+    # (st.cache_data / st.cache_resource and registered polars namespaces)
+    # which leaks between xdist workers. Running them in a dedicated job
+    # keeps them sequential *within* the job while still running in parallel
+    # *with* the main Tests matrix — net effect: the wall-clock cost of the
+    # streamlit suite drops from "added on the end of Tests" to "free".
+    #
+    # Only the primary matrix entry (ubuntu-latest + py3.12) is exercised:
+    # the Streamlit layer is thin glue and doesn't benefit from multi-OS /
+    # multi-Python coverage the way the library does. Codecov is skipped
+    # here because the main Tests job already uploads the shared coverage.xml;
+    # the small marginal coverage from these smoke tests isn't worth a
+    # second upload + merge.
+    name: streamlit_apps (Python 3.12) on ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for draft PR
+        if: github.event_name == 'pull_request'
+        run: |
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then
+            echo "This is a draft PR, exiting."
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Install the project
+        run: uv sync --extra tests
+
+      - name: Run Streamlit AppTest suite
+        run: uv run pytest python/tests/streamlit_apps
