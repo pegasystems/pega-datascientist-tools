@@ -191,14 +191,14 @@ class AGB:
     directly.
     """
 
-    def __init__(self, datamart: ADMDatamart):  # pragma: no cover
+    def __init__(self, datamart: ADMDatamart):
         self.datamart = datamart
 
     def discover_model_types(
         self,
         df: pl.LazyFrame,
         by: str = "Configuration",
-    ) -> dict[str, str]:  # pragma: no cover
+    ) -> dict[str, str]:
         """Discover the type of model embedded in the ``Modeldata`` column.
 
         Groups by ``by`` (typically Configuration, since one model rule
@@ -228,7 +228,7 @@ class AGB:
         last: bool = False,
         n_threads: int = 6,
         query: QUERY | None = None,
-    ) -> dict[str, MultiTrees]:  # pragma: no cover
+    ) -> dict[str, MultiTrees]:
         """Get all AGB models in the datamart, indexed by Configuration.
 
         Filters down to models whose ``_serialClass`` ends with
