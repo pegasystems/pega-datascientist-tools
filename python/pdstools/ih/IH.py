@@ -209,7 +209,12 @@ class IH:
         raise NotImplementedError("from_s3 is not yet implemented")
 
     @classmethod
-    def from_mock_data(cls, days: int = 90, n: int = 100000) -> "IH":
+    def from_mock_data(
+        cls,
+        days: int = 90,
+        n: int = 100000,
+        seed: int | None = None,
+    ) -> "IH":
         """Create an IH instance with synthetic sample data.
 
         Generates realistic interaction history data for testing and
@@ -222,6 +227,11 @@ class IH:
             Number of days of data to generate.
         n : int, default 100000
             Number of interaction records to generate.
+        seed : int or None, default None
+            Optional seed for the random number generator. When provided,
+            data generation becomes deterministic across runs — useful for
+            tests and reproducible notebooks. When ``None`` (the default),
+            results vary between invocations.
 
         Returns
         -------
@@ -230,11 +240,12 @@ class IH:
 
         Examples
         --------
-        >>> ih = IH.from_mock_data(days=30, n=10000)
+        >>> ih = IH.from_mock_data(days=30, n=10000, seed=42)
         >>> ih.data.select("pyChannel").collect().unique()
 
         """
         n = int(n)
+        rng = random.Random(seed)
 
         n_actions = 10
         click_avg_duration_minutes = 2
@@ -256,22 +267,22 @@ class IH:
             a = responses * propensity
             b = responses * (1 - propensity)
 
-            sampled = random.betavariate(a, b)
+            sampled = rng.betavariate(a, b)
 
             return sampled
 
         ih_fake_impressions = pl.DataFrame(
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
-                "pyChannel": random.choices(
+                "pyChannel": rng.choices(
                     ["Web", "Email"],
                     k=n,
                 ),  # Direction will be derived from this later
-                "pyIssue": random.choices(
+                "pyIssue": rng.choices(
                     ["Acquisition", "Retention", "Risk", "Service"],
                     k=n,
                 ),
-                "pyGroup": random.choices(
+                "pyGroup": rng.choices(
                     [
                         "Pension",
                         "Lending",
@@ -283,12 +294,12 @@ class IH:
                     weights=[1, 1, 2, 2, 3, 3],
                     k=n,
                 ),
-                "pyName": random.choices(
+                "pyName": rng.choices(
                     range(1, 1 + n_actions),
                     weights=list(reversed(range(1, 1 + n_actions))),
                     k=n,
                 ),  # nr will be appended to group name to form action name
-                "pyTreatment": [random.randint(1, 2) for _ in range(n)],  # nr will be appended to group/channel
+                "pyTreatment": [rng.randint(1, 2) for _ in range(n)],  # nr will be appended to group/channel
                 # https://stackoverflow.com/questions/40351791/how-to-hash-strings-into-a-float-in-01
                 "ExperimentGroup": [
                     "Conversion-Test",
@@ -305,10 +316,10 @@ class IH:
                 ]
                 * int(n / 4),
                 "pxOutcomeTime": [(now - datetime.timedelta(days=i * days / n)) for i in range(n)],
-                "Temp.ClickDurationMinutes": [random.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)],
-                "Temp.AcceptDurationMinutes": [random.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)],
-                "Temp.ConvertDurationDays": [random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)],
-                "Temp.RandomUniform": [random.uniform(0, 1) for i in range(n)],
+                "Temp.ClickDurationMinutes": [rng.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)],
+                "Temp.AcceptDurationMinutes": [rng.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)],
+                "Temp.ConvertDurationDays": [rng.uniform(0, 2 * convert_avg_duration_days) for i in range(n)],
+                "Temp.RandomUniform": [rng.uniform(0, 1) for i in range(n)],
             },
         ).with_columns(
             pyDirection=pl.when(pl.col("pyChannel") == "Web").then(pl.lit("Inbound")).otherwise(pl.lit("Outbound")),
@@ -406,7 +417,7 @@ class IH:
         def create_fake_converts(df, group, fraction):
             return (
                 df.filter(pl.col("ExperimentGroup") == group)
-                .sample(fraction=fraction)
+                .sample(fraction=fraction, seed=rng.randint(0, 2**31 - 1) if seed is not None else None)
                 .with_columns(
                     pxOutcomeTime=pl.col("pxOutcomeTime") + pl.duration(days=pl.col("Temp.ConvertDurationDays")),
                     pyOutcome=pl.lit("Conversion"),
