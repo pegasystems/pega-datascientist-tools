@@ -171,31 +171,6 @@ plots.contributions(**{"sort_by": "value", "typo_arg": True})  # silently droppe
 plots.contributions(sort_by="value")  # unknown kwargs raise TypeError
 ```
 
-### `Reports.model_reports` / `Reports.health_check` — explicit kwargs
-
-The `**options: Unpack[ReportOptions]` catch-all is gone. Both methods
-now take explicit keyword-only parameters (`title`, `subtitle`,
-`disclaimer`, `output_dir`, `output_type`, `qmd_file`, `full_embed`,
-`keep_temp_files`), and `output_type` is typed `Literal["html", "pdf"]`.
-The `ReportOptions` `TypedDict` and the
-`pdstools.adm.Reports.ReportOptions` re-export have been removed —
-call-sites that splatted a `ReportOptions` dict must pass the fields
-as plain kwargs instead.
-
-```python
-# Before (v4.x):
-from pdstools.adm.Reports import ReportOptions
-opts: ReportOptions = {"title": "My Report", "output_type": "pdf"}
-dm.generate.model_reports(model_list=models, **opts)
-
-# After (v5):
-dm.generate.model_reports(
-    model_list=models,
-    title="My Report",
-    output_type="pdf",
-)
-```
-
 ### `DecisionAnalyzer.__init__` and `from_*` classmethods
 
 Previously accepted positional arguments and `**kwargs`. Now all
