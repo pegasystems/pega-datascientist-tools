@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
@@ -26,8 +28,8 @@ class BinAggregator(LazyNamespace):
     dependencies = ["plotly", "numpy"]
     dependency_group = "adm"
 
-    def __init__(self, dm: "ADMDatamart") -> None:
-        self.dm = dm
+    def __init__(self, datamart: "ADMDatamart") -> None:
+        self.dm = datamart
         super().__init__()
 
     @cached_property

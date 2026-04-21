@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["Plots", "fig_update_facet"]
 import logging
 from collections.abc import Iterable
