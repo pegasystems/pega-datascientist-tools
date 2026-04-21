@@ -579,6 +579,20 @@ class ADMDatamart:
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
+        # Issue #667: AGB models emit an additional "totals" row per configuration
+        # with empty context keys. It duplicates aggregated data and can carry a
+        # miscomputed AUC. Pega reporting filters it out — do the same here so all
+        # downstream consumers see consistent data. Only filter when ModelTechnique
+        # is known (not null) — otherwise empty context could be a genuine data
+        # issue worth surfacing.
+        agb_context_cols = [c for c in ("Issue", "Group", "Name", "Treatment") if c in schema.names()]
+        if agb_context_cols:
+            empty_context = pl.all_horizontal(
+                [(pl.col(c).is_null() | (pl.col(c) == "")) for c in agb_context_cols],
+            )
+            is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
+            df = df.filter(~(is_agb & empty_context))
+
         snapshot_type = schema.get("SnapshotTime")
         if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(
