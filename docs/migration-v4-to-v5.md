@@ -42,7 +42,8 @@ ADMTreesModel.from_dict(my_dict)
 
 ### `parse_split_values` / `parse_split_values_with_spaces`
 
-Replaced by the cleaner `parse_split` API.
+Replaced by the typed module-level `parse_split` helper, which returns a
+`Split` instance with `variable`, `operator`, and `value` fields.
 
 ```python
 # Before:
@@ -50,7 +51,8 @@ model.parse_split_values("Color < 5")
 model.parse_split_values_with_spaces("Color < 5")
 
 # After (v5):
-model.parse_split("Color < 5")
+from pdstools.adm.trees import parse_split
+parse_split("Color < 5")  # → Split(variable="Color", operator="<", value=5.0)
 ```
 
 ### `pdstools.adm.ADMTrees` module
@@ -119,9 +121,24 @@ when `streamlit` was already imported — fragile, removed.)
 
 ### `ADMTreesModel.from_file`, `from_url`, `from_dict`, `from_datamart_blob`
 
-Previously accepted `**kwargs` that were silently dropped. Now all
-parameters are explicit. If you were passing extra kwargs, your code was
-already a no-op.
+Previously accepted `**kwargs` that were silently dropped (only
+`context_keys=` was actually consumed). Now all parameters are explicit:
+
+```python
+# Before — extra kwargs were no-ops:
+ADMTreesModel.from_file("model.json", whatever=42)
+
+# After (v5) — only documented parameters are accepted:
+ADMTreesModel.from_file("model.json", context_keys=["Issue", "Group"])
+```
+
+### `ADMTreesModel.__init__`
+
+The constructor is now pure: it accepts already-parsed `trees` and
+`model` data only. All file/URL/blob loading must go through the
+`from_*` classmethods (see above). Tests and advanced callers that
+already hold a parsed booster list can still call `ADMTreesModel(trees=...,
+model=...)` directly.
 
 ### `Infinity(...)` / `AsyncInfinity(...)`
 

@@ -20,7 +20,7 @@ from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.types import QUERY
 from . import Schema
-from .ADMTrees import AGB
+from .trees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
 from .Plots import Plots

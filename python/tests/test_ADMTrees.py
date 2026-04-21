@@ -4,7 +4,7 @@ import pathlib
 import re
 
 import pytest
-from pdstools.adm.ADMTrees import ADMTreesModel, parse_split
+from pdstools.adm.trees import ADMTreesModel, parse_split
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -325,7 +325,7 @@ def test_safe_condition_evaluate_unsupported_operator(tree_sample):
 def test_safe_condition_evaluate_handles_bad_numeric(tree_sample, caplog):
     """First failure logs at INFO; subsequent identical failures log at DEBUG."""
     import logging
-    from pdstools.adm.ADMTrees import ADMTreesModel
+    from pdstools.adm.trees import ADMTreesModel
 
     # Reset the dedupe set so we get a deterministic INFO on first call.
     ADMTreesModel._safe_eval_seen_errors.clear()
@@ -379,20 +379,46 @@ def test_parse_split_invalid_raises():
         parse_split("totally not a split")
 
 
-# --- deprecated entry point ------------------------------------------------
+# --- v5 removal guards -----------------------------------------------------
 
 
-def test_legacy_admtrees_factory_warns():
-    """The legacy ADMTrees(...) entry point still works but warns."""
-    from pdstools.adm.ADMTrees import ADMTrees
+def test_legacy_admtrees_module_is_removed():
+    """``pdstools.adm.ADMTrees`` was removed in v5; importing it must fail.
 
-    with pytest.warns(DeprecationWarning, match="ADMTrees"):
-        m = ADMTrees(f"{basePath}/data/agb/ModelExportExample.json")
-    assert isinstance(m, ADMTreesModel)
-    assert m.metrics["number_of_trees"] == 50
+    Users should import from ``pdstools.adm.trees`` instead.
+    """
+    with pytest.raises(ImportError):
+        import pdstools.adm.ADMTrees  # noqa: F401
 
 
-# --- read pipeline dispatch ------------------------------------------------
+def test_legacy_admtrees_factory_is_removed():
+    """The polymorphic ``ADMTrees(...)`` factory was removed in v5."""
+    from pdstools.adm import trees as trees_pkg
+
+    assert not hasattr(trees_pkg, "ADMTrees"), (
+        "ADMTrees factory should have been dropped in v5; use "
+        "ADMTreesModel.from_file / from_url / from_dict / from_datamart_blob "
+        "or MultiTrees.from_datamart instead."
+    )
+
+
+def test_legacy_parse_split_values_helpers_are_removed():
+    """``parse_split_values`` and ``parse_split_values_with_spaces`` are gone."""
+    assert not hasattr(ADMTreesModel, "parse_split_values")
+    assert not hasattr(ADMTreesModel, "parse_split_values_with_spaces")
+
+
+def test_admtreesmodel_string_constructor_is_removed():
+    """The deprecated ``ADMTreesModel(file_path)`` flow was removed in v5.
+
+    The new ``__init__`` accepts already-parsed ``trees`` + ``model``;
+    passing a path string should fail loudly instead of silently parsing.
+    """
+    with pytest.raises((TypeError, AttributeError)):
+        ADMTreesModel(f"{basePath}/data/agb/ModelExportExample.json")  # type: ignore[arg-type]
+
+
+# --- read pipeline -------------------------------------------------------
 
 
 def test_from_dict_round_trips_the_model():
@@ -402,46 +428,6 @@ def test_from_dict_round_trips_the_model():
     raw = json.loads(pathlib.Path(f"{basePath}/data/agb/ModelExportExample.json").read_text())
     m = ADMTreesModel.from_dict(raw)
     assert m.metrics["number_of_trees"] == 50
-
-
-def test_from_anything_dispatches_dict():
-    """dict input goes through from_dict (no IO required)."""
-    import json
-
-    raw = json.loads(pathlib.Path(f"{basePath}/data/agb/ModelExportExample.json").read_text())
-    m = ADMTreesModel._from_anything(raw)
-    assert m.metrics["number_of_trees"] == 50
-
-
-def test_from_anything_dispatches_existing_path():
-    """A path string that exists routes to from_file, not base64."""
-    path = f"{basePath}/data/agb/ModelExportExample.json"
-    m = ADMTreesModel._from_anything(path)
-    assert m.raw_input == path
-
-
-def test_from_anything_url_string_routes_to_url(monkeypatch):
-    """A string starting with http(s):// routes to from_url, not from_file."""
-    sentinel = object()
-
-    def fake_from_url(cls, url, **kwargs):
-        assert url == "https://example.com/model.json"
-        return sentinel
-
-    monkeypatch.setattr(ADMTreesModel, "from_url", classmethod(fake_from_url), raising=True)
-    assert ADMTreesModel._from_anything("https://example.com/model.json") is sentinel
-
-
-def test_from_anything_unknown_string_treated_as_blob():
-    """A string that is neither URL nor existing path falls through to
-    from_datamart_blob and surfaces its decode error directly."""
-    with pytest.raises(Exception):  # noqa: B017 — base64/zlib chain raises various
-        ADMTreesModel._from_anything("definitely-not-a-real-path-or-blob")
-
-
-def test_from_anything_rejects_unsupported_type():
-    with pytest.raises(TypeError, match="Unsupported input type"):
-        ADMTreesModel._from_anything(12345)
 
 
 # --- MultiTrees -----------------------------------------------------------
@@ -455,7 +441,7 @@ def two_models(exported_model: ADMTreesModel) -> tuple[ADMTreesModel, ADMTreesMo
 
 
 def test_multitrees_indexing_by_int(two_models):
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b}, model_name="cfg")
@@ -475,7 +461,7 @@ def test_multitrees_indexing_by_str(two_models):
     """String indexing returns the model directly — fixes a latent bug
     where the old code checked ``isinstance(index, pl.datetime)`` which
     is always False (``pl.datetime`` is a function, not a class)."""
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b})
@@ -486,7 +472,7 @@ def test_multitrees_indexing_by_str(two_models):
 def test_multitrees_first_last_callable(two_models):
     """``mt.first.score(x)`` must work — guards against the asymmetric
     indexing footgun."""
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b})
@@ -498,7 +484,7 @@ def test_multitrees_first_last_callable(two_models):
 def test_multitrees_add_preserves_metadata(two_models):
     """``__add__`` must preserve ``model_name`` and ``context_keys`` —
     legacy code dropped them silently."""
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     left = MultiTrees(trees={"2024-01-01": a}, model_name="cfg", context_keys=["Issue", "Group"])
@@ -511,7 +497,7 @@ def test_multitrees_add_preserves_metadata(two_models):
 
 def test_multitrees_add_with_admtreesmodel(two_models):
     """Adding an ADMTreesModel keys it by its factory_update_time."""
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a}, model_name="cfg")
@@ -522,7 +508,7 @@ def test_multitrees_add_with_admtreesmodel(two_models):
 
 
 def test_multitrees_len_and_repr(two_models):
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     a, b = two_models
     mt = MultiTrees(trees={"2024-01-01": a, "2024-02-01": b}, model_name="cfg")
@@ -539,7 +525,7 @@ def test_multitrees_from_datamart_timestamp_formatting():
     """
     import polars as pl
     from datetime import datetime
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     df = pl.DataFrame(
         {
@@ -569,7 +555,7 @@ def test_multitrees_from_datamart_timestamp_formatting():
 def test_multitrees_add_admtreesmodel_without_timestamp_raises(exported_model):
     """A model without ``factory_update_time`` would silently use 'None'
     as a key in legacy code; now we raise instead."""
-    from pdstools.adm.ADMTrees import MultiTrees
+    from pdstools.adm.trees import MultiTrees
 
     mt = MultiTrees(trees={})
     # Wipe the factory timestamp on the underlying _properties and clear
@@ -585,8 +571,8 @@ def test_multitrees_from_datamart_rejects_multi_config(exported_model):
     callers must use from_datamart_grouped or pass `configuration=`."""
     import polars as pl
     from datetime import datetime
-    from pdstools.adm.ADMTrees import MultiTrees, ADMTreesModel
-    import pdstools.adm.ADMTrees as mod
+    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+    import pdstools.adm.trees as mod
 
     df = pl.DataFrame(
         {
@@ -617,8 +603,8 @@ def test_multitrees_from_datamart_grouped(exported_model):
     """from_datamart_grouped returns a {config: MultiTrees} dict."""
     import polars as pl
     from datetime import datetime
-    from pdstools.adm.ADMTrees import MultiTrees, ADMTreesModel
-    import pdstools.adm.ADMTrees as mod
+    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+    import pdstools.adm.trees as mod
 
     df = pl.DataFrame(
         {
@@ -637,17 +623,6 @@ def test_multitrees_from_datamart_grouped(exported_model):
     assert len(out["cfg_a"]) == 2
     assert len(out["cfg_b"]) == 1
     assert out["cfg_a"].model_name == "cfg_a"
-
-
-def test_parse_split_values_emits_deprecation_warning(tree_sample):
-    with pytest.warns(DeprecationWarning, match="parse_split_values"):
-        tree_sample.parse_split_values("Age < 42")
-
-
-def test_admtreesmodel_string_constructor_emits_deprecation_warning():
-    """The legacy ``ADMTreesModel(file)`` constructor must warn."""
-    with pytest.warns(DeprecationWarning, match="from_file"):
-        ADMTreesModel(f"{basePath}/data/agb/ModelExportExample.json")
 
 
 def test_score_matches_per_tree_sum(tree_sample, sampledX):
@@ -751,7 +726,7 @@ def agb_datamart_stub():
 
 
 def test_agb_discover_model_types_returns_serial_classes(agb_datamart_stub):
-    from pdstools.adm.ADMTrees import AGB
+    from pdstools.adm.trees import AGB
 
     agb = AGB(agb_datamart_stub)
     types = agb.discover_model_types(agb_datamart_stub.model_data, by="Configuration")
@@ -761,7 +736,7 @@ def test_agb_discover_model_types_returns_serial_classes(agb_datamart_stub):
 
 def test_agb_discover_model_types_rejects_missing_modeldata():
     import polars as pl
-    from pdstools.adm.ADMTrees import AGB
+    from pdstools.adm.trees import AGB
 
     df = pl.LazyFrame({"Configuration": ["x"]})
     agb = AGB(datamart=None)  # type: ignore[arg-type]
@@ -776,8 +751,8 @@ def test_agb_get_agb_models_filters_to_gb_only(agb_datamart_stub, monkeypatch):
     ``inputsEncoder`` block that real datamart blobs carry; the actual
     decoding path is covered by ``tree_sample``.
     """
-    from pdstools.adm import ADMTrees as mod
-    from pdstools.adm.ADMTrees import AGB, MultiTrees
+    from pdstools.adm import trees as mod
+    from pdstools.adm.trees import AGB, MultiTrees
 
     monkeypatch.setattr(
         mod.ADMTreesModel,
@@ -798,8 +773,8 @@ def test_agb_get_agb_models_filters_to_gb_only(agb_datamart_stub, monkeypatch):
 
 
 def test_agb_get_agb_models_with_last_uses_aggregates(agb_datamart_stub, monkeypatch):
-    from pdstools.adm import ADMTrees as mod
-    from pdstools.adm.ADMTrees import AGB
+    from pdstools.adm import trees as mod
+    from pdstools.adm.trees import AGB
 
     monkeypatch.setattr(
         mod.ADMTreesModel,

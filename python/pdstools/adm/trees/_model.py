@@ -8,7 +8,6 @@ import json
 import logging
 import math
 import threading
-import warnings
 import zlib
 from collections.abc import Callable
 from functools import cached_property
@@ -50,9 +49,7 @@ class ADMTreesModel:
     about the trees, or visualising each individual tree.
 
     Construct via :meth:`from_file`, :meth:`from_url`,
-    :meth:`from_datamart_blob`, or :meth:`from_dict`.  The legacy
-    ``ADMTreesModel(file_path)`` constructor is still supported for
-    backward compatibility.
+    :meth:`from_datamart_blob`, or :meth:`from_dict`.
 
     Notes
     -----
@@ -81,37 +78,41 @@ class ADMTreesModel:
     # Construction
     # ------------------------------------------------------------------
 
-    def __init__(self, file: str | None = None, **kwargs):
-        """Backward-compatible constructor.
+    def __init__(
+        self,
+        trees: dict,
+        model: list[dict],
+        *,
+        raw_input: Any = None,
+        properties: dict[str, Any] | None = None,
+        learning_rate: float | None = None,
+        context_keys: list | None = None,
+    ) -> None:
+        """Pure constructor — accepts already-parsed model data only.
 
-        .. deprecated::
-            Prefer the ``from_*`` classmethods (``from_file``,
-            ``from_url``, ``from_datamart_blob``, ``from_dict``).  The
-            string-dispatch constructor will be removed in a future
-            release.
+        Use the :meth:`from_file` / :meth:`from_url` / :meth:`from_dict`
+        / :meth:`from_datamart_blob` classmethods to load a model from a
+        source.  Direct ``__init__`` is intended for tests and advanced
+        callers that already hold a parsed booster list.
         """
-        if file is None:
-            return  # allow classmethods to populate self
-        warnings.warn(
-            "ADMTreesModel(file) is deprecated; use one of the explicit "
-            "factory classmethods: ADMTreesModel.from_file / from_url / "
-            "from_datamart_blob / from_dict.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._init_from_anything(file, **kwargs)
+        self.trees = trees
+        self.model = model
+        self.raw_input = raw_input
+        self._properties = properties if properties is not None else {}
+        self.learning_rate = learning_rate
+        self.context_keys = context_keys
 
     @classmethod
-    def from_dict(cls, data: dict, **kwargs) -> ADMTreesModel:
+    def from_dict(cls, data: dict, *, context_keys: list | None = None) -> ADMTreesModel:
         """Build from an already-parsed model dict."""
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = data
-        instance._post_import_cleanup(decode=False, **kwargs)
+        instance._post_import_cleanup(decode=False, context_keys=context_keys)
         return instance
 
     @classmethod
-    def from_file(cls, path: str | Path, **kwargs) -> ADMTreesModel:
+    def from_file(cls, path: str | Path, *, context_keys: list | None = None) -> ADMTreesModel:
         """Load a model from a local JSON file (Prediction Studio "save model" output)."""
         path = Path(path)
         with path.open() as f:
@@ -119,11 +120,17 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = str(path)
-        instance._post_import_cleanup(decode=False, **kwargs)
+        instance._post_import_cleanup(decode=False, context_keys=context_keys)
         return instance
 
     @classmethod
-    def from_url(cls, url: str, *, timeout: float = 30.0, **kwargs) -> ADMTreesModel:
+    def from_url(
+        cls,
+        url: str,
+        *,
+        timeout: float = 30.0,
+        context_keys: list | None = None,
+    ) -> ADMTreesModel:
         """Load a model from a URL pointing at the JSON export.
 
         ``timeout`` is the per-request timeout in seconds (default 30).
@@ -136,11 +143,16 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = url
-        instance._post_import_cleanup(decode=False, **kwargs)
+        instance._post_import_cleanup(decode=False, context_keys=context_keys)
         return instance
 
     @classmethod
-    def from_datamart_blob(cls, blob: str | bytes, **kwargs) -> ADMTreesModel:
+    def from_datamart_blob(
+        cls,
+        blob: str | bytes,
+        *,
+        context_keys: list | None = None,
+    ) -> ADMTreesModel:
         """Load from a base64-encoded zlib-compressed datamart ``Modeldata`` blob."""
         if isinstance(blob, str):
             raw_bytes = base64.b64decode(blob)
@@ -153,46 +165,8 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = blob
-        instance._post_import_cleanup(decode=True, **kwargs)
+        instance._post_import_cleanup(decode=True, context_keys=context_keys)
         return instance
-
-    def _init_from_anything(self, file: Any, **kwargs) -> None:
-        instance = self._from_anything(file, **kwargs)
-        # Mirror state onto self (legacy single-arg __init__ flow).
-        self.trees = instance.trees
-        self.model = instance.model
-        self.raw_input = instance.raw_input
-        self._properties = instance._properties
-        self.learning_rate = instance.learning_rate
-        self.context_keys = instance.context_keys
-
-    @classmethod
-    def _from_anything(cls, file: Any, **kwargs) -> ADMTreesModel:
-        """Best-effort load from a string (path / URL / base64) or bytes.
-
-        Dispatches based on input *shape*, not by trying every loader and
-        catching exceptions:
-
-        * ``dict``           → :meth:`from_dict`
-        * ``bytes``          → :meth:`from_datamart_blob`
-        * ``str`` starting with ``http://`` / ``https://`` → :meth:`from_url`
-        * ``str`` that names an existing path → :meth:`from_file`
-        * any other ``str``  → :meth:`from_datamart_blob` (assume base64)
-        """
-        if isinstance(file, dict):
-            return cls.from_dict(file, **kwargs)
-        if isinstance(file, bytes):
-            return cls.from_datamart_blob(file, **kwargs)
-        if isinstance(file, str):
-            if file.startswith(("http://", "https://")):
-                return cls.from_url(file, **kwargs)
-            if Path(file).expanduser().is_file():
-                return cls.from_file(file, **kwargs)
-            # Last-resort: treat as a base64-encoded datamart blob.  If the
-            # caller passed a non-existent path string, this surfaces the
-            # decode error directly instead of a misleading "file not found".
-            return cls.from_datamart_blob(file, **kwargs)
-        raise TypeError(f"Unsupported input type: {type(file).__name__}")
 
     # ------------------------------------------------------------------
     # Internal post-load processing
@@ -271,7 +245,7 @@ class ADMTreesModel:
             self.model[i] = decode_all(model, decode_split)
             logger.debug("Decoded tree %d", i)
 
-    def _post_import_cleanup(self, decode: bool, **kwargs):
+    def _post_import_cleanup(self, decode: bool, *, context_keys: list | None = None):
         if not hasattr(self, "model"):
             self.model = self._locate_boosters()
 
@@ -287,7 +261,7 @@ class ADMTreesModel:
 
         config = self._properties.get("configuration", {}) or {}
         self.learning_rate = (config.get("parameters") or {}).get("learningRateEta")
-        self.context_keys = config.get("contextKeys", kwargs.get("context_keys"))
+        self.context_keys = config.get("contextKeys", context_keys)
 
         if self.model is None:  # pragma: no cover
             raise ValueError("Import unsuccessful: no boosters/trees found.")
@@ -795,73 +769,6 @@ class ADMTreesModel:
         """
         logger.debug("Calculating splits per variable type.")
         return self.compute_categorization_over_time()
-
-    # ------------------------------------------------------------------
-    # Split parsing (deprecated helpers retained for backward compatibility)
-    # ------------------------------------------------------------------
-
-    def parse_split_values(self, value) -> tuple[str, str, set[str]]:
-        """Parse a raw 'split' string into (variable, sign, value-set).
-
-        .. deprecated::
-            Prefer :func:`parse_split` which returns a typed
-            :class:`Split` instance.  This shim is retained so existing
-            callers keep working.
-        """
-        warnings.warn(
-            "ADMTreesModel.parse_split_values is deprecated; use the "
-            "module-level parse_split() which returns a typed Split.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if isinstance(value, (tuple, pl.Series)):  # pragma: no cover
-            value = value[0]
-        try:
-            split = parse_split(value)
-        except ValueError:  # pragma: no cover
-            return self._parse_legacy(value)
-        if split.operator in {"<", ">", "=="}:
-            return split.variable, split.operator, {str(split.value)}
-        if split.operator == "is":
-            return split.variable, "is", {str(split.value)}
-        # 'in'
-        members = split.value if isinstance(split.value, tuple) else (str(split.value),)
-        return split.variable, "in", set(members)
-
-    @staticmethod
-    def parse_split_values_with_spaces(value) -> tuple[str, str, str]:  # pragma: no cover
-        """Legacy stateful parser; kept for API compatibility.
-
-        .. deprecated::
-            Prefer :func:`parse_split`.
-        """
-        warnings.warn(
-            "parse_split_values_with_spaces is deprecated; use parse_split().",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        splittypes = {">", "<", "in", "is", "=="}
-        stage = "predictor"
-        variable = ""
-        sign = ""
-        splitvalue = ""
-        for item in value.split(" "):
-            if item in splittypes:
-                stage = "sign"
-            if stage == "predictor":
-                variable += " " + item
-            elif stage == "values":
-                splitvalue += item
-            elif stage == "sign":
-                sign = item
-                stage = "values"
-        return variable.strip(), sign, splitvalue
-
-    def _parse_legacy(self, value) -> tuple[str, str, set[str]]:  # pragma: no cover
-        var, sign, splitvalue = self.parse_split_values_with_spaces(value)
-        if sign in {"<", ">", "=="}:
-            return var, sign, {splitvalue}
-        return var, sign, set(splitvalue.split(","))
 
     # ------------------------------------------------------------------
     # Predictor extraction

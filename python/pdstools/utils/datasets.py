@@ -1,7 +1,7 @@
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
-from ..adm.ADMTrees import ADMTreesModel
+from ..adm.trees import ADMTreesModel
 from ..utils.types import QUERY
 from ..valuefinder.ValueFinder import ValueFinder
 
