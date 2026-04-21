@@ -146,7 +146,7 @@ class ADMDatamart:
             self.model_data,
             self.predictor_data,
         )
-        self.bin_aggregator = BinAggregator(dm=self)
+        self.bin_aggregator = BinAggregator(datamart=self)
 
     def _get_first_action_dates(
         self,
