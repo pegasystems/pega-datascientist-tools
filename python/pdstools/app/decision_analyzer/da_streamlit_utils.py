@@ -20,6 +20,42 @@ from pdstools.utils.streamlit_utils import (
 )
 
 
+def _is_upload_noise(name: str) -> bool:
+    """Return True if this file entry is ZIP-internal or upload noise to skip.
+
+    Skips macOS resource-fork directories (__MACOSX/), Java archive metadata
+    (META-INF/), and well-known OS artifact filenames (.DS_Store, etc.).
+    """
+    parts = Path(name).parts
+    if any(p in ("__MACOSX", "META-INF") for p in parts):
+        return True
+    return Path(name).name in {".DS_Store", "Thumbs.db", "desktop.ini"}
+
+
+# Session-state keys owned by the Decision Analyzer home page.
+_DECISION_STATE_KEYS: tuple[str, ...] = (
+    "decision_data",
+    "filters",
+    "sample_metadata",
+    "page_channel_filter",
+    "page_channel_expr",
+)
+
+
+def clear_decision_state() -> None:
+    """Remove all Decision Analyzer session-state keys when a new file is uploaded.
+
+    Clears the primary data object, filter state, and any per-column widget
+    state so stale values from a previous dataset don't bleed into the new one.
+    """
+    for key in _DECISION_STATE_KEYS:
+        st.session_state.pop(key, None)
+    # Remove filter widget state — keys may reference columns from the old data.
+    stale = [k for k in list(st.session_state.keys()) if "selected_" in k or "multiselect" in k or "categories_" in k]
+    for key in stale:
+        del st.session_state[key]
+
+
 def show_cli_filter_banner():
     """Show active CLI --filter specs in the sidebar if any are set."""
     from pdstools.utils.streamlit_utils import get_filter_specs
@@ -521,7 +557,7 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
     import zipfile
 
     with zipfile.ZipFile(file_buffer, "r") as zf:
-        inner_names = [n for n in zf.namelist() if not n.startswith("__MACOSX")]
+        inner_names = [n for n in zf.namelist() if not _is_upload_noise(n)]
         inner_exts = {Path(n).suffix.lower() for n in inner_names if Path(n).suffix}
 
         # Reject archives with only unsupported file types
@@ -529,8 +565,10 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
         if not inner_exts.intersection(supported_exts):
             raise ValueError(
                 f"The uploaded archive does not contain recognizable data files. "
-                f"Found: {', '.join(sorted(inner_exts))}. "
-                f"Expected raw decision data in csv, parquet, json, or arrow format."
+                f"Found: {', '.join(sorted(inner_exts)) or '(none)'}. "
+                f"Expected raw decision data in csv, parquet, json, or arrow format. "
+                f"Make sure you are uploading a Decision Analyzer export "
+                f"(Explainability Extract or Action Analysis)."
             )
 
         # If the zip contains .zip files, treat as Pega Action Analysis export format
@@ -596,6 +634,9 @@ def _read_uploaded_tar(file_buffer) -> pl.LazyFrame:
 def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     """Show file uploader accepting one or more files and return a LazyFrame and metadata, or (None, None).
 
+    Filters out ZIP-internal noise files (META-INF/, __MACOSX/, .DS_Store etc.)
+    and clears stale session state before processing a new upload.
+
     Returns:
         Tuple of (LazyFrame, metadata dict) where metadata contains sample information if available.
         For single parquet file uploads, metadata is read from the file.
@@ -612,10 +653,24 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     if not uploaded_files:
         return None, None
 
+    # Clear stale data/filters before processing the new upload.
+    clear_decision_state()
+
+    # Drop noise files that may appear when selecting from extracted archives.
+    valid_files = [f for f in uploaded_files if not _is_upload_noise(f.name)]
+    if not valid_files:
+        st.error(
+            "No valid data files found in the selection. "
+            "Upload decision data in parquet, CSV, JSON, arrow, or ZIP format. "
+            "If you selected files from an extracted archive, look for the data files "
+            "rather than metadata entries (META-INF/, MANIFEST.MF, .DS_Store)."
+        )
+        return None, None
+
     frames: list[pl.LazyFrame] = []
     temp_paths: list[str] = []  # Track temp file paths for parquet files
 
-    for f in uploaded_files:
+    for f in valid_files:
         name_lower = f.name.lower()
         suffix = Path(f.name).suffix.lower()
         if suffix == ".parquet":

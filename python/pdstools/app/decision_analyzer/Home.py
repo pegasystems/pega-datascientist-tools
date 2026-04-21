@@ -296,7 +296,23 @@ if has_new_data and raw_data is not None:
             st.error(f"🚫 {type(exc).__name__}: {exc}")
             st.info(_LARGE_DATA_HINT)
             st.stop()
-        raise  # re-raise unrelated errors
+        msg = str(exc)
+        if "critical columns missing" in msg.lower() or ("missing" in msg.lower() and "column" in msg.lower()):
+            st.error(
+                f"🚫 Cannot load this data: {exc}\n\n"
+                "Make sure you are uploading a **Decision Analyzer export** — either an "
+                "**Explainability Extract (v1)** or **Action Analysis / EEV2 (v2)** file from "
+                "Pega Infinity. Other data formats (ADM model snapshots, IH data, etc.) are not "
+                "supported here."
+            )
+            st.stop()
+        if isinstance(exc, ValueError):
+            st.error(
+                f"🚫 Cannot parse this file: {exc}\n\n"
+                "Check that the file is a valid Decision Analyzer export and is not corrupted."
+            )
+            st.stop()
+        raise  # re-raise unexpected errors
 elif has_existing_data:
     # Returning to Home with data already loaded — just show the summary
     _show_data_summary(st.session_state.decision_data)
