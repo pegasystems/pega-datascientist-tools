@@ -1,7 +1,7 @@
 # python/pdstools/app/decision_analyzer/pages/3_Overview.py
 import polars as pl
 import streamlit as st
-from da_streamlit_utils import collect_page_filters, ensure_data
+from da_streamlit_utils import collect_page_filters, ensure_data, polars_lazyframe_hashing
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
 
 # Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
@@ -49,11 +49,74 @@ elif "Arbitration" in da.AvailableNBADStages:
     # Fallback to Arbitration if no propensity stages available
     best_stage_for_overview = "Arbitration"
 
-# Check if we have data at the selected stage
+# ---------------------------------------------------------------------------
+# Cached helpers — expensive per-stage computations are memoised so rerenders
+# (filter interactions, page navigations) don't re-run heavy .collect() calls.
+# ---------------------------------------------------------------------------
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def _check_stage_has_data(best_stage: str, level: str) -> bool:
+    """Return True when *best_stage* has at least one row in the sample."""
+    return st.session_state.decision_data.sample.filter(pl.col(level) == best_stage).limit(1).collect().height > 0
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def _propensity_vs_optionality_plot(best_stage: str, level: str):
+    return st.session_state.decision_data.plot.propensity_vs_optionality(best_stage).update_layout(
+        showlegend=False, height=300
+    )
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def _sensitivity_plot(level: str, *page_filter_exprs: pl.Expr):
+    _da = st.session_state.decision_data
+    filters = list(page_filter_exprs)
+    total_decisions = _da.filtered(filters).select(pl.n_unique("Interaction ID")).collect().item()
+    return _da.plot.sensitivity(
+        win_rank=1,
+        hide_priority=True,
+        total_decisions=total_decisions,
+    ).update_layout(height=300)
+
+
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def _offer_quality_pie(best_stage: str, level: str):
+    """Compute thresholds, action counts, quality breakdown and pie chart in one cached call."""
+    _da = st.session_state.decision_data
+    # Use 10th percentile thresholds (same defaults as Offer Quality page)
+    propensity_th = _da.get_thresholding_data("Propensity", [0, 10, 100])
+    priority_th = _da.get_thresholding_data("Priority", [0, 10, 100])
+
+    prop_values = propensity_th["Threshold"].to_list()
+    prio_values = priority_th["Threshold"].to_list()
+
+    if all(v is None for v in prop_values) or all(v is None for v in prio_values):
+        return None
+
+    propensityTH = prop_values[1] if prop_values[1] is not None else 0.10
+    priorityTH = prio_values[0] if prio_values[0] is not None else 0.0
+
+    action_counts = _da.filtered_action_counts(
+        groupby_cols=["Stage Group", "Interaction ID"],
+        priorityTH=priorityTH,
+        propensityTH=propensityTH,
+    )
+    quality_data = _da.get_offer_quality(action_counts, group_by="Interaction ID")
+    return offer_quality_single_pie(
+        quality_data,
+        stage=best_stage,
+        propensityTH=propensityTH,
+        level="Stage Group",
+    )
+
+
+# ---------------------------------------------------------------------------
+
+# Check if we have data at the selected stage (cached: avoids .collect() on every rerender)
 has_arbitration_data = False
 if best_stage_for_overview:
-    stage_data = da.sample.filter(pl.col(da.level) == best_stage_for_overview).collect()
-    has_arbitration_data = stage_data.height > 0
+    has_arbitration_data = _check_stage_has_data(best_stage_for_overview, da.level)
 
 col1, col2 = st.columns(2)
 
@@ -86,9 +149,7 @@ with col1:
         offers typically means higher engagement.
         """
         st.plotly_chart(
-            st.session_state.decision_data.plot.propensity_vs_optionality(best_stage_for_overview).update_layout(
-                showlegend=False, height=300
-            ),
+            _propensity_vs_optionality_plot(best_stage_for_overview, da.level),
         )
     else:
         st.warning(
@@ -104,16 +165,8 @@ with col2:
         respond (propensity) should typically drive decisions for a customer-centric
         approach, balanced with business value.
         """
-
-        total_decisions = da.filtered(collect_page_filters()).select(pl.n_unique("Interaction ID")).collect().item()
         st.plotly_chart(
-            st.session_state.decision_data.plot.sensitivity(
-                win_rank=1,
-                hide_priority=True,
-                total_decisions=total_decisions,
-            ).update_layout(
-                height=300,
-            ),
+            _sensitivity_plot(da.level, *collect_page_filters()),
         )
     else:
         st.warning(
@@ -129,37 +182,9 @@ with col2:
         above 10th percentile), while red shows customers without offers. Orange shows
         customers with only irrelevant offers (propensity below 10th percentile).
         """
-
-        # Use 10th percentile thresholds (same defaults as Offer Quality page)
-        propensity_th = st.session_state.decision_data.get_thresholding_data("Propensity", [0, 10, 100])
-        priority_th = st.session_state.decision_data.get_thresholding_data("Priority", [0, 10, 100])
-
-        prop_values = propensity_th["Threshold"].to_list()
-        prio_values = priority_th["Threshold"].to_list()
-
-        if not all(v is None for v in prop_values) and not all(v is None for v in prio_values):
-            propensityTH = prop_values[1] if prop_values[1] is not None else 0.10
-            priorityTH = prio_values[0] if prio_values[0] is not None else 0.0
-
-            action_counts = st.session_state.decision_data.filtered_action_counts(
-                groupby_cols=["Stage Group", "Interaction ID"],
-                priorityTH=priorityTH,
-                propensityTH=propensityTH,
-            )
-
-            quality_data = st.session_state.decision_data.get_offer_quality(
-                action_counts,
-                group_by="Interaction ID",
-            )
-
-            st.plotly_chart(
-                offer_quality_single_pie(
-                    quality_data,
-                    stage=best_stage_for_overview,
-                    propensityTH=propensityTH,
-                    level="Stage Group",
-                ),
-            )
+        pie_fig = _offer_quality_pie(best_stage_for_overview, da.level)
+        if pie_fig is not None:
+            st.plotly_chart(pie_fig)
         else:
             st.warning("Offer quality analysis requires propensity and priority thresholds.")
     else:
