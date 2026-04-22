@@ -9,21 +9,21 @@ routes to it without re-executing top-level side-effects.
 
 from __future__ import annotations
 
-import shutil
-
 import streamlit as st
-
-from pdstools.utils import streamlit_utils
-from pdstools.utils.cdh_utils import setup_logger
-from pdstools.utils.streamlit_utils import (
-    show_sidebar_branding,
-    show_version_header,
-    standard_page_config,
-)
 
 
 def home_page() -> None:
     """Render the ADM Health Check home page."""
+    import shutil
+
+    from pdstools.utils import streamlit_utils
+    from pdstools.utils.cdh_utils import setup_logger
+    from pdstools.utils.streamlit_utils import (
+        show_sidebar_branding,
+        show_version_header,
+        standard_page_config,
+    )
+
     standard_page_config(page_title="Adaptive Model Health Check")
     show_sidebar_branding("ADM Health Check")
 

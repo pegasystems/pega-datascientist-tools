@@ -11,26 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import polars as pl
 import streamlit as st
-
-from pdstools.app.impact_analyzer.ia_streamlit_utils import (
-    handle_data_path_ia,
-    load_from_upload_auto,
-    load_pdc_from_uploads,
-    load_sample_pdc,
-    prepare_and_save_random,
-    show_outcome_labels_section,
-)
-from pdstools.utils.streamlit_utils import (
-    get_data_path,
-    get_sample_limit,
-    get_temp_dir,
-    parse_sample_spec,
-    show_sidebar_branding,
-    show_version_header,
-    standard_page_config,
-)
 
 VBD_REQUIRED_COLS = {
     "OutcomeTime",
@@ -98,6 +79,8 @@ def _load_with_warning(loader, label: str, *, expected_input_cols=None):
 
 def _show_data_summary(ia, is_sample_data: bool = False):
     """Display a summary banner for the loaded ImpactAnalyzer."""
+    import polars as pl
+
     try:
         schema_names = set(ia.ia_data.collect_schema().names())
         # Check for VBD-specific columns after from_vbd() processing
@@ -131,6 +114,24 @@ def _show_data_summary(ia, is_sample_data: bool = False):
 
 def home_page() -> None:
     """Render the Impact Analyzer home page."""
+    from pdstools.app.impact_analyzer.ia_streamlit_utils import (
+        handle_data_path_ia,
+        load_from_upload_auto,
+        load_pdc_from_uploads,
+        load_sample_pdc,
+        prepare_and_save_random,
+        show_outcome_labels_section,
+    )
+    from pdstools.utils.streamlit_utils import (
+        get_data_path,
+        get_sample_limit,
+        get_temp_dir,
+        parse_sample_spec,
+        show_sidebar_branding,
+        show_version_header,
+        standard_page_config,
+    )
+
     standard_page_config(page_title="Impact Analyzer")
     show_sidebar_branding("Impact Analyzer")
 

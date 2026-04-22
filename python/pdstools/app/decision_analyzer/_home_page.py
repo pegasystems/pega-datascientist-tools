@@ -11,32 +11,7 @@ from __future__ import annotations
 
 from typing import cast
 
-import polars as pl
 import streamlit as st
-
-from pdstools.app.decision_analyzer.da_streamlit_utils import (
-    handle_data_path,
-    handle_file_upload,
-    handle_sample_data,
-    load_decision_analyzer,
-)
-from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
-from pdstools.decision_analyzer.utils import (
-    _read_source_metadata,
-    parse_filter_specs,
-    parse_sample_flag,
-    prepare_and_save,
-    should_cache_source,
-)
-from pdstools.utils.streamlit_utils import (
-    get_data_path,
-    get_filter_specs,
-    get_sample_limit,
-    get_temp_dir,
-    show_sidebar_branding,
-    show_version_header,
-    standard_page_config,
-)
 
 _LARGE_DATA_HINT = (
     "**Your data may be too large for the default polars build.** "
@@ -57,6 +32,8 @@ def _is_capacity_error(exc: BaseException) -> bool:
 
 def _show_data_summary(da):
     """Display a summary banner for the loaded DecisionAnalyzer."""
+    import polars as pl
+
     extract_type = da.extract_type
     format_label = (
         "**Explainability Extract (v1)** — arbitration stage only"
@@ -118,6 +95,32 @@ def render(locked_page_titles: list[str] | None = None) -> None:
         is loaded. Surfaced as a discoverability hint so users know what
         will appear after they upload.
     """
+    import polars as pl
+
+    from pdstools.app.decision_analyzer.da_streamlit_utils import (
+        handle_data_path,
+        handle_file_upload,
+        handle_sample_data,
+        load_decision_analyzer,
+    )
+    from pdstools.decision_analyzer.DecisionAnalyzer import DEFAULT_SAMPLE_SIZE
+    from pdstools.decision_analyzer.utils import (
+        _read_source_metadata,
+        parse_filter_specs,
+        parse_sample_flag,
+        prepare_and_save,
+        should_cache_source,
+    )
+    from pdstools.utils.streamlit_utils import (
+        get_data_path,
+        get_filter_specs,
+        get_sample_limit,
+        get_temp_dir,
+        show_sidebar_branding,
+        show_version_header,
+        standard_page_config,
+    )
+
     standard_page_config(page_title="Decision Analysis")
     show_sidebar_branding("Decision Analysis")
     pl.enable_string_cache()
