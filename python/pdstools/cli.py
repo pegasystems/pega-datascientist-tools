@@ -87,7 +87,12 @@ def create_parser():
         default=None,
         help=(
             "Path to a data file or directory to load on startup. "
-            "Supports parquet, csv, json, arrow, zip, and partitioned folders. "
+            "Per-app expectations: "
+            "DA — single file or directory of explanations export "
+            "(parquet, csv, json, arrow, zip, tar, partitioned folders); "
+            "HC — directory or zip containing an ADM Datamart export "
+            "(model snapshot + predictor binning, optional prediction table); "
+            "IA — single JSON/NDJSON (PDC), ZIP (VBD), or XLSX file. "
             "Exposed to the app as the PDSTOOLS_DATA_PATH env var."
         ),
     )
@@ -96,7 +101,8 @@ def create_parser():
         dest="sample",
         default=None,
         help=(
-            "Pre-ingestion interaction sampling for large datasets. "
+            "Pre-ingestion interaction sampling for large datasets "
+            "(applies to DA and IA; no-op for HC). "
             "Specify an absolute count (e.g. '100000', '100k', '1M') or a percentage "
             "(e.g. '10%%'). All rows for each sampled interaction are kept. "
             "Exposed to the app as the PDSTOOLS_SAMPLE_LIMIT env var. "
@@ -111,7 +117,8 @@ def create_parser():
         action="append",
         default=None,
         help=(
-            "Pre-ingestion row filter for extracting specific data from large files. "
+            "Pre-ingestion row filter for extracting specific data from large files "
+            "(DA only; no-op for HC and IA). "
             "Syntax options: "
             "'Column=value1,value2,...' (categorical, exact match), "
             "'Column>=N' / 'Column<=N' / 'Column>N' / 'Column<N' (numeric), "
@@ -126,7 +133,8 @@ def create_parser():
         dest="temp_dir",
         default=None,
         help=(
-            "Directory for temporary files such as the sampled data parquet. "
+            "Directory for temporary files such as the sampled data parquet "
+            "(applies to DA and IA; no-op for HC). "
             "Defaults to the current working directory. "
             "Exposed to the app as the PDSTOOLS_TEMP_DIR env var."
         ),
@@ -139,7 +147,7 @@ def create_parser():
         help=(
             "Bundle all JS/CSS libraries (Plotly, itables, etc.) directly into the "
             "generated HTML report, producing a fully self-contained file that works "
-            "offline and in air-gapped environments. "
+            "offline and in air-gapped environments (HC only; no-op for DA and IA). "
             "The file will be larger and esbuild is required. "
             "Without this flag (default) libraries are loaded from CDN — "
             "smaller file, but requires an internet connection at viewing time. "
@@ -151,7 +159,7 @@ def create_parser():
         dest="full_embed",
         action="store_false",
         help=(
-            "Load JS/CSS libraries from CDN (default). "
+            "Load JS/CSS libraries from CDN (default; HC only). "
             "Produces a smaller report file but requires internet access when viewing. "
             "Use --full-embed for offline/air-gapped environments."
         ),
