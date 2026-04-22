@@ -20,6 +20,7 @@ from ..utils.cdh_utils import (
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
 from .Plots import Plots
 from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
+from .statistics import lift_pl
 
 if TYPE_CHECKING:
     from ..utils.types import QUERY
@@ -1071,9 +1072,6 @@ class ImpactAnalyzer:
             # Already a sequence (list, tuple, etc.)
             by_list = by
 
-        def _lift_pl(test, control):
-            return (pl.col(test) - pl.col(control)) / pl.col(control)
-
         # Extract column names from expressions for use with pl.exclude()
         def _get_column_names(items: Sequence[str | pl.Expr]) -> list[str]:
             column_names: list[str] = []
@@ -1123,7 +1121,7 @@ class ImpactAnalyzer:
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
                 / (pl.col("Impressions_Control") + pl.col("Impressions_Test")),
-                CTR_Lift=_lift_pl("CTR_Test", "CTR_Control"),
+                CTR_Lift=lift_pl("CTR_Test", "CTR_Control"),
             )
         )
 
@@ -1133,7 +1131,7 @@ class ImpactAnalyzer:
         else:
             # For VBD data, calculate Value_Lift from ValuePerImpression
             result = result.with_columns(
-                Value_Lift=_lift_pl(
+                Value_Lift=lift_pl(
                     "ValuePerImpression_Test",
                     "ValuePerImpression_Control",
                 ),
