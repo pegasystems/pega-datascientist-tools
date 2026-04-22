@@ -316,7 +316,6 @@ zoom, and hover for details.
                 st.session_state["sample_metadata"] = sample_metadata
 
                 del raw_data
-                _show_data_summary(da)
         except BaseException as exc:
             if _is_capacity_error(exc):
                 st.error(f"🚫 {type(exc).__name__}: {exc}")
@@ -339,6 +338,21 @@ zoom, and hover for details.
                 )
                 st.stop()
             raise
+
+        # First-run auto-load: ``st.navigation()`` was already built
+        # earlier in this script run with the data-gated pages hidden,
+        # so the sidebar wouldn't reveal them until the next user
+        # interaction triggered a rerun. Match the HC / IA UX and
+        # rerun once now so the unlocked nav and the data summary
+        # appear in the same user action. Guard on ``has_existing_data``
+        # so we rerun exactly once on the load and not on every
+        # subsequent script run. Skip ``_show_data_summary`` here —
+        # the post-rerun pass will render it via the ``has_existing_data``
+        # branch below.
+        if not has_existing_data:
+            st.rerun()
+
+        _show_data_summary(da)
     elif has_existing_data:
         _show_data_summary(st.session_state.decision_data)
     else:
