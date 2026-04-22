@@ -5,7 +5,7 @@ from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyz
 from pdstools.utils.cdh_utils import is_valid_polars_duration
 from pdstools.utils.streamlit_utils import standard_page_config
 
-standard_page_config(page_title="Impact Analyzer · Trend")
+standard_page_config(page_title="Trend · Impact Analyzer")
 
 ia = ensure_impact_analyzer()
 
@@ -17,7 +17,19 @@ seasonal patterns, and the stability of your experiment results.
 """
 
 
-facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
+schema_names = ia.ia_data.collect_schema().names()
+facet = "Channel" if "Channel" in schema_names else None
+
+if "SnapshotTime" in schema_names:
+    import polars as pl
+
+    n_timestamps = ia.ia_data.select(pl.col("SnapshotTime").n_unique()).collect().item()
+    if n_timestamps is not None and n_timestamps < 2:
+        st.info(
+            "Trend analysis requires snapshots from multiple time periods. "
+            "The currently loaded data only spans a single point in time."
+        )
+        st.stop()
 
 with st.container(border=True):
     "## Time Series View"

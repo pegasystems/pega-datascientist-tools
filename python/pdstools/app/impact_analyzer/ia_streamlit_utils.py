@@ -473,7 +473,10 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
             st.session_state["ia_outcome_aliases_loaded_from"] = str(loaded_from) if loaded_from else str(p)
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     else:
-        st.error(f"Unsupported file type: {suffix}. Use JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD).")
+        st.error(
+            f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
+            "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
+        )
         return None
 
 

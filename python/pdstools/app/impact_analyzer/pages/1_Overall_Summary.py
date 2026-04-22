@@ -4,7 +4,7 @@ import streamlit as st
 from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
 from pdstools.utils.streamlit_utils import standard_page_config
 
-standard_page_config(page_title="Impact Analyzer · Overall Summary")
+standard_page_config(page_title="Overall Summary · Impact Analyzer")
 
 ia = ensure_impact_analyzer()
 

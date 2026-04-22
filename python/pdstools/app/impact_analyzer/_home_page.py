@@ -141,13 +141,13 @@ def home_page() -> None:
         """
 # Impact Analyzer
 
-Analyze A/B test experiments from PDC exports or VBD Scenario Planner Actuals.
-Two data formats are supported — format is auto-detected on upload:
+Analyze A/B test experiments from your decisioning monitoring exports or
+scenario-planner data. Multiple input formats are supported — the format
+is auto-detected on upload:
 
-| | **PDC Export** | **PDC Excel Export** | **VBD Scenario Planner** | **Interaction History** |
+| | **Monitoring Export (JSON)** | **Monitoring Export (Excel)** | **Scenario Planner Export** | **Interaction History** |
 |---|---|---|---|---|
 | Format | JSON/NDJSON | XLSX | ZIP archive | TBD - future |
-| Source | Pega Diagnostic Cloud | Pega Diagnostic Cloud | Pega Infinity | Pega Infinity |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
@@ -184,7 +184,8 @@ zoom, and hover for details.
 
         if not filtered_files:
             st.error(
-                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
+                "No valid data files found. Upload JSON/NDJSON (monitoring export), "
+                "XLSX (Excel monitoring export), or ZIP (scenario-planner export) files. "
                 "If you dragged a folder, try uploading just the `data.json` file instead."
             )
         else:
@@ -201,13 +202,13 @@ zoom, and hover for details.
                     )
             # Multiple JSON files: treat as PDC
             elif suffixes.issubset({".json", ".ndjson"}):
-                with st.spinner("Loading PDC data"):
+                with st.spinner("Loading data…"):
                     impact_analyzer = _load_with_warning(
                         lambda: load_pdc_from_uploads(filtered_files),
-                        "PDC",
+                        "uploaded",
                     )
             else:
-                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
+                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files.")
 
     # 2. Handle --data-path CLI flag
     has_existing_data = "impact_analyzer" in st.session_state
@@ -225,7 +226,7 @@ zoom, and hover for details.
 
     # 3. Fall back to sample data
     if impact_analyzer is None and not has_existing_data and not uploaded_files:
-        with st.spinner("Loading sample PDC data"):
+        with st.spinner("Loading sample data"):
             impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
         if impact_analyzer is not None:
             # Match the Decision Analyzer / Health Check first-run UX:
