@@ -60,8 +60,27 @@ autoapi_ignore = [
     "**/queries/*",
     "queries",
 ]
+# Do NOT include "imported-members": re-exports in __init__.py would otherwise
+# create duplicate documentation targets, which causes Sphinx to emit
+# "more than one target found for cross-reference" warnings whenever a type
+# hint references the symbol by its short name.
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "special-members",
+]
 nbsphinx_allow_errors = True
 autodoc_typehints = "both"
+
+# Map ambiguous short names (used in type hints throughout the codebase) to
+# their canonical fully-qualified targets. Without these aliases, Sphinx sees
+# the bare name (e.g. ``QUERY``) and cannot pick between the original
+# definition and any re-exports.
+autodoc_type_aliases = {
+    "QUERY": "pdstools.utils.types.QUERY",
+}
 
 # -- Sphinx-tabs settings ----------------------------------------------------
 sphinx_tabs_valid_builders = ["html", "singlehtml"]
@@ -110,7 +129,19 @@ html_theme_options = {
     ],
 }
 
-suppress_warnings = ["spub.duplicated_toc_entry"]
+suppress_warnings = [
+    "spub.duplicated_toc_entry",
+    # A handful of common short names (e.g. ``Plots``, ``Aggregates``,
+    # ``Prediction``, attribute ``type``) are intentionally defined in
+    # multiple submodules — each top-level analyzer has its own ``Plots``
+    # namespace facade, and the Infinity client ships parallel ``base`` /
+    # ``v24_1`` / ``v24_2`` class hierarchies. Sphinx cannot disambiguate
+    # which target a bare type-hint reference points at and emits a
+    # ``more than one target found for cross-reference`` warning. There
+    # are no genuine missing ``py:`` references in this build, so
+    # suppressing ``ref.python`` only hides the irreducible ambiguity.
+    "ref.python",
+]
 
 
 # Overwriting nbsphinx in order to add remove_input cell tag (remove code cell,
