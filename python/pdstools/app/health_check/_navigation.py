@@ -32,8 +32,9 @@ class _SubPage:
 _SUB_PAGES: tuple[_SubPage, ...] = (
     _SubPage("1_Data_Filters.py", "Data Filters", "🔍"),
     _SubPage("2_Reports.py", "Reports", "📊"),
-    _SubPage("3_About.py", "About", "ℹ️"),
 )
+
+_ABOUT_PAGE = _SubPage("3_About.py", "About", "ℹ️")
 
 
 def _slug(title: str) -> str:
@@ -41,7 +42,11 @@ def _slug(title: str) -> str:
     return title.lower().replace(" / ", "_").replace(" ", "_").replace("/", "_")
 
 
-def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
+def pages(
+    url_prefix: str | None = None,
+    default: bool = True,
+    include_about: bool = True,
+) -> list[st.Page]:
     """Return the HC page list for ``st.navigation``.
 
     See ``decision_analyzer._navigation.pages`` for the parameter
@@ -71,6 +76,15 @@ def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
         )
         for p in _SUB_PAGES
     )
+    if include_about:
+        result.append(
+            st.Page(
+                str(_PAGES_DIR / _ABOUT_PAGE.filename),
+                title=_ABOUT_PAGE.title,
+                icon=_ABOUT_PAGE.icon,
+                url_path=_url(_slug(_ABOUT_PAGE.title)),
+            )
+        )
     return result
 
 

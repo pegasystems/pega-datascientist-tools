@@ -62,7 +62,11 @@ def _slug(title: str) -> str:
     return title.lower().replace(" / ", "_").replace(" ", "_").replace("/", "_")
 
 
-def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
+def pages(
+    url_prefix: str | None = None,
+    default: bool = True,
+    include_about: bool = True,
+) -> list[st.Page]:
     """Return the DA page list for ``st.navigation``.
 
     Parameters
@@ -78,6 +82,11 @@ def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
         The launcher must designate exactly one default page across
         all sections, so it sets this to ``False`` for tools other
         than the one it picks as the entry point.
+    include_about : bool
+        Whether to append the per-tool About page. Standalone tool
+        launches keep it (``True``); the cross-app launcher passes
+        ``False`` so all three tools share a single top-level About
+        entry instead of crowding the sidebar with three.
     """
     locked = locked_page_titles()
 
@@ -115,7 +124,8 @@ def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
             )
             for p in _DATA_PAGES
         )
-    result.append(about)
+    if include_about:
+        result.append(about)
     return result
 
 
