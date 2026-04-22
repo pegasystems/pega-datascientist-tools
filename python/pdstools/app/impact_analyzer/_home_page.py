@@ -228,10 +228,18 @@ zoom, and hover for details.
         with st.spinner("Loading sample PDC data"):
             impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
         if impact_analyzer is not None:
-            is_sample_data = True
-            st.info(
-                "No file uploaded — using built-in sample data. Upload your own data above to analyze it.",
+            # Match the Decision Analyzer / Health Check first-run UX:
+            # write data to session state, surface a non-modal toast,
+            # and ``st.rerun()`` so any data-gated UI (and a clean
+            # render of the data summary) appears in the same user
+            # action instead of waiting for the next interaction.
+            st.session_state["impact_analyzer"] = impact_analyzer
+            st.session_state["ia_is_sample_data"] = True
+            st.toast(
+                "Loaded sample data — upload your own to replace it.",
+                icon="📊",
             )
+            st.rerun()
 
     # Pre-ingestion sampling (only for CLI paths)
     sample_limit_raw = get_sample_limit() if data_source_path else None

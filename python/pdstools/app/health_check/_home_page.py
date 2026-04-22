@@ -19,6 +19,8 @@ def home_page() -> None:
     from pdstools.utils import streamlit_utils
     from pdstools.utils.cdh_utils import setup_logger
     from pdstools.utils.streamlit_utils import (
+        cached_sample,
+        cached_sample_prediction,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
@@ -57,6 +59,21 @@ interactive visuals and an Excel export for further exploration.
             f"    - {missing_deps_list}\n"
             "The app will not function without these tools. Please install them before proceeding.",
         )
+
+    # Auto-load the bundled CDH sample on first visit so the app is
+    # immediately usable — matches the Decision Analyzer and Impact
+    # Analyzer first-run UX. Users can swap to their own data via the
+    # data-source selector below; the toast is non-modal so it doesn't
+    # block them. ``st.rerun()`` rebuilds the script with ``dm`` set
+    # so downstream pages see populated session state in the same
+    # user action.
+    if "dm" not in st.session_state:
+        with st.spinner("Loading sample data…"):
+            st.session_state["dm"] = cached_sample()
+            st.session_state["prediction"] = cached_sample_prediction()
+            st.session_state["data_source"] = "CDH Sample"
+        st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+        st.rerun()
 
     # --- Data Import (previously a separate page) ---
 
