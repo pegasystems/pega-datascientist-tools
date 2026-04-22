@@ -23,6 +23,7 @@ def show_versions(print_output: Literal[False] = False) -> str: ...
 def show_versions(
     print_output: bool = True,
     include_dependencies: bool = True,
+    include_runtime_diagnostics: bool = False,
 ) -> None | str:
     """Get a list of currently installed versions of pdstools and its dependencies.
 
@@ -36,6 +37,13 @@ def show_versions(
         If True, include the versions of dependencies in the output.
         If False, only include the pdstools version and system information.
         Default is True.
+    include_runtime_diagnostics : bool, optional
+        If True, also report runtime details that are useful when
+        diagnosing environment issues: the polars index-type runtime
+        (rt64 vs rt32) and the presence/version of external tools
+        (``quarto``, ``pandoc``) used by the report-rendering path.
+        Default is False (the CLI ``pdstools doctor`` subcommand sets
+        this flag).
 
     Returns
     -------
@@ -87,11 +95,44 @@ def show_versions(
             for d in dependencies:
                 info.append(f"{d}: {_get_dependency_version(d)}")
 
+    if include_runtime_diagnostics:
+        info.append("\n--- Polars runtime ---")
+        try:
+            import polars as pl
+
+            try:
+                rt64 = pl.get_index_type() == pl.UInt64
+            except Exception:  # pragma: no cover - defensive
+                rt64 = False
+            info.append(f"rt64 runtime active: {'yes' if rt64 else 'no'}")
+        except ImportError:  # pragma: no cover - polars is a required dep
+            info.append("polars: not installed")
+
+        info.append("\n--- External tools ---")
+        for tool in ("quarto", "pandoc"):
+            info.append(_external_tool_status(tool))
+
     version_info = "\n".join(info)
     if print_output:
         print(version_info)
         return None
     return version_info
+
+
+def _external_tool_status(tool: str) -> str:
+    import shutil
+    import subprocess
+
+    path = shutil.which(tool)
+    if path is None:
+        return f"{tool}: not installed"
+    try:
+        proc = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10)
+        output = proc.stdout or proc.stderr
+        version_line = output.splitlines()[0] if output else "?"
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - defensive
+        version_line = "?"
+    return f"{tool}: {path} ({version_line})"
 
 
 def expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]:

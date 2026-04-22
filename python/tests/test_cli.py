@@ -581,12 +581,14 @@ class TestDoctor:
             main()
         mock_run.assert_not_called()
         captured = capsys.readouterr()
-        assert "pdstools" in captured.out
-        assert "polars" in captured.out
-        assert "optional dependency groups" in captured.out
-        assert "external tools" in captured.out
-        for group in ("app", "healthcheck", "pega_io", "dev"):
-            assert f"[{group}]" in captured.out
+        assert "--- Version info ---" in captured.out
+        assert "pdstools:" in captured.out
+        assert "--- Dependencies ---" in captured.out
+        assert "--- Polars runtime ---" in captured.out
+        assert "rt64 runtime active:" in captured.out
+        assert "--- External tools ---" in captured.out
+        # At least one of the documented dependency groups should render.
+        assert "--- Dependency group:" in captured.out
 
     def test_doctor_renders_not_installed_when_which_returns_none(self, monkeypatch, capsys):
         from pdstools import cli as cli_mod

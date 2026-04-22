@@ -192,78 +192,16 @@ def list_apps() -> None:
 
 
 def doctor() -> None:
-    """Print environment health information for support diagnostics."""
-    import importlib.metadata as ilmd
-    import platform
-    import shutil
-    import subprocess
+    """Print environment health information for support diagnostics.
 
-    print("--- pdstools ---")
-    print(f"version: {__version__}")
-    print(f"python:  {sys.version.split()[0]} ({sys.executable})")
-    print(f"os:      {platform.platform()}")
+    Thin wrapper over :func:`pdstools.show_versions` with all
+    diagnostic flags enabled. Exposed as the ``pdstools doctor`` CLI
+    subcommand so users can share their environment without writing
+    Python.
+    """
+    from .utils.show_versions import show_versions
 
-    print("\n--- polars ---")
-    try:
-        import polars as pl
-
-        print(f"version: {pl.__version__}")
-        try:
-            rt64 = pl.get_index_type() == pl.UInt64
-        except Exception:  # pragma: no cover - defensive
-            rt64 = False
-        print(f"rt64 runtime active: {'yes' if rt64 else 'no'}")
-    except ImportError:
-        print("polars: not installed")
-
-    print("\n--- optional dependency groups ---")
-    extras_groups = ("app", "healthcheck", "pega_io", "dev")
-    requires = ilmd.distribution("pdstools").requires or []
-    grouped: dict[str, list[str]] = {g: [] for g in extras_groups}
-    for req in requires:
-        # e.g.  'streamlit ; extra == "app"'
-        if "; extra ==" not in req:
-            continue
-        spec, extra = req.split("; extra ==", 1)
-        extra_name = extra.strip().strip('"').strip("'")
-        # Packaging normalises underscores to dashes in extra names
-        # (e.g. 'pega_io' -> 'pega-io'); accept both.
-        extra_key = extra_name.replace("-", "_")
-        if extra_key in grouped:
-            # Skip self-references like 'pdstools[adm]'
-            if spec.strip().startswith("pdstools["):
-                continue
-            grouped[extra_key].append(spec.strip())
-
-    import re as _re
-
-    for group in extras_groups:
-        print(f"\n[{group}]")
-        deps = sorted(grouped[group])
-        if not deps:
-            print("  (no packages)")
-            continue
-        for spec in deps:
-            pkg = _re.split(r"[<>=!~\[ ]", spec, maxsplit=1)[0]
-            try:
-                ilmd.distribution(pkg)
-                status = "OK"
-            except ilmd.PackageNotFoundError:
-                status = "MISSING"
-            print(f"  {pkg}: {status}")
-
-    print("\n--- external tools ---")
-    for tool in ("quarto", "pandoc"):
-        path = shutil.which(tool)
-        if path is None:
-            print(f"{tool}: not installed")
-            continue
-        try:
-            proc = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10)
-            version_line = (proc.stdout or proc.stderr).splitlines()[0] if (proc.stdout or proc.stderr) else "?"
-        except (OSError, subprocess.SubprocessError):  # pragma: no cover - defensive
-            version_line = "?"
-        print(f"{tool}: {path} ({version_line})")
+    show_versions(include_runtime_diagnostics=True)
 
 
 def main():
