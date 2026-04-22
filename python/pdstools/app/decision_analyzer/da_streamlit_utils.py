@@ -38,6 +38,7 @@ _DECISION_STATE_KEYS: tuple[str, ...] = (
     "sample_metadata",
     "page_channel_filter",
     "page_channel_expr",
+    "_da_uploaded_file_signature",
 )
 
 
@@ -649,11 +650,34 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
         type=["zip", "parquet", "json", "csv", "arrow", "gz", "tgz", "tar"],
         accept_multiple_files=True,
     )
+
+    previous_signature = st.session_state.get("_da_uploaded_file_signature")
+
     if not uploaded_files:
+        # User cleared the uploader (or never uploaded). If a previous
+        # upload was processed, drop the now-stale data so the page
+        # falls back to the autoload sample on the next run.
+        if previous_signature is not None:
+            clear_decision_state()
         return None, None
 
-    # Clear stale data/filters before processing the new upload.
+    # Identity of the current upload set. Streamlit's UploadedFile keeps
+    # ``file_id`` stable across reruns for the same upload; size+name
+    # are a defensive fallback for stubs in tests.
+    signature = tuple((getattr(f, "file_id", None) or f.name, f.name, getattr(f, "size", None)) for f in uploaded_files)
+
+    # Same upload as last run and the resulting analyzer is still in
+    # session state — nothing to do. Without this guard, the file
+    # uploader's persistent value would re-trigger ingest on every
+    # rerun (clearing decision_data each time), causing the post-load
+    # ``st.rerun()`` to loop and the upload to never visibly take
+    # effect over a previously auto-loaded sample.
+    if signature == previous_signature and "decision_data" in st.session_state:
+        return None, None
+
+    # New (or replacement) upload: clear stale data/filters, then process.
     clear_decision_state()
+    st.session_state["_da_uploaded_file_signature"] = signature
 
     # Drop noise files that may appear when selecting from extracted archives.
     valid_files = [f for f in uploaded_files if not _is_upload_noise(f.name)]
