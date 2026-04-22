@@ -8,7 +8,9 @@ import polars as pl
 import pytest
 from pdstools import Prediction
 from pdstools.pega_io.File import read_ds_export
+from pdstools.prediction.Plots import PredictionPlots
 from pdstools.utils import cdh_utils
+from plotly.graph_objs import Figure
 
 mock_prediction_data = pl.DataFrame(
     {
@@ -302,22 +304,57 @@ def test_overall_summary_ia(preds_singleday):
 
 
 def test_plots():
-    prediction = Prediction.from_mock_data()
+    prediction = Prediction.from_mock_data()  # 70 days * 3 channels = 210 rows
 
-    assert prediction.plot.performance_trend() is not None
-    assert prediction.plot.lift_trend() is not None
-    assert prediction.plot.responsecount_trend() is not None
-    assert prediction.plot.ctr_trend() is not None
+    # Each figure exposes one trace per channel (Mobile, E-mail, Web).
+    expected_trace_names = sorted(
+        [
+            "Mobile (PREDICTMOBILEPROPENSITY)",
+            "E-mail (PREDICTOUTBOUNDEMAILPROPENSITY)",
+            "Web (PREDICTWEBPROPENSITY)",
+        ]
+    )
 
-    assert prediction.plot.performance_trend("1w") is not None
-    assert isinstance(prediction.plot.lift_trend("2d", return_df=True), pl.LazyFrame)
-    assert prediction.plot.responsecount_trend("1m") is not None
-    assert prediction.plot.ctr_trend("5d") is not None
+    perf_fig = prediction.plot.performance_trend()
+    assert sorted(t.name for t in perf_fig.data) == expected_trace_names
+    assert perf_fig.layout.yaxis.title.text == "Performance (AUC)"
+    assert perf_fig.layout.xaxis.title.text == "Date"
 
-    assert isinstance(prediction.plot.performance_trend(return_df=True), pl.LazyFrame)
-    assert isinstance(prediction.plot.lift_trend(return_df=True), pl.LazyFrame)
-    assert isinstance(prediction.plot.responsecount_trend(return_df=True), pl.LazyFrame)
-    assert isinstance(prediction.plot.ctr_trend(return_df=True), pl.LazyFrame)
+    lift_fig = prediction.plot.lift_trend()
+    assert sorted(t.name for t in lift_fig.data) == expected_trace_names
+    assert lift_fig.layout.yaxis.title.text == "Engagement Lift"
+
+    rc_fig = prediction.plot.responsecount_trend()
+    assert sorted(t.name for t in rc_fig.data) == expected_trace_names
+    assert rc_fig.layout.yaxis.title.text == "Responses"
+
+    ctr_fig = prediction.plot.ctr_trend()
+    assert sorted(t.name for t in ctr_fig.data) == expected_trace_names
+    assert ctr_fig.layout.yaxis.title.text == "CTR"
+
+    # Period overrides change the row count of the underlying frame.
+    perf_w = prediction.plot.performance_trend("1w", return_df=True).collect()
+    assert perf_w.shape == (33, 29)
+
+    lift_2d = prediction.plot.lift_trend("2d", return_df=True).collect()
+    assert lift_2d.shape == (105, 29)
+
+    rc_1m = prediction.plot.responsecount_trend("1m", return_df=True).collect()
+    assert rc_1m.shape == (210, 29)
+
+    ctr_5d = prediction.plot.ctr_trend("5d", return_df=True).collect()
+    assert ctr_5d.shape == (45, 29)
+
+    # Default period (1d): 70 days * 3 channels = 210 rows.
+    for method in (
+        prediction.plot.performance_trend,
+        prediction.plot.lift_trend,
+        prediction.plot.responsecount_trend,
+        prediction.plot.ctr_trend,
+    ):
+        df = method(return_df=True).collect()
+        assert df.shape == (210, 29)
+        assert sorted(df["Channel"].unique().to_list()) == ["E-mail", "Mobile", "Web"]
 
 
 # New tests to improve coverage
@@ -394,7 +431,6 @@ def test_from_pdc():
 
 def test_prediction_plots_internal_method(preds_singleday):
     """Test the internal _prediction_trend method of PredictionPlots."""
-    # Call the internal method directly
     plt, plot_df = preds_singleday.plot._prediction_trend(
         period="1d",
         query=None,
@@ -402,35 +438,44 @@ def test_prediction_plots_internal_method(preds_singleday):
         title="Test Plot",
     )
 
-    # Verify the plot was created
-    assert plt is not None
+    # The figure plots one trace per non-multi-channel known channel:
+    # Mobile and Web (Unknown / Multi-channel are filtered out).
+    assert isinstance(plt, Figure)
+    assert sorted(t.name for t in plt.data) == [
+        "Mobile (PREDICTMOBILEPROPENSITY)",
+        "Web (PREDICTWEBPROPENSITY)",
+    ]
+    assert plt.layout.title.text.startswith("Test Plot")
 
-    # Verify the dataframe has expected columns
-    assert isinstance(plot_df, pl.LazyFrame)
     collected_df = plot_df.collect()
-    assert "Performance" in collected_df.columns
-    assert "Date" in collected_df.columns
-    assert "Prediction" in collected_df.columns
+    # Four channels (Unknown, Multi-channel, Mobile, Web), one snapshot day.
+    assert collected_df.shape == (4, 29)
+    assert collected_df["Performance"].to_list() == pytest.approx([0.65, 0.70, 0.65, 0.70], abs=1e-6)
+    assert collected_df["Prediction"].to_list() == [
+        "Unknown (MYCUSTOMPREDICTION)",
+        "Multi-channel (PREDICTACTIONPROPENSITY)",
+        "Mobile (PREDICTMOBILEPROPENSITY)",
+        "Web (PREDICTWEBPROPENSITY)",
+    ]
+    assert collected_df["Date"].to_list() == [datetime.date(2040, 4, 1)] * 4
 
 
 def test_prediction_validity_expr(preds_singleday):
     """Test the prediction_validity_expr class attribute."""
-    # Get the expression
     expr = Prediction.prediction_validity_expr
 
-    # Test the expression on the predictions property which has the correct column names
     result = preds_singleday.predictions.filter(expr).collect()
 
-    # Verify it filters as expected
-    assert len(result) > 0
+    # Fixture: 16 raw rows, 4 of which have empty pyDataUsage and are dropped
+    # by validity (3 valid usages * 4 model ids = 12 rows kept).
+    assert result.shape == (12, 23)
+    assert sorted(result["Positives"].unique().to_list()) == [100, 200, 400, 500, 800, 1000]
 
-    # Create a prediction with invalid data (with zeros)
     invalid_data = mock_prediction_data.with_columns(pyPositives=pl.lit(0))
     invalid_pred = Prediction(invalid_data)
 
-    # Verify it correctly identifies invalid data
     invalid_result = invalid_pred.predictions.filter(expr).collect()
-    assert len(invalid_result) == 0
+    assert invalid_result.shape == (0, 23)
 
 
 def test_init_with_temporal_snapshot_time():
@@ -457,8 +502,7 @@ def test_lazy_namespace_initialization():
     pred = Prediction.from_mock_data()
 
     # Access the plot namespace to trigger initialization
-    assert pred.plot is not None
-    assert hasattr(pred.plot, "prediction")
+    assert isinstance(pred.plot, PredictionPlots)
     assert pred.plot.prediction is pred
 
     # Verify the dependencies attribute
@@ -474,7 +518,9 @@ def test_from_processed_data():
     predictions_cache = pred.save_data(temp_path)
 
     cached_data = read_ds_export(predictions_cache)
-    assert cached_data is not None
+    # read_ds_export can legitimately return None when the file is missing;
+    # narrow the type here so the equality check below is well-defined.
+    assert isinstance(cached_data, pl.LazyFrame)
 
     loaded_pred = Prediction.from_processed_data(cached_data)
     assert loaded_pred.is_available
@@ -488,30 +534,47 @@ def test_from_processed_data():
 
 
 def test_performance_range_in_summary_methods(preds_singleday):
-    """Test that Performance values are in the 0.5-1.0 range in summary methods."""
-    # Test summary_by_channel
+    """Performance values are exact, normalised, and within the [0.5, 1.0] AUC range."""
+    # summary_by_channel: input pyValue alternates 0.65 (4x) / 0.70 (4x) across
+    # 4 channels -> after normalisation each channel's Performance is the raw
+    # pyValue / 100 multiplied by Pega's *100 representation, giving back the
+    # original 0.65 / 0.70 (with float32 rounding from the source column).
     channel_summary = preds_singleday.summary_by_channel().collect()
     performance_values = channel_summary["Performance"].to_list()
+    assert performance_values == pytest.approx(
+        [0.65, 0.70, 0.65, 0.70],
+        rel=1e-6,
+    )
 
-    for perf in performance_values:
-        assert perf >= 0.5, f"Performance {perf} is below 0.5"
-        assert perf <= 1.0, f"Performance {perf} is above 1.0"
-
-    # Test overall_summary
+    # overall_summary aggregates with response-count weighting; capture the
+    # exact computed value so a regression in the weighting changes it.
     overall_summary = preds_singleday.overall_summary().collect()
     overall_perf = overall_summary["Performance"].item()
+    assert overall_perf == pytest.approx(0.6794117478763356, rel=1e-9)
 
-    assert overall_perf >= 0.5, f"Overall Performance {overall_perf} is below 0.5"
-    assert overall_perf <= 1.0, f"Overall Performance {overall_perf} is above 1.0"
-
-    # Test with mock data
+    # Mock data is deterministic (no RNG seed used in from_mock_data); these
+    # values were captured from the fixture and pin the per-channel AUC.
     pred_mock = Prediction.from_mock_data(days=30)
     mock_channel_summary = pred_mock.summary_by_channel().collect()
-    mock_performance_values = mock_channel_summary["Performance"].to_list()
+    mock_rows = dict(
+        zip(
+            mock_channel_summary["Channel"].to_list(),
+            mock_channel_summary["Performance"].to_list(),
+            strict=True,
+        ),
+    )
+    assert mock_rows == pytest.approx(
+        {
+            "Mobile": 0.7150071889215354,
+            "E-mail": 0.625005832742956,
+            "Web": 0.6700169096404074,
+        },
+        rel=1e-9,
+    )
 
-    for perf in mock_performance_values:
-        assert perf >= 0.5, f"Mock Performance {perf} is below 0.5"
-        assert perf <= 1.0, f"Mock Performance {perf} is above 1.0"
+    # Secondary invariant: a non-degenerate AUC must sit in [0.5, 1.0].
+    for perf in performance_values + [overall_perf] + list(mock_rows.values()):
+        assert 0.5 <= perf <= 1.0
 
 
 def test_performance_normalization_from_pega_scale():
@@ -539,10 +602,12 @@ def test_performance_normalization_from_pega_scale():
     # Check that Performance values are normalized
     performance = pred.predictions.select("Performance").collect()["Performance"].to_list()
 
-    # Verify all performance values are in 0.5-1.0 range
+    # Verify all performance values are normalised to the [0.5, 1.0] AUC range
+    # and equal exactly value/100 for each Pega-scale input (65 -> 0.65 etc.).
+    expected = [0.65, 0.70, 0.75]
+    assert performance == pytest.approx(expected, rel=1e-6)
     for perf in performance:
-        assert perf >= 0.5, f"Performance {perf} is below 0.5"
-        assert perf <= 1.0, f"Performance {perf} is above 1.0"
+        assert 0.5 <= perf <= 1.0
 
     # Specifically verify the normalization (65/100 = 0.65, etc.)
     assert abs(performance[0] - 0.65) < 0.001, f"Expected 0.65, got {performance[0]}"

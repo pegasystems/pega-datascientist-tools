@@ -51,7 +51,10 @@ def test_bubble_chart(sample: ADMDatamart):
         pl.col("ResponseCount").top_k(1),
     ).collect().item() == pytest.approx(8174, abs=1e-6)
     plot = sample.plot.bubble_chart()
-    assert plot is not None
+    assert isinstance(plot, Figure)
+    assert plot.layout.xaxis.title.text == "Performance"
+    assert plot.layout.yaxis.title.text == "SuccessRate"
+    assert len(plot.data) == 1
 
 
 def test_bubble_chart_with_metric_limits(sample: ADMDatamart):
@@ -132,10 +135,17 @@ def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):
 
 def test_over_time(sample2: ADMDatamart):
     fig = sample2.plot.over_time(metric="Performance", by="ModelID")
-    assert fig is not None
+    assert isinstance(fig, Figure)
+    assert fig.layout.xaxis.title.text == "SnapshotTime"
+    assert fig.layout.yaxis.title.text == "Performance"
+    # One trace per ModelID; values are pyValue * 100 (Pega-scale display).
+    by_name = {t.name: list(t.y) for t in fig.data}
+    assert by_name == {"1": [75.0, 78.0, 77.0], "2": [80.0, 82.0, 85.0]}
 
     fig = sample2.plot.over_time(metric="ResponseCount", by="ModelID")
-    assert fig is not None
+    assert isinstance(fig, Figure)
+    by_name = {t.name: [float(v) for v in t.y] for t in fig.data}
+    assert by_name == {"1": [100.0, 120.0, 110.0], "2": [150.0, 160.0, 170.0]}
 
     performance_changes = (
         sample2.plot.over_time(metric="Performance", cumulative=False, return_df=True)
@@ -158,7 +168,10 @@ def test_over_time(sample2: ADMDatamart):
         by="ModelID",
         facet="Group",
     )
-    assert fig_faceted is not None
+    assert isinstance(fig_faceted, Figure)
+    # Faceting on Group splits into 2 subplots (A, B); each ModelID lives in one.
+    assert {t.name for t in fig_faceted.data} == {"1", "2"}
+    assert "xaxis2" in fig_faceted.layout and "yaxis2" in fig_faceted.layout
 
     with pytest.raises(
         ValueError,
@@ -206,7 +219,9 @@ def test_proposition_success_rates(sample: ADMDatamart):
     assert df.select(pl.col("Name").top_k(1)).collect().item() == "VisaGold"
 
     plot = sample.plot.proposition_success_rates()
-    assert plot is not None
+    assert isinstance(plot, Figure)
+    assert plot.layout.yaxis.title.text == "Name"
+    assert "SuccessRate" in plot.layout.xaxis.title.text
 
 
 def test_score_distribution(sample: ADMDatamart):
@@ -230,7 +245,9 @@ def test_score_distribution(sample: ADMDatamart):
         sample.plot.score_distribution(model_id="invalid_id")
 
     plot = sample.plot.score_distribution(model_id=model_id)
-    assert plot is not None
+    assert isinstance(plot, Figure)
+    # Score distribution overlays a propensity line on a binning bar chart.
+    assert len(plot.data) == 2
 
 
 def test_multiple_score_distributions(sample: ADMDatamart):
@@ -412,10 +429,14 @@ def test_tree_map(sample: ADMDatamart):
 def test_predictor_count(sample: ADMDatamart):
     df = sample.plot.predictor_count(return_df=True)
 
-    assert df.height > 0  # Should have some data
-    assert "Count" in df.collect_schema().names()
-    assert "Type" in df.collect_schema().names()
-    assert "EntryType" in df.collect_schema().names()
+    collected = df.collect() if isinstance(df, pl.LazyFrame) else df
+    # Fixture has 70 ADM models contributing predictor counts; capture exact
+    # shape and the total predictor count summed across all models.
+    assert collected.shape == (120, 4)
+    assert collected.schema["Count"] == pl.UInt64
+    assert collected["Count"].sum() == 3560
+    assert set(collected["EntryType"].unique().to_list()) == {"Active", "Inactive", "Overall"}
+    assert set(collected["Type"].unique().to_list()) == {"numeric", "symbolic"}
 
     plot = sample.plot.predictor_count()
     assert isinstance(plot, Figure)
@@ -476,7 +497,11 @@ def test_gains_chart_return_df(sample: ADMDatamart):
 
     # Verify data makes sense
     collected = df.collect()
-    assert collected.height > 0
+    # 68 models in fixture + a leading (0, 0) anchor point => 69 rows.
+    assert collected.height == 69
+    assert collected["cum_x"][0] == 0.0
+    assert collected["cum_y"][0] == 0.0
+    assert collected["cum_x"][-1] == pytest.approx(1.0, abs=0.01)
     # Cumulative y should end at 1.0 (100%)
     assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
@@ -495,7 +520,9 @@ def test_gains_chart_with_index(sample: ADMDatamart):
     assert isinstance(df, pl.LazyFrame)
     # Verify index column is used for sorting
     collected = df.collect()
-    assert collected.height > 0
+    assert collected.height == 69
+    assert collected["cum_x"].is_sorted()
+    assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
 
 def test_gains_chart_with_query(sample: ADMDatamart):
@@ -503,9 +530,11 @@ def test_gains_chart_with_query(sample: ADMDatamart):
     # Use a filter that keeps some but not all data
     df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Channel") == "Email", return_df=True)
     assert isinstance(df, pl.LazyFrame)
-    # Should still return data for filtered subset
+    # Should still return data for filtered subset (Email channel: 22 models + anchor)
     collected = df.collect()
-    assert collected.height > 0
+    assert collected.height == 23
+    assert collected["cum_x"][0] == 0.0
+    assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
 
 def test_performance_volume_distribution_basic(sample: ADMDatamart):
@@ -522,9 +551,24 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     assert "PerformanceBinned" in schema
     assert "ResponseCount" in schema
 
-    # Verify binning worked
+    # Verify binning worked: Performance range 50-80 with default bin_width=3 = 10 bins
     collected = df.collect()
-    assert collected.height > 0
+    assert collected.height == 10
+    assert collected["PerformanceBinned"].to_list() == [
+        "[50, 53)",
+        "[53, 56)",
+        "[56, 59)",
+        "[59, 62)",
+        "[62, 65)",
+        "[65, 68)",
+        "[68, 71)",
+        "[71, 74)",
+        "[74, 77)",
+        "[77, 80)",
+    ]
+    # Proportions across all bins must sum to 1.0
+    assert collected["Proportion"].sum() == pytest.approx(1.0, abs=1e-5)
+    assert collected["ResponseCount"].sum() == pytest.approx(1560249.0, rel=1e-6)
 
 
 def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
@@ -549,7 +593,11 @@ def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     """Test performance volume distribution with query filter."""
     df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
     assert isinstance(df, pl.LazyFrame)
-    assert df.collect().height > 0
+    collected = df.collect()
+    # Same Performance range -> same 10 bins, but lower total response count after the query.
+    assert collected.height == 10
+    assert collected["ResponseCount"].sum() == pytest.approx(1557707.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() < 1560249.0  # query genuinely filtered rows
 
 
 # ---------------------------------------------------------------------------
@@ -561,11 +609,12 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     """predictor_category_color_map returns a non-empty, stable mapping."""
     color_map = sample.predictor_category_color_map
     assert isinstance(color_map, dict)
-    assert len(color_map) > 0
-    # All values should be valid hex color strings
-    for cat, color in color_map.items():
-        assert isinstance(color, str), f"Color for {cat!r} is not a string"
-        assert color.startswith("#"), f"Color {color!r} for {cat!r} is not a hex color"
+    # Fixture has 3 predictor categories (Customer, IH, Param) -> stable hex colours.
+    assert color_map == {
+        "Customer": "#001F5F",
+        "IH": "#10A5AC",
+        "Param": "#F76923",
+    }
     # Calling twice returns the same object (cached_property)
     assert sample.predictor_category_color_map is color_map
 
