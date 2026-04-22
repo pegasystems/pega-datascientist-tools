@@ -4,7 +4,6 @@ from itertools import groupby
 
 import polars as pl
 import streamlit as st
-import streamlit.components.v1 as components
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     ensure_data,
     stage_level_selector,
@@ -324,293 +323,224 @@ for f in pvcl_factors:
 totals_row.update(_stage_cells(interaction_df, show_components=False))
 grid_rows.append(totals_row)
 
-# ── Render hierarchical HTML table ────────────────────────────────────────
-# Columns for display
+# ── Render hierarchical grid using <details> for native expand/collapse ───
+# We render the tree with HTML5 <details>/<summary> elements: each parent
+# row becomes a <summary> that toggles its child <div> on click, with zero
+# JavaScript. This lets us use st.html() (which strips <script> tags) and
+# avoids the soon-to-be-removed components.html API.
+#
+# Layout uses CSS Grid (not <table>) so that nested <details> blocks can
+# share a single column template — every row, at every depth, declares the
+# same grid-template-columns and therefore aligns vertically with the
+# header. <details> inside <tbody> is not valid HTML and breaks table
+# layout, so we trade table semantics for a stacked-card layout.
+#
+# Trade-off vs. the previous JS-based version: the global "Expand all" and
+# "Collapse all" buttons are gone (<details> is per-element; bringing them
+# back would require a custom Streamlit component). Each parent row still
+# expands/collapses by clicking its summary header.
+# TODO: bringing back expand-all would require a custom Streamlit component.
+
 display_pvcl = [f for f in pvcl_factors if any(f in r for r in grid_rows)]
-header_cols = [""] + display_pvcl + stages_ordered  # "" = name/label column
+n_pvcl = len(display_pvcl)
+n_stages = len(stages_ordered)
 
-# Check if there are children at each level
-has_groups = any(r["_depth"] == 1 for r in grid_rows)
-has_actions = any(r["_depth"] == 2 for r in grid_rows)
+# Shared grid template: one wide name column, then PVCL columns, then stage
+# columns. Every row reuses this so nested cards line up with the header.
+grid_template = (
+    "grid-template-columns: minmax(180px, 2fr)"
+    + (" minmax(70px, 1fr)" * n_pvcl)
+    + (" minmax(60px, 1fr)" * n_stages)
+    + ";"
+)
 
-# Build header — two-row when Stage-level with group header
-if show_group_header:
-    # Row 1: Stage Group spanning cells + empty cells for name/PVCL columns
-    n_fixed = 1 + len(display_pvcl)  # name col + PVCL cols
-    group_header_cells = ['<th rowspan="2"></th>']  # name col spans both rows
-    for f in display_pvcl:
-        group_header_cells.append(f'<th rowspan="2">{html_mod.escape(f)}</th>')
-
-    # Group consecutive stages by their Stage Group
-    grouped_stages = []
-    for grp, members in groupby(stages_ordered, key=lambda s: stage_to_group.get(s, s)):
-        member_list = list(members)
-        grouped_stages.append((grp, member_list))
-
-    for grp, members in grouped_stages:
-        escaped = html_mod.escape(grp)
-        group_header_cells.append(f'<th class="group-header" colspan="{len(members)}">{escaped}</th>')
-    group_header_html = "<tr>" + "".join(group_header_cells) + "</tr>"
-
-    # Row 2: individual Stage names (multi-line)
-    stage_header_cells = []
-    for col in stages_ordered:
-        label = html_mod.escape(col).replace(" ", "<br>")
-        stage_header_cells.append(f'<th class="stage-col">{label}</th>')
-    stage_header_html = "<tr>" + "".join(stage_header_cells) + "</tr>"
-
-    header_html = group_header_html + stage_header_html
-else:
-    # Single-row header (Stage Group level or no mapping)
-    header_cells = []
-    for col in header_cols:
-        escaped = html_mod.escape(col)
-        if col in stages_ordered:
-            label = escaped.replace(" ", "<br>")
-            header_cells.append(f'<th class="stage-col">{label}</th>')
-        else:
-            header_cells.append(f"<th>{escaped}</th>")
-    header_html = "<tr>" + "".join(header_cells) + "</tr>"
-
-# Build body rows
-body_html_parts = []
+# Build parent → children map for recursive rendering.
+children_map: dict[str, list[dict]] = {}
+roots: list[dict] = []
+totals_row: dict | None = None
 for r in grid_rows:
-    depth = r["_depth"]
-    key = html_mod.escape(r["_key"])
-    parent = html_mod.escape(r.get("_parent", ""))
-    label = html_mod.escape(r["_label"])
-
-    is_totals = depth == -1
-
-    # Determine if this row has children
-    has_children = (depth == 0 and has_groups) or (depth == 1 and has_actions)
-
-    # Row attributes
-    cls = "totals-row" if is_totals else f"depth-{depth}"
-    hidden = ' style="display:none"' if depth > 0 else ""
-    data_attrs = f'data-key="{key}" data-depth="{depth}"'
-    if parent:
-        data_attrs += f' data-parent="{parent}"'
-
-    # Label cell with indent and toggle icon
-    if is_totals:
-        name_cell = f"<td><b>{label}</b></td>"
+    d = r["_depth"]
+    if d == -1:
+        totals_row = r
+    elif d == 0:
+        roots.append(r)
     else:
-        indent = depth * 20
-        if has_children:
-            toggle = '<span class="toggle">▶</span> '
-        else:
-            toggle = '<span style="display:inline-block;width:1em"></span> '
-        name_cell = f'<td style="padding-left:{indent + 6}px">{toggle}<b>{label}</b></td>'
+        children_map.setdefault(r.get("_parent", ""), []).append(r)
 
-    # PVCL cells
-    pvcl_cells = []
-    for f in display_pvcl:
-        val = html_mod.escape(str(r.get(f, "")))
-        pvcl_cells.append(f"<td>{val}</td>")
 
-    # Stage cells
+def _row_cells(row: dict) -> str:
+    """Build the inner grid cells (name + PVCL + stages) for a single row."""
+    depth = row["_depth"]
+    is_totals = depth == -1
+    label = html_mod.escape(row["_label"])
+    indent = 0 if is_totals else depth * 20
+    # Empty .toggle span reserves width on every row so leaf labels align
+    # horizontally with parent labels (the ::before triangle is only added
+    # to summary rows via CSS).
+    name_cell = (
+        f'<div class="cell name-cell" style="padding-left:{indent + 6}px">'
+        f'<span class="toggle"></span><b>{label}</b></div>'
+    )
+
+    pvcl_cells_html = "".join(f'<div class="cell">{html_mod.escape(str(row.get(f, "")))}</div>' for f in display_pvcl)
+
     stage_cells = []
     for stage in stages_ordered:
-        val = html_mod.escape(str(r.get(stage, "—"))).replace("\n", "<br>")
+        val = html_mod.escape(str(row.get(stage, "—"))).replace("\n", "<br>")
         if "❌" in val:
-            stage_cells.append(f'<td class="cell-filtered">{val}</td>')
+            cls = "cell cell-filtered"
         elif "✅" in val:
-            stage_cells.append(f'<td class="cell-pass">{val}</td>')
+            cls = "cell cell-pass"
         elif "∅" in val:
-            stage_cells.append('<td class="cell-empty">∅</td>')
+            cls = "cell cell-empty"
+            val = "∅"
         else:
-            stage_cells.append(f'<td class="cell-skip">{val}</td>')
+            cls = "cell cell-skip"
+        stage_cells.append(f'<div class="{cls}">{val}</div>')
 
-    all_cells = name_cell + "".join(pvcl_cells) + "".join(stage_cells)
-    body_html_parts.append(f'<tr class="{cls}" {data_attrs}{hidden}>{all_cells}</tr>')
+    return name_cell + pvcl_cells_html + "".join(stage_cells)
+
+
+def _render_node(row: dict) -> str:
+    """Recursively render a row + its descendants as nested <details>."""
+    depth = row["_depth"]
+    cls = f"depth-{depth}"
+    cells = _row_cells(row)
+    children = children_map.get(row["_key"], [])
+    if not children:
+        return f'<div class="grid-row {cls}" style="{grid_template}">{cells}</div>'
+    body = "".join(_render_node(child) for child in children)
+    return (
+        f'<details class="row-details">'
+        f'<summary class="grid-row {cls}" style="{grid_template}">{cells}</summary>'
+        f'<div class="grid-body">{body}</div>'
+        f"</details>"
+    )
+
+
+# ── Header ─────────────────────────────────────────────────────────────────
+if show_group_header:
+    # Two-row header in a single grid: name + PVCL columns span both rows;
+    # stage-group cells occupy row 1 (with grid-column: span N); individual
+    # stage names occupy row 2.
+    header_cells = ['<div class="cell hdr name-hdr">&nbsp;</div>']
+    for f in display_pvcl:
+        header_cells.append(f'<div class="cell hdr pvcl-hdr">{html_mod.escape(f)}</div>')
+
+    grouped_stages = [
+        (grp, list(members)) for grp, members in groupby(stages_ordered, key=lambda s: stage_to_group.get(s, s))
+    ]
+    for grp, members in grouped_stages:
+        escaped = html_mod.escape(grp)
+        header_cells.append(f'<div class="cell group-header" style="grid-column: span {len(members)};">{escaped}</div>')
+    for col in stages_ordered:
+        label = html_mod.escape(col).replace(" ", "<br>")
+        header_cells.append(f'<div class="cell stage-col">{label}</div>')
+
+    header_html = (
+        f'<div class="grid-row header-row two-row" style="{grid_template} grid-template-rows: auto auto;">'
+        + "".join(header_cells)
+        + "</div>"
+    )
+else:
+    header_cells = ['<div class="cell hdr name-hdr">&nbsp;</div>']
+    for f in display_pvcl:
+        header_cells.append(f'<div class="cell hdr pvcl-hdr">{html_mod.escape(f)}</div>')
+    for col in stages_ordered:
+        label = html_mod.escape(col).replace(" ", "<br>")
+        header_cells.append(f'<div class="cell stage-col">{label}</div>')
+    header_html = f'<div class="grid-row header-row" style="{grid_template}">' + "".join(header_cells) + "</div>"
+
+# ── Body ──────────────────────────────────────────────────────────────────
+body_html = "".join(_render_node(r) for r in roots)
+if totals_row is not None:
+    body_html += f'<div class="grid-row totals-row" style="{grid_template}">' + _row_cells(totals_row) + "</div>"
 
 if pvcl_factors:
     st.caption("PVCL values at Issue/Group level show **min|median|max** across actions.")
 
-# Estimate height: generous to avoid cutting off rows.
-n_all_rows = len(grid_rows)
-estimated_height = 300 + n_all_rows * 45
-
-# components.html with custom JS is used here intentionally: this renders a
-# multi-level expand/collapse tree-grid with per-cell colouring (pass / filtered
-# / skipped / empty) for every (action, stage) pair. Streamlit's native
-# st.dataframe / st.data_editor do not support hierarchical row expansion or
-# custom cell styling at this granularity, so there is no Streamlit-native
-# alternative that preserves the drill-down UX. See AGENTS.md "Streamlit apps".
-components.html(
+st.html(
     f"""
     <style>
-    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    body {{ font-family: "Source Sans Pro", sans-serif; }}
     .decision-grid {{
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 0.85rem;
         overflow-x: auto;
     }}
-    .decision-grid table {{
-        border-collapse: collapse;
-        font-size: 0.85rem;
+    .decision-grid .grid-row {{
+        display: grid;
+        border-bottom: 1px solid #ddd;
     }}
-    .decision-grid th, .decision-grid td {{
-        border: 1px solid #ddd;
+    .decision-grid .grid-row > div {{
         padding: 6px 8px;
-        text-align: left;
+        border-right: 1px solid #eee;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }}
-    .decision-grid th {{
+    .decision-grid .header-row {{
         background: #f8f9fa;
         font-weight: 600;
+        border-bottom: 2px solid #adb5bd;
     }}
-    .decision-grid th.group-header {{
+    .decision-grid .header-row.two-row .name-hdr,
+    .decision-grid .header-row.two-row .pvcl-hdr {{
+        grid-row: 1 / span 2;
+        align-self: stretch;
+    }}
+    .decision-grid .group-header {{
         text-align: center;
         background: #e9ecef;
         font-size: 0.80rem;
-        border-bottom: 2px solid #adb5bd;
     }}
-    .decision-grid th.stage-col {{
-        vertical-align: bottom;
+    .decision-grid .stage-col {{
         text-align: center;
-        padding: 4px 6px;
         font-size: 0.78rem;
         line-height: 1.2;
-        min-width: 60px;
+        white-space: normal;
     }}
-    .decision-grid .cell-filtered {{
-        background: #fff0f0;
-    }}
-    .decision-grid .cell-pass {{
-        background: #f0fff0;
-    }}
-    .decision-grid .cell-skip {{
-        color: #bbb;
-    }}
+    .decision-grid .cell-filtered {{ background: #fff0f0; }}
+    .decision-grid .cell-pass {{ background: #f0fff0; }}
+    .decision-grid .cell-skip {{ color: #bbb; }}
     .decision-grid .cell-empty {{
         color: #999;
         text-align: center;
         background: #f5f5f5;
     }}
-    .decision-grid .depth-0 td:first-child {{
-        font-size: 0.95rem;
-    }}
-    .decision-grid .depth-1 {{
-        background: #fafafa;
-    }}
-    .decision-grid .depth-2 {{
-        background: #f5f5f5;
-    }}
+    .decision-grid .depth-0 .name-cell {{ font-size: 0.95rem; }}
+    .decision-grid .depth-1 {{ background: #fafafa; }}
+    .decision-grid .depth-2 {{ background: #f5f5f5; }}
     .decision-grid .totals-row {{
         border-top: 2px solid #333;
         background: #f8f9fa;
         font-weight: 600;
     }}
     .decision-grid .toggle {{
-        font-size: 0.7rem;
         display: inline-block;
         width: 1em;
+        margin-right: 4px;
+        font-size: 0.7rem;
+        color: #666;
+    }}
+    .decision-grid summary.grid-row {{
         cursor: pointer;
-        user-select: none;
+        list-style: none;
+    }}
+    .decision-grid summary.grid-row::-webkit-details-marker {{
+        display: none;
+    }}
+    .decision-grid summary.grid-row .toggle::before {{
+        content: '▶';
+        display: inline-block;
         transition: transform 0.15s;
     }}
-    .decision-grid .toggle.expanded {{
+    .decision-grid details[open] > summary.grid-row .toggle::before {{
         transform: rotate(90deg);
-    }}
-    .expand-controls {{
-        margin-bottom: 6px;
-        display: flex;
-        gap: 8px;
-    }}
-    .expand-controls button {{
-        background: #f8f9fa;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 3px 10px;
-        font-size: 0.8rem;
-        cursor: pointer;
-        font-family: inherit;
-    }}
-    .expand-controls button:hover {{
-        background: #e9ecef;
     }}
     </style>
     <div class="decision-grid">
-    <div class="expand-controls">
-      <button onclick="expandAll()">Expand all</button>
-      <button onclick="collapseAll()">Collapse all</button>
+    {header_html}
+    {body_html}
     </div>
-    <table>
-    <thead>{header_html}</thead>
-    <tbody>{"".join(body_html_parts)}</tbody>
-    </table>
-    </div>
-    <script>
-    function toggleChildren(el) {{
-        const row = el.closest('tr');
-        const key = row.dataset.key;
-        const depth = parseInt(row.dataset.depth);
-        const isExpanding = !el.classList.contains('expanded');
-        el.classList.toggle('expanded');
-        el.textContent = isExpanding ? '\\u25BC' : '\\u25B6';
-
-        let sibling = row.nextElementSibling;
-        while (sibling) {{
-            const sibDepth = parseInt(sibling.dataset.depth);
-            if (sibDepth <= depth) break;
-
-            if (isExpanding) {{
-                if (sibDepth === depth + 1) {{
-                    sibling.style.display = '';
-                    const childToggle = sibling.querySelector('.toggle');
-                    if (childToggle && childToggle.classList.contains('expanded')) {{
-                        childToggle.classList.remove('expanded');
-                        childToggle.textContent = '\\u25B6';
-                    }}
-                }}
-                if (sibDepth > depth + 1) {{
-                    sibling.style.display = 'none';
-                }}
-            }} else {{
-                sibling.style.display = 'none';
-                const childToggle = sibling.querySelector('.toggle');
-                if (childToggle && childToggle.classList.contains('expanded')) {{
-                    childToggle.classList.remove('expanded');
-                    childToggle.textContent = '\\u25B6';
-                }}
-            }}
-            sibling = sibling.nextElementSibling;
-        }}
-    }}
-
-    // Attach click handlers
-    document.querySelectorAll('.toggle').forEach(function(el) {{
-        el.addEventListener('click', function() {{ toggleChildren(this); }});
-    }});
-
-    function expandAll() {{
-        document.querySelectorAll('tbody tr').forEach(function(row) {{
-            if (parseInt(row.dataset.depth) >= 0) {{
-                row.style.display = '';
-            }}
-            const toggle = row.querySelector('.toggle');
-            if (toggle) {{
-                toggle.classList.add('expanded');
-                toggle.textContent = '\\u25BC';
-            }}
-        }});
-    }}
-
-    function collapseAll() {{
-        document.querySelectorAll('tbody tr').forEach(function(row) {{
-            const depth = parseInt(row.dataset.depth);
-            if (depth > 0) {{
-                row.style.display = 'none';
-            }}
-            const toggle = row.querySelector('.toggle');
-            if (toggle) {{
-                toggle.classList.remove('expanded');
-                toggle.textContent = '\\u25B6';
-            }}
-        }});
-    }}
-    </script>
-    """,
-    height=estimated_height,
-    scrolling=True,
+    """
 )
