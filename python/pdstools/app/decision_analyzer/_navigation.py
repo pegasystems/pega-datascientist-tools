@@ -66,6 +66,7 @@ def pages(
     url_prefix: str | None = None,
     default: bool = True,
     include_about: bool = True,
+    include_subpages: bool = True,
 ) -> list[st.Page]:
     """Return the DA page list for ``st.navigation``.
 
@@ -87,6 +88,11 @@ def pages(
         launches keep it (``True``); the cross-app launcher passes
         ``False`` so all three tools share a single top-level About
         entry instead of crowding the sidebar with three.
+    include_subpages : bool
+        Whether to append the data-dependent analysis pages. The
+        cross-app launcher passes ``False`` until the user actively
+        enters the DA app; even when ``True``, individual pages stay
+        gated on ``decision_data`` being present in session state.
     """
     locked = locked_page_titles()
 
@@ -114,7 +120,7 @@ def pages(
     )
 
     result = [home]
-    if "decision_data" in st.session_state:
+    if include_subpages and "decision_data" in st.session_state:
         result.extend(
             st.Page(
                 str(_PAGES_DIR / p.filename),

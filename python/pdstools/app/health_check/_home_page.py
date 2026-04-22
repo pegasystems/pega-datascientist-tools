@@ -23,6 +23,7 @@ def home_page() -> None:
         cached_sample,
         cached_sample_prediction,
         get_data_path,
+        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
@@ -30,6 +31,7 @@ def home_page() -> None:
 
     standard_page_config(page_title="Adaptive Model Health Check")
     show_sidebar_branding("ADM Health Check")
+    _set_active_app("hc")
 
     if "log_buffer" not in st.session_state:
         _, st.session_state.log_buffer = setup_logger()

@@ -428,6 +428,7 @@ def run(args, unknown):
         # The launcher hosts the DA pages, so it inherits DA's XSRF
         # exemption (DA uses the file-uploader workaround that breaks
         # under XSRF). Standalone HC / IA launches keep XSRF on.
+        os.environ["PDSTOOLS_LAUNCHER_MODE"] = "1"
         sys.argv = [
             "streamlit",
             "run",

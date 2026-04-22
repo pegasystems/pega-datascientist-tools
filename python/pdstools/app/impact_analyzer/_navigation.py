@@ -46,12 +46,15 @@ def pages(
     url_prefix: str | None = None,
     default: bool = True,
     include_about: bool = True,
+    include_subpages: bool = True,
 ) -> list[st.Page]:
     """Return the IA page list for ``st.navigation``.
 
     See ``decision_analyzer._navigation.pages`` for parameter
     semantics — same contract across all pdstools tools so the
-    cross-app launcher can reuse them uniformly.
+    cross-app launcher can reuse them uniformly. ``include_subpages``
+    lets the launcher hide IA's analysis pages until the user has
+    actually entered the IA app.
     """
 
     def _url(name: str) -> str | None:
@@ -67,15 +70,16 @@ def pages(
         url_path=_url("home"),
     )
     result = [home]
-    result.extend(
-        st.Page(
-            str(_PAGES_DIR / p.filename),
-            title=p.title,
-            icon=p.icon,
-            url_path=_url(_slug(p.title)),
+    if include_subpages:
+        result.extend(
+            st.Page(
+                str(_PAGES_DIR / p.filename),
+                title=p.title,
+                icon=p.icon,
+                url_path=_url(_slug(p.title)),
+            )
+            for p in _SUB_PAGES
         )
-        for p in _SUB_PAGES
-    )
     if include_about:
         result.append(
             st.Page(

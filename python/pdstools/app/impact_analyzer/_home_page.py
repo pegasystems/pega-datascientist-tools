@@ -127,6 +127,7 @@ def home_page() -> None:
         get_sample_limit,
         get_temp_dir,
         parse_sample_spec,
+        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
@@ -134,6 +135,7 @@ def home_page() -> None:
 
     standard_page_config(page_title="Impact Analyzer")
     show_sidebar_branding("Impact Analyzer")
+    _set_active_app("ia")
 
     show_version_header()
 

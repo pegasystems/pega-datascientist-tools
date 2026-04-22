@@ -41,26 +41,89 @@ def _is_newer_version_available(installed: str, latest: str) -> bool:
         return False
 
 
+def is_launcher_mode() -> bool:
+    """True when the app is running inside the cross-app launcher.
+
+    The CLI sets ``PDSTOOLS_LAUNCHER_MODE=1`` when invoking the launcher
+    so per-app helpers (sidebar branding, navigation) can adapt their
+    behaviour without each call site needing to know.
+    """
+    return os.environ.get("PDSTOOLS_LAUNCHER_MODE") == "1"
+
+
+def set_active_app(app_key: str) -> None:
+    """Mark the named app as currently active in the launcher sidebar.
+
+    Each app's home page calls this on render. In launcher mode the
+    cross-app entry script reads the flag to decide which app's
+    sub-pages to register in ``st.navigation``, keeping the sidebar
+    short until the user has actually entered an app. A no-op (other
+    than the session_state write) in standalone tool launches.
+
+    Triggers ``st.rerun()`` when the active app actually changes so
+    the new sub-pages appear in the sidebar without a manual click.
+    """
+    if st.session_state.get("_active_app") == app_key:
+        return
+    st.session_state["_active_app"] = app_key
+    if is_launcher_mode():
+        st.rerun()
+
+
 def _apply_sidebar_logo():
-    """Re-apply the sidebar logo from session state (for sub-pages)."""
-    title = st.session_state.get("_pdstools_app_title")
-    if not title:
+    """Re-apply the sidebar logo + brand from session state.
+
+    Renders an optional subtitle (e.g. the active app name) under the
+    main brand. In launcher mode the brand is always ``"pdstools"`` and
+    the per-app title becomes the subtitle; standalone tools render a
+    single-line brand only.
+    """
+    brand = st.session_state.get("_pdstools_brand")
+    subtitle = st.session_state.get("_pdstools_brand_subtitle")
+    if not brand and not subtitle:
         return
     logo_path = _ASSETS_DIR / "pega-logo.svg"
     if logo_path.exists():
         st.logo(str(logo_path), size="large")
-    st.html(
-        "<style>"
-        "[data-testid='stSidebarNav']::before {"
-        "  content: '" + title.replace("'", "\\'") + "';"
-        "  display: block;"
-        "  font-size: 1.1rem;"
-        "  font-weight: 500;"
-        "  color: #5a5c63;"
-        "  padding: 0 1rem 0.75rem;"
+
+    css_parts = ["<style>"]
+    if brand:
+        css_parts.append(
+            "[data-testid='stSidebarNav']::before {"
+            "  content: '" + brand.replace("'", "\\'") + "';"
+            "  display: block;"
+            "  font-size: 1.1rem;"
+            "  font-weight: 500;"
+            "  color: #5a5c63;"
+            "  padding: 0 1rem 0.25rem;"
+            "}"
+        )
+    if subtitle:
+        css_parts.append(
+            "[data-testid='stSidebarNav']::after {"
+            "  content: '" + subtitle.replace("'", "\\'") + "';"
+            "  display: block;"
+            "  font-size: 0.85rem;"
+            "  font-weight: 400;"
+            "  color: #8a8d96;"
+            "  padding: 0 1rem 0.75rem;"
+            "}"
+        )
+    # Streamlit auto-collapses sidebar nav past ~10 items into a
+    # "View N more" button. With three apps hosted side-by-side the
+    # launcher easily exceeds that, hiding entire tools by default.
+    # Force-expand by setting max-height on the nav list and hiding
+    # the toggle. Targets stable testid attributes only — no JS.
+    css_parts.append(
+        "[data-testid='stSidebarNav'] ul {"
+        "  max-height: none !important;"
         "}"
-        "</style>",
+        "[data-testid='stSidebarNavViewButton'] {"
+        "  display: none !important;"
+        "}"
     )
+    css_parts.append("</style>")
+    st.html("".join(css_parts))
 
 
 def standard_page_config(page_title: str, layout: Literal["centered", "wide"] = "wide", **kwargs):
@@ -103,13 +166,25 @@ def show_sidebar_branding(title: str):
     render above the page navigation. Call once from the Home page; sub-pages
     re-apply automatically via ``standard_page_config`` or ``ensure_data``.
 
+    In launcher mode (``PDSTOOLS_LAUNCHER_MODE=1``) the brand is forced to
+    ``"pdstools"`` and the supplied *title* is rendered as a subtitle, so
+    every page in the multi-app launcher shows a consistent top-level brand
+    even when the active sub-app re-applies its own title.
+
     Parameters
     ----------
     title : str
         Application title shown below the logo in the sidebar.
 
     """
-    st.session_state["_pdstools_app_title"] = title
+    if is_launcher_mode():
+        st.session_state["_pdstools_brand"] = "pdstools"
+        # Don't show "pdstools" twice when the launcher's own picker
+        # page re-applies branding with the same title.
+        st.session_state["_pdstools_brand_subtitle"] = title if title and title.lower() != "pdstools" else None
+    else:
+        st.session_state["_pdstools_brand"] = title
+        st.session_state["_pdstools_brand_subtitle"] = None
     _apply_sidebar_logo()
 
 
