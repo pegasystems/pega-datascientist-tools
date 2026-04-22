@@ -16,11 +16,13 @@ def home_page() -> None:
     """Render the ADM Health Check home page."""
     import shutil
 
+    from pdstools.app.health_check.hc_streamlit_utils import handle_data_path_hc
     from pdstools.utils import streamlit_utils
     from pdstools.utils.cdh_utils import setup_logger
     from pdstools.utils.streamlit_utils import (
         cached_sample,
         cached_sample_prediction,
+        get_data_path,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
@@ -60,20 +62,33 @@ interactive visuals and an Excel export for further exploration.
             "The app will not function without these tools. Please install them before proceeding.",
         )
 
-    # Auto-load the bundled CDH sample on first visit so the app is
-    # immediately usable — matches the Decision Analyzer and Impact
-    # Analyzer first-run UX. Users can swap to their own data via the
-    # data-source selector below; the toast is non-modal so it doesn't
-    # block them. ``st.rerun()`` rebuilds the script with ``dm`` set
-    # so downstream pages see populated session state in the same
-    # user action.
+    # Auto-load on first visit so the app is immediately usable —
+    # matches DA / IA first-run UX. Order:
+    #   1. Honour ``--data-path`` if set (HC-specific helper handles dir
+    #      or zip; returns None on miss/unsupported so we fall through).
+    #   2. Fall back to the bundled CDH sample.
+    # The toast reflects whichever path actually loaded so users know
+    # what they're looking at. ``st.rerun()`` rebuilds the script with
+    # ``dm`` set so downstream pages see populated session state in the
+    # same user action.
     if "dm" not in st.session_state:
-        with st.spinner("Loading sample data…"):
-            st.session_state["dm"] = cached_sample()
-            st.session_state["prediction"] = cached_sample_prediction()
-            st.session_state["data_source"] = "CDH Sample"
-        st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
-        st.rerun()
+        configured_path = get_data_path()
+        loaded_from_path = False
+        if configured_path:
+            with st.spinner(f"Loading data from `{configured_path}`…"):
+                dm = handle_data_path_hc()
+            if dm is not None:
+                loaded_from_path = True
+                st.toast(f"Loaded data from `{configured_path}`.", icon="📂")
+                st.rerun()
+
+        if not loaded_from_path:
+            with st.spinner("Loading sample data…"):
+                st.session_state["dm"] = cached_sample()
+                st.session_state["prediction"] = cached_sample_prediction()
+                st.session_state["data_source"] = "CDH Sample"
+            st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+            st.rerun()
 
     # --- Data Import (previously a separate page) ---
 
