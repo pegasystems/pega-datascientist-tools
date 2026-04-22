@@ -14,6 +14,10 @@ from importlib import resources
 
 from pdstools import __version__
 
+# Subcommands recognised by the pre-parser. Anything else (including a
+# bare app name) is routed to ``run`` for backwards compatibility.
+_SUBCOMMANDS = {"run", "doctor", "list"}
+
 # App configuration with display names and paths
 APPS = {
     "health_check": {
@@ -44,6 +48,13 @@ def create_parser():
     )
 
     parser.add_argument("--version", action="version", version=f"pdstools {__version__}")
+    parser.add_argument(
+        "--list",
+        dest="list_apps",
+        action="store_true",
+        default=False,
+        help="List available apps (one per line, tab-separated key/name/aliases) and exit.",
+    )
 
     # Create help text with display names and aliases
     app_choices = list(APPS.keys()) + list(ALIASES.keys())
@@ -169,11 +180,113 @@ def check_for_typos(unknown_args, known_args):
     return likely_typos
 
 
+def _aliases_for(app_key: str) -> list[str]:
+    return [a for a, full in ALIASES.items() if full == app_key]
+
+
+def list_apps() -> None:
+    """Print one line per app: ``<key>\\t<display_name>\\t<aliases>``."""
+    for key, info in APPS.items():
+        aliases = ",".join(_aliases_for(key))
+        print(f"{key}\t{info['display_name']}\t{aliases}")
+
+
+def doctor() -> None:
+    """Print environment health information for support diagnostics."""
+    import importlib.metadata as ilmd
+    import platform
+    import shutil
+    import subprocess
+
+    print("--- pdstools ---")
+    print(f"version: {__version__}")
+    print(f"python:  {sys.version.split()[0]} ({sys.executable})")
+    print(f"os:      {platform.platform()}")
+
+    print("\n--- polars ---")
+    try:
+        import polars as pl
+
+        print(f"version: {pl.__version__}")
+        try:
+            rt64 = pl.get_index_type() == pl.UInt64
+        except Exception:  # pragma: no cover - defensive
+            rt64 = False
+        print(f"rt64 runtime active: {'yes' if rt64 else 'no'}")
+    except ImportError:
+        print("polars: not installed")
+
+    print("\n--- optional dependency groups ---")
+    extras_groups = ("app", "healthcheck", "pega_io", "dev")
+    requires = ilmd.distribution("pdstools").requires or []
+    grouped: dict[str, list[str]] = {g: [] for g in extras_groups}
+    for req in requires:
+        # e.g.  'streamlit ; extra == "app"'
+        if "; extra ==" not in req:
+            continue
+        spec, extra = req.split("; extra ==", 1)
+        extra_name = extra.strip().strip('"').strip("'")
+        # Packaging normalises underscores to dashes in extra names
+        # (e.g. 'pega_io' -> 'pega-io'); accept both.
+        extra_key = extra_name.replace("-", "_")
+        if extra_key in grouped:
+            # Skip self-references like 'pdstools[adm]'
+            if spec.strip().startswith("pdstools["):
+                continue
+            grouped[extra_key].append(spec.strip())
+
+    import re as _re
+
+    for group in extras_groups:
+        print(f"\n[{group}]")
+        deps = sorted(grouped[group])
+        if not deps:
+            print("  (no packages)")
+            continue
+        for spec in deps:
+            pkg = _re.split(r"[<>=!~\[ ]", spec, maxsplit=1)[0]
+            try:
+                ilmd.distribution(pkg)
+                status = "OK"
+            except ilmd.PackageNotFoundError:
+                status = "MISSING"
+            print(f"  {pkg}: {status}")
+
+    print("\n--- external tools ---")
+    for tool in ("quarto", "pandoc"):
+        path = shutil.which(tool)
+        if path is None:
+            print(f"{tool}: not installed")
+            continue
+        try:
+            proc = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10)
+            version_line = (proc.stdout or proc.stderr).splitlines()[0] if (proc.stdout or proc.stderr) else "?"
+        except (OSError, subprocess.SubprocessError):  # pragma: no cover - defensive
+            version_line = "?"
+        print(f"{tool}: {path} ({version_line})")
+
+
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "run":
+    # Formalised subcommand shape. Backwards-compat: ``pdstools [app]`` and
+    # bare ``pdstools`` (interactive) still work — anything that isn't a
+    # known subcommand is routed to ``run``.
+    if len(sys.argv) > 1 and sys.argv[1] in _SUBCOMMANDS:
+        sub = sys.argv[1]
+        if sub == "doctor":
+            doctor()
+            return
+        if sub == "list":
+            list_apps()
+            return
+        # ``run`` -> just strip and fall through to argparse
         del sys.argv[1]
+
     parser = create_parser()
     args, unknown = parser.parse_known_args()
+
+    if args.list_apps:
+        list_apps()
+        return
 
     # Resolve alias to full app name
     if args.app and args.app in ALIASES:
@@ -182,6 +295,7 @@ def main():
     # Check for likely typos in pdstools arguments
     known_pdstools_args = [
         "--version",
+        "--list",
         "--data-path",
         "--sample",
         "--filter",
@@ -216,6 +330,15 @@ def run(args, unknown):
         force=True,  # Override any existing config
     )
 
+    # Validate --data-path early so users get a clean error rather than
+    # an opaque crash inside Streamlit.
+    if args.data_path and not os.path.exists(args.data_path):
+        print(
+            f"Error: --data-path '{args.data_path}' does not exist.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     try:
         from streamlit.web import cli as stcli
     except ImportError:
@@ -225,7 +348,22 @@ def run(args, unknown):
         )
         sys.exit(1)
 
-    # If no app is specified, prompt the user to choose
+    # If no app is specified, prompt the user to choose. Prefer the
+    # arrow-key picker on real TTYs; fall back to the numeric prompt
+    # when stdin is piped or when the user cancels the picker.
+    if args.app is None and sys.stdin.isatty():
+        try:
+            from pdstools.utils._tty_picker import pick
+
+            choice = pick(
+                "Select an app to run (↑/↓ + Enter, Esc to cancel):",
+                [(k, APPS[k]["display_name"]) for k in APPS],
+            )
+            if choice is not None:
+                args.app = choice
+        except Exception:  # pragma: no cover - picker should never crash the CLI
+            pass
+
     if args.app is None:
         app_list = list(APPS.keys())
         print("Available pdstools apps:", flush=True)
