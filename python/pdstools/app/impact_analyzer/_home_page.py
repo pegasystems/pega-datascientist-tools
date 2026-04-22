@@ -115,10 +115,9 @@ def _show_data_summary(ia, is_sample_data: bool = False):
 def home_page() -> None:
     """Render the Impact Analyzer home page."""
     from pdstools.app.impact_analyzer.ia_streamlit_utils import (
-        handle_data_path_ia,
+        ensure_ia_data_loaded,
         load_from_upload_auto,
         load_pdc_from_uploads,
-        load_sample_pdc,
         prepare_and_save_random,
         show_outcome_labels_section,
     )
@@ -210,37 +209,31 @@ zoom, and hover for details.
             else:
                 st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files.")
 
-    # 2. Handle --data-path CLI flag
+    # 2. Handle --data-path CLI flag + sample fallback via shared helper.
+    # The helper drives the same priority chain used by data-required
+    # sub-pages on deep-link, so home and sub-pages stay in sync.
     has_existing_data = "impact_analyzer" in st.session_state
     configured_path = get_data_path()
 
-    if impact_analyzer is None and configured_path and not has_existing_data:
-        with st.spinner(f"Loading data from configured path: {configured_path}"):
-            impact_analyzer = _load_with_warning(
-                lambda: handle_data_path_ia(),
-                "CLI",
-            )
-            data_source_path = configured_path
-        if impact_analyzer is not None:
-            st.info(f"Loaded data from configured path: `{configured_path}`")
-
-    # 3. Fall back to sample data
     if impact_analyzer is None and not has_existing_data and not uploaded_files:
-        with st.spinner("Loading sample data"):
-            impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
-        if impact_analyzer is not None:
-            # Match the Decision Analyzer / Health Check first-run UX:
-            # write data to session state, surface a non-modal toast,
-            # and ``st.rerun()`` so any data-gated UI (and a clean
-            # render of the data summary) appears in the same user
-            # action instead of waiting for the next interaction.
-            st.session_state["impact_analyzer"] = impact_analyzer
-            st.session_state["ia_is_sample_data"] = True
-            st.toast(
-                "Loaded sample data — upload your own to replace it.",
-                icon="📊",
-            )
-            st.rerun()
+        if ensure_ia_data_loaded():
+            if st.session_state.get("ia_is_sample_data"):
+                # First-run sample path: surface the toast and rerun so the
+                # rest of the home page (data summary, outcome-label section)
+                # renders against populated state in the same user action.
+                st.toast(
+                    "Loaded sample data — upload your own to replace it.",
+                    icon="📊",
+                )
+                st.rerun()
+            else:
+                # CLI path: keep the local ``impact_analyzer`` populated so
+                # the pre-ingestion sampling block (which only runs for CLI
+                # paths) and downstream summary fall through naturally.
+                impact_analyzer = st.session_state["impact_analyzer"]
+                data_source_path = configured_path
+                if configured_path:
+                    st.info(f"Loaded data from configured path: `{configured_path}`")
 
     # Pre-ingestion sampling (only for CLI paths)
     sample_limit_raw = get_sample_limit() if data_source_path else None

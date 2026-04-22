@@ -17,12 +17,83 @@ import streamlit as st
 from pdstools import pega_io
 from pdstools.adm.ADMDatamart import ADMDatamart
 from pdstools.utils.streamlit_utils import (
+    _apply_sidebar_logo,
     cached_datamart,
     cached_prediction_table,
+    cached_sample,
+    cached_sample_prediction,
     get_data_path,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def ensure_dm_loaded(*, show_toast: bool = False) -> bool:
+    """Ensure ``st.session_state["dm"]`` is populated, auto-loading a default.
+
+    Used both by the Health Check home page (first-run UX) and by data-required
+    sub-pages (deep-link / launcher flow) so a user who lands on a sub-page
+    without visiting Home first still gets a working app.
+
+    Priority chain:
+
+    1. If ``dm`` is already in session_state, return ``True`` immediately.
+    2. Try the ``--data-path`` CLI flag via :func:`handle_data_path_hc`.
+    3. Fall back to the bundled CDH sample.
+
+    Parameters
+    ----------
+    show_toast : bool, default False
+        When True and a load actually happened (i.e. session_state was empty
+        on entry), surface a non-modal toast describing what was loaded.
+        The home page handles its own toasts to also drive ``st.rerun()``,
+        so it leaves this False; sub-pages set it True.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``dm`` is in session_state on return, ``False`` when
+        every load attempt failed (no CLI path resolves, no sample bundled,
+        etc.). Callers fall back to a "please upload" warning on ``False``.
+    """
+    if "dm" in st.session_state:
+        return True
+
+    configured_path = get_data_path()
+    if configured_path:
+        with st.spinner(f"Loading data from `{configured_path}`…"):
+            dm = handle_data_path_hc()
+        if dm is not None:
+            if show_toast:
+                st.toast(f"Loaded data from `{configured_path}`.", icon="📂")
+            return True
+
+    try:
+        with st.spinner("Loading sample data…"):
+            st.session_state["dm"] = cached_sample()
+            st.session_state["prediction"] = cached_sample_prediction()
+            st.session_state["data_source"] = "CDH Sample"
+    except Exception:
+        logger.exception("Failed to auto-load CDH sample for Health Check")
+        return False
+
+    if show_toast:
+        st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+    return True
+
+
+def ensure_dm() -> ADMDatamart:
+    """Sub-page guard: auto-load ``dm`` or warn-and-stop.
+
+    Re-applies sidebar branding (sub-page navigation drops it) and tries
+    :func:`ensure_dm_loaded` first so deep-linked users don't hit a dead
+    "please configure your files" warning.
+    """
+    _apply_sidebar_logo()
+    if not ensure_dm_loaded(show_toast=True):
+        st.warning("Please configure your files on the Home page.")
+        st.stop()
+    return st.session_state["dm"]
 
 
 def _load_from_directory(dir_path: str) -> ADMDatamart | None:

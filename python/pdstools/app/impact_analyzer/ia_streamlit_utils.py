@@ -1,4 +1,7 @@
+"""Health Check-specific Streamlit helpers."""
+
 # python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
+import logging
 import tempfile
 import urllib.request
 from collections.abc import Iterable
@@ -9,20 +12,88 @@ import streamlit as st
 from pdstools import ImpactAnalyzer
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
-    ensure_session_data,
     get_data_path,
 )
+
+logger = logging.getLogger(__name__)
 
 SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
 
 
-def ensure_impact_analyzer() -> ImpactAnalyzer:
-    """Guard: stop if Impact Analyzer data is not loaded.
+def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
+    """Ensure ``st.session_state["impact_analyzer"]`` is populated.
 
-    Re-applies sidebar branding on sub-pages.
+    Mirrors :func:`pdstools.app.health_check.hc_streamlit_utils.ensure_dm_loaded`
+    so deep-linked sub-pages auto-load the bundled PDC sample (or a CLI path)
+    instead of dead-ending on a "please upload" warning.
+
+    Priority chain:
+
+    1. If ``impact_analyzer`` is already in session_state, return ``True``.
+    2. Try the ``--data-path`` CLI flag via :func:`handle_data_path_ia`.
+    3. Fall back to :func:`load_sample_pdc`.
+
+    Parameters
+    ----------
+    show_toast : bool, default False
+        When True and a load actually happened, surface a non-modal toast.
+        The home page handles its own toasts to drive ``st.rerun()`` so it
+        passes False; sub-pages set it True.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``impact_analyzer`` is in session_state on return,
+        ``False`` when every load attempt failed.
+    """
+    if "impact_analyzer" in st.session_state:
+        return True
+
+    configured_path = get_data_path()
+    if configured_path:
+        try:
+            with st.spinner(f"Loading data from `{configured_path}`…"):
+                ia = handle_data_path_ia()
+        except Exception:
+            logger.exception("Failed to auto-load Impact Analyzer data from %s", configured_path)
+            ia = None
+        if ia is not None:
+            st.session_state["impact_analyzer"] = ia
+            st.session_state["ia_is_sample_data"] = False
+            st.session_state["ia_data_source_path"] = configured_path
+            if show_toast:
+                st.toast(f"Loaded data from `{configured_path}`.", icon="📂")
+            return True
+
+    try:
+        with st.spinner("Loading sample data…"):
+            ia = load_sample_pdc()
+    except Exception:
+        logger.exception("Failed to auto-load Impact Analyzer sample")
+        return False
+
+    if ia is None:
+        return False
+
+    st.session_state["impact_analyzer"] = ia
+    st.session_state["ia_is_sample_data"] = True
+    if show_toast:
+        st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+    return True
+
+
+def ensure_impact_analyzer() -> ImpactAnalyzer:
+    """Guard: auto-load Impact Analyzer data or warn-and-stop.
+
+    Re-applies sidebar branding on sub-pages, then tries
+    :func:`ensure_ia_data_loaded` so deep-link / launcher flows work without
+    visiting Home first. Falls back to the original "please upload" warning
+    when every load attempt fails (e.g. sample bundle missing offline).
     """
     _apply_sidebar_logo()
-    ensure_session_data("impact_analyzer", "Please upload your data in the Home page.")
+    if not ensure_ia_data_loaded(show_toast=True):
+        st.warning("Please upload your data in the Home page.")
+        st.stop()
     return st.session_state["impact_analyzer"]
 
 

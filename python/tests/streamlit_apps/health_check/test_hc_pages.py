@@ -70,3 +70,68 @@ def test_hc_page_renders(
     for attr, minimum in widget_checks.items():
         actual = len(getattr(at, attr))
         assert actual >= minimum, f"{page} expected at least {minimum} {attr} widget(s), got {actual}"
+
+
+# Sub-pages that auto-load on deep-link — exclude the About page since
+# it's not data-gated.
+HC_DATA_REQUIRED_PAGES = [
+    ("1_Data_Filters.py", "# Add custom filters"),
+    ("2_Reports.py", "Generate Health Check"),
+]
+
+
+@pytest.mark.parametrize(
+    ("page", "heading"),
+    HC_DATA_REQUIRED_PAGES,
+    ids=[p[0].removesuffix(".py") for p in HC_DATA_REQUIRED_PAGES],
+)
+def test_hc_subpage_autoloads_sample_on_deep_link(page: str, heading: str, hc_app_dir: Path):
+    """Visiting a data-required sub-page directly auto-loads the bundled
+    CDH sample instead of dead-ending on a "please configure" warning.
+
+    Mirrors the launcher / deep-link flow: the user clicks a sub-page
+    without visiting Home first. The page should render and ``dm``
+    should be populated.
+    """
+    at = AppTest.from_file(str(hc_app_dir / "pages" / page), default_timeout=60)
+    at.run()
+    assert not at.exception, f"{page} raised: {at.exception}"
+
+    warnings = [w.value for w in at.warning]
+    assert not any("please configure" in w.lower() or "please load" in w.lower() for w in warnings), (
+        f"{page} showed a please-upload warning instead of auto-loading: {warnings}"
+    )
+    assert "dm" in at.session_state, f"{page} did not populate session_state['dm']"
+
+    rendered_text = [m.value for m in at.markdown] + [t.value for t in at.title]
+    assert any(heading in s for s in rendered_text), f"{page} missing heading {heading!r} — body did not render"
+
+
+def test_hc_subpage_warns_when_autoload_fails(hc_app_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    """When the sample loader raises, the sub-page falls back to the
+    original "please configure" warning instead of crashing.
+
+    Patches both the CLI-path helper (returns None — no path configured)
+    and ``cached_sample`` (raises) so the helper exhausts its priority
+    chain and returns False.
+    """
+    import streamlit as st
+
+    st.cache_resource.clear()
+
+    def _broken_sample():
+        raise RuntimeError("sample bundle unavailable")
+
+    monkeypatch.setattr(
+        "pdstools.app.health_check.hc_streamlit_utils.cached_sample",
+        _broken_sample,
+    )
+
+    at = AppTest.from_file(str(hc_app_dir / "pages" / "2_Reports.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, f"page raised: {at.exception}"
+    warnings = [w.value for w in at.warning]
+    assert any("please configure" in w.lower() for w in warnings), (
+        f"expected please-configure warning when auto-load fails, got: {warnings}"
+    )
+    assert "dm" not in at.session_state

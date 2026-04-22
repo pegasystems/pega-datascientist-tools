@@ -7,6 +7,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools import ADMDatamart
+from pdstools.app.health_check.hc_streamlit_utils import ensure_dm
 from pdstools.utils.cdh_utils import _apply_query
 from pdstools.utils.show_versions import show_versions
 from pdstools.utils.streamlit_utils import (
@@ -17,9 +18,7 @@ from pdstools.utils.streamlit_utils import (
 
 standard_page_config(page_title="Reports · ADM Health Check")
 
-if "dm" not in st.session_state:
-    st.warning("Please configure your files in the `data import` tab.")
-    st.stop()
+ensure_dm()
 logger = logging.getLogger(__name__)
 _cli_full_embed = get_full_embed()
 health_check, model_report = st.tabs(

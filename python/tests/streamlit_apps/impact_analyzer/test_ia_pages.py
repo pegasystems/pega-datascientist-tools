@@ -155,3 +155,58 @@ def test_ia_page_renders(
     for attr, minimum in widget_checks.items():
         actual = len(getattr(at, attr))
         assert actual >= minimum, f"{page} expected at least {minimum} {attr} widget(s), got {actual}"
+
+
+IA_DATA_REQUIRED_PAGES = [
+    ("1_Overall_Summary.py", "# Overall Summary"),
+    ("2_Trend.py", "# Trend Analysis"),
+]
+
+
+@pytest.mark.parametrize(
+    ("page", "heading"),
+    IA_DATA_REQUIRED_PAGES,
+    ids=[p[0].removesuffix(".py") for p in IA_DATA_REQUIRED_PAGES],
+)
+def test_ia_subpage_autoloads_sample_on_deep_link(page: str, heading: str, ia_app_dir: Path):
+    """Visiting a data-required sub-page directly auto-loads the bundled
+    PDC sample instead of dead-ending on a "please upload" warning.
+    """
+    at = AppTest.from_file(str(ia_app_dir / "pages" / page), default_timeout=60)
+    at.run()
+    assert not at.exception, f"{page} raised: {at.exception}"
+
+    warnings = [w.value for w in at.warning]
+    assert not any("please upload" in w.lower() or "please load" in w.lower() for w in warnings), (
+        f"{page} showed a please-upload warning instead of auto-loading: {warnings}"
+    )
+    assert "impact_analyzer" in at.session_state, f"{page} did not populate session_state['impact_analyzer']"
+
+    rendered_text = [m.value for m in at.markdown] + [t.value for t in at.title]
+    assert any(heading in s for s in rendered_text), f"{page} missing heading {heading!r} — body did not render"
+
+
+def test_ia_subpage_warns_when_autoload_fails(ia_app_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    """When the sample loader raises, the sub-page falls back to the
+    original "please upload" warning instead of crashing.
+    """
+    import streamlit as st
+
+    st.cache_resource.clear()
+
+    def _broken_sample():
+        raise RuntimeError("sample bundle unavailable")
+
+    monkeypatch.setattr(
+        "pdstools.app.impact_analyzer.ia_streamlit_utils.load_sample_pdc",
+        _broken_sample,
+    )
+
+    at = AppTest.from_file(str(ia_app_dir / "pages" / "1_Overall_Summary.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, f"page raised: {at.exception}"
+    warnings = [w.value for w in at.warning]
+    assert any("please upload" in w.lower() for w in warnings), (
+        f"expected please-upload warning when auto-load fails, got: {warnings}"
+    )
+    assert "impact_analyzer" not in at.session_state
