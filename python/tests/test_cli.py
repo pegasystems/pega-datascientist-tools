@@ -16,7 +16,15 @@ from pdstools.cli import ALIASES, APPS, check_for_typos, create_parser, main, ru
 
 class TestAppsDict:
     def test_expected_keys(self):
-        assert set(APPS.keys()) == {"health_check", "decision_analyzer", "impact_analyzer"}
+        assert set(APPS.keys()) == {"launcher", "health_check", "decision_analyzer", "impact_analyzer"}
+
+    def test_launcher_is_first_entry(self):
+        # Order matters — launcher is the default selection in the
+        # interactive picker, so it must be the first key.
+        assert list(APPS.keys())[0] == "launcher"
+
+    def test_launcher_path_points_at_launcher_module(self):
+        assert APPS["launcher"]["path"] == "pdstools.app.launcher"
 
     def test_each_entry_has_display_name_and_path(self):
         for key, value in APPS.items():
@@ -50,7 +58,16 @@ class TestCreateParser:
         parser = create_parser()
         # The 'app' positional argument should have correct choices (including aliases)
         app_action = None
-        expected_choices = {"health_check", "decision_analyzer", "impact_analyzer", "hc", "da", "ia"}
+        expected_choices = {
+            "launcher",
+            "health_check",
+            "decision_analyzer",
+            "impact_analyzer",
+            "all",
+            "hc",
+            "da",
+            "ia",
+        }
         for action in parser._actions:
             if hasattr(action, "choices") and action.choices is not None:
                 if set(action.choices) == expected_choices:
@@ -80,9 +97,16 @@ class TestArgumentParsing:
 
     def test_app_argument(self):
         parser = create_parser()
-        for app_name in ("health_check", "decision_analyzer", "impact_analyzer"):
+        for app_name in ("launcher", "health_check", "decision_analyzer", "impact_analyzer"):
             args = parser.parse_args([app_name])
             assert args.app == app_name
+
+    def test_launcher_alias(self):
+        parser = create_parser()
+        args = parser.parse_args(["all"])
+        # alias resolution happens in main(), not the parser — parser
+        # should still accept it as a valid choice
+        assert args.app == "all"
 
     def test_data_path_flag(self):
         parser = create_parser()
@@ -390,8 +414,16 @@ class TestRunInteractivePrompt:
 
     def test_select_by_number(self):
         args = self._run_with_input(["1"])
-        # First entry in APPS is health_check
+        # First entry in APPS is the cross-app launcher
         assert args.app == list(APPS.keys())[0]
+        assert args.app == "launcher"
+
+    def test_launcher_alias_resolves(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["pdstools", "all"])
+        with patch.object(cli_module, "run") as mock_run:
+            main()
+        args, _ = mock_run.call_args[0]
+        assert args.app == "launcher"
 
     def test_select_by_internal_name(self):
         self._run_with_input(["decision_analyzer"])

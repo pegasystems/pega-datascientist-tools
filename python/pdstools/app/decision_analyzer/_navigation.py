@@ -57,21 +57,72 @@ def locked_page_titles() -> list[str]:
     return [p.title for p in _DATA_PAGES]
 
 
+def _slug(title: str) -> str:
+    """Lowercase, underscore-separated slug used for stable URL paths."""
+    return title.lower().replace(" / ", "_").replace(" ", "_").replace("/", "_")
+
+
+def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
+    """Return the DA page list for ``st.navigation``.
+
+    Parameters
+    ----------
+    url_prefix : str or None
+        When set (e.g. ``"da"``), every page is registered with a
+        ``url_path`` of ``f"{url_prefix}/{slug}"`` so multiple tools
+        can be hosted in one Streamlit process without URL collisions.
+        When ``None``, page URLs are derived from titles by Streamlit
+        — preserves the standalone tool's existing URL scheme.
+    default : bool
+        Whether the Home page is marked as the navigation default.
+        The launcher must designate exactly one default page across
+        all sections, so it sets this to ``False`` for tools other
+        than the one it picks as the entry point.
+    """
+    locked = locked_page_titles()
+
+    def _url(name: str) -> str | None:
+        # Streamlit's ``st.Page`` rejects nested ``url_path`` values
+        # (no "/"). Use an underscore-prefixed flat namespace instead
+        # so launcher URLs look like ``/da_overview`` while standalone
+        # tool launches keep their original ``/overview`` URLs.
+        return f"{url_prefix}_{name}" if url_prefix else None
+
+    # Wrap render so st.Page can call it with no arguments while still
+    # passing the locked-page list for the discoverability hint.
+    home = st.Page(
+        lambda: render_home(locked),
+        title="Home",
+        icon="🏠",
+        default=default,
+        url_path=_url("home"),
+    )
+    about = st.Page(
+        str(_PAGES_DIR / _ABOUT_PAGE_FILE),
+        title="About",
+        icon="ℹ️",
+        url_path=_url("about"),
+    )
+
+    result = [home]
+    if "decision_data" in st.session_state:
+        result.extend(
+            st.Page(
+                str(_PAGES_DIR / p.filename),
+                title=p.title,
+                icon=p.icon,
+                url_path=_url(_slug(p.title)),
+            )
+            for p in _DATA_PAGES
+        )
+    result.append(about)
+    return result
+
+
 def build_navigation():
     """Return the configured ``st.navigation`` object for the DA app.
 
     Always shows Home (default) and About. Data-dependent pages are
     appended to the menu only when ``decision_data`` is loaded.
     """
-    locked = locked_page_titles()
-    # Wrap render so st.Page can call it with no arguments while still
-    # passing the locked-page list for the discoverability hint.
-    home = st.Page(lambda: render_home(locked), title="Home", icon="🏠", default=True)
-    about = st.Page(str(_PAGES_DIR / _ABOUT_PAGE_FILE), title="About", icon="ℹ️")
-
-    pages = [home]
-    if "decision_data" in st.session_state:
-        pages.extend(st.Page(str(_PAGES_DIR / p.filename), title=p.title, icon=p.icon) for p in _DATA_PAGES)
-    pages.append(about)
-
-    return st.navigation(pages, position="sidebar")
+    return st.navigation(pages(), position="sidebar")

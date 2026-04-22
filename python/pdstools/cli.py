@@ -18,8 +18,14 @@ from pdstools import __version__
 # bare app name) is routed to ``run`` for backwards compatibility.
 _SUBCOMMANDS = {"run", "doctor", "list"}
 
-# App configuration with display names and paths
+# App configuration with display names and paths.
+# ``launcher`` is listed first so it's the default selection in the
+# interactive picker — it hosts all three tools in one process.
 APPS = {
+    "launcher": {
+        "display_name": "All tools (launcher)",
+        "path": "pdstools.app.launcher",
+    },
     "health_check": {
         "display_name": "Adaptive Model Health Check",
         "path": "pdstools.app.health_check",
@@ -36,6 +42,7 @@ APPS = {
 
 # Aliases for app names
 ALIASES = {
+    "all": "launcher",
     "hc": "health_check",
     "da": "decision_analyzer",
     "ia": "impact_analyzer",
@@ -409,7 +416,18 @@ def run(args, unknown):
             "--server.enableXsrfProtection",
             "false",
         ]
-    else:  # health_check
+    elif args.app == "launcher":
+        # The launcher hosts the DA pages, so it inherits DA's XSRF
+        # exemption (DA uses the file-uploader workaround that breaks
+        # under XSRF). Standalone HC / IA launches keep XSRF on.
+        sys.argv = [
+            "streamlit",
+            "run",
+            filename,
+            "--server.enableXsrfProtection",
+            "false",
+        ]
+    else:  # health_check, impact_analyzer
         sys.argv = ["streamlit", "run", filename]
 
     if unknown:

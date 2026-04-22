@@ -36,12 +36,47 @@ _SUB_PAGES: tuple[_SubPage, ...] = (
 )
 
 
+def _slug(title: str) -> str:
+    """Lowercase, underscore-separated slug used for stable URL paths."""
+    return title.lower().replace(" / ", "_").replace(" ", "_").replace("/", "_")
+
+
+def pages(url_prefix: str | None = None, default: bool = True) -> list[st.Page]:
+    """Return the IA page list for ``st.navigation``.
+
+    See ``decision_analyzer._navigation.pages`` for parameter
+    semantics — same contract across all pdstools tools so the
+    cross-app launcher can reuse them uniformly.
+    """
+
+    def _url(name: str) -> str | None:
+        # Streamlit's ``st.Page`` rejects nested ``url_path`` values
+        # (no "/"). Use an underscore-prefixed flat namespace instead.
+        return f"{url_prefix}_{name}" if url_prefix else None
+
+    home = st.Page(
+        home_page,
+        title="Home",
+        icon="🏠",
+        default=default,
+        url_path=_url("home"),
+    )
+    result = [home]
+    result.extend(
+        st.Page(
+            str(_PAGES_DIR / p.filename),
+            title=p.title,
+            icon=p.icon,
+            url_path=_url(_slug(p.title)),
+        )
+        for p in _SUB_PAGES
+    )
+    return result
+
+
 def build_navigation():
     """Return the configured ``st.navigation`` object for the IA app.
 
     Always shows Home (default) plus every page in ``pages/``.
     """
-    home = st.Page(home_page, title="Home", icon="🏠", default=True)
-    pages = [home]
-    pages.extend(st.Page(str(_PAGES_DIR / p.filename), title=p.title, icon=p.icon) for p in _SUB_PAGES)
-    return st.navigation(pages, position="sidebar")
+    return st.navigation(pages(), position="sidebar")
