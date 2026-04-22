@@ -609,6 +609,33 @@ in `ADMDatamart` at load time" by the third comment. Acting on the
 title alone would have produced a correct-looking but wrongly-placed
 fix that another reviewer would have to redo.
 
+### Verify "removed / renamed / dropped" claims against current source
+
+When writing changelog entries, migration guides, deprecation notes, or
+any prose that describes an API change as having happened, **grep
+master for the symbol first**. PR titles and commit messages routinely
+overstate the change ("drop the `**kwargs` catch-all" can mean
+"replace bare `**kwargs` with `**options: Unpack[ReportOptions]`",
+which keeps the splat working and merely types it). A migration guide
+that tells users to rewrite call sites that don't actually need
+rewriting is worse than no entry at all — it forces a noisy review
+cycle and erodes trust in the rest of the document.
+
+Workflow:
+1. Identify the symbol/parameter the PR claims to change.
+2. `grep` for it in `python/pdstools/` on current `master`.
+3. If it still exists, read how it's used now and write the entry to
+   match reality (or omit the entry entirely if the change is
+   transparent to callers).
+4. Only describe something as "removed" / "renamed" if step 2 confirms
+   the old name is gone.
+
+This applies double when the AGENTS.md design rules contain an
+**explicit exception** for the pattern in question (e.g. "shared
+option sets across 2+ public entry points → use `Unpack[TypedDict]`").
+A grep-then-write check would have caught the bogus
+"`ReportOptions` removed" migration entry that prompted this rule.
+
 ### Don't land a "plan-files-only" PR
 
 Plan files (`docs/plans/<feature>/<slug>.md`) are designed to be
