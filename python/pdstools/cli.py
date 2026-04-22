@@ -287,20 +287,26 @@ def run(args, unknown):
         sys.exit(1)
 
     # If no app is specified, prompt the user to choose. Prefer the
-    # arrow-key picker on real TTYs; fall back to the numeric prompt
-    # when stdin is piped or when the user cancels the picker.
+    # arrow-key picker (questionary, ships with the [app] extra); fall
+    # back to the numeric prompt only when questionary isn't installed
+    # or stdin isn't a TTY.
     if args.app is None and sys.stdin.isatty():
         try:
-            from pdstools.utils._tty_picker import pick
-
-            choice = pick(
-                "Select an app to run (↑/↓ + Enter, Esc to cancel):",
-                [(k, APPS[k]["display_name"]) for k in APPS],
-            )
-            if choice is not None:
-                args.app = choice
-        except Exception:  # pragma: no cover - picker should never crash the CLI
-            pass
+            import questionary
+        except ImportError:
+            questionary = None  # type: ignore[assignment]
+        if questionary is not None:
+            choice = questionary.select(
+                "Select an app to run:",
+                choices=[questionary.Choice(title=APPS[k]["display_name"], value=k) for k in APPS],
+            ).ask()
+            # ask() returns None on Ctrl+C / Esc — treat that as "user
+            # asked to leave" rather than falling through to the numeric
+            # prompt (which would just re-ask the same question).
+            if choice is None:
+                print("Exiting...", flush=True)
+                sys.exit(0)
+            args.app = choice
 
     if args.app is None:
         app_list = list(APPS.keys())

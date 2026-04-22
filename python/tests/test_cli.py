@@ -427,57 +427,14 @@ class TestRunInteractivePrompt:
 
 
 # ---------------------------------------------------------------------------
-# _tty_picker
+# Questionary picker integration in run()
 # ---------------------------------------------------------------------------
 
 
-class TestTtyPicker:
-    def test_pick_importable(self):
-        from pdstools.utils._tty_picker import pick
+class TestRunQuestionaryPicker:
+    """Picker integration on TTY stdin uses questionary; non-TTY falls back."""
 
-        assert callable(pick)
-
-    def test_pick_returns_none_for_empty(self):
-        from pdstools.utils._tty_picker import pick
-
-        assert pick("prompt", []) is None
-
-    def test_pick_enter_selects_first(self, monkeypatch):
-        from pdstools.utils import _tty_picker
-
-        keys = iter(["enter"])
-        monkeypatch.setattr(_tty_picker, "_read_key_unix", lambda: next(keys))
-        monkeypatch.setattr(_tty_picker.sys, "platform", "linux")
-        result = _tty_picker.pick("p", [("a", "Alpha"), ("b", "Beta")])
-        assert result == "a"
-
-    def test_pick_down_then_enter(self, monkeypatch):
-        from pdstools.utils import _tty_picker
-
-        keys = iter(["down", "down", "up", "enter"])
-        monkeypatch.setattr(_tty_picker, "_read_key_unix", lambda: next(keys))
-        monkeypatch.setattr(_tty_picker.sys, "platform", "linux")
-        result = _tty_picker.pick("p", [("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")])
-        assert result == "b"
-
-    def test_pick_cancel_returns_none(self, monkeypatch):
-        from pdstools.utils import _tty_picker
-
-        keys = iter(["cancel"])
-        monkeypatch.setattr(_tty_picker, "_read_key_unix", lambda: next(keys))
-        monkeypatch.setattr(_tty_picker.sys, "platform", "linux")
-        assert _tty_picker.pick("p", [("a", "Alpha")]) is None
-
-
-# ---------------------------------------------------------------------------
-# Picker integration in run()
-# ---------------------------------------------------------------------------
-
-
-class TestRunPickerFallback:
-    """When stdin is not a TTY the picker is skipped and the numeric prompt runs."""
-
-    def test_falls_through_to_numeric_prompt(self, monkeypatch):
+    def test_falls_through_to_numeric_prompt_when_not_tty(self, monkeypatch):
         # Force isatty False; the existing input() prompt must be used.
         monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
         fake_stcli = MagicMock()
@@ -487,6 +444,76 @@ class TestRunPickerFallback:
         with patch.dict(
             sys.modules,
             {"streamlit": MagicMock(), "streamlit.web": fake_module},
+        ):
+            with patch("builtins.input", return_value="1"):
+                with patch.object(sys, "exit"):
+                    args = _make_args(app=None)
+                    run(args, [])
+        assert args.app == list(APPS.keys())[0]
+
+    def test_questionary_choice_sets_app(self, monkeypatch):
+        """When questionary returns a choice, run() launches that app."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        fake_questionary = MagicMock()
+        fake_select = MagicMock()
+        fake_select.ask.return_value = "decision_analyzer"
+        fake_questionary.select.return_value = fake_select
+        fake_questionary.Choice = MagicMock(side_effect=lambda title, value: value)
+
+        fake_stcli = MagicMock()
+        fake_stcli.main.return_value = 0
+        fake_st_module = MagicMock()
+        fake_st_module.cli = fake_stcli
+        with patch.dict(
+            sys.modules,
+            {
+                "questionary": fake_questionary,
+                "streamlit": MagicMock(),
+                "streamlit.web": fake_st_module,
+            },
+        ):
+            with patch.object(sys, "exit"):
+                args = _make_args(app=None)
+                run(args, [])
+        assert args.app == "decision_analyzer"
+
+    def test_questionary_cancel_exits(self, monkeypatch):
+        """When questionary returns None (Ctrl+C / Esc), CLI exits cleanly."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        fake_questionary = MagicMock()
+        fake_select = MagicMock()
+        fake_select.ask.return_value = None
+        fake_questionary.select.return_value = fake_select
+        fake_questionary.Choice = MagicMock(side_effect=lambda title, value: value)
+
+        with patch.dict(sys.modules, {"questionary": fake_questionary}):
+            with pytest.raises(SystemExit) as exc:
+                run(_make_args(app=None), [])
+        assert exc.value.code == 0
+
+    def test_questionary_missing_falls_back_to_numeric(self, monkeypatch):
+        """When questionary isn't installed, the numeric prompt runs."""
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+        # Make `import questionary` raise ImportError.
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "questionary":
+                raise ImportError("simulated missing questionary")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+
+        fake_stcli = MagicMock()
+        fake_stcli.main.return_value = 0
+        fake_st_module = MagicMock()
+        fake_st_module.cli = fake_stcli
+        with patch.dict(
+            sys.modules,
+            {"streamlit": MagicMock(), "streamlit.web": fake_st_module},
         ):
             with patch("builtins.input", return_value="1"):
                 with patch.object(sys, "exit"):
