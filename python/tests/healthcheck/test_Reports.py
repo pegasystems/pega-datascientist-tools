@@ -322,6 +322,3 @@ def test_health_check_agent_interpretation_guides():
 
         # At least these interpretation blocks must be present regardless of data
         assert content.count("**Interpretation:**") >= 5
-
-
-

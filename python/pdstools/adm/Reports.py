@@ -420,7 +420,7 @@ class Reports(LazyNamespace):
         title: str = "ADM Model Overview",
         subtitle: str = "",
         disclaimer: str = "",
-        output_dir: os.PathLike | None = None,
+        output_dir: PathLike | None = None,
         *,
         query: QUERY | None = None,
         keep_temp_files: bool = False,

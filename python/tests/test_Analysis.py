@@ -622,7 +622,7 @@ class TestCheckTrendsEdgeCases:
         rows = []
         dates = ["20250101", "20250108", "20250115", "20250122", "20250129", "20250205"]
         perfs = [0.75, 0.74, 0.73, 0.65, 0.63, 0.61]  # >3 AUC drop first→second half
-        for date, perf in zip(dates, perfs):
+        for date, perf in zip(dates, perfs, strict=True):
             rows.append({"SnapshotTime": date, "Performance": perf, "ResponseCount": 1000, "Positives": 50})
         dm = _make_dm(rows)
         results = dm.analysis._check_trends(pl.lit(True))
@@ -632,7 +632,7 @@ class TestCheckTrendsEdgeCases:
         rows = []
         dates = ["20250101", "20250108", "20250115", "20250122", "20250129", "20250205"]
         resps = [10000, 10000, 10000, 1000, 1000, 1000]  # 90% drop
-        for date, resp in zip(dates, resps):
+        for date, resp in zip(dates, resps, strict=True):
             rows.append({"SnapshotTime": date, "Performance": 0.70, "ResponseCount": resp, "Positives": 50})
         dm = _make_dm(rows)
         results = dm.analysis._check_trends(pl.lit(True))
