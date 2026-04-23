@@ -170,7 +170,7 @@ class TestAnalysisNamespace:
 
     def test_findings_have_valid_severity(self, analysis):
         for f in analysis.findings():
-            assert f.severity in ("critical", "warning", "info")
+            assert f.severity in ("critical", "warning", "info", "success")
 
     def test_findings_have_valid_category(self, analysis):
         valid_categories = {
@@ -182,6 +182,8 @@ class TestAnalysisNamespace:
             "response_distribution",
             "trend",
             "configuration",
+            "data_quality",
+            "summary",
         }
         for f in analysis.findings():
             assert f.category in valid_categories
@@ -248,9 +250,11 @@ class TestModelMaturityChecks:
         last_data = analysis._get_last_data()
         results = analysis._check_model_maturity(last_data)
         assert isinstance(results, list)
-        # cdh_sample currently produces exactly 3 maturity findings; re-pin
-        # if upstream sample data changes.
-        assert len(results) == 3
+        # cdh_sample currently produces exactly 4 maturity findings (one per
+        # populated bucket out of 5: never_used / responses_no_positives /
+        # immature / mature_low_perf / mature_decent); re-pin if upstream
+        # sample data changes.
+        assert len(results) == 4
 
     def test_detects_model_categories(self, analysis):
         last_data = analysis._get_last_data()
@@ -320,18 +324,22 @@ class TestFullAnalysis:
     def test_full_findings_with_sample_data(self, sample_dm):
         """End-to-end test: run all findings on sample data."""
         results = sample_dm.analysis.findings()
-        # cdh_sample currently produces exactly 10 findings across
-        # {model, taxonomy, predictor}; re-pin if upstream sample changes.
-        assert len(results) == 10
+        # cdh_sample currently produces exactly 12 findings — one summary
+        # headline, one AUC-tier finding, plus per-area findings across
+        # {model, taxonomy, predictor}. Re-pin if upstream sample changes.
+        assert len(results) == 12
 
         categories = {f.category for f in results}
-        assert categories == {"model", "taxonomy", "predictor"}
+        assert categories == {"summary", "model", "taxonomy", "predictor"}
 
         # Every finding should be well-formed
         for f in results:
             assert f.title
             assert f.detail
             assert isinstance(f.data, dict)
+
+        # Headline summary should be first.
+        assert results[0].category == "summary"
 
     def test_custom_active_filter(self, sample_dm):
         results = sample_dm.analysis.findings(
@@ -405,6 +413,10 @@ class TestCheckChannelsEdgeCases:
         assert any("low cross-channel overlap" in f.title for f in results)
 
     def test_many_configurations_per_channel(self):
+        # Per-channel "has N model configurations" was removed as a finding —
+        # it was almost always emitted on dead channels and added no
+        # actionable information. The check should now produce *no* findings
+        # for an active channel that simply has many configurations.
         mock_row = {
             "Channel": "Web",
             "Direction": "Inbound",
@@ -418,7 +430,7 @@ class TestCheckChannelsEdgeCases:
         mock_df = pl.DataFrame([mock_row])
         with patch.object(dm.aggregates, "summary_by_channel", return_value=mock_df.lazy()):
             results = dm.analysis._check_channels(pl.lit(True))
-        assert any("model configurations" in f.title for f in results)
+        assert not any("model configurations" in f.title for f in results)
 
 
 # ── Edge case: _check_configurations ────────────────────────────────────
@@ -515,13 +527,15 @@ class TestCheckModelPerformanceEdgeCases:
     def test_exception_in_active_filter_returns_empty(self, analysis):
         last_data = _make_last_data([{}])
         bad_filter = pl.col("nonexistent_column") > 0
-        results = analysis._check_model_performance(last_data, bad_filter)
+        results, avg = analysis._check_model_performance(last_data, bad_filter)
         assert results == []
+        assert avg is None
 
     def test_empty_active_data_returns_empty(self, analysis):
         last_data = _make_last_data([{}])
-        results = analysis._check_model_performance(last_data, pl.lit(False))
+        results, avg = analysis._check_model_performance(last_data, pl.lit(False))
         assert results == []
+        assert avg is None
 
 
 # ── Edge case: _check_taxonomy ───────────────────────────────────────────
@@ -537,7 +551,15 @@ class TestCheckTaxonomyEdgeCases:
         # One warning per evaluated taxonomy metric (actions, treatments,
         # issues, channels) → 4 with the minimal 1-action dataset.
         assert len(warnings) == 4
-        assert all("outside recommended limits" in f.title for f in warnings)
+        # Titles now state direction + the violated bound rather than a
+        # generic "outside recommended limits" string.
+        for f in warnings:
+            assert (
+                ("below minimum" in f.title)
+                or ("above maximum" in f.title)
+                or ("below recommended" in f.title)
+                or ("above typical range" in f.title)
+            )
 
     def test_rag_amber_produces_info(self):
         dm = _make_dm([{"Name": "OnlyAction"}])
@@ -545,7 +567,8 @@ class TestCheckTaxonomyEdgeCases:
             results = dm.analysis._check_taxonomy()
         infos = [f for f in results if f.severity == "info" and f.category == "taxonomy"]
         assert len(infos) == 4
-        assert all("outside best practice range" in f.title for f in infos)
+        for f in infos:
+            assert ("below recommended" in f.title) or ("above typical range" in f.title)
 
 
 # ── Edge case: _check_response_distribution ─────────────────────────────
@@ -860,3 +883,307 @@ class TestCheckPredictorsIHBranches:
         dm = self._make_dm_with_ih(ih_count=0, non_ih_count=10)
         results = dm.analysis._check_predictors()
         assert any("no IH predictors" in f.title and f.severity == "info" for f in results)
+
+
+# ── New behaviour: data-quality, collapsed dead channels, headline,
+#     tiered AUC, mature-low-perf bucket, taxonomy-direction titles,
+#     configuration channel hint. ─────────────────────────────────────────
+
+
+class TestDataQualityCheck:
+    """Detect malformed Channel/Direction values (e.g. "/", "/Inbound")."""
+
+    def test_invalid_channel_predicate(self):
+        for v in [None, "", " ", "/", "/Inbound", "Web/", "  /  "]:
+            assert Analysis._is_invalid_channel_name(v), v
+        for v in ["Web", "Email", "VZW-MFA-IOS"]:
+            assert not Analysis._is_invalid_channel_name(v), v
+
+    def test_invalid_pair_emits_finding_with_exact_count(self):
+        # Three garbage rows + one good row. Data-quality finding should
+        # report a model count of exactly 3, not 4.
+        rows = [
+            {"ModelID": "m1", "Channel": "", "Direction": ""},
+            {"ModelID": "m2", "Channel": "", "Direction": "Inbound"},
+            {"ModelID": "m3", "Channel": "/", "Direction": "Inbound"},
+            {"ModelID": "m4", "Channel": "Web", "Direction": "Inbound"},
+        ]
+        dm = _make_dm(rows)
+        findings, invalid = dm.analysis._check_data_quality()
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.severity == "critical"
+        assert f.category == "data_quality"
+        assert f.data["model_count"] == 3
+        assert f.data["invalid_count"] == 3
+        # The good "Web/Inbound" pair is not in the invalid set.
+        assert "Web/Inbound" not in invalid
+        assert "/Inbound" in invalid
+
+    def test_clean_data_emits_no_finding(self):
+        rows = [{"ModelID": "m1", "Channel": "Web", "Direction": "Inbound"}]
+        dm = _make_dm(rows)
+        findings, invalid = dm.analysis._check_data_quality()
+        assert findings == []
+        assert invalid == set()
+
+    def test_invalid_channels_excluded_from_channel_check(self):
+        # Mix: one valid dead channel + one invalid dead channel. The
+        # invalid pair should not show up in the collapsed dead-channel
+        # finding.
+        rows = [
+            {"ModelID": "m1", "Channel": "", "Direction": "", "ResponseCount": 0, "Positives": 0},
+            {"ModelID": "m2", "Channel": "Web", "Direction": "Inbound", "ResponseCount": 0, "Positives": 0},
+        ]
+        dm = _make_dm(rows)
+        findings = dm.analysis._check_channels(pl.lit(True), invalid_channels={"/"})
+        # Dead-channel finding should mention only Web/Inbound.
+        dead = [f for f in findings if "zero responses" in f.title]
+        assert len(dead) == 1
+        assert dead[0].data["channels"] == ["Web/Inbound"]
+
+
+class TestCollapsedDeadChannels:
+    """Multiple dead channels are aggregated into one finding per direction."""
+
+    def test_multiple_dead_channels_collapse_per_direction(self):
+        # Mock summary_by_channel directly: 3 dead Inbound, 1 dead Outbound,
+        # 1 live channel. Should yield 2 collapsed findings.
+        summary_rows = [
+            {
+                "Channel": "A",
+                "Direction": "Inbound",
+                "Responses": 0,
+                "Positives": 0,
+                "Performance": None,
+                "OmniChannel": None,
+                "Configuration": "C1",
+            },
+            {
+                "Channel": "B",
+                "Direction": "Inbound",
+                "Responses": 0,
+                "Positives": 0,
+                "Performance": None,
+                "OmniChannel": None,
+                "Configuration": "C2",
+            },
+            {
+                "Channel": "C",
+                "Direction": "Inbound",
+                "Responses": 0,
+                "Positives": 0,
+                "Performance": None,
+                "OmniChannel": None,
+                "Configuration": "C3",
+            },
+            {
+                "Channel": "X",
+                "Direction": "Outbound",
+                "Responses": 0,
+                "Positives": 0,
+                "Performance": None,
+                "OmniChannel": None,
+                "Configuration": "C4",
+            },
+            {
+                "Channel": "Live",
+                "Direction": "Inbound",
+                "Responses": 5000,
+                "Positives": 200,
+                "Performance": 0.65,
+                "OmniChannel": 0.5,
+                "Configuration": "C5",
+            },
+        ]
+        dm = _make_dm([{}])
+        with patch.object(dm.aggregates, "summary_by_channel", return_value=pl.DataFrame(summary_rows).lazy()):
+            findings = dm.analysis._check_channels(pl.lit(True))
+        dead = [f for f in findings if "zero responses" in f.title]
+        assert len(dead) == 2
+        by_dir = {f.data["direction"]: f for f in dead}
+        assert by_dir["Inbound"].data["dead_channel_count"] == 3
+        assert by_dir["Outbound"].data["dead_channel_count"] == 1
+        assert "1 Outbound channel has" in by_dir["Outbound"].title
+        assert "3 Inbound channels have" in by_dir["Inbound"].title
+
+    def test_truncates_long_channel_list_with_more_suffix(self):
+        summary_rows = [
+            {
+                "Channel": f"Ch{i}",
+                "Direction": "Inbound",
+                "Responses": 0,
+                "Positives": 0,
+                "Performance": None,
+                "OmniChannel": None,
+                "Configuration": f"C{i}",
+            }
+            for i in range(8)
+        ]
+        dm = _make_dm([{}])
+        with patch.object(dm.aggregates, "summary_by_channel", return_value=pl.DataFrame(summary_rows).lazy()):
+            findings = dm.analysis._check_channels(pl.lit(True))
+        dead = [f for f in findings if "zero responses" in f.title][0]
+        assert "+3 more" in dead.title
+        # All 8 channel names are kept on the finding's data payload.
+        assert len(dead.data["channels"]) == 8
+
+
+class TestHeadlineFinding:
+    """findings() prepends a single 🩺 [summary] headline."""
+
+    def _stub_clean_summary(self, dm: ADMDatamart):
+        """Patch summary_by_channel to one healthy channel.
+
+        Synthetic ADMDatamart input doesn't always populate the
+        Inbound/Outbound response split that summary_by_channel relies on,
+        so we feed a known-good summary directly to keep these tests
+        deterministic.
+        """
+        return patch.object(
+            dm.aggregates,
+            "summary_by_channel",
+            return_value=pl.DataFrame(
+                [
+                    {
+                        "Channel": "Web",
+                        "Direction": "Inbound",
+                        "Responses": 100000,
+                        "Positives": 5000,
+                        "Performance": 0.72,
+                        "OmniChannel": 0.5,
+                        "Configuration": "WebConfig",
+                    }
+                ]
+            ).lazy(),
+        )
+
+    def test_clean_data_emits_healthy_headline(self):
+        rows = [{"ResponseCount": 5000, "Positives": 500, "Performance": 0.72, "ModelID": f"m{i}"} for i in range(20)]
+        dm = _make_dm(rows)
+        with self._stub_clean_summary(dm):
+            all_findings = dm.analysis.findings()
+        head = all_findings[0]
+        assert head.category == "summary"
+        assert head.severity == "success"
+        assert "HEALTHY" in head.title
+        assert head.data["pct_never_used"] == 0.0
+        assert head.data["dead_channel_count"] == 0
+
+    def test_high_unused_triggers_critical_headline(self):
+        # 30% of models never used → > 25% → critical verdict.
+        rows = [{"ResponseCount": 0, "Positives": 0, "Performance": 0.5, "ModelID": f"u{i}"} for i in range(30)]
+        rows += [{"ResponseCount": 5000, "Positives": 500, "Performance": 0.72, "ModelID": f"m{i}"} for i in range(70)]
+        dm = _make_dm(rows)
+        with self._stub_clean_summary(dm):
+            head = dm.analysis.findings()[0]
+        assert head.category == "summary"
+        assert head.severity == "critical"
+        assert "NEEDS ATTENTION" in head.title
+        assert "30% of models never used" in head.title
+
+    def test_summary_uses_stethoscope_icon(self):
+        rows = [{"ResponseCount": 5000, "Positives": 500, "Performance": 0.72}]
+        dm = _make_dm(rows)
+        with self._stub_clean_summary(dm):
+            head = dm.analysis.findings()[0]
+        assert str(head).startswith("🩺 [summary]")
+
+
+class TestTieredAUCFinding:
+    """Overall-AUC finding scales severity with the tier."""
+
+    def _avg_finding(self, perf):
+        rows = [{"ResponseCount": 5000, "Positives": 500, "Performance": perf, "ModelID": "m1"}]
+        dm = _make_dm(rows)
+        ld = dm.analysis._get_last_data()
+        results, avg = dm.analysis._check_model_performance(ld, pl.lit(True))
+        assert len(results) == 1
+        return results[0], avg
+
+    def test_low_auc_is_critical(self):
+        f, _ = self._avg_finding(0.55)
+        assert f.severity == "critical"
+        assert "low" in f.title
+
+    def test_borderline_auc_is_warning(self):
+        f, _ = self._avg_finding(0.60)
+        assert f.severity == "warning"
+        assert "borderline" in f.title
+
+    def test_healthy_auc_is_info(self):
+        f, _ = self._avg_finding(0.65)
+        assert f.severity == "info"
+        assert "healthy" in f.title
+
+    def test_strong_auc_is_success(self):
+        f, _ = self._avg_finding(0.78)
+        assert f.severity == "success"
+        assert "strong" in f.title
+
+
+class TestMaturityBucketsExhaustive:
+    """Five mutually-exclusive buckets must sum to total model count."""
+
+    def test_buckets_sum_to_total(self):
+        rows = (
+            [{"ModelID": f"u{i}", "ResponseCount": 0, "Positives": 0, "Performance": 0.5} for i in range(10)]
+            + [{"ModelID": f"z{i}", "ResponseCount": 100, "Positives": 0, "Performance": 0.5} for i in range(7)]
+            + [{"ModelID": f"i{i}", "ResponseCount": 1000, "Positives": 50, "Performance": 0.6} for i in range(13)]
+            + [{"ModelID": f"l{i}", "ResponseCount": 5000, "Positives": 500, "Performance": 0.50} for i in range(11)]
+            + [{"ModelID": f"d{i}", "ResponseCount": 5000, "Positives": 500, "Performance": 0.72} for i in range(19)]
+        )
+        dm = _make_dm(rows)
+        ld = dm.analysis._get_last_data()
+        results = dm.analysis._check_model_maturity(ld)
+        # Pull bucket counts off the structured `data` payloads.
+        counts = {f.data["bucket"]: f.data["count"] for f in results if "bucket" in f.data}
+        assert counts == {
+            "never_used": 10,
+            "responses_no_positives": 7,
+            "immature": 13,
+            "mature_low_perf": 11,
+            "mature_decent": 19,
+        }
+        assert sum(counts.values()) == 60
+
+
+class TestTaxonomyThresholdInTitle:
+    """Taxonomy findings now state the violated bound and direction."""
+
+    def test_below_minimum_title(self):
+        dm = _make_dm([{"Treatment": "T1"}])  # 1 treatment → < hard min 2
+        results = dm.analysis._check_taxonomy()
+        treatment = [f for f in results if "treatment" in f.title.lower()]
+        assert any("below minimum" in f.title for f in treatment)
+
+
+class TestConfigurationHasNoPositivesIncludesChannel:
+    def test_channel_hint_appended(self):
+        dm = _make_dm(
+            [
+                {
+                    "Configuration": "Push_Click_Through_Rate",
+                    "Channel": "Push",
+                    "Direction": "Outbound",
+                    "ResponseCount": 1000,
+                    "Positives": 0,
+                }
+            ]
+        )
+        last_data = _make_last_data(
+            [
+                {
+                    "Configuration": "Push_Click_Through_Rate",
+                    "Channel": "Push",
+                    "Direction": "Outbound",
+                    "ResponseCount": 1000,
+                    "Positives": 0,
+                }
+            ]
+        )
+        results = dm.analysis._check_configurations(last_data)
+        f = next(f for f in results if "no positives" in f.title)
+        assert "(Push/Outbound)" in f.title
+        assert f.data["channel"] == "Push"
+        assert f.data["direction"] == "Outbound"
