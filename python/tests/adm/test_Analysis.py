@@ -187,9 +187,11 @@ class TestAnalysisNamespace:
             assert f.category in valid_categories
 
     def test_findings_have_nonempty_title_and_detail(self, analysis):
-        for f in analysis.findings():
-            assert len(f.title) > 0
-            assert len(f.detail) > 0
+        findings = analysis.findings()
+        assert findings, "Expected sample data to produce at least one finding"
+        for f in findings:
+            assert f.title, "Finding has empty title"
+            assert f.detail, "Finding has empty detail"
 
 
 # ── Individual check methods ────────────────────────────────────────────
@@ -246,8 +248,9 @@ class TestModelMaturityChecks:
         last_data = analysis._get_last_data()
         results = analysis._check_model_maturity(last_data)
         assert isinstance(results, list)
-        # Sample data should have at least some maturity findings
-        assert len(results) > 0
+        # cdh_sample currently produces exactly 3 maturity findings; re-pin
+        # if upstream sample data changes.
+        assert len(results) == 3
 
     def test_detects_model_categories(self, analysis):
         last_data = analysis._get_last_data()
@@ -281,8 +284,9 @@ class TestPredictorChecks:
         if sample_dm.predictor_data is not None:
             results = analysis._check_predictors()
             assert isinstance(results, list)
-            # Sample data has predictors, should have some findings
-            assert len(results) > 0
+            # cdh_sample currently produces exactly 2 predictor findings;
+            # re-pin if upstream sample data changes.
+            assert len(results) == 2
 
 
 class TestPredictionChecks:
@@ -316,11 +320,12 @@ class TestFullAnalysis:
     def test_full_findings_with_sample_data(self, sample_dm):
         """End-to-end test: run all findings on sample data."""
         results = sample_dm.analysis.findings()
-        assert len(results) > 0
+        # cdh_sample currently produces exactly 10 findings across
+        # {model, taxonomy, predictor}; re-pin if upstream sample changes.
+        assert len(results) == 10
 
-        # Should cover multiple categories
         categories = {f.category for f in results}
-        assert len(categories) >= 2
+        assert categories == {"model", "taxonomy", "predictor"}
 
         # Every finding should be well-formed
         for f in results:
@@ -529,14 +534,18 @@ class TestCheckTaxonomyEdgeCases:
         with patch("pdstools.adm.Analysis.MetricLimits.evaluate_metric_rag", return_value="RED"):
             results = dm.analysis._check_taxonomy()
         warnings = [f for f in results if f.severity == "warning" and f.category == "taxonomy"]
-        assert len(warnings) > 0
+        # One warning per evaluated taxonomy metric (actions, treatments,
+        # issues, channels) → 4 with the minimal 1-action dataset.
+        assert len(warnings) == 4
+        assert all("outside recommended limits" in f.title for f in warnings)
 
     def test_rag_amber_produces_info(self):
         dm = _make_dm([{"Name": "OnlyAction"}])
         with patch("pdstools.adm.Analysis.MetricLimits.evaluate_metric_rag", return_value="AMBER"):
             results = dm.analysis._check_taxonomy()
         infos = [f for f in results if f.severity == "info" and f.category == "taxonomy"]
-        assert len(infos) > 0
+        assert len(infos) == 4
+        assert all("outside best practice range" in f.title for f in infos)
 
 
 # ── Edge case: _check_response_distribution ─────────────────────────────
