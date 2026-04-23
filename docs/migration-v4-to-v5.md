@@ -149,6 +149,63 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
+### `Explanations.__init__` is pure config; loading moves to `from_local_directory`
+
+The `Explanations` constructor used to accept filesystem paths
+(`root_dir`, `data_folder`, `data_file`) and run the DuckDB
+pre-aggregation pipeline as a side effect of construction. This
+violated the project's pure-`__init__` rule (see AGENTS.md, "I/O lives
+in classmethods, not `__init__`").
+
+In v5 the constructor takes only configuration (`model_name`,
+`from_date`, `to_date`, all keyword-only) and performs no I/O. All
+path-driven loading moves to a new `from_local_directory` classmethod
+that mirrors `ADMDatamart.from_ds_export` / `from_s3`.
+
+```python
+# Before (v4.x):
+exp = Explanations(
+    data_folder="explanations_data",
+    model_name="AdaptiveBoostCT",
+    from_date=datetime(2025, 3, 28),
+    to_date=datetime(2025, 3, 28),
+)
+
+# After (v5):
+exp = Explanations.from_local_directory(
+    data_folder="explanations_data",
+    model_name="AdaptiveBoostCT",
+    from_date=datetime(2025, 3, 28),
+    to_date=datetime(2025, 3, 28),
+)
+```
+
+Single-file / remote-URL loading still works the same way, just on the
+classmethod:
+
+```python
+# Before:
+exp = Explanations(data_file="https://.../file.parquet", model_name="...")
+# After:
+exp = Explanations.from_local_directory(
+    data_file="https://.../file.parquet", model_name="...",
+)
+```
+
+Quarto report templates that previously did
+`Explanations(root_dir="...")` followed by manual
+`aggregate.data_folderpath = "..."` should drop the `root_dir` argument
+entirely — the bare constructor is now safe to call without I/O:
+
+```python
+# Before:
+explanations = Explanations(root_dir=ROOT_DIR)
+explanations.aggregate.data_folderpath = DATA_FOLDER
+# After:
+explanations = Explanations()
+explanations.aggregate.data_folderpath = DATA_FOLDER
+```
+
 ### Explanations: explicit filter parameters
 
 The `**filter_kwargs` catch-all on the Explanations `Plots`,

@@ -52,6 +52,20 @@ guide.
 
 ### Changed
 
+- **`Explanations.__init__` no longer accepts filesystem paths.** The
+  `root_dir`, `data_folder`, and `data_file` parameters have moved to a
+  new `Explanations.from_local_directory(...)` classmethod. The
+  constructor now takes only configuration (`model_name`, `from_date`,
+  `to_date`) and performs no I/O — matching the pure-`__init__` pattern
+  used by `ADMDatamart`, `IH`, `Prediction`, and other analyzer classes.
+  All path-keyword arguments are now keyword-only on the classmethod.
+  **Migration:**
+  `Explanations(data_folder="...", model_name="...", from_date=..., to_date=...)`
+  → `Explanations.from_local_directory(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  Quarto report templates that previously did
+  `Explanations(root_dir="...")` followed by manual
+  `aggregate.data_folderpath = "..."` should drop the `root_dir`
+  argument and call `Explanations()` with no arguments.
 - `DecisionAnalyzer` reorganised into a namespace facade (matching the
   `ADMDatamart` pattern): 16 aggregation methods moved to
   `da.aggregates.*` and 12 scoring / ranking / lever methods moved to

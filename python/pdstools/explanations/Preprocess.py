@@ -70,8 +70,6 @@ class Preprocess(LazyNamespace):
 
         super().__init__()
 
-        self.generate()
-
     def generate(self):
         """Process explanation parquet files and save calculated aggregates.
 

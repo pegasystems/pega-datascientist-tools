@@ -30,7 +30,7 @@ def clean_up(root_dir):
 @pytest.fixture(scope="module")
 def plots():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations(
+    explanations = Explanations.from_local_directory(
         data_folder=f"{basePath}/data/explanations",
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),

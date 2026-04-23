@@ -18,7 +18,6 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
         "{MODEL_CONTEXT_LIMIT}",
     },
     "overview.qmd": {
-        "{ROOT_DIR}",
         "{DATA_FOLDER}",
         "{TOP_N}",
         "{TOP_K}",
@@ -34,7 +33,6 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
         "{SORT_BY_TEXT}",
     },
     "all_context_header.qmd": {
-        "{ROOT_DIR}",
         "{DATA_FOLDER}",
         "{DATA_PATTERN}",
         "{TOP_N}",
