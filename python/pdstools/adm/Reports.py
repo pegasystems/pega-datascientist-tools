@@ -424,7 +424,6 @@ class Reports(LazyNamespace):
         *,
         query: QUERY | None = None,
         keep_temp_files: bool = False,
-        verbose: bool = False,
         prediction=None,
         model_file_path: PathLike | None = None,
         predictor_file_path: PathLike | None = None,
@@ -452,8 +451,6 @@ class Reports(LazyNamespace):
             Optional extra filter applied to the datamart data.
         keep_temp_files : bool, default False
             If True, the temporary working directory is not deleted after generation.
-        verbose : bool, default False
-            If True, prints paths and diagnostic information during generation.
         prediction : Prediction, optional
             Optional :class:`~pdstools.prediction.Prediction` instance to include.
         model_file_path : PathLike, optional
@@ -504,20 +501,17 @@ class Reports(LazyNamespace):
                     "models": (self.datamart.model_data is not None),
                 },
                 temp_dir=temp_dir,
-                verbose=verbose,
-                size_reduction_method=None,
             )
 
             output_path = temp_dir / output_filename
-            if verbose or not output_path.exists():
-                if model_file_path is not None:
-                    print(f'model_file_path = "{model_file_path}"')
-                if predictor_file_path is not None:
-                    print(f'predictor_file_path = "{predictor_file_path}"')
-                if prediction_file_path is not None:
-                    print(f'prediction_file_path = "{prediction_file_path}"')
-                print(f"output_path = {output_path}")
             if not output_path.exists():
+                if model_file_path is not None:
+                    logger.info('model_file_path = "%s"', model_file_path)
+                if predictor_file_path is not None:
+                    logger.info('predictor_file_path = "%s"', predictor_file_path)
+                if prediction_file_path is not None:
+                    logger.info('prediction_file_path = "%s"', prediction_file_path)
+                logger.info("output_path = %s", output_path)
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
             final_path = output_dir / output_filename

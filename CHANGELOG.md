@@ -63,6 +63,15 @@ guide.
 
 ### Changed
 
+- **`Reports.health_check_agent` no longer accepts a `verbose` parameter.**
+  The previous `verbose=True` toggle printed model/predictor/prediction
+  file paths to stdout. Per the AGENTS.md `verbose`-parameter rule,
+  internal path echoes belong on `logger.debug` / `logger.info`, not
+  `print`. Equivalent diagnostic output is now logged on the failure
+  path (matching the existing `Reports.health_check` behaviour); routine
+  successful runs are silent. **Migration:** drop the `verbose=` keyword
+  from any `health_check_agent(...)` call. To see the diagnostic paths,
+  enable `logging.getLogger("pdstools.adm.Reports").setLevel("INFO")`.
 - **`Explanations.__init__` no longer accepts filesystem paths.** The
   `root_dir`, `data_folder`, and `data_file` parameters have moved to a
   new `Explanations.from_local_directory(...)` classmethod. The
