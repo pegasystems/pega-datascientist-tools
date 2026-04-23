@@ -619,3 +619,79 @@ def test_performance_normalization_from_pega_scale():
 
     # Specifically verify the normalization (65/100 = 0.65, etc.)
     assert abs(performance[0] - 0.65) < 0.001, f"Expected 0.65, got {performance[0]}"
+
+
+def _write_mock_prediction_parquet(path):
+    """Write the module-level mock prediction frame to ``path`` for IO tests."""
+    mock_prediction_data.collect().write_parquet(path) if isinstance(
+        mock_prediction_data, pl.LazyFrame
+    ) else mock_prediction_data.write_parquet(path)
+
+
+def test_from_s3_downloads_and_delegates(tmp_path):
+    """from_s3 downloads the prediction object and delegates to from_ds_export."""
+    pytest.importorskip("moto")
+    pytest.importorskip("boto3")
+    import boto3
+    from moto import mock_aws
+
+    src = tmp_path / "predictions.parquet"
+    _write_mock_prediction_parquet(src)
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="test-bucket")
+        client.upload_file(str(src), "test-bucket", "exports/predictions.parquet")
+
+        pred = Prediction.from_s3(
+            bucket="test-bucket",
+            key="exports/predictions.parquet",
+            boto3_client=client,
+        )
+
+    assert pred.is_available
+    assert pred.is_valid
+
+
+def test_from_s3_missing_boto3_raises(monkeypatch):
+    """from_s3 raises MissingDependenciesException when boto3 is unavailable."""
+    import builtins
+
+    from pdstools.utils.namespaces import MissingDependenciesException
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "boto3":
+            raise ImportError("no boto3")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    with pytest.raises(MissingDependenciesException):
+        Prediction.from_s3(bucket="b", key="k")
+
+
+def test_from_dataflow_export_round_trip(tmp_path):
+    """from_dataflow_export reads .json.gz dataflow files via the cache."""
+    import gzip
+    import json
+
+    df = mock_prediction_data.collect() if isinstance(mock_prediction_data, pl.LazyFrame) else mock_prediction_data
+    raw_path = tmp_path / "predictions_part_0.json.gz"
+    with gzip.open(raw_path, "wt") as fh:
+        for row in df.to_dicts():
+            fh.write(json.dumps(row, default=str) + "\n")
+
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    pred = Prediction.from_dataflow_export(
+        [str(raw_path)],
+        cache_directory=cache_dir,
+    )
+
+    assert pred.is_available
+    assert pred.is_valid
+    # Cache parquet was written for re-runs.
+    assert (cache_dir / "prediction_data.parquet").is_file()
