@@ -30,7 +30,7 @@ def clean_up(root_dir):
 @pytest.fixture
 def preprocess_instance():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations(
+    explanations = Explanations.from_local_directory(
         data_folder=f"{basePath}/data/explanations",
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
@@ -101,7 +101,7 @@ class TestAggregatesGenerate:
             ValueError,
             match="Explanations folder invalid_path does not exist or is empty.",
         ):
-            Explanations(data_folder="invalid_path")
+            Explanations.from_local_directory(data_folder="invalid_path")
 
     def test_generate_empty_explanations_folder(self, empty_folder):
         """Test that an empty explanations folder raises an error."""
@@ -110,18 +110,18 @@ class TestAggregatesGenerate:
             ValueError,
             match=f"Explanations folder {data_folder} does not exist or is empty.",
         ):
-            Explanations(data_folder=data_folder)
+            Explanations.from_local_directory(data_folder=data_folder)
 
     def test_generate_uses_cache(self, dummy_explanations_data, dummy_aggregate_data):
         """Test that the generate method uses cached data if available."""
         with mock.patch("pdstools.explanations.Preprocess.logger") as logger_mock:
-            Explanations(data_folder="explanations_data")
+            Explanations.from_local_directory(data_folder="explanations_data")
             logger_mock.debug.assert_called_with("Using cached data for preprocessing.")
 
     def test_generate_no_files(self, dummy_explanations_data):
         """Test that generate raises an error when no files are found to aggregate."""
         with pytest.raises(ValueError, match="No files found to aggregate!"):
-            Explanations(data_folder="explanations_data")
+            Explanations.from_local_directory(data_folder="explanations_data")
 
 
 class TestAggregatesQueryOperations:

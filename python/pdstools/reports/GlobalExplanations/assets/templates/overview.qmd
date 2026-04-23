@@ -16,7 +16,7 @@ from pdstools.utils import report_utils, show_versions
 The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEXT} to predictions
 
 ```{{python}}
-explanations = Explanations(root_dir="{ROOT_DIR}")
+explanations = Explanations()
 explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
 
 try:
