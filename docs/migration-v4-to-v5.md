@@ -349,6 +349,37 @@ Anonymization(path_to_files="*.json", temporary_path="/my/cache")
 
 ---
 
+## Behaviour changes worth noting
+
+### AGB models: empty-context "totals" rows are now filtered at load time
+
+`ADMDatamart` now drops AGB models' empty-context "totals" rows (one
+extra row per AGB configuration, with `Issue` / `Group` / `Name` /
+`Treatment` all null and `ModelTechnique == "GradientBoost"`). These
+rows duplicate aggregated data from the real model instances and may
+carry a miscomputed AUC inconsistent with the weighted-average across
+real instances — Pega's own reporting filters them out for the same
+reason (#703, closes #667).
+
+**What you might notice if you have AGB models in your datamart:**
+
+- Total model count drops by one per AGB configuration.
+- Aggregations that previously double-counted the totals row
+  (response counts, accept rates, AUC averages) shift to the correct
+  values.
+- The AGB section of Health Check / Model Reports stops showing the
+  spurious null-context bubble that historically appeared at the
+  weighted-average AUC for the whole configuration.
+
+The filter is gated on `ModelTechnique == "GradientBoost"` to scope it
+narrowly. Sources that don't carry a `ModelTechnique` column (older
+exports, custom shims) are left untouched — empty-context rows there
+are treated as genuine data so real data-quality issues remain visible.
+
+No code change is required.
+
+---
+
 ## Namespace reorganisation
 
 ### `DecisionAnalyzer` — methods moved to sub-namespaces
