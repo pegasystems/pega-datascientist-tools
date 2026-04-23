@@ -552,11 +552,9 @@ class Analysis:
 
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
         min_perf = MetricLimits.minimum("ModelPerformance")
-        # Use the best-practice minimum (e.g. 0.55) as the cutoff that
-        # separates the "mature low-perf" from "mature decent" buckets.
-        # Falling back to ``min_perf`` keeps behaviour sensible if BP is
-        # missing for this metric.
-        bucket_perf_cutoff = MetricLimits.best_practice_min("ModelPerformance") or min_perf or 0.55
+        # Use the metric minimum (e.g. 0.52) as the cutoff that separates
+        # mature low-performance from mature decent models, matching the
+        # AUC band used by the dedicated low-performance warning below.
 
         # Unused models
         unused = last_data.filter(pl.col("ResponseCount") == 0).height
@@ -703,41 +701,15 @@ class Analysis:
                         )
                     )
 
-        # Mature low-performance models — fills the gap between never-used
-        # / immature / decent so that all five buckets sum to 100% of models.
-        if bp_min_positives is not None:
-            mature_low = last_data.filter(
-                (pl.col("Positives") >= bp_min_positives) & (pl.col("Performance") < bucket_perf_cutoff)
-            ).height
-            if mature_low > 0:
-                pct = mature_low / total * 100
-                findings.append(
-                    Finding(
-                        severity="info",
-                        category="model",
-                        title=(
-                            f"{mature_low:,} models ({pct:.0f}%) are mature but "
-                            f"under-performing (AUC < {bucket_perf_cutoff * 100:.0f})"
-                        ),
-                        detail=(
-                            "These models have enough positives to be considered "
-                            "mature, but still score below the healthy AUC "
-                            "threshold. See the related per-channel performance "
-                            "and stuck-at-AUC-50 findings for specific causes."
-                        ),
-                        data={
-                            "count": mature_low,
-                            "total": total,
-                            "percentage": pct,
-                            "bucket": "mature_low_perf",
-                        },
-                    )
-                )
+        # Mature low-performance models — count-only finding follows in
+        # _check_model_performance; not emitted here so the maturity
+        # percentage buckets remain a deliberate "visible cohorts" view
+        # rather than a forced 100 % decomposition.
 
         # Healthy models summary
-        if bp_min_positives is not None:
+        if min_perf is not None and bp_min_positives is not None:
             healthy = last_data.filter(
-                (pl.col("Performance") >= bucket_perf_cutoff) & (pl.col("Positives") >= bp_min_positives)
+                (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives)
             ).height
             if healthy > 0:
                 pct = healthy / total * 100
@@ -746,10 +718,7 @@ class Analysis:
                         severity="info",
                         category="model",
                         title=f"{healthy:,} models ({pct:.0f}%) are mature with decent performance",
-                        detail=(
-                            f"These models have ≥{int(bp_min_positives)} positives "
-                            f"and AUC ≥{bucket_perf_cutoff * 100:.0f}."
-                        ),
+                        detail=(f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{min_perf * 100:.0f}."),
                         data={
                             "count": healthy,
                             "total": total,

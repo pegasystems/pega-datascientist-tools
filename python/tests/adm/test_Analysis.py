@@ -250,11 +250,10 @@ class TestModelMaturityChecks:
         last_data = analysis._get_last_data()
         results = analysis._check_model_maturity(last_data)
         assert isinstance(results, list)
-        # cdh_sample currently produces exactly 4 maturity findings (one per
-        # populated bucket out of 5: never_used / responses_no_positives /
-        # immature / mature_low_perf / mature_decent); re-pin if upstream
-        # sample data changes.
-        assert len(results) == 4
+        # cdh_sample currently produces exactly 3 maturity findings (one per
+        # populated bucket out of 4: never_used / responses_no_positives /
+        # immature / mature_decent); re-pin if upstream sample data changes.
+        assert len(results) == 3
 
     def test_detects_model_categories(self, analysis):
         last_data = analysis._get_last_data()
@@ -324,10 +323,10 @@ class TestFullAnalysis:
     def test_full_findings_with_sample_data(self, sample_dm):
         """End-to-end test: run all findings on sample data."""
         results = sample_dm.analysis.findings()
-        # cdh_sample currently produces exactly 12 findings — one summary
+        # cdh_sample currently produces exactly 11 findings — one summary
         # headline, one AUC-tier finding, plus per-area findings across
         # {model, taxonomy, predictor}. Re-pin if upstream sample changes.
-        assert len(results) == 12
+        assert len(results) == 11
 
         categories = {f.category for f in results}
         assert categories == {"summary", "model", "taxonomy", "predictor"}
@@ -1122,10 +1121,13 @@ class TestTieredAUCFinding:
         assert "strong" in f.title
 
 
-class TestMaturityBucketsExhaustive:
-    """Five mutually-exclusive buckets must sum to total model count."""
+class TestMaturityBuckets:
+    """Visible maturity buckets are mutually exclusive but intentionally
+    not exhaustive — mature low-performance models are surfaced through
+    dedicated count findings (low_performance, stuck_at_50) rather than
+    a percentage bucket, so the visible totals can sum to less than 100 %."""
 
-    def test_buckets_sum_to_total(self):
+    def test_buckets_are_disjoint(self):
         rows = (
             [{"ModelID": f"u{i}", "ResponseCount": 0, "Positives": 0, "Performance": 0.5} for i in range(10)]
             + [{"ModelID": f"z{i}", "ResponseCount": 100, "Positives": 0, "Performance": 0.5} for i in range(7)]
@@ -1136,16 +1138,19 @@ class TestMaturityBucketsExhaustive:
         dm = _make_dm(rows)
         ld = dm.analysis._get_last_data()
         results = dm.analysis._check_model_maturity(ld)
-        # Pull bucket counts off the structured `data` payloads.
         counts = {f.data["bucket"]: f.data["count"] for f in results if "bucket" in f.data}
+        # Four visible buckets — `mature_low_perf` is intentionally not a
+        # bucket; those models are reported via low-performance / stuck
+        # warnings instead.
         assert counts == {
             "never_used": 10,
             "responses_no_positives": 7,
             "immature": 13,
-            "mature_low_perf": 11,
             "mature_decent": 19,
         }
-        assert sum(counts.values()) == 60
+        # Total visible coverage is 49 of 60 — the 11 mature low-perf
+        # models are deliberately excluded from the percentage view.
+        assert sum(counts.values()) == 49
 
 
 class TestTaxonomyThresholdInTitle:
