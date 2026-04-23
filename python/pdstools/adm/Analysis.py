@@ -551,18 +551,23 @@ class Analysis:
             return findings
 
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
-        min_perf = MetricLimits.minimum("ModelPerformance")
-        # Use the metric minimum (e.g. 0.52) as the cutoff that separates
-        # mature low-performance from mature decent models, matching the
-        # AUC band used by the dedicated low-performance warning below.
+        min_perf_floor = MetricLimits.minimum("ModelPerformance")
+        bp_min_perf = MetricLimits.best_practice_min("ModelPerformance")
+        # "Decent" performance means meeting the best-practice threshold
+        # (e.g. 0.55), not merely clearing the hard minimum (e.g. 0.52).
+        # The low-performance warning below uses the same boundary so the
+        # two cohorts are mutually exclusive and jointly cover all mature
+        # models — no silent gap, no synthetic bucket.
 
         # Unused models
+        bp_max_unused = MetricLimits.best_practice_max("ModelsWithoutResponsesPercentage")
         unused = last_data.filter(pl.col("ResponseCount") == 0).height
         if unused > 0:
             pct = unused / total * 100
+            warn_threshold_pct = (bp_max_unused or 0.2) * 100
             findings.append(
                 Finding(
-                    severity="warning" if pct > 20 else "info",
+                    severity="warning" if pct > warn_threshold_pct else "info",
                     category="model",
                     title=f"{unused:,} models ({pct:.0f}%) have never been used",
                     detail=(
@@ -646,11 +651,12 @@ class Analysis:
                     )
                 )
 
-        # Low performance
-        if min_perf is not None and bp_min_positives is not None:
+        # Low performance — anything below best practice (excluding the
+        # stuck-at-0.5 cohort, which gets its own finding above).
+        if bp_min_perf is not None and bp_min_positives is not None:
             low_perf = last_data.filter(
-                (pl.col("Performance") > 0.5)
-                & (pl.col("Performance") < min_perf)
+                (pl.col("Performance") > min_perf_floor)
+                & (pl.col("Performance") < bp_min_perf)
                 & (pl.col("Positives") >= bp_min_positives)
             ).height
             if low_perf > 0:
@@ -658,16 +664,17 @@ class Analysis:
                     Finding(
                         severity="warning",
                         category="model",
-                        title=(f"{low_perf:,} mature models have low performance (AUC < {min_perf * 100:.0f})"),
+                        title=(f"{low_perf:,} mature models have low performance (AUC < {bp_min_perf * 100:.0f})"),
                         detail=(
                             "These models have sufficient positive responses but "
-                            "still show poor predictive performance. Consider "
-                            "reviewing predictor data or adding better features."
+                            "still fall below the best-practice AUC threshold. "
+                            "Consider reviewing predictor data or adding better "
+                            "features."
                         ),
                         data={
                             "count": low_perf,
                             "total": total,
-                            "min_performance": min_perf,
+                            "min_performance": bp_min_perf,
                         },
                     )
                 )
@@ -707,9 +714,9 @@ class Analysis:
         # rather than a forced 100 % decomposition.
 
         # Healthy models summary
-        if min_perf is not None and bp_min_positives is not None:
+        if bp_min_perf is not None and bp_min_positives is not None:
             healthy = last_data.filter(
-                (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives)
+                (pl.col("Performance") >= bp_min_perf) & (pl.col("Positives") >= bp_min_positives)
             ).height
             if healthy > 0:
                 pct = healthy / total * 100
@@ -718,7 +725,9 @@ class Analysis:
                         severity="info",
                         category="model",
                         title=f"{healthy:,} models ({pct:.0f}%) are mature with decent performance",
-                        detail=(f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{min_perf * 100:.0f}."),
+                        detail=(
+                            f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{bp_min_perf * 100:.0f}."
+                        ),
                         data={
                             "count": healthy,
                             "total": total,
@@ -967,16 +976,23 @@ class Analysis:
             )
 
         # Performance vs volume: what % of volume is at low AUC
+        bp_min_perf = MetricLimits.best_practice_min("ModelPerformance")
         total_resp = active_data.select(pl.sum("ResponseCount")).item() or 0
-        if total_resp > 0:
-            low_auc_resp = active_data.filter(pl.col("Performance") < 0.55).select(pl.sum("ResponseCount")).item() or 0
+        if total_resp > 0 and bp_min_perf is not None:
+            low_auc_resp = (
+                active_data.filter(pl.col("Performance") < bp_min_perf).select(pl.sum("ResponseCount")).item() or 0
+            )
             low_auc_pct = low_auc_resp / total_resp * 100
+            auc_threshold_str = f"AUC < {bp_min_perf * 100:.0f}"
             if low_auc_pct > 50:
                 findings.append(
                     Finding(
                         severity="warning",
                         category="response_distribution",
-                        title=(f"{low_auc_pct:.0f}% of response volume is driven by low-performance models (AUC < 55)"),
+                        title=(
+                            f"{low_auc_pct:.0f}% of response volume is driven by "
+                            f"low-performance models ({auc_threshold_str})"
+                        ),
                         detail=(
                             "Most responses come from models with very low "
                             "predictive performance. Targeting is sub-optimal. "
@@ -995,7 +1011,10 @@ class Analysis:
                     Finding(
                         severity="info",
                         category="response_distribution",
-                        title=(f"{low_auc_pct:.0f}% of response volume is from low-performance models (AUC < 55)"),
+                        title=(
+                            f"{low_auc_pct:.0f}% of response volume is from "
+                            f"low-performance models ({auc_threshold_str})"
+                        ),
                         detail=("A notable portion of responses comes from models that are not yet performing well."),
                         data={
                             "low_auc_response_pct": low_auc_pct,
