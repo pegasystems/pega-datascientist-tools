@@ -52,38 +52,40 @@ class Plots(LazyNamespace):
     ):
         """Plots contributions for the overall model or a selected context.
 
-        Args:
-            top_n (int):
-                Number of top predictors to display.
-            top_k (int):
-                Number of top unique values for each categorical predictor to display.
-            return_df (bool, keyword-only):
-                If True, skip plotting and return the underlying dataframes instead.
-                When a context is selected, returns
-                ``(predictor_df, predictor_value_df)``; otherwise returns the same
-                pair computed against the overall model.
-            sort_by (str, keyword-only):
-                Column to rank/select top predictors. One of
-                ``contribution``, ``contribution_abs``,
-                ``contribution_weighted``, ``contribution_weighted_abs``.
-                Default: ``"contribution_abs"``.
-            display_by (str, keyword-only):
-                Column to use for the chart axis values.
-                Default: ``"contribution"``.
-            descending (bool, keyword-only):
-                Sort most- or least-impactful first. Default: ``True``.
-            missing (bool, keyword-only):
-                Include missing-value bins. Default: ``True``.
-            remaining (bool, keyword-only):
-                Include an aggregated "remaining" row. Default: ``True``.
-            include_numeric_single_bin (bool, keyword-only):
-                Include numeric predictors that have only a single bin.
-                Default: ``False``.
+        Parameters
+        ----------
+        top_n : int
+            Number of top predictors to display.
+        top_k : int
+            Number of top unique values for each categorical predictor to display.
+        return_df : bool
+            If True, skip plotting and return the underlying dataframes instead.
+            When a context is selected, returns
+            ``(predictor_df, predictor_value_df)``; otherwise returns the same
+            pair computed against the overall model.
+        sort_by : str
+            Column to rank/select top predictors. One of
+            ``contribution``, ``contribution_abs``,
+            ``contribution_weighted``, ``contribution_weighted_abs``.
+            Default: ``"contribution_abs"``.
+        display_by : str
+            Column to use for the chart axis values.
+            Default: ``"contribution"``.
+        descending : bool
+            Sort most- or least-impactful first. Default: ``True``.
+        missing : bool
+            Include missing-value bins. Default: ``True``.
+        remaining : bool
+            Include an aggregated "remaining" row. Default: ``True``.
+        include_numeric_single_bin : bool
+            Include numeric predictors that have only a single bin.
+            Default: ``False``.
 
-        Returns:
-            tuple[go.Figure, list[go.Figure]]:
-                - left: context header if context is selected, otherwise None
-                - right: overall contributions plot and a list of predictor contribution plots.
+        Returns
+        -------
+        tuple[go.Figure, list[go.Figure]]
+            - left: context header if context is selected, otherwise None
+            - right: overall contributions plot and a list of predictor contribution plots.
 
         """
         common_kwargs = {

@@ -63,27 +63,28 @@ class Aggregate(LazyNamespace):
     ) -> pl.DataFrame:
         """Get the top-n predictor contributions for a given context or overall.
 
-        Args:
-            context (dict[str, str] | None):
-                The context to filter contributions by.
-                If None, contributions for all contexts will be returned.
-            top_n (int):
-                Number of top predictors.
-            sort_by (str, keyword-only):
-                Column to rank/select top predictors. One of
-                ``contribution``, ``contribution_abs``,
-                ``contribution_weighted``, ``contribution_weighted_abs``.
-                Default: ``"contribution_abs"``.
-            descending (bool, keyword-only):
-                Sort most- or least-impactful first. Default: ``True``.
-            missing (bool, keyword-only):
-                Include missing-value bins. Default: ``True``.
-            remaining (bool, keyword-only):
-                Include an aggregated "remaining" row for predictors outside
-                the top-n. Default: ``True``.
-            include_numeric_single_bin (bool, keyword-only):
-                Include numeric predictors that have only a single bin.
-                Default: ``False``.
+        Parameters
+        ----------
+        context : dict[str, str] | None
+            The context to filter contributions by.
+            If None, contributions for all contexts will be returned.
+        top_n : int
+            Number of top predictors.
+        sort_by : str
+            Column to rank/select top predictors. One of
+            ``contribution``, ``contribution_abs``,
+            ``contribution_weighted``, ``contribution_weighted_abs``.
+            Default: ``"contribution_abs"``.
+        descending : bool
+            Sort most- or least-impactful first. Default: ``True``.
+        missing : bool
+            Include missing-value bins. Default: ``True``.
+        remaining : bool
+            Include an aggregated "remaining" row for predictors outside
+            the top-n. Default: ``True``.
+        include_numeric_single_bin : bool
+            Include numeric predictors that have only a single bin.
+            Default: ``False``.
         """
         _resolve_contribution_type(sort_by)
 
@@ -119,29 +120,30 @@ class Aggregate(LazyNamespace):
     ) -> pl.DataFrame:
         """Get the top-k predictor value contributions for a given context or overall.
 
-        Args:
-            predictors (list[str]): Required.
-                list of predictors to get the contributions for.
-            context (dict[str, str] | None):
-                The context to filter contributions by.
-                If None, contributions for all contexts will be returned.
-            top_k (int):
-                Number of unique categorical predictor values to return.
-            sort_by (str, keyword-only):
-                Column to rank/select top predictors. One of
-                ``contribution``, ``contribution_abs``,
-                ``contribution_weighted``, ``contribution_weighted_abs``.
-                Default: ``"contribution_abs"``.
-            descending (bool, keyword-only):
-                Sort most- or least-impactful first. Default: ``True``.
-            missing (bool, keyword-only):
-                Include missing-value bins. Default: ``True``.
-            remaining (bool, keyword-only):
-                Include an aggregated "remaining" row for values outside
-                the top-k. Default: ``True``.
-            include_numeric_single_bin (bool, keyword-only):
-                Include numeric predictors that have only a single bin.
-                Default: ``False``.
+        Parameters
+        ----------
+        predictors : list[str]
+            Required. list of predictors to get the contributions for.
+        context : dict[str, str] | None
+            The context to filter contributions by.
+            If None, contributions for all contexts will be returned.
+        top_k : int
+            Number of unique categorical predictor values to return.
+        sort_by : str
+            Column to rank/select top predictors. One of
+            ``contribution``, ``contribution_abs``,
+            ``contribution_weighted``, ``contribution_weighted_abs``.
+            Default: ``"contribution_abs"``.
+        descending : bool
+            Sort most- or least-impactful first. Default: ``True``.
+        missing : bool
+            Include missing-value bins. Default: ``True``.
+        remaining : bool
+            Include an aggregated "remaining" row for values outside
+            the top-k. Default: ``True``.
+        include_numeric_single_bin : bool
+            Include numeric predictors that have only a single bin.
+            Default: ``False``.
         """
         _resolve_contribution_type(sort_by)
 
@@ -167,8 +169,10 @@ class Aggregate(LazyNamespace):
     def validate_folder(self):
         """Check if the aggregates folder exists.
 
-        Raises:
-            FileNotFoundError: If the aggregates folder does not exist or is empty.
+        Raises
+        ------
+        FileNotFoundError
+            If the aggregates folder does not exist or is empty.
 
         """
         folder = pathlib.Path(self.data_folderpath)

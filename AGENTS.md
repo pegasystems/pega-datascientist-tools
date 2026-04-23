@@ -147,6 +147,48 @@ python -m build --sdist --wheel --outdir dist/ .
 - Keep line length conservative; let the formatter decide.
 - Use trailing commas in multi-line literals and call arguments.
 
+### Docstring style: numpy
+- Use **numpy-style docstrings** for all public APIs (and any non-trivial
+  internal helper). Sphinx is configured with the `numpydoc` /
+  `sphinx.ext.napoleon` toolchain and the rest of `pdstools` is written
+  this way; a Google-style (`Args:` / `Returns:`) or Sphinx-RST
+  (`:param x:`) block in the middle of an otherwise numpy-style module
+  is a stylistic break and renders inconsistently in the docs.
+- Sections use a header word followed by a dashed underline of equal
+  length. The common ones:
+
+  ```python
+  def foo(x: int, y: str = "a") -> bool:
+      """One-line summary in the imperative.
+
+      Optional longer description.
+
+      Parameters
+      ----------
+      x : int
+          What x is.
+      y : str, default "a"
+          What y is.
+
+      Returns
+      -------
+      bool
+          What the return value means.
+
+      Raises
+      ------
+      ValueError
+          When x is negative.
+
+      Examples
+      --------
+      >>> foo(1)
+      True
+      """
+  ```
+- Reviewers should flag Google/RST-style blocks in PRs and ask for a
+  conversion before merge — left in place they spread by example.
+
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
 - Reuse aliases from `python/pdstools/utils/types.py` where suitable.

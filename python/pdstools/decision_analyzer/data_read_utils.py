@@ -152,11 +152,16 @@ def validate_columns(
     the fact that columns may be present under either their source name or
     their target label name.
 
-    Args:
-        df: The dataframe to validate
-        extract_type: Table configuration mapping column names to their properties
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The dataframe to validate
+    extract_type : dict[str, TableConfig]
+        Table configuration mapping column names to their properties
 
-    Returns:
+    Returns
+    -------
+    tuple[bool, str | None]
         tuple containing validation success (bool) and error message (str or None)
 
     """

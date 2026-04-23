@@ -29,10 +29,14 @@ def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: l
 def action_variation(self, stage="Final", color_by=None, return_df=False):
     """Plot action variation (Lorenz curve showing action concentration).
 
-    Args:
-        stage: Stage to analyze
-        color_by: Optional dimension to color by (e.g., "Channel/Direction")
-        return_df: If True, return the data instead of the figure
+    Parameters
+    ----------
+    stage
+        Stage to analyze
+    color_by
+        Optional dimension to color by (e.g., "Channel/Direction")
+    return_df
+        If True, return the data instead of the figure
     """
     df = self._decision_data.aggregates.get_action_variation_data(stage, color_by=color_by)
     if return_df:

@@ -170,12 +170,17 @@ def create_parser():
 def check_for_typos(unknown_args, known_args):
     """Check if unknown arguments might be typos of known pdstools arguments.
 
-    Args:
-        unknown_args: List of unknown arguments from parse_known_args
-        known_args: List of known pdstools argument names (with --)
+    Parameters
+    ----------
+    unknown_args : list[str]
+        List of unknown arguments from ``parse_known_args``.
+    known_args : list[str]
+        List of known pdstools argument names (with ``--``).
 
-    Returns:
-        List of (typo, suggestion, similarity) tuples for likely typos
+    Returns
+    -------
+    list[tuple[str, str, float]]
+        ``(typo, suggestion, similarity)`` tuples for likely typos.
     """
     likely_typos = []
 

@@ -461,10 +461,13 @@ class Aggregates:
     ) -> pl.LazyFrame:
         """Get action variation data, optionally broken down by a categorical dimension.
 
-        Args:
-            stage: The stage to analyze
-            color_by: Optional categorical column to break down the variation by.
-                     Can use "Channel/Direction" to combine Channel and Direction columns.
+        Parameters
+        ----------
+        stage : str
+            The stage to analyze
+        color_by : str | None
+            Optional categorical column to break down the variation by.
+            Can use "Channel/Direction" to combine Channel and Direction columns.
         """
         # Handle combined Channel/Direction column
         needs_channel_direction = color_by == "Channel/Direction"

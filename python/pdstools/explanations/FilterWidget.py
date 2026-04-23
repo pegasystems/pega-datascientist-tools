@@ -62,18 +62,19 @@ class FilterWidget(LazyNamespace):
     def set_selected_context(self, context_info: ContextInfo | None = None):
         """Set the selected context information.
 
-        Args:
-            context_info (ContextInfo | None):
-                If None, initializes the selected context with 'Any' for all keys.
-                i.e overall model contributions
-                If provided, sets the selected context to the given context information.
-                Context is passed as a dictionary
-                Eg. context_info =
-                    {
-                        "pyChannel": "channel1",
-                        "pyDirection": "direction1",
-                        ...
-                    }
+        Parameters
+        ----------
+        context_info : ContextInfo | None
+            If None, initializes the selected context with 'Any' for all keys.
+            i.e overall model contributions
+            If provided, sets the selected context to the given context information.
+            Context is passed as a dictionary
+            Eg. context_info =
+                {
+                    "pyChannel": "channel1",
+                    "pyDirection": "direction1",
+                    ...
+                }
 
         """
         if context_info is None:

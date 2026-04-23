@@ -637,7 +637,9 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     Filters out ZIP-internal noise files (META-INF/, __MACOSX/, .DS_Store etc.)
     and clears stale session state before processing a new upload.
 
-    Returns:
+    Returns
+    -------
+    tuple[pl.LazyFrame | None, dict | None]
         Tuple of (LazyFrame, metadata dict) where metadata contains sample information if available.
         For single parquet file uploads, metadata is read from the file.
         For other cases, metadata is None.
