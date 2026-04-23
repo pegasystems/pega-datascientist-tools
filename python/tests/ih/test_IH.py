@@ -1,6 +1,7 @@
 """Testing the functionality of the IH class"""
 
 import datetime
+import importlib
 import math
 from datetime import timedelta
 from unittest.mock import patch
@@ -11,6 +12,11 @@ from pdstools import IH
 from pdstools.ih.Schema import REQUIRED_IH_COLUMNS, IHInteraction
 from plotly.graph_objs import Figure
 
+# Grab the module explicitly: `pdstools.ih.IH` resolves to the *class* (re-exported
+# via pdstools/ih/__init__.py), so mock.patch("pdstools.ih.IH.datetime") tries to
+# patch an attribute on the class and fails. Importing the module by string
+# bypasses that shadowing.
+_ih_module = importlib.import_module("pdstools.ih.IH")
 
 # Freezing "now" makes the date-derived columns (and therefore every period
 # bucketing — "1d", "1w", etc.) fully deterministic. Without this, mock data
@@ -22,7 +28,7 @@ _FROZEN_NOW = datetime.datetime(2026, 1, 15, 12, 0, 0)
 @pytest.fixture
 def ih():
     # seed=42 makes from_mock_data deterministic so tests can assert exact values.
-    with patch("pdstools.ih.IH.datetime") as mock_dt:
+    with patch.object(_ih_module, "datetime") as mock_dt:
         mock_dt.datetime.now.return_value = _FROZEN_NOW
         # Pass through everything else (timedelta, datetime constructor, …).
         mock_dt.datetime.side_effect = lambda *a, **kw: datetime.datetime(*a, **kw)
