@@ -13,6 +13,10 @@ import logging
 import os
 import sys
 from importlib import resources
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 from pdstools import __version__
 
@@ -316,10 +320,11 @@ def run(args, unknown):
     # back to the numeric prompt only when questionary isn't installed
     # or stdin isn't a TTY.
     if args.app is None and sys.stdin.isatty():
+        questionary: ModuleType | None
         try:
             import questionary
         except ImportError:
-            questionary = None  # type: ignore[assignment]
+            questionary = None
         if questionary is not None:
             choice = questionary.select(
                 "Select an app to run:",
