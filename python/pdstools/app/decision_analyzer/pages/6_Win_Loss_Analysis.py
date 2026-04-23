@@ -23,11 +23,12 @@ MAX_COMPARISON_LABEL_LEN = 80
 def _describe_comparison_group() -> str:
     """Build a human-readable label from the active comparison filter selections.
 
-    Examples:
-        Issue: Service
-        Issue: Service, Sales
-        Issue: Service and Group: Cards
-        (falls back to "comparison group" when too long or nothing selected)
+    Examples
+    --------
+    Issue: Service
+    Issue: Service, Sales
+    Issue: Service and Group: Cards
+    (falls back to "comparison group" when too long or nothing selected)
     """
     columns = st.session_state.get("localmultiselect", [])
     if not columns:

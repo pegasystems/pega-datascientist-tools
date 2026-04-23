@@ -381,13 +381,20 @@ def create_hierarchical_selectors(
     """
     Create hierarchical filter options and calculate indices for selectbox widgets.
 
-    Args:
-        data: LazyFrame with hierarchical data (should be pre-filtered to desired stage)
-        selected_issue: Currently selected issue (optional)
-        selected_group: Currently selected group (optional)
-        selected_action: Currently selected action (optional)
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        LazyFrame with hierarchical data (should be pre-filtered to desired stage)
+    selected_issue : str | None
+        Currently selected issue (optional)
+    selected_group : str | None
+        Currently selected group (optional)
+    selected_action : str | None
+        Currently selected action (optional)
 
-    Returns:
+    Returns
+    -------
+    dict[str, dict[str, list[str] | int]]
         dict with structure:
         {
             "issues": {"options": [...], "index": 0},
