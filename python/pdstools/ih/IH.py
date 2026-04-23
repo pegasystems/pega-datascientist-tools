@@ -255,14 +255,14 @@ class IH:
         if boto3_client is None:
             try:
                 import boto3
-            except ImportError:
+            except ImportError as err:
                 from ..utils.namespaces import MissingDependenciesException
 
                 raise MissingDependenciesException(
                     ["boto3"],
                     namespace="IH.from_s3",
                     deps_group="pega_io",
-                )
+                ) from err
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile

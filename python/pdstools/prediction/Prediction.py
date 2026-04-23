@@ -4,7 +4,6 @@ import datetime
 import itertools
 import logging
 import os
-from collections.abc import Iterable
 
 import polars as pl
 
@@ -18,6 +17,8 @@ from .Plots import PredictionPlots
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
@@ -345,14 +346,14 @@ class Prediction:
         if boto3_client is None:
             try:
                 import boto3
-            except ImportError:
+            except ImportError as err:
                 from ..utils.namespaces import MissingDependenciesException
 
                 raise MissingDependenciesException(
                     ["boto3"],
                     namespace="Prediction.from_s3",
                     deps_group="pega_io",
-                )
+                ) from err
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile
