@@ -469,7 +469,27 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame, return_df=False):
+    def from_pdc(cls, df: pl.LazyFrame) -> "ADMDatamart":
+        """Build an ADMDatamart from a (Pega-internal) PDC dataset.
+
+        Filters and renames the PDC export to the columns expected by
+        :class:`ADMDatamart`, then returns the initialised instance. To
+        access the transformed model frame directly, read
+        :attr:`model_data` on the returned object.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            Raw PDC data (typically loaded via
+            :func:`pdstools.utils.cdh_utils._read_pdc`).
+
+        Returns
+        -------
+        ADMDatamart
+            The initialised datamart. Use ``dm.model_data`` for the
+            transformed frame.
+
+        """
         pdc_data = cdh_utils._read_pdc(df)
 
         adm_data = (
@@ -548,9 +568,6 @@ class ADMDatamart:
                 ],
             )
         )
-
-        if return_df:
-            return adm_data
 
         return ADMDatamart(model_df=adm_data, extract_pyname_keys=True)
 

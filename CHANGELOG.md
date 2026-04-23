@@ -32,6 +32,17 @@ guide.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
   `fastexcel` optional-dependency shim. `ImpactAnalyzer.from_excel`
   delegates the file load to `read_data` (#694).
+- `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
+  implemented (was a no-op stub). Mirrors `ADMDatamart.from_s3` for the
+  single-file case; `boto3` is gated via `MissingDependenciesException`
+  on the existing `pega_io` extras group.
+- `Prediction.from_dataflow_export(prediction_data_files, *, query=None,
+  ...)` is now implemented (was a no-op stub). Mirrors
+  `ADMDatamart.from_dataflow_export`; thin wrapper around
+  `pega_io.read_dataflow_output`.
+- `IH.from_s3(bucket, key, *, region=None, ...)` is now implemented
+  (previously raised `NotImplementedError`). Mirrors the single-file
+  flavour of `ADMDatamart.from_s3`.
 - Decision Analyzer auto-detects mandatory actions (priority ≥ 5M) when
   no `mandatory_expr` is passed, and flags them visually in the global
   win/loss distribution pie and on the Global Sensitivity page (#698).
@@ -66,6 +77,13 @@ guide.
   `Explanations(root_dir="...")` followed by manual
   `aggregate.data_folderpath = "..."` should drop the `root_dir`
   argument and call `Explanations()` with no arguments.
+- **BREAKING:** `ADMDatamart.from_pdc` and `Prediction.from_pdc` no
+  longer accept `return_df`. Both methods now always return the
+  initialised analyzer; access the transformed frame via
+  `dm.model_data` / `pred.predictions` instead.
+- **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
+  keyword-only. Update positional callers to
+  `IH.from_ds_export(path, query=...)`.
 - `DecisionAnalyzer` reorganised into a namespace facade (matching the
   `ADMDatamart` pattern): 16 aggregation methods moved to
   `da.aggregates.*` and 12 scoring / ranking / lever methods moved to
