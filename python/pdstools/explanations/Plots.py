@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import TYPE_CHECKING, Literal, cast, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
 
 import polars as pl
 
@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 
 class Plots(LazyNamespace):
-    dependencies = ["numpy", "plotly"]
+    """Plots."""
+
+    dependencies: ClassVar[list[str]] = ["numpy", "plotly"]
     dependency_group = "explanations"
 
     X_AXIS_TITLE_DEFAULT = "Contribution"
@@ -112,8 +114,8 @@ class Plots(LazyNamespace):
                 **common_kwargs,
             )
 
-            plots = [overall_plot] + predictor_plots
-            for plot in [context_plot] + plots:
+            plots = [overall_plot, *predictor_plots]
+            for plot in [context_plot, *plots]:
                 plot.show()
 
             return context_plot, plots
@@ -137,7 +139,7 @@ class Plots(LazyNamespace):
             **common_kwargs,
         )
 
-        plots = [overall_plot] + predictor_plots
+        plots = [overall_plot, *predictor_plots]
         for plot in plots:
             plot.show()
 
@@ -186,6 +188,7 @@ class Plots(LazyNamespace):
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
+        """Plot contributions for overall."""
         display_by_enum = _resolve_contribution_type(display_by)
         agg_kwargs = {
             "sort_by": sort_by,
@@ -278,6 +281,7 @@ class Plots(LazyNamespace):
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
+        """Plot contributions by context."""
         display_by_enum = _resolve_contribution_type(display_by)
         agg_kwargs = {
             "sort_by": sort_by,

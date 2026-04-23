@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, TypeVar, overload, TYPE_CHECKING
 
 import polars as pl
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
 
 T = TypeVar("T")
 
@@ -176,7 +178,7 @@ class PaginatedList(Generic[T]):
             try:
                 response = response[self._root]
             except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}")
+                raise ValueError(f"Json format unexpected, {self._root} not found.{e}") from e
 
         for element in response:
             if element is not None:
@@ -255,7 +257,7 @@ class AsyncPaginatedList(Generic[T]):
             try:
                 response = response[self._root]
             except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}")
+                raise ValueError(f"Json format unexpected, {self._root} not found.{e}") from e
 
         for element in response:
             if element is not None:

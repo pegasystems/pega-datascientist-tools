@@ -78,19 +78,17 @@ def format_time_estimate(min_sec: float, max_sec: float) -> str:
         # Fallback if humanize not available
         if max_sec < 60:
             return f"{int(max_sec)} seconds"
-        else:
-            return f"{int(max_sec / 60)} minutes"
+        return f"{int(max_sec / 60)} minutes"
 
     if max_sec < 10:
         return "a few seconds"
-    elif max_sec < 60:
+    if max_sec < 60:
         return f"{int(max_sec)} seconds"
-    else:
-        min_str = humanize.naturaldelta(min_sec)
-        max_str = humanize.naturaldelta(max_sec)
-        if min_str == max_str:
-            return min_str
-        return f"{min_str} to {max_str}"
+    min_str = humanize.naturaldelta(min_sec)
+    max_str = humanize.naturaldelta(max_sec)
+    if min_str == max_str:
+        return min_str
+    return f"{min_str} to {max_str}"
 
 
 def estimate_sampling_time(total_rows: int, sample_size: int) -> tuple[float, float]:

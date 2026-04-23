@@ -12,7 +12,7 @@ values in tables.
 
 import difflib
 import re
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 from collections.abc import Callable
 
 import polars as pl
@@ -47,6 +47,7 @@ class MetricLimits:
     _limits_df: pl.DataFrame | None
 
     def __new__(cls) -> "MetricLimits":
+        """New."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._limits_df = None
@@ -470,12 +471,14 @@ def exclusive_0_1_range_rag(value: float) -> RAGValue | None:
 
 
 def positive_values(value: float) -> RAGValue | None:
+    """Positive values."""
     if value is None:
         return None
     return "GREEN" if value >= 0 else "RED"
 
 
 def strict_positive_values(value: float) -> RAGValue | None:
+    """Strict positive values."""
     if value is None:
         return None
     return "GREEN" if value > 0 else "RED"
@@ -614,7 +617,7 @@ class MetricFormats:
 
     """
 
-    _FORMATS: dict[str, NumberFormat] = {
+    _FORMATS: ClassVar[dict[str, NumberFormat]] = {
         "ModelPerformance": NumberFormat(decimals=2, scale_by=100),
         "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
         "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),

@@ -299,10 +299,7 @@ def parse_sample_spec(value: str) -> dict[str, int | float]:
     elif value.lower().endswith("m"):
         multiplier = 1000000
 
-    if multiplier:
-        count = int(float(value[:-1]) * multiplier)
-    else:
-        count = int(value)
+    count = int(float(value[:-1]) * multiplier) if multiplier else int(value)
 
     if count <= 0:
         raise ValueError(f"Sample count must be positive, got {count}")
@@ -320,6 +317,7 @@ def get_current_index(options, key, default=0):
 
 @st.cache_resource
 def cached_sample():
+    """Cached sample."""
     return datasets.cdh_sample()
 
 
@@ -347,6 +345,7 @@ def cached_datamart(**kwargs):
 
 @st.cache_resource
 def cached_sample_prediction():
+    """Cached sample prediction."""
     return Prediction.from_mock_data(days=60)
 
 
@@ -432,6 +431,7 @@ def import_datamart(
 
 
 def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000):
+    """From uploaded file."""
     model_file = st.file_uploader(
         "Upload Model Snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
@@ -495,6 +495,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=1000
 
 
 def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
+    """From file path."""
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
@@ -589,8 +590,9 @@ def from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000):
 
 
 def model_selection_df(df: pl.LazyFrame, context_keys: list):
+    """Model selection df."""
     return (
-        df.select(["ModelID", "Configuration"] + context_keys)
+        df.select(["ModelID", "Configuration", *context_keys])
         .unique()
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
@@ -601,7 +603,7 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
 def filter_dataframe(
     df: pl.LazyFrame,
     schema: dict | None = None,
-    queries=[],
+    queries: list | None = None,
 ) -> pl.LazyFrame:
     """Adds a UI on top of a dataframe to let viewers filter columns
 
@@ -616,6 +618,8 @@ def filter_dataframe(
         The filtered LazyFrame
 
     """
+    if queries is None:
+        queries = []
     to_filter_columns = st.multiselect(
         "Filter dataframe on",
         df.collect_schema().names(),
@@ -722,6 +726,7 @@ def model_and_row_counts(df: ANY_FRAME):
 
 
 def configure_predictor_categorization():
+    """Configure predictor categorization."""
     df = st.session_state["dm"].combinedData
     if len(st.session_state["filters"]) > 0:
         for filter in st.session_state["filters"]:
@@ -755,11 +760,13 @@ def configure_predictor_categorization():
 
 @st.cache_data
 def convert_df(df):
+    """Convert df."""
     return df.write_csv().encode("utf-8")
 
 
 @st.cache_data
 def st_get_latest_pdstools_version():
+    """St get latest pdstools version."""
     return cdh_utils.get_latest_pdstools_version()
 
 

@@ -17,11 +17,14 @@ not the sample's.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # Distinctive row count — must not collide with the bundled sample's

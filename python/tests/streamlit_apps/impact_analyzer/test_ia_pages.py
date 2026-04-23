@@ -9,13 +9,16 @@ instead of passing silently.
 from __future__ import annotations
 
 import copy
-from pathlib import Path
 
 import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
+    from pathlib import Path
 
 
 def test_home_pre_load_text_is_product_neutral(ia_app_dir: Path):

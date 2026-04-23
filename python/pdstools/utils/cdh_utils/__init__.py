@@ -88,24 +88,10 @@ from ._polars import (
 )
 
 __all__ = [
-    # constants / shared types
-    "F",
     "POLARS_DURATION_PATTERN",
     "QUERY",
-    "logger",
-    # date / time
-    "from_prpc_date_time",
-    "parse_pega_date_time_formats",
-    "to_prpc_date_time",
-    # naming / categorisation
-    "default_predictor_categorization",
-    # polars helpers
-    "is_valid_polars_duration",
-    "lazy_sample",
-    "overlap_lists_polars",
-    "overlap_matrix",
-    "weighted_average_polars",
-    "weighted_performance_polars",
+    # constants / shared types
+    "F",
     # metrics
     "auc_from_bincounts",
     "auc_from_probs",
@@ -113,17 +99,31 @@ __all__ = [
     "aucpr_from_bincounts",
     "aucpr_from_probs",
     "bin_log_odds",
-    "feature_importance",
-    "gains_table",
-    "lift",
-    "log_odds_polars",
-    "safe_range_auc",
-    "z_ratio",
     # I/O / misc
     "create_working_and_temp_dir",
+    # naming / categorisation
+    "default_predictor_categorization",
+    "feature_importance",
+    # date / time
+    "from_prpc_date_time",
+    "gains_table",
     "get_latest_pdstools_version",
+    # polars helpers
+    "is_valid_polars_duration",
+    "lazy_sample",
     "legend_color_order",
+    "lift",
+    "log_odds_polars",
+    "logger",
+    "overlap_lists_polars",
+    "overlap_matrix",
+    "parse_pega_date_time_formats",
     "process_files_to_bytes",
     "safe_flatten_list",
+    "safe_range_auc",
     "setup_logger",
+    "to_prpc_date_time",
+    "weighted_average_polars",
+    "weighted_performance_polars",
+    "z_ratio",
 ]

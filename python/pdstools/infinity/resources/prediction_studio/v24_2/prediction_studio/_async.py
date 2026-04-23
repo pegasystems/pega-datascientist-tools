@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-import polars as pl
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
-from ...types import NotificationCategory
 from ...v24_1 import AsyncPredictionStudio as AsyncPredictionStudioPrevious
 from ..datamart_export import AsyncDatamartExport
 from ..model import AsyncModel
 from ..prediction import AsyncPrediction
 from ..repository import AsyncRepository
 from ._mixin import _PredictionStudioV24_2Mixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...types import NotificationCategory
+    import polars as pl
 
 
 class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPrevious):

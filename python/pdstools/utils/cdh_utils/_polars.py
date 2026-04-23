@@ -115,11 +115,11 @@ def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
     if isinstance(existing_query, pl.Expr):
         return existing_query & new_query
     if isinstance(existing_query, list):
-        return existing_query + [new_query]
+        return [*existing_query, new_query]
     if isinstance(existing_query, dict):
         # Convert the dictionary to a list of expressions
         existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
-        return existing_exprs + [new_query]
+        return [*existing_exprs, new_query]
     raise ValueError("Unsupported query type")
 
 

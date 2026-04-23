@@ -581,7 +581,7 @@ def test_performance_range_in_summary_methods(preds_singleday):
     )
 
     # Secondary invariant: a non-degenerate AUC must sit in [0.5, 1.0].
-    for perf in performance_values + [overall_perf] + list(mock_rows.values()):
+    for perf in [*performance_values, overall_perf, *list(mock_rows.values())]:
         assert 0.5 <= perf <= 1.0
 
 

@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Any, Literal, overload
-from collections.abc import Callable
 
 import polars as pl
 
@@ -9,6 +8,9 @@ from ..base import AsyncModel as AsyncPreviousModel
 from ..base import AsyncNotification, ModelAttributes, Notification
 from ..base import Model as PreviousModel
 from ..types import NotificationCategory
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class _ModelV24_2Mixin:

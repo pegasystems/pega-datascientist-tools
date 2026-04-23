@@ -154,14 +154,13 @@ def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
     # Read based on extension
     if extension == ".parquet":
         return pl.read_parquet(file).lazy()
-    elif extension == ".csv":
+    if extension == ".csv":
         return pl.read_csv(file).lazy()
-    elif extension in {".arrow", ".feather", ".ipc"}:
+    if extension in {".arrow", ".feather", ".ipc"}:
         return pl.read_ipc(file).lazy()
-    elif extension in {".json", ".ndjson", ".jsonl"}:
+    if extension in {".json", ".ndjson", ".jsonl"}:
         return pl.read_ndjson(file).lazy()
-    else:
-        raise ValueError(f"Unsupported file type for BytesIO: {extension}")
+    raise ValueError(f"Unsupported file type for BytesIO: {extension}")
 
 
 def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
@@ -267,7 +266,7 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
     if original_path.is_dir():
         # It's a directory, possibly hive-partitioned at arbitrary depth.
         # Find the first supported data file, skipping hidden/OS-artifact entries.
-        for dirpath, dirs, files in os.walk(str(original_path)):
+        for _dirpath, dirs, files in os.walk(str(original_path)):
             dirs[:] = [d for d in dirs if not d.startswith(".") and not _is_artifact(d)]
             for file in sorted(files):
                 if file.startswith(".") or _is_artifact(file):
@@ -569,10 +568,7 @@ def _import_file(
             try_parse_dates=True,
             ignore_errors=ignore_errors,
         )
-        if isinstance(file, BytesIO):
-            df = pl.read_csv(file, **csv_opts).lazy()
-        else:
-            df = pl.scan_csv(file, **csv_opts)
+        df = pl.read_csv(file, **csv_opts).lazy() if isinstance(file, BytesIO) else pl.scan_csv(file, **csv_opts)
         return _fill_context_field_nulls(df)
 
     if extension == ".json":
@@ -604,10 +600,7 @@ def _import_file(
         return _fill_context_field_nulls(df)
 
     if extension.casefold() in {".feather", ".ipc", ".arrow"}:
-        if isinstance(file, BytesIO):
-            df = pl.read_ipc(file).lazy()
-        else:
-            df = pl.scan_ipc(file)
+        df = pl.read_ipc(file).lazy() if isinstance(file, BytesIO) else pl.scan_ipc(file)
         return _fill_context_field_nulls(df)
 
     raise ValueError(

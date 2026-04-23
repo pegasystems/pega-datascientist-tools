@@ -6,7 +6,7 @@ import pathlib
 from datetime import timedelta
 from glob import glob
 from importlib.resources import files as resources_files
-from typing import TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
 
 import duckdb
 import polars as pl
@@ -23,7 +23,9 @@ if TYPE_CHECKING:
 
 
 class Preprocess(LazyNamespace):
-    dependencies = ["duckdb", "polars"]
+    """Preprocess."""
+
+    dependencies: ClassVar[list[str]] = ["duckdb", "polars"]
     dependency_group = "explanations"
 
     SEP = ", "
@@ -459,8 +461,7 @@ class Preprocess(LazyNamespace):
         if len(self.selected_files) == 0:
             self._populate_selected_files()
 
-        q = ", ".join([f"'{x}'" for x in self.selected_files])
-        return q
+        return ", ".join([f"'{x}'" for x in self.selected_files])
 
     def _populate_selected_files(self):
         # If data_file is provided, use it directly (supports URLs and local files)
@@ -531,7 +532,7 @@ class Preprocess(LazyNamespace):
             self.selected_files = [str(local_path)]
             logger.info("Downloaded file:= \n %s", self.selected_files)
         except Exception as e:
-            raise ValueError(f"Failed to download file from {file_url}: {e}")
+            raise ValueError(f"Failed to download file from {file_url}: {e}") from e
 
     def _execute_query(self, query: str):
         """Execute a query on the in-memory DuckDB connection."""

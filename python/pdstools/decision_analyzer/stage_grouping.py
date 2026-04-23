@@ -11,6 +11,8 @@ from typing import TypedDict
 
 
 class StageGroupDef(TypedDict):
+    """Stage group def."""
+
     display_name: str
     stages: dict[str, str]  # internal Stage_pyName -> display name
 

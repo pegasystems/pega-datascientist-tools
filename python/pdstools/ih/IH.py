@@ -1,5 +1,6 @@
 """Interaction History analysis for Pega CDH."""
 
+from typing import ClassVar
 import datetime
 import logging
 import math
@@ -65,14 +66,14 @@ class IH:
     data: pl.LazyFrame
     outcome_labels_used: dict | None
 
-    positive_outcome_labels: dict[str, list[str]] = {
+    positive_outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
         "Conversion": ["Conversion"],
         "OpenRate": ["Opened", "Open"],
     }
     """Mapping of metric types to positive outcome labels."""
 
-    negative_outcome_labels: dict[str, list[str]] = {
+    negative_outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Engagement": ["Impression", "Impressed", "Pending", "NoResponse"],
         "Conversion": ["Impression", "Pending"],
         "OpenRate": ["Impression", "Pending"],
@@ -136,8 +137,7 @@ class IH:
         missing = set(REQUIRED_IH_COLUMNS).difference(df.collect_schema().names())
         if missing:
             raise ValueError(f"Missing required IH columns: {sorted(missing)}")
-        df = cdh_utils._apply_schema_types(df, Schema.IHInteraction)
-        return df
+        return cdh_utils._apply_schema_types(df, Schema.IHInteraction)
 
     def _scan_outcome_labels(self) -> dict | None:
         """Scan data for channel/outcome combinations and resolve defaults.
@@ -328,9 +328,7 @@ class IH:
             a = responses * propensity
             b = responses * (1 - propensity)
 
-            sampled = rng.betavariate(a, b)
-
-            return sampled
+            return rng.betavariate(a, b)
 
         ih_fake_impressions = pl.DataFrame(
             {
@@ -587,7 +585,7 @@ class IH:
         customer_outcomes = []
 
         # Iterate over customers
-        for user_id, user_df in df.group_by(customerid_column):
+        for _user_id, user_df in df.group_by(customerid_column):
             user_actions = user_df[level].to_list()
             outcome_actions = user_df[outcome_column].to_list()
 

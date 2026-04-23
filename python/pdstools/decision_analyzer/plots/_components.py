@@ -353,7 +353,7 @@ def plot_component_overview(value_data: pl.LazyFrame, components: list[str], gra
         fig.add_annotation(text="No component columns available", showarrow=False)
         return fig
 
-    collected = value_data.select([granularity] + components).collect()
+    collected = value_data.select([granularity, *components]).collect()
     groups = collected.get_column(granularity).unique().sort().to_list()
 
     n_cols = min(3, len(components))

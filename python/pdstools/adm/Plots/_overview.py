@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Literal
-from collections.abc import Callable
+from typing import Literal, TYPE_CHECKING
 
 import polars as pl
 
 from ...utils import cdh_utils
 from ...utils.plot_utils import get_colorscale
-from ...utils.types import QUERY
 from ._base import _PlotsBase
 from ._helpers import (
     add_bottom_left_text_to_bubble_plot,
     add_metric_limit_lines,
     requires,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from ...utils.types import QUERY
 
 
 class _OverviewPlotsMixin(_PlotsBase):
@@ -127,7 +129,7 @@ class _OverviewPlotsMixin(_PlotsBase):
             facet_col=facet_name,
             facet_col_wrap=2,
             hover_name="Name",
-            hover_data=["ModelID"] + self.datamart.context_keys + ["LastUpdate"],
+            hover_data=["ModelID", *self.datamart.context_keys, "LastUpdate"],
             title=f"Bubble Chart {title}",
             template="pega",
             facet_row_spacing=0.01,
@@ -203,7 +205,7 @@ class _OverviewPlotsMixin(_PlotsBase):
 
         import plotly.express as px
 
-        context_keys = [px.Constant("All contexts")] + group_by
+        context_keys = [px.Constant("All contexts"), *group_by]
 
         colorscale = get_colorscale(metric)
 
@@ -224,7 +226,7 @@ class _OverviewPlotsMixin(_PlotsBase):
             "Weighted average Performance": ":.2%",
         }
 
-        fig = px.treemap(
+        return px.treemap(
             df.collect(),
             path=context_keys,
             color=label_map.get(metric),
@@ -234,8 +236,6 @@ class _OverviewPlotsMixin(_PlotsBase):
             color_continuous_scale=colorscale,
             range_color=[0.5, 1] if metric == "Performance" else None,
         )
-
-        return fig
 
     def action_overlap(
         self,
@@ -382,10 +382,7 @@ class _OverviewPlotsMixin(_PlotsBase):
         for facet in facets:
             combined_query = existing_query
             for k, v in facet.items():
-                if v is None:
-                    new_query = pl.col(k).is_null()
-                else:
-                    new_query = pl.col(k).eq(v)
+                new_query = pl.col(k).is_null() if v is None else pl.col(k).eq(v)
                 if combined_query is not None:
                     combined_query = cdh_utils._combine_queries(
                         combined_query,

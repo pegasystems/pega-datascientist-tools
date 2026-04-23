@@ -50,6 +50,7 @@ ALIASES = {
 
 
 def create_parser():
+    """Create parser."""
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps.",
     )
@@ -228,6 +229,7 @@ def main():
     # Formalised subcommand shape. Backwards-compat: ``pdstools [app]`` and
     # bare ``pdstools`` (interactive) still work — anything that isn't a
     # known subcommand is routed to ``run``.
+    """Main."""
     if len(sys.argv) > 1 and sys.argv[1] in _SUBCOMMANDS:
         sub = sys.argv[1]
         if sub == "doctor":
@@ -265,7 +267,7 @@ def main():
 
     if typos:
         print("\n⚠️  Warning: Possible typo(s) in pdstools arguments:\n", file=sys.stderr)
-        for typo, suggestion, similarity in typos:
+        for typo, suggestion, _similarity in typos:
             print(f"  '{typo}' → Did you mean '{suggestion}'?", file=sys.stderr)
 
         print("\nAvailable pdstools arguments:", file=sys.stderr)
@@ -280,6 +282,7 @@ def main():
 
 def run(args, unknown):
     # Configure logging based on environment variable
+    """Run."""
     log_level = os.environ.get("PDSTOOLS_LOG_LEVEL", "WARNING").upper()
     numeric_level = getattr(logging, log_level, logging.WARNING)
     logging.basicConfig(

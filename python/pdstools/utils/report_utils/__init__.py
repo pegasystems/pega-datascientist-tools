@@ -104,25 +104,36 @@ from ._tables import create_metric_gttable, create_metric_itable
 __all__ = [
     # shared types / state
     "QUERY",
-    "logger",
     # re-exports from sibling modules
     "MetricFormats",
     "MetricLimits",
     "NumberFormat",
-    "exclusive_0_1_range_rag",
-    "positive_values",
-    "standard_NBAD_channels_rag",
-    "standard_NBAD_configurations_rag",
-    "standard_NBAD_directions_rag",
-    "standard_NBAD_predictions_rag",
-    "strict_positive_values",
+    # polars helpers / aggregations
+    "avg_by_hierarchy",
+    # html post-processing
+    "bundle_quarto_resources",
+    "check_report_for_errors",
     # filenames / resource copying
     "copy_quarto_file",
     "copy_report_resources",
+    # rag-coloured metric tables
+    "create_metric_gttable",
+    "create_metric_itable",
+    # query serialisation
+    "deserialize_query",
+    "exclusive_0_1_range_rag",
+    "gains_table",
+    "generate_zipped_report",
     "get_output_filename",
     # quarto execution / callouts / credits
     "get_pandoc_with_version",
     "get_quarto_with_version",
+    "logger",
+    "max_by_hierarchy",
+    "n_unique_values",
+    "polars_col_exists",
+    "polars_subset_to_existing_cols",
+    "positive_values",
     "quarto_callout_important",
     "quarto_callout_info",
     "quarto_callout_no_prediction_data_warning",
@@ -130,23 +141,12 @@ __all__ = [
     "quarto_plot_exception",
     "quarto_print",
     "run_quarto",
-    "show_credits",
-    # html post-processing
-    "bundle_quarto_resources",
-    "check_report_for_errors",
-    "generate_zipped_report",
-    # rag-coloured metric tables
-    "create_metric_gttable",
-    "create_metric_itable",
-    # polars helpers / aggregations
-    "avg_by_hierarchy",
-    "gains_table",
-    "max_by_hierarchy",
-    "n_unique_values",
-    "polars_col_exists",
-    "polars_subset_to_existing_cols",
     "sample_values",
-    # query serialisation
-    "deserialize_query",
     "serialize_query",
+    "show_credits",
+    "standard_NBAD_channels_rag",
+    "standard_NBAD_configurations_rag",
+    "standard_NBAD_directions_rag",
+    "standard_NBAD_predictions_rag",
+    "strict_positive_values",
 ]

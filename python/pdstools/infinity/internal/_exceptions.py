@@ -123,14 +123,14 @@ def handle_pega_exception(
 ) -> PegaException | Exception:
     try:
         content = response.json()
-    except ValueError:
+    except ValueError as err:
         raise InvalidRequest(
             str(base_url),
             endpoint,
             params,
             response,
             "Invalid request.",
-        )
+        ) from err
     details = content.get("errorDetails", None)
 
     if not details:

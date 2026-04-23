@@ -122,10 +122,7 @@ def gains_table(
     sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
 
     # Determine index expression for cumulative x-axis
-    if index is None:
-        index_expr = pl.int_range(1, pl.len() + 1) / pl.len()
-    else:
-        index_expr = pl.cum_sum(index) / pl.sum(index)
+    index_expr = pl.int_range(1, pl.len() + 1) / pl.len() if index is None else pl.cum_sum(index) / pl.sum(index)
 
     if by is None:
         # Single gains curve
@@ -143,13 +140,13 @@ def gains_table(
     else:
         # Multiple gains curves grouped by column(s)
         by_as_list = by if isinstance(by, list) else [by]
-        sort_expr_with_by = by_as_list + [sort_expr]
+        sort_expr_with_by = [*by_as_list, sort_expr]
         gains_df = (
             df.lazy()
             .sort(sort_expr_with_by, descending=True)
             .select(
-                by_as_list
-                + [
+                [
+                    *by_as_list,
                     index_expr.over(by).cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
                 ]
@@ -157,7 +154,7 @@ def gains_table(
         )
         # Add entry for the (0,0) point for each group
         gains_df = pl.concat([gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]).sort(
-            by_as_list + ["cum_x"]
+            [*by_as_list, "cum_x"]
         )
 
     return gains_df.collect()

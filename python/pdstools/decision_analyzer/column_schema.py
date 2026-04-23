@@ -7,6 +7,8 @@ import polars as pl
 
 
 class TableConfig(TypedDict):
+    """Table config."""
+
     display_name: str
     default: bool
     type: type[pl.DataType]

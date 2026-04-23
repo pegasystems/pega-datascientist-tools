@@ -116,8 +116,7 @@ def _capitalize(
     # processing "Configuration" after will correct it back.
     for word in sorted(capitalize_endwords, key=len):
         fields = [re.sub(word, word, field, flags=re.IGNORECASE) for field in fields]
-    fields = [field[:1].upper() + field[1:] for field in fields]
-    return fields
+    return [field[:1].upper() + field[1:] for field in fields]
 
 
 def default_predictor_categorization(

@@ -167,7 +167,7 @@ if st.session_state["dm"].predictor_data is not None:
             st.write("Please choose the models for which you wish to generate a report")
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
-                disabled=st.session_state["dm"].context_keys + ["Name"],
+                disabled=[*st.session_state["dm"].context_keys, "Name"],
             )
             st.session_state["only_active_predictors"] = st.checkbox(
                 label="Show only active predictors",

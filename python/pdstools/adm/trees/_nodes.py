@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 SplitOperator = Literal["<", ">", "==", "in", "is"]
 _SPLIT_OPERATORS: frozenset[str] = frozenset({"<", ">", "==", "in", "is"})
@@ -140,8 +142,5 @@ def _traverse(d: Any, path: tuple) -> Any:
     """Walk a nested dict/list using the given key/index path; raise KeyError on miss."""
     cur = d
     for key in path:
-        if isinstance(key, int):
-            cur = cur[key]
-        else:
-            cur = cur[key]
+        cur = cur[key] if isinstance(key, int) else cur[key]
     return cur

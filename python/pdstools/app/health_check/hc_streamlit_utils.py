@@ -15,7 +15,6 @@ from pathlib import Path
 import streamlit as st
 
 from pdstools import pega_io
-from pdstools.adm.ADMDatamart import ADMDatamart
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     cached_datamart,
@@ -24,6 +23,10 @@ from pdstools.utils.streamlit_utils import (
     cached_sample_prediction,
     get_data_path,
 )
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pdstools.adm.ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
 

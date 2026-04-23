@@ -32,9 +32,9 @@ def sample_x(trees):
         if len(values) == 1:
             if "true" in values or "false" in values:
                 values = {"true", "false"}
-            if isinstance(list(values)[0], str):
+            if isinstance(next(iter(values)), str):
                 try:
-                    float(list(values)[0])
+                    float(next(iter(values)))
                 except Exception:
                     print("FAILED ON ", values)
                     values = values.union({"Other"})

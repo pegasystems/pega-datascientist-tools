@@ -88,10 +88,7 @@ def _show_data_summary(ia, is_sample_data: bool = False):
         # and VBD data has Application, Value, Outcome columns)
         has_vbd_markers = {"Application", "Value", "Outcome"}.issubset(schema_names)
 
-        if has_vbd_markers:
-            format_label = "**VBD Scenario Planner**"
-        else:
-            format_label = "**PDC Export**"
+        format_label = "**VBD Scenario Planner**" if has_vbd_markers else "**PDC Export**"
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
 
@@ -101,10 +98,7 @@ def _show_data_summary(ia, is_sample_data: bool = False):
             ia.ia_data.select(pl.col("Channel").n_unique()).collect().item() if "Channel" in schema_names else "N/A"
         )
 
-        if is_sample_data:
-            prefix = "Sample data loaded"
-        else:
-            prefix = "Data loaded successfully"
+        prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
 
         st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
     except (pl.exceptions.PolarsError, AttributeError, KeyError):

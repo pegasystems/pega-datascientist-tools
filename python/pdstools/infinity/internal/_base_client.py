@@ -103,6 +103,7 @@ class BaseClient(Generic[_HttpxClientT]):
             """Could not infer Pega version automatically.
 For full compatibility, please supply the pega_version argument to the Infinity class.
 """,
+            stacklevel=2,
         )
         return None
 
@@ -252,7 +253,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
             raise APIConnectionError(request=str(request)) from err
         return response
@@ -498,7 +499,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
             raise APIConnectionError(request=str(request)) from err
         return response

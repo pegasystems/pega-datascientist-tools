@@ -533,12 +533,11 @@ class Prediction:
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
 
         if self.predictions is not None:
-            predictions_cache = pega_io.cache_to_file(
+            return pega_io.cache_to_file(
                 self.predictions,
                 abs_path,
                 name=f"cached_prediction_data_{time}",
             )
-            return predictions_cache
 
     @classmethod
     def from_processed_data(cls, df: pl.LazyFrame):
@@ -638,14 +637,10 @@ class Prediction:
                                     _interpolate(160, 200, p, days),
                                     _interpolate(120, 120, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(120, 120, p, days),
                                     _interpolate(250, 300, p, days),
                                     _interpolate(150, 150, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(1400, 1400, p, days),
                                     _interpolate(2800, 4000, p, days),
                                     _interpolate(1520, 1520, p, days),
@@ -830,8 +825,8 @@ class Prediction:
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
                     .alias("isMultiChannel"),
-                ]
-                + period_expr,
+                    *period_expr,
+                ],
             )
             .group_by(
                 [

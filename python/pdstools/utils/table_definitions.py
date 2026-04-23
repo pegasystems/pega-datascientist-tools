@@ -2,6 +2,8 @@ import polars as pl
 
 
 class PegaDefaultTables:
+    """Pega default tables."""
+
     class ADMModelSnapshot:
         pxApplication = pl.Categorical
         pyAppliesToClass = pl.Categorical

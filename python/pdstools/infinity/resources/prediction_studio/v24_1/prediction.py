@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Any, Literal
-from collections.abc import Callable
 
 import polars as pl
 from pydantic import validate_call
@@ -10,6 +9,9 @@ from ....internal._exceptions import NoMonitoringInfo
 from ....internal._resource import api_method
 from ..base import AsyncPrediction as AsyncPredictionBase
 from ..base import Prediction as PredictionBase
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class _PredictionV24_1Mixin:
@@ -31,7 +33,7 @@ class _PredictionV24_1Mixin:
         endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/metric/{metric}"
         try:
             info = await self._a_get(endpoint, time_frame=timeframe)
-            data = (
+            return (
                 pl.DataFrame(
                     info["monitoringData"],
                     schema={
@@ -50,16 +52,14 @@ class _PredictionV24_1Mixin:
                 )
                 .drop("dataUsage")
             )
-            return data
         except NoMonitoringInfo:
-            data = pl.DataFrame(
+            return pl.DataFrame(
                 schema={
                     "value": pl.Float64,
                     "snapshotTime": pl.Datetime("ns"),
                     "category": pl.Utf8,
                 },
             )
-            return data
 
     @api_method
     async def describe(self):

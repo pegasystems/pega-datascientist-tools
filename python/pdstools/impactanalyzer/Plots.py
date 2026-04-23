@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, overload
 
 import polars as pl
 
 from ..utils.cdh_utils import _apply_query
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import Figure
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from ..utils.plot_utils import Figure
     from .ImpactAnalyzer import ImpactAnalyzer as ImpactAnalyzer_Class
 
 
@@ -48,7 +48,7 @@ class Plots(LazyNamespace):
 
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
 
     def __init__(self, ia: "ImpactAnalyzer_Class"):
@@ -73,14 +73,13 @@ class Plots(LazyNamespace):
             Alphabetically ordered list of default experiment names.
 
         """
-        default_experiments = [
+        return [
             "Adaptive Models vs Random Propensity",
             "NBA vs No Levers",
             "NBA vs Only Eligibility Rules",
             "NBA vs Propensity Only",
             "NBA vs Random",
         ]
-        return default_experiments
 
     @staticmethod
     def _get_facet_config(data: pl.DataFrame, facet: str | None) -> dict:

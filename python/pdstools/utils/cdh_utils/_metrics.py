@@ -199,10 +199,7 @@ def aucpr_from_bincounts(
 
     pos_arr = np.asarray(pos)
     neg_arr = np.asarray(neg)
-    if probs is None:
-        o = np.argsort(-(pos_arr / (pos_arr + neg_arr)))
-    else:
-        o = np.argsort(-np.asarray(probs))
+    o = np.argsort(-(pos_arr / (pos_arr + neg_arr))) if probs is None else np.argsort(-np.asarray(probs))
     recall = np.cumsum(pos_arr[o]) / np.sum(pos_arr)
     precision = np.cumsum(pos_arr[o]) / np.cumsum(pos_arr[o] + neg_arr[o])
     prevrecall = np.insert(recall[0 : (len(recall) - 1)], 0, 0)
@@ -530,13 +527,13 @@ def gains_table(df, value: str, index=None, by=None):
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
-        sort_exprs: list[str | pl.Expr] = by_as_list + [sort_expr]
+        sort_exprs: list[str | pl.Expr] = [*by_as_list, sort_expr]
         gains_df = (
             df.lazy()
             .sort(sort_exprs, descending=True)
             .select(
-                by_as_list
-                + [
+                [
+                    *by_as_list,
                     index_expr.over(by).cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y"),
                 ],
@@ -545,6 +542,6 @@ def gains_table(df, value: str, index=None, by=None):
         # Add entry for the (0,0) point
         gains_df = pl.concat(
             [gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df],
-        ).sort(by_as_list + ["cum_x"])
+        ).sort([*by_as_list, "cum_x"])
 
     return gains_df.collect()

@@ -1,7 +1,7 @@
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast
 
 from IPython.display import display
 from ipywidgets import widgets
@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
 
 class FilterWidget(LazyNamespace):
-    dependencies = ["ipywidgets"]
+    """Filter widget."""
+
+    dependencies: ClassVar[list[str]] = ["ipywidgets"]
     dependency_group = "explanations"
 
     _ANY_CONTEXT = "Any"
@@ -162,10 +164,12 @@ class FilterWidget(LazyNamespace):
 
     def _get_context_combobox_widgets(self) -> dict[str, widgets.Combobox]:
         ctx_options = {
-            ctx_key_name: [self._ANY_CONTEXT]
-            + sorted(
-                set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list),
-            )
+            ctx_key_name: [
+                self._ANY_CONTEXT,
+                *sorted(
+                    set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list)
+                ),
+            ]
             for ctx_key_name in (self._selected_context_key or {}).keys()
         }
 

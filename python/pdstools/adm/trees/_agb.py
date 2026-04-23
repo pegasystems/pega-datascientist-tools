@@ -11,11 +11,11 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from ...utils import cdh_utils
-from ...utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ...utils.types import QUERY
     from ..ADMDatamart import ADMDatamart
     from ._multi import MultiTrees
 

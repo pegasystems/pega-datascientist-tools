@@ -150,7 +150,7 @@ def prio_factor_boxplots(
         keep_selected = pl.col("segment") == "Comparison Group"
         others_match = others_filter if isinstance(others_filter, pl.Expr) else pl.all_horizontal(others_filter)
         tagged = tagged.filter(keep_selected | others_match)
-    segmented_df = tagged.select(prio_factors + ["segment"]).collect()
+    segmented_df = tagged.select([*prio_factors, "segment"]).collect()
     warning_message = None
     if segmented_df.height > point_cap:
         segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)

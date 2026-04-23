@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import polars as pl
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
-from ...types import NotificationCategory
 from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
 from ._mixin import _PredictionV24_2Mixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...types import NotificationCategory
+    import polars as pl
 
 
 class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
@@ -90,7 +93,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     context=model["contextName"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
-                    active_model=[
+                    active_model=next(
                         AsyncModel(
                             client=self._client,
                             modelId=mod["id"],
@@ -106,7 +109,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                         if model["activeModel"] is not None
                         and mod["id"] == model["activeModel"]
                         and mod["contextName"] == model["contextName"]
-                    ][0],
+                    ),
                 ),
             )
 

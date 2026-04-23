@@ -2,7 +2,7 @@ __all__ = ["Aggregate"]
 
 import logging
 import pathlib
-from typing import TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 
 
 class Aggregate(LazyNamespace):
-    dependencies = ["polars"]
+    """Aggregate."""
+
+    dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
     def __init__(self, explanations: "Explanations"):
@@ -193,6 +195,7 @@ class Aggregate(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
+        """Get unique contexts list."""
         return self.context_operations.get_list(context_infos, with_partition_col)
 
     def _load_data(self):

@@ -255,7 +255,7 @@ class ReportGenerator:
             context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
             single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
 
-            for query_batch_nb, contexts in context_batches.items():
+            for _query_batch_nb, contexts in context_batches.items():
                 for context in contexts:
                     context_str = self._get_context_string(context)
                     context_label = ("plt-" + context_str).lower()
