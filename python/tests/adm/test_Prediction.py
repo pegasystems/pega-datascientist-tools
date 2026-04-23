@@ -417,15 +417,14 @@ def test_from_pdc():
 
     # We need to patch the _read_pdc function to avoid actual processing
     with patch("pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data):
-        # Test with return_df=True
-        result = Prediction.from_pdc(pdc_data, return_df=True)
-        assert isinstance(result, pl.LazyFrame)
-
-        # For testing initialization and query parameters, we need to patch the __init__ method
+        # Patch __init__ so we can inspect what from_pdc passes through
+        # without depending on real prediction-column validation.
         with patch.object(Prediction, "__init__", return_value=None) as mock_init:
-            # Test normal initialization
+            # Test normal initialization — first positional arg is the
+            # transformed prediction LazyFrame.
             Prediction.from_pdc(pdc_data)
             mock_init.assert_called_once()
+            assert isinstance(mock_init.call_args[0][0], pl.LazyFrame)
 
             # Reset the mock for the next test
             mock_init.reset_mock()

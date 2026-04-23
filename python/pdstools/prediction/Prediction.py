@@ -305,7 +305,6 @@ class Prediction:
         cls,
         df: pl.LazyFrame,
         *,
-        return_df=False,
         query: QUERY | None = None,
     ):
         """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
@@ -314,15 +313,14 @@ class Prediction:
         ----------
         df : pl.LazyFrame
             The Polars LazyFrame containing the PDC data
-        return_df : bool, optional
-            If True, returns the processed DataFrame instead of initializing the class, by default False
         query : Optional[QUERY], optional
             An optional query to apply to the input data, by default None
 
         Returns
         -------
-        Union[Prediction, pl.LazyFrame]
-            Either the initialized Prediction class or the processed DataFrame if return_df is True
+        Prediction
+            The initialized Prediction class. Use ``pred.predictions`` to
+            access the transformed prediction frame directly.
 
         See Also
         --------
@@ -385,9 +383,6 @@ class Prediction:
                 ],
             )
         )
-
-        if return_df:
-            return prediction_data
 
         return cls(prediction_data, query=query)
 
