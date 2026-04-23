@@ -279,7 +279,7 @@ jobs:
           uv run python --version
 
       - name: Run healthcheck agent report tests
-        run: uv run pytest python/tests/test_Reports.py -k "health_check_agent"
+        run: uv run pytest python/tests/healthcheck/test_Reports.py -k "health_check_agent"
 
   # ── Step 2c: Explanations report tests ───────────────────────────────
   explanations-tests:
