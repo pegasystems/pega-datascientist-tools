@@ -316,6 +316,43 @@ them.
 
 ## Streamlit apps
 
+### Core principle: zero-functionality presentation layers
+
+**All functionality lives in the library. Streamlit apps are zero-functionality
+presentation layers.** Every calculation, transformation, formula, and data
+shape an app exposes must be reproducible in a Jupyter notebook or a short
+script using only `pdstools.<module>` imports. Apps add accessibility (UI,
+no coding required); they never add capability.
+
+Concretely:
+
+- **No business logic in `Home.py` or `pages/*.py`.** Pages compose widgets,
+  read session state, and call into the library. If a page contains a
+  non-trivial calculation, a custom data transform, or a domain formula,
+  lift it into the relevant library module (`pdstools.adm`,
+  `pdstools.ih`, `pdstools.impact_analyzer`, etc.) and call it from
+  the page.
+- **Plot construction lives in the library** (`<module>/Plots.py` or a
+  `plot` namespace on the analyzer). Pages call those functions and may
+  tweak layout via `.update_layout()` before `st.plotly_chart(fig)`.
+- **Excel/CSV/PDF export builders are library code.** A page calls
+  `analyzer.generate.<format>(...)` and hands the bytes to
+  `st.download_button`. No `build_excel`-style functions inside `app/`.
+- **Formulas worth showing in the UI need a first-class library
+  representation** (e.g. a `Formula` dataclass with `.expression`,
+  `.filled(values)`, `.evaluate(values)`). The same object then drives
+  both the calculation and any Markdown/LaTeX rendering — UI and
+  notebook share one source of truth.
+- **Examples directory should not ship parallel Streamlit apps.**
+  `examples/<feature>/` is for notebooks and short scripts that
+  demonstrate the library API. The matching app belongs in
+  `python/pdstools/app/<feature>/`.
+
+**The smell test:** "Can I do exactly the same thing in a Jupyter
+notebook with no `streamlit` import?" If the answer is no, the
+functionality is misplaced — move it into the library and have the
+page call it.
+
 ### Architecture
 - Apps live under `python/pdstools/app/<app_name>/` with a `Home.py`
   entry point and numbered pages in a `pages/` subdirectory.
