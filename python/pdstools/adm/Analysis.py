@@ -18,7 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-Severity = Literal["critical", "warning", "info"]
+Severity = Literal["critical", "warning", "info", "success"]
 Category = Literal[
     "channel",
     "model",
@@ -28,6 +28,8 @@ Category = Literal[
     "response_distribution",
     "trend",
     "configuration",
+    "data_quality",
+    "summary",
 ]
 
 
@@ -56,7 +58,10 @@ class Finding:
     data: dict = field(default_factory=dict)
 
     def __str__(self) -> str:
-        icon = {"critical": "❌", "warning": "⚠️", "info": "ℹ️"}[self.severity]
+        if self.category == "summary":
+            icon = "🩺"
+        else:
+            icon = {"critical": "❌", "warning": "⚠️", "info": "ℹ️", "success": "✅"}[self.severity]
         return f"{icon} [{self.category}] {self.title}"
 
 
@@ -129,10 +134,13 @@ class Analysis:
         last_data = self._get_last_data()
 
         results: list[Finding] = []
-        results.extend(self._check_channels(active_filter))
+        dq_findings, invalid_channels = self._check_data_quality()
+        results.extend(dq_findings)
+        results.extend(self._check_channels(active_filter, invalid_channels=invalid_channels))
         results.extend(self._check_configurations(last_data))
         results.extend(self._check_model_maturity(last_data))
-        results.extend(self._check_model_performance(last_data, active_filter))
+        perf_findings, avg_auc = self._check_model_performance(last_data, active_filter)
+        results.extend(perf_findings)
         results.extend(self._check_taxonomy())
         results.extend(self._check_response_distribution(last_data, active_filter))
         results.extend(self._check_trends(active_filter))
@@ -143,8 +151,12 @@ class Analysis:
         if prediction is not None:
             results.extend(self._check_predictions(prediction))
 
-        severity_order = {"critical": 0, "warning": 1, "info": 2}
+        severity_order = {"critical": 0, "warning": 1, "info": 2, "success": 3}
         results.sort(key=lambda f: severity_order[f.severity])
+
+        headline = self._build_headline(results, last_data, avg_auc)
+        if headline is not None:
+            results.insert(0, headline)
         return results
 
     # ── private check methods ───────────────────────────────────────────
@@ -165,37 +177,220 @@ class Analysis:
             .collect()
         )
 
-    def _check_channels(self, active_filter: pl.Expr) -> list[Finding]:
+    def _build_headline(
+        self,
+        results: list[Finding],
+        last_data: pl.DataFrame,
+        avg_auc: float | None,
+    ) -> Finding | None:
+        """Compose a single one-line summary finding from underlying check output.
+
+        Verdict thresholds:
+
+        - ❌ NEEDS ATTENTION: any of {>25% never-used, >2 dead channels with
+          ≥1 mature low-perf channel, average AUC < 55}.
+        - ⚠️ MIXED: any of {>10% never-used, ≥1 dead channel, average AUC < 62}.
+        - ✅ HEALTHY: otherwise.
+        """
+        total = last_data.height
+        if total == 0:
+            return None
+
+        # Pull the underlying numbers we need straight from the data so we
+        # don't depend on whether a particular check fired.
+        never_used = last_data.filter(pl.col("ResponseCount") == 0).height
+        pct_never_used = never_used / total * 100
+
+        dead_channel_count = sum(
+            int(f.data.get("dead_channel_count") or 0)
+            for f in results
+            if f.category == "channel" and "dead_channel_count" in f.data
+        )
+
+        has_mature_low_perf_channel = any(f.category == "channel" and f.data.get("mature_low_perf") for f in results)
+
+        auc100 = avg_auc * 100 if avg_auc is not None else None
+
+        # Verdict
+        critical_conditions: list[str] = []
+        if pct_never_used > 25:
+            critical_conditions.append(f"{pct_never_used:.0f}% of models never used")
+        if dead_channel_count > 2 and has_mature_low_perf_channel:
+            critical_conditions.append(f"{dead_channel_count} dead channels alongside under-performing live channels")
+        if auc100 is not None and auc100 < 55:
+            critical_conditions.append(f"AUC {auc100:.1f} (low)")
+
+        warning_conditions: list[str] = []
+        if pct_never_used > 10:
+            warning_conditions.append(f"{pct_never_used:.0f}% of models never used")
+        if dead_channel_count >= 1:
+            noun = "dead channel" if dead_channel_count == 1 else "dead channels"
+            warning_conditions.append(f"{dead_channel_count} {noun}")
+        if auc100 is not None and auc100 < 62:
+            warning_conditions.append(f"AUC {auc100:.1f} (low)")
+
+        if critical_conditions:
+            severity: Severity = "critical"
+            verdict = "NEEDS ATTENTION"
+            facts = critical_conditions
+        elif warning_conditions:
+            severity = "warning"
+            verdict = "MIXED"
+            facts = warning_conditions
+        else:
+            severity = "success"
+            verdict = "HEALTHY"
+            facts = []
+            if auc100 is not None:
+                facts.append(f"AUC {auc100:.1f}")
+            facts.append(f"{100 - pct_never_used:.0f}% of models in use")
+
+        # Cap at 3 facts to keep the headline scannable.
+        facts = facts[:3]
+        body = ", ".join(facts) if facts else "no issues detected"
+        return Finding(
+            severity=severity,
+            category="summary",
+            title=f"Health: {verdict} — {body}",
+            detail=(
+                "Headline derived from the rest of the findings. Open the full list below for the per-area detail."
+            ),
+            data={
+                "verdict": verdict,
+                "pct_never_used": pct_never_used,
+                "dead_channel_count": dead_channel_count,
+                "has_mature_low_perf_channel": has_mature_low_perf_channel,
+                "avg_auc": avg_auc,
+                "facts": facts,
+            },
+        )
+
+    @staticmethod
+    def _is_invalid_channel_name(value: str | None) -> bool:
+        """Return True if a Channel/Direction value looks like missing metadata."""
+        if value is None:
+            return True
+        s = str(value).strip()
+        if not s or s == "/":
+            return True
+        # Catch values like "/Inbound" or "Web/" that come from concatenating
+        # an empty Channel with a Direction in upstream summaries.
+        if s.startswith("/") or s.endswith("/"):
+            return True
+        return False
+
+    def _check_data_quality(self) -> tuple[list[Finding], set[str]]:
+        """Detect malformed Channel/Direction values.
+
+        Returns
+        -------
+        list[Finding]
+            One ``data_quality`` finding if invalid values exist, else empty.
+        set[str]
+            Set of ``"Channel/Direction"`` strings considered invalid; callers
+            should exclude these from downstream channel-level findings to
+            avoid duplicating noise.
+        """
         findings: list[Finding] = []
+        invalid: set[str] = set()
+        try:
+            rows = self.datamart.model_data.select(["Channel", "Direction"]).unique().collect()
+        except Exception as e:
+            logger.debug("Could not collect channel/direction values: %s", e)
+            return findings, invalid
+
+        invalid_pairs: list[tuple[str, str]] = []
+        for row in rows.iter_rows(named=True):
+            ch = row.get("Channel")
+            dr = row.get("Direction")
+            if self._is_invalid_channel_name(ch) or self._is_invalid_channel_name(dr):
+                ch_str = "" if ch is None else str(ch)
+                dr_str = "" if dr is None else str(dr)
+                invalid.add(f"{ch_str}/{dr_str}")
+                invalid_pairs.append((ch_str, dr_str))
+
+        if not invalid_pairs:
+            return findings, invalid
+
+        try:
+            invalid_df = pl.DataFrame(
+                {
+                    "Channel": [p[0] for p in invalid_pairs],
+                    "Direction": [p[1] for p in invalid_pairs],
+                }
+            )
+            n_models = (
+                self.datamart.model_data.select(
+                    pl.col("Channel").cast(pl.Utf8),
+                    pl.col("Direction").cast(pl.Utf8),
+                )
+                .join(invalid_df.lazy(), on=["Channel", "Direction"], how="inner", nulls_equal=True)
+                .select(pl.len())
+                .collect()
+                .item()
+            )
+        except Exception:
+            n_models = 0
+
+        examples = ", ".join(f'"{(ch + "/" + dr) if ch or dr else "/"}"' for ch, dr in invalid_pairs[:3])
+        findings.append(
+            Finding(
+                severity="critical",
+                category="data_quality",
+                title=(
+                    f"{n_models:,} models have invalid Channel/Direction values "
+                    f"(e.g. {examples}) — likely missing channel metadata"
+                ),
+                detail=(
+                    "Some models have Channel or Direction set to an empty "
+                    "string, '/', or another malformed value. This usually "
+                    "means the channel was not populated when the model was "
+                    "created. Fix the upstream metadata or filter these "
+                    "models before reporting."
+                ),
+                data={
+                    "model_count": n_models,
+                    "invalid_count": len(invalid_pairs),
+                    "examples": [f"{ch}/{dr}" for ch, dr in invalid_pairs[:10]],
+                },
+            )
+        )
+        return findings, invalid
+
+    def _check_channels(
+        self,
+        active_filter: pl.Expr,
+        *,
+        invalid_channels: set[str] | None = None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        invalid_channels = invalid_channels or set()
         try:
             channel_summary = self.datamart.aggregates.summary_by_channel(query=active_filter).collect()
         except Exception as e:
             logger.debug("Could not compute channel summary: %s", e)
             return findings
 
+        # Collect dead channels into per-direction aggregate findings instead
+        # of one ❌ per channel — the per-channel detail is rarely actionable
+        # and dwarfs everything else in the output.
+        dead_by_direction: dict[str, list[str]] = {}
+
         for row in channel_summary.iter_rows(named=True):
             ch = f"{row['Channel']}/{row['Direction']}"
+            if ch in invalid_channels:
+                continue
             responses = row.get("Responses", 0) or 0
             positives = row.get("Positives", 0) or 0
             perf = row.get("Performance")
-            # ctr = row.get("CTR")
             omni = row.get("OmniChannel")
 
             if responses == 0:
-                findings.append(
-                    Finding(
-                        severity="critical",
-                        category="channel",
-                        title=f'Channel "{ch}" has zero responses',
-                        detail=(
-                            "Models exist for this channel but have never received "
-                            "any responses. Either the channel is not active or the "
-                            "decisioning integration is not triggering ADM models."
-                        ),
-                        data={"channel": ch, "responses": 0},
-                    )
-                )
-            elif positives == 0:
+                direction = row.get("Direction") or "Unknown"
+                dead_by_direction.setdefault(direction, []).append(ch)
+                continue
+
+            if positives == 0:
                 findings.append(
                     Finding(
                         severity="critical",
@@ -223,7 +418,7 @@ class Analysis:
                                 "channel is below the minimum threshold. Consider "
                                 "reviewing predictor availability and data quality."
                             ),
-                            data={"channel": ch, "performance": perf},
+                            data={"channel": ch, "performance": perf, "mature_low_perf": True},
                         )
                     )
 
@@ -242,31 +437,58 @@ class Analysis:
                     )
                 )
 
-            configs_per_channel = row.get("Configuration", "")
-            if configs_per_channel and configs_per_channel.count(",") >= 2:
-                n_configs = configs_per_channel.count(",") + 1
-                findings.append(
-                    Finding(
-                        severity="info",
-                        category="channel",
-                        title=f'Channel "{ch}" has {n_configs} model configurations',
-                        detail=(
-                            "Typical channels have 1-2 model configurations. More "
-                            "may add complexity. Verify this is intentional (e.g., "
-                            "different predictors for different issues)."
-                        ),
-                        data={
-                            "channel": ch,
-                            "n_configurations": n_configs,
-                            "configurations": configs_per_channel,
-                        },
-                    )
+        # Emit one collapsed dead-channel finding per direction.
+        for direction in sorted(dead_by_direction):
+            channels = sorted(dead_by_direction[direction])
+            n = len(channels)
+            preview = channels[:5]
+            preview_str = ", ".join(preview)
+            if n > len(preview):
+                preview_str += f" (+{n - len(preview)} more)"
+            noun = "channel has" if n == 1 else "channels have"
+            findings.append(
+                Finding(
+                    severity="critical",
+                    category="channel",
+                    title=(f"{n} {direction} {noun} zero responses (configured but inactive): {preview_str}"),
+                    detail=(
+                        "Models exist for these channels but have never received "
+                        "any responses. Either the channel is not active or the "
+                        "decisioning integration is not triggering ADM models."
+                    ),
+                    data={
+                        "direction": direction,
+                        "dead_channel_count": n,
+                        "channels": channels,
+                    },
                 )
+            )
 
         return findings
 
     def _check_configurations(self, last_data: pl.DataFrame) -> list[Finding]:
         findings: list[Finding] = []
+
+        # Pre-compute the dominant Channel/Direction per Configuration so we
+        # can give callers a quick hint of which channel a problematic
+        # configuration belongs to. We pick the (Channel, Direction) pair
+        # with the highest model count, breaking ties on response volume.
+        try:
+            dominant = (
+                last_data.group_by(["Configuration", "Channel", "Direction"])
+                .agg(
+                    pl.len().alias("_n_models"),
+                    pl.sum("ResponseCount").alias("_resp"),
+                )
+                .sort(["Configuration", "_n_models", "_resp"], descending=[False, True, True])
+                .group_by("Configuration", maintain_order=True)
+                .agg(pl.first("Channel"), pl.first("Direction"))
+            )
+            dominant_map = {
+                row["Configuration"]: (row["Channel"], row["Direction"]) for row in dominant.iter_rows(named=True)
+            }
+        except Exception:
+            dominant_map = {}
 
         for config in self.datamart.unique_configurations:
             config_str = str(config)
@@ -298,11 +520,13 @@ class Analysis:
             total_positives = config_data.select(pl.sum("Positives")).item() or 0
 
             if total_responses > 0 and total_positives == 0:
+                ch_dr = dominant_map.get(config_str)
+                ch_hint = f" ({ch_dr[0]}/{ch_dr[1]})" if ch_dr else ""
                 findings.append(
                     Finding(
                         severity="critical",
                         category="configuration",
-                        title=f'Configuration "{config_str}" has no positives',
+                        title=f'Configuration "{config_str}"{ch_hint} has no positives',
                         detail=(
                             f"Configuration has {total_responses:,} responses but "
                             "zero positive outcomes. Check the outcome label "
@@ -312,6 +536,8 @@ class Analysis:
                             "configuration": config_str,
                             "responses": total_responses,
                             "positives": 0,
+                            "channel": ch_dr[0] if ch_dr else None,
+                            "direction": ch_dr[1] if ch_dr else None,
                         },
                     )
                 )
@@ -326,6 +552,11 @@ class Analysis:
 
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
         min_perf = MetricLimits.minimum("ModelPerformance")
+        # Use the best-practice minimum (e.g. 0.55) as the cutoff that
+        # separates the "mature low-perf" from "mature decent" buckets.
+        # Falling back to ``min_perf`` keeps behaviour sensible if BP is
+        # missing for this metric.
+        bucket_perf_cutoff = MetricLimits.best_practice_min("ModelPerformance") or min_perf or 0.55
 
         # Unused models
         unused = last_data.filter(pl.col("ResponseCount") == 0).height
@@ -341,7 +572,7 @@ class Analysis:
                         "never selected in decisioning. This is common for actions "
                         "that were only tested or never activated."
                     ),
-                    data={"count": unused, "total": total, "percentage": pct},
+                    data={"count": unused, "total": total, "percentage": pct, "bucket": "never_used"},
                 )
             )
 
@@ -359,16 +590,19 @@ class Analysis:
                         "a positive response. This could indicate unattractive "
                         "propositions or a broken response loop."
                     ),
-                    data={"count": no_positives, "total": total, "percentage": pct},
+                    data={
+                        "count": no_positives,
+                        "total": total,
+                        "percentage": pct,
+                        "bucket": "responses_no_positives",
+                    },
                 )
             )
 
-        # Immature models
+        # Immature models — Positives in [1, bp_min) (mutually exclusive
+        # with the never-used and zero-positives buckets above).
         if bp_min_positives is not None:
-            min_pos_count = MetricLimits.minimum("TotalPositiveCount") or 1
-            immature = last_data.filter(
-                (pl.col("Positives") < bp_min_positives) & (pl.col("Positives") >= min_pos_count)
-            ).height
+            immature = last_data.filter((pl.col("Positives") > 0) & (pl.col("Positives") < bp_min_positives)).height
             if immature > 0:
                 pct = immature / total * 100
                 findings.append(
@@ -386,6 +620,7 @@ class Analysis:
                             "total": total,
                             "percentage": pct,
                             "threshold": bp_min_positives,
+                            "bucket": "immature",
                         },
                     )
                 )
@@ -468,10 +703,41 @@ class Analysis:
                         )
                     )
 
+        # Mature low-performance models — fills the gap between never-used
+        # / immature / decent so that all five buckets sum to 100% of models.
+        if bp_min_positives is not None:
+            mature_low = last_data.filter(
+                (pl.col("Positives") >= bp_min_positives) & (pl.col("Performance") < bucket_perf_cutoff)
+            ).height
+            if mature_low > 0:
+                pct = mature_low / total * 100
+                findings.append(
+                    Finding(
+                        severity="info",
+                        category="model",
+                        title=(
+                            f"{mature_low:,} models ({pct:.0f}%) are mature but "
+                            f"under-performing (AUC < {bucket_perf_cutoff * 100:.0f})"
+                        ),
+                        detail=(
+                            "These models have enough positives to be considered "
+                            "mature, but still score below the healthy AUC "
+                            "threshold. See the related per-channel performance "
+                            "and stuck-at-AUC-50 findings for specific causes."
+                        ),
+                        data={
+                            "count": mature_low,
+                            "total": total,
+                            "percentage": pct,
+                            "bucket": "mature_low_perf",
+                        },
+                    )
+                )
+
         # Healthy models summary
-        if min_perf is not None and bp_min_positives is not None:
+        if bp_min_positives is not None:
             healthy = last_data.filter(
-                (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives)
+                (pl.col("Performance") >= bucket_perf_cutoff) & (pl.col("Positives") >= bp_min_positives)
             ).height
             if healthy > 0:
                 pct = healthy / total * 100
@@ -480,11 +746,15 @@ class Analysis:
                         severity="info",
                         category="model",
                         title=f"{healthy:,} models ({pct:.0f}%) are mature with decent performance",
-                        detail=(f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{min_perf * 100:.0f}."),
+                        detail=(
+                            f"These models have ≥{int(bp_min_positives)} positives "
+                            f"and AUC ≥{bucket_perf_cutoff * 100:.0f}."
+                        ),
                         data={
                             "count": healthy,
                             "total": total,
                             "percentage": pct,
+                            "bucket": "mature_decent",
                         },
                     )
                 )
@@ -495,33 +765,64 @@ class Analysis:
         self,
         last_data: pl.DataFrame,
         active_filter: pl.Expr,
-    ) -> list[Finding]:
+    ) -> tuple[list[Finding], float | None]:
+        """Emit a tiered AUC finding and return the weighted average.
+
+        Returns
+        -------
+        list[Finding]
+            One finding describing the active-model AUC, if computable.
+        float | None
+            The weighted average AUC across active models on a 0-1 scale,
+            or ``None`` when not computable (no active data, all-NaN, etc.).
+        """
         findings: list[Finding] = []
 
         try:
             active_data = last_data.filter(active_filter)
         except Exception:
-            return findings
+            return findings, None
 
         if active_data.height == 0:
-            return findings
+            return findings, None
 
         avg_perf = active_data.select(cdh_utils.weighted_average_polars("Performance", "ResponseCount")).item()
 
-        if avg_perf is not None and not math.isnan(avg_perf):
-            rag = MetricLimits.evaluate_metric_rag("ModelPerformance", avg_perf)
-            if rag == "GREEN":
-                findings.append(
-                    Finding(
-                        severity="info",
-                        category="model",
-                        title=f"Overall average model performance is healthy (AUC {avg_perf * 100:.1f})",
-                        detail="The weighted average performance across active models is within acceptable range.",
-                        data={"weighted_avg_performance": avg_perf},
-                    )
-                )
+        if avg_perf is None or math.isnan(avg_perf):
+            return findings, None
 
-        return findings
+        auc100 = avg_perf * 100
+        if auc100 < 58:
+            severity: Severity = "critical"
+            label = "low"
+            tail = "Investigate predictor availability and data quality."
+        elif auc100 < 62:
+            severity = "warning"
+            label = "borderline"
+            tail = "Performance is below the typical healthy range; review predictors and outcome labelling."
+        elif auc100 < 70:
+            severity = "info"
+            label = "healthy"
+            tail = "Performance is within the typical healthy range."
+        else:
+            severity = "success"
+            label = "strong"
+            tail = "Performance is well above the typical healthy range."
+
+        findings.append(
+            Finding(
+                severity=severity,
+                category="model",
+                title=f"Overall average model performance is {label} (AUC {auc100:.1f})",
+                detail=(
+                    f"Weighted average AUC across active models is {auc100:.1f}. "
+                    f"Tiers: <58 low, 58-62 borderline, 62-70 healthy, ≥70 strong. {tail}"
+                ),
+                data={"weighted_avg_performance": avg_perf, "tier": label},
+            )
+        )
+
+        return findings, avg_perf
 
     def _check_taxonomy(self) -> list[Finding]:
         findings: list[Finding] = []
@@ -545,47 +846,57 @@ class Analysis:
                 continue
 
             rag = MetricLimits.evaluate_metric_rag(metric_id, value)
-            if rag == "RED":
-                bp_min = MetricLimits.best_practice_min(metric_id)
-                bp_max = MetricLimits.best_practice_max(metric_id)
-                findings.append(
-                    Finding(
-                        severity="warning",
-                        category="taxonomy",
-                        title=f"{label} ({value:,}) is outside recommended limits",
-                        detail=(
-                            f"The count of {value:,} is outside the recommended "
-                            f"range (min: {bp_min}, max: {bp_max}). "
-                            "Check Pega cloud service health limits."
-                        ),
-                        data={
-                            "metric_id": metric_id,
-                            "value": value,
-                            "best_practice_min": bp_min,
-                            "best_practice_max": bp_max,
-                        },
-                    )
+            if rag not in ("RED", "AMBER"):
+                continue
+
+            bp_min = MetricLimits.best_practice_min(metric_id)
+            bp_max = MetricLimits.best_practice_max(metric_id)
+            hard_min = MetricLimits.minimum(metric_id)
+            hard_max = MetricLimits.maximum(metric_id)
+
+            severity: Severity = "warning" if rag == "RED" else "info"
+
+            if rag == "RED" and hard_min is not None and value < hard_min:
+                title = f"{label} ({value:,}) is below minimum ({hard_min:.0f})"
+            elif rag == "RED" and hard_max is not None and value > hard_max:
+                title = f"{label} ({value:,}) is above maximum ({hard_max:.0f})"
+            elif rag == "AMBER" and bp_min is not None and value < bp_min:
+                title = f"{label} ({value:,}) is below recommended (≥{bp_min:.0f})"
+            elif rag == "AMBER" and bp_max is not None and value > bp_max:
+                title = f"{label} ({value:,}) is above typical range (>{bp_max:.0f})"
+            elif bp_min is not None and value < bp_min:
+                title = f"{label} ({value:,}) is below recommended (≥{bp_min:.0f})"
+            elif bp_max is not None and value > bp_max:
+                title = f"{label} ({value:,}) is above typical range (>{bp_max:.0f})"
+            else:
+                # Both bounds undefined for this rag — fall back to a clear summary.
+                title = f"{label} ({value:,}) is outside the recommended range"
+
+            findings.append(
+                Finding(
+                    severity=severity,
+                    category="taxonomy",
+                    title=title,
+                    detail=(
+                        f"Recommended range: "
+                        f"{('≥' + format(bp_min, '.0f')) if bp_min is not None else '−'}"
+                        f" to "
+                        f"{('≤' + format(bp_max, '.0f')) if bp_max is not None else '−'}. "
+                        f"Hard limits: "
+                        f"{('≥' + format(hard_min, '.0f')) if hard_min is not None else '−'}"
+                        f" to "
+                        f"{('≤' + format(hard_max, '.0f')) if hard_max is not None else '−'}."
+                    ),
+                    data={
+                        "metric_id": metric_id,
+                        "value": value,
+                        "best_practice_min": bp_min,
+                        "best_practice_max": bp_max,
+                        "minimum": hard_min,
+                        "maximum": hard_max,
+                    },
                 )
-            elif rag == "AMBER":
-                bp_min = MetricLimits.best_practice_min(metric_id)
-                bp_max = MetricLimits.best_practice_max(metric_id)
-                findings.append(
-                    Finding(
-                        severity="info",
-                        category="taxonomy",
-                        title=f"{label} ({value:,}) is outside best practice range",
-                        detail=(
-                            f"The count of {value:,} is outside the recommended "
-                            f"best practice range (min: {bp_min}, max: {bp_max})."
-                        ),
-                        data={
-                            "metric_id": metric_id,
-                            "value": value,
-                            "best_practice_min": bp_min,
-                            "best_practice_max": bp_max,
-                        },
-                    )
-                )
+            )
 
         # Check predictor counts per configuration
         if self.datamart.predictor_data is not None:
