@@ -160,6 +160,7 @@ class IH:
     def from_ds_export(
         cls,
         ih_filename: os.PathLike | str,
+        *,
         query: QUERY | None = None,
     ) -> "IH":
         """Create an IH instance from a Pega Dataset Export.
@@ -194,19 +195,79 @@ class IH:
         return IH(data)
 
     @classmethod
-    def from_s3(cls) -> "IH":
-        """Create an IH instance from S3 data.
+    def from_s3(
+        cls,
+        bucket: str,
+        key: str,
+        *,
+        region: str | None = None,
+        boto3_client=None,
+        query: QUERY | None = None,
+    ) -> "IH":
+        """Create an IH instance from a single object stored in S3.
 
-        .. note::
-            Not implemented yet. Please let us know if you would like this!
+        Downloads the interaction-history export from the given S3
+        bucket to a temporary directory, then delegates to
+        :meth:`from_ds_export` for parsing.
 
-        Raises
-        ------
-        NotImplementedError
-            This method is not yet implemented.
+        Parameters
+        ----------
+        bucket : str
+            Name of the S3 bucket holding the export file.
+        key : str
+            S3 object key for the interaction-history export file.
+        region : str or None, optional
+            AWS region name. Ignored if ``boto3_client`` is provided.
+        boto3_client : optional
+            Pre-configured ``boto3`` S3 client. Use this to inject custom
+            credentials, endpoints, or sessions. When omitted, a default
+            client is created via ``boto3.client("s3", region_name=region)``.
+        query : QUERY, optional
+            Polars expression to filter the data. Default is None.
+
+        Returns
+        -------
+        IH
+            Initialized IH instance.
+
+        Examples
+        --------
+        >>> from pdstools import IH
+        >>> ih = IH.from_s3(
+        ...     bucket="my-pega-exports",
+        ...     key="ih/Data-pxStrategyResult_pxInteractionHistory.zip",
+        ... )
+
+        Note
+        ----
+        ``boto3`` is an optional dependency; install the ``pega_io`` extra
+        (or install ``boto3`` directly) before calling this method.
+
+        See Also
+        --------
+        IH.from_ds_export : Underlying parser for downloaded files.
 
         """
-        raise NotImplementedError("from_s3 is not yet implemented")
+        if boto3_client is None:
+            try:
+                import boto3
+            except ImportError:
+                from ..utils.namespaces import MissingDependenciesException
+
+                raise MissingDependenciesException(
+                    ["boto3"],
+                    namespace="IH.from_s3",
+                    deps_group="pega_io",
+                )
+            boto3_client = boto3.client("s3", region_name=region)
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            basename = os.path.basename(key) or key.replace("/", "_")
+            local_path = os.path.join(tmp_dir, basename)
+            boto3_client.download_file(bucket, key, local_path)
+            return cls.from_ds_export(local_path, query=query)
 
     @classmethod
     def from_mock_data(

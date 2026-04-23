@@ -618,3 +618,55 @@ def test_ih_init_normalises_outcometime_dtype():
     """After construction, data.OutcomeTime is pl.Datetime (string parsing)."""
     instance = IH(_minimal_valid_ih_lf())
     assert instance.data.collect_schema()["OutcomeTime"] == pl.Datetime
+
+
+def test_from_s3_downloads_and_delegates(tmp_path):
+    """from_s3 downloads the IH export and delegates to from_ds_export."""
+    pytest.importorskip("moto")
+    pytest.importorskip("boto3")
+    import boto3
+    from moto import mock_aws
+
+    src = "data/Data-pxStrategyResult_pxInteractionHistory_20210101T010000_GMT.zip"
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="ih-bucket")
+        client.upload_file(src, "ih-bucket", "ih/export.zip")
+
+        ih = IH.from_s3(
+            bucket="ih-bucket",
+            key="ih/export.zip",
+            boto3_client=client,
+        )
+
+    # Smoke: required columns present, data is non-empty.
+    schema_names = ih.data.collect_schema().names()
+    for col in REQUIRED_IH_COLUMNS:
+        assert col in schema_names
+    assert ih.data.select(pl.len()).collect().item() > 0
+
+
+def test_from_s3_missing_boto3_raises(monkeypatch):
+    """from_s3 raises MissingDependenciesException when boto3 is unavailable."""
+    import builtins
+
+    from pdstools.utils.namespaces import MissingDependenciesException
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "boto3":
+            raise ImportError("no boto3")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    with pytest.raises(MissingDependenciesException):
+        IH.from_s3(bucket="b", key="k")
+
+
+def test_from_ds_export_query_is_keyword_only():
+    """from_ds_export rejects passing query positionally."""
+    with pytest.raises(TypeError):
+        IH.from_ds_export("dummy.zip", {"Channel": ["Web"]})
