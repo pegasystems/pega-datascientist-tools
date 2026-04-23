@@ -332,18 +332,27 @@ def test_plots():
     assert sorted(t.name for t in ctr_fig.data) == expected_trace_names
     assert ctr_fig.layout.yaxis.title.text == "CTR"
 
-    # Period overrides change the row count of the underlying frame.
+    # Period overrides bucket the data via dt.truncate, which aligns to the
+    # Unix epoch — so the exact bucket count for a 70-day window depends on
+    # which calendar day "today" lands on (35 vs 36 buckets for "2d", etc.).
+    # Assert the row count matches the actual unique periods rather than a
+    # hardcoded value that drifts with the calendar.
+    n_channels = 3
+
+    def _expected_rows(df: pl.DataFrame) -> int:
+        return df["Date"].n_unique() * n_channels
+
     perf_w = prediction.plot.performance_trend("1w", return_df=True).collect()
-    assert perf_w.shape == (33, 29)
+    assert perf_w.shape == (_expected_rows(perf_w), 29)
 
     lift_2d = prediction.plot.lift_trend("2d", return_df=True).collect()
-    assert lift_2d.shape == (105, 29)
+    assert lift_2d.shape == (_expected_rows(lift_2d), 29)
 
     rc_1m = prediction.plot.responsecount_trend("1m", return_df=True).collect()
-    assert rc_1m.shape == (210, 29)
+    assert rc_1m.shape == (_expected_rows(rc_1m), 29)
 
     ctr_5d = prediction.plot.ctr_trend("5d", return_df=True).collect()
-    assert ctr_5d.shape == (45, 29)
+    assert ctr_5d.shape == (_expected_rows(ctr_5d), 29)
 
     # Default period (1d): 70 days * 3 channels = 210 rows.
     for method in (

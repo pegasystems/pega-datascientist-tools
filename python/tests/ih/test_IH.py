@@ -1,7 +1,10 @@
 """Testing the functionality of the IH class"""
 
+import datetime
+import importlib
 import math
 from datetime import timedelta
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -9,11 +12,28 @@ from pdstools import IH
 from pdstools.ih.Schema import REQUIRED_IH_COLUMNS, IHInteraction
 from plotly.graph_objs import Figure
 
+# Grab the module explicitly: `pdstools.ih.IH` resolves to the *class* (re-exported
+# via pdstools/ih/__init__.py), so mock.patch("pdstools.ih.IH.datetime") tries to
+# patch an attribute on the class and fails. Importing the module by string
+# bypasses that shadowing.
+_ih_module = importlib.import_module("pdstools.ih.IH")
+
+# Freezing "now" makes the date-derived columns (and therefore every period
+# bucketing — "1d", "1w", etc.) fully deterministic. Without this, mock data
+# anchors on datetime.now() and bucket counts drift by a handful of rows
+# depending on when CI runs.
+_FROZEN_NOW = datetime.datetime(2026, 1, 15, 12, 0, 0)
+
 
 @pytest.fixture
 def ih():
     # seed=42 makes from_mock_data deterministic so tests can assert exact values.
-    return IH.from_mock_data(seed=42)
+    with patch.object(_ih_module, "datetime") as mock_dt:
+        mock_dt.datetime.now.return_value = _FROZEN_NOW
+        # Pass through everything else (timedelta, datetime constructor, …).
+        mock_dt.datetime.side_effect = lambda *a, **kw: datetime.datetime(*a, **kw)
+        mock_dt.timedelta = datetime.timedelta
+        yield IH.from_mock_data(seed=42)
 
 
 def test_mockdata(ih):
@@ -62,13 +82,11 @@ def test_summarize_by_interaction_with_by(ih):
 
 def test_summarize_by_interaction_with_every(ih):
     """Test summarize_by_interaction with 'every' parameter"""
-    # Test with string parameter — height is approximately deterministic.
-    # The mock data anchors on datetime.now(), so the exact number of
-    # interaction-day pairs shifts by ±a handful when day-boundary placement
-    # differs across CI runs. Tight tolerance keeps the value test meaningful.
+    # Test with string parameter — height is fully deterministic now that the
+    # ih fixture freezes datetime.now().
     result_daily = ih.aggregates.summarize_by_interaction(every="1d").collect()
     assert result_daily.columns[0] == "OutcomeTime"
-    assert result_daily.height == pytest.approx(100570, abs=20)
+    assert result_daily.height == 100582
 
     # Test with timedelta — must produce identical result to "1d"
     result_td = ih.aggregates.summarize_by_interaction(
@@ -105,9 +123,7 @@ def test_summarize_by_interaction_complex(ih):
     ).collect()
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
-    # See note on every="1d" above — week-bucket placement varies slightly with
-    # the system date that mock data anchors on.
-    assert result.height == pytest.approx(100189, abs=20)
+    assert result.height == 100198
 
 
 def test_summary_success_rates_basic(ih):
@@ -152,11 +168,10 @@ def test_summary_success_rates_with_by(ih):
 
 def test_summary_success_rates_with_every(ih):
     """Test summary_success_rates with 'every' parameter"""
-    # Roughly 90 days of mock data. Exact bucket count drifts ±1 because the
-    # mock data is anchored on the current system date.
+    # Roughly 90 days of mock data; deterministic given the frozen "now".
     result_daily = ih.aggregates.summary_success_rates(every="1d").collect()
     assert "OutcomeTime" in result_daily.columns
-    assert result_daily.height == pytest.approx(91, abs=2)
+    assert result_daily.height == 91
 
     # timedelta must produce identical result
     result_td = ih.aggregates.summary_success_rates(every=timedelta(days=1)).collect()
@@ -203,9 +218,8 @@ def test_summary_success_rates_complex(ih):
 
     assert {"PropensityBin", "Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
     # 10 propensity bins × ~14 weeks × 2 channel/direction combos, with some
-    # bins empty in some weeks. Slight drift with system date; see the every="1d"
-    # note above.
-    assert result.height == pytest.approx(279, abs=20)
+    # bins empty in some weeks. Deterministic under the frozen "now".
+    assert result.height == 280
 
     # Verify calculations
     for metric in ih.positive_outcome_labels.keys():
@@ -258,10 +272,9 @@ def test_summary_outcomes_with_by(ih):
 def test_summary_outcomes_with_every(ih):
     """Test summary_outcomes with 'every' parameter"""
     # ~5 outcomes × ~91 days, minus some (outcome, day) combos that don't appear.
-    # Drifts slightly with system date.
     result_daily = ih.aggregates.summary_outcomes(every="1d").collect()
     assert {"OutcomeTime", "Outcome"}.issubset(result_daily.columns)
-    assert result_daily.height == pytest.approx(452, abs=20)
+    assert result_daily.height == 454
 
     # timedelta must produce identical result
     result_td = ih.aggregates.summary_outcomes(every=timedelta(days=1)).collect()
@@ -301,8 +314,7 @@ def test_summary_outcomes_complex(ih):
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcome", "Count"}.issubset(result.columns)
     # ~14 weeks × 2 channel/direction × ~3 outcomes per channel.
-    # Slight drift with system date; see the every="1d" note above.
-    assert result.height == pytest.approx(84, abs=15)
+    assert result.height == 84
 
     # Verify sorting
     # The result should be sorted by Count (descending) and then by the group_by columns

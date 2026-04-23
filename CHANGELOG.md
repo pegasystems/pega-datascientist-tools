@@ -220,6 +220,16 @@ guide.
 
 ### Fixed
 
+- `ADMDatamart` now drops AGB models' empty-context "totals" rows at
+  load time (when `ModelTechnique == "GradientBoost"` and all context
+  keys are null). Pega reporting filters these rows out — they
+  duplicate aggregated data and may carry a miscomputed AUC. Doing the
+  filter at the `ADMDatamart` boundary means every downstream consumer
+  (Health Check, Model Reports, Streamlit pages, scripts) sees a
+  consistent view. Older sources without `ModelTechnique` are
+  unaffected — empty-context rows are kept so genuine data-quality
+  issues remain visible (#703, closes #667).
+
 - Better diagnostic information when Health Check report generation
   hits a `PermissionDenied` from Quarto on Windows; Infinity API
   client now supports Pega `'25.1`; Decision Analyzer no longer
