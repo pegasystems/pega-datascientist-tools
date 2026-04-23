@@ -103,7 +103,14 @@ extend-select = [
     "UP035",   # deprecated-import (typing.Dict -> dict, etc.)
     "UP045",   # non-pep604-isinstance (Optional[X] -> X | None)
     "B905",    # zip-without-explicit-strict (require explicit strict= on zip)
+    "D406",    # section-name-ends-in-colon (catches Google-style `Args:` blocks)
+    "D407",    # dashed-underline-after-section (catches missing `------` underlines)
+    "D410",    # no-blank-line-after-section (numpy section spacing)
+    "D411",    # no-blank-line-before-section (numpy section spacing)
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
