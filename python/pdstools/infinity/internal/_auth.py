@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import logging
 import time
-from collections.abc import Generator
 
 import httpx
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 logger = logging.getLogger(__name__)
 

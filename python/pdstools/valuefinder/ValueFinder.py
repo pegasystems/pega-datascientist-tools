@@ -1,18 +1,23 @@
-import os
-from collections.abc import Iterable
+from __future__ import annotations
+
 from datetime import datetime
 from functools import cached_property
-from pathlib import Path
 
 import polars as pl
 
 from ..pega_io import read_dataflow_output, read_ds_export
 from ..pega_io.File import cache_to_file
 from ..utils import cdh_utils
-from ..utils.types import QUERY
 from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from pathlib import Path
+    from collections.abc import Iterable
+    import os
 
 
 class ValueFinder:

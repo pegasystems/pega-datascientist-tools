@@ -1,5 +1,7 @@
 """HTML post-processing: CSS inlining, zip bundling, error scanning."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil

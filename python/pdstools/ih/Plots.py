@@ -153,7 +153,7 @@ class Plots(LazyNamespace):
 
         cols = df[by].unique().shape[0]  # TODO can be None
         # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
-        condition_col = cast(str, condition)
+        condition_col = cast("str", condition)
         rows = df[condition_col].unique().shape[0]
 
         fig = make_subplots(

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import warnings
-from collections.abc import Coroutine
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,6 +21,9 @@ from anyio import (
 
 from ._auth import PegaOAuth, _read_client_credential_file
 from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 _HttpxClientT = TypeVar("_HttpxClientT", bound=httpx.Client | httpx.AsyncClient)
 logger = logging.getLogger(__name__)

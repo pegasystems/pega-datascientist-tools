@@ -1,8 +1,8 @@
 """Aggregation methods for Interaction History analysis."""
 
+from __future__ import annotations
+
 import logging
-from collections.abc import Sequence
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import polars as pl
@@ -10,11 +10,13 @@ import polars as pl
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.pega_outcomes import get_openrate_labels as _get_openrate_labels
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from datetime import timedelta
+    from collections.abc import Sequence
     from .IH import IH as IH_Class
 
 

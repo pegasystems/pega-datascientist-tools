@@ -1,5 +1,7 @@
 """Quarto execution helpers: run, version detection, callouts, credits."""
 
+from __future__ import annotations
+
 import datetime
 import os
 import re

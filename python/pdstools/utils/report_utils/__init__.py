@@ -22,6 +22,8 @@ supported import surface. Imports such as
 to resolve unchanged.
 """
 
+from __future__ import annotations
+
 # ruff: noqa: F401
 # Re-export the module-level imports that the legacy single-file module
 # exposed via ``dir(report_utils)``. Some downstream code (and Quarto

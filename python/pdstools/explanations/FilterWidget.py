@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
@@ -7,9 +9,9 @@ from IPython.display import display
 from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo, ContextOperations
 
 if TYPE_CHECKING:
+    from .ExplanationsUtils import ContextInfo, ContextOperations
     from .Explanations import Explanations
 
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
 
 from packaging.version import Version, InvalidVersion
 import plotly.express as px
@@ -13,8 +15,10 @@ from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
 from ..prediction.Prediction import Prediction
 from ..utils import datasets
-from ..utils.types import ANY_FRAME
 from . import cdh_utils
+
+if TYPE_CHECKING:
+    from ..utils.types import ANY_FRAME
 
 # ---------------------------------------------------------------------------
 # Shared Streamlit helpers — used by all pdstools apps

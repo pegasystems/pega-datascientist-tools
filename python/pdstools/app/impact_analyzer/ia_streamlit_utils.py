@@ -1,10 +1,11 @@
 """Health Check-specific Streamlit helpers."""
 
+from __future__ import annotations
+
 # python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
 import logging
 import tempfile
 import urllib.request
-from collections.abc import Iterable
 from pathlib import Path
 
 import streamlit as st
@@ -14,6 +15,10 @@ from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     get_data_path,
 )
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
-import os
-from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Literal, overload
+from typing import ClassVar, Literal, overload, TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
@@ -18,9 +18,13 @@ from ..utils.cdh_utils import (
     weighted_average_polars,
 )
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
-from ..utils.types import QUERY
 from .Plots import Plots
 from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from collections.abc import Callable, Sequence
+    import os
 
 logger = logging.getLogger(__name__)
 

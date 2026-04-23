@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/utils.py
 import logging
 import os

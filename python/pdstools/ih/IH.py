@@ -1,10 +1,11 @@
 """Interaction History analysis for Pega CDH."""
 
-from typing import ClassVar
+from __future__ import annotations
+
+from typing import ClassVar, TYPE_CHECKING
 import datetime
 import logging
 import math
-import os
 import random
 from collections import defaultdict
 
@@ -19,11 +20,14 @@ from ..utils.cdh_utils import (
     parse_pega_date_time_formats,
 )
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
-from ..utils.types import QUERY
 from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
 from .Schema import REQUIRED_IH_COLUMNS
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    import os
 
 logger = logging.getLogger(__name__)
 

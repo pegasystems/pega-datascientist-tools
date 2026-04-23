@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gzip
 import logging
 import os
@@ -8,17 +10,19 @@ import tarfile
 import tempfile
 import warnings
 import zipfile
-from collections.abc import Iterable
 from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, cast, overload
+from typing import Literal, cast, overload, TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
 
 from ..utils.cdh_utils import from_prpc_date_time
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 

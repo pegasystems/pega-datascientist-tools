@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from . import plots, utils
 from .DecisionAnalyzer import DecisionAnalyzer
 

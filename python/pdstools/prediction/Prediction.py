@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import itertools
 import logging
@@ -12,8 +14,11 @@ from ..utils.metric_limits import (
     get_predictions_channel_mapping,
     is_standard_NBAD_prediction,
 )
-from ..utils.types import QUERY
 from .Plots import PredictionPlots
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 

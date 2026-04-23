@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..v24_1 import Repository as RepositoryPrevious
 from ..v24_1.repository import AsyncRepository as AsyncRepositoryPrevious
 

@@ -1,5 +1,7 @@
 """Sensitivity / threshold / prioritization-factor boxplot methods."""
 
+from __future__ import annotations
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl

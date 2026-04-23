@@ -1,5 +1,7 @@
 """Win/loss distribution plots."""
 
+from __future__ import annotations
+
 from typing import cast
 
 import plotly.graph_objects as go
@@ -157,7 +159,7 @@ def create_win_distribution_plot(
             )
 
             if no_winner_data.height > 0:
-                group_cols = list(cast(list[str], scope_config["group_cols"]))
+                group_cols = list(cast("list[str]", scope_config["group_cols"]))
                 columns_to_keep = [*group_cols, win_count_col]
                 no_winner_data_selected = no_winner_data.select(columns_to_keep)
                 plot_data = pl.concat([aggregated_regular, no_winner_data_selected])
@@ -165,7 +167,7 @@ def create_win_distribution_plot(
                 plot_data = aggregated_regular
         else:
             if no_winner_data.height > 0:
-                group_cols = list(cast(list[str], scope_config["group_cols"]))
+                group_cols = list(cast("list[str]", scope_config["group_cols"]))
                 columns_to_keep = [*group_cols, win_count_col]
                 plot_data = no_winner_data.select(columns_to_keep)
             else:

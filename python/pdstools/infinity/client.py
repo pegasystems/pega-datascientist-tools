@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["AsyncInfinity", "Infinity"]
 
 from importlib.util import find_spec

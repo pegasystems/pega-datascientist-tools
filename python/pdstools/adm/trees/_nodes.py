@@ -88,7 +88,7 @@ def parse_split(raw: str) -> Split:
         # Single-value 'in', 'is', '==' — keep as a string.
         value = value_text
 
-    return Split(variable=variable, operator=cast(SplitOperator, op), value=value, raw=raw)
+    return Split(variable=variable, operator=cast("SplitOperator", op), value=value, raw=raw)
 
 
 @dataclass(frozen=True)

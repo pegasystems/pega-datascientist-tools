@@ -10,6 +10,8 @@ that turn metric values into "RAG" indicators that can be used to highlight
 values in tables.
 """
 
+from __future__ import annotations
+
 import difflib
 import re
 from typing import Any, ClassVar, Literal

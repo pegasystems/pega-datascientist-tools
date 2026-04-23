@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py
 import polars as pl
 import streamlit as st

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 from functools import cached_property
 import logging
-import os
 import warnings
 
 import polars as pl
@@ -26,6 +27,9 @@ from .utils import (
     resolve_aliases,
 )
 from ..pega_io.File import read_ds_export
+
+if TYPE_CHECKING:
+    import os
 
 logger = logging.getLogger(__name__)
 

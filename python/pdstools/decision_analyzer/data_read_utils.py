@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/data_read_utils.py
 import gzip
 import logging
@@ -8,8 +10,11 @@ from pathlib import Path
 import polars as pl
 
 from ..pega_io.File import _is_artifact
-from .column_schema import TableConfig
 from .utils import ColumnResolver
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .column_schema import TableConfig
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,7 @@
 """Offer-quality pie charts and trend chart (free functions, not Plot methods)."""
 
+from __future__ import annotations
+
 import math
 
 import plotly.express as px

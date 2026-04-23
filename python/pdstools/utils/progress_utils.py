@@ -11,6 +11,8 @@ The estimates are based on calibrated speeds and provide ranges to account
 for system variability.
 """
 
+from __future__ import annotations
+
 
 def estimate_extraction_time(file_size_bytes: int) -> tuple[float, float]:
     """Estimate extraction time for a zip file based on size.

@@ -1,5 +1,7 @@
 """Distribution-style plots: treemap, action variation, histograms, rank/parameter boxplots."""
 
+from __future__ import annotations
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl

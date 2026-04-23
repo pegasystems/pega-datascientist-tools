@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
 import math
 

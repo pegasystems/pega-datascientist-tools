@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
 from pydantic import validate_call
 
 from .....utils import cdh_utils
-from ....internal._constants import METRIC
+from ....internal._constants import METRIC  # noqa: TC001 — runtime needed by pydantic.validate_call
 from ....internal._exceptions import NoMonitoringInfo
 from ....internal._resource import api_method
 from ..base import AsyncPrediction as AsyncPredictionBase

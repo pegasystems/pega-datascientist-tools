@@ -1,9 +1,14 @@
 """Pega-style field-name normalisation and predictor categorisation."""
 
+from __future__ import annotations
+
 import re
-from collections.abc import Iterable
 
 import polars as pl
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def _capitalize(

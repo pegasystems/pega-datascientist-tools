@@ -1,5 +1,7 @@
 """Small Polars helpers and aggregations used by Quarto reports."""
 
+from __future__ import annotations
+
 import polars as pl
 
 

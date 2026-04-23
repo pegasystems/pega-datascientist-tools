@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import logging
 
 from . import v24_1, v24_2
-from .base import AsyncPredictionStudioBase, PredictionStudioBase
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .base import AsyncPredictionStudioBase, PredictionStudioBase
 
 logger = logging.getLogger(__name__)
 

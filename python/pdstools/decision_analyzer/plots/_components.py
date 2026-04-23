@@ -1,5 +1,7 @@
 """Component / filter analysis plots."""
 
+from __future__ import annotations
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl

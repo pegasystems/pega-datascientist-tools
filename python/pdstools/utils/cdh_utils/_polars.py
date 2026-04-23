@@ -1,15 +1,19 @@
 """Polars expression and frame helpers (queries, sampling, schema, overlap)."""
 
+from __future__ import annotations
+
 import re
-from collections.abc import Iterable
-from typing import overload
+from typing import overload, TYPE_CHECKING
 
 import polars as pl
 
-from ..types import QUERY
 from ._common import F, logger
 from ._dates import parse_pega_date_time_formats
 from ._namespacing import _capitalize
+
+if TYPE_CHECKING:
+    from ..types import QUERY
+    from collections.abc import Iterable
 
 
 # Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")

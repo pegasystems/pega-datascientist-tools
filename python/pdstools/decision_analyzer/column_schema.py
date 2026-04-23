@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/column_schema.py
 from typing import TypedDict
 

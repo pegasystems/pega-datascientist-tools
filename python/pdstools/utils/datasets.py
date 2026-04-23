@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..adm.trees import ADMTreesModel
-from ..utils.types import QUERY
 from ..valuefinder.ValueFinder import ValueFinder
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:

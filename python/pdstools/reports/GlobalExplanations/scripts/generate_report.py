@@ -8,6 +8,8 @@ Templates are located in: assets/templates/
 Generated .qmd files are written to the project root for Quarto to render.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import logging

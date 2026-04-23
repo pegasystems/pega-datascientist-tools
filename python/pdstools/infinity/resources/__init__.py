@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from . import prediction_studio
 from .knowledge_buddy import AsyncKnowledgeBuddy, KnowledgeBuddy
 

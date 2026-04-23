@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "_COL",
     "_CONTRIBUTION_TYPE",

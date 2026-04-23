@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
-import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
 
 from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
 from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
 if TYPE_CHECKING:
+    import httpx
     from collections.abc import Callable
 
 

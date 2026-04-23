@@ -1,5 +1,7 @@
 """Resources module for pdstools configuration data."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 _RESOURCES_DIR = Path(__file__).parent

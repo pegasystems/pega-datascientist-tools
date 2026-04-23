@@ -1,11 +1,16 @@
 """Performance metrics: AUC, lift, log-odds, gains, feature importance."""
 
+from __future__ import annotations
+
 import math
-from collections.abc import Sequence
 
 import polars as pl
 
 from ._polars import weighted_average_polars
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def safe_range_auc(auc: float) -> float:

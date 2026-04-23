@@ -1,17 +1,22 @@
 """I/O, logging, working-directory and version-check helpers."""
 
+from __future__ import annotations
+
 import datetime
 import io
 import logging
 import tempfile
 import zipfile
 from io import StringIO
-from os import PathLike
 from pathlib import Path
 
 import polars as pl
 
 from ._common import logger
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from os import PathLike
 
 
 def process_files_to_bytes(
