@@ -243,7 +243,11 @@ class Aggregate(LazyNamespace):
         # divides by that predictor's own bin frequencies, not the entire partition.
         df = self._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value],
+            frequency_over=[
+                _COL.PARTITON.value,
+                _COL.PREDICTOR_NAME.value,
+                _COL.PREDICTOR_TYPE.value,
+            ],
             aggregate_over=[
                 _COL.PARTITON.value,
                 _COL.PREDICTOR_NAME.value,
@@ -560,13 +564,14 @@ class Aggregate(LazyNamespace):
 
         return df_grouped.join(df, on=group_by, how="left")
 
-    def add_frequency_pct_to_df(self, df, group_by):
+    def add_frequency_pct_to_df(self, df, group_by) -> pl.LazyFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
 
         df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
         return df_with_total_frequency.with_columns(
             pl.when(pl.col(_SPECIAL.TOTAL_FREQUENCY.value) == 0)
             .then(0.0)
+            # round(4) to preserve very small frequency shares (e.g. 0.02%)
             .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col(_SPECIAL.TOTAL_FREQUENCY.value) * 100).round(4))
             .alias("frequency_pct")
         )
@@ -578,16 +583,23 @@ class Aggregate(LazyNamespace):
     ) -> pl.DataFrame:
         """Add frequency_pct showing this context's share of the overall model.
 
-        For each row, computes ``frequency_pct = df.frequency / overall_model_frequency * 100``
-        where the overall model frequency is summed over ``join_on`` columns from the
-        overall (non-contextual) dataset.
+        For each row, computes
+        ``frequency_pct = df.frequency / overall_model_frequency * 100``
+        where the overall model frequency is summed over ``join_on`` columns
+        from the overall (non-contextual) dataset.
 
-        Args:
-            df: DataFrame with a ``frequency`` column (context data).
-            join_on: Columns to join on, typically ``[predictor_name, predictor_type]``.
+        Parameters
+        ----------
+        df : pl.DataFrame
+            DataFrame with a ``frequency`` column (context data).
+        join_on : list[str]
+            Columns to join on, typically
+            ``[predictor_name, predictor_type]``.
 
-        Returns:
-            df with an added ``frequency_pct`` column (0–100).
+        Returns
+        -------
+        pl.DataFrame
+            *df* with an added ``frequency_pct`` column (0–100).
         """
         overall_freq = (
             self.get_df_overall()
