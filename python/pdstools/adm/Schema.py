@@ -4,6 +4,8 @@ import polars as pl
 
 
 class ADMModelSnapshot:
+    """Admmodel snapshot."""
+
     pxApplication = pl.Categorical
     pyAppliesToClass = pl.Categorical
     pyModelID = pl.Utf8
@@ -41,6 +43,8 @@ class ADMModelSnapshot:
 
 
 class ADMPredictorBinningSnapshot:
+    """Admpredictor binning snapshot."""
+
     pxCommitDateTime = pl.Datetime
     pxSaveDateTime = pl.Datetime
     pyModelID = pl.Utf8

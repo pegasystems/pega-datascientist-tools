@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
+from typing import ClassVar, TYPE_CHECKING
 from functools import cached_property
 import logging
-import os
 import warnings
 
 import polars as pl
@@ -25,6 +27,9 @@ from .utils import (
     resolve_aliases,
 )
 from ..pega_io.File import read_ds_export
+
+if TYPE_CHECKING:
+    import os
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +171,7 @@ class DecisionAnalyzer:
 
     # Preferred fields for data filtering, in display order.
     # Subsetting to actual available columns happens in __init__.
-    _default_filter_fields = [
+    _default_filter_fields: ClassVar[list[str]] = [
         "Decision Time",
         "Channel",
         "Direction",
@@ -281,7 +286,7 @@ class DecisionAnalyzer:
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
         if not validation_result and validation_error is not None:
-            warnings.warn(validation_error, UserWarning)
+            warnings.warn(validation_error, UserWarning, stacklevel=2)
         # Bail out early if critical columns are missing — _cleanup_raw_data
         # would crash with an opaque ColumnNotFoundError otherwise.
         # Check using display names; account for both raw keys and display
@@ -954,14 +959,13 @@ class DecisionAnalyzer:
                 ]
             )
 
-        preproc_df = (
+        return (
             df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
             .with_columns(
                 pl.col(self.level).cast(pl.Categorical),
             )
             .filter(pl.col("Action").is_not_null())  # Drop rows with null Action; this takes some processing time
         )
-        return preproc_df
 
     def get_possible_scope_values(self) -> list[str]:
         """Return scope hierarchy columns present in the data (e.g. Issue, Group, Action)."""
@@ -970,14 +974,13 @@ class DecisionAnalyzer:
 
     def get_possible_stage_values(self) -> list[str]:
         """Return the list of available stage values for the current level."""
-        options = self.AvailableNBADStages
+        return self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
         # [
         #     stage
         #     for stage in self.NBADStages_FilterView
         #     if stage in df['pxEgagementStage'].categories
         # ]
-        return options
 
     @property
     def stage_to_group_mapping(self) -> dict[str, str]:

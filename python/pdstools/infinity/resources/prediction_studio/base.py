@@ -6,13 +6,16 @@ from typing import (
     Any,
     Literal,
     TypedDict,
+    TYPE_CHECKING,
 )
 
-import polars as pl
 from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
+
+if TYPE_CHECKING:
+    import polars as pl
 
 DEPLOYMENT_MODE = Literal["shadow", "champion/challenger"]
 
@@ -115,7 +118,7 @@ class _PredictionMixin(ABC):
     def describe(self): ...
 
 
-class _NotificationMixin(ABC):
+class _NotificationMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
     def __init__(
         self,
         client,
@@ -147,7 +150,7 @@ class _NotificationMixin(ABC):
         self.trigger_time = datetime.strptime(triggerTime, "%Y%m%dT%H%M%S.%f %Z")
 
 
-class UploadedModel(ABC): ...
+class UploadedModel(ABC): ...  # noqa: B024 — ABC marker for subclass discovery
 
 
 class ModelValidationError(Exception):
@@ -184,7 +187,7 @@ class _RepositoryMixin(ABC):
         raise IncompatiblePegaVersionError("24.2", "Retrieving the S3 URL directly")
 
 
-class _DataMartExportMixin(ABC):
+class _DataMartExportMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
     def __init__(self, client, **kwargs):
         super().__init__(client=client)
         self.referenceId = kwargs.get("referenceId")

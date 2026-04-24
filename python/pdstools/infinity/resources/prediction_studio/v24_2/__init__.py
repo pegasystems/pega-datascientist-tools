@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .champion_challenger import AsyncChampionChallenger, ChampionChallenger
 from .datamart_export import AsyncDatamartExport, DatamartExport
 from .model import AsyncModel, Model

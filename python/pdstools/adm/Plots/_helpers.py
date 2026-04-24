@@ -8,7 +8,6 @@ plotly building blocks reused by multiple mixins.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -22,9 +21,10 @@ import polars as pl
 from typing_extensions import ParamSpec
 
 from ...utils.metric_limits import MetricLimits
-from ...utils.plot_utils import Figure
 
 if TYPE_CHECKING:
+    from ...utils.plot_utils import Figure
+    from collections.abc import Callable, Iterable
     from ._base import _PlotsBase
 
 logger = logging.getLogger(__name__)

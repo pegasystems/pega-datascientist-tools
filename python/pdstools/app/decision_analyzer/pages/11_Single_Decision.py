@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/app/decision_analyzer/pages/12_Single_Decision.py
 import html as html_mod
 from itertools import groupby

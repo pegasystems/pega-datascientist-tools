@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Literal
 
 PEGA_VERSIONS: Literal["8.8", "23.1", "24.1", "24.2"]

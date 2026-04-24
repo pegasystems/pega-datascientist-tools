@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ._async import AsyncChampionChallenger
 from ._mixin import _ChampionChallengerV24_2Mixin
 from ._sync import ChampionChallenger

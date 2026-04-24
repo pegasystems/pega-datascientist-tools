@@ -100,17 +100,71 @@ line-length = 120
 extend-select = [
     "UP006",   # deprecated-collection-type (Dict -> dict, List -> list, etc.)
     "UP007",   # non-pep604-annotation (Union[X, Y] -> X | Y)
+    "UP012",   # unnecessary-encode-utf8 (.encode("utf-8") -> .encode())
+    "UP024",   # os-error-alias (replace bare OSError aliases)
     "UP035",   # deprecated-import (typing.Dict -> dict, etc.)
     "UP045",   # non-pep604-isinstance (Optional[X] -> X | None)
+    "B904",    # raise-without-from-inside-except (preserve exception chain)
     "B905",    # zip-without-explicit-strict (require explicit strict= on zip)
+    "B006",    # mutable-argument-default
+    "B007",    # unused-loop-control-variable
+    "B008",    # function-call-in-default-argument
+    "B019",    # cached-instance-method (functools.lru_cache on methods)
+    "B024",    # abstract-base-class-without-abstract-method
+    "B028",    # no-explicit-stacklevel (warnings.warn without stacklevel)
+    "RET504",  # unnecessary-assign (return temporary variable)
+    "RET505",  # superfluous-else-return
+    "RET506",  # superfluous-else-raise
+    "SIM108",  # if-else-block-instead-of-if-exp (ternary)
+    "TC001",   # typing-only-first-party-import
+    "TC002",   # typing-only-third-party-import
+    "TC003",   # typing-only-standard-library-import
+    "LOG015",  # root-logger-call (use logger = logging.getLogger(__name__))
+    "RUF001",  # ambiguous-unicode-character-string
+    "RUF002",  # ambiguous-unicode-character-docstring
+    "RUF003",  # ambiguous-unicode-character-comment
+    "RUF005",  # collection-literal-concatenation ([*a, *b] over a + b)
+    "RUF012",  # mutable-class-default (require ClassVar)
+    "RUF015",  # unnecessary-iterable-allocation-for-first-element
+    "RUF022",  # unsorted-dunder-all
+    "RUF100",  # unused-noqa
+    "D101",    # missing docstring in public class
+    "D102",    # missing docstring in public method
+    "D103",    # missing docstring in public function
     "D406",    # section-name-ends-in-colon (catches Google-style `Args:` blocks)
     "D407",    # dashed-underline-after-section (catches missing `------` underlines)
     "D410",    # no-blank-line-after-section (numpy section spacing)
     "D411",    # no-blank-line-before-section (numpy section spacing)
 ]
+# These typographic glyphs are intentional in user-facing strings, docstrings
+# and test fixtures (e.g. "5 × 10 grid", "ℹ info" headers, en-dashes in ranges).
+allowed-confusables = ["×", "ℹ", "–", "‑"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "polars.col",
+    "polars.lit",
+    "polars.sum",
+    "polars.first",
+    "polars.last",
+    "polars.len",
+    "polars.count",
+    "pathlib.Path",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"python/pdstools/app/*" = ["D100", "D101", "D102", "D103", "T20"]
+"python/pdstools/ih/*" = ["D100", "D101", "D102", "D103"]
+"python/pdstools/infinity/*" = ["D100", "D101", "D102", "D103"]
+"python/pdstools/cli.py" = ["T20"]
+"python/tests/*" = ["D100", "D101", "D102", "D103", "RUF012"]
+"python/docs/*" = ["D100", "D101", "D102", "D103"]
+# Notebooks and one-off scripts: relax docstring + style rules outside the library
+"examples/**/*.ipynb" = ["D100", "D101", "D102", "D103", "E401", "E402", "E703", "E722", "F401", "F541", "F811", "F821", "B905", "RUF005", "RUF015", "RET505"]
+"scripts/*" = ["D100", "D101", "D102", "D103", "T20"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

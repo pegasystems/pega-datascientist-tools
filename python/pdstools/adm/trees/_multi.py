@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import polars as pl
 
 from ._model import ADMTreesModel
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 

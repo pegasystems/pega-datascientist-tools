@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import polars as pl
 
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncChampionChallenger as AsyncChampionChallengerBase
 from ._mixin import _ChampionChallengerV24_2Mixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 class AsyncChampionChallenger(

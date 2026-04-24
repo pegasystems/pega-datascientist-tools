@@ -4,7 +4,6 @@ import logging
 import random
 import string
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 from pydantic import validate_call
 
@@ -12,6 +11,9 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._resource import _maybe_await, api_method
 from ...types import AdmModelType
 from ..model_upload import UploadedModel
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +301,7 @@ class _ChampionChallengerV24_2Mixin:
                 "Error when deleting challenger model: " + str(e),
             ) from e
         await self._refresh_champion_challenger()
-        logging.info("Deleted challenger model: %s", response)
+        logger.info("Deleted challenger model: %s", response)
 
     @api_method
     async def promote_challenger_model(self):
@@ -326,7 +328,7 @@ class _ChampionChallengerV24_2Mixin:
             raise PegaMLopsError(
                 "Error when promoting challenger model: " + str(e),
             ) from e
-        logging.info("Promoted challenger model: %s", response)
+        logger.info("Promoted challenger model: %s", response)
 
     @api_method
     async def update_challenger_response_share(
@@ -607,10 +609,10 @@ class _ChampionChallengerV24_2Mixin:
 
         if "Approved" not in response["message"]:
             raise PegaMLopsError("Error when adding model")
-        logging.info("Add model: Refreshing Champion challenger configuration: ")
+        logger.info("Add model: Refreshing Champion challenger configuration: ")
         await self._sleep(1)
         await self._refresh_champion_challenger()
-        logging.info("Add model: %s", response)
+        logger.info("Add model: %s", response)
 
     @api_method
     @validate_call
@@ -690,4 +692,4 @@ class _ChampionChallengerV24_2Mixin:
         if "Approved" not in response["message"]:
             raise PegaMLopsError("Error when adding model")
         await self._refresh_champion_challenger()
-        logging.info("Clone model: %s", response)
+        logger.info("Clone model: %s", response)

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import datetime
 import itertools
 import logging
 import os
-from collections.abc import Iterable
 
 import polars as pl
 
@@ -12,8 +13,13 @@ from ..utils.metric_limits import (
     get_predictions_channel_mapping,
     is_standard_NBAD_prediction,
 )
-from ..utils.types import QUERY
 from .Plots import PredictionPlots
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
@@ -340,14 +346,14 @@ class Prediction:
         if boto3_client is None:
             try:
                 import boto3
-            except ImportError:
+            except ImportError as err:
                 from ..utils.namespaces import MissingDependenciesException
 
                 raise MissingDependenciesException(
                     ["boto3"],
                     namespace="Prediction.from_s3",
                     deps_group="pega_io",
-                )
+                ) from err
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile
@@ -533,12 +539,11 @@ class Prediction:
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
 
         if self.predictions is not None:
-            predictions_cache = pega_io.cache_to_file(
+            return pega_io.cache_to_file(
                 self.predictions,
                 abs_path,
                 name=f"cached_prediction_data_{time}",
             )
-            return predictions_cache
 
     @classmethod
     def from_processed_data(cls, df: pl.LazyFrame):
@@ -638,14 +643,10 @@ class Prediction:
                                     _interpolate(160, 200, p, days),
                                     _interpolate(120, 120, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(120, 120, p, days),
                                     _interpolate(250, 300, p, days),
                                     _interpolate(150, 150, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(1400, 1400, p, days),
                                     _interpolate(2800, 4000, p, days),
                                     _interpolate(1520, 1520, p, days),
@@ -830,8 +831,8 @@ class Prediction:
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
                     .alias("isMultiChannel"),
-                ]
-                + period_expr,
+                    *period_expr,
+                ],
             )
             .group_by(
                 [

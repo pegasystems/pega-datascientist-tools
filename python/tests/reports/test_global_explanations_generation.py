@@ -77,7 +77,7 @@ def params_file(temp_report_dir):
 @pytest.fixture
 def mock_templates():
     """Mock template content for testing."""
-    templates = {
+    return {
         "getting-started.qmd": """---
 title: "Getting Started"
 ---
@@ -130,7 +130,6 @@ Top N: {TOP_N}
 Sort by text: {SORT_BY_TEXT}
 """,
     }
-    return templates
 
 
 class TestReportGeneration:

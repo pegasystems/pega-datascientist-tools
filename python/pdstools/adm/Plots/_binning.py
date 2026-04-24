@@ -11,9 +11,12 @@ from ...utils.plot_utils import (
     abbreviate_label_expr,
     simplify_facet_titles,
 )
-from ...utils.types import QUERY
 from ._base import _PlotsBase
 from ._helpers import distribution_graph, requires
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...utils.types import QUERY
 
 
 class _BinningPlotsMixin(_PlotsBase):

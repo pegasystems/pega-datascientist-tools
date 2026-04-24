@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import base64
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 import anyio
 
-from ...base import LocalModel
 from ...local_model_utils import ONNXModel
 from .....internal._resource import api_method
 from ..model_upload import UploadedModel
+
+if TYPE_CHECKING:
+    from ...base import LocalModel
+    from collections.abc import Callable
 
 
 class _PredictionStudioV24_2Mixin:

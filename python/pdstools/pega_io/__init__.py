@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .Anonymization import Anonymization
 from .API import _read_client_credential_file as _read_client_credential_file
 from .API import get_token

@@ -1,18 +1,23 @@
-import os
-from collections.abc import Iterable
+from __future__ import annotations
+
 from datetime import datetime
 from functools import cached_property
-from pathlib import Path
 
 import polars as pl
 
 from ..pega_io import read_dataflow_output, read_ds_export
 from ..pega_io.File import cache_to_file
 from ..utils import cdh_utils
-from ..utils.types import QUERY
 from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from pathlib import Path
+    from collections.abc import Iterable
+    import os
 
 
 class ValueFinder:
@@ -54,6 +59,7 @@ class ValueFinder:
         n_customers: int | None = None,
         threshold: float | None = None,
     ):
+        """From ds export."""
         df = read_ds_export(filename or "value_finder", base_path)
         if df is None:
             raise ValueError(f"Could not find {filename} in {base_path}")
@@ -71,6 +77,7 @@ class ValueFinder:
         cache_file_prefix: str = "",
         cache_directory: os.PathLike | str = "cache",
     ):
+        """From dataflow export."""
         df = read_dataflow_output(
             files,
             cache_file_prefix + "value_finder",
@@ -85,6 +92,7 @@ class ValueFinder:
         )  # pragma: no cover
 
     def set_threshold(self, new_threshold: float | None = None):
+        """Set threshold."""
         if new_threshold:
             self._th = pl.LazyFrame({"th": new_threshold})
         else:
@@ -94,6 +102,7 @@ class ValueFinder:
 
     @cached_property
     def threshold(self):
+        """Threshold."""
         return self._th.collect().item()
 
     def save_data(self, path: os.PathLike | str = ".") -> Path | None:
@@ -111,10 +120,9 @@ class ValueFinder:
 
         """
         time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
-        cache_file = cache_to_file(
+        return cache_to_file(
             self.df,
             path,
             name=f"cached_value_finder_data_{time}",
             cache_type="parquet",
         )
-        return cache_file

@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
-import os
-from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, overload
+from typing import ClassVar, Literal, overload, TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
@@ -18,9 +18,13 @@ from ..utils.cdh_utils import (
     weighted_average_polars,
 )
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
-from ..utils.types import QUERY
 from .Plots import Plots
 from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from collections.abc import Callable, Sequence
+    import os
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +84,7 @@ class ImpactAnalyzer:
     ia_data: pl.LazyFrame
     outcome_labels_used: dict | None
 
-    default_ia_experiments = {
+    default_ia_experiments: ClassVar[dict[str, tuple[str, str]]] = {
         "NBA vs Random": ("NBAPrioritization", "NBA"),
         "NBA vs Propensity Only": ("PropensityPriority", "NBA"),
         "NBA vs No Levers": ("LeverPriority", "NBA"),
@@ -92,13 +96,13 @@ class ImpactAnalyzer:
     }
     """Default experiments mapping experiment names to (control, test) group tuples."""
 
-    outcome_labels = {
+    outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Impressions": ["Impression"],
         "Accepts": ["Accept", "Accepted", "Click", "Clicked"],
     }
     """Mapping of metric names to outcome labels used for aggregation."""
 
-    default_ia_controlgroups = {
+    default_ia_controlgroups: ClassVar[dict[str, list[str | None]]] = {
         "MktValue": [
             "NBAHealth_NBAPrioritization",
             "NBAHealth_PropensityPriority",
@@ -828,7 +832,7 @@ class ImpactAnalyzer:
 
         from ..pega_io.File import _read_excel, read_data
 
-        if read_kwargs:
+        if read_kwargs:  # noqa: SIM108 — comment clarifies why we branch
             # Sheet selection isn't part of read_data's contract — call the
             # shared Excel helper so we still get the fastexcel shim.
             df = _read_excel(excel_source, **read_kwargs)
@@ -1006,8 +1010,8 @@ class ImpactAnalyzer:
             )
 
         return (
-            self.ia_data.sort(group_by + ["ControlGroup"])
-            .group_by(group_by + ["ControlGroup"], maintain_order=True)
+            self.ia_data.sort([*group_by, "ControlGroup"])
+            .group_by([*group_by, "ControlGroup"], maintain_order=True)
             .agg(agg_exprs)
             .drop(cs.starts_with("Pega_") if drop_internal_cols else [])
         )
@@ -1113,8 +1117,8 @@ class ImpactAnalyzer:
                     pl.exclude(by_column_names).name.suffix("_Control"),
                 ),
                 how="left",
-                left_on=["Control"] + by_column_names,
-                right_on=["ControlGroup_Control"] + by_column_names,
+                left_on=["Control", *by_column_names],
+                right_on=["ControlGroup_Control", *by_column_names],
             )
             .with_columns(
                 Control_Fraction=pl.col("Impressions_Control")
@@ -1136,5 +1140,5 @@ class ImpactAnalyzer:
             )
 
         return result.drop(cs.starts_with("Pega_")).sort(
-            ["Experiment"] + by_column_names,
+            ["Experiment", *by_column_names],
         )

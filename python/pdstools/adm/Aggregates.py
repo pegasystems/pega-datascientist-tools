@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 __all__ = ["Aggregates"]
-import datetime
 import logging
 from typing import TYPE_CHECKING, Literal
 
@@ -13,15 +12,18 @@ from ..utils.metric_limits import (
     get_standard_NBAD_channels,
     is_standard_NBAD_configuration,
 )
-from ..utils.types import QUERY
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    import datetime
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
 
 
 class Aggregates:
+    """Aggregates."""
+
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
 
@@ -133,10 +135,7 @@ class Aggregates:
 
         # Handle case where there are no predictors
         if len(unique_predictors) == 0:
-            if isinstance(by, str):
-                by_name = by
-            else:
-                by_name = by.meta.output_name()
+            by_name = by if isinstance(by, str) else by.meta.output_name()
             return pl.LazyFrame({by_name: []})
 
         if isinstance(by, str):
@@ -145,7 +144,7 @@ class Aggregates:
         else:
             by_col = by
             by_name = by.meta.output_name()
-        action_predictor = by_col.meta.root_names() + ["PredictorName"]
+        action_predictor = [*by_col.meta.root_names(), "PredictorName"]
 
         # Filter out null values in the grouping column to avoid transpose errors
         q = (
@@ -276,7 +275,7 @@ class Aggregates:
             return df
         if facets:
             return df.join(
-                df.group_by(facets + ["PredictorName"])
+                df.group_by([*facets, "PredictorName"])
                 .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
@@ -853,7 +852,7 @@ class Aggregates:
             )
             data = data.join(active_model_ids, on="ModelID", how="semi")
 
-        global_overview = (
+        return (
             data.filter(pl.col("EntryType") != "Classifier")
             .filter(BinIndex=1)
             .group_by("PredictorName", "PredictorCategory")
@@ -871,7 +870,6 @@ class Aggregates:
             )
             .sort("PredictorName")
         )
-        return global_overview
 
     def predictors_overview(
         self,
@@ -960,13 +958,11 @@ class Aggregates:
             default_aggs.extend(additional_aggregations)
 
         result = data.group_by(group_cols).agg(*default_aggs)
-        result = result.sort(
+        return result.sort(
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
         )
-
-        return result
 
         if model_id is not None:
             data = data.filter(pl.col("ModelID") == model_id)
@@ -999,13 +995,11 @@ class Aggregates:
             default_aggs.extend(additional_aggregations)
 
         result = data.group_by(group_cols).agg(*default_aggs)
-        result = result.sort(
+        return result.sort(
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
         )
-
-        return result
 
     def overall_summary(
         self,

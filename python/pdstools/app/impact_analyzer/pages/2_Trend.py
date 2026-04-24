@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/app/impact_analyzer/pages/2_Trend.py
 import streamlit as st
 

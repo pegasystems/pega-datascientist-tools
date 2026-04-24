@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..base import AsyncRepository as AsyncBaseRepository
 from ..base import Repository as BaseRepository
 

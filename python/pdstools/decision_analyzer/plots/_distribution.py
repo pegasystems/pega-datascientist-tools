@@ -1,5 +1,7 @@
 """Distribution-style plots: treemap, action variation, histograms, rank/parameter boxplots."""
 
+from __future__ import annotations
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
@@ -15,15 +17,14 @@ def distribution_as_treemap(self, df: pl.LazyFrame, stage: str, scope_options: l
         primary_scope = scope_options[0]
         color_discrete_map = self._decision_data.color_mappings.get(primary_scope)
 
-    fig = px.treemap(
+    return px.treemap(
         df.collect(),
-        path=[px.Constant(f"All Actions {stage}")] + scope_options,
+        path=[px.Constant(f"All Actions {stage}"), *scope_options],
         values="Decisions",
         template="pega",
         color=scope_options[0] if scope_options else None,
         color_discrete_map=color_discrete_map,
     ).update_traces(root_color="lightgrey")
-    return fig
 
 
 def action_variation(self, stage="Final", color_by=None, return_df=False):

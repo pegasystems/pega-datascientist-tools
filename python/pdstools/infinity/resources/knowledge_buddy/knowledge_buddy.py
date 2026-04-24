@@ -1,11 +1,15 @@
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
-from collections.abc import Callable
+from __future__ import annotations
 
-import httpx
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+
 from pydantic import AliasChoices, BaseModel, Field, Json
 
 from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
 from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
+
+if TYPE_CHECKING:
+    import httpx
+    from collections.abc import Callable
 
 
 class TextInput(TypedDict):
@@ -157,7 +161,7 @@ class _KnowledgeBuddyMixin:
             Text of the comment.
 
         """
-        response = await self._a_put(
+        return await self._a_put(
             "/prweb/api/knowledgebuddy/v1/question/feedback",
             data=dict(
                 questionID=question_id,
@@ -165,7 +169,6 @@ class _KnowledgeBuddyMixin:
                 comments=comments,
             ),
         )
-        return response
 
     @staticmethod
     def _custom_exception_hook(

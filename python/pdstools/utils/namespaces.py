@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import logging
 import sys
@@ -23,6 +25,8 @@ def _to_install_name(dep: str) -> str:
 
 
 def require_dependencies(func):
+    """Decorator that triggers dependency checking before invoking ``func``."""
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         self.check_dependencies()
@@ -32,7 +36,10 @@ def require_dependencies(func):
 
 
 class LazyNamespaceMeta(type):
+    """Lazy namespace meta."""
+
     def __new__(cls, name, bases, dct):
+        """New."""
         for attr_name, attr_value in dct.items():
             if isinstance(attr_value, types.FunctionType) and attr_name not in [
                 "__init__",
@@ -44,6 +51,8 @@ class LazyNamespaceMeta(type):
 
 
 class LazyNamespace(metaclass=LazyNamespaceMeta):
+    """Lazy namespace."""
+
     dependencies: list[str] | None
     dependency_group: str | None
 
@@ -51,6 +60,7 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
         self._dependencies_checked = False
 
     def check_dependencies(self):
+        """Check dependencies."""
         if not self._dependencies_checked:
             self._check_dependencies()
             self._dependencies_checked = True
@@ -77,6 +87,8 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
 
 
 class MissingDependenciesException(Exception):
+    """Missing dependencies exception."""
+
     def __init__(
         self,
         deps: list[str],

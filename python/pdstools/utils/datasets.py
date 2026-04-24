@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..adm.trees import ADMTreesModel
-from ..utils.types import QUERY
 from ..valuefinder.ValueFinder import ValueFinder
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
@@ -34,10 +39,11 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
         except Exception as e:
             raise RuntimeError(
                 f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
-            )
+            ) from e
 
 
 def sample_trees():
+    """Sample trees."""
     with warnings.catch_warnings(record=True) as w:
         try:
             return ADMTreesModel.from_url(
@@ -46,7 +52,7 @@ def sample_trees():
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
-            )
+            ) from e
 
 
 def sample_value_finder(threshold: float | None = None) -> ValueFinder:
@@ -76,4 +82,4 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
-            )
+            ) from e

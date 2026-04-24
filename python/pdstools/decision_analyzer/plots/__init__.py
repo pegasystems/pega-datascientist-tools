@@ -19,6 +19,8 @@ supported import surface. Imports such as
 unchanged.
 """
 
+from __future__ import annotations
+
 # ruff: noqa: F401
 # Re-export the module-level imports that the legacy single-file module
 # exposed via ``dir(plots)``. Some downstream code relied on these

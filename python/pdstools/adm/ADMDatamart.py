@@ -5,10 +5,8 @@ __all__ = ["ADMDatamart"]
 import datetime
 import logging
 import os
-from collections.abc import Iterable
 from functools import cached_property
 from pathlib import Path
-from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
@@ -17,13 +15,18 @@ from .. import pega_io
 from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
-from ..utils.types import QUERY
 from . import Schema
 from .trees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from collections.abc import Callable
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -363,7 +366,7 @@ class ADMDatamart:
                     ["boto3"],
                     namespace="ADMDatamart.from_s3",
                     deps_group="pega_io",
-                )
+                ) from None
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile
@@ -634,9 +637,7 @@ class ADMDatamart:
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
-        df = self._normalize_performance_scale(df)
-
-        return df
+        return self._normalize_performance_scale(df)
 
     def _validate_predictor_data(
         self,
@@ -667,8 +668,7 @@ class ADMDatamart:
             )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
-        df = self._normalize_performance_scale(df)
-        return df
+        return self._normalize_performance_scale(df)
 
     @staticmethod
     def _normalize_performance_scale(df: pl.LazyFrame) -> pl.LazyFrame:

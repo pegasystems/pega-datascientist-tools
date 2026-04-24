@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, Literal
-from collections.abc import Callable
 
 import polars as pl
 from pydantic import validate_call
 
 from ......utils import cdh_utils
-from .....internal._constants import METRIC
+from .....internal._constants import METRIC  # noqa: TC001 — runtime needed by pydantic.validate_call
 from .....internal._exceptions import NoMonitoringInfo, PegaException
 from .....internal._resource import api_method
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class _PredictionV24_2Mixin:
@@ -114,7 +116,7 @@ class _PredictionV24_2Mixin:
                 endDate=end_date_str,
                 frequency=frequency,
             )
-            data = (
+            return (
                 pl.DataFrame(
                     info["monitoringData"],
                     schema={
@@ -133,16 +135,14 @@ class _PredictionV24_2Mixin:
                 )
                 .drop("dataUsage")
             )
-            return data
         except NoMonitoringInfo:
-            data = pl.DataFrame(
+            return pl.DataFrame(
                 schema={
                     "value": pl.Float64,
                     "snapshotTime": pl.Datetime("ns"),
                     "category": pl.Utf8,
                 },
             )
-            return data
 
     @api_method
     async def package_staged_changes(self, message: str | None = None):

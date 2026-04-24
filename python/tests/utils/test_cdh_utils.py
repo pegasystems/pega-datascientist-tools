@@ -497,8 +497,8 @@ def test_feature_importance_scaled_multiple_predictors():
             # High importance: very strong differentiation between bins
             "PredictorName": ["High"] * 3 + ["Medium"] * 3 + ["Low"] * 3,
             "ModelID": ["m1"] * 9,
-            "BinPositives": [95, 5, 50] + [70, 40, 50] + [52, 50, 48],  # High varies a lot, Low is uniform
-            "BinNegatives": [5, 95, 50] + [30, 60, 50] + [48, 50, 52],
+            "BinPositives": [95, 5, 50, 70, 40, 50, 52, 50, 48],  # High varies a lot, Low is uniform
+            "BinNegatives": [5, 95, 50, 30, 60, 50, 48, 50, 52],
             "BinResponseCount": [100, 100, 100] * 3,
         }
     )
@@ -777,7 +777,7 @@ def test_gains_table():
             1,
         ]
     ]
-    assert gains.get_column("cum_y").round(5).to_list() == [0] + expected_gains
+    assert gains.get_column("cum_y").round(5).to_list() == [0, *expected_gains]
 
     # with responses, the order should be the same as in the classifier data
     gains = cdh_utils.gains_table(df, "Positives", index="Responses")

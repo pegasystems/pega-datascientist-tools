@@ -8,14 +8,16 @@ Polars expressions).
 See: https://posit-dev.github.io/great-tables/reference/vals.fmt_number.html
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from math import isnan
 from typing import TYPE_CHECKING
-from collections.abc import Callable
 
 import polars as pl
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from great_tables import GT
 
 __all__ = ["NumberFormat"]

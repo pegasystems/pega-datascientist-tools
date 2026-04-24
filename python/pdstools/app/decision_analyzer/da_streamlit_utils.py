@@ -142,7 +142,7 @@ def stage_selectbox(
     stage_options = options if options is not None else da.get_possible_stage_values()
     mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
 
-    if mapping:
+    if mapping:  # noqa: SIM108 — lambda assignment reads better as if/else
         format_func = lambda s: f"{mapping.get(s, '?')}  ·  {s}"  # noqa: E731
     else:
         format_func = str
@@ -763,11 +763,10 @@ def get_available_channel_directions(sample_df: pl.LazyFrame) -> list[str]:
     if "Direction" in schema:
         combos = sample_df.select(pl.struct("Channel", "Direction")).unique().collect().to_series().to_list()
         return sorted([f"{c['Channel']}/{c['Direction']}" for c in combos])
-    elif "Channel" in schema:
+    if "Channel" in schema:
         channels = sample_df.select("Channel").unique().collect().to_series().to_list()
         return sorted(channels)
-    else:
-        return []
+    return []
 
 
 def collect_page_filters() -> list[pl.Expr]:
@@ -840,7 +839,7 @@ def channel_direction_selector():
         st.session_state.page_channel_filter = "Any"
         st.session_state.page_channel_expr = None
 
-    options = ["Any"] + available
+    options = ["Any", *available]
 
     st.selectbox(
         "Channel / Direction",

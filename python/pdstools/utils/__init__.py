@@ -7,4 +7,6 @@ fully-qualified path. Nothing is re-exported at the package level — the
 namespaced and don't leak into the public API surface.
 """
 
+from __future__ import annotations
+
 __all__: list[str] = []

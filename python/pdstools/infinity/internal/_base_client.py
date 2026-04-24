@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import warnings
-from collections.abc import Coroutine
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,6 +21,9 @@ from anyio import (
 
 from ._auth import PegaOAuth, _read_client_credential_file
 from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 _HttpxClientT = TypeVar("_HttpxClientT", bound=httpx.Client | httpx.AsyncClient)
 logger = logging.getLogger(__name__)
@@ -103,6 +107,7 @@ class BaseClient(Generic[_HttpxClientT]):
             """Could not infer Pega version automatically.
 For full compatibility, please supply the pega_version argument to the Infinity class.
 """,
+            stacklevel=2,
         )
         return None
 
@@ -252,7 +257,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
             raise APIConnectionError(request=str(request)) from err
         return response
@@ -498,7 +503,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
             raise APIConnectionError(request=str(request)) from err
         return response

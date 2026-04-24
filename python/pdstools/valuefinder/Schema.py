@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import polars as pl
 
 
 class pyValueFinder:
+    """Py value finder."""
+
     pyDirection = pl.Categorical
     pySubjectType = pl.Categorical
     ModelPositives = pl.UInt32

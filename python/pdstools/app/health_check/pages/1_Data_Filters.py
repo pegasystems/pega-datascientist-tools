@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 import polars as pl
@@ -32,7 +34,7 @@ if uploaded_file:
     import io
 
     imported_filters = json.load(uploaded_file)
-    for key, val in imported_filters.items():
+    for _key, val in imported_filters.items():
         # Convert the JSON string to a StringIO object and specify the format as 'json'
         json_str = json.dumps(val)
         str_io = io.StringIO(json_str)

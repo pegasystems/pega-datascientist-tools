@@ -1,10 +1,11 @@
 """Health Check-specific Streamlit helpers."""
 
+from __future__ import annotations
+
 # python/pdstools/app/impact_analyzer/ia_streamlit_utils.py
 import logging
 import tempfile
 import urllib.request
-from collections.abc import Iterable
 from pathlib import Path
 
 import streamlit as st
@@ -14,6 +15,10 @@ from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     get_data_path,
 )
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -191,15 +196,13 @@ def load_from_upload_auto(uploaded_file, outcome_labels_json: str | None = None)
 
     if format_type == "pdc":
         return load_pdc_from_uploads([uploaded_file])
-    elif format_type == "vbd":
+    if format_type == "vbd":
         return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
-    else:
-        # Fall back to extension-based detection
-        if suffix == ".zip":
-            return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
-        else:
-            # Try PDC as default for .json/.ndjson
-            return load_pdc_from_uploads([uploaded_file])
+    # Fall back to extension-based detection
+    if suffix == ".zip":
+        return load_vbd_from_upload(uploaded_file, outcome_labels_json=outcome_labels_json)
+    # Try PDC as default for .json/.ndjson
+    return load_pdc_from_uploads([uploaded_file])
 
 
 @st.cache_resource
@@ -530,9 +533,9 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
     suffix = p.suffix.lower()
     if suffix in {".json", ".ndjson"}:
         return load_pdc_from_paths((str(p),))
-    elif suffix == ".xlsx":
+    if suffix == ".xlsx":
         return load_excel_from_path(str(p))
-    elif suffix == ".zip":
+    if suffix == ".zip":
         # Auto-load persisted outcome aliases from sidecar file
         st.session_state["ia_data_source_path"] = str(p)
         persisted = load_outcome_aliases(str(p))
@@ -543,12 +546,11 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
             loaded_from = next((c for c in _outcome_aliases_candidates(str(p)) if c.exists()), None)
             st.session_state["ia_outcome_aliases_loaded_from"] = str(loaded_from) if loaded_from else str(p)
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
-    else:
-        st.error(
-            f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
-            "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
-        )
-        return None
+    st.error(
+        f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
+        "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
+    )
+    return None
 
 
 def prepare_and_save_random(

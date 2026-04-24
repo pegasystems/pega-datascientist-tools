@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py
 import polars as pl
 import streamlit as st

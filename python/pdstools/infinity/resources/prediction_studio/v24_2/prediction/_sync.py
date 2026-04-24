@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Literal, overload
+from typing import Literal, overload, TYPE_CHECKING
 
 import polars as pl
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
 from ...base import Notification
-from ...types import NotificationCategory
 from ...v24_1.prediction import Prediction as PredictionPrevious
 from ._mixin import _PredictionV24_2Mixin
+
+if TYPE_CHECKING:
+    from ...types import NotificationCategory
 
 
 class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
@@ -127,7 +129,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                     context=model["contextName"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
-                    active_model=[
+                    active_model=next(
                         Model(
                             client=self._client,
                             modelId=mod["id"],
@@ -143,7 +145,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                         if model["activeModel"] is not None
                         and mod["id"] == model["activeModel"]
                         and mod["contextName"] == model["contextName"]
-                    ][0],
+                    ),
                 ),
             )
 

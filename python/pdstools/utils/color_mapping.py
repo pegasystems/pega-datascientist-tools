@@ -5,7 +5,12 @@ categorical dimensions across Streamlit applications. Color consistency is
 critical for user experience when filtering/interacting with visualizations.
 """
 
-import polars as pl
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 def create_categorical_color_mappings(

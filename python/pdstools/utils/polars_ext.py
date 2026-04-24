@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import polars as pl
 
 
 @pl.api.register_lazyframe_namespace("pdstools")
 class Sample:
+    """Sample."""
+
     def __init__(self, ldf: pl.LazyFrame) -> None:
         self._ldf = ldf
 
     def sample(self, n):
+        """Sample."""
         from functools import partial
 
         def sample_it(s: pl.Series, n) -> pl.Series:
@@ -30,11 +35,14 @@ class Sample:
         )
 
     def height(self):
+        """Height."""
         return self._ldf.select(pl.first().len()).collect().item()
 
     def shape(self):
+        """Shape."""
         return (self.height(), len(self._ldf.collect_schema().names()))
 
     def item(self):
+        """Item."""
         if self.shape() == (1, 1):
             return self._ldf.collect().item()
