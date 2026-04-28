@@ -31,7 +31,7 @@ class _SubPage:
 # the same way users are used to. Edit here to reorder the menu.
 _SUB_PAGES: tuple[_SubPage, ...] = (
     _SubPage("1_Overall_Summary.py", "Overall Summary", "📈"),
-    _SubPage("2_Trend.py", "Trend", "📉"),
+    _SubPage("2_Drill_Down.py", "Drill Down", "🔍"),
 )
 
 _ABOUT_PAGE = _SubPage("3_About.py", "About", "ℹ️")

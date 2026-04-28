@@ -149,9 +149,10 @@ def _detect_file_format(uploaded_file) -> str:
     """
     import json
 
-    # Read first few lines to detect format
+    # Read first line to detect format.  VBD NDJSON rows can easily
+    # exceed 500 bytes so read a generous chunk.
     uploaded_file.seek(0)
-    first_bytes = uploaded_file.read(500)
+    first_bytes = uploaded_file.read(8192)
     uploaded_file.seek(0)
 
     try:
@@ -165,7 +166,18 @@ def _detect_file_format(uploaded_file) -> str:
             return "pdc"
 
         # VBD format (unzipped) has columns like OutcomeTime, MktValue, Channel, etc.
-        vbd_indicators = {"OutcomeTime", "MktValue", "Channel", "AggregateCount", "Outcome"}
+        # Column names may carry Pega prefixes (pxOutcomeTime, pyChannel, …).
+        vbd_indicators = {
+            "OutcomeTime",
+            "MktValue",
+            "Channel",
+            "AggregateCount",
+            "Outcome",
+            "pxOutcomeTime",
+            "pyOutcome",
+            "pyChannel",
+            "MktType",
+        }
         if vbd_indicators.intersection(first_obj.keys()):
             return "vbd"
 

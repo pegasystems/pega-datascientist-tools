@@ -15,7 +15,7 @@ Key implementation details
   level.
 * The lift CI uses the **delta method** for the ratio estimator:
   ``SE(lift) = (1 / ctrl) · √(SE_t² + (test / ctrl)² · SE_c²)``.
-* For value metrics Pega computes variance as ``p(1−p) · AV²``
+* For value metrics Pega computes variance as ``p(1-p) · AV²``
   (Bernoulli scaled by action value), **not** a Poisson approximation.
 """
 
@@ -29,20 +29,22 @@ if TYPE_CHECKING:
     import polars as pl
 
 __all__ = [
+    "FORMULAS",
     "Z_95",
+    "Formula",
     "LiftResult",
     "accept_rate",
-    "binomial_se",
     "binomial_ci",
-    "value_variance",
-    "value_se",
-    "calculate_lift",
-    "lift_pl",
-    "error_propagation",
-    "is_significant",
+    "binomial_se",
     "calculate_engagement_lift",
+    "calculate_lift",
     "calculate_value_lift",
+    "is_significant",
+    "lift_pl",
+    "lift_se",
     "required_sample_size",
+    "value_se",
+    "value_variance",
 ]
 
 # ------------------------------------------------------------------ #
@@ -58,18 +60,128 @@ Z_95: float = 1.96
 # ------------------------------------------------------------------ #
 
 
-@dataclass
+@dataclass(frozen=True)
+class Formula:
+    """Structured representation of a statistical formula.
+
+    Attributes
+    ----------
+    name : str
+        Short identifier, e.g. ``"accept_rate"``.
+    latex : str
+        Raw LaTeX with ``{placeholders}`` for substitution.
+    description : str
+        One-line plain-English description.
+    """
+
+    name: str
+    latex: str
+    description: str
+
+    def filled(self, **values) -> str:
+        """Return LaTeX with *values* substituted into placeholders.
+
+        Parameters
+        ----------
+        **values
+            Keyword arguments whose keys match the ``{placeholders}``
+            in :attr:`latex`.
+
+        Returns
+        -------
+        str
+            Rendered LaTeX string ready for display.
+        """
+        result = self.latex
+        for k, v in values.items():
+            if isinstance(v, float):
+                result = result.replace("{" + k + "}", f"{v:.10f}")
+            else:
+                result = result.replace("{" + k + "}", str(v))
+        return result
+
+
+# Registry of all formulas used in IA statistics.
+FORMULAS: dict[str, Formula] = {
+    "accept_rate": Formula(
+        name="accept_rate",
+        latex=r"p = \frac{{\text{{Accepts}}}}{{\text{{Impressions}}}} = \frac{{{accepts}}}{{{impressions}}}",
+        description="Accept / click-through rate.",
+    ),
+    "binomial_se": Formula(
+        name="binomial_se",
+        latex=r"\text{{SE}} = \sqrt{{\frac{{p(1-p)}}{{n}}}} = \sqrt{{\frac{{{p} \times (1-{p})}}{{{n}}}}}",
+        description="Standard error of the accept rate (Wald).",
+    ),
+    "binomial_ci": Formula(
+        name="binomial_ci",
+        latex=r"\text{{CI}} = z \cdot \text{{SE}} = {z} \times {se}",
+        description="Binomial CI half-width (normal approximation).",
+    ),
+    "value_variance": Formula(
+        name="value_variance",
+        latex=r"\text{{Var}} = p(1-p) \cdot \text{{AV}}^2 = {p} \times (1-{p}) \times {av}^2",
+        description="Per-observation Bernoulli variance of the value metric.",
+    ),
+    "value_se": Formula(
+        name="value_se",
+        latex=r"\text{{SE}}_{{VPI}} = \sqrt{{\frac{{\text{{Var}}}}{{n}}}} = \sqrt{{\frac{{{var}}}{{{n}}}}}",
+        description="Standard error of value per impression.",
+    ),
+    "lift": Formula(
+        name="lift",
+        latex=r"\text{{Lift}} = \frac{{\text{{test}} - \text{{ctrl}}}}{{\text{{ctrl}}}} = \frac{{{test} - {control}}}{{{control}}}",
+        description="Relative lift: (test - control) / control.",
+    ),
+    "lift_se": Formula(
+        name="lift_se",
+        latex=r"\text{{SE}}_{{lift}} = \frac{{1}}{{\text{{ctrl}}}} \sqrt{{\text{{SE}}_t^2 + \left(\frac{{\text{{test}}}}{{\text{{ctrl}}}}\right)^2 \text{{SE}}_c^2}}",
+        description="Delta-method standard error for the lift ratio.",
+    ),
+    "significance": Formula(
+        name="significance",
+        latex=r"\text{{significant}} = (\text{{lift}} - z \cdot \text{{SE}} > 0) \;\lor\; (\text{{lift}} + z \cdot \text{{SE}} < 0)",
+        description="True when the CI does not cross zero.",
+    ),
+    "vpi": Formula(
+        name="vpi",
+        latex=r"\text{{VPI}} = p \times \text{{AV}} = {p} \times {av}",
+        description="Value per impression = accept rate × action value.",
+    ),
+    "required_sample_size": Formula(
+        name="required_sample_size",
+        latex=r"n = \frac{{(z_{{\alpha}} + z_{{\beta}})^2 \cdot [p_1(1-p_1) + p_2(1-p_2)]}}{{(p_2 - p_1)^2}}",
+        description="Required total impressions for a two-proportion z-test.",
+    ),
+    "ci_band": Formula(
+        name="ci_band",
+        latex=r"\text{{CI}}_{{t}} = \text{{Lift}}_t \pm z_{{\alpha/2}} \cdot \text{{SE}}_{{\text{{lift}},t}}",
+        description="Per-snapshot 95% confidence interval band around the lift.",
+    ),
+    "ewma": Formula(
+        name="ewma",
+        latex=r"S_t = \alpha \cdot x_t + (1 - \alpha) \cdot S_{{t-1}}, \quad \alpha = \frac{{2}}{{\text{{span}} + 1}}",
+        description="Exponentially Weighted Moving Average used by Pega to smooth daily lift.",
+    ),
+}
+
+
+@dataclass(frozen=True)
 class LiftResult:
-    """Result of a lift calculation with confidence interval.
+    """Result of a lift calculation with standard error.
 
     Attributes
     ----------
     lift : float
-        Relative lift ``(test − control) / control``.
-    ci : float
-        Delta-method confidence-interval half-width for *lift*.
+        Relative lift ``(test - control) / control``.
+    se : float
+        Delta-method standard error for *lift*.  This is the
+        full-precision SE **without** any *z*-multiplier.
     significant : bool
-        ``True`` when the CI does not cross zero.
+        ``True`` when the CI does not cross zero.  The check uses
+        ``lift ± z * se`` where ``z = 1.96`` (95 % level) after
+        rounding ``se`` to 4 decimal places, matching Pega's
+        ``Math.round(error * 10000.0) / 10000.0``.
     test_rate : float
         Observed test-group rate (accept rate or value per impression).
     control_rate : float
@@ -78,15 +190,31 @@ class LiftResult:
         Standard error of the test rate.
     control_se : float
         Standard error of the control rate.
+
+    Notes
+    -----
+    Pega stores **standard errors**, not confidence intervals.  The
+    ``se`` field is the raw SE.  Call :meth:`ci_95` to obtain the
+    95 % CI half-width (``Z_95 * se``).
     """
 
     lift: float
-    ci: float
+    se: float
     significant: bool
     test_rate: float
     control_rate: float
     test_se: float
     control_se: float
+
+    def ci_95(self) -> float:
+        """Return the 95 % confidence-interval half-width.
+
+        Returns
+        -------
+        float
+            ``Z_95 * self.se`` (i.e. ``1.96 * se``).
+        """
+        return Z_95 * self.se
 
 
 # ------------------------------------------------------------------ #
@@ -100,7 +228,17 @@ def accept_rate(accepts: int, impressions: int) -> float:
     In Pega *Accept = Accepted + Clicked* (both count as positive
     outcomes).
 
-    Returns ``0.0`` when *impressions* ≤ 0.
+    Parameters
+    ----------
+    accepts : int
+        Number of positive outcomes.
+    impressions : int
+        Total number of impressions.
+
+    Returns
+    -------
+    float
+        ``accepts / impressions``, or ``0.0`` when *impressions* ≤ 0.
     """
     if impressions <= 0:
         return 0.0
@@ -108,13 +246,30 @@ def accept_rate(accepts: int, impressions: int) -> float:
 
 
 def binomial_se(accepts: int, impressions: int) -> float:
-    """Standard error of the accept rate: ``√(p(1−p) / n)``.
+    """Standard error of the accept rate: ``√(p(1-p) / n)``.
 
     This matches what Pega stores as *TestAcceptRateCI* /
     *ControlAcceptRateCI* in the ``ConfidenceIntervalCalculation``
     sheet — note that despite the column name it is a SE, not a CI.
 
-    Returns ``0.0`` when *impressions* ≤ 0 or the rate is 0 or 1.
+    Parameters
+    ----------
+    accepts : int
+        Number of positive outcomes.
+    impressions : int
+        Total number of impressions.
+
+    Returns
+    -------
+    float
+        ``√(p(1-p) / n)``, or ``0.0`` when *impressions* ≤ 0 or
+        the rate is 0 or 1.
+
+    Notes
+    -----
+    Uses the Wald (normal-approximation) formula.  For extreme *p*
+    (close to 0 or 1) or small *n* this can under-cover; Wilson or
+    Clopper-Pearson intervals are more robust alternatives.
     """
     if impressions <= 0:
         return 0.0
@@ -125,7 +280,7 @@ def binomial_se(accepts: int, impressions: int) -> float:
 
 
 def binomial_ci(accepts: int, impressions: int, z: float = Z_95) -> float:
-    """Binomial CI half-width: ``z · √(p(1−p) / n)``.
+    """Binomial CI half-width: ``z · √(p(1-p) / n)``.
 
     Returns ``0.0`` when *impressions* ≤ 0 or the rate is 0 or 1.
     """
@@ -135,7 +290,7 @@ def binomial_ci(accepts: int, impressions: int, z: float = Z_95) -> float:
 def value_variance(accepts: int, impressions: int, action_value: float) -> float:
     """Per-observation Bernoulli variance of the value metric.
 
-    Pega computes ``p(1−p) · AV²``.  Each impression is worth either
+    Pega computes ``p(1-p) · AV²``.  Each impression is worth either
     ``action_value`` (with probability *p*) or 0.
 
     This matches *TestVariance* / *ControlVariance* in the
@@ -158,7 +313,7 @@ def value_se(accepts: int, impressions: int, action_value: float) -> float:
 
 
 def calculate_lift(test: float, control: float) -> float:
-    """Relative lift: ``(test − control) / control``.
+    """Relative lift: ``(test - control) / control``.
 
     Returns ``0.0`` when *control* ≤ 0.
     """
@@ -176,20 +331,20 @@ def lift_pl(test_col: str, control_col: str) -> pl.Expr:
     Returns
     -------
     pl.Expr
-        ``(test − control) / control``.
+        ``(test - control) / control``.
     """
     import polars as pl
 
     return (pl.col(test_col) - pl.col(control_col)) / pl.col(control_col)
 
 
-def error_propagation(
+def lift_se(
     test: float,
     control: float,
     se_test: float,
     se_control: float,
 ) -> float:
-    """Delta-method SE for the lift ratio ``test / control − 1``.
+    """Delta-method standard error for the lift ratio ``test / control - 1``.
 
     Formula::
 
@@ -200,7 +355,21 @@ def error_propagation(
        Pass **standard errors** (no *z*-multiplier).  Passing
        *z*-multiplied CI values will inflate the result by *z*.
 
-    Returns full-precision float (no rounding).
+    Parameters
+    ----------
+    test : float
+        Test-group rate (accept rate or VPI).
+    control : float
+        Control-group rate.
+    se_test : float
+        Standard error of *test*.
+    se_control : float
+        Standard error of *control*.
+
+    Returns
+    -------
+    float
+        Full-precision SE of the lift (no rounding).
     """
     if control <= 0:
         return 0.0
@@ -208,9 +377,30 @@ def error_propagation(
     return (1 / control) * math.sqrt(se_test**2 + ratio**2 * se_control**2)
 
 
-def is_significant(lift: float, ci: float) -> bool:
-    """``True`` when the CI does not cross zero."""
-    return (lift - ci > 0) or (lift + ci < 0)
+def is_significant(lift: float, se: float, z: float = Z_95) -> bool:
+    """``True`` when the CI does not cross zero.
+
+    Tests whether ``[lift - z·se, lift + z·se]`` excludes zero,
+    i.e. the lift is statistically significant at the given
+    confidence level.  With the default ``z = 1.96`` this is a
+    **95 % two-sided** test.
+
+    Parameters
+    ----------
+    lift : float
+        Observed relative lift.
+    se : float
+        Standard error of the lift (not z-multiplied).
+    z : float, optional
+        Critical value.  Default ``1.96`` (95 %).
+
+    Returns
+    -------
+    bool
+        ``True`` if the interval excludes zero.
+    """
+    half = z * se
+    return (lift - half > 0) or (lift + half < 0)
 
 
 # ------------------------------------------------------------------ #
@@ -224,9 +414,25 @@ def calculate_engagement_lift(
     accepts_control: int,
     impr_control: int,
 ) -> LiftResult:
-    """Engagement lift with delta-method CI.
+    """Engagement lift with delta-method SE.
 
     This is the primary metric in the Impact Analyzer UI.
+
+    Parameters
+    ----------
+    accepts_test : int
+        Positive outcomes in the test group.
+    impr_test : int
+        Total impressions in the test group.
+    accepts_control : int
+        Positive outcomes in the control group.
+    impr_control : int
+        Total impressions in the control group.
+
+    Returns
+    -------
+    LiftResult
+        Lift, SE, and significance for the engagement metric.
     """
     rate_t = accept_rate(accepts_test, impr_test)
     rate_c = accept_rate(accepts_control, impr_control)
@@ -234,12 +440,12 @@ def calculate_engagement_lift(
     se_c = binomial_se(accepts_control, impr_control)
 
     lift = calculate_lift(rate_t, rate_c)
-    ci = error_propagation(rate_t, rate_c, se_t, se_c)
+    se = lift_se(rate_t, rate_c, se_t, se_c)
 
     return LiftResult(
         lift=lift,
-        ci=ci,
-        significant=is_significant(lift, ci),
+        se=se,
+        significant=is_significant(lift, se),
         test_rate=rate_t,
         control_rate=rate_c,
         test_se=se_t,
@@ -257,7 +463,25 @@ def calculate_value_lift(
     """Value-per-impression lift with delta-method CI.
 
     Pega computes value as ``accept_rate × action_value`` with
-    Bernoulli variance ``p(1−p) · AV²``.
+    Bernoulli variance ``p(1-p) · AV²``.
+
+    Parameters
+    ----------
+    accepts_test : int
+        Positive outcomes in the test group.
+    impr_test : int
+        Total impressions in the test group.
+    accepts_control : int
+        Positive outcomes in the control group.
+    impr_control : int
+        Total impressions in the control group.
+    action_value : float
+        Monetary action value per accept.
+
+    Returns
+    -------
+    LiftResult
+        Lift, SE, and significance for the value metric.
     """
     rate_t = accept_rate(accepts_test, impr_test)
     rate_c = accept_rate(accepts_control, impr_control)
@@ -267,12 +491,12 @@ def calculate_value_lift(
     se_c = value_se(accepts_control, impr_control, action_value)
 
     lift = calculate_lift(vpi_t, vpi_c)
-    ci = error_propagation(vpi_t, vpi_c, se_t, se_c)
+    se = lift_se(vpi_t, vpi_c, se_t, se_c)
 
     return LiftResult(
         lift=lift,
-        ci=ci,
-        significant=is_significant(lift, ci),
+        se=se,
+        significant=is_significant(lift, se),
         test_rate=vpi_t,
         control_rate=vpi_c,
         test_se=se_t,
@@ -301,6 +525,9 @@ def required_sample_size(
         Statistical power.
     control_ratio : float
         Fraction of traffic allocated to control (default 2 %).
+        This default matches Pega Impact Analyzer's typical
+        configuration.  For general power analysis, 0.5 (equal
+        allocation) is more common.
 
     Returns
     -------

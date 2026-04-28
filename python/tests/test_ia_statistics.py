@@ -19,13 +19,14 @@ import pytest
 from pdstools.impactanalyzer.statistics import (
     LiftResult,
     Z_95,
+    FORMULAS,
     accept_rate,
     binomial_ci,
     binomial_se,
     calculate_engagement_lift,
     calculate_lift,
     calculate_value_lift,
-    error_propagation,
+    lift_se,
     is_significant,
     lift_pl,
     required_sample_size,
@@ -144,7 +145,7 @@ class TestLiftPl:
 
 class TestErrorPropagation:
     def test_zero_control(self):
-        assert error_propagation(0.1, 0.0, 0.01, 0.02) == 0.0
+        assert lift_se(0.1, 0.0, 0.01, 0.02) == 0.0
 
     def test_known_value(self):
         # term1 = (0.001/0.10)^2 = 0.0001
@@ -153,12 +154,12 @@ class TestErrorPropagation:
         # = 10 * sqrt(0.000001 + 1.44 * 0.000004)
         # = 10 * sqrt(0.000001 + 0.00000576)
         # = 10 * sqrt(0.00000676) = 10 * 0.0026 = 0.026
-        result = error_propagation(0.12, 0.10, 0.001, 0.002)
+        result = lift_se(0.12, 0.10, 0.001, 0.002)
         assert abs(result - 0.026) < 0.001
 
     def test_full_precision(self):
-        """error_propagation returns full precision, no rounding."""
-        result = error_propagation(0.12, 0.10, 0.001, 0.002)
+        """lift_se returns full precision, no rounding."""
+        result = lift_se(0.12, 0.10, 0.001, 0.002)
         # Should NOT be rounded to 4 decimals
         assert result == result  # not NaN
         assert isinstance(result, float)
@@ -208,6 +209,68 @@ class TestCalculateValueLift:
         result = calculate_value_lift(100, 1000, 0, 1000, 75.0)
         assert result.lift == 0.0
         assert result.control_rate == 0.0
+
+
+class TestLiftResultFrozen:
+    def test_immutable(self):
+        result = calculate_engagement_lift(100, 1000, 80, 1000)
+        with pytest.raises(AttributeError):
+            result.lift = 0.5  # type: ignore[misc]
+
+    def test_ci_95(self):
+        result = calculate_engagement_lift(1200, 10000, 1000, 10000)
+        assert result.ci_95() == pytest.approx(Z_95 * result.se)
+
+
+class TestFormula:
+    def test_all_formulas_present(self):
+        expected = {
+            "accept_rate",
+            "binomial_se",
+            "binomial_ci",
+            "value_variance",
+            "value_se",
+            "lift",
+            "lift_se",
+            "significance",
+            "vpi",
+            "required_sample_size",
+            "ewma",
+            "ci_band",
+        }
+        assert set(FORMULAS.keys()) == expected
+
+    def test_filled_substitution(self):
+        f = FORMULAS["accept_rate"]
+        rendered = f.filled(accepts=100, impressions=1000)
+        assert "100" in rendered
+        assert "1000" in rendered
+
+    def test_formula_is_frozen(self):
+        f = FORMULAS["accept_rate"]
+        with pytest.raises(AttributeError):
+            f.name = "modified"  # type: ignore[misc]
+
+    def test_filled_float_precision(self):
+        f = FORMULAS["binomial_se"]
+        rendered = f.filled(p=0.05, n=10000)
+        assert "0.0500000000" in rendered
+
+
+class TestIsSignificantConfidenceLevel:
+    """Verify is_significant uses 95% (z=1.96) by default."""
+
+    def test_borderline_not_significant(self):
+        # lift=0.10, se=0.06 → 0.10 - 1.96*0.06 = -0.0176 < 0 → not sig
+        assert is_significant(0.10, 0.06) is False
+
+    def test_borderline_significant(self):
+        # lift=0.20, se=0.06 → 0.20 - 1.96*0.06 = 0.0824 > 0 → sig
+        assert is_significant(0.20, 0.06) is True
+
+    def test_custom_z(self):
+        # With z=1.0: lift=0.10, se=0.06 → 0.10 - 0.06 = 0.04 > 0 → sig
+        assert is_significant(0.10, 0.06, z=1.0) is True
 
 
 class TestRequiredSampleSize:
@@ -328,8 +391,8 @@ INFINITY_PEGA = {
         "se_vpi_c": 0.7462405778,
         "eng_lift": 0.15193644,
         "val_lift": 0.1519364449,
-        "eng_ci": 1.1559857344470446,
-        "val_ci": 1.1559857393,
+        "eng_se": 1.1559857344470446,
+        "val_se": 1.1559857393,
     },
     "Exp_B": {
         "ar_t": 0.0109335576,
@@ -342,8 +405,8 @@ INFINITY_PEGA = {
         "se_vpi_c": 1.05,
         "eng_lift": -0.45332212,
         "val_lift": -0.4533221194,
-        "eng_ci": 0.41131181745762024,
-        "val_ci": 0.4113118179,
+        "eng_se": 0.41131181745762024,
+        "val_se": 0.4113118179,
     },
     "Exp_C": {
         "ar_t": 0.0985306415,
@@ -356,8 +419,8 @@ INFINITY_PEGA = {
         "se_vpi_c": 0.7612720704,
         "eng_lift": 0.0254485277,
         "val_lift": 0.0254485282,
-        "eng_ci": 0.10938239060194815,
-        "val_ci": 0.1093823907,
+        "eng_se": 0.10938239060194815,
+        "val_se": 0.1093823907,
     },
 }
 
@@ -431,7 +494,7 @@ class TestInfinityEngagementLift:
         at, it, ac, ic, av = INFINITY_RAW[exp_id]
         p = INFINITY_PEGA[exp_id]
         result = calculate_engagement_lift(at, it, ac, ic)
-        assert abs(result.ci - p["eng_ci"]) < 0.001, f"Engagement CI: expected {p['eng_ci']}, got {result.ci}"
+        assert abs(result.se - p["eng_se"]) < 0.001, f"Engagement CI: expected {p['eng_ci']}, got {result.se}"
 
 
 class TestInfinityValueLift:
@@ -449,7 +512,7 @@ class TestInfinityValueLift:
         at, it, ac, ic, av = INFINITY_RAW[exp_id]
         p = INFINITY_PEGA[exp_id]
         result = calculate_value_lift(at, it, ac, ic, av)
-        assert abs(result.ci - p["val_ci"]) < 0.001, f"Value CI: expected {p['val_ci']}, got {result.ci}"
+        assert abs(result.se - p["val_se"]) < 0.001, f"Value CI: expected {p['val_ci']}, got {result.se}"
 
 
 class TestInfinityZeroControl:
@@ -541,7 +604,7 @@ class TestEdgeCases:
     def test_zero_impressions_both(self):
         result = calculate_engagement_lift(0, 0, 0, 0)
         assert result.lift == 0.0
-        assert result.ci == 0.0
+        assert result.se == 0.0
         assert result.significant is False
 
     def test_zero_control_impressions(self):
@@ -556,13 +619,13 @@ class TestEdgeCases:
     def test_very_large_numbers(self):
         """Large samples should produce small CIs."""
         result = calculate_engagement_lift(1_000_000, 10_000_000, 20_000, 200_000)
-        assert result.ci == pytest.approx(0.00677495387438173, rel=1e-10)
+        assert result.se == pytest.approx(0.00677495387438173, rel=1e-10)
         assert result.lift == pytest.approx(0.0, abs=1e-15)
 
     def test_tiny_control_group(self):
         """Tiny control → huge CI → not significant."""
         result = calculate_engagement_lift(100, 1000, 1, 10)
-        assert result.ci == pytest.approx(0.9534149149242422, rel=1e-10)
+        assert result.se == pytest.approx(0.9534149149242422, rel=1e-10)
         assert result.significant is False
 
     def test_value_lift_zero_action_value(self):

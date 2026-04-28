@@ -440,52 +440,83 @@ class ImpactAnalyzer:
             )
             outcome_labels = _resolve_outcome_labels({row[0]: row[1] for row in channel_outcome_scan.iter_rows()})
 
+        ia_data = raw.with_columns(
+            SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
+                "1d",
+            ),
+        )
+
+        # Treatment column is optional — some VBD exports (e.g. Rabo
+        # ScenarioPlannerActuals) don't include it.  Use it when present
+        # so that per-treatment granularity is preserved, otherwise omit.
+        available_cols = ia_data.collect_schema().names()
+        _treatment_col: str | None = None
+        if "Treatment" in available_cols:
+            _treatment_col = "Treatment"
+        elif "TreatmentName" in available_cols:
+            ia_data = ia_data.rename({"TreatmentName": "Treatment"})
+            _treatment_col = "Treatment"
+
+        _group_cols: list[str] = [
+            "SnapshotTime",
+            "MktValue",
+            "Application",
+            "ApplicationVersion",
+            "Channel",
+            "Issue",
+            "Group",
+            "Name",
+        ]
+        # Only add optional columns if they exist in the data
+        if _treatment_col:
+            _group_cols.append(_treatment_col)
+        # Filter group_cols to those actually present
+        _group_cols = [c for c in _group_cols if c in ia_data.collect_schema().names()]
+
+        _sort_cols = [*_group_cols, "ControlGroup"]
+
+        # Value column is optional — some VBD exports don't include it,
+        # and in some it's stored as a string.  Ensure it's numeric.
+        _has_value = "Value" in ia_data.collect_schema().names()
+        if not _has_value:
+            ia_data = ia_data.with_columns(pl.lit(0.0).alias("Value"))
+        else:
+            ia_data = ia_data.with_columns(
+                pl.col("Value").cast(pl.Float64, strict=False).fill_null(0.0),
+            )
+
+        # AggregateCount can also be a string in some VBD exports.
+        ia_data = ia_data.with_columns(
+            pl.col("AggregateCount").cast(pl.Int64, strict=False).fill_null(1),
+        )
+
+        _agg_exprs = [
+            pl.col("AggregateCount")
+            .filter(cls._build_outcome_filter("Impressions", outcome_labels))
+            .sum()
+            .alias("Impressions"),
+            pl.col("AggregateCount")
+            .filter(cls._build_outcome_filter("Accepts", outcome_labels))
+            .sum()
+            .alias("Accepts"),
+            (
+                pl.col("Value").filter(cls._build_outcome_filter("Accepts", outcome_labels)).sum()
+                / pl.col("AggregateCount").filter(cls._build_outcome_filter("Impressions", outcome_labels)).sum()
+            ).alias("ValuePerImpression"),
+            # kept for debugging and UI discovery
+            pl.col("AggregateCount", "Value", "Outcome"),
+        ]
+
         ia_data = (
-            raw.with_columns(
-                SnapshotTime=parse_pega_date_time_formats("OutcomeTime").dt.truncate(
-                    "1d",
-                ),
-            )
-            .group_by(
-                "SnapshotTime",
-                "MktValue",
-                "Application",
-                "ApplicationVersion",
-                "Channel",
-                "Issue",
-                "Group",
-                "Name",
-                "Treatment",
-            )
-            .agg(
-                pl.col("AggregateCount")
-                .filter(cls._build_outcome_filter("Impressions", outcome_labels))
-                .sum()
-                .alias("Impressions"),
-                pl.col("AggregateCount")
-                .filter(cls._build_outcome_filter("Accepts", outcome_labels))
-                .sum()
-                .alias("Accepts"),
-                (
-                    pl.col("Value").filter(cls._build_outcome_filter("Accepts", outcome_labels)).sum()
-                    / pl.col("AggregateCount").filter(cls._build_outcome_filter("Impressions", outcome_labels)).sum()
-                ).alias("ValuePerImpression"),
-                # kept for debugging and UI discovery
-                pl.col("AggregateCount", "Value", "Outcome"),
-            )
+            ia_data.group_by(_group_cols)
+            .agg(_agg_exprs)
             .filter(pl.col("Accepts") <= pl.col("Impressions"))
             .rename({"MktValue": "ControlGroup"})
             .with_columns(
                 pl.col("ControlGroup").str.strip_prefix("NBAHealth_").fill_null("NBA"),
             )
             .sort(
-                "SnapshotTime",
-                "Channel",
-                "Issue",
-                "Group",
-                "Name",
-                "Treatment",
-                "ControlGroup",
+                *[c for c in _sort_cols if c != "MktValue"],
             )
         )
 
