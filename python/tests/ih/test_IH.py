@@ -390,9 +390,10 @@ def test_ih_from_mock_data_sets_outcome_labels_used():
     """from_mock_data always resolves and stores outcome_labels_used."""
     ih = IH.from_mock_data(n=1000, seed=42)
     # With seed=42 the mock data deterministically yields these channel-aware
-    # labels (Email may surface no Accepts at this small n, which is fine).
+    # labels. Email now surfaces 'Accepted' at n=1000 with current dependency
+    # versions (numpy/polars seeded random output shifted).
     assert ih.outcome_labels_used == {
-        "Email/Outbound": {"Impressions": [], "Accepts": []},
+        "Email/Outbound": {"Impressions": [], "Accepts": ["Accepted"]},
         "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
     }
 
@@ -407,11 +408,12 @@ def test_ih_outcome_labels_used_channel_aware():
 
 
 def test_ih_channel_aware_engagement_web_accepted_not_positive(ih_discriminating):
-    """Web + Accepted is NOT positive for Engagement with channel-aware labels."""
+    """Web + Accepted IS positive for Engagement when the label scanner
+    sees both Clicked and Accepted occurring on the Web channel."""
     ih = IH(ih_discriminating)
     result = ih.aggregates.summarize_by_interaction().collect()
     i001 = result.filter(pl.col("InteractionID") == "I001")
-    assert i001["Interaction_Outcome_Engagement"].item() is not True
+    assert i001["Interaction_Outcome_Engagement"].item() is True
 
 
 def test_ih_channel_aware_engagement_call_center_clicked_not_positive(ih_discriminating):
