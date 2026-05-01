@@ -55,6 +55,16 @@ TILES: tuple[AppTile, ...] = (
         url_path="ia_home",
         active_app="ia",
     ),
+    AppTile(
+        icon="🔍",
+        title="Topic Data Quality",
+        description=(
+            "Evaluate labelled text datasets for topic classification readiness — "
+            "class balance, topic overlap, text quality, and cluster tightness."
+        ),
+        url_path="dq_home",
+        active_app="dq",
+    ),
 )
 
 
