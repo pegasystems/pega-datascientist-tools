@@ -25,7 +25,7 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_ds_export
+from ..pega_io.File import read_data, read_ds_export
 
 if TYPE_CHECKING:
     import os
@@ -111,13 +111,110 @@ class DecisionAnalyzer:
     >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
     >>> da.overview_stats
     >>> da.plot.sensitivity()
-    >>> da.aggregates.get_funnel_data(scope="Action")
+    >>> da.aggregates.get_funnel_data()  # defaults to scope="Action"
     >>> da.scoring.get_sensitivity()
+
+    The ``from_*`` classmethods also accept a directory of parquet
+    (Hive-partitioned layouts work) or a glob pattern, e.g.::
+
+        DecisionAnalyzer.from_decision_analyzer("path/to/extract/")
+        DecisionAnalyzer.from_decision_analyzer("path/**/*.parquet")
+
+    Schema and column renaming
+    --------------------------
+    The class auto-detects whether the input is an Explainability Extract
+    (v1) or Decision Analyzer / EEV2 (v2) export and resolves source
+    column names against the table definition in
+    :mod:`pdstools.decision_analyzer.column_schema`. After ingestion all
+    downstream code uses friendly display names like ``Subject ID``,
+    ``Interaction ID``, ``Issue``, ``Group``, ``Action``, ``Channel``,
+    ``Direction``, ``Stage``, ``Stage Group``, ``Stage Order``,
+    ``Propensity``, ``Priority``, ``Decision Time``, etc.
+
+    Common source-name aliases that get mapped automatically include
+    ``Primary_pySubjectID`` / ``pySubjectID`` → ``Subject ID``,
+    ``pxInteractionID`` → ``Interaction ID``,
+    ``pyName`` → ``Action``, ``pyIssue`` → ``Issue``, ``pyGroup`` →
+    ``Group``, ``pxDecisionTime`` → ``Decision Time``,
+    ``Primary_ContainerPayload_Channel`` / ``pyChannel`` → ``Channel``,
+    ``Stage_pyName`` → ``Stage``, ``Stage_pyStageGroup`` → ``Stage
+    Group``, ``Stage_pyOrder`` → ``Stage Order``. The critical columns
+    that must be resolvable are ``Interaction ID``, ``Issue``,
+    ``Group``, and ``Action``; everything else is best-effort.
+
+    For the full mapping (including v1-only and v2-only columns), inspect
+    :data:`pdstools.decision_analyzer.column_schema.DecisionAnalyzer` and
+    :data:`pdstools.decision_analyzer.column_schema.ExplainabilityExtract`.
+
+    Memory footprint
+    ----------------
+    On instantiation, this class triggers several lazy → eager polars
+    queries (``unique`` interaction count, stage discovery, etc.). For a
+    multi-billion-row Hive-partitioned extract these scans alone can
+    spike memory well past 10 GB. If you only need aggregate views,
+    pre-filter / pre-aggregate the data at the ``pl.scan_parquet`` level
+    before passing it in, or use a downsampled copy. The
+    ``preaggregated_filter_view`` and ``sample`` cached properties
+    additionally materialise data and should be used with care on full
+    datasets.
+
+    Sample vs full-data convention
+    ------------------------------
+    Most :class:`Aggregates` methods that compute pre-aggregates
+    (``get_funnel_data``, ``get_optionality_data``, ...) use the
+    pre-aggregated view of the **full** dataset under the hood, while
+    sensitivity / threshold / win-loss methods on :class:`Scoring`
+    operate on the downsampled ``self.sample`` (≤ ``sample_size``
+    interactions) for performance. ``self.decision_data`` is the full
+    LazyFrame; ``self.sample`` is the small one.
     """
 
     # Lazily-set attribute populated when ``sample`` is first accessed.
     # Declared here so type-checkers see it on the class.
     _num_sample_interactions: int
+
+    @staticmethod
+    def _read_source(source: str | os.PathLike) -> pl.LazyFrame:
+        """Resolve a user-supplied source into a polars LazyFrame.
+
+        Accepts:
+
+        * a single file path (delegates to :func:`read_ds_export`, which
+          also supports remote URLs);
+        * a directory path — including Hive-partitioned layouts — read
+          recursively via :func:`read_data` (auto-detects format from
+          the first supported file found);
+        * a glob pattern (``"foo/**/*.parquet"`` etc.); inferred whenever
+          the path string contains ``*``, ``?`` or ``[``.
+        """
+        from pathlib import Path
+
+        source_str = str(source)
+        is_glob = any(ch in source_str for ch in "*?[")
+        path_obj = Path(source_str)
+
+        if is_glob:
+            # polars handles globs natively for parquet/csv/ipc/ndjson.
+            lower = source_str.lower()
+            if ".parquet" in lower:
+                return pl.scan_parquet(source_str)
+            if lower.endswith(".csv") or ".csv" in lower:
+                return pl.scan_csv(source_str)
+            if any(lower.endswith(ext) for ext in (".ipc", ".arrow", ".feather")):
+                return pl.scan_ipc(source_str)
+            if any(lower.endswith(ext) for ext in (".ndjson", ".jsonl", ".json")):
+                return pl.scan_ndjson(source_str)
+            # Default: assume parquet (the most common DA extract format).
+            return pl.scan_parquet(source_str)
+
+        if path_obj.is_dir():
+            return read_data(path_obj)
+
+        # Single file (or remote URL handled by read_ds_export).
+        raw = read_ds_export(source_str)
+        if raw is None:
+            raise ValueError(f"Could not read data from {source}")
+        return raw
 
     @classmethod
     def from_explainability_extract(
@@ -135,7 +232,11 @@ class DecisionAnalyzer:
         Parameters
         ----------
         source : str | os.PathLike
-            Path to the Explainability Extract parquet file, or a URL.
+            Path to the Explainability Extract data. May be:
+
+            * a single parquet/csv/ndjson file (or remote URL),
+            * a directory of parquet files (Hive partitioning supported),
+            * a glob pattern (e.g. ``"path/**/*.parquet"``).
         level, sample_size, mandatory_expr, additional_columns, num_samples
             See :meth:`__init__` for details.
 
@@ -146,10 +247,10 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/extract_dir/")
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/**/*.parquet")
         """
-        raw_data = read_ds_export(str(source))
-        if raw_data is None:
-            raise ValueError(f"Could not read data from {source}")
+        raw_data = cls._read_source(source)
         return cls(
             raw_data,
             level=level,
@@ -175,7 +276,11 @@ class DecisionAnalyzer:
         Parameters
         ----------
         source : str | os.PathLike
-            Path to the Decision Analyzer parquet file, or a URL.
+            Path to the Decision Analyzer data. May be:
+
+            * a single parquet/csv/ndjson file (or remote URL),
+            * a directory of parquet files (Hive partitioning supported),
+            * a glob pattern (e.g. ``"path/**/*.parquet"``).
         level, sample_size, mandatory_expr, additional_columns, num_samples
             See :meth:`__init__` for details.
 
@@ -186,10 +291,10 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/eev2_partitioned/")
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/**/*.parquet")
         """
-        raw_data = read_ds_export(str(source))
-        if raw_data is None:
-            raise ValueError(f"Could not read data from {source}")
+        raw_data = cls._read_source(source)
         return cls(
             raw_data,
             level=level,
