@@ -12,7 +12,6 @@ import polars.selectors as cs
 from .data_read_utils import validate_columns
 from ._aggregates import Aggregates
 from ._scoring import Scoring
-from .plots import Plot
 from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
@@ -41,6 +40,37 @@ MANDATORY_PRIORITY_THRESHOLD = 4_999_999
 arbitration engine. Mandatory actions bypass normal ranking and always land in
 the top slot. Used to auto-detect mandatory rows when no explicit
 ``mandatory_expr`` is supplied to :class:`DecisionAnalyzer`."""
+
+
+class _MissingPlotAccessor:
+    """Stand-in for :class:`Plot` when plotly is not installed.
+
+    Any attribute access raises a friendly error pointing the user at the
+    correct extras install. The aggregation / scoring APIs of
+    :class:`DecisionAnalyzer` work fine without plotly; this accessor only
+    surfaces when ``da.plot`` is actually used.
+    """
+
+    def __init__(self, error: BaseException):
+        self._error = error
+
+    def __getattr__(self, name: str):
+        raise ImportError(
+            "DecisionAnalyzer.plot requires the optional 'plotly' dependency. "
+            "Install with: pip install 'pdstools[explanations]' (or [adm])."
+        ) from self._error
+
+    def __repr__(self) -> str:
+        return "<DecisionAnalyzer.plot unavailable: plotly not installed>"
+
+
+def _make_plot_accessor(da: "DecisionAnalyzer"):
+    """Return a real ``Plot`` accessor or a missing-dependency stand-in."""
+    try:
+        from .plots import Plot
+    except ImportError as e:  # pragma: no cover - exercised only without plotly
+        return _MissingPlotAccessor(e)
+    return Plot(da)
 
 
 class DecisionAnalyzer:
@@ -261,7 +291,7 @@ class DecisionAnalyzer:
         >>> mandatory = pl.col("Issue") == "Retention"
         >>> decision_analyzer = DecisionAnalyzer(raw_data, mandatory_expr=mandatory)
         """
-        self.plot = Plot(self)
+        self.plot = _make_plot_accessor(self)
         self.aggregates = Aggregates(self)
         self.scoring = Scoring(self)
         self.level = level
