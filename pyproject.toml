@@ -51,7 +51,7 @@ healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xl
 explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
 app = [
     'pdstools[healthcheck]',
-    'streamlit>=1.45',
+    'streamlit*',
     "polars[rt64]>=1.30,!=1.35.1,<=1.39.3",
     'humanize>=4.0.0',
     'fastexcel>=0.7.0',
