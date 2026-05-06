@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 # python/pdstools/decision_analyzer/data_read_utils.py
 """Decision Analyzer data-reading utilities.
 
@@ -10,7 +8,9 @@ re-exported here for back-compat with any external caller importing from the
 old location; new code should import from ``pdstools.pega_io``.
 """
 
-import polars as pl
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from ..pega_io.action_analysis import (
     read_gzipped_data,
@@ -18,9 +18,10 @@ from ..pega_io.action_analysis import (
     read_nested_zip_files,
 )
 from .utils import ColumnResolver
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import polars as pl
+
     from .column_schema import TableConfig
 
 __all__ = [
