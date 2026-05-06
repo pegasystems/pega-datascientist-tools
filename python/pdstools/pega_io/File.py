@@ -276,15 +276,19 @@ def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
 def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFrame:
     """Scan one or more parquet files from a user-supplied path, glob, or list.
 
-    Thin wrapper around :func:`polars.scan_parquet` that lives in ``pega_io`` so
-    all user-facing parquet scans flow through a single, inspectable surface.
-    This is the funnel CodeQL's ``py/path-injection`` rule is scoped to.
+    Lives in ``pega_io`` so all user-facing parquet scans flow through a
+    single, inspectable surface — the funnel CodeQL's
+    ``py/path-injection`` rule is scoped to. Single-path / glob inputs are
+    routed through :func:`_scan_by_extension` so there is one place inside
+    ``pega_io`` where ``pl.scan_parquet`` is actually invoked for a leaf
+    path. Lists of paths are forwarded directly to
+    :func:`polars.scan_parquet` (it accepts that shape natively).
 
     Parameters
     ----------
     source : str or Path or list of str/Path
         Path to a parquet file, a glob pattern (e.g. ``"folder/*_BATCH_*.parquet"``),
-        or a list of file paths. Forwarded to ``pl.scan_parquet`` unchanged.
+        or a list of file paths.
 
     Returns
     -------
@@ -296,7 +300,9 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     # CodeQL suppression: User-controlled paths are expected in a data reading
     # library. Users explicitly specify which files/globs to scan — this is the
     # intended functionality, not a vulnerability.
-    return pl.scan_parquet(source)
+    if isinstance(source, list):
+        return pl.scan_parquet(source)
+    return _scan_by_extension(source, ".parquet")
 
 
 def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:

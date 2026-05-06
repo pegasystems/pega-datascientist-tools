@@ -593,6 +593,18 @@ stays singular. Use the more specialised `read_ds_export` only when
 you need its ADM-specific smart-name lookup (`"model_data"`,
 `"predictor_data"`) or remote-URL fetching.
 
+The whole `pdstools.pega_io` module is the single funnel for
+user-facing path → polars reads (CodeQL `py/path-injection` is
+suppressed there at config level on that basis). Inside the funnel,
+**`_scan_by_extension` is the one place `pl.scan_*` / `pl.read_*` is
+actually called** for a leaf path. New format-specific helpers
+(`scan_parquet_path`, future `scan_csv_path`, …) and reader modules
+(`action_analysis.py`, future per-format helpers) should delegate to
+`_scan_by_extension` rather than calling `pl.scan_*` themselves —
+otherwise we end up with parallel "single sources of truth" and the
+generic CSV/JSON defaults (null values, date parsing, `pxResults`
+fallback) drift between callers.
+
 When the source is a cloud service (S3, GCS, Azure Blob), keep the
 heavy SDK (`boto3`, `google-cloud-storage`, …) as a **lazy import
 inside the classmethod** and gate it via `MissingDependenciesException`

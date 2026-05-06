@@ -18,7 +18,7 @@ from pathlib import Path
 
 import polars as pl
 
-from .File import _is_artifact
+from .File import _is_artifact, _scan_by_extension
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def read_gzipped_data(data: BytesIO) -> pl.LazyFrame | None:
     try:
         with gzip.open(data, "rb") as file:
             file_content = file.read()
-            return pl.read_ndjson(BytesIO(file_content)).lazy()
+            return _scan_by_extension(BytesIO(file_content), ".json")
     except Exception as e:
         logger.warning("Error reading gzipped data: %s", e)
         return None
@@ -135,7 +135,7 @@ def read_gzipped_ndjson_directory(path: str) -> pl.LazyFrame:
             continue
         with gzip.open(file_path, "rb") as file:
             file_content = file.read()
-            df = pl.read_ndjson(BytesIO(file_content)).lazy()
+            df = _scan_by_extension(BytesIO(file_content), ".json")
             if columns == []:
                 columns = df.collect_schema().names()
             dfs.append(df.select(columns))
