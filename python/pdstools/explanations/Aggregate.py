@@ -8,6 +8,7 @@ from typing import ClassVar, TYPE_CHECKING, cast
 
 import polars as pl
 
+from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
@@ -226,13 +227,13 @@ class Aggregate(LazyNamespace):
         context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
 
         self.df_contextual = (
-            pl.scan_parquet(context_)
+            scan_parquet_path(context_)
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
         self.df_overall = (
-            pl.scan_parquet(f"{self.data_folderpath}/*_OVERALL.parquet")
+            scan_parquet_path(f"{self.data_folderpath}/*_OVERALL.parquet")
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
