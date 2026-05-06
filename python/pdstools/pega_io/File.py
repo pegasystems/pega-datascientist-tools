@@ -217,6 +217,10 @@ def _json_pxresults_fallback(file: str | Path | BytesIO) -> pl.LazyFrame:
         file.seek(0)
         raw = file.read().decode("utf-8")
     else:
+        # lgtm [py/path-injection]
+        # CodeQL suppression: User-controlled paths are expected in a data
+        # reading library — this helper is only reached from inside the
+        # pega_io funnel after _scan_by_extension's own readers fail.
         with open(file) as f:
             raw = f.read()
     return pl.from_dicts(json.loads(raw)["pxResults"]).lazy()
