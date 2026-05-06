@@ -25,7 +25,8 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_data, read_ds_export
+from ..pega_io.File import read_data
+from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os
@@ -42,34 +43,31 @@ the top slot. Used to auto-detect mandatory rows when no explicit
 ``mandatory_expr`` is supplied to :class:`DecisionAnalyzer`."""
 
 
-class _MissingPlotAccessor:
+class _PlotPlotlyMissing(LazyNamespace):
     """Stand-in for :class:`Plot` when plotly is not installed.
 
-    Any attribute access raises a friendly error pointing the user at the
-    correct extras install. The aggregation / scoring APIs of
-    :class:`DecisionAnalyzer` work fine without plotly; this accessor only
-    surfaces when ``da.plot`` is actually used.
+    Inherits :class:`~pdstools.utils.namespaces.LazyNamespace` so any
+    method call or attribute access surfaces the standard
+    :class:`~pdstools.utils.namespaces.MissingDependenciesException`
+    pointing the user at the ``pdstools[adm]`` extras group.
     """
 
-    def __init__(self, error: BaseException):
-        self._error = error
-
-    def __getattr__(self, name: str):
-        raise ImportError(
-            "DecisionAnalyzer.plot requires the optional 'plotly' dependency. "
-            "Install with: pip install 'pdstools[explanations]' (or [adm])."
-        ) from self._error
-
-    def __repr__(self) -> str:
-        return "<DecisionAnalyzer.plot unavailable: plotly not installed>"
+    dependencies: ClassVar[list[str]] = ["plotly"]
+    dependency_group = "adm"
 
 
 def _make_plot_accessor(da: "DecisionAnalyzer"):
-    """Return a real ``Plot`` accessor or a missing-dependency stand-in."""
+    """Return a real :class:`Plot` accessor or a missing-dependency stand-in.
+
+    The :mod:`pdstools.decision_analyzer.plots` package eagerly imports
+    plotly; we keep that import lazy here so that
+    ``DecisionAnalyzer`` itself can be used (for aggregation, scoring,
+    etc.) on systems without plotly installed.
+    """
     try:
         from .plots import Plot
-    except ImportError as e:  # pragma: no cover - exercised only without plotly
-        return _MissingPlotAccessor(e)
+    except ImportError:  # pragma: no cover - exercised only without plotly
+        return _PlotPlotlyMissing()
     return Plot(da)
 
 
@@ -173,49 +171,6 @@ class DecisionAnalyzer:
     # Declared here so type-checkers see it on the class.
     _num_sample_interactions: int
 
-    @staticmethod
-    def _read_source(source: str | os.PathLike) -> pl.LazyFrame:
-        """Resolve a user-supplied source into a polars LazyFrame.
-
-        Accepts:
-
-        * a single file path (delegates to :func:`read_ds_export`, which
-          also supports remote URLs);
-        * a directory path — including Hive-partitioned layouts — read
-          recursively via :func:`read_data` (auto-detects format from
-          the first supported file found);
-        * a glob pattern (``"foo/**/*.parquet"`` etc.); inferred whenever
-          the path string contains ``*``, ``?`` or ``[``.
-        """
-        from pathlib import Path
-
-        source_str = str(source)
-        is_glob = any(ch in source_str for ch in "*?[")
-        path_obj = Path(source_str)
-
-        if is_glob:
-            # polars handles globs natively for parquet/csv/ipc/ndjson.
-            lower = source_str.lower()
-            if ".parquet" in lower:
-                return pl.scan_parquet(source_str)
-            if lower.endswith(".csv") or ".csv" in lower:
-                return pl.scan_csv(source_str)
-            if any(lower.endswith(ext) for ext in (".ipc", ".arrow", ".feather")):
-                return pl.scan_ipc(source_str)
-            if any(lower.endswith(ext) for ext in (".ndjson", ".jsonl", ".json")):
-                return pl.scan_ndjson(source_str)
-            # Default: assume parquet (the most common DA extract format).
-            return pl.scan_parquet(source_str)
-
-        if path_obj.is_dir():
-            return read_data(path_obj)
-
-        # Single file (or remote URL handled by read_ds_export).
-        raw = read_ds_export(source_str)
-        if raw is None:
-            raise ValueError(f"Could not read data from {source}")
-        return raw
-
     @classmethod
     def from_explainability_extract(
         cls,
@@ -250,7 +205,7 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_explainability_extract("data/extract_dir/")
         >>> da = DecisionAnalyzer.from_explainability_extract("data/**/*.parquet")
         """
-        raw_data = cls._read_source(source)
+        raw_data = read_data(source)
         return cls(
             raw_data,
             level=level,
@@ -294,7 +249,7 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/eev2_partitioned/")
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/**/*.parquet")
         """
-        raw_data = cls._read_source(source)
+        raw_data = read_data(source)
         return cls(
             raw_data,
             level=level,

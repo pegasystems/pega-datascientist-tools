@@ -140,7 +140,15 @@ python -m build --sdist --wheel --outdir dist/ .
 - Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
-  module-level `try/except ImportError` blocks.
+  module-level `try/except ImportError` blocks. For sub-namespace
+  classes whose **methods** depend on optional packages (plotting, ML
+  extras, cloud SDKs), extend `LazyNamespace`
+  (`pdstools.utils.namespaces`) and declare
+  `dependencies = ["..."]` + `dependency_group = "<extras-group>"`. It
+  wraps every public method with a dependency check that raises
+  `MissingDependenciesException` with a friendly install hint, and
+  attribute access on missing methods triggers the same check — no
+  per-class missing-dep stand-in needed.
 
 ### Formatting
 - Use ruff-format (black-compatible). Do not hand-format.
@@ -573,6 +581,17 @@ network, and S3 I/O lives in alternative constructors named
 `from_dataflow_export`, `from_pdc`). This mirrors the
 `pl.read_csv` / `pl.scan_csv` idiom and makes the class trivially
 testable with synthesized data — no monkey-patching required.
+
+Inside `from_<source>` classmethods, **delegate path resolution to
+`pdstools.pega_io.File.read_data`** for anything path-like. It already
+handles single files, directories (Hive-partitioned layouts),
+archives (zip / tar / gzip), `BytesIO` uploads, and glob patterns
+(`"data/**/*.parquet"`). If you discover a new input shape that isn't
+covered, **extend `read_data`** rather than rolling a local resolver
+on the analyzer class — every analyzer benefits and the entry point
+stays singular. Use the more specialised `read_ds_export` only when
+you need its ADM-specific smart-name lookup (`"model_data"`,
+`"predictor_data"`) or remote-URL fetching.
 
 When the source is a cloud service (S3, GCS, Azure Blob), keep the
 heavy SDK (`boto3`, `google-cloud-storage`, …) as a **lazy import
