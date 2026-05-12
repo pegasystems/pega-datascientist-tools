@@ -69,7 +69,9 @@ class Formula:
     name : str
         Short identifier, e.g. ``"accept_rate"``.
     latex : str
-        Raw LaTeX with ``{placeholders}`` for substitution.
+        Raw LaTeX expression (no placeholder substitution — the UI
+        renders the symbolic form alongside a separate substitution
+        block showing the numeric values).
     description : str
         One-line plain-English description.
     """
@@ -77,28 +79,6 @@ class Formula:
     name: str
     latex: str
     description: str
-
-    def filled(self, **values) -> str:
-        """Return LaTeX with *values* substituted into placeholders.
-
-        Parameters
-        ----------
-        **values
-            Keyword arguments whose keys match the ``{placeholders}``
-            in :attr:`latex`.
-
-        Returns
-        -------
-        str
-            Rendered LaTeX string ready for display.
-        """
-        result = self.latex
-        for k, v in values.items():
-            if isinstance(v, float):
-                result = result.replace("{" + k + "}", f"{v:.10f}")
-            else:
-                result = result.replace("{" + k + "}", str(v))
-        return result
 
 
 # Registry of all formulas used in IA statistics.
