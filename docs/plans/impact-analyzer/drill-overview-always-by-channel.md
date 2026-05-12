@@ -1,9 +1,9 @@
-# Drill Down — overview should always primary-axis on channel
+# Channels — overview should always primary-axis on channel
 
 **Priority:** P1
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Drill_Down.py`
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`
 
-The Drill Down "overview" section (top of the page) renders charts and
+The Channels "overview" section (top of the page) renders charts and
 tables that aren't consistently faceted by channel. Since this whole
 page is about cross-channel comparison, the overview should always lead
 with channel as the primary axis (rows or columns), regardless of which

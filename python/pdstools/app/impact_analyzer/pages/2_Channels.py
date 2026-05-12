@@ -1,8 +1,11 @@
-# python/pdstools/app/impact_analyzer/pages/4_Drill_Down.py
-"""Drill Down page — per-channel lift analysis.
+# python/pdstools/app/impact_analyzer/pages/2_Channels.py
+"""Channels page — per-channel pivot of lift metrics.
 
-Allows users to drill into individual channels within an experiment to see
-per-channel engagement and value lift.
+For a chosen experiment, breaks down engagement and value lift by channel.
+Intended as the dimension-pivoted complement to the experiment-centric
+Overall Summary page. Future work will generalise the pivot axis to
+Issue / Group / Action (see
+docs/plans/impact-analyzer/drill-zoom-into-issue-group-action.md).
 """
 
 from __future__ import annotations
@@ -15,13 +18,9 @@ import streamlit as st
 
 from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
 from pdstools.impactanalyzer.statistics import (
-    FORMULAS,
     Z_95,
     accept_rate,
     binomial_se,
-    calculate_engagement_lift,
-    calculate_lift,
-    is_significant,
     lift_se,
     value_se,
 )
@@ -30,7 +29,7 @@ from pdstools.utils.streamlit_utils import standard_page_config
 # ---------------------------------------------------------------------------
 # Page setup
 # ---------------------------------------------------------------------------
-standard_page_config(page_title="Impact Analyzer · Drill Down")
+standard_page_config(page_title="Impact Analyzer · Channels")
 
 ia = ensure_impact_analyzer()
 
@@ -56,12 +55,6 @@ st.markdown(
 .metric-value.positive { color: #2ca02c; }
 .metric-value.negative { color: #d62728; }
 .metric-value.neutral  { color: #8795A1; }
-.formula-box {
-    background: #F0F4FA; border-left: 4px solid #1F6BFF; padding: 12px 16px;
-    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;
-    line-height: 1.7; border-radius: 4px; margin: 8px 0;
-    white-space: pre-wrap; color: #1B2A4A;
-}
 </style>
 """,
     unsafe_allow_html=True,
@@ -90,39 +83,10 @@ def _lift_class(v) -> str:
     return "positive" if v >= 0 else "negative"
 
 
-def _num(v, digits: int = 10) -> str:
-    if v is None or (isinstance(v, float) and math.isnan(v)):
-        return "—"
-    return f"{v:.{digits}f}"
-
-
-def _formula_box(lines: list[str] | str) -> None:
-    if isinstance(lines, str):
-        lines = [lines]
-    st.markdown(
-        f'<div class="formula-box">{chr(10).join(lines)}</div>',
-        unsafe_allow_html=True,
-    )
-
-
-def _formula(latex: str, description: str = "", substitution: str = "") -> None:
-    if description:
-        st.markdown(
-            f"<p style='color:#5A6B80;font-size:13px;margin-bottom:2px'>{description}</p>",
-            unsafe_allow_html=True,
-        )
-    st.latex(latex)
-    if substitution:
-        st.markdown(
-            f'<div class="formula-box" style="margin-top:-8px">{substitution}</div>',
-            unsafe_allow_html=True,
-        )
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Title
 # ═══════════════════════════════════════════════════════════════════════════
-"# Drill Down"
+"# Channels"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Experiment selector
@@ -140,7 +104,7 @@ st.markdown("**Select experiment**")
 selected_experiment = st.selectbox(
     "Select experiment",
     options=active_experiments,
-    help="Choose an experiment to drill down into by channel.",
+    help="Choose an experiment to break down by channel.",
     label_visibility="collapsed",
 )
 
@@ -413,154 +377,6 @@ if gaining or losing:
                 )
         else:
             st.info("No channels lost significant share.")
-
-st.divider()
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Channel performance details cards
-# ═══════════════════════════════════════════════════════════════════════════
-st.markdown("### Channel Performance Details")
-st.caption("Expand any channel below to see full formula walkthroughs, just like the Overall Summary page.")
-
-for row in by_channel_df.iter_rows(named=True):
-    ch = row["Channel"]
-    n_t = int(row.get("Impressions_Test") or 0)
-    a_t = int(row.get("Accepts_Test") or 0)
-    n_c = int(row.get("Impressions_Control") or 0)
-    a_c = int(row.get("Accepts_Control") or 0)
-    ctr_lift = row.get("CTR_Lift")
-    val_lift = row.get("Value_Lift")
-
-    lift_str = _pct(ctr_lift)
-    cls = _lift_class(ctr_lift)
-    sig_icon = "+" if ctr_lift is not None and abs(ctr_lift) > 0 else "-"
-
-    with st.expander(
-        f"**{ch}** — Eng. Lift: {lift_str}  |  Test: {n_t:,}  |  Ctrl: {n_c:,}",
-        expanded=False,
-    ):
-        if n_t == 0 or n_c == 0:
-            st.warning("Insufficient data for this channel.")
-            continue
-
-        p_t = accept_rate(a_t, n_t)
-        p_c = accept_rate(a_c, n_c)
-        se_t = binomial_se(a_t, n_t)
-        se_c = binomial_se(a_c, n_c)
-
-        eng = calculate_engagement_lift(a_t, n_t, a_c, n_c)
-
-        # Metrics row
-        m1, m2, m3, m4 = st.columns(4)
-        m1.markdown(
-            f'<div class="metric-label">ENG. LIFT</div>'
-            f'<div class="metric-value {_lift_class(eng.lift)}">{_pct(eng.lift, 4)}</div>',
-            unsafe_allow_html=True,
-        )
-        m2.markdown(
-            f'<div class="metric-label">VALUE LIFT</div>'
-            f'<div class="metric-value {_lift_class(val_lift)}">{_pct(val_lift, 4)}</div>',
-            unsafe_allow_html=True,
-        )
-        m3.markdown(
-            f'<div class="metric-label">TEST n</div><div class="metric-value">{n_t:,}</div>',
-            unsafe_allow_html=True,
-        )
-        m4.markdown(
-            f'<div class="metric-label">CTRL n</div><div class="metric-value">{n_c:,}</div>',
-            unsafe_allow_html=True,
-        )
-
-        # Significance
-        if eng.significant:
-            st.success(f"Statistically significant at 95% confidence for {ch}")
-        else:
-            st.warning(f"Not yet significant for {ch} — more data needed")
-
-        # Test vs control comparison
-        st.table(
-            {
-                "": ["Impressions", "Accepts", "Accept Rate"],
-                "Test": [f"{n_t:,}", f"{a_t:,}", _pct(p_t, 6)],
-                "Control": [f"{n_c:,}", f"{a_c:,}", _pct(p_c, 6)],
-            }
-        )
-
-        # Formula walkthrough
-        st.markdown("##### Step 1 — Accept Rates")
-        _formula(
-            FORMULAS["accept_rate"].latex,
-            "Accept rate for the test and control groups",
-            f"p_test = {a_t} / {n_t} = {_num(p_t)}\np_ctrl = {a_c} / {n_c} = {_num(p_c)}",
-        )
-
-        st.markdown("##### Step 2 — Standard Errors")
-        _formula(
-            FORMULAS["binomial_se"].latex,
-            "Binomial standard error",
-            f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
-        )
-
-        st.markdown("##### Step 3 — Engagement Lift")
-        _formula(
-            FORMULAS["lift"].latex,
-            "",
-            f"Lift = ({_num(p_t)} - {_num(p_c)}) / {_num(p_c)} = {_num(eng.lift)}"
-            if eng.lift is not None
-            else "Lift = N/A (control rate is 0)",
-        )
-
-        st.markdown("##### Step 4 — Confidence Interval (Delta Method)")
-        _formula(
-            FORMULAS["lift_se"].latex,
-            "",
-            f"SE(Lift) = {_num(eng.se)}" if eng.se is not None else "SE(Lift) = N/A",
-        )
-        if eng.lift is not None and eng.se is not None:
-            lo = eng.lift - Z_95 * eng.se
-            hi = eng.lift + Z_95 * eng.se
-            sig_txt = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
-            _formula_box(
-                [
-                    f"95% CI = [{lo:.10f},  {hi:.10f}]",
-                    f"Statistically significant?  {sig_txt}",
-                ]
-            )
-
-        # Value lift details
-        vpi_t = row.get("ValuePerImpression_Test")
-        vpi_c = row.get("ValuePerImpression_Control")
-        if vpi_t and vpi_c and vpi_t > 0 and vpi_c > 0 and p_t > 0 and p_c > 0:
-            st.markdown("##### Step 5 — Value Lift")
-            av_t = vpi_t / p_t
-            av_c = vpi_c / p_c
-            _formula(
-                FORMULAS["vpi"].latex,
-                "Value Per Impression",
-                f"AV_test = {_num(av_t, 4)}  |  AV_ctrl = {_num(av_c, 4)}\n"
-                f"VPI_test = {_num(p_t)} × {_num(av_t, 4)} = {_num(vpi_t)}\n"
-                f"VPI_ctrl = {_num(p_c)} × {_num(av_c, 4)} = {_num(vpi_c)}",
-            )
-            v_lift = calculate_lift(vpi_t, vpi_c)
-            vse_t = value_se(a_t, n_t, av_t)
-            vse_c = value_se(a_c, n_c, av_c)
-            v_se = lift_se(vpi_t, vpi_c, vse_t, vse_c)
-            vl_lo = v_lift - Z_95 * v_se
-            vl_hi = v_lift + Z_95 * v_se
-            v_sig = is_significant(v_lift, v_se)
-            _formula(
-                r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-                r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-                "",
-                f"ValueLift = {_num(v_lift)}",
-            )
-            _formula_box(
-                [
-                    f"SE(ValueLift) = {_num(v_se)}",
-                    f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
-                    f"Statistically significant?  {'YES' if v_sig else 'NO'}",
-                ]
-            )
 
 st.divider()
 

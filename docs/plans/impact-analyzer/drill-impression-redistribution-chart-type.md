@@ -1,7 +1,7 @@
-# Drill Down — review Impression Redistribution chart type
+# Channels — review Impression Redistribution chart type
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Drill_Down.py`
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`
 
 The current "Impression Redistribution" section uses a grouped horizontal
 bar chart comparing Test vs Control impression share per channel. Two

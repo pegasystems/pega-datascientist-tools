@@ -1,10 +1,10 @@
-# Drill Down — zoom further into Issue / Group / Action
+# Channels — zoom further into Issue / Group / Action
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Drill_Down.py`,
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`,
 `python/pdstools/impactanalyzer/ImpactAnalyzer.py`
 
-The Drill Down page currently only zooms in along the **Channel** axis.
+The Channels page currently only zooms in along the **Channel** axis.
 The Pega product UI also lets users drill into **Issue**, **Group**, and
 **Action**. Adding the same axes here would bring the open-source tool
 to parity with product.

@@ -1,12 +1,12 @@
-# Drill Down — add per-channel trend lines
+# Channels — add per-channel trend lines
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Drill_Down.py`,
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`,
 `python/pdstools/impactanalyzer/ImpactAnalyzer.py`
 
-The Drill Down page is purely cross-sectional — every chart shows the
+The Channels page is purely cross-sectional — every chart shows the
 current state of each channel. The Overall Summary page has trend
-charts (lift over time) but Drill Down has none.
+charts (lift over time) but the Channels page has none.
 
 ## Approach
 

@@ -544,7 +544,8 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 View lift metrics aggregated across all channels by default. Each experiment
 card shows trend charts, confidence intervals, and the exact formulas behind
 every number. Use the **Channel / Direction** filter in the sidebar to narrow
-the lift chart, cards, and detailed table to a single channel.
+the lift chart and cards to a single channel; the **Channels** page pivots
+the same data by channel and includes a flat per-channel metrics table.
 """
 
 # --- Gather data -----------------------------------------------------------
@@ -825,25 +826,3 @@ with tab_inactive:
                 f'**{row["Experiment"]}** — <span style="color:#8795A1">INACTIVE</span> · No data received.',
                 unsafe_allow_html=True,
             )
-
-# --- Detailed metrics table ------------------------------------------------
-# Match the channel filter:
-#   - "Any"  → aggregate across channels (no facet), one row per experiment,
-#              matching the cards and lift chart above.
-#   - <channel selected> → narrow to that channel (facet="Channel" so the
-#              Channel column is present for the query to bind against).
-_has_channel = "Channel" in ia.ia_data.collect_schema().names()
-if _channel_filter != "Any" and _has_channel:
-    _facet = "Channel"
-    _detailed_query = pl.col("Channel") == _channel_filter
-else:
-    _facet = None
-    _detailed_query = None
-
-with st.container(border=True):
-    "## Detailed Metrics"
-
-    st.caption("Tabular view of lift metrics with exact values. Use this for detailed analysis and reporting.")
-
-    table = ia.plot.overview(facet=_facet, query=_detailed_query, return_df=True).collect()
-    st.dataframe(table)

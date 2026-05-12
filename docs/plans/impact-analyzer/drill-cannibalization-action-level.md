@@ -1,7 +1,7 @@
-# Drill Down — frame cannibalization at action level, not channel
+# Channels — frame cannibalization at action level, not channel
 
 **Priority:** P1
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Drill_Down.py`,
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`,
 `python/pdstools/impactanalyzer/ImpactAnalyzer.py`
 
 The "Lift Cannibalization" section currently explains the phenomenon at
