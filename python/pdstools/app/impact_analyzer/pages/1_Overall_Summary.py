@@ -827,15 +827,17 @@ with tab_inactive:
             )
 
 # --- Detailed metrics table ------------------------------------------------
-# When a channel is selected in the sidebar, filter the table to that channel
-# (we still pass facet="Channel" so the Channel column is present for the
-# query to bind against, but the result is a single row per experiment).
+# Match the channel filter:
+#   - "Any"  → aggregate across channels (no facet), one row per experiment,
+#              matching the cards and lift chart above.
+#   - <channel selected> → narrow to that channel (facet="Channel" so the
+#              Channel column is present for the query to bind against).
 _has_channel = "Channel" in ia.ia_data.collect_schema().names()
-if _channel_filter != "Any":
-    _facet = "Channel" if _has_channel else None
-    _detailed_query = pl.col("Channel") == _channel_filter if _has_channel else None
+if _channel_filter != "Any" and _has_channel:
+    _facet = "Channel"
+    _detailed_query = pl.col("Channel") == _channel_filter
 else:
-    _facet = "Channel" if _has_channel else None
+    _facet = None
     _detailed_query = None
 
 with st.container(border=True):
