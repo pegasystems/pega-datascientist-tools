@@ -521,7 +521,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 )
             elif val_lift_pdc is not None:
                 st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
-                st.caption("Per-group action values not available. Only the raw value lift from the data source is shown.")
+                st.caption(
+                    "Per-group action values not available. Only the raw value lift from the data source is shown."
+                )
             else:
                 st.caption("Value lift data not available for this experiment.")
 
@@ -678,9 +680,7 @@ if _lift_chart_data:
             _lift_chart_data_active = _lift_chart_data
 
         _title_suffix = (
-            "All Experiments"
-            if _channel_filter == "Any"
-            else f"All Experiments — channel: {_channel_filter}"
+            "All Experiments" if _channel_filter == "Any" else f"All Experiments — channel: {_channel_filter}"
         )
         st.markdown(f"### {kpi_metric} — {_title_suffix}")
         st.caption(
