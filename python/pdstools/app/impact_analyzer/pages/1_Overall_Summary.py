@@ -622,29 +622,25 @@ if "Channel" in _schema_names:
 _channel_options: list[str] = list(_per_channel_chart_data.keys())
 _channel_filter = "All channels (aggregate)"
 
+# Page-wide channel filter lives in the sidebar (DA convention) so it
+# governs the chart, the experiment cards, and the summary table from one
+# place.
+if _channel_options:
+    with st.sidebar:
+        _channel_filter = st.selectbox(
+            "Channel filter",
+            ["All channels (aggregate)", *_channel_options],
+            help="Filter the lift chart, experiment cards, and summary table to a single channel.",
+            key="lift_chart_channel_filter",
+        )
+
 if _lift_chart_data:
     with st.container(border=True):
-        if _channel_options:
-            _ctrl_left, _ctrl_right = st.columns([2, 3])
-            with _ctrl_left:
-                _channel_filter = st.selectbox(
-                    "Channel filter",
-                    ["All channels (aggregate)", *_channel_options],
-                    help="Filter the chart, experiment cards, and summary table to a single channel.",
-                    key="lift_chart_channel_filter",
-                )
-            with _ctrl_right:
-                kpi_metric = st.radio(
-                    "KPI",
-                    ["Engagement Lift", "Value Lift"],
-                    horizontal=True,
-                )
-        else:
-            kpi_metric = st.radio(
-                "KPI",
-                ["Engagement Lift", "Value Lift"],
-                horizontal=True,
-            )
+        kpi_metric = st.radio(
+            "KPI",
+            ["Engagement Lift", "Value Lift"],
+            horizontal=True,
+        )
         _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
 
         if _channel_filter != "All channels (aggregate)":
