@@ -348,50 +348,46 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     )
 
     # ── Numeric lift summaries — Engagement / Value ─────────────────
-    tab_eng, tab_val = st.tabs(["Engagement Lift", "Value Lift"])
+    st.markdown("**Engagement Lift**")
+    if trend_df is not None:
+        _fig_t = _chart_lift_trend(
+            trend_df,
+            exp_name,
+            metric="CTR_Lift",
+            label="Engagement Lift %",
+        )
+        if _fig_t is not None:
+            st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
 
-    with tab_eng:
-        # Trend chart with CI bands + EWMA
+    ci_hw = eng.ci_95()
+    st.markdown(
+        f"Lift = **{_pct(eng.lift)}** · "
+        f"SE = `{_num(eng.se)}` · "
+        f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
+    )
+
+    st.markdown("**Value Lift**")
+    if val is not None:
         if trend_df is not None:
-            _fig_t = _chart_lift_trend(
+            _fig_tv = _chart_lift_trend(
                 trend_df,
                 exp_name,
-                metric="CTR_Lift",
-                label="Engagement Lift %",
+                metric="Value_Lift",
+                label="Value Lift %",
             )
-            if _fig_t is not None:
-                st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
+            if _fig_tv is not None:
+                st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
 
-        ci_hw = eng.ci_95()
+        val_hw = val.ci_95()
         st.markdown(
-            f"Lift = **{_pct(eng.lift)}** · "
-            f"SE = `{_num(eng.se)}` · "
-            f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
+            f"Value Lift = **{_pct(val.lift)}** · "
+            f"SE = `{_num(val.se)}` · "
+            f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
         )
-
-    with tab_val:
-        if val is not None:
-            # Trend chart with CI bands + EWMA
-            if trend_df is not None:
-                _fig_tv = _chart_lift_trend(
-                    trend_df,
-                    exp_name,
-                    metric="Value_Lift",
-                    label="Value Lift %",
-                )
-                if _fig_tv is not None:
-                    st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
-
-            val_hw = val.ci_95()
-            st.markdown(
-                f"Value Lift = **{_pct(val.lift)}** · "
-                f"SE = `{_num(val.se)}` · "
-                f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
-            )
-            if av_t is None:
-                st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
-        else:
-            st.info("Value lift requires action-value data.")
+        if av_t is None:
+            st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
+    else:
+        st.info("Value lift requires action-value data.")
 
     # ── Formula expander ──────────────────────────────────────────────
     with st.expander("**Formula details — lift calculations & trend chart**"):
