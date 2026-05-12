@@ -620,17 +620,19 @@ if "Channel" in _schema_names:
         _per_channel_chart_data = {}
         _per_channel_rows = {}
 _channel_options: list[str] = list(_per_channel_chart_data.keys())
-_channel_filter = "All channels (aggregate)"
+_channel_filter = "Any"
 
 # Page-wide channel filter lives in the sidebar (DA convention) so it
 # governs the chart, the experiment cards, and the summary table from one
-# place.
+# place. "Any" is the aggregate sentinel — matches DA's terminology.
 if _channel_options:
     with st.sidebar:
+        st.divider()
+        st.caption("**Filters**")
         _channel_filter = st.selectbox(
-            "Channel filter",
-            ["All channels (aggregate)", *_channel_options],
-            help="Filter the lift chart, experiment cards, and summary table to a single channel.",
+            "Channel / Direction",
+            ["Any", *_channel_options],
+            help="Filter the lift chart, experiment cards, and summary table to a specific channel. 'Any' shows the aggregate across all channels.",
             key="lift_chart_channel_filter",
         )
 
@@ -643,14 +645,14 @@ if _lift_chart_data:
         )
         _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
 
-        if _channel_filter != "All channels (aggregate)":
+        if _channel_filter != "Any":
             _lift_chart_data_active = _per_channel_chart_data.get(_channel_filter, _lift_chart_data)
         else:
             _lift_chart_data_active = _lift_chart_data
 
         _title_suffix = (
             "All Experiments"
-            if _channel_filter == "All channels (aggregate)"
+            if _channel_filter == "Any"
             else f"All Experiments — channel: {_channel_filter}"
         )
         st.markdown(f"### {kpi_metric} — {_title_suffix}")
@@ -746,7 +748,7 @@ if _lift_chart_data:
 # When a channel is selected above, cards and the summary table show
 # per-channel metrics for that channel; otherwise they aggregate across
 # channels.
-if _channel_filter != "All channels (aggregate)":
+if _channel_filter != "Any":
     _cards_rows = _per_channel_rows.get(_channel_filter, rows)
     _cards_scope_caption = f"Showing experiments for channel **{_channel_filter}**."
 else:
@@ -769,7 +771,7 @@ tab_active, tab_inactive = st.tabs(
 # When filtered to a single channel, suppress trend sparklines: _trend_df
 # aggregates across channels, so showing it next to per-channel metrics
 # would be misleading. Per-channel trend is tracked in the plan-file.
-_card_trend_df = _trend_df if _channel_filter == "All channels (aggregate)" else None
+_card_trend_df = _trend_df if _channel_filter == "Any" else None
 
 with tab_active:
     if not active:
