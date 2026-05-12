@@ -217,7 +217,7 @@ if len(by_channel_df) == 0:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Forest plot — per-channel lift with CI
+# Per-channel lift with CI
 # ═══════════════════════════════════════════════════════════════════════════
 st.markdown("### Per-Channel Engagement Lift")
 

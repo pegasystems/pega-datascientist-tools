@@ -542,11 +542,11 @@ if "SnapshotTime" in ia.ia_data.collect_schema().names():
         except Exception:
             pass
 
-# --- Forest plot — all experiments at a glance -----------------------------
+# --- Per-experiment lift overview -----------------------------------------
 rows = experiments.to_dicts()
 
 
-def _build_forest_data(rows_data: list[dict]) -> list[dict]:
+def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
     """Compute lift ± SE for each active experiment."""
     plot_data = []
     for r in rows_data:
@@ -597,9 +597,9 @@ def _build_forest_data(rows_data: list[dict]) -> list[dict]:
     return plot_data
 
 
-_forest_data = _build_forest_data(rows)
+_lift_chart_data = _build_lift_chart_data(rows)
 
-# Per-channel forest data (short-term facet — see
+# Per-channel lift-chart data (short-term facet — see
 # docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
 # that surfaces channel in the experiment cards too).
 _schema_names = ia.ia_data.collect_schema().names()
@@ -612,57 +612,67 @@ if "Channel" in _schema_names:
     except Exception:
         _channel_options = []
 
-if _forest_data:
-    if _channel_options:
-        _channel_filter = st.selectbox(
-            "Channel filter",
-            ["All channels (aggregate)", *_channel_options],
-            help="Filter the forest plot to a single channel. Cards and the Detailed Metrics table below stay aggregated across channels.",
-            key="forest_channel_filter",
-        )
-    else:
-        _channel_filter = "All channels (aggregate)"
-
-    if _channel_filter != "All channels (aggregate)":
-        try:
-            _per_channel_rows = (
-                ia.summarize_experiments(by="Channel").filter(pl.col("Channel") == _channel_filter).collect().to_dicts()
-            )
-            _forest_data_active = _build_forest_data(_per_channel_rows)
-        except Exception:
-            _forest_data_active = _forest_data
-    else:
-        _forest_data_active = _forest_data
-
-    forest_metric = st.radio(
-        "Forest plot metric",
-        ["Engagement Lift", "Value Lift"],
-        horizontal=True,
-    )
-    _forest_key = "eng" if forest_metric == "Engagement Lift" else "val"
-
+if _lift_chart_data:
     with st.container(border=True):
+        if _channel_options:
+            _ctrl_left, _ctrl_right = st.columns([2, 3])
+            with _ctrl_left:
+                _channel_filter = st.selectbox(
+                    "Channel filter",
+                    ["All channels (aggregate)", *_channel_options],
+                    help="Filter the chart to a single channel. Cards and the Detailed Metrics table below stay aggregated across channels.",
+                    key="lift_chart_channel_filter",
+                )
+            with _ctrl_right:
+                kpi_metric = st.radio(
+                    "KPI",
+                    ["Engagement Lift", "Value Lift"],
+                    horizontal=True,
+                )
+        else:
+            _channel_filter = "All channels (aggregate)"
+            kpi_metric = st.radio(
+                "KPI",
+                ["Engagement Lift", "Value Lift"],
+                horizontal=True,
+            )
+        _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
+
+        if _channel_filter != "All channels (aggregate)":
+            try:
+                _per_channel_rows = (
+                    ia.summarize_experiments(by="Channel")
+                    .filter(pl.col("Channel") == _channel_filter)
+                    .collect()
+                    .to_dicts()
+                )
+                _lift_chart_data_active = _build_lift_chart_data(_per_channel_rows)
+            except Exception:
+                _lift_chart_data_active = _lift_chart_data
+        else:
+            _lift_chart_data_active = _lift_chart_data
+
         _title_suffix = (
             "All Experiments"
             if _channel_filter == "All channels (aggregate)"
             else f"All Experiments — channel: {_channel_filter}"
         )
-        st.markdown(f"### {forest_metric} — {_title_suffix}")
+        st.markdown(f"### {kpi_metric} — {_title_suffix}")
         st.caption(
-            "Forest plot: each row is one experiment. Diamond = point estimate, "
+            "Each row is one experiment. Diamond = point estimate, "
             "whiskers = 95 % CI.  Green = significant positive, red = significant "
             "negative, grey = not significant."
         )
 
-        if not _forest_data_active:
+        if not _lift_chart_data_active:
             st.info(f"No experiment data for channel **{_channel_filter}**.")
 
         fig = go.Figure()
         names = []
         _narrow_ci = []
-        for _i, d in enumerate(_forest_data_active):
-            lift = d[f"{_forest_key}_lift"]
-            se = d[f"{_forest_key}_se"]
+        for _i, d in enumerate(_lift_chart_data_active):
+            lift = d[f"{_lift_key}_lift"]
+            se = d[f"{_lift_key}_se"]
             if lift is None or se is None:
                 continue
 
@@ -725,9 +735,9 @@ if _forest_data:
             font=dict(color=_TEXT, size=12),
             margin=dict(l=220, r=30, t=10, b=40),
             yaxis=dict(tickvals=list(range(len(names))), ticktext=names, showgrid=False, zeroline=False),
-            xaxis=dict(title=f"{forest_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
+            xaxis=dict(title=f"{kpi_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
-        st.plotly_chart(fig, key="forest_plot")
+        st.plotly_chart(fig, key="lift_chart")
 
         if _narrow_ci:
             st.info(
