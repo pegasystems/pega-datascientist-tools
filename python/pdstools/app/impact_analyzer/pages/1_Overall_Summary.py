@@ -360,7 +360,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 label="Engagement Lift %",
             )
             if _fig_t is not None:
-                st.plotly_chart(_fig_t, use_container_width=True, key=f"os_trend_eng_{idx}")
+                st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
 
         ci_hw = eng.ci_95()
         st.markdown(
@@ -380,7 +380,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     label="Value Lift %",
                 )
                 if _fig_tv is not None:
-                    st.plotly_chart(_fig_tv, use_container_width=True, key=f"os_trend_val_{idx}")
+                    st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
 
             val_hw = val.ci_95()
             st.markdown(
@@ -599,7 +599,41 @@ def _build_forest_data(rows_data: list[dict]) -> list[dict]:
 
 _forest_data = _build_forest_data(rows)
 
+# Per-channel forest data (short-term facet — see
+# docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
+# that surfaces channel in the experiment cards too).
+_schema_names = ia.ia_data.collect_schema().names()
+_channel_options: list[str] = []
+if "Channel" in _schema_names:
+    try:
+        _channel_options = sorted(
+            ia.ia_data.select(pl.col("Channel").unique()).collect().to_series().drop_nulls().to_list()
+        )
+    except Exception:
+        _channel_options = []
+
 if _forest_data:
+    if _channel_options:
+        _channel_filter = st.selectbox(
+            "Channel filter",
+            ["All channels (aggregate)", *_channel_options],
+            help="Filter the forest plot to a single channel. Cards and the Detailed Metrics table below stay aggregated across channels.",
+            key="forest_channel_filter",
+        )
+    else:
+        _channel_filter = "All channels (aggregate)"
+
+    if _channel_filter != "All channels (aggregate)":
+        try:
+            _per_channel_rows = (
+                ia.summarize_experiments(by="Channel").filter(pl.col("Channel") == _channel_filter).collect().to_dicts()
+            )
+            _forest_data_active = _build_forest_data(_per_channel_rows)
+        except Exception:
+            _forest_data_active = _forest_data
+    else:
+        _forest_data_active = _forest_data
+
     forest_metric = st.radio(
         "Forest plot metric",
         ["Engagement Lift", "Value Lift"],
@@ -608,17 +642,25 @@ if _forest_data:
     _forest_key = "eng" if forest_metric == "Engagement Lift" else "val"
 
     with st.container(border=True):
-        st.markdown(f"### {forest_metric} — All Experiments")
+        _title_suffix = (
+            "All Experiments"
+            if _channel_filter == "All channels (aggregate)"
+            else f"All Experiments — channel: {_channel_filter}"
+        )
+        st.markdown(f"### {forest_metric} — {_title_suffix}")
         st.caption(
             "Forest plot: each row is one experiment. Diamond = point estimate, "
             "whiskers = 95 % CI.  Green = significant positive, red = significant "
             "negative, grey = not significant."
         )
 
+        if not _forest_data_active:
+            st.info(f"No experiment data for channel **{_channel_filter}**.")
+
         fig = go.Figure()
         names = []
         _narrow_ci = []
-        for _i, d in enumerate(_forest_data):
+        for _i, d in enumerate(_forest_data_active):
             lift = d[f"{_forest_key}_lift"]
             se = d[f"{_forest_key}_se"]
             if lift is None or se is None:
@@ -685,7 +727,7 @@ if _forest_data:
             yaxis=dict(tickvals=list(range(len(names))), ticktext=names, showgrid=False, zeroline=False),
             xaxis=dict(title=f"{forest_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
-        st.plotly_chart(fig, use_container_width=True, key="forest_plot")
+        st.plotly_chart(fig, key="forest_plot")
 
         if _narrow_ci:
             st.info(
@@ -762,7 +804,7 @@ for r in rows:
             }
         )
 if summary_rows:
-    st.dataframe(summary_rows, use_container_width=True, hide_index=True)
+    st.dataframe(summary_rows, hide_index=True)
 
 # --- Detailed metrics table (original overview) ----------------------------
 facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None

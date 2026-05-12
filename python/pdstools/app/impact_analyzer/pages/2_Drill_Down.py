@@ -308,7 +308,7 @@ fig.update_layout(
 fig.update_xaxes(zeroline=True, zerolinecolor=_GREY, gridcolor="#f0f0f0")
 fig.update_yaxes(gridcolor="#f0f0f0")
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Heatmap — CTR Test vs Control by channel
@@ -345,7 +345,7 @@ fig_hm.update_layout(
     xaxis_title="Channel",
 )
 
-st.plotly_chart(fig_hm, use_container_width=True)
+st.plotly_chart(fig_hm)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Impression redistribution analysis
@@ -414,7 +414,7 @@ fig_redist.update_layout(
     yaxis=dict(autorange="reversed"),
 )
 fig_redist.update_xaxes(gridcolor="#f0f0f0")
-st.plotly_chart(fig_redist, use_container_width=True)
+st.plotly_chart(fig_redist)
 
 # Shift summary
 gaining = [r for r in redist_rows if r["shift"] > 0.005]
@@ -628,7 +628,7 @@ display_df = by_channel_df.select(
     (pl.col("Control_Fraction") * 100).round(2).alias("Control Fraction (%)"),
 )
 
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, hide_index=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Educational expander — Why lift cannibalization happens
