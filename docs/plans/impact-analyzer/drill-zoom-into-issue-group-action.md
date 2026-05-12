@@ -36,6 +36,3 @@ banner + per-slice "negative lift while overall is positive" callout +
 gate them on `drill_axis in {"Name", "Group"}`. The original copy and
 CSS class (`.cannib-warning`) are in PR #796's diff if a starting
 point is useful.
-
-Cross-ref: `drill-cannibalization-action-level.md` (the existing P1
-plan item that this would resolve in passing).

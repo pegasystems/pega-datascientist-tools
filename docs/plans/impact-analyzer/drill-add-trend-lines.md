@@ -13,6 +13,4 @@ charts (lift over time) but the Channels page has none.
 - Add a per-channel lift trend chart, faceted by channel, similar to the
   existing Overall Summary trend chart but using
   `summarize_experiments(by=["SnapshotTime", "Channel"])`.
-- Place it near the channel performance details so users can correlate
-  current state with the trajectory.
 - Apply EWMA smoothing consistent with Overall Summary.
