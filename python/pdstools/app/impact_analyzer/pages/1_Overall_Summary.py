@@ -845,10 +845,5 @@ with st.container(border=True):
 
     st.caption("Tabular view of lift metrics with exact values. Use this for detailed analysis and reporting.")
 
-    metric = st.selectbox(
-        "Metric",
-        options=["CTR_Lift", "Value_Lift"],
-        index=0,
-    )
-    table = ia.plot.overview(metric=metric, facet=_facet, query=_detailed_query, return_df=True).collect()
+    table = ia.plot.overview(facet=_facet, query=_detailed_query, return_df=True).collect()
     st.dataframe(table)
