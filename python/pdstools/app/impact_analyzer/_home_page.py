@@ -109,9 +109,10 @@ def _show_data_summary(ia, is_sample_data: bool = False):
 def home_page() -> None:
     """Render the Impact Analyzer home page."""
     from pdstools.app.impact_analyzer.ia_streamlit_utils import (
-        ensure_ia_data_loaded,
+        handle_data_path_ia,
         load_from_upload_auto,
         load_pdc_from_uploads,
+        load_sample_pdc,
         prepare_and_save_random,
         show_outcome_labels_section,
     )
@@ -151,85 +152,186 @@ zoom, and hover for details.
 """
     )
 
-    # --- Data loading priority chain: upload > CLI path > sample ---
-
-    # File upload — always visible
-    uploaded_files = st.file_uploader(
-        "Upload Impact Analyzer data",
-        accept_multiple_files=True,
+    # --- Data source selection ---
+    data_source = st.radio(
+        "Choose data source",
+        ["File upload", "Live generator", "Sample data"],
+        horizontal=True,
+        help="Upload your own data, generate synthetic data, or use built-in sample data.",
     )
 
     impact_analyzer = None
     data_source_path = None
     is_sample_data = False
 
-    # 1. Handle file upload
-    if uploaded_files:
-        # Clear any old data when new upload is attempted
-        if "impact_analyzer" in st.session_state:
-            del st.session_state["impact_analyzer"]
-        if "ia_is_sample_data" in st.session_state:
-            del st.session_state["ia_is_sample_data"]
+    # ── Live generator (streaming) ───────────────────────────────────
+    if data_source == "Live generator":
+        import time
 
-        # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
-        valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
-        filtered_files = [
-            f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
-        ]
+        from pdstools.app.impact_analyzer.sample_data import (
+            DEFAULT_PROFILE,
+            GENERATOR_PROFILES,
+            generate_snapshot,
+        )
+        from pdstools.impactanalyzer import ImpactAnalyzer
 
-        if not filtered_files:
-            st.error(
-                "No valid data files found. Upload JSON/NDJSON (monitoring export), "
-                "XLSX (Excel monitoring export), or ZIP (scenario-planner export) files. "
-                "If you dragged a folder, try uploading just the `data.json` file instead."
+        # Initialise session state for the generator
+        if "gen_running" not in st.session_state:
+            st.session_state.gen_running = False
+        if "gen_snapshots" not in st.session_state:
+            st.session_state.gen_snapshots = []  # list[pl.DataFrame]
+        if "gen_batches_sent" not in st.session_state:
+            st.session_state.gen_batches_sent = 0
+
+        profile_name = st.selectbox(
+            "Generator profile",
+            list(GENERATOR_PROFILES.keys()),
+            index=list(GENERATOR_PROFILES.keys()).index(DEFAULT_PROFILE),
+            help=GENERATOR_PROFILES[DEFAULT_PROFILE]["description"],
+        )
+        st.caption(GENERATOR_PROFILES[profile_name]["description"])
+
+        col1, col2 = st.columns(2)
+        with col1:
+            noise_pct = st.slider("Noise %", 0, 30, 10)
+        with col2:
+            tick_interval = st.slider("Tick interval (seconds)", 1, 10, 2)
+
+        g1, g2, g3 = st.columns(3)
+        if g1.button("▶ Start", use_container_width=True, type="primary"):
+            st.session_state.gen_running = True
+            st.session_state._gen_profile = profile_name
+            st.session_state._gen_noise = noise_pct / 100.0
+            st.session_state._gen_interval = tick_interval
+            st.toast("Generator started — watch the snapshots accumulate!")
+        if g2.button("⏸ Pause", use_container_width=True):
+            st.session_state.gen_running = False
+            st.toast("Generator paused")
+        if g3.button("🔄 Reset", use_container_width=True):
+            st.session_state.gen_running = False
+            st.session_state.gen_snapshots = []
+            st.session_state.gen_batches_sent = 0
+            for key in ("impact_analyzer", "ia_is_sample_data"):
+                st.session_state.pop(key, None)
+            st.toast("Generator reset")
+
+        st.markdown("---")
+        status = "🟢 Running" if st.session_state.gen_running else "⏹ Stopped"
+        st.caption(
+            f"Status: **{status}** · "
+            f"Snapshots: **{st.session_state.gen_batches_sent}** · "
+            f"Rows: **{sum(len(s) for s in st.session_state.gen_snapshots):,}**"
+        )
+
+        # Generate one snapshot per tick while running
+        if st.session_state.gen_running:
+            from datetime import datetime, timedelta
+
+            base = datetime.now() - timedelta(days=max(0, st.session_state.gen_batches_sent))
+            snap_time = base + timedelta(days=st.session_state.gen_batches_sent)
+            new_snap = generate_snapshot(
+                snapshot_time=snap_time,
+                profile_name=st.session_state.get("_gen_profile", profile_name),
+                noise=st.session_state.get("_gen_noise", noise_pct / 100.0),
             )
-        else:
-            suffixes = {Path(f.name).suffix.lower() for f in filtered_files}
+            st.session_state.gen_snapshots.append(new_snap)
+            st.session_state.gen_batches_sent += 1
 
-            # Single file: use auto-detection
-            if len(filtered_files) == 1:
-                _outcome_labels_json = st.session_state.get("ia_outcome_labels_json")
-                with st.spinner("Loading data (auto-detecting format)..."):
-                    impact_analyzer = _load_with_warning(
-                        lambda: load_from_upload_auto(filtered_files[0], outcome_labels_json=_outcome_labels_json),
-                        "uploaded",
-                        expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
-                    )
-            # Multiple JSON files: treat as PDC
-            elif suffixes.issubset({".json", ".ndjson"}):
-                with st.spinner("Loading data…"):
-                    impact_analyzer = _load_with_warning(
-                        lambda: load_pdc_from_uploads(filtered_files),
-                        "uploaded",
-                    )
+        # Build ImpactAnalyzer from accumulated snapshots
+        if st.session_state.gen_snapshots:
+            import polars as pl
+
+            combined = pl.concat(st.session_state.gen_snapshots)
+            impact_analyzer = ImpactAnalyzer(combined.lazy())
+            # Clear stale cached IA so pages pick up the new one
+            st.session_state.pop("impact_analyzer", None)
+            st.session_state.pop("ia_is_sample_data", None)
+
+        # Auto-rerun after tick interval to stream next snapshot
+        if st.session_state.gen_running:
+            interval = st.session_state.get("_gen_interval", tick_interval)
+            time.sleep(interval)
+            st.rerun()
+
+    # ── File upload ───────────────────────────────────────────────────
+    elif data_source == "File upload":
+        uploaded_files = st.file_uploader(
+            "Upload Impact Analyzer data",
+            accept_multiple_files=True,
+        )
+
+        if uploaded_files:
+            # Clear any old data when new upload is attempted
+            if "impact_analyzer" in st.session_state:
+                del st.session_state["impact_analyzer"]
+            if "ia_is_sample_data" in st.session_state:
+                del st.session_state["ia_is_sample_data"]
+
+            # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
+            valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
+            filtered_files = [
+                f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
+            ]
+
+            if not filtered_files:
+                st.error(
+                    "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
+                    "If you dragged a folder, try uploading just the `data.json` file instead."
+                )
             else:
-                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files.")
+                suffixes = {Path(f.name).suffix.lower() for f in filtered_files}
 
-    # 2. Handle --data-path CLI flag + sample fallback via shared helper.
-    # The helper drives the same priority chain used by data-required
-    # sub-pages on deep-link, so home and sub-pages stay in sync.
+                # Single file: use auto-detection
+                if len(filtered_files) == 1:
+                    _outcome_labels_json = st.session_state.get("ia_outcome_labels_json")
+                    with st.spinner("Loading data (auto-detecting format)..."):
+                        impact_analyzer = _load_with_warning(
+                            lambda: load_from_upload_auto(filtered_files[0], outcome_labels_json=_outcome_labels_json),
+                            "uploaded",
+                            expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
+                        )
+                # Multiple JSON files: treat as PDC
+                elif suffixes.issubset({".json", ".ndjson"}):
+                    with st.spinner("Loading PDC data"):
+                        impact_analyzer = _load_with_warning(
+                            lambda: load_pdc_from_uploads(filtered_files),
+                            "PDC",
+                        )
+                else:
+                    st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
+
+    # ── Sample data ───────────────────────────────────────────────────
+    elif data_source == "Sample data":
+        if "impact_analyzer" not in st.session_state:
+            with st.spinner("Loading sample PDC data"):
+                impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
+            if impact_analyzer is not None:
+                is_sample_data = True
+                st.info(
+                    "Using built-in sample data. Switch to **File upload** or **Live generator** for your own data.",
+                )
+
+    # --- Autoload sample on first visit (no data yet, no upload) ---
+    if impact_analyzer is None and "impact_analyzer" not in st.session_state:
+        with st.spinner("Loading sample PDC data"):
+            impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
+        if impact_analyzer is not None:
+            is_sample_data = True
+            st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+
+    # --- Handle --data-path CLI flag (works with any source tab) ---
     has_existing_data = "impact_analyzer" in st.session_state
     configured_path = get_data_path()
 
-    if impact_analyzer is None and not has_existing_data and not uploaded_files:
-        if ensure_ia_data_loaded():
-            if st.session_state.get("ia_is_sample_data"):
-                # First-run sample path: surface the toast and rerun so the
-                # rest of the home page (data summary, outcome-label section)
-                # renders against populated state in the same user action.
-                st.toast(
-                    "Loaded sample data — upload your own to replace it.",
-                    icon="📊",
-                )
-                st.rerun()
-            else:
-                # CLI path: keep the local ``impact_analyzer`` populated so
-                # the pre-ingestion sampling block (which only runs for CLI
-                # paths) and downstream summary fall through naturally.
-                impact_analyzer = st.session_state["impact_analyzer"]
-                data_source_path = configured_path
-                if configured_path:
-                    st.info(f"Loaded data from configured path: `{configured_path}`")
+    if impact_analyzer is None and configured_path and not has_existing_data:
+        with st.spinner(f"Loading data from configured path: {configured_path}"):
+            impact_analyzer = _load_with_warning(
+                lambda: handle_data_path_ia(),
+                "CLI",
+            )
+            data_source_path = configured_path
+        if impact_analyzer is not None:
+            st.info(f"Loaded data from configured path: `{configured_path}`")
 
     # Pre-ingestion sampling (only for CLI paths)
     sample_limit_raw = get_sample_limit() if data_source_path else None

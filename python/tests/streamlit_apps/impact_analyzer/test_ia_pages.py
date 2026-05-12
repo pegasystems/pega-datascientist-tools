@@ -8,9 +8,6 @@ instead of passing silently.
 
 from __future__ import annotations
 
-import copy
-
-import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -61,7 +58,7 @@ def test_home_renders_without_data(ia_app_dir: Path):
 # Each entry: (filename, heading substring, {widget attribute: min count}).
 IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
     ("1_Overall_Summary.py", "# Overall Summary", {"dataframe": 1, "selectbox": 1}),
-    ("2_Trend.py", "# Trend Analysis", {"dataframe": 1, "selectbox": 1}),
+    ("2_Drill_Down.py", "# Drill Down", {"selectbox": 1}),
     ("3_About.py", "# About", {"expander": 1}),
 ]
 
@@ -70,8 +67,8 @@ IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
 # ``"<Page> · <App>"`` convention used by HC and DA so the browser tab
 # reads the page name first.
 IA_PAGE_TITLES: list[tuple[str, str]] = [
-    ("1_Overall_Summary.py", "Overall Summary · Impact Analyzer"),
-    ("2_Trend.py", "Trend · Impact Analyzer"),
+    ("1_Overall_Summary.py", "Impact Analyzer · Overall Summary"),
+    ("2_Drill_Down.py", "Impact Analyzer · Drill Down"),
     ("3_About.py", "About · Impact Analyzer"),
 ]
 
@@ -96,32 +93,6 @@ def test_ia_page_title_order(
     assert f'page_title="{expected_title}"' in source, f"{page} expected page_title={expected_title!r} in source"
 
 
-def test_trend_guards_single_timestamp_data(
-    seeded_impact_analyzer: ImpactAnalyzer,
-    ia_app_dir: Path,
-):
-    """Trend page shows an info message and stops when data spans a
-    single point in time, instead of rendering a degenerate axis with
-    microsecond ticks."""
-    ia = copy.copy(seeded_impact_analyzer)
-    df = ia.ia_data.collect()
-    fixed = df.with_columns(pl.col("SnapshotTime").min().alias("SnapshotTime"))
-    ia.ia_data = fixed.lazy()
-
-    at = AppTest.from_file(str(ia_app_dir / "pages" / "2_Trend.py"), default_timeout=30)
-    at.session_state["impact_analyzer"] = ia
-    at.session_state["ia_is_sample_data"] = True
-    at.run()
-    assert not at.exception, f"2_Trend.py raised: {at.exception}"
-
-    info_messages = [i.value for i in at.info]
-    assert any("single point in time" in msg for msg in info_messages), (
-        f"Expected single-timestamp guard message; got info={info_messages!r}"
-    )
-    # Chart must not render when the page has stopped early.
-    assert not at.get("plotly_chart"), "Trend chart rendered despite single-timestamp guard"
-
-
 @pytest.mark.parametrize(
     ("page", "heading", "widget_checks"),
     IA_PAGES,
@@ -137,14 +108,6 @@ def test_ia_page_renders(
     """Each sub-page renders with a seeded ImpactAnalyzer and produces
     its expected heading + widget surface."""
     ia = seeded_impact_analyzer
-    if page == "2_Trend.py":
-        # The bundled IA sample only has one SnapshotTime, which would
-        # trigger the single-timestamp guard. Expand it to two so the
-        # Trend page renders its chart + table for the smoke check.
-        ia = copy.copy(ia)
-        df = ia.ia_data.collect()
-        df2 = df.with_columns((pl.col("SnapshotTime") + pl.duration(days=1)).alias("SnapshotTime"))
-        ia.ia_data = pl.concat([df, df2]).lazy()
 
     at = AppTest.from_file(str(ia_app_dir / "pages" / page), default_timeout=30)
     at.session_state["impact_analyzer"] = ia
@@ -162,7 +125,7 @@ def test_ia_page_renders(
 
 IA_DATA_REQUIRED_PAGES = [
     ("1_Overall_Summary.py", "# Overall Summary"),
-    ("2_Trend.py", "# Trend Analysis"),
+    ("2_Drill_Down.py", "# Drill Down"),
 ]
 
 
