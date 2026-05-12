@@ -77,9 +77,58 @@ def _load_with_warning(loader, label: str, *, expected_input_cols=None):
         return None
 
 
-def _show_data_summary(ia, is_sample_data: bool = False):
-    """Display a summary banner for the loaded ImpactAnalyzer."""
+def _banner_prefix(source_kind: str, source_label: str | None) -> str:
+    """Build the banner prefix from source kind and label.
+
+    Parameters
+    ----------
+    source_kind : str
+        One of ``"sample"``, ``"upload"``, ``"live"``, ``"cli"``.
+    source_label : str or None
+        Friendly source identifier — filename, path, or descriptor.
+
+    Returns
+    -------
+    str
+        Banner prefix, e.g. ``"Data loaded from `foo.zip`"``.
+    """
+    if source_kind == "sample":
+        return "Sample data loaded"
+    if source_kind == "live":
+        return f"Live data generated ({source_label})" if source_label else "Live data generated"
+    if source_kind in ("upload", "cli"):
+        return f"Data loaded from `{source_label}`" if source_label else "Data loaded successfully"
+    return "Data loaded successfully"
+
+
+def _show_data_summary(
+    ia,
+    *,
+    source_kind: str | None = None,
+    source_label: str | None = None,
+):
+    """Display a summary banner for the loaded ImpactAnalyzer.
+
+    Renders at most once per (source_kind, source_label, row count) combination
+    so that navigation reruns do not re-emit the banner.
+
+    Parameters
+    ----------
+    ia : ImpactAnalyzer
+        The loaded analyzer.
+    source_kind : str or None
+        Tri-state source identifier (``"sample"``, ``"upload"``, ``"live"``,
+        ``"cli"``). Falls back to session state ``ia_data_source_kind``.
+    source_label : str or None
+        Friendly label (filename, path, or live-generator descriptor). Falls
+        back to session state ``ia_data_source_label``.
+    """
     import polars as pl
+
+    if source_kind is None:
+        source_kind = st.session_state.get("ia_data_source_kind", "sample")
+    if source_label is None:
+        source_label = st.session_state.get("ia_data_source_label")
 
     try:
         schema_names = set(ia.ia_data.collect_schema().names())
@@ -91,19 +140,34 @@ def _show_data_summary(ia, is_sample_data: bool = False):
         format_label = "**VBD Scenario Planner**" if has_vbd_markers else "**PDC Export**"
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
+        schema_names = set()
 
     try:
         rows = ia.ia_data.select(pl.len()).collect().item()
+    except (pl.exceptions.PolarsError, AttributeError, KeyError):
+        rows = None
+
+    # Render-once guard: skip if we've already shown the banner for this exact
+    # data fingerprint on this rerun cycle.
+    fingerprint = (source_kind, source_label, rows)
+    if st.session_state.get("_ia_banner_shown_for") == fingerprint:
+        return
+    st.session_state["_ia_banner_shown_for"] = fingerprint
+
+    prefix = _banner_prefix(source_kind, source_label)
+
+    if rows is None:
+        st.success(f"{prefix}. Detected format: {format_label}")
+        return
+
+    try:
         channels = (
             ia.ia_data.select(pl.col("Channel").n_unique()).collect().item() if "Channel" in schema_names else "N/A"
         )
-
-        prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
-
-        st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
-        prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
-        st.success(f"{prefix}. Detected format: {format_label}")
+        channels = "N/A"
+
+    st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
 
 
 def home_page() -> None:
@@ -162,6 +226,8 @@ zoom, and hover for details.
 
     impact_analyzer = None
     data_source_path = None
+    data_source_kind: str | None = None
+    data_source_label: str | None = None
     is_sample_data = False
 
     # ── Live generator (streaming) ───────────────────────────────────
@@ -198,20 +264,26 @@ zoom, and hover for details.
             tick_interval = st.slider("Tick interval (seconds)", 1, 10, 2)
 
         g1, g2, g3 = st.columns(3)
-        if g1.button("▶ Start", use_container_width=True, type="primary"):
+        if g1.button("▶ Start", width="stretch", type="primary"):
             st.session_state.gen_running = True
             st.session_state._gen_profile = profile_name
             st.session_state._gen_noise = noise_pct / 100.0
             st.session_state._gen_interval = tick_interval
             st.toast("Generator started — watch the snapshots accumulate!")
-        if g2.button("⏸ Pause", use_container_width=True):
+        if g2.button("⏸ Pause", width="stretch"):
             st.session_state.gen_running = False
             st.toast("Generator paused")
-        if g3.button("🔄 Reset", use_container_width=True):
+        if g3.button("🔄 Reset", width="stretch"):
             st.session_state.gen_running = False
             st.session_state.gen_snapshots = []
             st.session_state.gen_batches_sent = 0
-            for key in ("impact_analyzer", "ia_is_sample_data"):
+            for key in (
+                "impact_analyzer",
+                "ia_is_sample_data",
+                "ia_data_source_kind",
+                "ia_data_source_label",
+                "_ia_banner_shown_for",
+            ):
                 st.session_state.pop(key, None)
             st.toast("Generator reset")
 
@@ -243,6 +315,8 @@ zoom, and hover for details.
 
             combined = pl.concat(st.session_state.gen_snapshots)
             impact_analyzer = ImpactAnalyzer(combined.lazy())
+            data_source_kind = "live"
+            data_source_label = f"Live generator — {st.session_state.gen_batches_sent} snapshots"
             # Clear stale cached IA so pages pick up the new one
             st.session_state.pop("impact_analyzer", None)
             st.session_state.pop("ia_is_sample_data", None)
@@ -264,8 +338,13 @@ zoom, and hover for details.
             # Clear any old data when new upload is attempted
             if "impact_analyzer" in st.session_state:
                 del st.session_state["impact_analyzer"]
-            if "ia_is_sample_data" in st.session_state:
-                del st.session_state["ia_is_sample_data"]
+            for key in (
+                "ia_is_sample_data",
+                "ia_data_source_kind",
+                "ia_data_source_label",
+                "_ia_banner_shown_for",
+            ):
+                st.session_state.pop(key, None)
 
             # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
             valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
@@ -290,6 +369,9 @@ zoom, and hover for details.
                             "uploaded",
                             expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
                         )
+                    if impact_analyzer is not None:
+                        data_source_kind = "upload"
+                        data_source_label = filtered_files[0].name
                 # Multiple JSON files: treat as PDC
                 elif suffixes.issubset({".json", ".ndjson"}):
                     with st.spinner("Loading PDC data"):
@@ -297,6 +379,9 @@ zoom, and hover for details.
                             lambda: load_pdc_from_uploads(filtered_files),
                             "PDC",
                         )
+                    if impact_analyzer is not None:
+                        data_source_kind = "upload"
+                        data_source_label = f"{len(filtered_files)} PDC files"
                 else:
                     st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
 
@@ -331,6 +416,8 @@ zoom, and hover for details.
             )
             data_source_path = configured_path
         if impact_analyzer is not None:
+            data_source_kind = "cli"
+            data_source_label = configured_path
             st.info(f"Loaded data from configured path: `{configured_path}`")
 
     # Pre-ingestion sampling (only for CLI paths)
@@ -371,13 +458,22 @@ zoom, and hover for details.
     if impact_analyzer is not None:
         st.session_state["impact_analyzer"] = impact_analyzer
         st.session_state["ia_is_sample_data"] = is_sample_data
+        if data_source_kind is not None:
+            st.session_state["ia_data_source_kind"] = data_source_kind
+        if data_source_label is not None:
+            st.session_state["ia_data_source_label"] = data_source_label
         if data_source_path:
             st.session_state["ia_data_source_path"] = data_source_path
-        _show_data_summary(impact_analyzer, is_sample_data=is_sample_data)
+        # Force banner to render once for this newly loaded data.
+        st.session_state.pop("_ia_banner_shown_for", None)
+        _show_data_summary(
+            impact_analyzer,
+            source_kind=data_source_kind,
+            source_label=data_source_label,
+        )
     elif "impact_analyzer" in st.session_state:
-        # Show summary for previously loaded data (only if no upload was attempted)
-        was_sample = st.session_state.get("ia_is_sample_data", False)
-        _show_data_summary(st.session_state["impact_analyzer"], is_sample_data=was_sample)
+        # Show summary for previously loaded data (gated by render-once fingerprint).
+        _show_data_summary(st.session_state["impact_analyzer"])
 
     # For VBD data: show outcome labels and handle reload
     _active_ia = impact_analyzer or st.session_state.get("impact_analyzer")

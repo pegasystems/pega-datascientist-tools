@@ -57,8 +57,8 @@ def test_home_renders_without_data(ia_app_dir: Path):
 #
 # Each entry: (filename, heading substring, {widget attribute: min count}).
 IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
-    ("1_Overall_Summary.py", "# Overall Summary", {"dataframe": 1, "selectbox": 1}),
-    ("2_Drill_Down.py", "# Drill Down", {"selectbox": 1}),
+    ("1_Overall_Summary.py", "# Overall Summary", {"selectbox": 1}),
+    ("2_Channels.py", "# Channels", {"dataframe": 1, "selectbox": 1}),
     ("3_About.py", "# About", {"expander": 1}),
 ]
 
@@ -68,7 +68,7 @@ IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
 # reads the page name first.
 IA_PAGE_TITLES: list[tuple[str, str]] = [
     ("1_Overall_Summary.py", "Impact Analyzer · Overall Summary"),
-    ("2_Drill_Down.py", "Impact Analyzer · Drill Down"),
+    ("2_Channels.py", "Impact Analyzer · Channels"),
     ("3_About.py", "About · Impact Analyzer"),
 ]
 
@@ -125,7 +125,7 @@ def test_ia_page_renders(
 
 IA_DATA_REQUIRED_PAGES = [
     ("1_Overall_Summary.py", "# Overall Summary"),
-    ("2_Drill_Down.py", "# Drill Down"),
+    ("2_Channels.py", "# Channels"),
 ]
 
 

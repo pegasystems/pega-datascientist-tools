@@ -240,21 +240,10 @@ class TestFormula:
         }
         assert set(FORMULAS.keys()) == expected
 
-    def test_filled_substitution(self):
-        f = FORMULAS["accept_rate"]
-        rendered = f.filled(accepts=100, impressions=1000)
-        assert "100" in rendered
-        assert "1000" in rendered
-
     def test_formula_is_frozen(self):
         f = FORMULAS["accept_rate"]
         with pytest.raises(AttributeError):
             f.name = "modified"  # type: ignore[misc]
-
-    def test_filled_float_precision(self):
-        f = FORMULAS["binomial_se"]
-        rendered = f.filled(p=0.05, n=10000)
-        assert "0.0500000000" in rendered
 
 
 class TestIsSignificantConfidenceLevel:

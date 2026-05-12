@@ -69,7 +69,9 @@ class Formula:
     name : str
         Short identifier, e.g. ``"accept_rate"``.
     latex : str
-        Raw LaTeX with ``{placeholders}`` for substitution.
+        Raw LaTeX expression (no placeholder substitution — the UI
+        renders the symbolic form alongside a separate substitution
+        block showing the numeric values).
     description : str
         One-line plain-English description.
     """
@@ -78,59 +80,37 @@ class Formula:
     latex: str
     description: str
 
-    def filled(self, **values) -> str:
-        """Return LaTeX with *values* substituted into placeholders.
-
-        Parameters
-        ----------
-        **values
-            Keyword arguments whose keys match the ``{placeholders}``
-            in :attr:`latex`.
-
-        Returns
-        -------
-        str
-            Rendered LaTeX string ready for display.
-        """
-        result = self.latex
-        for k, v in values.items():
-            if isinstance(v, float):
-                result = result.replace("{" + k + "}", f"{v:.10f}")
-            else:
-                result = result.replace("{" + k + "}", str(v))
-        return result
-
 
 # Registry of all formulas used in IA statistics.
 FORMULAS: dict[str, Formula] = {
     "accept_rate": Formula(
         name="accept_rate",
-        latex=r"p = \frac{{\text{{Accepts}}}}{{\text{{Impressions}}}} = \frac{{{accepts}}}{{{impressions}}}",
+        latex=r"p = \frac{{\text{{Accepts}}}}{{\text{{Impressions}}}}",
         description="Accept / click-through rate.",
     ),
     "binomial_se": Formula(
         name="binomial_se",
-        latex=r"\text{{SE}} = \sqrt{{\frac{{p(1-p)}}{{n}}}} = \sqrt{{\frac{{{p} \times (1-{p})}}{{{n}}}}}",
+        latex=r"\text{{SE}} = \sqrt{{\frac{{p(1-p)}}{{n}}}}",
         description="Standard error of the accept rate (Wald).",
     ),
     "binomial_ci": Formula(
         name="binomial_ci",
-        latex=r"\text{{CI}} = z \cdot \text{{SE}} = {z} \times {se}",
+        latex=r"\text{{CI}} = z \cdot \text{{SE}}",
         description="Binomial CI half-width (normal approximation).",
     ),
     "value_variance": Formula(
         name="value_variance",
-        latex=r"\text{{Var}} = p(1-p) \cdot \text{{AV}}^2 = {p} \times (1-{p}) \times {av}^2",
+        latex=r"\text{{Var}} = p(1-p) \cdot \text{{AV}}^2",
         description="Per-observation Bernoulli variance of the value metric.",
     ),
     "value_se": Formula(
         name="value_se",
-        latex=r"\text{{SE}}_{{VPI}} = \sqrt{{\frac{{\text{{Var}}}}{{n}}}} = \sqrt{{\frac{{{var}}}{{{n}}}}}",
+        latex=r"\text{{SE}}_{{VPI}} = \sqrt{{\frac{{\text{{Var}}}}{{n}}}}",
         description="Standard error of value per impression.",
     ),
     "lift": Formula(
         name="lift",
-        latex=r"\text{{Lift}} = \frac{{\text{{test}} - \text{{ctrl}}}}{{\text{{ctrl}}}} = \frac{{{test} - {control}}}{{{control}}}",
+        latex=r"\text{{Lift}} = \frac{{\text{{test}} - \text{{ctrl}}}}{{\text{{ctrl}}}}",
         description="Relative lift: (test - control) / control.",
     ),
     "lift_se": Formula(
@@ -145,7 +125,7 @@ FORMULAS: dict[str, Formula] = {
     ),
     "vpi": Formula(
         name="vpi",
-        latex=r"\text{{VPI}} = p \times \text{{AV}} = {p} \times {av}",
+        latex=r"\text{{VPI}} = p \times \text{{AV}}",
         description="Value per impression = accept rate × action value.",
     ),
     "required_sample_size": Formula(

@@ -338,7 +338,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
         unsafe_allow_html=True,
     )
 
-    # ── Arm comparison table ──────────────────────────────────────────
+    # ── Test vs control comparison table ──────────────────────────────
     st.table(
         {
             "": ["Impressions", "Accepts", "Accept Rate"],
@@ -351,7 +351,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     tab_eng, tab_val = st.tabs(["Engagement Lift", "Value Lift"])
 
     with tab_eng:
-        # Trend chart with CI bands + EWMA
         if trend_df is not None:
             _fig_t = _chart_lift_trend(
                 trend_df,
@@ -360,18 +359,66 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 label="Engagement Lift %",
             )
             if _fig_t is not None:
-                st.plotly_chart(_fig_t, use_container_width=True, key=f"os_trend_eng_{idx}")
+                st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
 
         ci_hw = eng.ci_95()
         st.markdown(
-            f"Lift = **{_pct(eng.lift)}** · "
+            f"Engagement Lift = **{_pct(eng.lift)}** · "
             f"SE = `{_num(eng.se)}` · "
             f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
         )
 
+        with st.expander("**Formula details**"):
+            st.markdown("##### Step 1 — Accept Rates")
+            _formula(
+                FORMULAS["accept_rate"].latex,
+                "Accept rate for the test and control groups",
+                f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
+            )
+
+            st.markdown("##### Step 2 — Standard Errors")
+            _formula(
+                FORMULAS["binomial_se"].latex,
+                "Binomial standard error",
+                f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
+            )
+
+            st.markdown("##### Step 3 — Engagement Lift")
+            _formula(
+                FORMULAS["lift"].latex,
+                "",
+                f"Lift = ({_num(p_t)} - {_num(p_c)}) / {_num(p_c)} = {_num(eng.lift)}"
+                if eng.lift is not None
+                else "Lift = N/A (control rate is 0)",
+            )
+
+            st.markdown("##### Step 4 — Confidence Interval (Delta Method)")
+            _formula(
+                FORMULAS["lift_se"].latex,
+                "",
+                f"SE(Lift) = {_num(eng.se)}" if eng.se is not None else "SE(Lift) = N/A",
+            )
+            _formula(FORMULAS["significance"].latex)
+            if eng.lift is not None and eng.se is not None:
+                lo = eng.lift - Z_95 * eng.se
+                hi = eng.lift + Z_95 * eng.se
+                sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
+                _formula_box(
+                    [
+                        f"= [{lo:.10f},  {hi:.10f}]",
+                        f"Statistically significant?  {sig}",
+                    ]
+                )
+
+            if trend_df is not None:
+                st.markdown("##### Trend Chart — CI Band & Smoothing")
+                st.latex(FORMULAS["ci_band"].latex)
+                st.caption(FORMULAS["ci_band"].description)
+                st.latex(FORMULAS["ewma"].latex)
+                st.caption(FORMULAS["ewma"].description)
+
     with tab_val:
         if val is not None:
-            # Trend chart with CI bands + EWMA
             if trend_df is not None:
                 _fig_tv = _chart_lift_trend(
                     trend_df,
@@ -380,7 +427,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     label="Value Lift %",
                 )
                 if _fig_tv is not None:
-                    st.plotly_chart(_fig_tv, use_container_width=True, key=f"os_trend_val_{idx}")
+                    st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
 
             val_hw = val.ci_95()
             st.markdown(
@@ -389,130 +436,103 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
             )
             if av_t is None:
-                st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
+                st.caption("Note: SE approximated from engagement SEs (per-group VPI not available in this dataset).")
         else:
-            st.info("Value lift requires action-value data.")
+            st.caption("Value lift requires action-value data.")
 
-    # ── Formula expander ──────────────────────────────────────────────
-    with st.expander("**Formula details — lift calculations & trend chart**"):
-        st.markdown("##### Step 1 — Accept Rates")
-        _formula(
-            FORMULAS["accept_rate"].latex,
-            "Accept rate for each arm",
-            f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
-        )
-
-        st.markdown("##### Step 2 — Standard Errors")
-        _formula(
-            FORMULAS["binomial_se"].latex,
-            "Binomial standard error",
-            f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
-        )
-
-        st.markdown("##### Step 3 — Engagement Lift")
-        _formula(
-            FORMULAS["lift"].latex,
-            "",
-            f"Lift = ({_num(p_t)} - {_num(p_c)}) / {_num(p_c)} = {_num(eng.lift)}"
-            if eng.lift is not None
-            else "Lift = N/A (control rate is 0)",
-        )
-
-        st.markdown("##### Step 4 — Confidence Interval (Delta Method)")
-        _formula(
-            FORMULAS["lift_se"].latex,
-            "",
-            f"SE(Lift) = {_num(eng.se)}" if eng.se is not None else "SE(Lift) = N/A",
-        )
-        _formula(FORMULAS["significance"].latex)
-        if eng.lift is not None and eng.se is not None:
-            lo = eng.lift - Z_95 * eng.se
-            hi = eng.lift + Z_95 * eng.se
-            sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
-            _formula_box(
-                [
-                    f"= [{lo:.10f},  {hi:.10f}]",
-                    f"Statistically significant?  {sig}",
-                ]
-            )
-
-        st.markdown("##### Step 5 — Value Lift (VPI-based)")
-        if val is not None and av_t is not None and av_c is not None:
+        with st.expander("**Formula details**"):
+            st.markdown("##### Step 1 — Accept Rates")
             _formula(
-                FORMULAS["vpi"].latex,
-                "Value Per Impression",
-                f"AV_test = {_num(av_t, 4)}  |  AV_ctrl = {_num(av_c, 4)}\n"
-                f"VPI_test = {_num(p_t)} × {_num(av_t, 4)} = {_num(vpi_t)}\n"
-                f"VPI_ctrl = {_num(p_c)} × {_num(av_c, 4)} = {_num(vpi_c)}",
+                FORMULAS["accept_rate"].latex,
+                "Accept rate for the test and control groups",
+                f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
             )
 
-            vvar_t = value_variance(test_acc, test_impr, av_t)
-            vvar_c = value_variance(ctrl_acc, ctrl_impr, av_c)
-            vse_t = value_se(test_acc, test_impr, av_t)
-            vse_c = value_se(ctrl_acc, ctrl_impr, av_c)
+            st.markdown("##### Step 2 — Standard Errors")
+            _formula(
+                FORMULAS["binomial_se"].latex,
+                "Binomial standard error",
+                f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
+            )
 
-            _formula(
-                r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
-                "Bernoulli per-observation variance",
-                f"Var_test = {_num(vvar_t)}\nVar_ctrl = {_num(vvar_c)}",
-            )
-            _formula(
-                r"\text{SE}(\text{VPI}) = \sqrt{{\text{{Var}}}/ n}",
-                "",
-                f"SE_vpi_test = {_num(vse_t)}\nSE_vpi_ctrl = {_num(vse_c)}",
-            )
-            _formula(
-                r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-                r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-                "",
-                f"ValueLift = {_num(val.lift)}",
-            )
-            if val.se is not None:
-                vl_lo = val.lift - Z_95 * val.se
-                vl_hi = val.lift + Z_95 * val.se
-                vl_sig = "YES" if val.significant else "NO"
-                _formula_box(
-                    [
-                        f"SE(ValueLift) = {_num(val.se)}",
-                        f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
-                        f"Statistically significant?  {vl_sig}",
-                    ]
+            st.markdown("##### Step 3 — Value Lift (VPI-based)")
+            if val is not None and av_t is not None and av_c is not None:
+                _formula(
+                    FORMULAS["vpi"].latex,
+                    "Value Per Impression",
+                    f"AV_test = {_num(av_t, 4)}  |  AV_ctrl = {_num(av_c, 4)}\n"
+                    f"VPI_test = {_num(p_t)} × {_num(av_t, 4)} = {_num(vpi_t)}\n"
+                    f"VPI_ctrl = {_num(p_c)} × {_num(av_c, 4)} = {_num(vpi_c)}",
                 )
-        elif val is not None:
-            _formula(
-                r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-                r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-                "Pre-computed from the data source",
-                f"ValueLift = {_num(val.lift)}",
-            )
-            if val.se is not None:
-                vl_lo = val.lift - Z_95 * val.se
-                vl_hi = val.lift + Z_95 * val.se
-                vl_sig = "YES" if val.significant else "NO"
-                _formula_box(
-                    [
-                        f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
-                        f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
-                        f"Statistically significant?  {vl_sig}",
-                    ]
-                )
-            st.caption(
-                "Per-arm action values not available in this dataset. "
-                "Value lift is pre-computed; SE is approximated from engagement SEs."
-            )
-        elif val_lift_pdc is not None:
-            st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
-            st.caption("Per-arm action values not available. Only the raw value lift from the data source is shown.")
-        else:
-            st.caption("Value lift data not available for this experiment.")
 
-        # Trend chart formulas (CI band + EWMA)
-        if trend_df is not None:
-            st.markdown("##### Trend Chart — CI Band & Smoothing")
-            st.latex(FORMULAS["ci_band"].latex)
-            st.caption(FORMULAS["ci_band"].description)
-            st.latex(FORMULAS["ewma"].latex)
-            st.caption(FORMULAS["ewma"].description)
+                vvar_t = value_variance(test_acc, test_impr, av_t)
+                vvar_c = value_variance(ctrl_acc, ctrl_impr, av_c)
+                vse_t = value_se(test_acc, test_impr, av_t)
+                vse_c = value_se(ctrl_acc, ctrl_impr, av_c)
+
+                _formula(
+                    r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
+                    "Bernoulli per-observation variance",
+                    f"Var_test = {_num(vvar_t)}\nVar_ctrl = {_num(vvar_c)}",
+                )
+                _formula(
+                    r"\text{SE}(\text{VPI}) = \sqrt{{\text{{Var}}}/ n}",
+                    "",
+                    f"SE_vpi_test = {_num(vse_t)}\nSE_vpi_ctrl = {_num(vse_c)}",
+                )
+                _formula(
+                    r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
+                    r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
+                    "",
+                    f"ValueLift = {_num(val.lift)}",
+                )
+                if val.se is not None:
+                    vl_lo = val.lift - Z_95 * val.se
+                    vl_hi = val.lift + Z_95 * val.se
+                    vl_sig = "YES" if val.significant else "NO"
+                    _formula_box(
+                        [
+                            f"SE(ValueLift) = {_num(val.se)}",
+                            f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Statistically significant?  {vl_sig}",
+                        ]
+                    )
+            elif val is not None:
+                _formula(
+                    r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
+                    r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
+                    "Pre-computed from the data source",
+                    f"ValueLift = {_num(val.lift)}",
+                )
+                if val.se is not None:
+                    vl_lo = val.lift - Z_95 * val.se
+                    vl_hi = val.lift + Z_95 * val.se
+                    vl_sig = "YES" if val.significant else "NO"
+                    _formula_box(
+                        [
+                            f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
+                            f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Statistically significant?  {vl_sig}",
+                        ]
+                    )
+                st.caption(
+                    "Per-group action values not available in this dataset. "
+                    "Value lift is pre-computed; SE is approximated from engagement SEs."
+                )
+            elif val_lift_pdc is not None:
+                st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
+                st.caption(
+                    "Per-group action values not available. Only the raw value lift from the data source is shown."
+                )
+            else:
+                st.caption("Value lift data not available for this experiment.")
+
+            if trend_df is not None:
+                st.markdown("##### Trend Chart — CI Band & Smoothing")
+                st.latex(FORMULAS["ci_band"].latex)
+                st.caption(FORMULAS["ci_band"].description)
+                st.latex(FORMULAS["ewma"].latex)
+                st.caption(FORMULAS["ewma"].description)
 
 
 # ===========================================================================
@@ -521,8 +541,11 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 "# Overall Summary"
 
 """
-View lift metrics aggregated across all channels. Each experiment card shows
-trend charts, confidence intervals, and the exact formulas behind every number.
+View lift metrics aggregated across all channels by default. Each experiment
+card shows trend charts, confidence intervals, and the exact formulas behind
+every number. Use the **Channel / Direction** filter in the sidebar to narrow
+the lift chart and cards to a single channel; the **Channels** page pivots
+the same data by channel and includes a flat per-channel metrics table.
 """
 
 # --- Gather data -----------------------------------------------------------
@@ -532,8 +555,11 @@ if experiments.is_empty():
     st.warning("No experiment data available.")
     st.stop()
 
-# Check for multi-snapshot trend data
+# Check for multi-snapshot trend data. We compute the channel-aggregated
+# trend by default and a per-channel trend frame so the cards' trend
+# sparklines stay accurate when the sidebar channel filter is active.
 _trend_df: pl.DataFrame | None = None
+_trend_df_by_channel: pl.DataFrame | None = None
 if "SnapshotTime" in ia.ia_data.collect_schema().names():
     _n_snaps = ia.ia_data.select("SnapshotTime").unique().collect().height
     if _n_snaps >= 2:
@@ -541,12 +567,17 @@ if "SnapshotTime" in ia.ia_data.collect_schema().names():
             _trend_df = ia.summarize_experiments(by="SnapshotTime").collect()
         except Exception:
             pass
+        if "Channel" in ia.ia_data.collect_schema().names():
+            try:
+                _trend_df_by_channel = ia.summarize_experiments(by=["Channel", "SnapshotTime"]).collect()
+            except Exception:
+                pass
 
-# --- Forest plot — all experiments at a glance -----------------------------
+# --- Per-experiment lift overview -----------------------------------------
 rows = experiments.to_dicts()
 
 
-def _build_forest_data(rows_data: list[dict]) -> list[dict]:
+def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
     """Compute lift ± SE for each active experiment."""
     plot_data = []
     for r in rows_data:
@@ -597,30 +628,79 @@ def _build_forest_data(rows_data: list[dict]) -> list[dict]:
     return plot_data
 
 
-_forest_data = _build_forest_data(rows)
+_lift_chart_data = _build_lift_chart_data(rows)
 
-if _forest_data:
-    forest_metric = st.radio(
-        "Forest plot metric",
-        ["Engagement Lift", "Value Lift"],
-        horizontal=True,
-    )
-    _forest_key = "eng" if forest_metric == "Engagement Lift" else "val"
+# Per-channel summary (short-term facet — see
+# docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
+# that surfaces channel in the experiment cards too). We pre-compute once so
+# the same channel selector can drive the chart, the cards, and the summary
+# table; channels that yield no plottable rows are hidden from the dropdown.
+_schema_names = ia.ia_data.collect_schema().names()
+_per_channel_chart_data: dict[str, list[dict]] = {}
+_per_channel_rows: dict[str, list[dict]] = {}
+if "Channel" in _schema_names:
+    try:
+        _per_channel_summary = ia.summarize_experiments(by="Channel").collect()
+        for _ch in sorted(_per_channel_summary["Channel"].drop_nulls().unique().to_list()):
+            _ch_rows = _per_channel_summary.filter(pl.col("Channel") == _ch).to_dicts()
+            _ch_chart = _build_lift_chart_data(_ch_rows)
+            if _ch_chart:
+                _per_channel_chart_data[_ch] = _ch_chart
+                _per_channel_rows[_ch] = _ch_rows
+    except Exception:
+        _per_channel_chart_data = {}
+        _per_channel_rows = {}
+_channel_options: list[str] = list(_per_channel_chart_data.keys())
+_channel_filter = "Any"
 
+# Page-wide channel filter lives in the sidebar (DA convention) so it
+# governs the chart, the experiment cards, and the summary table from one
+# place. "Any" is the aggregate sentinel — matches DA's terminology.
+if _channel_options:
+    with st.sidebar:
+        st.divider()
+        st.caption("**Filters**")
+        _channel_filter = st.selectbox(
+            "Channel / Direction",
+            ["Any", *_channel_options],
+            help="Filter the lift chart, experiment cards, and summary table to a specific channel. 'Any' shows the aggregate across all channels.",
+            key="lift_chart_channel_filter",
+        )
+
+if _lift_chart_data:
     with st.container(border=True):
-        st.markdown(f"### {forest_metric} — All Experiments")
+        kpi_metric = st.radio(
+            "KPI",
+            ["Engagement Lift", "Value Lift"],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+        _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
+
+        if _channel_filter != "Any":
+            _lift_chart_data_active = _per_channel_chart_data.get(_channel_filter, _lift_chart_data)
+        else:
+            _lift_chart_data_active = _lift_chart_data
+
+        _title_suffix = (
+            "All Experiments" if _channel_filter == "Any" else f"All Experiments — channel: {_channel_filter}"
+        )
+        st.markdown(f"### {kpi_metric} — {_title_suffix}")
         st.caption(
-            "Forest plot: each row is one experiment. Diamond = point estimate, "
+            "Each row is one experiment. Diamond = point estimate, "
             "whiskers = 95 % CI.  Green = significant positive, red = significant "
             "negative, grey = not significant."
         )
 
+        if not _lift_chart_data_active:
+            st.info(f"No experiment data for channel **{_channel_filter}**.")
+
         fig = go.Figure()
         names = []
         _narrow_ci = []
-        for _i, d in enumerate(_forest_data):
-            lift = d[f"{_forest_key}_lift"]
-            se = d[f"{_forest_key}_se"]
+        for _i, d in enumerate(_lift_chart_data_active):
+            lift = d[f"{_lift_key}_lift"]
+            se = d[f"{_lift_key}_se"]
             if lift is None or se is None:
                 continue
 
@@ -683,9 +763,9 @@ if _forest_data:
             font=dict(color=_TEXT, size=12),
             margin=dict(l=220, r=30, t=10, b=40),
             yaxis=dict(tickvals=list(range(len(names))), ticktext=names, showgrid=False, zeroline=False),
-            xaxis=dict(title=f"{forest_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
+            xaxis=dict(title=f"{kpi_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
-        st.plotly_chart(fig, use_container_width=True, key="forest_plot")
+        st.plotly_chart(fig, key="lift_chart")
 
         if _narrow_ci:
             st.info(
@@ -695,8 +775,21 @@ if _forest_data:
             )
 
 # --- Experiment cards (2-column grid) --------------------------------------
-active = [r for r in rows if (r.get("Impressions_Test") or 0) > 0 or (r.get("Impressions_Control") or 0) > 0]
-inactive = [r for r in rows if r not in active]
+# When a channel is selected above, cards and the summary table show
+# per-channel metrics for that channel; otherwise they aggregate across
+# channels.
+if _channel_filter != "Any":
+    _cards_rows = _per_channel_rows.get(_channel_filter, rows)
+    _cards_scope_caption = f"Showing experiments for channel **{_channel_filter}**."
+else:
+    _cards_rows = rows
+    _cards_scope_caption = None
+
+if _cards_scope_caption:
+    st.caption(_cards_scope_caption)
+
+active = [r for r in _cards_rows if (r.get("Impressions_Test") or 0) > 0 or (r.get("Impressions_Control") or 0) > 0]
+inactive = [r for r in _cards_rows if r not in active]
 
 tab_active, tab_inactive = st.tabs(
     [
@@ -704,6 +797,15 @@ tab_active, tab_inactive = st.tabs(
         f"Inactive ({len(inactive)})",
     ]
 )
+
+# Pick the right trend frame: per-channel slice when filtered, otherwise
+# the channel-aggregated frame. Both are pre-computed once above.
+if _channel_filter != "Any" and _trend_df_by_channel is not None:
+    _card_trend_df = _trend_df_by_channel.filter(pl.col("Channel") == _channel_filter)
+    if _card_trend_df.is_empty():
+        _card_trend_df = None
+else:
+    _card_trend_df = _trend_df
 
 with tab_active:
     if not active:
@@ -713,7 +815,7 @@ with tab_active:
         for i, row in enumerate(active):
             with cols[i % 2]:
                 with st.container(border=True):
-                    _render_experiment_card(row, i, trend_df=_trend_df)
+                    _render_experiment_card(row, i, trend_df=_card_trend_df)
 
 with tab_inactive:
     if not inactive:
@@ -724,129 +826,3 @@ with tab_inactive:
                 f'**{row["Experiment"]}** — <span style="color:#8795A1">INACTIVE</span> · No data received.',
                 unsafe_allow_html=True,
             )
-
-# --- Summary table ---------------------------------------------------------
-st.markdown("---")
-st.markdown("### Summary Table")
-summary_rows = []
-for r in rows:
-    t_i = int(r.get("Impressions_Test") or 0)
-    t_a = int(r.get("Accepts_Test") or 0)
-    c_i = int(r.get("Impressions_Control") or 0)
-    c_a = int(r.get("Accepts_Control") or 0)
-    if t_i > 0 and c_i > 0:
-        eng = calculate_engagement_lift(t_a, t_i, c_a, c_i)
-        summary_rows.append(
-            {
-                "Experiment": r["Experiment"],
-                "Test n": f"{t_i:,}",
-                "Ctrl n": f"{c_i:,}",
-                "Test Rate": _pct(accept_rate(t_a, t_i), 4),
-                "Ctrl Rate": _pct(accept_rate(c_a, c_i), 4),
-                "Eng. Lift": _pct(eng.lift, 4),
-                "SE(Lift)": _num(eng.se, 6),
-                "Significant": "Yes" if eng.significant else "No",
-            }
-        )
-    else:
-        summary_rows.append(
-            {
-                "Experiment": r["Experiment"],
-                "Test n": "—",
-                "Ctrl n": "—",
-                "Test Rate": "—",
-                "Ctrl Rate": "—",
-                "Eng. Lift": "—",
-                "SE(Lift)": "—",
-                "Significant": "—",
-            }
-        )
-if summary_rows:
-    st.dataframe(summary_rows, use_container_width=True, hide_index=True)
-
-# --- Detailed metrics table (original overview) ----------------------------
-facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
-
-with st.container(border=True):
-    "## Detailed Metrics"
-
-    st.caption("Tabular view of lift metrics with exact values. Use this for detailed analysis and reporting.")
-
-    metric = st.selectbox(
-        "Metric",
-        options=["CTR_Lift", "Value_Lift"],
-        index=0,
-    )
-    table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
-    st.dataframe(table)
-
-# --- Full formula reference ------------------------------------------------
-with st.expander("Full formula reference — all Impact Analyzer calculations"):
-    st.markdown("#### Engagement Metrics")
-    _formula(FORMULAS["accept_rate"].latex, "Accept Rate")
-    _formula(FORMULAS["binomial_se"].latex, "Standard Error (Binomial)")
-    _formula(FORMULAS["binomial_ci"].latex, "Confidence Interval")
-
-    st.markdown("---")
-    st.markdown("#### Lift (Relative)")
-    _formula(FORMULAS["lift"].latex)
-    _formula(FORMULAS["lift_se"].latex, "Delta method for ratio of two proportions")
-    _formula(FORMULAS["significance"].latex)
-    _formula_box(
-        [
-            "Significant iff CI does not contain 0:",
-            "  (Lift - 1.96·SE > 0)  OR  (Lift + 1.96·SE < 0)",
-        ]
-    )
-
-    st.markdown("---")
-    st.markdown("#### Value Per Impression (VPI)")
-    _formula(FORMULAS["vpi"].latex, "VPI = Accept Rate × Action Value")
-    _formula(
-        r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
-        "Bernoulli per-observation variance",
-    )
-    _formula(
-        r"\text{SE}(\text{VPI}) = \sqrt{\text{Var}(\text{VPI}) / n}",
-    )
-    _formula(
-        r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-        r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-    )
-
-    st.markdown("---")
-    st.markdown("#### Required Sample Size")
-    _formula(FORMULAS["required_sample_size"].latex)
-    _formula_box(
-        [
-            "where  z_alpha = 1.96  (95% confidence)",
-            "       z_β = 0.84  (80% power)",
-            "       δ   = p × MDE  (minimum detectable effect)",
-        ]
-    )
-
-    st.markdown("---")
-    st.markdown("#### Trend Smoothing & Confidence Bands")
-    _formula(
-        FORMULAS["ci_band"].latex,
-        "Per-snapshot 95 % CI band plotted around each daily lift value",
-    )
-    _formula_box(
-        [
-            "For each snapshot t the SE is recomputed from that day's counts:",
-            "  SE_lift,t  uses  n_test(t), n_ctrl(t), accepts_test(t), accepts_ctrl(t)",
-            "  exactly as in the cumulative formula above.",
-        ]
-    )
-    _formula(
-        FORMULAS["ewma"].latex,
-        "Exponentially Weighted Moving Average (Pega smoothing)",
-    )
-    _formula_box(
-        [
-            "span = 7  (for daily data) ->  alpha = 2 / (7 + 1) = 0.25",
-            "S₁ = x₁  (the first observation seeds the series)",
-            "The smoothed line filters out day-to-day noise while",
-            "preserving the overall trend direction.",
-        ]
-    )
