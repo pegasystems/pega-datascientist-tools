@@ -599,14 +599,14 @@ def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
 
 _lift_chart_data = _build_lift_chart_data(rows)
 
-# Per-channel lift-chart data (short-term facet — see
+# Per-channel summary (short-term facet — see
 # docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
-# that surfaces channel in the experiment cards too). We pre-compute the
-# per-channel chart data once so we can both (a) hide channels that have no
-# valid experiment data from the dropdown, and (b) avoid recomputing on each
-# rerun.
+# that surfaces channel in the experiment cards too). We pre-compute once so
+# the same channel selector can drive the chart, the cards, and the summary
+# table; channels that yield no plottable rows are hidden from the dropdown.
 _schema_names = ia.ia_data.collect_schema().names()
 _per_channel_chart_data: dict[str, list[dict]] = {}
+_per_channel_rows: dict[str, list[dict]] = {}
 if "Channel" in _schema_names:
     try:
         _per_channel_summary = ia.summarize_experiments(by="Channel").collect()
@@ -615,9 +615,12 @@ if "Channel" in _schema_names:
             _ch_chart = _build_lift_chart_data(_ch_rows)
             if _ch_chart:
                 _per_channel_chart_data[_ch] = _ch_chart
+                _per_channel_rows[_ch] = _ch_rows
     except Exception:
         _per_channel_chart_data = {}
+        _per_channel_rows = {}
 _channel_options: list[str] = list(_per_channel_chart_data.keys())
+_channel_filter = "All channels (aggregate)"
 
 if _lift_chart_data:
     with st.container(border=True):
@@ -627,7 +630,7 @@ if _lift_chart_data:
                 _channel_filter = st.selectbox(
                     "Channel filter",
                     ["All channels (aggregate)", *_channel_options],
-                    help="Filter the chart to a single channel. Cards and the Detailed Metrics table below stay aggregated across channels.",
+                    help="Filter the chart, experiment cards, and summary table to a single channel.",
                     key="lift_chart_channel_filter",
                 )
             with _ctrl_right:
@@ -637,7 +640,6 @@ if _lift_chart_data:
                     horizontal=True,
                 )
         else:
-            _channel_filter = "All channels (aggregate)"
             kpi_metric = st.radio(
                 "KPI",
                 ["Engagement Lift", "Value Lift"],
@@ -745,8 +747,21 @@ if _lift_chart_data:
             )
 
 # --- Experiment cards (2-column grid) --------------------------------------
-active = [r for r in rows if (r.get("Impressions_Test") or 0) > 0 or (r.get("Impressions_Control") or 0) > 0]
-inactive = [r for r in rows if r not in active]
+# When a channel is selected above, cards and the summary table show
+# per-channel metrics for that channel; otherwise they aggregate across
+# channels.
+if _channel_filter != "All channels (aggregate)":
+    _cards_rows = _per_channel_rows.get(_channel_filter, rows)
+    _cards_scope_caption = f"Showing experiments for channel **{_channel_filter}**."
+else:
+    _cards_rows = rows
+    _cards_scope_caption = None
+
+if _cards_scope_caption:
+    st.caption(_cards_scope_caption)
+
+active = [r for r in _cards_rows if (r.get("Impressions_Test") or 0) > 0 or (r.get("Impressions_Control") or 0) > 0]
+inactive = [r for r in _cards_rows if r not in active]
 
 tab_active, tab_inactive = st.tabs(
     [
@@ -754,6 +769,11 @@ tab_active, tab_inactive = st.tabs(
         f"Inactive ({len(inactive)})",
     ]
 )
+
+# When filtered to a single channel, suppress trend sparklines: _trend_df
+# aggregates across channels, so showing it next to per-channel metrics
+# would be misleading. Per-channel trend is tracked in the plan-file.
+_card_trend_df = _trend_df if _channel_filter == "All channels (aggregate)" else None
 
 with tab_active:
     if not active:
@@ -763,7 +783,7 @@ with tab_active:
         for i, row in enumerate(active):
             with cols[i % 2]:
                 with st.container(border=True):
-                    _render_experiment_card(row, i, trend_df=_trend_df)
+                    _render_experiment_card(row, i, trend_df=_card_trend_df)
 
 with tab_inactive:
     if not inactive:
@@ -779,7 +799,7 @@ with tab_inactive:
 st.markdown("---")
 st.markdown("### Summary Table")
 summary_rows = []
-for r in rows:
+for r in _cards_rows:
     t_i = int(r.get("Impressions_Test") or 0)
     t_a = int(r.get("Accepts_Test") or 0)
     c_i = int(r.get("Impressions_Control") or 0)
