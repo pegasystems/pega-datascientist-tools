@@ -368,6 +368,55 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
             f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
         )
 
+        with st.expander("**Formula details**"):
+            st.markdown("##### Step 1 — Accept Rates")
+            _formula(
+                FORMULAS["accept_rate"].latex,
+                "Accept rate for each arm",
+                f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
+            )
+
+            st.markdown("##### Step 2 — Standard Errors")
+            _formula(
+                FORMULAS["binomial_se"].latex,
+                "Binomial standard error",
+                f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
+            )
+
+            st.markdown("##### Step 3 — Engagement Lift")
+            _formula(
+                FORMULAS["lift"].latex,
+                "",
+                f"Lift = ({_num(p_t)} - {_num(p_c)}) / {_num(p_c)} = {_num(eng.lift)}"
+                if eng.lift is not None
+                else "Lift = N/A (control rate is 0)",
+            )
+
+            st.markdown("##### Step 4 — Confidence Interval (Delta Method)")
+            _formula(
+                FORMULAS["lift_se"].latex,
+                "",
+                f"SE(Lift) = {_num(eng.se)}" if eng.se is not None else "SE(Lift) = N/A",
+            )
+            _formula(FORMULAS["significance"].latex)
+            if eng.lift is not None and eng.se is not None:
+                lo = eng.lift - Z_95 * eng.se
+                hi = eng.lift + Z_95 * eng.se
+                sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
+                _formula_box(
+                    [
+                        f"= [{lo:.10f},  {hi:.10f}]",
+                        f"Statistically significant?  {sig}",
+                    ]
+                )
+
+            if trend_df is not None:
+                st.markdown("##### Trend Chart — CI Band & Smoothing")
+                st.latex(FORMULAS["ci_band"].latex)
+                st.caption(FORMULAS["ci_band"].description)
+                st.latex(FORMULAS["ewma"].latex)
+                st.caption(FORMULAS["ewma"].description)
+
     with tab_val:
         if val is not None:
             if trend_df is not None:
@@ -391,126 +440,97 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
         else:
             st.caption("Value lift requires action-value data.")
 
-    # ── Formula expander ──────────────────────────────────────────────
-    with st.expander("**Formula details — lift calculations & trend chart**"):
-        st.markdown("##### Step 1 — Accept Rates")
-        _formula(
-            FORMULAS["accept_rate"].latex,
-            "Accept rate for each arm",
-            f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
-        )
-
-        st.markdown("##### Step 2 — Standard Errors")
-        _formula(
-            FORMULAS["binomial_se"].latex,
-            "Binomial standard error",
-            f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
-        )
-
-        st.markdown("##### Step 3 — Engagement Lift")
-        _formula(
-            FORMULAS["lift"].latex,
-            "",
-            f"Lift = ({_num(p_t)} - {_num(p_c)}) / {_num(p_c)} = {_num(eng.lift)}"
-            if eng.lift is not None
-            else "Lift = N/A (control rate is 0)",
-        )
-
-        st.markdown("##### Step 4 — Confidence Interval (Delta Method)")
-        _formula(
-            FORMULAS["lift_se"].latex,
-            "",
-            f"SE(Lift) = {_num(eng.se)}" if eng.se is not None else "SE(Lift) = N/A",
-        )
-        _formula(FORMULAS["significance"].latex)
-        if eng.lift is not None and eng.se is not None:
-            lo = eng.lift - Z_95 * eng.se
-            hi = eng.lift + Z_95 * eng.se
-            sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
-            _formula_box(
-                [
-                    f"= [{lo:.10f},  {hi:.10f}]",
-                    f"Statistically significant?  {sig}",
-                ]
-            )
-
-        st.markdown("##### Step 5 — Value Lift (VPI-based)")
-        if val is not None and av_t is not None and av_c is not None:
+        with st.expander("**Formula details**"):
+            st.markdown("##### Step 1 — Accept Rates")
             _formula(
-                FORMULAS["vpi"].latex,
-                "Value Per Impression",
-                f"AV_test = {_num(av_t, 4)}  |  AV_ctrl = {_num(av_c, 4)}\n"
-                f"VPI_test = {_num(p_t)} × {_num(av_t, 4)} = {_num(vpi_t)}\n"
-                f"VPI_ctrl = {_num(p_c)} × {_num(av_c, 4)} = {_num(vpi_c)}",
+                FORMULAS["accept_rate"].latex,
+                "Accept rate for each arm",
+                f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
             )
 
-            vvar_t = value_variance(test_acc, test_impr, av_t)
-            vvar_c = value_variance(ctrl_acc, ctrl_impr, av_c)
-            vse_t = value_se(test_acc, test_impr, av_t)
-            vse_c = value_se(ctrl_acc, ctrl_impr, av_c)
+            st.markdown("##### Step 2 — Standard Errors")
+            _formula(
+                FORMULAS["binomial_se"].latex,
+                "Binomial standard error",
+                f"SE_test = {_num(se_t)}\nSE_ctrl = {_num(se_c)}",
+            )
 
-            _formula(
-                r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
-                "Bernoulli per-observation variance",
-                f"Var_test = {_num(vvar_t)}\nVar_ctrl = {_num(vvar_c)}",
-            )
-            _formula(
-                r"\text{SE}(\text{VPI}) = \sqrt{{\text{{Var}}}/ n}",
-                "",
-                f"SE_vpi_test = {_num(vse_t)}\nSE_vpi_ctrl = {_num(vse_c)}",
-            )
-            _formula(
-                r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-                r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-                "",
-                f"ValueLift = {_num(val.lift)}",
-            )
-            if val.se is not None:
-                vl_lo = val.lift - Z_95 * val.se
-                vl_hi = val.lift + Z_95 * val.se
-                vl_sig = "YES" if val.significant else "NO"
-                _formula_box(
-                    [
-                        f"SE(ValueLift) = {_num(val.se)}",
-                        f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
-                        f"Statistically significant?  {vl_sig}",
-                    ]
+            st.markdown("##### Step 3 — Value Lift (VPI-based)")
+            if val is not None and av_t is not None and av_c is not None:
+                _formula(
+                    FORMULAS["vpi"].latex,
+                    "Value Per Impression",
+                    f"AV_test = {_num(av_t, 4)}  |  AV_ctrl = {_num(av_c, 4)}\n"
+                    f"VPI_test = {_num(p_t)} × {_num(av_t, 4)} = {_num(vpi_t)}\n"
+                    f"VPI_ctrl = {_num(p_c)} × {_num(av_c, 4)} = {_num(vpi_c)}",
                 )
-        elif val is not None:
-            _formula(
-                r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-                r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-                "Pre-computed from the data source",
-                f"ValueLift = {_num(val.lift)}",
-            )
-            if val.se is not None:
-                vl_lo = val.lift - Z_95 * val.se
-                vl_hi = val.lift + Z_95 * val.se
-                vl_sig = "YES" if val.significant else "NO"
-                _formula_box(
-                    [
-                        f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
-                        f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
-                        f"Statistically significant?  {vl_sig}",
-                    ]
-                )
-            st.caption(
-                "Per-arm action values not available in this dataset. "
-                "Value lift is pre-computed; SE is approximated from engagement SEs."
-            )
-        elif val_lift_pdc is not None:
-            st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
-            st.caption("Per-arm action values not available. Only the raw value lift from the data source is shown.")
-        else:
-            st.caption("Value lift data not available for this experiment.")
 
-        # Trend chart formulas (CI band + EWMA)
-        if trend_df is not None:
-            st.markdown("##### Trend Chart — CI Band & Smoothing")
-            st.latex(FORMULAS["ci_band"].latex)
-            st.caption(FORMULAS["ci_band"].description)
-            st.latex(FORMULAS["ewma"].latex)
-            st.caption(FORMULAS["ewma"].description)
+                vvar_t = value_variance(test_acc, test_impr, av_t)
+                vvar_c = value_variance(ctrl_acc, ctrl_impr, av_c)
+                vse_t = value_se(test_acc, test_impr, av_t)
+                vse_c = value_se(ctrl_acc, ctrl_impr, av_c)
+
+                _formula(
+                    r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
+                    "Bernoulli per-observation variance",
+                    f"Var_test = {_num(vvar_t)}\nVar_ctrl = {_num(vvar_c)}",
+                )
+                _formula(
+                    r"\text{SE}(\text{VPI}) = \sqrt{{\text{{Var}}}/ n}",
+                    "",
+                    f"SE_vpi_test = {_num(vse_t)}\nSE_vpi_ctrl = {_num(vse_c)}",
+                )
+                _formula(
+                    r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
+                    r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
+                    "",
+                    f"ValueLift = {_num(val.lift)}",
+                )
+                if val.se is not None:
+                    vl_lo = val.lift - Z_95 * val.se
+                    vl_hi = val.lift + Z_95 * val.se
+                    vl_sig = "YES" if val.significant else "NO"
+                    _formula_box(
+                        [
+                            f"SE(ValueLift) = {_num(val.se)}",
+                            f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Statistically significant?  {vl_sig}",
+                        ]
+                    )
+            elif val is not None:
+                _formula(
+                    r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
+                    r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
+                    "Pre-computed from the data source",
+                    f"ValueLift = {_num(val.lift)}",
+                )
+                if val.se is not None:
+                    vl_lo = val.lift - Z_95 * val.se
+                    vl_hi = val.lift + Z_95 * val.se
+                    vl_sig = "YES" if val.significant else "NO"
+                    _formula_box(
+                        [
+                            f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
+                            f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Statistically significant?  {vl_sig}",
+                        ]
+                    )
+                st.caption(
+                    "Per-arm action values not available in this dataset. "
+                    "Value lift is pre-computed; SE is approximated from engagement SEs."
+                )
+            elif val_lift_pdc is not None:
+                st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
+                st.caption("Per-arm action values not available. Only the raw value lift from the data source is shown.")
+            else:
+                st.caption("Value lift data not available for this experiment.")
+
+            if trend_df is not None:
+                st.markdown("##### Trend Chart — CI Band & Smoothing")
+                st.latex(FORMULAS["ci_band"].latex)
+                st.caption(FORMULAS["ci_band"].description)
+                st.latex(FORMULAS["ewma"].latex)
+                st.caption(FORMULAS["ewma"].description)
 
 
 # ===========================================================================
