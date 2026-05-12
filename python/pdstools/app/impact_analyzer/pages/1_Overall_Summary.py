@@ -636,6 +636,7 @@ if _lift_chart_data:
             "KPI",
             ["Engagement Lift", "Value Lift"],
             horizontal=True,
+            label_visibility="collapsed",
         )
         _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
 
