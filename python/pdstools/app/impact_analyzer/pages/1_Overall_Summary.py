@@ -789,13 +789,15 @@ with tab_inactive:
             )
 
 # --- Detailed metrics table ------------------------------------------------
-# When a channel is selected in the sidebar, show only that channel's row(s)
-# and drop the per-channel facet (it would just repeat the selected channel).
+# When a channel is selected in the sidebar, filter the table to that channel
+# (we still pass facet="Channel" so the Channel column is present for the
+# query to bind against, but the result is a single row per experiment).
+_has_channel = "Channel" in ia.ia_data.collect_schema().names()
 if _channel_filter != "Any":
-    _facet = None
-    _detailed_query = pl.col("Channel") == _channel_filter
+    _facet = "Channel" if _has_channel else None
+    _detailed_query = pl.col("Channel") == _channel_filter if _has_channel else None
 else:
-    _facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
+    _facet = "Channel" if _has_channel else None
     _detailed_query = None
 
 with st.container(border=True):
