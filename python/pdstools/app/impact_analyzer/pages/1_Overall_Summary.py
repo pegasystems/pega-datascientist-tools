@@ -601,16 +601,23 @@ _lift_chart_data = _build_lift_chart_data(rows)
 
 # Per-channel lift-chart data (short-term facet — see
 # docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
-# that surfaces channel in the experiment cards too).
+# that surfaces channel in the experiment cards too). We pre-compute the
+# per-channel chart data once so we can both (a) hide channels that have no
+# valid experiment data from the dropdown, and (b) avoid recomputing on each
+# rerun.
 _schema_names = ia.ia_data.collect_schema().names()
-_channel_options: list[str] = []
+_per_channel_chart_data: dict[str, list[dict]] = {}
 if "Channel" in _schema_names:
     try:
-        _channel_options = sorted(
-            ia.ia_data.select(pl.col("Channel").unique()).collect().to_series().drop_nulls().to_list()
-        )
+        _per_channel_summary = ia.summarize_experiments(by="Channel").collect()
+        for _ch in sorted(_per_channel_summary["Channel"].drop_nulls().unique().to_list()):
+            _ch_rows = _per_channel_summary.filter(pl.col("Channel") == _ch).to_dicts()
+            _ch_chart = _build_lift_chart_data(_ch_rows)
+            if _ch_chart:
+                _per_channel_chart_data[_ch] = _ch_chart
     except Exception:
-        _channel_options = []
+        _per_channel_chart_data = {}
+_channel_options: list[str] = list(_per_channel_chart_data.keys())
 
 if _lift_chart_data:
     with st.container(border=True):
@@ -639,16 +646,7 @@ if _lift_chart_data:
         _lift_key = "eng" if kpi_metric == "Engagement Lift" else "val"
 
         if _channel_filter != "All channels (aggregate)":
-            try:
-                _per_channel_rows = (
-                    ia.summarize_experiments(by="Channel")
-                    .filter(pl.col("Channel") == _channel_filter)
-                    .collect()
-                    .to_dicts()
-                )
-                _lift_chart_data_active = _build_lift_chart_data(_per_channel_rows)
-            except Exception:
-                _lift_chart_data_active = _lift_chart_data
+            _lift_chart_data_active = _per_channel_chart_data.get(_channel_filter, _lift_chart_data)
         else:
             _lift_chart_data_active = _lift_chart_data
 
