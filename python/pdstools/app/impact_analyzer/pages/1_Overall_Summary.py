@@ -338,7 +338,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
         unsafe_allow_html=True,
     )
 
-    # ── Arm comparison table ──────────────────────────────────────────
+    # ── Test vs control comparison table ──────────────────────────────
     st.table(
         {
             "": ["Impressions", "Accepts", "Accept Rate"],
@@ -372,7 +372,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
             st.markdown("##### Step 1 — Accept Rates")
             _formula(
                 FORMULAS["accept_rate"].latex,
-                "Accept rate for each arm",
+                "Accept rate for the test and control groups",
                 f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
             )
 
@@ -436,7 +436,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
             )
             if av_t is None:
-                st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
+                st.caption("Note: SE approximated from engagement SEs (per-group VPI not available in this dataset).")
         else:
             st.caption("Value lift requires action-value data.")
 
@@ -444,7 +444,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
             st.markdown("##### Step 1 — Accept Rates")
             _formula(
                 FORMULAS["accept_rate"].latex,
-                "Accept rate for each arm",
+                "Accept rate for the test and control groups",
                 f"p_test = {test_acc} / {test_impr} = {_num(p_t)}\np_ctrl = {ctrl_acc} / {ctrl_impr} = {_num(p_c)}",
             )
 
@@ -516,12 +516,12 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                         ]
                     )
                 st.caption(
-                    "Per-arm action values not available in this dataset. "
+                    "Per-group action values not available in this dataset. "
                     "Value lift is pre-computed; SE is approximated from engagement SEs."
                 )
             elif val_lift_pdc is not None:
                 st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
-                st.caption("Per-arm action values not available. Only the raw value lift from the data source is shown.")
+                st.caption("Per-group action values not available. Only the raw value lift from the data source is shown.")
             else:
                 st.caption("Value lift data not available for this experiment.")
 
@@ -848,74 +848,3 @@ with st.container(border=True):
     )
     table = ia.plot.overview(metric=metric, facet=_facet, query=_detailed_query, return_df=True).collect()
     st.dataframe(table)
-
-# --- Full formula reference ------------------------------------------------
-with st.expander("Full formula reference — all Impact Analyzer calculations"):
-    st.markdown("#### Engagement Metrics")
-    _formula(FORMULAS["accept_rate"].latex, "Accept Rate")
-    _formula(FORMULAS["binomial_se"].latex, "Standard Error (Binomial)")
-    _formula(FORMULAS["binomial_ci"].latex, "Confidence Interval")
-
-    st.markdown("---")
-    st.markdown("#### Lift (Relative)")
-    _formula(FORMULAS["lift"].latex)
-    _formula(FORMULAS["lift_se"].latex, "Delta method for ratio of two proportions")
-    _formula(FORMULAS["significance"].latex)
-    _formula_box(
-        [
-            "Significant iff CI does not contain 0:",
-            "  (Lift - 1.96·SE > 0)  OR  (Lift + 1.96·SE < 0)",
-        ]
-    )
-
-    st.markdown("---")
-    st.markdown("#### Value Per Impression (VPI)")
-    _formula(FORMULAS["vpi"].latex, "VPI = Accept Rate × Action Value")
-    _formula(
-        r"\text{Var}(\text{VPI}) = p\,(1-p) \times \text{AV}^2",
-        "Bernoulli per-observation variance",
-    )
-    _formula(
-        r"\text{SE}(\text{VPI}) = \sqrt{\text{Var}(\text{VPI}) / n}",
-    )
-    _formula(
-        r"\text{ValueLift} = \frac{\text{VPI}_{\text{test}} - "
-        r"\text{VPI}_{\text{ctrl}}}{\text{VPI}_{\text{ctrl}}}",
-    )
-
-    st.markdown("---")
-    st.markdown("#### Required Sample Size")
-    _formula(FORMULAS["required_sample_size"].latex)
-    _formula_box(
-        [
-            "where  z_alpha = 1.96  (95% confidence)",
-            "       z_β = 0.84  (80% power)",
-            "       δ   = p × MDE  (minimum detectable effect)",
-        ]
-    )
-
-    st.markdown("---")
-    st.markdown("#### Trend Smoothing & Confidence Bands")
-    _formula(
-        FORMULAS["ci_band"].latex,
-        "Per-snapshot 95 % CI band plotted around each daily lift value",
-    )
-    _formula_box(
-        [
-            "For each snapshot t the SE is recomputed from that day's counts:",
-            "  SE_lift,t  uses  n_test(t), n_ctrl(t), accepts_test(t), accepts_ctrl(t)",
-            "  exactly as in the cumulative formula above.",
-        ]
-    )
-    _formula(
-        FORMULAS["ewma"].latex,
-        "Exponentially Weighted Moving Average (Pega smoothing)",
-    )
-    _formula_box(
-        [
-            "span = 7  (for daily data) ->  alpha = 2 / (7 + 1) = 0.25",
-            "S₁ = x₁  (the first observation seeds the series)",
-            "The smoothed line filters out day-to-day noise while",
-            "preserving the overall trend direction.",
-        ]
-    )

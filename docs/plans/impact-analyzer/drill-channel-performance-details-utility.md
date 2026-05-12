@@ -6,7 +6,7 @@
 The Drill Down page renders two channel-level detail views:
 
 1. **Channel Performance Details** — per-channel expanders with metrics
-   row, arm comparison table, and step-by-step formula walkthroughs.
+   row, test/control comparison table, and step-by-step formula walkthroughs.
 2. **Detailed Per-Channel Metrics** — a flat dataframe table with the
    same numbers in a single grid.
 

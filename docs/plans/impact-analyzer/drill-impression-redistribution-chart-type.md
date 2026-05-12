@@ -7,7 +7,7 @@ The current "Impression Redistribution" section uses a grouped horizontal
 bar chart comparing Test vs Control impression share per channel. Two
 concerns:
 
-1. The third arm (NBA) is not represented as its own group — depending on
+1. The third group (NBA) is not represented as its own group — depending on
    which experiment is selected, the "Test" group *is* NBA, but the
    labelling doesn't make that clear.
 2. Grouped bars are an awkward way to convey "where did NBA redirect

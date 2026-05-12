@@ -505,7 +505,7 @@ for row in by_channel_df.iter_rows(named=True):
         else:
             st.warning(f"Not yet significant for {ch} — more data needed")
 
-        # Arm comparison
+        # Test vs control comparison
         st.table(
             {
                 "": ["Impressions", "Accepts", "Accept Rate"],
@@ -518,7 +518,7 @@ for row in by_channel_df.iter_rows(named=True):
         st.markdown("##### Step 1 — Accept Rates")
         _formula(
             FORMULAS["accept_rate"].latex,
-            "Accept rate for each arm",
+            "Accept rate for the test and control groups",
             f"p_test = {a_t} / {n_t} = {_num(p_t)}\np_ctrl = {a_c} / {n_c} = {_num(p_c)}",
         )
 
