@@ -1,10 +1,8 @@
 # python/pdstools/app/impact_analyzer/pages/4_Drill_Down.py
-"""Drill Down page — per-channel lift analysis with cannibalization disclaimers.
+"""Drill Down page — per-channel lift analysis.
 
 Allows users to drill into individual channels within an experiment to see
-per-channel engagement and value lift. Includes prominent warnings about
-**lift cannibalization**: per-channel lift can be negative even when overall
-lift is positive, because NBA redistributes impressions across channels.
+per-channel engagement and value lift.
 """
 
 from __future__ import annotations
@@ -52,12 +50,6 @@ _BAND = "rgba(31,119,180,0.12)"
 st.markdown(
     """
 <style>
-.cannib-warning {
-    background: #FFF3CD; border-left: 5px solid #FFC107; padding: 16px 20px;
-    border-radius: 6px; margin-bottom: 20px; font-size: 14px; line-height: 1.6;
-    color: #664D03;
-}
-.cannib-warning strong { color: #664D03; }
 .metric-label { font-size: 11px; color: #8795A1; text-transform: uppercase;
                 letter-spacing: 0.5px; }
 .metric-value { font-size: 22px; font-weight: 700; color: #1B2A4A; }
@@ -128,29 +120,9 @@ def _formula(latex: str, description: str = "", substitution: str = "") -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Title & disclaimer
+# Title
 # ═══════════════════════════════════════════════════════════════════════════
 "# Drill Down"
-
-st.markdown(
-    """
-<div class="cannib-warning">
-<strong>Important: Lift Cannibalization</strong><br>
-When you drill down into individual channels within an experiment, the per-channel
-lift numbers can be <strong>misleading</strong>. It is common for one or more channels
-to show <strong>negative lift</strong> even when the <strong>overall experiment lift
-is positive</strong>.<br><br>
-This happens because NBA <em>redistributes</em> impressions: it shifts traffic toward
-the best-performing channels and away from weaker ones. The control group, by contrast,
-distributes randomly. So a channel that receives fewer NBA impressions may show a lower
-click-through rate — not because the model is broken, but because the best customers
-for that channel were <em>deliberately</em> redirected to a higher-value channel.<br><br>
-<strong>Always evaluate lift at the overall experiment level first.</strong>
-The per-channel view here is for diagnostic exploration only.
-</div>
-""",
-    unsafe_allow_html=True,
-)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Experiment selector
@@ -590,24 +562,6 @@ for row in by_channel_df.iter_rows(named=True):
                 ]
             )
 
-        # Cannibalization context for this channel
-        if ctr_lift is not None and o_ctr is not None:
-            if ctr_lift < 0 and o_ctr > 0:
-                st.warning(
-                    f"**{ch}** shows negative lift ({_pct(ctr_lift)}) while the "
-                    f"overall experiment lift is positive ({_pct(o_ctr)}). "
-                    f"This is a classic **lift cannibalization** pattern — NBA is "
-                    f"redirecting the best customers away from this channel to "
-                    f"higher-value alternatives."
-                )
-            elif ctr_lift > 0 and o_ctr > 0 and ctr_lift > o_ctr * 1.5:
-                st.info(
-                    f"**{ch}** shows lift ({_pct(ctr_lift)}) well above the "
-                    f"overall ({_pct(o_ctr)}). This channel is likely a "
-                    f"**beneficiary** of NBA's redistribution — it receives "
-                    f"better-targeted customers."
-                )
-
 st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -629,61 +583,3 @@ display_df = by_channel_df.select(
 )
 
 st.dataframe(display_df, hide_index=True)
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Educational expander — Why lift cannibalization happens
-# ═══════════════════════════════════════════════════════════════════════════
-with st.expander("📖 Why does lift cannibalization happen?", expanded=False):
-    st.markdown(
-        r"""
-### Lift Cannibalization Explained
-
-When Pega's NBA (Next-Best-Action) strategy decides which action to show each
-customer, it uses **adaptive models** to pick the action with the highest
-expected value. The **control group**, by contrast, selects actions
-**randomly** (or by a simpler strategy like propensity-only).
-
-This creates an asymmetry:
-
-| | Test (NBA) | Control (Random) |
-|---|---|---|
-| **Best customers** for Action A | → Shown Action A | → Might get A, B, or C randomly |
-| **Best customers** for Action B | → Shown Action B | → Might get A, B, or C randomly |
-| **Marginal customers** | → Shown highest-value action | → Random assignment |
-
-#### The cannibalization effect
-
-Consider a simplified example with 6 customers and 3 actions (A, B, C):
-
-- Customers C1–C3 are best suited for **Action A** (high propensity)
-- Customers C4–C6 are better for **Action B** or **Action C**
-
-**NBA (Test group):** Correctly routes C1–C3 → Action A, C4–C5 → Action B,
-C6 → Action C. Each customer gets their best action.
-
-**Random (Control group):** All customers have equal chance of seeing any action.
-Some C4–C6 customers randomly get Action A even though they're not ideal for it.
-
-**Result by action:**
-- **Action A overall lift** might be *negative* — because in the control group,
-  Action A also gets shown to C4–C6 (poor fit), dragging down its average CTR.
-  But in the test group, Action A is only shown to C1–C3 (great fit) — yet with
-  fewer total impressions. The *rate* may be higher, but the *mix* of customers
-  is completely different.
-- **Action B and C** might show *positive* lift because NBA sends them their
-  best-fit customers.
-- **Overall lift is positive** because the total accept rate across all
-  customers is higher when each gets their best action.
-
-#### Key takeaway
-
-> **Per-channel or per-action lift is not a reliable indicator of model quality.**
-> It reflects the *redistribution* of impressions, not the performance of the
-> model for that specific channel. Always evaluate lift at the **overall
-> experiment level** as the primary metric.
-
-This phenomenon is well-documented in A/B testing literature as
-**Simpson's Paradox** — where a trend that appears in sub-groups reverses
-when the groups are combined.
-"""
-    )
