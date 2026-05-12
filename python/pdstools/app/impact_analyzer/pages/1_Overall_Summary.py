@@ -348,7 +348,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     )
 
     # ── Numeric lift summaries — Engagement / Value ─────────────────
-    st.markdown("**Engagement Lift**")
     if trend_df is not None:
         _fig_t = _chart_lift_trend(
             trend_df,
@@ -361,12 +360,11 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 
     ci_hw = eng.ci_95()
     st.markdown(
-        f"Lift = **{_pct(eng.lift)}** · "
+        f"Engagement Lift = **{_pct(eng.lift)}** · "
         f"SE = `{_num(eng.se)}` · "
         f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
     )
 
-    st.markdown("**Value Lift**")
     if val is not None:
         if trend_df is not None:
             _fig_tv = _chart_lift_trend(
@@ -387,7 +385,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
         if av_t is None:
             st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
     else:
-        st.info("Value lift requires action-value data.")
+        st.caption("Value lift requires action-value data.")
 
     # ── Formula expander ──────────────────────────────────────────────
     with st.expander("**Formula details — lift calculations & trend chart**"):
