@@ -541,8 +541,10 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 "# Overall Summary"
 
 """
-View lift metrics aggregated across all channels. Each experiment card shows
-trend charts, confidence intervals, and the exact formulas behind every number.
+View lift metrics aggregated across all channels by default. Each experiment
+card shows trend charts, confidence intervals, and the exact formulas behind
+every number. Use the **Channel / Direction** filter in the sidebar to narrow
+the lift chart, cards, and detailed table to a single channel.
 """
 
 # --- Gather data -----------------------------------------------------------
