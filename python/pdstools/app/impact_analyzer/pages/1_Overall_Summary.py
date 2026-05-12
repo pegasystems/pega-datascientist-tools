@@ -793,47 +793,15 @@ with tab_inactive:
                 unsafe_allow_html=True,
             )
 
-# --- Summary table ---------------------------------------------------------
-st.markdown("---")
-st.markdown("### Summary Table")
-summary_rows = []
-for r in _cards_rows:
-    t_i = int(r.get("Impressions_Test") or 0)
-    t_a = int(r.get("Accepts_Test") or 0)
-    c_i = int(r.get("Impressions_Control") or 0)
-    c_a = int(r.get("Accepts_Control") or 0)
-    if t_i > 0 and c_i > 0:
-        eng = calculate_engagement_lift(t_a, t_i, c_a, c_i)
-        summary_rows.append(
-            {
-                "Experiment": r["Experiment"],
-                "Test n": f"{t_i:,}",
-                "Ctrl n": f"{c_i:,}",
-                "Test Rate": _pct(accept_rate(t_a, t_i), 4),
-                "Ctrl Rate": _pct(accept_rate(c_a, c_i), 4),
-                "Eng. Lift": _pct(eng.lift, 4),
-                "SE(Lift)": _num(eng.se, 6),
-                "Significant": "Yes" if eng.significant else "No",
-            }
-        )
-    else:
-        summary_rows.append(
-            {
-                "Experiment": r["Experiment"],
-                "Test n": "—",
-                "Ctrl n": "—",
-                "Test Rate": "—",
-                "Ctrl Rate": "—",
-                "Eng. Lift": "—",
-                "SE(Lift)": "—",
-                "Significant": "—",
-            }
-        )
-if summary_rows:
-    st.dataframe(summary_rows, hide_index=True)
-
-# --- Detailed metrics table (original overview) ----------------------------
-facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
+# --- Detailed metrics table ------------------------------------------------
+# When a channel is selected in the sidebar, show only that channel's row(s)
+# and drop the per-channel facet (it would just repeat the selected channel).
+if _channel_filter != "Any":
+    _facet = None
+    _detailed_query = pl.col("Channel") == _channel_filter
+else:
+    _facet = "Channel" if "Channel" in ia.ia_data.collect_schema().names() else None
+    _detailed_query = None
 
 with st.container(border=True):
     "## Detailed Metrics"
@@ -845,7 +813,7 @@ with st.container(border=True):
         options=["CTR_Lift", "Value_Lift"],
         index=0,
     )
-    table = ia.plot.overview(metric=metric, facet=facet, return_df=True).collect()
+    table = ia.plot.overview(metric=metric, facet=_facet, query=_detailed_query, return_df=True).collect()
     st.dataframe(table)
 
 # --- Full formula reference ------------------------------------------------
