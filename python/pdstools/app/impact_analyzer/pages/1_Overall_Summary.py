@@ -348,44 +348,48 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     )
 
     # ── Numeric lift summaries — Engagement / Value ─────────────────
-    if trend_df is not None:
-        _fig_t = _chart_lift_trend(
-            trend_df,
-            exp_name,
-            metric="CTR_Lift",
-            label="Engagement Lift %",
-        )
-        if _fig_t is not None:
-            st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
+    tab_eng, tab_val = st.tabs(["Engagement Lift", "Value Lift"])
 
-    ci_hw = eng.ci_95()
-    st.markdown(
-        f"Engagement Lift = **{_pct(eng.lift)}** · "
-        f"SE = `{_num(eng.se)}` · "
-        f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
-    )
-
-    if val is not None:
+    with tab_eng:
         if trend_df is not None:
-            _fig_tv = _chart_lift_trend(
+            _fig_t = _chart_lift_trend(
                 trend_df,
                 exp_name,
-                metric="Value_Lift",
-                label="Value Lift %",
+                metric="CTR_Lift",
+                label="Engagement Lift %",
             )
-            if _fig_tv is not None:
-                st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
+            if _fig_t is not None:
+                st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
 
-        val_hw = val.ci_95()
+        ci_hw = eng.ci_95()
         st.markdown(
-            f"Value Lift = **{_pct(val.lift)}** · "
-            f"SE = `{_num(val.se)}` · "
-            f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
+            f"Engagement Lift = **{_pct(eng.lift)}** · "
+            f"SE = `{_num(eng.se)}` · "
+            f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
         )
-        if av_t is None:
-            st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
-    else:
-        st.caption("Value lift requires action-value data.")
+
+    with tab_val:
+        if val is not None:
+            if trend_df is not None:
+                _fig_tv = _chart_lift_trend(
+                    trend_df,
+                    exp_name,
+                    metric="Value_Lift",
+                    label="Value Lift %",
+                )
+                if _fig_tv is not None:
+                    st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
+
+            val_hw = val.ci_95()
+            st.markdown(
+                f"Value Lift = **{_pct(val.lift)}** · "
+                f"SE = `{_num(val.se)}` · "
+                f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
+            )
+            if av_t is None:
+                st.caption("Note: SE approximated from engagement SEs (per-arm VPI not available in this dataset).")
+        else:
+            st.caption("Value lift requires action-value data.")
 
     # ── Formula expander ──────────────────────────────────────────────
     with st.expander("**Formula details — lift calculations & trend chart**"):
@@ -526,8 +530,11 @@ if experiments.is_empty():
     st.warning("No experiment data available.")
     st.stop()
 
-# Check for multi-snapshot trend data
+# Check for multi-snapshot trend data. We compute the channel-aggregated
+# trend by default and a per-channel trend frame so the cards' trend
+# sparklines stay accurate when the sidebar channel filter is active.
 _trend_df: pl.DataFrame | None = None
+_trend_df_by_channel: pl.DataFrame | None = None
 if "SnapshotTime" in ia.ia_data.collect_schema().names():
     _n_snaps = ia.ia_data.select("SnapshotTime").unique().collect().height
     if _n_snaps >= 2:
@@ -535,6 +542,11 @@ if "SnapshotTime" in ia.ia_data.collect_schema().names():
             _trend_df = ia.summarize_experiments(by="SnapshotTime").collect()
         except Exception:
             pass
+        if "Channel" in ia.ia_data.collect_schema().names():
+            try:
+                _trend_df_by_channel = ia.summarize_experiments(by=["Channel", "SnapshotTime"]).collect()
+            except Exception:
+                pass
 
 # --- Per-experiment lift overview -----------------------------------------
 rows = experiments.to_dicts()
@@ -763,10 +775,14 @@ tab_active, tab_inactive = st.tabs(
     ]
 )
 
-# When filtered to a single channel, suppress trend sparklines: _trend_df
-# aggregates across channels, so showing it next to per-channel metrics
-# would be misleading. Per-channel trend is tracked in the plan-file.
-_card_trend_df = _trend_df if _channel_filter == "Any" else None
+# Pick the right trend frame: per-channel slice when filtered, otherwise
+# the channel-aggregated frame. Both are pre-computed once above.
+if _channel_filter != "Any" and _trend_df_by_channel is not None:
+    _card_trend_df = _trend_df_by_channel.filter(pl.col("Channel") == _channel_filter)
+    if _card_trend_df.is_empty():
+        _card_trend_df = None
+else:
+    _card_trend_df = _trend_df
 
 with tab_active:
     if not active:
