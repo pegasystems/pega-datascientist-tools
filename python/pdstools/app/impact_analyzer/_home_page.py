@@ -107,8 +107,8 @@ def _show_data_summary(
 ):
     """Display a summary banner for the loaded ImpactAnalyzer.
 
-    Renders at most once per (source_kind, source_label, row count) combination
-    so that navigation reruns do not re-emit the banner.
+    Renders every time the home page runs so that the banner stays
+    visible whenever the user navigates back.
 
     Parameters
     ----------
@@ -149,13 +149,6 @@ def _show_data_summary(
         rows = ia.ia_data.select(pl.len()).collect().item()
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         rows = None
-
-    # Render-once guard: skip if we've already shown the banner for this exact
-    # data fingerprint on this rerun cycle.
-    fingerprint = (source_kind, source_label, rows)
-    if st.session_state.get("_ia_banner_shown_for") == fingerprint:
-        return
-    st.session_state["_ia_banner_shown_for"] = fingerprint
 
     prefix = _banner_prefix(source_kind, source_label)
 
@@ -246,7 +239,6 @@ by default — upload your own file below to replace it.
             "ia_is_sample_data",
             "ia_data_source_kind",
             "ia_data_source_label",
-            "_ia_banner_shown_for",
         ):
             st.session_state.pop(key, None)
 
@@ -358,8 +350,6 @@ by default — upload your own file below to replace it.
             st.session_state["ia_data_source_label"] = data_source_label
         if data_source_path:
             st.session_state["ia_data_source_path"] = data_source_path
-        # Force banner to render once for this newly loaded data.
-        st.session_state.pop("_ia_banner_shown_for", None)
         _show_data_summary(
             impact_analyzer,
             source_kind=data_source_kind,
