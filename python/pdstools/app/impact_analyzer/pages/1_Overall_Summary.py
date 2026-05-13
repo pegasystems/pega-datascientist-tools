@@ -398,9 +398,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
                 _formula_box(
                     [
-                        f"Lift  = {_pct(eng.lift, 2)}",
-                        f"SE    = {_num(eng.se, 4)}",
-                        f"95 % CI = Lift ± 1.96 · SE = [{_pct(lo, 2)}, {_pct(hi, 2)}]",
+                        f"Lift  = {_num(eng.lift)}",
+                        f"SE    = {_num(eng.se)}",
+                        f"95 % CI = Lift ± 1.96 · SE = [{_num(lo)}, {_num(hi)}]",
                         f"Statistically significant?  {sig}",
                     ]
                 )
@@ -487,9 +487,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"Value Lift = {_pct(val.lift, 2)}",
-                            f"SE         = {_num(val.se, 4)}",
-                            f"95 % CI = Lift ± 1.96 · SE = [{_pct(vl_lo, 2)}, {_pct(vl_hi, 2)}]",
+                            f"Value Lift = {_num(val.lift)}",
+                            f"SE         = {_num(val.se)}",
+                            f"95 % CI = Lift ± 1.96 · SE = [{_num(vl_lo)}, {_num(vl_hi)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
                     )
@@ -512,9 +512,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"Value Lift = {_pct(val.lift, 2)}",
-                            f"SE         ≈ {_num(val.se, 4)}  (approximated from engagement SEs)",
-                            f"95 % CI ≈ Lift ± 1.96 · SE = [{_pct(vl_lo, 2)}, {_pct(vl_hi, 2)}]",
+                            f"Value Lift = {_num(val.lift)}",
+                            f"SE         ≈ {_num(val.se)}  (approximated from engagement SEs)",
+                            f"95 % CI ≈ Lift ± 1.96 · SE = [{_num(vl_lo)}, {_num(vl_hi)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
                     )
