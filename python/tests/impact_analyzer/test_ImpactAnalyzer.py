@@ -192,6 +192,8 @@ def test_plots(simple_ia):
     assert isinstance(simple_ia.plot.trend(), Figure)
     assert isinstance(simple_ia.plot.overview(), Figure)
     assert isinstance(simple_ia.plot.control_groups_trend(), Figure)
+    assert isinstance(simple_ia.plot.control_fraction_heatmap(return_df=True), pl.LazyFrame)
+    assert isinstance(simple_ia.plot.control_fraction_heatmap(), Figure)
 
 
 def test_plot_layout_and_formatting(simple_ia):
