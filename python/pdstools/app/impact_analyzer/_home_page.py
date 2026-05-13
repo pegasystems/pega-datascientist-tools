@@ -135,7 +135,12 @@ def _show_data_summary(
         # and VBD data has Application, Value, Outcome columns)
         has_vbd_markers = {"Application", "Value", "Outcome"}.issubset(schema_names)
 
-        format_label = "**VBD Scenario Planner**" if has_vbd_markers else "**PDC Export**"
+        if has_vbd_markers:
+            format_label = "**VBD Scenario Planner**"
+        elif source_label and source_label.lower().endswith(".xlsx"):
+            format_label = "**Pega Infinity IA Excel export**"
+        else:
+            format_label = "**PDC Export**"
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
         schema_names = set()
