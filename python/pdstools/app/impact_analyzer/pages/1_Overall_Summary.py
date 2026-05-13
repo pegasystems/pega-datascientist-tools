@@ -229,6 +229,42 @@ def _formula(latex: str, description: str = "", substitution: str = "") -> None:
         )
 
 
+def _render_trend_explainer(metric_label: str = "lift") -> None:
+    """Explain the shaded CI band and EWMA-smoothed line on the trend chart.
+
+    Both the engagement and value tabs render the same kind of trend chart
+    (raw daily series + 95 % CI band + smoothed line), so the explanation
+    is shared. The EWMA span used by `_chart_lift_trend` is `min(7, n)`,
+    capped at the per-experiment series length.
+    """
+    st.markdown("##### Trend Chart — what the band and smoothed line mean")
+    st.markdown(f"The trend chart shows three things per day for the daily {metric_label} series:")
+
+    st.markdown("**1. Raw daily value** — computed from that single day's counts.")
+
+    st.markdown(
+        "**2. Shaded band** — the per-day 95 % CI, same Wald formula as the "
+        "headline CI above, applied to one day's counts:"
+    )
+    st.latex(FORMULAS["ci_band"].latex)
+    st.caption(
+        "Subscript *t* is the day index. The band is wide on low-traffic days "
+        "(few impressions → large SE) and narrow on high-traffic days."
+    )
+
+    st.markdown("**3. Smoothed line (EWMA)** — exponentially-weighted moving average that dampens day-to-day noise:")
+    st.latex(FORMULAS["ewma"].latex)
+    st.caption(
+        "x_t is today's raw value, S_t is today's smoothed value, S_(t-1) is "
+        "yesterday's smoothed value. The blend factor alpha (between 0 and 1) "
+        "controls how heavily recent days are weighted: bigger alpha tracks "
+        "the latest day more closely; smaller alpha smooths harder. **span** "
+        "is the effective window length in days. This chart uses **span = 7** "
+        "(capped at the series length), giving alpha = 2 / 8 = 0.25 -- "
+        "roughly a one-week moving average."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Render one experiment card
 # ---------------------------------------------------------------------------
@@ -320,13 +356,13 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     m1, m2, m3, m4 = st.columns(4)
     m1.markdown(
         f'<div class="metric-label">ENG. LIFT</div>'
-        f'<div class="metric-value {_lift_class(eng.lift)}">{_pct(eng.lift)}</div>',
+        f'<div class="metric-value {_lift_class(eng.lift)}">{_pct(eng.lift, 2)}</div>',
         unsafe_allow_html=True,
     )
     vl_val = val.lift if val else val_lift_pdc
     m2.markdown(
         f'<div class="metric-label">VALUE LIFT</div>'
-        f'<div class="metric-value {_lift_class(vl_val)}">{_pct(vl_val)}</div>',
+        f'<div class="metric-value {_lift_class(vl_val)}">{_pct(vl_val, 2)}</div>',
         unsafe_allow_html=True,
     )
     m3.markdown(
@@ -342,8 +378,8 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     st.table(
         {
             "": ["Impressions", "Accepts", "Accept Rate"],
-            "Test": [f"{test_impr:,}", f"{test_acc:,}", _pct(p_t, 6)],
-            "Control": [f"{ctrl_impr:,}", f"{ctrl_acc:,}", _pct(p_c, 6)],
+            "Test": [f"{test_impr:,}", f"{test_acc:,}", _pct(p_t, 3)],
+            "Control": [f"{ctrl_impr:,}", f"{ctrl_acc:,}", _pct(p_c, 3)],
         }
     )
 
@@ -360,13 +396,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
             )
             if _fig_t is not None:
                 st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
-
-        ci_hw = eng.ci_95()
-        st.markdown(
-            f"Engagement Lift = **{_pct(eng.lift)}** · "
-            f"SE = `{_num(eng.se)}` · "
-            f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
-        )
 
         with st.expander("**Formula details**"):
             st.markdown("##### Step 1 — Accept Rates")
@@ -405,17 +434,21 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
                 _formula_box(
                     [
-                        f"= [{lo:.10f},  {hi:.10f}]",
+                        f"Lift  = {_num(eng.lift)}",
+                        f"SE    = {_num(eng.se)}",
+                        f"95 % CI = Lift ± 1.96 · SE = [{_num(lo)}, {_num(hi)}]",
                         f"Statistically significant?  {sig}",
                     ]
                 )
+                st.caption(
+                    "The 95 % confidence interval uses the normal-approximation "
+                    "(Wald) formula: half-width = z · SE. For a two-sided 95 % CI, "
+                    "z = 1.96 — the 97.5-percentile of the standard normal "
+                    "(2.5 % is left in each tail, leaving 95 % in the middle)."
+                )
 
             if trend_df is not None:
-                st.markdown("##### Trend Chart — CI Band & Smoothing")
-                st.latex(FORMULAS["ci_band"].latex)
-                st.caption(FORMULAS["ci_band"].description)
-                st.latex(FORMULAS["ewma"].latex)
-                st.caption(FORMULAS["ewma"].description)
+                _render_trend_explainer("engagement lift")
 
     with tab_val:
         if val is not None:
@@ -429,12 +462,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 if _fig_tv is not None:
                     st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
 
-            val_hw = val.ci_95()
-            st.markdown(
-                f"Value Lift = **{_pct(val.lift)}** · "
-                f"SE = `{_num(val.se)}` · "
-                f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
-            )
             if av_t is None:
                 st.caption("Note: SE approximated from engagement SEs (per-group VPI not available in this dataset).")
         else:
@@ -492,10 +519,17 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"SE(ValueLift) = {_num(val.se)}",
-                            f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Value Lift = {_num(val.lift)}",
+                            f"SE         = {_num(val.se)}",
+                            f"95 % CI = Lift ± 1.96 · SE = [{_num(vl_lo)}, {_num(vl_hi)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
+                    )
+                    st.caption(
+                        "The 95 % confidence interval uses the normal-approximation "
+                        "(Wald) formula: half-width = z · SE. For a two-sided 95 % CI, "
+                        "z = 1.96 — the 97.5-percentile of the standard normal "
+                        "(2.5 % is left in each tail)."
                     )
             elif val is not None:
                 _formula(
@@ -510,14 +544,17 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
-                            f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Value Lift = {_num(val.lift)}",
+                            f"SE         ≈ {_num(val.se)}  (approximated from engagement SEs)",
+                            f"95 % CI ≈ Lift ± 1.96 · SE = [{_num(vl_lo)}, {_num(vl_hi)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
                     )
                 st.caption(
                     "Per-group action values not available in this dataset. "
-                    "Value lift is pre-computed; SE is approximated from engagement SEs."
+                    "Value lift is pre-computed; SE is approximated from engagement SEs. "
+                    "The 95 % CI uses the Wald formula with z = 1.96 (the "
+                    "97.5-percentile of the standard normal, leaving 2.5 % in each tail)."
                 )
             elif val_lift_pdc is not None:
                 st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
@@ -528,11 +565,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 st.caption("Value lift data not available for this experiment.")
 
             if trend_df is not None:
-                st.markdown("##### Trend Chart — CI Band & Smoothing")
-                st.latex(FORMULAS["ci_band"].latex)
-                st.caption(FORMULAS["ci_band"].description)
-                st.latex(FORMULAS["ewma"].latex)
-                st.caption(FORMULAS["ewma"].description)
+                _render_trend_explainer("value lift")
 
 
 # ===========================================================================
@@ -697,11 +730,39 @@ if _lift_chart_data:
 
         fig = go.Figure()
         names = []
-        _narrow_ci = []
+        _no_data: list[str] = []
         for _i, d in enumerate(_lift_chart_data_active):
             lift = d[f"{_lift_key}_lift"]
             se = d[f"{_lift_key}_se"]
+
+            names.append(d["name"])
+            y_pos = len(names) - 1
+
             if lift is None or se is None:
+                # Render a placeholder row so the chart's experiment list
+                # stays aligned with the experiment-card grid below
+                # (otherwise null-metric rows silently disappear from the
+                # chart and users see what looks like a reorder).
+                _no_data.append(d["name"])
+                fig.add_trace(
+                    go.Scatter(
+                        x=[None],
+                        y=[y_pos],
+                        mode="markers",
+                        marker=dict(symbol="x-thin", size=10, color=_GREY, line=dict(color=_GREY, width=1.5)),
+                        showlegend=False,
+                        hovertemplate=(f"<b>{d['name']}</b><br>Insufficient data for this metric<extra></extra>"),
+                    )
+                )
+                fig.add_annotation(
+                    x=0,
+                    y=y_pos,
+                    text="<i>insufficient data</i>",
+                    showarrow=False,
+                    font=dict(color=_GREY, size=11),
+                    xanchor="left",
+                    xshift=10,
+                )
                 continue
 
             lp = lift * 100
@@ -709,13 +770,6 @@ if _lift_chart_data:
             lo, hi = lp - hw, lp + hw
             sig = abs(lift) > Z_95 * se
             colour = _GREEN if (sig and lp > 0) else _RED if (sig and lp < 0) else _GREY
-
-            names.append(d["name"])
-            y_pos = len(names) - 1
-
-            # Track experiments where CI is too narrow to see
-            if hw < 0.5:
-                _narrow_ci.append(f"**{d['name']}**: {lp:+.2f}% ± {hw:.3f}%")
 
             fig.add_trace(
                 go.Scatter(
@@ -762,17 +816,19 @@ if _lift_chart_data:
             plot_bgcolor="#FAFBFD",
             font=dict(color=_TEXT, size=12),
             margin=dict(l=220, r=30, t=10, b=40),
-            yaxis=dict(tickvals=list(range(len(names))), ticktext=names, showgrid=False, zeroline=False),
+            # autorange='reversed' puts y_pos=0 at the TOP, so the chart's
+            # row order matches the experiment-card grid below (which
+            # renders cards top-to-bottom in the same iteration order).
+            yaxis=dict(
+                tickvals=list(range(len(names))),
+                ticktext=names,
+                showgrid=False,
+                zeroline=False,
+                autorange="reversed",
+            ),
             xaxis=dict(title=f"{kpi_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
         st.plotly_chart(fig, key="lift_chart")
-
-        if _narrow_ci:
-            st.info(
-                "🔍 **CI whiskers too narrow to display visually** "
-                "(high sample sizes produce very tight intervals):\n\n" + "\n".join(f"- {c}" for c in _narrow_ci),
-                icon="ℹ️",
-            )
 
 # --- Experiment cards (2-column grid) --------------------------------------
 # When a channel is selected above, cards and the summary table show

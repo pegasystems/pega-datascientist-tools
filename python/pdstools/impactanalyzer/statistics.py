@@ -135,13 +135,26 @@ FORMULAS: dict[str, Formula] = {
     ),
     "ci_band": Formula(
         name="ci_band",
-        latex=r"\text{{CI}}_{{t}} = \text{{Lift}}_t \pm z_{{\alpha/2}} \cdot \text{{SE}}_{{\text{{lift}},t}}",
-        description="Per-snapshot 95% confidence interval band around the lift.",
+        latex=r"\text{{CI}}_t = \text{{Lift}}_t \pm 1.96 \cdot \text{{SE}}_t",
+        description=(
+            "Per-day 95 % confidence interval that draws the shaded band on "
+            "the trend chart. Same Wald formula as the headline CI, applied "
+            "to a single day's impressions and accepts (subscript t = day "
+            "index). The band is wide on low-traffic days and narrow on "
+            "high-traffic days."
+        ),
     ),
     "ewma": Formula(
         name="ewma",
         latex=r"S_t = \alpha \cdot x_t + (1 - \alpha) \cdot S_{{t-1}}, \quad \alpha = \frac{{2}}{{\text{{span}} + 1}}",
-        description="Exponentially Weighted Moving Average used by Pega to smooth daily lift.",
+        description=(
+            "Exponentially Weighted Moving Average that draws the smoothed "
+            "trend line. x_t is today's raw lift, S_t is today's smoothed "
+            "value. The blend factor alpha in (0, 1) controls how heavily "
+            "the smoother weights recent days vs. history; 'span' is the "
+            "effective window length in days (a span of 7 ≈ a one-week "
+            "moving average, giving alpha = 2 / 8 = 0.25)."
+        ),
     ),
 }
 

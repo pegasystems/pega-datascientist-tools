@@ -25,23 +25,23 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-IA_SAMPLE_JSON = REPO_ROOT / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
+IA_PDC_FIXTURE = REPO_ROOT / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
 
 
 @pytest.fixture
 def upload_fixture_bytes() -> bytes:
-    """A trimmed copy of the PDC sample JSON with a different row yield.
+    """A trimmed copy of the PDC fixture JSON with a different row yield.
 
-    The PDC sample has a single outer ``pxResults`` entry that itself
+    The PDC fixture has a single outer ``pxResults`` entry that itself
     contains a nested ``pxResults`` list of per-experiment rows. The
-    full sample yields 24 ``ia_data`` rows; trimming the inner list to
+    full fixture yields 24 ``ia_data`` rows; trimming the inner list to
     15 entries yields 12 rows — distinct enough to prove which file
     won the race.
     """
-    if not IA_SAMPLE_JSON.exists():
-        pytest.skip(f"IA sample data missing: {IA_SAMPLE_JSON}")
+    if not IA_PDC_FIXTURE.exists():
+        pytest.skip(f"IA PDC fixture missing: {IA_PDC_FIXTURE}")
 
-    obj = json.loads(IA_SAMPLE_JSON.read_text())
+    obj = json.loads(IA_PDC_FIXTURE.read_text())
     inner = obj["pxResults"][0].get("pxResults")
     if not isinstance(inner, list) or len(inner) < 16:
         pytest.skip("IA sample structure changed — fixture trim no longer applies")
