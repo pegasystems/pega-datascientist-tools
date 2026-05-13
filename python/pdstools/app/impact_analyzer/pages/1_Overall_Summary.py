@@ -702,7 +702,6 @@ if _lift_chart_data:
 
         fig = go.Figure()
         names = []
-        _narrow_ci = []
         _no_data: list[str] = []
         for _i, d in enumerate(_lift_chart_data_active):
             lift = d[f"{_lift_key}_lift"]
@@ -743,10 +742,6 @@ if _lift_chart_data:
             lo, hi = lp - hw, lp + hw
             sig = abs(lift) > Z_95 * se
             colour = _GREEN if (sig and lp > 0) else _RED if (sig and lp < 0) else _GREY
-
-            # Track experiments where CI is too narrow to see
-            if hw < 0.5:
-                _narrow_ci.append(f"**{d['name']}**: {lp:+.2f}% ± {hw:.3f}%")
 
             fig.add_trace(
                 go.Scatter(
@@ -806,13 +801,6 @@ if _lift_chart_data:
             xaxis=dict(title=f"{kpi_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
         st.plotly_chart(fig, key="lift_chart")
-
-        if _narrow_ci:
-            st.info(
-                "🔍 **CI whiskers too narrow to display visually** "
-                "(high sample sizes produce very tight intervals):\n\n" + "\n".join(f"- {c}" for c in _narrow_ci),
-                icon="ℹ️",
-            )
 
 # --- Experiment cards (2-column grid) --------------------------------------
 # When a channel is selected above, cards and the summary table show
