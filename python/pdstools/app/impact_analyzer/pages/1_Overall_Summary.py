@@ -320,13 +320,13 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     m1, m2, m3, m4 = st.columns(4)
     m1.markdown(
         f'<div class="metric-label">ENG. LIFT</div>'
-        f'<div class="metric-value {_lift_class(eng.lift)}">{_pct(eng.lift)}</div>',
+        f'<div class="metric-value {_lift_class(eng.lift)}">{_pct(eng.lift, 2)}</div>',
         unsafe_allow_html=True,
     )
     vl_val = val.lift if val else val_lift_pdc
     m2.markdown(
         f'<div class="metric-label">VALUE LIFT</div>'
-        f'<div class="metric-value {_lift_class(vl_val)}">{_pct(vl_val)}</div>',
+        f'<div class="metric-value {_lift_class(vl_val)}">{_pct(vl_val, 2)}</div>',
         unsafe_allow_html=True,
     )
     m3.markdown(
@@ -342,8 +342,8 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     st.table(
         {
             "": ["Impressions", "Accepts", "Accept Rate"],
-            "Test": [f"{test_impr:,}", f"{test_acc:,}", _pct(p_t, 6)],
-            "Control": [f"{ctrl_impr:,}", f"{ctrl_acc:,}", _pct(p_c, 6)],
+            "Test": [f"{test_impr:,}", f"{test_acc:,}", _pct(p_t, 3)],
+            "Control": [f"{ctrl_impr:,}", f"{ctrl_acc:,}", _pct(p_c, 3)],
         }
     )
 
@@ -363,7 +363,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 
         ci_hw = eng.ci_95()
         st.markdown(
-            f"Engagement Lift = **{_pct(eng.lift)}** · "
+            f"Engagement Lift = **{_pct(eng.lift, 2)}** · "
             f"SE = `{_num(eng.se)}` · "
             f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
         )
@@ -431,7 +431,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 
             val_hw = val.ci_95()
             st.markdown(
-                f"Value Lift = **{_pct(val.lift)}** · "
+                f"Value Lift = **{_pct(val.lift, 2)}** · "
                 f"SE = `{_num(val.se)}` · "
                 f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
             )
