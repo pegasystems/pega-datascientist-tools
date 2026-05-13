@@ -52,8 +52,8 @@ explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
 data_quality = [
     'numpy',
     'scikit-learn',
-    'sentence-transformers',
-    'umap-learn',
+    "sentence-transformers; python_version < '3.14'",
+    "umap-learn; python_version < '3.14'",
     "plotly[express]>=6.0",
 ]
 app = [

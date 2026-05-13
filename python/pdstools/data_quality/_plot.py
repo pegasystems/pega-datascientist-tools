@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 
@@ -23,7 +23,7 @@ class Plot(LazyNamespace):
     Attached to :pyattr:`TopicDataQuality.plot`.
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "data_quality"
 
     def __init__(self, parent: TopicDataQuality) -> None:

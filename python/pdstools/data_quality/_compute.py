@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
 
@@ -23,7 +23,7 @@ class Compute(LazyNamespace):
     Attached to :pyattr:`TopicDataQuality.compute`.
     """
 
-    dependencies = ["numpy", "sklearn", "sentence_transformers", "umap"]
+    dependencies: ClassVar[list[str]] = ["numpy", "sklearn", "sentence_transformers", "umap"]
     dependency_group = "data_quality"
 
     def __init__(self, parent: TopicDataQuality) -> None:
@@ -95,7 +95,6 @@ class Compute(LazyNamespace):
         if self.parent._sim_df is not None:
             return self.parent._sim_df
 
-        import numpy as np
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
 

@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
 
 from pdstools.utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
-    import numpy as np
-
-    from ._topic_data_quality import TopicDataQuality, TopicOverlapPair
+    from ._topic_data_quality import TopicDataQuality
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ class Health(LazyNamespace):
     Attached to :pyattr:`TopicDataQuality.health`.
     """
 
-    dependencies = ["numpy", "sklearn"]
+    dependencies: ClassVar[list[str]] = ["numpy", "sklearn"]
     dependency_group = "data_quality"
 
     def __init__(self, parent: TopicDataQuality) -> None:
@@ -127,7 +125,7 @@ class Health(LazyNamespace):
         cnts = counts.get_column("count").to_list()
 
         rows: list[dict] = []
-        for topic, count in zip(topics, cnts):
+        for topic, count in zip(topics, cnts, strict=True):
             if count < 10:
                 status, rec = "[CRITICAL]", f"Need {30 - count} more samples minimum"
             elif count < 30:
