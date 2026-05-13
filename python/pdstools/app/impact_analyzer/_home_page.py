@@ -199,19 +199,23 @@ def home_page() -> None:
         """
 # Impact Analyzer
 
-Analyze A/B test experiments from your decisioning monitoring exports or
-scenario-planner data. Multiple input formats are supported — the format
-is auto-detected on upload:
+Analyze A/B test experiments from Pega decisioning data. The **preferred**
+input is a **Scenario Planner Export** — a dataset export from Pega
+delivered as a ZIP archive — which carries the full per-experiment
+control-group breakdown that Impact Analyzer needs.
 
-| | **Monitoring Export (JSON)** | **Monitoring Export (Excel)** | **Scenario Planner Export** | **Interaction History** |
+Other formats are supported as a fallback when a Scenario Planner Export
+isn't available. The format is auto-detected on upload.
+
+| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Monitoring Export (Excel) | Interaction History |
 |---|---|---|---|---|
-| Format | JSON/NDJSON | XLSX | ZIP archive | TBD - future |
+| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX | TBD — future |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
 
-The bundled Infinity demo dataset is loaded by default — upload your own
-file below to replace it.
+The bundled Infinity demo dataset (a Scenario Planner Export) is loaded
+by default — upload your own file below to replace it.
 
 ### Data import
 """
