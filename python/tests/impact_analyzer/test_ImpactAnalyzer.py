@@ -69,7 +69,10 @@ def test_from_pdc():
         lift_data == 0.012584196
     )  # this just asserts the above expression works, it is the raw value from the data file
     experiment_data_recalculated = (
-        analyzer.summarize_experiments("Channel").collect().filter(Experiment="NBA vs Random").filter(Channel="Email")
+        analyzer.summarize_experiments("Channel")
+        .collect()
+        .filter(Experiment="NBA vs Random Relevant Action")
+        .filter(Channel="Email")
     )
     assert round(experiment_data_recalculated["CTR_Lift"].item(), 6) == 0.012584
     assert (
@@ -80,33 +83,39 @@ def test_from_pdc():
     assert (
         analyzer.summarize_experiments("Channel")
         .collect()
-        .filter(Experiment="NBA vs Only Eligibility Rules")
+        .filter(Experiment="NBA vs Only Eligibility Criteria")
         .select(pl.col("CTR_Lift").is_null().all())["CTR_Lift"]
         .item()
     )
 
     # Verify the lift numbers for all channels aggregated
+    # Order matches default_ia_experiments (product UI order):
+    #   1. NBA vs Random Relevant Action
+    #   2. NBA vs Arbitrating by Propensity-only
+    #   3. NBA vs Arbitrating with No Levers
+    #   4. NBA vs Only Eligibility Criteria  (no data)
+    #   5. Adaptive Model Propensity vs Random Propensity
     assert analyzer.summarize_experiments().select(
         pl.col("CTR_Lift").round(6),
-    ).collect()["CTR_Lift"].to_list() == [0.009563, 0.002653, None, 0.003784, 0.002215]
+    ).collect()["CTR_Lift"].to_list() == [0.002215, 0.003784, 0.002653, None, 0.009563]
 
     # Value lift isn't exactly the same overall because we can't recalculate it from the current PDC data
     # and the weighted average is perhaps not the same
     assert analyzer.summarize_experiments().select(
         pl.col("Value_Lift").round(1),
     ).collect()["Value_Lift"].to_list() == [
-        round(x, 1) if x is not None else x for x in [1.032273, 0.002653, None, 0.018921, 0.911865]
+        round(x, 1) if x is not None else x for x in [0.911865, 0.018921, 0.002653, None, 1.032273]
     ]
 
     # However for a specific channel the Value Lift should be exactly the same, as this is just copied from the data
     assert analyzer.summarize_experiments("Channel").filter(Channel="SMS").select(
         pl.col("Value_Lift").round(6),
     ).collect()["Value_Lift"].to_list() == [
-        1.312399,
+        0.961498,
+        0.032556,
         0.012333,
         None,
-        0.032556,
-        0.961498,
+        1.312399,
     ]
 
 
@@ -206,7 +215,7 @@ def test_plot_with_query(simple_ia):
     # Test overview with query
     overview_data = simple_ia.plot.overview(query=query, return_df=True).collect()
     # Should only contain the filtered experiment
-    assert "NBA vs Random" in overview_data["Experiment"].to_list()
+    assert "NBA vs Random Relevant Action" in overview_data["Experiment"].to_list()
 
     # Test trend with query - using facet parameter to include Channel for filtering
     trend_data = simple_ia.plot.trend(
@@ -235,12 +244,13 @@ def test_plot_experiment_color_map():
     """Test the experiment color mapping function"""
     from pdstools.impactanalyzer.Plots import Plots
 
+    # Canonical product UI order, sourced from default_ia_experiments.
     expected_experiments = [
-        "Adaptive Models vs Random Propensity",
-        "NBA vs No Levers",
-        "NBA vs Only Eligibility Rules",
-        "NBA vs Propensity Only",
-        "NBA vs Random",
+        "NBA vs Random Relevant Action",
+        "NBA vs Arbitrating by Propensity-only",
+        "NBA vs Arbitrating with No Levers",
+        "NBA vs Only Eligibility Criteria",
+        "Adaptive Model Propensity vs Random Propensity",
     ]
 
     color_map = Plots._get_experiment_color_map()
@@ -709,13 +719,13 @@ def test_from_excel_exact_impressions_and_accepts(excel_ia):
 
 
 def test_from_excel_ctr_lift(excel_ia):
-    """CTR_Lift for 'NBA vs Random' (Email) matches hand-calculated value."""
+    """CTR_Lift for 'NBA vs Random Relevant Action' (Email) matches hand-calculated value."""
     # NBA CTR = 500/10000 = 0.05; NBAPrioritization CTR = 45/1000 = 0.045
     # CTR_Lift = (0.05 - 0.045) / 0.045 = 0.1111...
     result = (
         excel_ia.summarize_experiments(by="Channel")
         .collect()
-        .filter(Experiment="NBA vs Random")
+        .filter(Experiment="NBA vs Random Relevant Action")
         .filter(Channel="Email")
     )
     assert round(result["CTR_Lift"].item(), 6) == round(1 / 9, 6)
@@ -723,7 +733,9 @@ def test_from_excel_ctr_lift(excel_ia):
 
 def test_from_excel_inactive_experiment_null(excel_ia):
     """Inactive EngagementPolicy experiment yields null lift values."""
-    result = excel_ia.summarize_experiments(by="Channel").collect().filter(Experiment="NBA vs Only Eligibility Rules")
+    result = (
+        excel_ia.summarize_experiments(by="Channel").collect().filter(Experiment="NBA vs Only Eligibility Criteria")
+    )
     assert result.select(pl.col("CTR_Lift").is_null().all())["CTR_Lift"].item()
 
 

@@ -210,16 +210,11 @@ is auto-detected on upload:
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
 
+The bundled Infinity demo dataset is loaded by default — upload your own
+file below to replace it.
+
 ### Data import
 """
-    )
-
-    # --- Data source selection ---
-    data_source = st.radio(
-        "Choose data source",
-        ["File upload", "Sample data"],
-        horizontal=True,
-        help="Upload your own data or use built-in sample data.",
     )
 
     impact_analyzer = None
@@ -228,74 +223,62 @@ zoom, and hover for details.
     data_source_label: str | None = None
     is_sample_data = False
 
-    # ── File upload ───────────────────────────────────────────────────
-    if data_source == "File upload":
-        uploaded_files = st.file_uploader(
-            "Upload Impact Analyzer data",
-            accept_multiple_files=True,
-        )
+    # ── File upload (always shown — uploads replace whatever is loaded) ──
+    uploaded_files = st.file_uploader(
+        "Upload Impact Analyzer data",
+        accept_multiple_files=True,
+    )
 
-        if uploaded_files:
-            # Clear any old data when new upload is attempted
-            if "impact_analyzer" in st.session_state:
-                del st.session_state["impact_analyzer"]
-            for key in (
-                "ia_is_sample_data",
-                "ia_data_source_kind",
-                "ia_data_source_label",
-                "_ia_banner_shown_for",
-            ):
-                st.session_state.pop(key, None)
+    if uploaded_files:
+        # Clear any old data when new upload is attempted
+        if "impact_analyzer" in st.session_state:
+            del st.session_state["impact_analyzer"]
+        for key in (
+            "ia_is_sample_data",
+            "ia_data_source_kind",
+            "ia_data_source_label",
+            "_ia_banner_shown_for",
+        ):
+            st.session_state.pop(key, None)
 
-            # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
-            valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
-            filtered_files = [
-                f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
-            ]
+        # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
+        valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
+        filtered_files = [
+            f for f in uploaded_files if Path(f.name).suffix.lower() in valid_suffixes and "META-INF" not in f.name
+        ]
 
-            if not filtered_files:
-                st.error(
-                    "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
-                    "If you dragged a folder, try uploading just the `data.json` file instead."
-                )
+        if not filtered_files:
+            st.error(
+                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
+                "If you dragged a folder, try uploading just the `data.json` file instead."
+            )
+        else:
+            suffixes = {Path(f.name).suffix.lower() for f in filtered_files}
+
+            # Single file: use auto-detection
+            if len(filtered_files) == 1:
+                _outcome_labels_json = st.session_state.get("ia_outcome_labels_json")
+                with st.spinner("Loading data (auto-detecting format)..."):
+                    impact_analyzer = _load_with_warning(
+                        lambda: load_from_upload_auto(filtered_files[0], outcome_labels_json=_outcome_labels_json),
+                        "uploaded",
+                        expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
+                    )
+                if impact_analyzer is not None:
+                    data_source_kind = "upload"
+                    data_source_label = filtered_files[0].name
+            # Multiple JSON files: treat as PDC
+            elif suffixes.issubset({".json", ".ndjson"}):
+                with st.spinner("Loading PDC data"):
+                    impact_analyzer = _load_with_warning(
+                        lambda: load_pdc_from_uploads(filtered_files),
+                        "PDC",
+                    )
+                if impact_analyzer is not None:
+                    data_source_kind = "upload"
+                    data_source_label = f"{len(filtered_files)} PDC files"
             else:
-                suffixes = {Path(f.name).suffix.lower() for f in filtered_files}
-
-                # Single file: use auto-detection
-                if len(filtered_files) == 1:
-                    _outcome_labels_json = st.session_state.get("ia_outcome_labels_json")
-                    with st.spinner("Loading data (auto-detecting format)..."):
-                        impact_analyzer = _load_with_warning(
-                            lambda: load_from_upload_auto(filtered_files[0], outcome_labels_json=_outcome_labels_json),
-                            "uploaded",
-                            expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
-                        )
-                    if impact_analyzer is not None:
-                        data_source_kind = "upload"
-                        data_source_label = filtered_files[0].name
-                # Multiple JSON files: treat as PDC
-                elif suffixes.issubset({".json", ".ndjson"}):
-                    with st.spinner("Loading PDC data"):
-                        impact_analyzer = _load_with_warning(
-                            lambda: load_pdc_from_uploads(filtered_files),
-                            "PDC",
-                        )
-                    if impact_analyzer is not None:
-                        data_source_kind = "upload"
-                        data_source_label = f"{len(filtered_files)} PDC files"
-                else:
-                    st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
-
-    # ── Sample data ───────────────────────────────────────────────────
-    elif data_source == "Sample data":
-        if "impact_analyzer" not in st.session_state:
-            with st.spinner("Loading sample data"):
-                impact_analyzer = _load_with_warning(load_sample, "Sample")
-            if impact_analyzer is not None:
-                is_sample_data = True
-                st.info(
-                    "Using built-in sample data. Switch to **File upload** for your own data.",
-                )
+                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
 
     # --- Autoload sample on first visit (no data yet, no upload) ---
     if impact_analyzer is None and "impact_analyzer" not in st.session_state:
@@ -303,7 +286,8 @@ zoom, and hover for details.
             impact_analyzer = _load_with_warning(load_sample, "Sample")
         if impact_analyzer is not None:
             is_sample_data = True
-            st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
+            data_source_kind = "sample"
+            st.toast("Loaded bundled sample data — upload your own to replace it.", icon="📊")
 
     # --- Handle --data-path CLI flag (works with any source tab) ---
     has_existing_data = "impact_analyzer" in st.session_state

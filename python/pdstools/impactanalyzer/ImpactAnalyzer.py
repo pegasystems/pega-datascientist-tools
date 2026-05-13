@@ -86,16 +86,23 @@ class ImpactAnalyzer:
     outcome_labels_used: dict | None
 
     default_ia_experiments: ClassVar[dict[str, tuple[str, str]]] = {
-        "NBA vs Random": ("NBAPrioritization", "NBA"),
-        "NBA vs Propensity Only": ("PropensityPriority", "NBA"),
-        "NBA vs No Levers": ("LeverPriority", "NBA"),
-        "NBA vs Only Eligibility Rules": (
+        "NBA vs Random Relevant Action": ("NBAPrioritization", "NBA"),
+        "NBA vs Arbitrating by Propensity-only": ("PropensityPriority", "NBA"),
+        "NBA vs Arbitrating with No Levers": ("LeverPriority", "NBA"),
+        "NBA vs Only Eligibility Criteria": (
             "EngagementPolicy",
             "NBA",
         ),
-        "Adaptive Models vs Random Propensity": ("ModelControl_1", "ModelControl_2"),
+        "Adaptive Model Propensity vs Random Propensity": (
+            "ModelControl_1",
+            "ModelControl_2",
+        ),
     }
-    """Default experiments mapping experiment names to (control, test) group tuples."""
+    """Default experiments mapping experiment names to (control, test) group tuples.
+
+    Names and ordering match the Pega Infinity Impact Analyzer product UI.
+    Insertion order is the canonical display order — see
+    `summarize_experiments` for how it is preserved through aggregation."""
 
     outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Impressions": ["Impression"],
@@ -1123,6 +1130,11 @@ class ImpactAnalyzer:
 
         has_pega_value_lift = "Pega_ValueLift" in self.ia_data.collect_schema().names()
 
+        # Cast Experiment to Enum so the canonical product order from
+        # default_ia_experiments survives joins/aggregations and a final
+        # sort puts experiments back in that order.
+        experiment_enum = pl.Enum(list(ImpactAnalyzer.default_ia_experiments.keys()))
+
         result = (
             pl.LazyFrame(
                 {
@@ -1131,6 +1143,7 @@ class ImpactAnalyzer:
                     "Control": [v[0] for v in ImpactAnalyzer.default_ia_experiments.values()],
                 },
             )
+            .with_columns(pl.col("Experiment").cast(experiment_enum))
             .join(
                 control_groups_summary.select(
                     *by_list,
@@ -1168,6 +1181,8 @@ class ImpactAnalyzer:
                 ),
             )
 
-        return result.drop(cs.starts_with("Pega_")).sort(
-            ["Experiment", *by_column_names],
+        return (
+            result.drop(cs.starts_with("Pega_"))
+            .sort(["Experiment", *by_column_names])
+            .with_columns(pl.col("Experiment").cast(pl.String))
         )

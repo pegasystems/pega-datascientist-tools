@@ -38,13 +38,22 @@ Both the Pega Infinity product and pdstools define **5** experiments
 (not 6 — the `ModelControl_1`/`_2` naming has historically caused this
 miscount). Each compares one ControlGroup arm against another.
 
+Names and ordering match the Pega Infinity Impact Analyzer product UI;
+`ImpactAnalyzer.default_ia_experiments` is the single source of truth
+and its dict insertion order is the canonical display order. Anything
+that lists experiments (the lift chart, plot legends, the experiment
+card grid, the per-experiment colour map) must follow it. Inside
+`summarize_experiments` the `Experiment` column is cast to a
+`pl.Enum` over those keys so a final sort produces the canonical
+order regardless of by-column.
+
 | # | Display name | Test arm | Control arm |
 |---|---|---|---|
-| 1 | NBA vs Random | `NBA` | `NBAPrioritization` |
-| 2 | NBA vs Propensity Only | `NBA` | `PropensityPriority` |
-| 3 | NBA vs No Levers | `NBA` | `LeverPriority` |
-| 4 | NBA vs Only Eligibility Rules | `NBA` | `EngagementPolicy` |
-| 5 | Adaptive Models vs Random Propensity | `ModelControl_2` | `ModelControl_1` |
+| 1 | NBA vs Random Relevant Action | `NBA` | `NBAPrioritization` |
+| 2 | NBA vs Arbitrating by Propensity-only | `NBA` | `PropensityPriority` |
+| 3 | NBA vs Arbitrating with No Levers | `NBA` | `LeverPriority` |
+| 4 | NBA vs Only Eligibility Criteria | `NBA` | `EngagementPolicy` |
+| 5 | Adaptive Model Propensity vs Random Propensity | `ModelControl_2` | `ModelControl_1` |
 
 Defined in `ImpactAnalyzer.default_ia_experiments`.
 
@@ -114,7 +123,7 @@ the alias rows carry the same impressions/accepts as their source arm.
 > accept rate vs `ModelControl`'s 1.5 % on identical impression
 > populations — same effect was observed at T-Mobile. By aliasing
 > `PropensityPriority → ModelControl_2`, the bundled sample's
-> experiment #5 ("Adaptive Models vs Random Propensity") shows a
+> experiment #5 ("Adaptive Model Propensity vs Random Propensity") shows a
 > conceptually-correct but numerically-optimistic lift. Treat it as
 > a demonstration of the experiment shape, not as a calibration
 > benchmark.

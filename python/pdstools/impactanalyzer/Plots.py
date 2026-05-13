@@ -65,21 +65,23 @@ class Plots(LazyNamespace):
 
     @staticmethod
     def _get_experiment_color_map() -> list[str]:
-        """Get ordered list of experiment names for consistent coloring.
+        """Get the canonical product-order list of experiment names.
+
+        Used as the ``category_orders`` for plotly so that experiments
+        always render in the same order shown by the Pega Infinity
+        Impact Analyzer UI, and so colour assignment stays consistent
+        across plots.
 
         Returns
         -------
         list[str]
-            Alphabetically ordered list of default experiment names.
+            Experiment names in canonical product order.
 
         """
-        return [
-            "Adaptive Models vs Random Propensity",
-            "NBA vs No Levers",
-            "NBA vs Only Eligibility Rules",
-            "NBA vs Propensity Only",
-            "NBA vs Random",
-        ]
+        # Local import avoids a circular import at module load time.
+        from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
+
+        return list(ImpactAnalyzer.default_ia_experiments.keys())
 
     @staticmethod
     def _get_facet_config(data: pl.DataFrame, facet: str | None) -> dict:

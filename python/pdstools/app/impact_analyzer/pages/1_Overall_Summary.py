@@ -698,10 +698,39 @@ if _lift_chart_data:
         fig = go.Figure()
         names = []
         _narrow_ci = []
+        _no_data: list[str] = []
         for _i, d in enumerate(_lift_chart_data_active):
             lift = d[f"{_lift_key}_lift"]
             se = d[f"{_lift_key}_se"]
+
+            names.append(d["name"])
+            y_pos = len(names) - 1
+
             if lift is None or se is None:
+                # Render a placeholder row so the chart's experiment list
+                # stays aligned with the experiment-card grid below
+                # (otherwise null-metric rows silently disappear from the
+                # chart and users see what looks like a reorder).
+                _no_data.append(d["name"])
+                fig.add_trace(
+                    go.Scatter(
+                        x=[None],
+                        y=[y_pos],
+                        mode="markers",
+                        marker=dict(symbol="x-thin", size=10, color=_GREY, line=dict(color=_GREY, width=1.5)),
+                        showlegend=False,
+                        hovertemplate=(f"<b>{d['name']}</b><br>No data for this metric<extra></extra>"),
+                    )
+                )
+                fig.add_annotation(
+                    x=0,
+                    y=y_pos,
+                    text="<i>no data</i>",
+                    showarrow=False,
+                    font=dict(color=_GREY, size=11),
+                    xanchor="left",
+                    xshift=10,
+                )
                 continue
 
             lp = lift * 100
@@ -709,9 +738,6 @@ if _lift_chart_data:
             lo, hi = lp - hw, lp + hw
             sig = abs(lift) > Z_95 * se
             colour = _GREEN if (sig and lp > 0) else _RED if (sig and lp < 0) else _GREY
-
-            names.append(d["name"])
-            y_pos = len(names) - 1
 
             # Track experiments where CI is too narrow to see
             if hw < 0.5:
