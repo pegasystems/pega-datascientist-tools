@@ -229,6 +229,42 @@ def _formula(latex: str, description: str = "", substitution: str = "") -> None:
         )
 
 
+def _render_trend_explainer(metric_label: str = "lift") -> None:
+    """Explain the shaded CI band and EWMA-smoothed line on the trend chart.
+
+    Both the engagement and value tabs render the same kind of trend chart
+    (raw daily series + 95 % CI band + smoothed line), so the explanation
+    is shared. The EWMA span used by `_chart_lift_trend` is `min(7, n)`,
+    capped at the per-experiment series length.
+    """
+    st.markdown("##### Trend Chart — what the band and smoothed line mean")
+    st.markdown(f"The trend chart shows three things per day for the daily {metric_label} series:")
+
+    st.markdown("**1. Raw daily value** — computed from that single day's counts.")
+
+    st.markdown(
+        "**2. Shaded band** — the per-day 95 % CI, same Wald formula as the "
+        "headline CI above, applied to one day's counts:"
+    )
+    st.latex(FORMULAS["ci_band"].latex)
+    st.caption(
+        "Subscript *t* is the day index. The band is wide on low-traffic days "
+        "(few impressions → large SE) and narrow on high-traffic days."
+    )
+
+    st.markdown("**3. Smoothed line (EWMA)** — exponentially-weighted moving average that dampens day-to-day noise:")
+    st.latex(FORMULAS["ewma"].latex)
+    st.caption(
+        "x_t is today's raw value, S_t is today's smoothed value, S_(t-1) is "
+        "yesterday's smoothed value. The blend factor alpha (between 0 and 1) "
+        "controls how heavily recent days are weighted: bigger alpha tracks "
+        "the latest day more closely; smaller alpha smooths harder. **span** "
+        "is the effective window length in days. This chart uses **span = 7** "
+        "(capped at the series length), giving alpha = 2 / 8 = 0.25 -- "
+        "roughly a one-week moving average."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Render one experiment card
 # ---------------------------------------------------------------------------
@@ -412,11 +448,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 )
 
             if trend_df is not None:
-                st.markdown("##### Trend Chart — CI Band & Smoothing")
-                st.latex(FORMULAS["ci_band"].latex)
-                st.caption(FORMULAS["ci_band"].description)
-                st.latex(FORMULAS["ewma"].latex)
-                st.caption(FORMULAS["ewma"].description)
+                _render_trend_explainer("engagement lift")
 
     with tab_val:
         if val is not None:
@@ -533,11 +565,7 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 st.caption("Value lift data not available for this experiment.")
 
             if trend_df is not None:
-                st.markdown("##### Trend Chart — CI Band & Smoothing")
-                st.latex(FORMULAS["ci_band"].latex)
-                st.caption(FORMULAS["ci_band"].description)
-                st.latex(FORMULAS["ewma"].latex)
-                st.caption(FORMULAS["ewma"].description)
+                _render_trend_explainer("value lift")
 
 
 # ===========================================================================
