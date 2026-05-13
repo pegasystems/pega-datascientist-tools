@@ -657,16 +657,15 @@ def test_from_pdc_does_not_set_outcome_labels_used(simple_ia):
 
 
 # ---------------------------------------------------------------------------
-# from_excel tests
+# from_excel tests (Pega Infinity IA Excel export — Data sheet)
 # ---------------------------------------------------------------------------
 
 EXCEL_FIXTURE = basePath / "python" / "tests" / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
-SNAPSHOT_TS = "2025-03-02T18:28:00.257Z"
 
 
 @pytest.fixture
 def excel_ia():
-    return ImpactAnalyzer.from_excel(EXCEL_FIXTURE, snapshot_time=SNAPSHOT_TS)
+    return ImpactAnalyzer.from_excel(EXCEL_FIXTURE)
 
 
 def test_from_excel_returns_instance(excel_ia):
@@ -676,110 +675,173 @@ def test_from_excel_returns_instance(excel_ia):
 
 
 def test_from_excel_control_groups(excel_ia):
-    """Inactive experiment (EngagementPolicy) is excluded; expected groups present."""
+    """All five canonical control groups + NBA test arm are present; unknown experiment dropped."""
     groups = excel_ia.ia_data.select(pl.col("ControlGroup").unique().sort()).collect()["ControlGroup"].to_list()
-    assert groups == ["LeverPriority", "ModelControl_1", "ModelControl_2", "NBA", "NBAPrioritization"]
+    assert groups == [
+        "EngagementPolicy",
+        "LeverPriority",
+        "ModelControl_1",
+        "ModelControl_2",
+        "NBA",
+        "NBAPrioritization",
+        "PropensityPriority",
+    ]
 
 
-def test_from_excel_channels(excel_ia):
-    """'All channels' aggregate row is filtered out; only per-channel rows remain."""
+def test_from_excel_channels_concatenate_direction(excel_ia):
+    """Channel is built as '<Channel>/<Direction>' to match the from_vbd convention."""
     channels = sorted(excel_ia.ia_data.select(pl.col("Channel").unique()).collect()["Channel"].to_list())
-    assert channels == ["Email", "SMS"]
+    assert channels == ["Email/Outbound", "Web/Inbound"]
 
 
-def test_from_excel_snapshot_time_yesterday_adjustment(excel_ia):
-    """LastDataReceived='Yesterday' shifts snapshot back by one day (2025-03-02 → 2025-03-01)."""
+def test_from_excel_snapshot_dates(excel_ia):
+    """Both fixture dates appear in the normalized output."""
     from datetime import datetime
 
-    snapshot_dates = excel_ia.ia_data.select(pl.col("SnapshotTime").unique()).collect()["SnapshotTime"].to_list()
-    assert snapshot_dates == [datetime(2025, 3, 1)]
+    snapshot_dates = sorted(
+        excel_ia.ia_data.select(pl.col("SnapshotTime").unique()).collect()["SnapshotTime"].to_list()
+    )
+    assert snapshot_dates == [datetime(2026, 1, 1), datetime(2026, 1, 2)]
 
 
-def test_from_excel_exact_impressions_and_accepts(excel_ia):
-    """Control group rows carry exact impression / accept counts from the fixture."""
+def test_from_excel_nba_dedup_across_experiments(excel_ia):
+    """NBA test arm is collapsed to one row per (date, channel, action) — no 4× double count.
+
+    Fixture has identical NBA Test counts across the four NBA-vs-X experiments
+    for every (date, channel, action). For Web/Inbound × Action_A × 2026-01-01,
+    NBA = 1000 impressions / 50 accepts (ch_mult=1, act_mult=1).
+    """
+    from datetime import datetime
+
     data = excel_ia.ia_data.collect()
-
-    # NBAPrioritization Email control group
-    row = data.filter(Channel="Email").filter(ControlGroup="NBAPrioritization")
+    row = data.filter(
+        (pl.col("Channel") == "Web/Inbound")
+        & (pl.col("Name") == "Action_A")
+        & (pl.col("ControlGroup") == "NBA")
+        & (pl.col("SnapshotTime") == datetime(2026, 1, 1))
+    )
+    assert row.height == 1
     assert row["Impressions"].item() == 1000
-    assert row["Accepts"].item() == 45
-    assert row["Pega_ValueLift"].item() == 0.05
-
-    # NBA Email: max Impressions_NBA across active experiments for that channel
-    row_nba = data.filter(Channel="Email").filter(ControlGroup="NBA")
-    assert row_nba["Impressions"].item() == 10000
-    assert row_nba["Accepts"].item() == 500
-
-    # ModelControl_2 Email: Impressions_NBA of the ModelControl experiment
-    row_mc2 = data.filter(Channel="Email").filter(ControlGroup="ModelControl_2")
-    assert row_mc2["Impressions"].item() == 10000
-
-    # SMS LeverPriority
-    row_lever_sms = data.filter(Channel="SMS").filter(ControlGroup="LeverPriority")
-    assert row_lever_sms["Impressions"].item() == 900
-    assert row_lever_sms["Accepts"].item() == 45
+    assert row["Accepts"].item() == 50
 
 
-def test_from_excel_ctr_lift(excel_ia):
-    """CTR_Lift for 'NBA vs Random Relevant Action' (Email) matches hand-calculated value."""
-    # NBA CTR = 500/10000 = 0.05; NBAPrioritization CTR = 45/1000 = 0.045
-    # CTR_Lift = (0.05 - 0.045) / 0.045 = 0.1111...
-    result = (
-        excel_ia.summarize_experiments(by="Channel")
-        .collect()
-        .filter(Experiment="NBA vs Random Relevant Action")
-        .filter(Channel="Email")
+def test_from_excel_exact_control_arm_counts(excel_ia):
+    """Each NBA-vs-X experiment's control arm carries its own distinct counts.
+
+    Fixture (Web/Inbound × Action_A × 2026-01-01, ch_mult=1, act_mult=1):
+      NBAPrioritization   →  100 imp /  4 acc
+      PropensityPriority  →  110 imp /  5 acc
+      LeverPriority       →  120 imp /  6 acc
+      EngagementPolicy    →  130 imp /  7 acc
+    """
+    from datetime import datetime
+
+    data = excel_ia.ia_data.collect().filter(
+        (pl.col("Channel") == "Web/Inbound")
+        & (pl.col("Name") == "Action_A")
+        & (pl.col("SnapshotTime") == datetime(2026, 1, 1))
     )
-    assert round(result["CTR_Lift"].item(), 6) == round(1 / 9, 6)
+    expected = {
+        "NBAPrioritization": (100, 4),
+        "PropensityPriority": (110, 5),
+        "LeverPriority": (120, 6),
+        "EngagementPolicy": (130, 7),
+    }
+    for cg, (imp, acc) in expected.items():
+        row = data.filter(ControlGroup=cg)
+        assert row["Impressions"].item() == imp, cg
+        assert row["Accepts"].item() == acc, cg
 
 
-def test_from_excel_inactive_experiment_null(excel_ia):
-    """Inactive EngagementPolicy experiment yields null lift values."""
-    result = (
-        excel_ia.summarize_experiments(by="Channel").collect().filter(Experiment="NBA vs Only Eligibility Criteria")
+def test_from_excel_model_control_arms_split(excel_ia):
+    """AdaptiveModel experiment splits into ModelControl_2 (test) and ModelControl_1 (control)."""
+    from datetime import datetime
+
+    data = excel_ia.ia_data.collect().filter(
+        (pl.col("Channel") == "Web/Inbound")
+        & (pl.col("Name") == "Action_A")
+        & (pl.col("SnapshotTime") == datetime(2026, 1, 1))
     )
-    assert result.select(pl.col("CTR_Lift").is_null().all())["CTR_Lift"].item()
+    mc1 = data.filter(ControlGroup="ModelControl_1")
+    mc2 = data.filter(ControlGroup="ModelControl_2")
+    # Fixture: test=200/8, control=210/9 (ch_mult=1, act_mult=1)
+    assert mc2["Impressions"].item() == 200
+    assert mc2["Accepts"].item() == 8
+    assert mc1["Impressions"].item() == 210
+    assert mc1["Accepts"].item() == 9
 
 
-def test_from_excel_return_df(tmp_path):
+def test_from_excel_value_per_impression(excel_ia):
+    """ValuePerImpression = ActionValueImpression / Impressions (null when Impressions == 0)."""
+    from datetime import datetime
+
+    data = excel_ia.ia_data.collect().filter(
+        (pl.col("Channel") == "Web/Inbound")
+        & (pl.col("Name") == "Action_A")
+        & (pl.col("SnapshotTime") == datetime(2026, 1, 1))
+    )
+    # NBA: value_imp=200 / impressions=1000 → 0.2
+    nba = data.filter(ControlGroup="NBA")
+    assert nba["ValuePerImpression"].item() == pytest.approx(0.2)
+    # NBAPrioritization control: value_imp=10 / impressions=100 → 0.1
+    ctrl = data.filter(ControlGroup="NBAPrioritization")
+    assert ctrl["ValuePerImpression"].item() == pytest.approx(0.1)
+
+
+def test_from_excel_unknown_experiment_dropped(excel_ia):
+    """The 'Some Future Unknown Experiment' row is filtered out; no rows leak with that name."""
+    # The unknown row's NBA-style numbers (Impressions=1, Accepts=0) would
+    # show up only if the row weren't dropped. We assert the absence
+    # indirectly via row counts: 2 dates x 2 channels x 2 actions x
+    # (5 control arms + 1 deduped NBA + 1 ModelControl_2 test arm - 1 because
+    # NBA already counts as the 4 NBA experiments' test arm) = 2*2*2*7 = 56.
+    assert excel_ia.ia_data.collect().height == 56
+
+
+def test_from_excel_warns_on_unknown_experiment(caplog):
+    """Loading the fixture emits a warning naming the unknown experiment."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="pdstools.impactanalyzer.ImpactAnalyzer"):
+        ImpactAnalyzer.from_excel(EXCEL_FIXTURE)
+    assert any("Some Future Unknown Experiment" in rec.message for rec in caplog.records)
+
+
+def test_from_excel_return_df():
     """return_df=True yields a LazyFrame instead of an ImpactAnalyzer."""
-    df = ImpactAnalyzer.from_excel(EXCEL_FIXTURE, snapshot_time=SNAPSHOT_TS, return_df=True)
+    df = ImpactAnalyzer.from_excel(EXCEL_FIXTURE, return_df=True)
     assert isinstance(df, pl.LazyFrame)
     collected = df.collect()
-    # Required normalized columns
-    for col in ("SnapshotTime", "ControlGroup", "Impressions", "Accepts", "Channel"):
+    for col in ("SnapshotTime", "ControlGroup", "Impressions", "Accepts", "Channel", "ValuePerImpression"):
         assert col in collected.columns
 
 
-def test_from_excel_no_snapshot_raises():
-    """ValueError raised when snapshot_time is omitted and sheet has no SnapshotTime column."""
-    with pytest.raises(ValueError, match="snapshot_time must be provided"):
-        ImpactAnalyzer.from_excel(EXCEL_FIXTURE)
-
-
-def test_from_excel_sheet_name_string(excel_ia):
-    """sheet_name as a string selects the named sheet and gives identical results."""
-    ia2 = ImpactAnalyzer.from_excel(
-        EXCEL_FIXTURE,
-        snapshot_time=SNAPSHOT_TS,
-        sheet_name="ImpactAnalyzer",
-    )
-    assert ia2.ia_data.collect().height == excel_ia.ia_data.collect().height
+def test_from_excel_missing_required_column_raises(tmp_path):
+    """Missing required columns in the Data sheet raise a clear ValueError."""
+    bad = tmp_path / "bad.xlsx"
+    pl.DataFrame(
+        {
+            "Date": ["2026-01-01"],
+            "Experiment Name": ["NBA vs Random relevant action"],
+            # missing Issue / Group / Action / Treatment / etc.
+        }
+    ).write_excel(bad, worksheet="Data")
+    with pytest.raises(ValueError, match="missing required columns"):
+        ImpactAnalyzer.from_excel(bad)
 
 
 def test_from_excel_query_filter():
-    """query parameter restricts rows before normalization."""
+    """query parameter restricts rows before aggregation."""
     ia = ImpactAnalyzer.from_excel(
         EXCEL_FIXTURE,
-        snapshot_time=SNAPSHOT_TS,
-        query=pl.col("ChannelName") == "Email",
+        query=pl.col("Channel") == "Web/Inbound",
     )
     channels = ia.ia_data.select(pl.col("Channel").unique()).collect()["Channel"].to_list()
-    assert channels == ["Email"]
+    assert channels == ["Web/Inbound"]
 
 
 def test_from_excel_outcome_labels_unused(excel_ia):
-    """Excel (PDC-equivalent) data has no raw outcome labels — outcome_labels_used is None."""
+    """Excel (pre-aggregated) data has no raw outcome labels — outcome_labels_used is None."""
     assert excel_ia.outcome_labels_used is None
 
 

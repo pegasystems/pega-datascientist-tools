@@ -207,9 +207,9 @@ control-group breakdown that Impact Analyzer needs.
 Other formats are supported as a fallback when a Scenario Planner Export
 isn't available. The format is auto-detected on upload.
 
-| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Monitoring Export (Excel) | Interaction History |
-|---|---|---|---|---|
-| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX | TBD — future |
+| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Export from Impact Analyzer in Pega |
+|---|---|---|---|
+| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
@@ -253,7 +253,7 @@ by default — upload your own file below to replace it.
 
         if not filtered_files:
             st.error(
-                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
+                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (Pega Infinity IA Excel export), or ZIP (VBD) files. "
                 "If you dragged a folder, try uploading just the `data.json` file instead."
             )
         else:

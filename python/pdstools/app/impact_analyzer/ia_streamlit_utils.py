@@ -607,7 +607,7 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     st.error(
         f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
-        "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
+        "XLSX (Pega Infinity IA Excel export), or ZIP (scenario-planner export)."
     )
     return None
 

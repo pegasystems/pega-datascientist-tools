@@ -99,7 +99,7 @@ def create_parser():
             "(parquet, csv, json, arrow, zip, tar, partitioned folders); "
             "HC — directory or zip containing an ADM Datamart export "
             "(model snapshot + predictor binning, optional prediction table); "
-            "IA — single JSON/NDJSON (PDC), ZIP (VBD), or XLSX file. "
+            "IA — single JSON/NDJSON (PDC), ZIP (VBD), or XLSX (Pega Infinity IA Excel export) file. "
             "Exposed to the app as the PDSTOOLS_DATA_PATH env var."
         ),
     )
