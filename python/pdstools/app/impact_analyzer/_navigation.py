@@ -30,8 +30,8 @@ class _SubPage:
 # Order matches the historical numeric prefixes so the sidebar reads
 # the same way users are used to. Edit here to reorder the menu.
 _SUB_PAGES: tuple[_SubPage, ...] = (
-    _SubPage("1_Overall_Summary.py", "Overall Summary", "📈"),
-    _SubPage("2_Channels.py", "Channels", "🔍"),
+    _SubPage("1_Channel_Performance.py", "Channel Performance", "📈"),
+    _SubPage("2_Details.py", "Details", "🔍"),
 )
 
 _ABOUT_PAGE = _SubPage("3_About.py", "About", "ℹ️")

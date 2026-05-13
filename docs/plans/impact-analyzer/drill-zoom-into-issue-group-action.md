@@ -1,10 +1,11 @@
-# Channels — zoom further into Issue / Group / Action
+# Details — zoom further into Issue / Group / Action
 
 **Priority:** P2
-**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Channels.py`,
+**Touches:** `python/pdstools/app/impact_analyzer/pages/2_Details.py`,
 `python/pdstools/impactanalyzer/ImpactAnalyzer.py`
 
-The Channels page currently only zooms in along the **Channel** axis.
+The Details page currently only zooms in along the **Channel** axis
+(via the shared sidebar filter).
 The Pega product UI also lets users drill into **Issue**, **Group**, and
 **Action**. Adding the same axes here would bring the open-source tool
 to parity with product.

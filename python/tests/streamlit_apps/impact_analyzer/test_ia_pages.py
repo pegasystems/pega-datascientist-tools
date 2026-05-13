@@ -57,8 +57,8 @@ def test_home_renders_without_data(ia_app_dir: Path):
 #
 # Each entry: (filename, heading substring, {widget attribute: min count}).
 IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
-    ("1_Overall_Summary.py", "# Overall Summary", {"selectbox": 1}),
-    ("2_Channels.py", "# Channels", {"dataframe": 1, "selectbox": 1}),
+    ("1_Channel_Performance.py", "# Channel Performance", {"selectbox": 1}),
+    ("2_Details.py", "# Details", {"dataframe": 1, "selectbox": 1}),
     ("3_About.py", "# About", {"expander": 1}),
 ]
 
@@ -67,8 +67,8 @@ IA_PAGES: list[tuple[str, str, dict[str, int]]] = [
 # ``"<Page> · <App>"`` convention used by HC and DA so the browser tab
 # reads the page name first.
 IA_PAGE_TITLES: list[tuple[str, str]] = [
-    ("1_Overall_Summary.py", "Impact Analyzer · Overall Summary"),
-    ("2_Channels.py", "Impact Analyzer · Channels"),
+    ("1_Channel_Performance.py", "Impact Analyzer · Channel Performance"),
+    ("2_Details.py", "Impact Analyzer · Details"),
     ("3_About.py", "About · Impact Analyzer"),
 ]
 
@@ -124,8 +124,8 @@ def test_ia_page_renders(
 
 
 IA_DATA_REQUIRED_PAGES = [
-    ("1_Overall_Summary.py", "# Overall Summary"),
-    ("2_Channels.py", "# Channels"),
+    ("1_Channel_Performance.py", "# Channel Performance"),
+    ("2_Details.py", "# Details"),
 ]
 
 
@@ -168,7 +168,7 @@ def test_ia_subpage_warns_when_autoload_fails(ia_app_dir: Path, monkeypatch: pyt
         _broken_sample,
     )
 
-    at = AppTest.from_file(str(ia_app_dir / "pages" / "1_Overall_Summary.py"), default_timeout=30)
+    at = AppTest.from_file(str(ia_app_dir / "pages" / "1_Channel_Performance.py"), default_timeout=30)
     at.run()
     assert not at.exception, f"page raised: {at.exception}"
     warnings = [w.value for w in at.warning]
