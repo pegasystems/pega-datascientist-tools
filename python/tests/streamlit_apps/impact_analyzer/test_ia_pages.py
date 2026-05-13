@@ -164,7 +164,7 @@ def test_ia_subpage_warns_when_autoload_fails(ia_app_dir: Path, monkeypatch: pyt
         raise RuntimeError("sample bundle unavailable")
 
     monkeypatch.setattr(
-        "pdstools.app.impact_analyzer.ia_streamlit_utils.load_sample_pdc",
+        "pdstools.app.impact_analyzer.ia_streamlit_utils.load_sample",
         _broken_sample,
     )
 

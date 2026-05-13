@@ -7,18 +7,17 @@ import pytest
 from pdstools import ImpactAnalyzer
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+PDC_FIXTURE = basePath / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
 
 
 @pytest.fixture
 def simple_ia():
-    # using the same PDC data for now, consider to change to something better: artificial data or curated manual data
-    sample_path = f"{basePath}/data/ia/CDH_Metrics_ImpactAnalyzer.json"
-    return ImpactAnalyzer.from_pdc(sample_path)
+    return ImpactAnalyzer.from_pdc(str(PDC_FIXTURE))
 
 
 def test_from_pdc():
     """Test creating an ImpactAnalyzer instance from JSON data"""
-    sample_path = f"{basePath}/data/ia/CDH_Metrics_ImpactAnalyzer.json"
+    sample_path = str(PDC_FIXTURE)
     analyzer = ImpactAnalyzer.from_pdc(sample_path)
 
     # Verify the instance was created correctly
@@ -115,7 +114,7 @@ def test_from_pdc_with_custom_reader():
     """Test creating an ImpactAnalyzer instance from JSON data with explicit reader function"""
     import json
 
-    sample_path = f"{basePath}/data/ia/CDH_Metrics_ImpactAnalyzer.json"
+    sample_path = str(PDC_FIXTURE)
 
     def custom_reader(file_path):
         """Custom reader function for testing"""

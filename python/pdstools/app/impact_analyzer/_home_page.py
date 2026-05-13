@@ -83,7 +83,7 @@ def _banner_prefix(source_kind: str, source_label: str | None) -> str:
     Parameters
     ----------
     source_kind : str
-        One of ``"sample"``, ``"upload"``, ``"live"``, ``"cli"``.
+        One of ``"sample"``, ``"upload"``, ``"cli"``.
     source_label : str or None
         Friendly source identifier — filename, path, or descriptor.
 
@@ -94,8 +94,6 @@ def _banner_prefix(source_kind: str, source_label: str | None) -> str:
     """
     if source_kind == "sample":
         return "Sample data loaded"
-    if source_kind == "live":
-        return f"Live data generated ({source_label})" if source_label else "Live data generated"
     if source_kind in ("upload", "cli"):
         return f"Data loaded from `{source_label}`" if source_label else "Data loaded successfully"
     return "Data loaded successfully"
@@ -117,11 +115,11 @@ def _show_data_summary(
     ia : ImpactAnalyzer
         The loaded analyzer.
     source_kind : str or None
-        Tri-state source identifier (``"sample"``, ``"upload"``, ``"live"``,
+        Tri-state source identifier (``"sample"``, ``"upload"``,
         ``"cli"``). Falls back to session state ``ia_data_source_kind``.
     source_label : str or None
-        Friendly label (filename, path, or live-generator descriptor). Falls
-        back to session state ``ia_data_source_label``.
+        Friendly label (filename or path). Falls back to session state
+        ``ia_data_source_label``.
     """
     import polars as pl
 
@@ -176,7 +174,7 @@ def home_page() -> None:
         handle_data_path_ia,
         load_from_upload_auto,
         load_pdc_from_uploads,
-        load_sample_pdc,
+        load_sample,
         prepare_and_save_random,
         show_outcome_labels_section,
     )
@@ -219,9 +217,9 @@ zoom, and hover for details.
     # --- Data source selection ---
     data_source = st.radio(
         "Choose data source",
-        ["File upload", "Live generator", "Sample data"],
+        ["File upload", "Sample data"],
         horizontal=True,
-        help="Upload your own data, generate synthetic data, or use built-in sample data.",
+        help="Upload your own data or use built-in sample data.",
     )
 
     impact_analyzer = None
@@ -230,105 +228,8 @@ zoom, and hover for details.
     data_source_label: str | None = None
     is_sample_data = False
 
-    # ── Live generator (streaming) ───────────────────────────────────
-    if data_source == "Live generator":
-        import time
-
-        from pdstools.app.impact_analyzer.sample_data import (
-            DEFAULT_PROFILE,
-            GENERATOR_PROFILES,
-            generate_snapshot,
-        )
-        from pdstools.impactanalyzer import ImpactAnalyzer
-
-        # Initialise session state for the generator
-        if "gen_running" not in st.session_state:
-            st.session_state.gen_running = False
-        if "gen_snapshots" not in st.session_state:
-            st.session_state.gen_snapshots = []  # list[pl.DataFrame]
-        if "gen_batches_sent" not in st.session_state:
-            st.session_state.gen_batches_sent = 0
-
-        profile_name = st.selectbox(
-            "Generator profile",
-            list(GENERATOR_PROFILES.keys()),
-            index=list(GENERATOR_PROFILES.keys()).index(DEFAULT_PROFILE),
-            help=GENERATOR_PROFILES[DEFAULT_PROFILE]["description"],
-        )
-        st.caption(GENERATOR_PROFILES[profile_name]["description"])
-
-        col1, col2 = st.columns(2)
-        with col1:
-            noise_pct = st.slider("Noise %", 0, 30, 10)
-        with col2:
-            tick_interval = st.slider("Tick interval (seconds)", 1, 10, 2)
-
-        g1, g2, g3 = st.columns(3)
-        if g1.button("▶ Start", width="stretch", type="primary"):
-            st.session_state.gen_running = True
-            st.session_state._gen_profile = profile_name
-            st.session_state._gen_noise = noise_pct / 100.0
-            st.session_state._gen_interval = tick_interval
-            st.toast("Generator started — watch the snapshots accumulate!")
-        if g2.button("⏸ Pause", width="stretch"):
-            st.session_state.gen_running = False
-            st.toast("Generator paused")
-        if g3.button("🔄 Reset", width="stretch"):
-            st.session_state.gen_running = False
-            st.session_state.gen_snapshots = []
-            st.session_state.gen_batches_sent = 0
-            for key in (
-                "impact_analyzer",
-                "ia_is_sample_data",
-                "ia_data_source_kind",
-                "ia_data_source_label",
-                "_ia_banner_shown_for",
-            ):
-                st.session_state.pop(key, None)
-            st.toast("Generator reset")
-
-        st.markdown("---")
-        status = "🟢 Running" if st.session_state.gen_running else "⏹ Stopped"
-        st.caption(
-            f"Status: **{status}** · "
-            f"Snapshots: **{st.session_state.gen_batches_sent}** · "
-            f"Rows: **{sum(len(s) for s in st.session_state.gen_snapshots):,}**"
-        )
-
-        # Generate one snapshot per tick while running
-        if st.session_state.gen_running:
-            from datetime import datetime, timedelta
-
-            base = datetime.now() - timedelta(days=max(0, st.session_state.gen_batches_sent))
-            snap_time = base + timedelta(days=st.session_state.gen_batches_sent)
-            new_snap = generate_snapshot(
-                snapshot_time=snap_time,
-                profile_name=st.session_state.get("_gen_profile", profile_name),
-                noise=st.session_state.get("_gen_noise", noise_pct / 100.0),
-            )
-            st.session_state.gen_snapshots.append(new_snap)
-            st.session_state.gen_batches_sent += 1
-
-        # Build ImpactAnalyzer from accumulated snapshots
-        if st.session_state.gen_snapshots:
-            import polars as pl
-
-            combined = pl.concat(st.session_state.gen_snapshots)
-            impact_analyzer = ImpactAnalyzer(combined.lazy())
-            data_source_kind = "live"
-            data_source_label = f"Live generator — {st.session_state.gen_batches_sent} snapshots"
-            # Clear stale cached IA so pages pick up the new one
-            st.session_state.pop("impact_analyzer", None)
-            st.session_state.pop("ia_is_sample_data", None)
-
-        # Auto-rerun after tick interval to stream next snapshot
-        if st.session_state.gen_running:
-            interval = st.session_state.get("_gen_interval", tick_interval)
-            time.sleep(interval)
-            st.rerun()
-
     # ── File upload ───────────────────────────────────────────────────
-    elif data_source == "File upload":
+    if data_source == "File upload":
         uploaded_files = st.file_uploader(
             "Upload Impact Analyzer data",
             accept_multiple_files=True,
@@ -388,18 +289,18 @@ zoom, and hover for details.
     # ── Sample data ───────────────────────────────────────────────────
     elif data_source == "Sample data":
         if "impact_analyzer" not in st.session_state:
-            with st.spinner("Loading sample PDC data"):
-                impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
+            with st.spinner("Loading sample data"):
+                impact_analyzer = _load_with_warning(load_sample, "Sample")
             if impact_analyzer is not None:
                 is_sample_data = True
                 st.info(
-                    "Using built-in sample data. Switch to **File upload** or **Live generator** for your own data.",
+                    "Using built-in sample data. Switch to **File upload** for your own data.",
                 )
 
     # --- Autoload sample on first visit (no data yet, no upload) ---
     if impact_analyzer is None and "impact_analyzer" not in st.session_state:
-        with st.spinner("Loading sample PDC data"):
-            impact_analyzer = _load_with_warning(load_sample_pdc, "Sample")
+        with st.spinner("Loading sample data"):
+            impact_analyzer = _load_with_warning(load_sample, "Sample")
         if impact_analyzer is not None:
             is_sample_data = True
             st.toast("Loaded sample data — upload your own to replace it.", icon="📊")

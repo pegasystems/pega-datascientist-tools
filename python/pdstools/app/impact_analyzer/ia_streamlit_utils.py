@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
+SAMPLE_VBD_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/ImpactAnalyzer_InfinityDemo.zip"
 
 
 def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
@@ -36,7 +36,7 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
 
     1. If ``impact_analyzer`` is already in session_state, return ``True``.
     2. Try the ``--data-path`` CLI flag via :func:`handle_data_path_ia`.
-    3. Fall back to :func:`load_sample_pdc`.
+    3. Fall back to :func:`load_sample`.
 
     Parameters
     ----------
@@ -75,7 +75,7 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
 
     try:
         with st.spinner("Loading sample data…"):
-            ia = load_sample_pdc()
+            ia = load_sample()
     except Exception:
         logger.exception("Failed to auto-load Impact Analyzer sample")
         return False
@@ -119,20 +119,20 @@ def _write_uploaded_files(uploaded_files: Iterable) -> list[str]:
     return [_write_uploaded_file(uploaded_file) for uploaded_file in uploaded_files]
 
 
-def _resolve_sample_pdc_path() -> Path:
-    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
+def _resolve_sample_path() -> Path:
+    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "ImpactAnalyzer_InfinityDemo.zip"
     if local_path.exists():
         return local_path
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp:
-        with urllib.request.urlopen(SAMPLE_PDC_URL) as response:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+        with urllib.request.urlopen(SAMPLE_VBD_URL) as response:
             tmp.write(response.read())
         return Path(tmp.name)
 
 
 @st.cache_resource
-def load_sample_pdc() -> ImpactAnalyzer:
-    sample_path = _resolve_sample_pdc_path()
-    return ImpactAnalyzer.from_pdc(str(sample_path))
+def load_sample() -> ImpactAnalyzer:
+    sample_path = _resolve_sample_path()
+    return ImpactAnalyzer.from_vbd(str(sample_path))
 
 
 @st.cache_resource
