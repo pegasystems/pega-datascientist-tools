@@ -107,8 +107,8 @@ def _show_data_summary(
 ):
     """Display a summary banner for the loaded ImpactAnalyzer.
 
-    Renders at most once per (source_kind, source_label, row count) combination
-    so that navigation reruns do not re-emit the banner.
+    Renders every time the home page runs so that the banner stays
+    visible whenever the user navigates back.
 
     Parameters
     ----------
@@ -135,7 +135,12 @@ def _show_data_summary(
         # and VBD data has Application, Value, Outcome columns)
         has_vbd_markers = {"Application", "Value", "Outcome"}.issubset(schema_names)
 
-        format_label = "**VBD Scenario Planner**" if has_vbd_markers else "**PDC Export**"
+        if has_vbd_markers:
+            format_label = "**VBD Scenario Planner**"
+        elif source_label and source_label.lower().endswith(".xlsx"):
+            format_label = "**Pega Infinity IA Excel export**"
+        else:
+            format_label = "**PDC Export**"
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
         schema_names = set()
@@ -144,13 +149,6 @@ def _show_data_summary(
         rows = ia.ia_data.select(pl.len()).collect().item()
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         rows = None
-
-    # Render-once guard: skip if we've already shown the banner for this exact
-    # data fingerprint on this rerun cycle.
-    fingerprint = (source_kind, source_label, rows)
-    if st.session_state.get("_ia_banner_shown_for") == fingerprint:
-        return
-    st.session_state["_ia_banner_shown_for"] = fingerprint
 
     prefix = _banner_prefix(source_kind, source_label)
 
@@ -207,9 +205,9 @@ control-group breakdown that Impact Analyzer needs.
 Other formats are supported as a fallback when a Scenario Planner Export
 isn't available. The format is auto-detected on upload.
 
-| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Monitoring Export (Excel) | Interaction History |
-|---|---|---|---|---|
-| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX | TBD — future |
+| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Export from Impact Analyzer in Pega |
+|---|---|---|---|
+| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
@@ -241,7 +239,6 @@ by default — upload your own file below to replace it.
             "ia_is_sample_data",
             "ia_data_source_kind",
             "ia_data_source_label",
-            "_ia_banner_shown_for",
         ):
             st.session_state.pop(key, None)
 
@@ -253,7 +250,7 @@ by default — upload your own file below to replace it.
 
         if not filtered_files:
             st.error(
-                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (PDC Excel), or ZIP (VBD) files. "
+                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (Pega Infinity IA Excel export), or ZIP (VBD) files. "
                 "If you dragged a folder, try uploading just the `data.json` file instead."
             )
         else:
@@ -353,8 +350,6 @@ by default — upload your own file below to replace it.
             st.session_state["ia_data_source_label"] = data_source_label
         if data_source_path:
             st.session_state["ia_data_source_path"] = data_source_path
-        # Force banner to render once for this newly loaded data.
-        st.session_state.pop("_ia_banner_shown_for", None)
         _show_data_summary(
             impact_analyzer,
             source_kind=data_source_kind,

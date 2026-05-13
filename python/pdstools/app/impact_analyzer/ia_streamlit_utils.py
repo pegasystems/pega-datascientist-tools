@@ -68,7 +68,6 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
             st.session_state["ia_data_source_path"] = configured_path
             st.session_state["ia_data_source_kind"] = "cli"
             st.session_state["ia_data_source_label"] = configured_path
-            st.session_state.pop("_ia_banner_shown_for", None)
             if show_toast:
                 st.toast(f"Loaded data from `{configured_path}`.", icon="📂")
             return True
@@ -87,7 +86,6 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
     st.session_state["ia_is_sample_data"] = True
     st.session_state["ia_data_source_kind"] = "sample"
     st.session_state["ia_data_source_label"] = "Built-in sample"
-    st.session_state.pop("_ia_banner_shown_for", None)
     if show_toast:
         st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
     return True
@@ -607,7 +605,7 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     st.error(
         f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
-        "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
+        "XLSX (Pega Infinity IA Excel export), or ZIP (scenario-planner export)."
     )
     return None
 

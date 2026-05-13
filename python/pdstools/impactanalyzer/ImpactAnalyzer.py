@@ -44,9 +44,11 @@ class ImpactAnalyzer:
     - **PDC exports** via :meth:`from_pdc`: Uses pre-aggregated experiment data from
       PDC JSON exports. Value Lift is copied from PDC data as it cannot be
       re-calculated from the available numbers.
-    - **PDC Excel exports** via :meth:`from_excel`: Same data as :meth:`from_pdc`
-      but read from an ``.xlsx`` file. Uses polars' built-in ``calamine`` engine;
-      no extra dependencies required.
+    - **Pega Infinity Impact Analyzer Excel export** via :meth:`from_excel`:
+      Reads the ``Data`` sheet of the ``.xlsx`` file produced by the Impact
+      Analyzer landing page in Pega Infinity. Pre-paired Test vs Control
+      counts are exploded to long form and NBA traffic is deduplicated
+      across experiments.
     - **VBD exports** via :meth:`from_vbd`: Reconstructs experiment metrics from raw
       VBD Actuals or Scenario Planner Actuals data. Allows flexible time ranges and
       data selection. Value Lift is calculated from ValuePerImpression.
@@ -798,45 +800,55 @@ class ImpactAnalyzer:
             .sort("SnapshotTime", "Channel", "ControlGroup")
         )
 
+    # Mapping from Pega Infinity IA UI experiment names → (test_arm, control_arm).
+    # The keys must match the strings in the "Experiment Name" column of the
+    # Data sheet exactly. Unknown experiment names trigger a warning and the
+    # rows are dropped.
+    _excel_experiment_to_arms: ClassVar[dict[str, tuple[str, str]]] = {
+        "NBA vs Random relevant action": ("NBA", "NBAPrioritization"),
+        "NBA vs Arbitrating with propensity only": ("NBA", "PropensityPriority"),
+        "NBA vs NBA without levers": ("NBA", "LeverPriority"),
+        "NBA vs NBA with eligibility polices only": ("NBA", "EngagementPolicy"),
+        "AdaptiveModel (p) vs Random (p)": ("ModelControl_2", "ModelControl_1"),
+    }
+
     @classmethod
     def from_excel(
         cls,
         excel_source: str | Path | os.PathLike,
         *,
-        snapshot_time: datetime | str | None = None,
-        sheet_name: str | int | None = None,
+        sheet_name: str = "Data",
         query: QUERY | None = None,
         return_df: bool = False,
     ) -> "ImpactAnalyzer | pl.LazyFrame":
-        """Create an ImpactAnalyzer instance from a PDC Excel export.
+        """Create an ImpactAnalyzer instance from a Pega Infinity IA Excel export.
 
-        Reads a wide-format Excel file produced by Pega Decision Central and
-        normalises it into the same internal format as :meth:`from_pdc`.
-        The expected sheet layout mirrors the flat records in the PDC JSON
-        export: one row per experiment / channel combination with columns
-        such as ``ExperimentName``, ``ChannelName``, ``Impressions_NBA``,
-        ``Impressions_Control``, ``ValueLift``, etc.
+        Reads the ``Data`` sheet of the Impact Analyzer Excel export produced
+        by the Impact Analyzer landing page in Pega Infinity. Each row of the
+        Data sheet describes one (Date, Channel, Direction, Issue, Group,
+        Action, Treatment, Experiment) bucket with pre-paired Test and Control
+        impression / accept / value counts.  This method explodes those rows
+        to the long format used by :class:`ImpactAnalyzer` and deduplicates
+        the NBA test arm across experiments (the same NBA traffic is reported
+        against multiple control experiments and would otherwise be double
+        counted).
 
-        Excel reading is handled by polars' built-in ``calamine`` engine,
-        which ships with polars and requires no extra dependencies.
+        The Channel field is built as ``"<Channel>/<Direction>"`` to match the
+        convention used by :meth:`from_vbd`.
+
+        Excel reading is handled by polars' built-in ``calamine`` engine
+        through :func:`pdstools.pega_io.File._read_excel`.
 
         Parameters
         ----------
         excel_source : Union[str, Path, os.PathLike]
             Path to the ``.xlsx`` file.
-        snapshot_time : Union[datetime, str, None], optional
-            Snapshot date for the experiment data.  Pass a :class:`datetime`
-            object or an ISO-8601 string (``"2025-03-02T18:28:00.257Z"``).
-            If ``None`` (default) the method tries to read a ``SnapshotTime``
-            column from the sheet; if that column is also absent a
-            ``ValueError`` is raised.
-        sheet_name : Union[str, int, None], optional
-            Sheet to read.  Pass a sheet name string to select by name, or an
-            integer (1-based) to select by position.  ``None`` (default) reads
-            the first sheet.
+        sheet_name : str, default "Data"
+            Sheet to read.  The exporter ships several sheets; only ``Data``
+            carries the row-level counts needed for analysis.
         query : Optional[QUERY], optional
-            Polars expression to filter the raw wide-format data before
-            processing.  Default is ``None``.
+            Polars expression to filter the long-form data before
+            aggregation.  Default is ``None``.
         return_df : bool, optional
             If ``True``, return the normalised data as a :class:`~polars.LazyFrame`
             instead of an :class:`ImpactAnalyzer` instance.  Default is ``False``.
@@ -850,73 +862,222 @@ class ImpactAnalyzer:
         Raises
         ------
         ValueError
-            If *snapshot_time* is ``None`` and no ``SnapshotTime`` column is
-            present in the sheet.
+            If the requested sheet is missing required columns.
 
         Examples
         --------
-        >>> ia = ImpactAnalyzer.from_excel(
-        ...     "ImpactAnalyzerExport.xlsx",
-        ...     snapshot_time="2025-03-02T18:28:00.257Z",
-        ... )
+        >>> ia = ImpactAnalyzer.from_excel("ImpactAnalyzerExport.xlsx")
         >>> ia.overall_summary().collect()
 
         """
-        read_kwargs: dict = {}
-        if isinstance(sheet_name, str):
-            read_kwargs["sheet_name"] = sheet_name
-        elif isinstance(sheet_name, int):
-            read_kwargs["sheet_id"] = sheet_name
-        # None → polars default (first sheet)
+        from ..pega_io.File import _read_excel
 
-        from ..pega_io.File import _read_excel, read_data
-
-        if read_kwargs:  # noqa: SIM108 — comment clarifies why we branch
-            # Sheet selection isn't part of read_data's contract — call the
-            # shared Excel helper so we still get the fastexcel shim.
-            df = _read_excel(excel_source, **read_kwargs)
-        else:
-            df = read_data(excel_source).collect()
-
-        if snapshot_time is None:
-            if "SnapshotTime" not in df.columns:
-                raise ValueError("snapshot_time must be provided when the Excel sheet has no SnapshotTime column.")
-            raw_ts = df["SnapshotTime"][0]
-            if isinstance(raw_ts, str):
-                date = datetime.strptime(raw_ts, "%Y-%m-%dT%H:%M:%S.%fZ")
-            else:
-                date = datetime(raw_ts.year, raw_ts.month, raw_ts.day)
-        elif isinstance(snapshot_time, str):
-            date = datetime.strptime(snapshot_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-        else:
-            date = snapshot_time
-
-        _json_only_cols = {
-            "Heading",
-            "RunType",
-            "ApplicationStack",
-            "KeyIdentifier",
-            "pzInsKey",
-            "Guidance",
-            "pxObjClass",
-            "Type",
-            "ExperimentColor",
-            "SnapshotTime",
-        }
-        cols_to_drop = [c for c in df.columns if c in _json_only_cols]
-        wide_data = df.lazy()
-        if cols_to_drop:
-            wide_data = wide_data.drop(cols_to_drop)
-
-        if query is not None:
-            wide_data = _apply_query(wide_data, query=query)
-
-        normalized = cls._process_wide_df(wide_data, date=date)
+        df = _read_excel(excel_source, sheet_name=sheet_name)
+        normalized = cls._normalize_excel_data_sheet(df.lazy(), query=query)
 
         if return_df:
             return normalized
 
         return ImpactAnalyzer(normalized)
+
+    # ------------------------------------------------------------------
+    # Excel Data-sheet normalisation helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _excel_to_datetime(col: str) -> pl.Expr:
+        """Coerce a column to Datetime, tolerating locale-dependent formats.
+
+        Excel exports may surface dates as native datetimes, ISO strings, or
+        locale-specific strings (``31/03/2026`` vs ``03/31/2026`` vs
+        ``31-Mar-2026``).  We try the most common shapes and coalesce the
+        first non-null result per row.
+        """
+        c = pl.col(col)
+        # First attempt: trust the dtype as polars/calamine read it.
+        # cast(strict=False) yields null for incompatible source dtypes
+        # (e.g. String → Datetime), letting subsequent attempts take over.
+        attempts: list[pl.Expr] = [c.cast(pl.Datetime, strict=False)]
+        # String-based fallbacks. Cast everything to String first so an
+        # already-numeric column (Excel serial) still gets tried below.
+        s = c.cast(pl.String, strict=False).str.strip_chars()
+        for fmt in (
+            "%Y-%m-%dT%H:%M:%S%.fZ",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%d/%m/%Y",
+            "%m/%d/%Y",
+            "%d-%m-%Y",
+            "%d-%b-%Y",
+            "%d %b %Y",
+            "%b %d, %Y",
+        ):
+            attempts.append(s.str.strptime(pl.Datetime, fmt, strict=False))
+        # Excel serial date fallback: number of days since 1899-12-30.
+        serial = c.cast(pl.Float64, strict=False)
+        attempts.append(
+            (
+                pl.lit(datetime(1899, 12, 30)).cast(pl.Datetime)
+                + pl.duration(seconds=(serial * 86400).cast(pl.Int64, strict=False))
+            )
+        )
+        return pl.coalesce(attempts).alias(col)
+
+    @staticmethod
+    def _excel_to_numeric(col: str) -> pl.Expr:
+        """Coerce a column to Float64, tolerating locale-formatted numbers.
+
+        Handles strings with thousands separators (``"1,234"``,
+        ``"1 234"``) and European decimal commas (``"1.234,56"``) by trying
+        several normalisation strategies in order.
+        """
+        c = pl.col(col)
+        s = c.cast(pl.String, strict=False).str.strip_chars()
+        return pl.coalesce(
+            # Already numeric
+            c.cast(pl.Float64, strict=False),
+            # US/UK style: "1,234.56" → strip commas + spaces
+            s.str.replace_all(r"[,\s]", "").cast(pl.Float64, strict=False),
+            # European style: "1.234,56" → strip dots and spaces, swap comma → dot
+            s.str.replace_all(r"[.\s]", "").str.replace(",", ".").cast(pl.Float64, strict=False),
+        ).alias(col)
+
+    @classmethod
+    def _normalize_excel_data_sheet(
+        cls,
+        wide: pl.LazyFrame,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Normalise the wide Data-sheet rows into the long IA format.
+
+        Each input row carries Test and Control counts for one experiment.
+        We split it into one row per arm, then aggregate (max) across
+        experiments so the shared NBA test traffic is counted once.
+        """
+        required = {
+            "Date",
+            "Experiment Name",
+            "Issue",
+            "Group",
+            "Action",
+            "Treatment",
+            "Direction",
+            "Channel",
+            "Impressions_Test",
+            "Accepts_Test",
+            "Impressions_Control",
+            "Accepts_Control",
+        }
+        present = set(wide.collect_schema().names())
+        missing = required - present
+        if missing:
+            raise ValueError(f"Excel Data sheet is missing required columns: {sorted(missing)}")
+
+        # Optional value columns — tolerate their absence in older exports.
+        has_value_test = "ActionValueImpression_Test" in present
+        has_value_control = "ActionValueImpression_Control" in present
+
+        numeric_cols = [
+            "Impressions_Test",
+            "Accepts_Test",
+            "Impressions_Control",
+            "Accepts_Control",
+        ]
+        if has_value_test:
+            numeric_cols.append("ActionValueImpression_Test")
+        if has_value_control:
+            numeric_cols.append("ActionValueImpression_Control")
+
+        # Coerce dtypes defensively (locale-tolerant).
+        coerced = wide.with_columns(
+            cls._excel_to_datetime("Date"),
+            *[cls._excel_to_numeric(c) for c in numeric_cols],
+        )
+
+        # Validate experiment names; warn on unknowns and drop them.
+        known_experiments = list(cls._excel_experiment_to_arms.keys())
+        observed = coerced.select(pl.col("Experiment Name").unique()).collect()["Experiment Name"].to_list()
+        unknown = sorted(set(observed) - set(known_experiments))
+        if unknown:
+            logger.warning(
+                "Dropping rows for unknown Impact Analyzer experiments: %s. Known experiments: %s.",
+                unknown,
+                known_experiments,
+            )
+            coerced = coerced.filter(pl.col("Experiment Name").is_in(known_experiments))
+
+        # Map experiment → (test_arm, control_arm) via two parallel literal expressions.
+        test_arm_expr = pl.col("Experiment Name")
+        control_arm_expr = pl.col("Experiment Name")
+        for name, (test_arm, control_arm) in cls._excel_experiment_to_arms.items():
+            test_arm_expr = test_arm_expr.replace(name, test_arm)
+            control_arm_expr = control_arm_expr.replace(name, control_arm)
+
+        common_cols = [
+            pl.col("Date").alias("SnapshotTime"),
+            (pl.col("Channel").cast(pl.String) + "/" + pl.col("Direction").cast(pl.String)).alias("Channel"),
+            pl.col("Issue"),
+            pl.col("Group"),
+            pl.col("Action").alias("Name"),
+            pl.col("Treatment"),
+        ]
+
+        test_long = coerced.select(
+            *common_cols,
+            test_arm_expr.alias("ControlGroup"),
+            pl.col("Impressions_Test").alias("Impressions"),
+            pl.col("Accepts_Test").alias("Accepts"),
+            (pl.col("ActionValueImpression_Test") if has_value_test else pl.lit(None, dtype=pl.Float64)).alias(
+                "_ValueImpression"
+            ),
+        )
+
+        control_long = coerced.select(
+            *common_cols,
+            control_arm_expr.alias("ControlGroup"),
+            pl.col("Impressions_Control").alias("Impressions"),
+            pl.col("Accepts_Control").alias("Accepts"),
+            (pl.col("ActionValueImpression_Control") if has_value_control else pl.lit(None, dtype=pl.Float64)).alias(
+                "_ValueImpression"
+            ),
+        )
+
+        long = pl.concat([test_long, control_long], how="vertical_relaxed")
+
+        if query is not None:
+            long = _apply_query(long, query=query)
+
+        # Aggregate: for non-NBA arms there is one row per (date, channel,
+        # action, treatment, ControlGroup); for the NBA arm there are up to
+        # 4 identical rows (one per NBA-vs-X experiment). max() collapses
+        # them to a single canonical value without double counting.
+        group_cols = [
+            "SnapshotTime",
+            "Channel",
+            "Issue",
+            "Group",
+            "Name",
+            "Treatment",
+            "ControlGroup",
+        ]
+        return (
+            long.group_by(group_cols)
+            .agg(
+                pl.col("Impressions").max(),
+                pl.col("Accepts").max(),
+                pl.col("_ValueImpression").max(),
+            )
+            .filter(pl.col("Accepts") <= pl.col("Impressions"))
+            .with_columns(
+                ValuePerImpression=pl.when(pl.col("Impressions") > 0)
+                .then(pl.col("_ValueImpression") / pl.col("Impressions"))
+                .otherwise(None),
+            )
+            .drop("_ValueImpression")
+            .sort("SnapshotTime", "Channel", "Issue", "Group", "Name", "Treatment", "ControlGroup")
+        )
 
     def summary_by_channel(self) -> pl.LazyFrame:
         """Get experiment summary pivoted by channel.
