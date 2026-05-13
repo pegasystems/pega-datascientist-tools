@@ -788,7 +788,16 @@ if _lift_chart_data:
             plot_bgcolor="#FAFBFD",
             font=dict(color=_TEXT, size=12),
             margin=dict(l=220, r=30, t=10, b=40),
-            yaxis=dict(tickvals=list(range(len(names))), ticktext=names, showgrid=False, zeroline=False),
+            # autorange='reversed' puts y_pos=0 at the TOP, so the chart's
+            # row order matches the experiment-card grid below (which
+            # renders cards top-to-bottom in the same iteration order).
+            yaxis=dict(
+                tickvals=list(range(len(names))),
+                ticktext=names,
+                showgrid=False,
+                zeroline=False,
+                autorange="reversed",
+            ),
             xaxis=dict(title=f"{kpi_metric} %", gridcolor="#EEF0F4", zeroline=False, ticksuffix="%"),
         )
         st.plotly_chart(fig, key="lift_chart")
