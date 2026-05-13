@@ -108,6 +108,47 @@ def ensure_impact_analyzer() -> ImpactAnalyzer:
     return st.session_state["impact_analyzer"]
 
 
+def render_channel_filter(ia: ImpactAnalyzer) -> str:
+    """Render the shared sidebar Channel/Direction selectbox.
+
+    Both the Channel Performance and Details pages call this so the
+    user's channel selection is a single source of truth that persists
+    across page navigation (via the shared ``lift_chart_channel_filter``
+    session-state key). Returns the selected value: ``"Any"`` for the
+    aggregate across all channels, or a specific channel name.
+
+    Channels with no rows in :meth:`ImpactAnalyzer.summarize_experiments`
+    by-channel output are hidden from the dropdown so users don't pick
+    an empty slice. If the dataset has no ``Channel`` column at all, no
+    widget is rendered and ``"Any"`` is returned.
+    """
+    if "Channel" not in ia.ia_data.collect_schema().names():
+        return "Any"
+
+    try:
+        per_channel = ia.summarize_experiments(by="Channel").collect()
+        channels = sorted(per_channel["Channel"].drop_nulls().unique().to_list())
+    except Exception:
+        channels = []
+
+    if not channels:
+        return "Any"
+
+    with st.sidebar:
+        st.divider()
+        st.caption("**Filters**")
+        return st.selectbox(
+            "Channel / Direction",
+            ["Any", *channels],
+            help=(
+                "Filter the page to a specific channel. 'Any' shows the "
+                "aggregate across all channels. Selection is shared "
+                "between the Channel Performance and Details pages."
+            ),
+            key="lift_chart_channel_filter",
+        )
+
+
 def _write_uploaded_file(uploaded_file) -> str:
     suffix = Path(uploaded_file.name).suffix or ".json"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:

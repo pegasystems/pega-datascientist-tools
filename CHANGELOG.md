@@ -6,7 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(Pre-release notes accumulate here until the next tag.)
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 
 ## [5.0.0] — TBD
 

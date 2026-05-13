@@ -1,8 +1,9 @@
-# python/pdstools/app/impact_analyzer/pages/1_Overall_Summary.py
-"""Overall Summary page — experiment cards with transparency + overview table.
+# python/pdstools/app/impact_analyzer/pages/1_Channel_Performance.py
+"""Channel Performance page — experiment cards with transparency + overview table.
 
 Combines the per-experiment transparency cards (trend charts, CI bars,
 formula walkthroughs) with the original tabular overview at the bottom.
+The sidebar Channel/Direction filter is shared with the Details page.
 """
 
 from __future__ import annotations
@@ -13,7 +14,10 @@ import plotly.graph_objects as go
 import polars as pl
 import streamlit as st
 
-from pdstools.app.impact_analyzer.ia_streamlit_utils import ensure_impact_analyzer
+from pdstools.app.impact_analyzer.ia_streamlit_utils import (
+    ensure_impact_analyzer,
+    render_channel_filter,
+)
 from pdstools.impactanalyzer.statistics import (
     FORMULAS,
     Z_95,
@@ -32,7 +36,7 @@ from pdstools.utils.streamlit_utils import standard_page_config
 # ---------------------------------------------------------------------------
 # Page setup
 # ---------------------------------------------------------------------------
-standard_page_config(page_title="Impact Analyzer · Overall Summary")
+standard_page_config(page_title="Impact Analyzer · Channel Performance")
 
 ia = ensure_impact_analyzer()
 
@@ -571,14 +575,14 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
 # ===========================================================================
 # MAIN PAGE
 # ===========================================================================
-"# Overall Summary"
+"# Channel Performance"
 
 """
 View lift metrics aggregated across all channels by default. Each experiment
 card shows trend charts, confidence intervals, and the exact formulas behind
 every number. Use the **Channel / Direction** filter in the sidebar to narrow
-the lift chart and cards to a single channel; the **Channels** page pivots
-the same data by channel and includes a flat per-channel metrics table.
+the lift chart and cards to a single channel; the same filter scopes the
+**Details** page.
 """
 
 # --- Gather data -----------------------------------------------------------
@@ -683,22 +687,12 @@ if "Channel" in _schema_names:
     except Exception:
         _per_channel_chart_data = {}
         _per_channel_rows = {}
-_channel_options: list[str] = list(_per_channel_chart_data.keys())
-_channel_filter = "Any"
-
 # Page-wide channel filter lives in the sidebar (DA convention) so it
 # governs the chart, the experiment cards, and the summary table from one
 # place. "Any" is the aggregate sentinel — matches DA's terminology.
-if _channel_options:
-    with st.sidebar:
-        st.divider()
-        st.caption("**Filters**")
-        _channel_filter = st.selectbox(
-            "Channel / Direction",
-            ["Any", *_channel_options],
-            help="Filter the lift chart, experiment cards, and summary table to a specific channel. 'Any' shows the aggregate across all channels.",
-            key="lift_chart_channel_filter",
-        )
+# The same widget is rendered on the Details page via the shared helper
+# (same session-state key) so the selection persists across navigation.
+_channel_filter = render_channel_filter(ia)
 
 if _lift_chart_data:
     with st.container(border=True):
