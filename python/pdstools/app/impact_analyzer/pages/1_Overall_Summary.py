@@ -719,13 +719,13 @@ if _lift_chart_data:
                         mode="markers",
                         marker=dict(symbol="x-thin", size=10, color=_GREY, line=dict(color=_GREY, width=1.5)),
                         showlegend=False,
-                        hovertemplate=(f"<b>{d['name']}</b><br>No data for this metric<extra></extra>"),
+                        hovertemplate=(f"<b>{d['name']}</b><br>Insufficient data for this metric<extra></extra>"),
                     )
                 )
                 fig.add_annotation(
                     x=0,
                     y=y_pos,
-                    text="<i>no data</i>",
+                    text="<i>insufficient data</i>",
                     showarrow=False,
                     font=dict(color=_GREY, size=11),
                     xanchor="left",
