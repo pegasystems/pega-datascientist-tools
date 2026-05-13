@@ -406,9 +406,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 )
                 st.caption(
                     "The 95 % confidence interval uses the normal-approximation "
-                    "(Wald) formula: half-width = z · SE, where z = 1.96 is the "
-                    "97.5-percentile of the standard normal. It is *not* a "
-                    "multiplication by 0.95."
+                    "(Wald) formula: half-width = z · SE. For a two-sided 95 % CI, "
+                    "z = 1.96 — the 97.5-percentile of the standard normal "
+                    "(2.5 % is left in each tail, leaving 95 % in the middle)."
                 )
 
             if trend_df is not None:
@@ -495,8 +495,9 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     )
                     st.caption(
                         "The 95 % confidence interval uses the normal-approximation "
-                        "(Wald) formula: half-width = z · SE, where z = 1.96 is the "
-                        "97.5-percentile of the standard normal."
+                        "(Wald) formula: half-width = z · SE. For a two-sided 95 % CI, "
+                        "z = 1.96 — the 97.5-percentile of the standard normal "
+                        "(2.5 % is left in each tail)."
                     )
             elif val is not None:
                 _formula(
@@ -520,8 +521,8 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 st.caption(
                     "Per-group action values not available in this dataset. "
                     "Value lift is pre-computed; SE is approximated from engagement SEs. "
-                    "The 95 % CI uses the normal-approximation (Wald) formula "
-                    "with z = 1.96."
+                    "The 95 % CI uses the Wald formula with z = 1.96 (the "
+                    "97.5-percentile of the standard normal, leaving 2.5 % in each tail)."
                 )
             elif val_lift_pdc is not None:
                 st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
