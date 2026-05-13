@@ -361,13 +361,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
             if _fig_t is not None:
                 st.plotly_chart(_fig_t, key=f"os_trend_eng_{idx}")
 
-        ci_hw = eng.ci_95()
-        st.markdown(
-            f"Engagement Lift = **{_pct(eng.lift, 2)}** · "
-            f"SE = `{_num(eng.se)}` · "
-            f"95 % CI = [`{_num(eng.lift - ci_hw)}`, `{_num(eng.lift + ci_hw)}`]"
-        )
-
         with st.expander("**Formula details**"):
             st.markdown("##### Step 1 — Accept Rates")
             _formula(
@@ -405,9 +398,17 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 sig = "YES — CI does not contain 0" if eng.significant else "NO — CI contains 0"
                 _formula_box(
                     [
-                        f"= [{lo:.10f},  {hi:.10f}]",
+                        f"Lift  = {_pct(eng.lift, 2)}",
+                        f"SE    = {_num(eng.se, 4)}",
+                        f"95 % CI = Lift ± 1.96 · SE = [{_pct(lo, 2)}, {_pct(hi, 2)}]",
                         f"Statistically significant?  {sig}",
                     ]
+                )
+                st.caption(
+                    "The 95 % confidence interval uses the normal-approximation "
+                    "(Wald) formula: half-width = z · SE, where z = 1.96 is the "
+                    "97.5-percentile of the standard normal. It is *not* a "
+                    "multiplication by 0.95."
                 )
 
             if trend_df is not None:
@@ -429,12 +430,6 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                 if _fig_tv is not None:
                     st.plotly_chart(_fig_tv, key=f"os_trend_val_{idx}")
 
-            val_hw = val.ci_95()
-            st.markdown(
-                f"Value Lift = **{_pct(val.lift, 2)}** · "
-                f"SE = `{_num(val.se)}` · "
-                f"95 % CI = [`{_num(val.lift - val_hw)}`, `{_num(val.lift + val_hw)}`]"
-            )
             if av_t is None:
                 st.caption("Note: SE approximated from engagement SEs (per-group VPI not available in this dataset).")
         else:
@@ -492,10 +487,16 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"SE(ValueLift) = {_num(val.se)}",
-                            f"95% CI = [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Value Lift = {_pct(val.lift, 2)}",
+                            f"SE         = {_num(val.se, 4)}",
+                            f"95 % CI = Lift ± 1.96 · SE = [{_pct(vl_lo, 2)}, {_pct(vl_hi, 2)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
+                    )
+                    st.caption(
+                        "The 95 % confidence interval uses the normal-approximation "
+                        "(Wald) formula: half-width = z · SE, where z = 1.96 is the "
+                        "97.5-percentile of the standard normal."
                     )
             elif val is not None:
                 _formula(
@@ -510,14 +511,17 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
                     vl_sig = "YES" if val.significant else "NO"
                     _formula_box(
                         [
-                            f"SE(ValueLift) ≈ {_num(val.se)}  (approximated from engagement SEs)",
-                            f"95% CI ≈ [{vl_lo:.10f},  {vl_hi:.10f}]",
+                            f"Value Lift = {_pct(val.lift, 2)}",
+                            f"SE         ≈ {_num(val.se, 4)}  (approximated from engagement SEs)",
+                            f"95 % CI ≈ Lift ± 1.96 · SE = [{_pct(vl_lo, 2)}, {_pct(vl_hi, 2)}]",
                             f"Statistically significant?  {vl_sig}",
                         ]
                     )
                 st.caption(
                     "Per-group action values not available in this dataset. "
-                    "Value lift is pre-computed; SE is approximated from engagement SEs."
+                    "Value lift is pre-computed; SE is approximated from engagement SEs. "
+                    "The 95 % CI uses the normal-approximation (Wald) formula "
+                    "with z = 1.96."
                 )
             elif val_lift_pdc is not None:
                 st.markdown(f"Value Lift = **{_pct(val_lift_pdc)}** (pre-computed)")
