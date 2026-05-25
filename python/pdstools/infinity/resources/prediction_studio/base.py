@@ -93,10 +93,11 @@ class _PredictionMixin(ABC):
         *,
         predictionId: str,
         label: str,
-        status: str,
-        lastUpdateTime: str,
+        status: str | None = None,
+        lastUpdateTime: str | None = None,
         objective: str | None = None,
         subject: str | None = None,
+        **kwargs,
     ):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
         self.prediction_id = predictionId
@@ -104,7 +105,7 @@ class _PredictionMixin(ABC):
         self.objective = objective
         self.subject = subject
         self.status = status
-        self.last_update_time = datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z")
+        self.last_update_time = datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z") if lastUpdateTime else None
 
     @abstractmethod
     def get_metric(

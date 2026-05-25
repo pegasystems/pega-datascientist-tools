@@ -220,9 +220,32 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         )
         self.application_name = application_name
 
+    _MODEL_CATEGORIES_ENDPOINT = (
+        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+    )
+    _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
+
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
+        # Probe 25.1-specific endpoint first; it does not exist on older systems.
         try:
-            response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
+            probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
+            if probe.status_code == 200:
+                return "25.1"
+            # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
+        except Exception as e:
+            if on_error == "warn":
+                logger.warning(
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
+                )
+                return None
+            if on_error == "error":
+                raise e
+            return None
+
+        # Fall back to repository endpoint to distinguish 24.1 vs 24.2.
+        try:
+            response = self.get(self._REPOSITORY_ENDPOINT)
         except Exception as e:
             if on_error == "warn":
                 logger.warning(
@@ -259,7 +282,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except httpx.ConnectError as err:
             raise Exception(str(err)) from err
         except Exception as err:
-            raise APIConnectionError(request=str(request)) from err
+            raise APIConnectionError(request=f"{request} — caused by: {err}") from err
         return response
 
     def handle_pega_exception(self, endpoint, params, response):
@@ -461,12 +484,34 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         return awaited[0]
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
+        # Probe 25.1-specific endpoint first; it does not exist on older systems.
         try:
-            repo = self._collect_awaitable_blocking(
-                self.get("/prweb/api/PredictionStudio/v3/predictions/repository"),
+            probe = self._collect_awaitable_blocking(
+                self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT),
             )
             # _collect_awaitable_blocking stores exceptions as return values
             # rather than raising them, so we need to re-raise here.
+            if isinstance(probe, Exception):
+                raise probe
+            if probe.status_code == 200:
+                return "25.1"
+            # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
+        except Exception as e:
+            if on_error == "warn":
+                logger.warning(
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
+                )
+                return None
+            if on_error == "error":
+                raise e
+            return None
+
+        # Fall back to repository endpoint to distinguish 24.1 vs 24.2.
+        try:
+            repo = self._collect_awaitable_blocking(
+                self.get(self._REPOSITORY_ENDPOINT),
+            )
             if isinstance(repo, Exception):
                 raise repo
         except Exception as e:

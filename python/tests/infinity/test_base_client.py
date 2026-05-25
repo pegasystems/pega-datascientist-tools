@@ -86,6 +86,54 @@ class TestBaseClient:
             result = client._get_version(repo)
         assert result is None
 
+    def test_infer_version_returns_25_1_when_model_categories_200(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 200
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        assert client._infer_version() == "25.1"
+
+    def test_infer_version_falls_back_to_24_2_when_model_categories_404(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 404
+        repo_json = {
+            "repository_type": "S3",
+            "repository_name": "Repo",
+        }
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        mocker.patch.object(client, "get", return_value=repo_json)
+        assert client._infer_version() == "24.2"
+
+    def test_infer_version_falls_back_to_24_1_when_model_categories_404(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 404
+        repo_json = {"repository_name": "Repo"}
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        mocker.patch.object(client, "get", return_value=repo_json)
+        assert client._infer_version() == "24.1"
+
+    def test_infer_version_warns_on_connection_error(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        mocker.patch.object(
+            client, "_request", side_effect=Exception("connection refused")
+        )
+        result = client._infer_version(on_error="warn")
+        assert result is None
+
     def test_pega_version_stored(self):
         client = SyncAPIClient(
             base_url="https://example.com",

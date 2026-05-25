@@ -12,14 +12,14 @@ from ..datamart_export import DatamartExport
 from ..model import Model
 from ..prediction import Prediction
 from ..repository import Repository
-from ._mixin import _PredictionStudioV24_2Mixin
+from ._mixin import _PredictionStudiov26Mixin
 
 if TYPE_CHECKING:
     from ...types import NotificationCategory
 
 
-class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
-    version: str = "24.2"
+class PredictionStudio(_PredictionStudiov26Mixin, PredictionStudioPrevious):
+    version: str = "26"
 
     def repository(self) -> Repository:
         """Gets information about the repository from Prediction Studio.
@@ -67,8 +67,8 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             Returns a list of models or a DataFrame with model information.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/models"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
+        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
         if not return_df:
             return pages
 
@@ -100,13 +100,14 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             Returns a list of predictions or a DataFrame.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/V2/predictions"
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
         pages: PaginatedList[Prediction] = PaginatedList(
             Prediction,
             self._client,
             "get",
             endpoint,
             _root="predictions",
+            pageSize=100,
         )
 
         if not return_df:
@@ -127,8 +128,6 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             The unique ID of the prediction.
         label : str, optional
             The label of the prediction.
-        **kwargs : dict, optional
-            Other details to narrow down the search.
 
         Returns
         -------
@@ -165,8 +164,6 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             The unique ID of the model.
         label : str, optional
             The label of the model.
-        **kwargs : dict, optional
-            Other details to help find the model.
 
         Returns
         -------
@@ -253,6 +250,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             "get",
             endpoint,
             _root="notifications",
+            pageSize=100,
         )
         if return_df:
             return pl.DataFrame(

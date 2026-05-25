@@ -84,19 +84,26 @@ class Infinity(SyncAPIClient):
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
             version = self.version
-            if version:
-                from . import resources
+            from . import resources
 
-                resource_cls = resources.prediction_studio.get(version)
-                if resource_cls is not None:
-                    instance = resource_cls(client=self)
-                    object.__setattr__(self, name, instance)
-                    return instance
+            resource_cls = resources.prediction_studio.get(version)
+            if resource_cls is not None:
+                instance = resource_cls(client=self)
+                object.__setattr__(self, name, instance)
+                return instance
+            # Fallback to latest version if inference failed
+            resource_cls = resources.prediction_studio.get("25")
+            if resource_cls is not None:
+                instance = resource_cls(client=self)
+                object.__setattr__(self, name, instance)
+                import logging
+                logging.getLogger(__name__).info(
+                    "Pega version could not be determined; using latest API (25). "
+                    "For explicit version control, pass 'pega_version' to the constructor."
+                )
+                return instance
             raise AttributeError(
-                f"'{name}' is not available because the Pega version could "
-                "not be determined. Pass 'pega_version' explicitly when "
-                "constructing the client, e.g.:\n"
-                "  Infinity.from_client_id_and_secret(..., pega_version='25.1')",
+                f"'{name}' is not available; no compatible API version found.",
             )
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
@@ -176,19 +183,26 @@ class AsyncInfinity(AsyncAPIClient):
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
             version = self.version
-            if version:
-                from . import resources
+            from . import resources
 
-                resource_cls = resources.prediction_studio.get_async(version)
-                if resource_cls is not None:
-                    instance = resource_cls(client=self)
-                    object.__setattr__(self, name, instance)
-                    return instance
+            resource_cls = resources.prediction_studio.get_async(version)
+            if resource_cls is not None:
+                instance = resource_cls(client=self)
+                object.__setattr__(self, name, instance)
+                return instance
+            # Fallback to latest version if inference failed
+            resource_cls = resources.prediction_studio.get_async("25")
+            if resource_cls is not None:
+                instance = resource_cls(client=self)
+                object.__setattr__(self, name, instance)
+                import logging
+                logging.getLogger(__name__).info(
+                    "Pega version could not be determined; using latest API (25). "
+                    "For explicit version control, pass 'pega_version' to the constructor."
+                )
+                return instance
             raise AttributeError(
-                f"'{name}' is not available because the Pega version could "
-                "not be determined. Pass 'pega_version' explicitly when "
-                "constructing the client, e.g.:\n"
-                "  AsyncInfinity.from_client_id_and_secret(..., pega_version='25.1')",
+                f"'{name}' is not available; no compatible API version found.",
             )
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
