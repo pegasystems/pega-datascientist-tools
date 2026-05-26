@@ -51,7 +51,7 @@ class Prediction(_Predictionv26Mixin, PredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
         endpoint = f"{endpoint}?category={category}"

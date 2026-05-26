@@ -241,7 +241,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = "prweb/api/PredictionStudio/v2/notifications"
+        endpoint = "prweb/api/PredictionStudio/v1/notifications"
         if category is None:
             category = "All"
 

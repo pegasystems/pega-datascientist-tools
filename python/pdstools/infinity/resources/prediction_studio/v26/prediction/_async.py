@@ -36,7 +36,7 @@ class AsyncPrediction(_Predictionv26Mixin, AsyncPredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
         endpoint = f"{endpoint}?category={category}"

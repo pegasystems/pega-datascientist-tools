@@ -12,10 +12,10 @@ from pdstools.infinity import AsyncInfinity, Infinity
 
 class TestInfinity:
     def test_init_without_version(self):
-        """Original test: client without version has no prediction_studio."""
+        """Client without version falls back to latest API (prediction_studio is available)."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
         assert not client.version
-        assert not hasattr(client, "prediction_studio")
+        assert hasattr(client, "prediction_studio")
 
     def test_init_no_args_raises_type_error(self):
         """Direct ``Infinity()`` with no args is rejected by Python — explicit signature."""
@@ -155,15 +155,15 @@ class TestAsyncInfinity:
         )
         assert hasattr(client, "knowledge_buddy")
 
-    def test_getattr_version_dependent_resource_raises(self, mocker):
+    def test_getattr_version_none_falls_back_to_latest_api(self, mocker):
+        """When version is None, prediction_studio falls back to the latest API (26)."""
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        with pytest.raises(AttributeError, match="not available"):
-            _ = client.prediction_studio
+        assert hasattr(client, "prediction_studio")
 
     def test_getattr_version_none_falls_back_to_latest(self, mocker):
         """When version is None, prediction_studio falls back to the latest API (26)."""

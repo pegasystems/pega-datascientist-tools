@@ -145,6 +145,8 @@ def test_repository(prediction_studio_client, mocker):
                 "status",
                 "last_update_time",
                 "updated_by",
+                "performance",
+                "performance_measure",
             ],
         ),
     ],
@@ -171,7 +173,7 @@ def test_list_models(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
-        assert result.shape == (2, 8)
+        assert result.shape == (2, 10)
         assert result[0]["model_id"][0] == "@BASECLASS!TESTMODEL_FALCONS"
         assert result[0]["label"][0] == "testModel_falcons"
         assert result[0]["last_update_time"][0] == datetime.datetime(
@@ -215,6 +217,9 @@ def test_get_model(prediction_studio_client, mocker, fetch_type, fetch_value):
                 "subject",
                 "status",
                 "last_update_time",
+                "type",
+                "performance",
+                "performance_measure",
             ],
         ),
     ],

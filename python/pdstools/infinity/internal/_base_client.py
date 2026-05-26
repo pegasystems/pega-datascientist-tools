@@ -227,10 +227,13 @@ class SyncAPIClient(BaseClient[httpx.Client]):
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         # Probe 25-specific endpoint first; it does not exist on older systems.
+        # When the probe succeeds we return the latest known version ("26"):
+        # the v25 and v26 APIs are compatible, and v26 is the default for any
+        # 25+ system when an explicit pega_version is not supplied.
         try:
             probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
             if probe.status_code == 200:
-                return "25"
+                return "26"
             # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
         except Exception as e:
             if on_error == "warn":
@@ -494,7 +497,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             if isinstance(probe, Exception):
                 raise probe
             if probe.status_code == 200:
-                return "25"
+                return "26"
             # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
         except Exception as e:
             if on_error == "warn":

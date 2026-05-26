@@ -106,7 +106,7 @@ class Model(_Modelv25Mixin, PreviousModel):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
         if category is None:
             category = "All"
 
@@ -148,7 +148,7 @@ class AsyncModel(_Modelv25Mixin, AsyncPreviousModel):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
         if category is None:
             category = "All"
 

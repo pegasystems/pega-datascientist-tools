@@ -36,7 +36,7 @@ class AsyncChampionChallenger(
         """
         from ..model import AsyncModel
 
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
         pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
             AsyncModel,
             self._client,

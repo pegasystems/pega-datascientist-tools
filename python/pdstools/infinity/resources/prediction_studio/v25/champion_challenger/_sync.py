@@ -35,7 +35,7 @@ class ChampionChallenger(_ChampionChallengerv25Mixin, ChampionChallengerBase):
         """
         from ..model import Model
 
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
         pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
         if not return_df:
             return pages
