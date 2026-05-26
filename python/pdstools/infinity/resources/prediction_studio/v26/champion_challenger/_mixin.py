@@ -89,7 +89,7 @@ class _ChampionChallengerv26Mixin:
                 "component_name": self.challenger_model.component_name,
                 "model_type": self.challenger_model.model_type,
                 "modeling_technique": self.challenger_model.modeling_technique
-                if self.active_model.modeling_technique
+                if self.challenger_model.modeling_technique
                 else None,
                 "role": self.challenger_model.status,
                 "challenger_percentage": 100 - self.champion_percentage
@@ -601,7 +601,7 @@ class _ChampionChallengerv26Mixin:
             "admModelType": adm_model_type,
         }
         if predictor_mapping is not None:
-            data["overrideMmappings"] = [
+            data["overrideMappings"] = [
                 {"predictor": key["predictor"], "property": key["property"]} for key in predictor_mapping
             ]
         try:

@@ -111,21 +111,24 @@ class Prediction(_Predictionv26Mixin, PredictionPrevious):
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=next(
-                        Model(
-                            client=self._client,
-                            modelId=mod["id"],
-                            label=mod["label"],
-                            modelType=mod["type"],
-                            status=mod["role"],
-                            componentName=mod["componentName"],
-                            modelingTechnique=mod["modelingTechnique"]
-                            if mod.get("modelingTechnique") is not None
-                            else None,
-                        )
-                        for mod in models
-                        if model["activeModel"] is not None
-                        and mod["id"] == model["activeModel"]
-                        and mod["contextName"] == model["contextName"]
+                        (
+                            Model(
+                                client=self._client,
+                                modelId=mod["id"],
+                                label=mod["label"],
+                                modelType=mod["type"],
+                                status=mod["role"],
+                                componentName=mod["componentName"],
+                                modelingTechnique=mod["modelingTechnique"]
+                                if mod.get("modelingTechnique") is not None
+                                else None,
+                            )
+                            for mod in models
+                            if model["activeModel"] is not None
+                            and mod["id"] == model["activeModel"]
+                            and mod["contextName"] == model["contextName"]
+                        ),
+                        None,
                     ),
                 ),
             )
@@ -183,7 +186,7 @@ class Prediction(_Predictionv26Mixin, PredictionPrevious):
         if context is None:
             context = "NoContext"
         endpoint = (
-            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+            f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
         )
         data = {}
         if context:
