@@ -70,7 +70,7 @@ class Infinity(SyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"24.2"``).
+        """The Pega platform version (e.g. ``"26"``).
 
         Resolved lazily on first access by calling the prediction-studio
         repository endpoint. Returns ``None`` if the version could not be
@@ -160,7 +160,7 @@ class AsyncInfinity(AsyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"24.2"``).
+        """The Pega platform version (e.g. ``"26"``).
 
         Resolved lazily on first access. The underlying
         ``_infer_version`` helper bridges to the async HTTP client via a
