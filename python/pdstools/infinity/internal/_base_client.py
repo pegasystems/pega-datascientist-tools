@@ -226,11 +226,11 @@ class SyncAPIClient(BaseClient[httpx.Client]):
     _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
-        # Probe 25.1-specific endpoint first; it does not exist on older systems.
+        # Probe 25-specific endpoint first; it does not exist on older systems.
         try:
             probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
             if probe.status_code == 200:
-                return "25.1"
+                return "25"
             # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
         except Exception as e:
             if on_error == "warn":
@@ -484,7 +484,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         return awaited[0]
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
-        # Probe 25.1-specific endpoint first; it does not exist on older systems.
+        # Probe 25-specific endpoint first; it does not exist on older systems.
         try:
             probe = self._collect_awaitable_blocking(
                 self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT),
@@ -494,7 +494,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             if isinstance(probe, Exception):
                 raise probe
             if probe.status_code == 200:
-                return "25.1"
+                return "25"
             # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
         except Exception as e:
             if on_error == "warn":

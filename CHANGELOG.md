@@ -264,7 +264,7 @@ guide.
 
 - Better diagnostic information when Health Check report generation
   hits a `PermissionDenied` from Quarto on Windows; Infinity API
-  client now supports Pega `'25.1`; Decision Analyzer no longer
+  client now supports Pega `'25`; Decision Analyzer no longer
   crashes with `ColumnNotFoundError: "Stage Group"` when the dataset
   only contains `Stage` — `__init__` now validates `level` against
   `available_levels` and falls back when needed (#642, closes #439,

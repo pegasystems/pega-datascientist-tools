@@ -5,8 +5,12 @@ __all__ = ["AsyncInfinity", "Infinity"]
 from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
+import logging
+
 from ..utils.namespaces import MissingDependenciesException
 from .internal._base_client import AsyncAPIClient, SyncAPIClient
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import httpx
@@ -86,25 +90,16 @@ class Infinity(SyncAPIClient):
             version = self.version
             from . import resources
 
-            resource_cls = resources.prediction_studio.get(version)
-            if resource_cls is not None:
-                instance = resource_cls(client=self)
-                object.__setattr__(self, name, instance)
-                return instance
-            # Fallback to latest version if inference failed
-            resource_cls = resources.prediction_studio.get("25")
-            if resource_cls is not None:
-                instance = resource_cls(client=self)
-                object.__setattr__(self, name, instance)
-                import logging
-                logging.getLogger(__name__).info(
-                    "Pega version could not be determined; using latest API (25). "
-                    "For explicit version control, pass 'pega_version' to the constructor."
+            if not version:
+                logger.warning(
+                    "Pega version could not be determined; using latest API (26). "
+                    "Pass 'pega_version' to the constructor to skip version detection."
                 )
-                return instance
-            raise AttributeError(
-                f"'{name}' is not available; no compatible API version found.",
-            )
+                version = "26"
+            resource_cls = resources.prediction_studio.get(version)
+            instance = resource_cls(client=self)
+            object.__setattr__(self, name, instance)
+            return instance
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
         )
@@ -185,25 +180,16 @@ class AsyncInfinity(AsyncAPIClient):
             version = self.version
             from . import resources
 
-            resource_cls = resources.prediction_studio.get_async(version)
-            if resource_cls is not None:
-                instance = resource_cls(client=self)
-                object.__setattr__(self, name, instance)
-                return instance
-            # Fallback to latest version if inference failed
-            resource_cls = resources.prediction_studio.get_async("25")
-            if resource_cls is not None:
-                instance = resource_cls(client=self)
-                object.__setattr__(self, name, instance)
-                import logging
-                logging.getLogger(__name__).info(
-                    "Pega version could not be determined; using latest API (25). "
-                    "For explicit version control, pass 'pega_version' to the constructor."
+            if not version:
+                logger.warning(
+                    "Pega version could not be determined; using latest API (26). "
+                    "Pass 'pega_version' to the constructor to skip version detection."
                 )
-                return instance
-            raise AttributeError(
-                f"'{name}' is not available; no compatible API version found.",
-            )
+                version = "26"
+            resource_cls = resources.prediction_studio.get_async(version)
+            instance = resource_cls(client=self)
+            object.__setattr__(self, name, instance)
+            return instance
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
         )

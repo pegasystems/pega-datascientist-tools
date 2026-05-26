@@ -12,14 +12,14 @@ from ..datamart_export import DatamartExport
 from ..model import Model
 from ..prediction import Prediction
 from ..repository import Repository
-from ._mixin import _PredictionStudiov26Mixin
+from ._mixin import _PredictionStudiov25Mixin
 
 if TYPE_CHECKING:
     from ...types import NotificationCategory
 
 
-class PredictionStudio(_PredictionStudiov26Mixin, PredictionStudioPrevious):
-    version: str = "26"
+class PredictionStudio(_PredictionStudiov25Mixin, PredictionStudioPrevious):
+    version: str = "25"
 
     def repository(self) -> Repository:
         """Gets information about the repository from Prediction Studio.

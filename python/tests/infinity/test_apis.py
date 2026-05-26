@@ -97,7 +97,7 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
     client = _base_client.SyncAPIClient(base_url="https://pega.com", auth=mock_auth)
     assert client.auth.token == "ABC"
 
-    # 25.1 probe returns 404 (24.x system), fall back to repository.
+    # 25 probe returns 404 (24.x system), fall back to repository.
     httpx_mock.add_response(
         url=re.compile(".*/modelCategories"),
         status_code=404,
@@ -109,7 +109,7 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
     )
     assert client._infer_version() == "24.1"
 
-    # 25.1 probe returns 404 again, repository raises connection error.
+    # 25 probe returns 404 again, repository raises connection error.
     httpx_mock.add_response(
         url=re.compile(".*/modelCategories"),
         status_code=404,

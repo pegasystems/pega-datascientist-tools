@@ -14,15 +14,15 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class _PredictionStudiov26Mixin:
-    """v26 PredictionStudio business logic — shared parts."""
+class _PredictionStudiov25Mixin:
+    """v25 PredictionStudio business logic — shared parts."""
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
         _a_post: Callable[..., Any]
         _a_get: Callable[..., Any]
 
-    version: str = "26"
+    version: str = "25"
 
     @api_method
     async def upload_model(self, model: LocalModel, file_name: str) -> UploadedModel:

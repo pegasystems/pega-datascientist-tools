@@ -9,7 +9,7 @@ from ..datamart_export import AsyncDatamartExport
 from ..model import AsyncModel
 from ..prediction import AsyncPrediction
 from ..repository import AsyncRepository
-from ._mixin import _PredictionStudiov26Mixin
+from ._mixin import _PredictionStudiov25Mixin
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from ...types import NotificationCategory
 
 
-class AsyncPredictionStudio(_PredictionStudiov26Mixin, AsyncPredictionStudioPrevious):
-    version: str = "26"
+class AsyncPredictionStudio(_PredictionStudiov25Mixin, AsyncPredictionStudioPrevious):
+    version: str = "25"
 
     async def repository(self) -> AsyncRepository:
         """Gets information about the repository from Prediction Studio.

@@ -72,12 +72,11 @@ class TestInfinity:
         )
         assert hasattr(client, "knowledge_buddy")
 
-    def test_getattr_version_dependent_resource_raises(self):
-        """Accessing prediction_studio when version is None raises helpful error."""
+    def test_getattr_version_none_falls_back_to_latest(self):
+        """When version is None, prediction_studio falls back to the latest API (26)."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
         assert client.version is None
-        with pytest.raises(AttributeError, match="not available"):
-            _ = client.prediction_studio
+        assert hasattr(client, "prediction_studio")
 
     def test_getattr_unknown_attribute_raises(self):
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
@@ -85,15 +84,15 @@ class TestInfinity:
             _ = client.nonexistent_thing
 
     def test_version_dispatch_fallback_for_unknown_version(self, mocker):
-        """An unknown version (e.g. '25.1') should fall back to latest (24.2)."""
-        mocker.patch.object(Infinity, "_infer_version", return_value="25.1")
+        """An unknown version (e.g. '27') should fall back to latest (26)."""
+        mocker.patch.object(Infinity, "_infer_version", return_value="27")
         client = Infinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        assert client.version == "25.1"
-        # Should still get prediction_studio (falls back to 24.2 dispatch)
+        assert client.version == "27"
+        # Should still get prediction_studio (falls back to 26 dispatch)
         assert hasattr(client, "prediction_studio")
 
 
@@ -135,7 +134,7 @@ class TestAsyncInfinity:
             "secret",
         )
         assert client.version is None
-        assert not hasattr(client, "prediction_studio")
+        assert hasattr(client, "prediction_studio")
 
     def test_init_inferred_version_24_2(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value="24.2")
@@ -166,25 +165,15 @@ class TestAsyncInfinity:
         with pytest.raises(AttributeError, match="not available"):
             _ = client.prediction_studio
 
-    def test_getattr_unknown_attribute_raises(self, mocker):
+    def test_getattr_version_none_falls_back_to_latest(self, mocker):
+        """When version is None, prediction_studio falls back to the latest API (26)."""
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        with pytest.raises(AttributeError, match="has no attribute"):
-            _ = client.nonexistent_thing
-
-    def test_getattr_error_message_mentions_async(self, mocker):
-        mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
-        client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com",
-            "id",
-            "secret",
-        )
-        with pytest.raises(AttributeError, match="AsyncInfinity"):
-            _ = client.prediction_studio
+        assert hasattr(client, "prediction_studio")
 
 
 # ---------------------------------------------------------------------------
@@ -212,9 +201,9 @@ class TestVersionDispatch:
 
     def test_get_unknown_falls_back(self):
         from pdstools.infinity.resources.prediction_studio import get
-        from pdstools.infinity.resources.prediction_studio.v24_2 import PredictionStudio
+        from pdstools.infinity.resources.prediction_studio.v26 import PredictionStudio
 
-        result = get("25.1")
+        result = get("27")
         assert result is PredictionStudio
 
     def test_get_async_24_1(self):
@@ -240,9 +229,9 @@ class TestVersionDispatch:
 
     def test_get_async_unknown_falls_back(self):
         from pdstools.infinity.resources.prediction_studio import get_async
-        from pdstools.infinity.resources.prediction_studio.v24_2 import (
+        from pdstools.infinity.resources.prediction_studio.v26 import (
             AsyncPredictionStudio,
         )
 
-        result = get_async("25.1")
+        result = get_async("27")
         assert result is AsyncPredictionStudio

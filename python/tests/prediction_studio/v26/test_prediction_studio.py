@@ -3,11 +3,11 @@ import datetime
 import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import PaginatedList
-from pdstools.infinity.resources.prediction_studio.v25_1.model import Model
+from pdstools.infinity.resources.prediction_studio.v26.model import Model
 from pdstools.infinity.resources.prediction_studio.v24_2.model import Model as ModelV24_2
-from pdstools.infinity.resources.prediction_studio.v25_1.prediction import Prediction
+from pdstools.infinity.resources.prediction_studio.v26.prediction import Prediction
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import Prediction as PredictionV24_2
-from pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio import (
+from pdstools.infinity.resources.prediction_studio.v26.prediction_studio import (
     PredictionStudio,
 )
 
@@ -102,10 +102,10 @@ mock_response_notifications = {
 
 
 def test_version(mocker):
-    """v25.1 classes report the correct version string."""
+    """v26 classes report the correct version string."""
     client = mocker.MagicMock()
     ps = PredictionStudio(client=client)
-    assert ps.version == "25.1"
+    assert ps.version == "26"
 
 
 def test_repository(prediction_studio_client, mocker):
@@ -406,7 +406,7 @@ def test_get_settings(prediction_studio_client, mocker):
 
 
 def test_list_models_endpoint(prediction_studio_client, mocker):
-    """Verify list_models calls the v25.1 endpoint (v2)."""
+    """Verify list_models calls the v26 endpoint (v2)."""
     mock_request = mocker.patch.object(
         prediction_studio_client._client,
         "request",
@@ -420,7 +420,7 @@ def test_list_models_endpoint(prediction_studio_client, mocker):
 
 
 def test_list_predictions_endpoint(prediction_studio_client, mocker):
-    """Verify list_predictions calls the v25.1 endpoint (v3)."""
+    """Verify list_predictions calls the v26 endpoint (v3)."""
     mock_request = mocker.patch.object(
         prediction_studio_client._client,
         "request",
