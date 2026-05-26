@@ -4,10 +4,10 @@ import polars as pl
 
 from .....internal._pagination import PaginatedList
 from ...base import ChampionChallenger as ChampionChallengerBase
-from ._mixin import _ChampionChallengerv26Mixin
+from ._mixin import _ChampionChallengerv25Mixin
 
 
-class ChampionChallenger(_ChampionChallengerv26Mixin, ChampionChallengerBase):
+class ChampionChallenger(_ChampionChallengerv25Mixin, ChampionChallengerBase):
     """v26 ChampionChallenger — inherits all v24.2 functionality."""
 
     def list_available_models_to_add(

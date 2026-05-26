@@ -8,13 +8,13 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
 from ...base import Notification
 from ...v24_1.prediction import Prediction as PredictionPrevious
-from ._mixin import _Predictionv26Mixin
+from ._mixin import _Predictionv25Mixin
 
 if TYPE_CHECKING:
     from ...types import NotificationCategory
 
 
-class Prediction(_Predictionv26Mixin, PredictionPrevious):
+class Prediction(_Predictionv25Mixin, PredictionPrevious):
     """v26 Prediction — inherits all v24.2 functionality."""
 
     @overload

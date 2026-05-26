@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class _ChampionChallengerv26Mixin:
+class _ChampionChallengerv25Mixin:
     """v26 ChampionChallenger business logic — shared parts."""
 
     # Declared for mypy — provided by concrete base classes at runtime

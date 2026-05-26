@@ -4,16 +4,16 @@ from ..v24_2.datamart_export import AsyncDatamartExport as AsyncDatamartExportPr
 from ..v24_2.datamart_export import DatamartExport as DatamartExportPrevious
 
 
-class _DatamartExportv26Mixin:
+class _DatamartExportv25Mixin:
     """v26 DatamartExport business logic — defined once.
 
     Add new or overridden methods here.
     """
 
 
-class DatamartExport(_DatamartExportv26Mixin, DatamartExportPrevious):
+class DatamartExport(_DatamartExportv25Mixin, DatamartExportPrevious):
     pass
 
 
-class AsyncDatamartExport(_DatamartExportv26Mixin, AsyncDatamartExportPrevious):
+class AsyncDatamartExport(_DatamartExportv25Mixin, AsyncDatamartExportPrevious):
     pass

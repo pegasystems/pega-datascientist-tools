@@ -5,7 +5,7 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
 from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
-from ._mixin import _Predictionv26Mixin
+from ._mixin import _Predictionv25Mixin
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 
-class AsyncPrediction(_Predictionv26Mixin, AsyncPredictionPrevious):
+class AsyncPrediction(_Predictionv25Mixin, AsyncPredictionPrevious):
     """v26 async Prediction — inherits all v24.2 functionality."""
 
     async def get_notifications(

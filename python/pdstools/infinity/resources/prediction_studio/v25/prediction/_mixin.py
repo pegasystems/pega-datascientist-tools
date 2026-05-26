@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class _Predictionv26Mixin:
+class _Predictionv25Mixin:
     """v26 Prediction business logic — shared parts."""
 
     # Declared for mypy — provided by concrete base classes at runtime

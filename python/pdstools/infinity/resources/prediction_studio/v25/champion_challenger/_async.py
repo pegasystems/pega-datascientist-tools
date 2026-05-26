@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncChampionChallenger as AsyncChampionChallengerBase
-from ._mixin import _ChampionChallengerv26Mixin
+from ._mixin import _ChampionChallengerv25Mixin
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class AsyncChampionChallenger(
-    _ChampionChallengerv26Mixin,
+    _ChampionChallengerv25Mixin,
     AsyncChampionChallengerBase,
 ):
     """v26 async ChampionChallenger — inherits all v24.2 functionality."""

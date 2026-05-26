@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class _Modelv26Mixin:
+class _Modelv25Mixin:
     """v26 Model business logic — defined once."""
 
     # Declared for mypy — provided by concrete base classes at runtime
@@ -69,7 +69,7 @@ class _Modelv26Mixin:
         return await self._a_get(endpoint)
 
 
-class Model(_Modelv26Mixin, PreviousModel):
+class Model(_Modelv25Mixin, PreviousModel):
     """v26 Model — inherits all v24.2 functionality."""
 
     @overload
@@ -125,7 +125,7 @@ class Model(_Modelv26Mixin, PreviousModel):
         return notifications
 
 
-class AsyncModel(_Modelv26Mixin, AsyncPreviousModel):
+class AsyncModel(_Modelv25Mixin, AsyncPreviousModel):
     """v26 async Model — inherits all v24.2 functionality."""
 
     async def get_notifications(
