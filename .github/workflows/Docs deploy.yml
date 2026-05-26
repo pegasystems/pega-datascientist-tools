@@ -3,69 +3,161 @@ name: Build & Deploy docs
 on:
   push:
     tags:
-      - '*'  # This will trigger on any tag push, regardless of changes
+      - 'v*'  # semver release tags, e.g. v5.1.0
     branches:
-      - master # This branch filter applies only to the paths below
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write  # peaceiris/actions-gh-pages writes to gh-pages branch
 
 jobs:
-  build-docs:
+  build-and-deploy:
     runs-on: ubuntu-latest
     name: Build & Deploy docs
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve docs version slug
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            # Strip leading "v" from tags like v5.1.0
+            slug="${GITHUB_REF_NAME#v}"
+          else
+            slug="latest"
+          fi
+          echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "Building docs as: ${slug}"
+
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Set up Python
-        run: uv python install 3.11
-
-      - name: Enable caching
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           cache-dependency-glob: |
             **/pyproject.toml
 
+      - name: Set up Python
+        run: uv python install 3.11
+
       - name: Install the project
         run: uv sync --extra docs --extra all
 
-      - name: Documentation dependencies
-        working-directory: python
+      - name: System dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc
-          sudo apt install -y graphviz
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+          sudo apt-get install -y pandoc graphviz
 
       - name: Build Python documentation
         working-directory: python/docs
+        env:
+          PDSTOOLS_DOCS_VERSION: ${{ steps.version.outputs.slug }}
         run: make html
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: python/docs/build/html
+      - name: Stage published tree
+        env:
+          SLUG: ${{ steps.version.outputs.slug }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          mkdir -p public/"${SLUG}"
+          cp -r python/docs/build/html/. public/"${SLUG}/"
 
-  # Deployment job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+          # Root redirect to /latest/.
+          cat > public/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=latest/">
+              <title>Redirecting…</title>
+            </head>
+            <body>
+              <p>Redirecting to <a href="latest/">the latest documentation</a>.</p>
+            </body>
+          </html>
+          HTML
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          commit_message: "docs: deploy ${{ steps.version.outputs.slug }} (${{ github.sha }})"
+
+  refresh-manifest:
+    name: Refresh versions.json
     runs-on: ubuntu-latest
-    needs: build-docs
+    needs: build-and-deploy
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Regenerate versions.json
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          owner = os.environ["REPO_OWNER"]
+          repo = os.environ["REPO_NAME"]
+          base = f"https://{owner}.github.io/{repo}"
+          root = Path("gh-pages")
+
+          semver_re = re.compile(r"^\d+\.\d+\.\d+$")
+
+          dirs = [
+              p.name for p in root.iterdir()
+              if p.is_dir() and not p.name.startswith(".") and p.name != "latest"
+          ]
+          releases = sorted(
+              [d for d in dirs if semver_re.match(d)],
+              key=lambda v: tuple(int(x) for x in v.split(".")),
+              reverse=True,
+          )
+          others = sorted(d for d in dirs if not semver_re.match(d))
+
+          ordered = (["latest"] if (root / "latest").is_dir() else []) + releases + others
+          preferred = releases[0] if releases else None
+
+          manifest = [
+              {
+                  "version": v,
+                  "url": f"{base}/{v}/",
+                  "preferred": v == preferred,
+              }
+              for v in ordered
+          ]
+
+          out = root / "versions.json"
+          out.write_text(json.dumps(manifest, indent=2) + "\n")
+          print(out.read_text())
+          PY
+
+      - name: Commit & push manifest
+        working-directory: gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add versions.json
+          if git diff --cached --quiet; then
+            echo "versions.json unchanged."
+          else
+            git commit -m "docs: refresh versions.json"
+            git push
+          fi
