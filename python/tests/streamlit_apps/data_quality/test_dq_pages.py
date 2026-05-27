@@ -12,6 +12,10 @@ import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
 
+# Skip when NLP deps unavailable (Python 3.14)
+pytest.importorskip("sentence_transformers", reason="sentence-transformers not available")
+pytest.importorskip("umap", reason="umap-learn not available")
+
 from pdstools.data_quality._topic_data_quality import TopicDataQuality
 
 DQ_APP_DIR = Path(__file__).resolve().parents[3] / "pdstools" / "app" / "data_quality"

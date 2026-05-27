@@ -9,6 +9,11 @@ from __future__ import annotations
 import polars as pl
 import pytest
 
+# Skip the entire module when heavy NLP deps are unavailable (e.g. Python 3.14
+# where sentence-transformers and umap-learn have no wheels yet).
+pytest.importorskip("sentence_transformers", reason="sentence-transformers not available")
+pytest.importorskip("umap", reason="umap-learn not available")
+
 from pdstools.data_quality._topic_data_quality import (
     TopicDataQuality,
     TopicOverlapPair,
