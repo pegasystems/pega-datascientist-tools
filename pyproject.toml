@@ -49,6 +49,13 @@ pega_io = ['aioboto3', 'boto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot', 'ipykernel']
 explanations = ['duckdb', "plotly[express]", "pyarrow", "pyyaml", "ipywidgets"]
+nlp = [
+    'numpy',
+    'scikit-learn',
+    "sentence-transformers; python_version < '3.14'",
+    "umap-learn; python_version < '3.14'",
+    "plotly[express]>=6.0",
+]
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45',
@@ -66,7 +73,7 @@ onnx = [
     "onnxruntime>=1.22,<1.25; python_version >= '3.11'",
     "scipy>=1.15.3",
 ]
-all = ['pdstools[app, pega_io, onnx, explanations]']
+all = ['pdstools[app, pega_io, onnx, explanations, nlp]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','sphinx-tabs','myst-parser', 'sphinx-argparse', 'xgboost', 'pydantic', 'httpx', 'streamlit', 'duckdb', 'anyio']
 tests = [
