@@ -9,9 +9,9 @@ All heavy-lifting lives in three ``LazyNamespace`` sub-namespaces:
 - ``plot`` — Plotly figures (topic distribution, UMAP, heatmap)
 - ``health`` — inspection, scoring, recommendations
 
-Requires the ``data_quality`` optional dependency group::
+Requires the ``nlp`` optional dependency group::
 
-    pip install pdstools[data_quality]
+    pip install pdstools[nlp]
 """
 
 from __future__ import annotations

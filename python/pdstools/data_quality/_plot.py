@@ -24,7 +24,7 @@ class Plot(LazyNamespace):
     """
 
     dependencies: ClassVar[list[str]] = ["plotly"]
-    dependency_group = "data_quality"
+    dependency_group = "nlp"
 
     def __init__(self, parent: TopicDataQuality) -> None:
         super().__init__()
@@ -121,10 +121,7 @@ class Plot(LazyNamespace):
                     name=str(topic),
                     marker=dict(size=6, opacity=0.6),
                     text=[t + "…" for t in texts],
-                    hovertemplate=(
-                        "<b>Topic:</b> %{fullData.name}<br>"
-                        "<b>Text:</b> %{text}<extra></extra>"
-                    ),
+                    hovertemplate=("<b>Topic:</b> %{fullData.name}<br><b>Text:</b> %{text}<extra></extra>"),
                 )
             )
         fig.update_layout(

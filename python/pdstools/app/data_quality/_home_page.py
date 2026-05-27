@@ -115,4 +115,16 @@ text and label columns, and run a comprehensive quality check.
 
         st.info("Navigate to **Quality Report** in the sidebar for the full analysis.")
     elif uploaded_file is None:
-        st.info("Upload a CSV file to get started.")
+        # Auto-load sample data when nothing is uploaded and no analysis exists
+        if "topic_dq" not in st.session_state:
+            st.markdown("---")
+            st.markdown("### Or try with sample data")
+            if st.button("Load sample dataset (smalltalk)", type="secondary"):
+                from pdstools.utils.datasets import dq_sample
+
+                with st.spinner("Loading sample data — this may take a minute…"):
+                    dq = dq_sample()
+                    st.session_state["topic_dq"] = dq
+                st.toast("Sample loaded — navigate to Quality Report.", icon="✅")
+                st.rerun()
+        st.info("Upload a CSV file or load the sample dataset to get started.")

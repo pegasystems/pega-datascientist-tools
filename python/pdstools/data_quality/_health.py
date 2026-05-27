@@ -22,7 +22,7 @@ class Health(LazyNamespace):
     """
 
     dependencies: ClassVar[list[str]] = ["numpy", "sklearn"]
-    dependency_group = "data_quality"
+    dependency_group = "nlp"
 
     def __init__(self, parent: TopicDataQuality) -> None:
         super().__init__()
@@ -43,10 +43,7 @@ class Health(LazyNamespace):
             ``avg_words``, ``median_words``.
         """
         df = self.parent.df.with_columns(
-            pl.col(self.parent.text_col)
-            .str.split(" ")
-            .list.len()
-            .alias("word_count"),
+            pl.col(self.parent.text_col).str.split(" ").list.len().alias("word_count"),
         )
         total = df.height
 
@@ -85,19 +82,12 @@ class Health(LazyNamespace):
         topic_col = self.parent.topic_col
 
         # Rows whose text appears more than once
-        dup_texts = (
-            df.group_by(text_col)
-            .agg(pl.len().alias("n"))
-            .filter(pl.col("n") > 1)
-            .select(text_col)
-        )
+        dup_texts = df.group_by(text_col).agg(pl.len().alias("n")).filter(pl.col("n") > 1).select(text_col)
         duplicates = df.join(dup_texts, on=text_col, how="semi")
 
         # Texts that appear in more than one topic
         cross_topic = (
-            df.group_by(text_col)
-            .agg(pl.col(topic_col).n_unique().alias("n_topics"))
-            .filter(pl.col("n_topics") > 1)
+            df.group_by(text_col).agg(pl.col(topic_col).n_unique().alias("n_topics")).filter(pl.col("n_topics") > 1)
         )
 
         return {
@@ -134,12 +124,14 @@ class Health(LazyNamespace):
                 status, rec = "[ACCEPTABLE]", "Consider adding more for robustness"
             else:
                 status, rec = "[GOOD]", "Sufficient samples"
-            rows.append({
-                "Topic": topic,
-                "Sample Count": count,
-                "Status": status,
-                "Recommendation": rec,
-            })
+            rows.append(
+                {
+                    "Topic": topic,
+                    "Sample Count": count,
+                    "Status": status,
+                    "Recommendation": rec,
+                }
+            )
 
         return pl.DataFrame(rows).sort("Sample Count")
 
@@ -183,12 +175,14 @@ class Health(LazyNamespace):
             else:
                 quality = "[POOR]"
 
-            rows.append({
-                "Topic": topic,
-                "Tightness Score": round(score, 1),
-                "Quality": quality,
-                "Avg Distance": round(avg_dist, 3),
-            })
+            rows.append(
+                {
+                    "Topic": topic,
+                    "Tightness Score": round(score, 1),
+                    "Quality": quality,
+                    "Avg Distance": round(avg_dist, 3),
+                }
+            )
 
         return pl.DataFrame(rows).sort("Tightness Score", descending=True)
 
@@ -225,15 +219,19 @@ class Health(LazyNamespace):
 
             for pos, idx in enumerate(indices):
                 if distances[pos] > threshold:
-                    outliers.append({
-                        "index": idx,
-                        "text": df.row(idx, named=True)[text_col],
-                        "topic": topic,
-                        "distance": float(distances[pos]),
-                    })
+                    outliers.append(
+                        {
+                            "index": idx,
+                            "text": df.row(idx, named=True)[text_col],
+                            "topic": topic,
+                            "distance": float(distances[pos]),
+                        }
+                    )
 
-        return pl.DataFrame(outliers) if outliers else pl.DataFrame(
-            schema={"index": pl.Int64, "text": pl.Utf8, "topic": pl.Utf8, "distance": pl.Float64}
+        return (
+            pl.DataFrame(outliers)
+            if outliers
+            else pl.DataFrame(schema={"index": pl.Int64, "text": pl.Utf8, "topic": pl.Utf8, "distance": pl.Float64})
         )
 
     # ------------------------------------------------------------------
@@ -272,14 +270,8 @@ class Health(LazyNamespace):
 
         confused: list[dict] = []
         for topic_a, topic_b, similarity in high_pairs[:5]:
-            mask_a = [
-                k for k, v in enumerate(df.get_column(topic_col).to_list())
-                if v == topic_a
-            ]
-            mask_b = [
-                k for k, v in enumerate(df.get_column(topic_col).to_list())
-                if v == topic_b
-            ]
+            mask_a = [k for k, v in enumerate(df.get_column(topic_col).to_list()) if v == topic_a]
+            mask_b = [k for k, v in enumerate(df.get_column(topic_col).to_list()) if v == topic_b]
             if not mask_a or not mask_b:
                 continue
 
@@ -292,30 +284,28 @@ class Health(LazyNamespace):
 
                 if dist_other <= dist_own * 1.2:
                     text_val = df.row(idx, named=True)[text_col]
-                    confused.append({
-                        "text": text_val[:100] + "...",
-                        "assigned_topic": topic_a,
-                        "confused_with": topic_b,
-                        "confusion_risk": round(
-                            (1 - dist_other / (dist_own + dist_other)) * 100, 1
-                        ),
-                        "similarity_score": round(similarity, 3),
-                    })
+                    confused.append(
+                        {
+                            "text": text_val[:100] + "...",
+                            "assigned_topic": topic_a,
+                            "confused_with": topic_b,
+                            "confusion_risk": round((1 - dist_other / (dist_own + dist_other)) * 100, 1),
+                            "similarity_score": round(similarity, 3),
+                        }
+                    )
 
         if not confused:
-            return pl.DataFrame(schema={
-                "text": pl.Utf8,
-                "assigned_topic": pl.Utf8,
-                "confused_with": pl.Utf8,
-                "confusion_risk": pl.Float64,
-                "similarity_score": pl.Float64,
-            })
+            return pl.DataFrame(
+                schema={
+                    "text": pl.Utf8,
+                    "assigned_topic": pl.Utf8,
+                    "confused_with": pl.Utf8,
+                    "confusion_risk": pl.Float64,
+                    "similarity_score": pl.Float64,
+                }
+            )
 
-        return (
-            pl.DataFrame(confused)
-            .sort("confusion_risk", descending=True)
-            .head(top_n)
-        )
+        return pl.DataFrame(confused).sort("confusion_risk", descending=True).head(top_n)
 
     # ------------------------------------------------------------------
     # Keyword overlap
@@ -353,14 +343,16 @@ class Health(LazyNamespace):
             unique_b = list(top_b - top_a)[-15:]
             overlap_pct = (len(shared) / len(top_a | top_b)) * 100
 
-            results.append({
-                "topic_a": pair.topic_a,
-                "topic_b": pair.topic_b,
-                "keyword_overlap_pct": round(overlap_pct, 1),
-                "shared_keywords": sorted(shared)[:20],
-                "unique_to_a": sorted(unique_a),
-                "unique_to_b": sorted(unique_b),
-            })
+            results.append(
+                {
+                    "topic_a": pair.topic_a,
+                    "topic_b": pair.topic_b,
+                    "keyword_overlap_pct": round(overlap_pct, 1),
+                    "shared_keywords": sorted(shared)[:20],
+                    "unique_to_a": sorted(unique_a),
+                    "unique_to_b": sorted(unique_b),
+                }
+            )
 
         return results
 
@@ -476,75 +468,89 @@ class Health(LazyNamespace):
         low_items: list[dict] = []
 
         if cross_topic.height > 0:
-            high_items.append({
-                "Action": "[CRITICAL] Fix cross-topic duplicates",
-                "Why": "Same text with different labels will break your model",
-                "How": f"Review {cross_topic.height} duplicate texts and fix labels",
-                "Impact": "CRITICAL - Must fix before training",
-            })
+            high_items.append(
+                {
+                    "Action": "[CRITICAL] Fix cross-topic duplicates",
+                    "Why": "Same text with different labels will break your model",
+                    "How": f"Review {cross_topic.height} duplicate texts and fix labels",
+                    "Impact": "CRITICAL - Must fix before training",
+                }
+            )
 
         if health["score"] < 50:
-            high_items.append({
-                "Action": "[CRITICAL] Address major data quality issues",
-                "Why": f"Health score {health['score']}/100 is too low for production",
-                "How": "Focus on issues marked as critical in sections above",
-                "Impact": "HIGH - Model will perform poorly",
-            })
+            high_items.append(
+                {
+                    "Action": "[CRITICAL] Address major data quality issues",
+                    "Why": f"Health score {health['score']}/100 is too low for production",
+                    "How": "Focus on issues marked as critical in sections above",
+                    "Impact": "HIGH - Model will perform poorly",
+                }
+            )
 
         critical_topics = adequacy.filter(pl.col("Status").str.contains("CRITICAL"))
         if critical_topics.height > 0:
-            topic_list = ", ".join(
-                critical_topics.get_column("Topic").cast(pl.Utf8).head(3).to_list()
-            )
+            topic_list = ", ".join(critical_topics.get_column("Topic").cast(pl.Utf8).head(3).to_list())
             suffix = "..." if critical_topics.height > 3 else ""
-            high_items.append({
-                "Action": f"Add more data for {critical_topics.height} topic(s)",
-                "Why": "Too few samples will result in poor accuracy for these topics",
-                "How": f"Collect more examples for: {topic_list}{suffix}",
-                "Impact": "HIGH - These topics will have poor performance",
-            })
+            high_items.append(
+                {
+                    "Action": f"Add more data for {critical_topics.height} topic(s)",
+                    "Why": "Too few samples will result in poor accuracy for these topics",
+                    "How": f"Collect more examples for: {topic_list}{suffix}",
+                    "Impact": "HIGH - These topics will have poor performance",
+                }
+            )
 
         if self.parent.imbalance_ratio > 5:
-            medium_items.append({
-                "Action": "Balance your dataset",
-                "Why": f"{self.parent.imbalance_ratio:.1f}x imbalance will bias model toward common topics",
-                "How": "Add samples to underrepresented topics or use class weights",
-                "Impact": "MEDIUM - Will reduce overall accuracy by 10-20%",
-            })
+            medium_items.append(
+                {
+                    "Action": "Balance your dataset",
+                    "Why": f"{self.parent.imbalance_ratio:.1f}x imbalance will bias model toward common topics",
+                    "How": "Add samples to underrepresented topics or use class weights",
+                    "Impact": "MEDIUM - Will reduce overall accuracy by 10-20%",
+                }
+            )
 
         if high_pairs:
             pair_strs = ", ".join(f"'{p.topic_a}' & '{p.topic_b}'" for p in high_pairs[:2])
             suffix = "..." if len(high_pairs) > 2 else ""
-            medium_items.append({
-                "Action": "Address overlapping topics",
-                "Why": "Model will confuse similar topics",
-                "How": f"Review and possibly merge: {pair_strs}{suffix}",
-                "Impact": "MEDIUM - Will cause confusion errors",
-            })
+            medium_items.append(
+                {
+                    "Action": "Address overlapping topics",
+                    "Why": "Model will confuse similar topics",
+                    "How": f"Review and possibly merge: {pair_strs}{suffix}",
+                    "Impact": "MEDIUM - Will cause confusion errors",
+                }
+            )
 
         if tq["short_texts_pct"] > 30:
-            medium_items.append({
-                "Action": "Review short texts",
-                "Why": f"{tq['short_texts_pct']:.1f}% texts may be too short",
-                "How": "Filter out texts < 5 words or collect more detailed examples if needed",
-                "Impact": "MEDIUM - May reduce data quality",
-            })
+            medium_items.append(
+                {
+                    "Action": "Review short texts",
+                    "Why": f"{tq['short_texts_pct']:.1f}% texts may be too short",
+                    "How": "Filter out texts < 5 words or collect more detailed examples if needed",
+                    "Impact": "MEDIUM - May reduce data quality",
+                }
+            )
 
         if self.parent.num_topics > 25:
-            low_items.append({
-                "Action": "Consider reducing topic count",
-                "Why": f"{self.parent.num_topics} topics makes model complex and hard to interpret",
-                "How": "Group similar topics or use hierarchical classification",
-                "Impact": "LOW - Complexity issue, not accuracy",
-            })
+            low_items.append(
+                {
+                    "Action": "Consider reducing topic count",
+                    "Why": f"{self.parent.num_topics} topics makes model complex and hard to interpret",
+                    "How": "Group similar topics or use hierarchical classification",
+                    "Impact": "LOW - Complexity issue, not accuracy",
+                }
+            )
 
         if duplicate_pct > 10:
-            low_items.append({
-                "Action": "Remove duplicates",
-                "Why": "May waste resources and can cause overfitting",
-                "How": f"Remove {duplicates.height} duplicate samples",
-                "Impact": "LOW - Optimization issue",
-            })
+            low_items.append(
+                {
+                    "Action": "Remove duplicates",
+                    "Why": "May waste resources and can cause overfitting",
+                    "How": f"Remove {duplicates.height} duplicate samples",
+                    "Impact": "LOW - Optimization issue",
+                }
+            )
 
         return {"high": high_items, "medium": medium_items, "low": low_items}
 
@@ -568,41 +574,39 @@ class Health(LazyNamespace):
         high_pairs = self.parent.high_similarity_pairs()
         tightness = self.calculate_cluster_tightness()
 
-        avg_tightness = (
-            tightness.get_column("Tightness Score").mean()
-            if tightness.height > 0
-            else 0.0
-        )
+        avg_tightness = tightness.get_column("Tightness Score").mean() if tightness.height > 0 else 0.0
 
-        return pl.DataFrame({
-            "Metric": [
-                "Total Samples",
-                "Unique Topics",
-                "Health Score",
-                "Balance Ratio",
-                "Short Text %",
-                "Duplicate %",
-                "High Overlap Pairs",
-                "Average Tightness",
-            ],
-            "Value": [
-                str(self.parent.total_samples),
-                str(self.parent.num_topics),
-                str(health["score"]),
-                f"{self.parent.imbalance_ratio:.2f}",
-                f"{tq['short_texts_pct']:.1f}%",
-                f"{duplicate_pct:.1f}%",
-                str(len(high_pairs)),
-                f"{avg_tightness:.1f}",
-            ],
-            "Status": [
-                "OK",
-                "OK" if 3 <= self.parent.num_topics <= 25 else "CHECK",
-                health["status"],
-                "OK" if self.parent.imbalance_ratio < 3 else "CHECK",
-                "OK" if tq["short_texts_pct"] < 30 else "CHECK",
-                "OK" if duplicate_pct < 10 else "CHECK",
-                "OK" if not high_pairs else "CHECK",
-                "OK" if avg_tightness > 60 else "CHECK",
-            ],
-        })
+        return pl.DataFrame(
+            {
+                "Metric": [
+                    "Total Samples",
+                    "Unique Topics",
+                    "Health Score",
+                    "Balance Ratio",
+                    "Short Text %",
+                    "Duplicate %",
+                    "High Overlap Pairs",
+                    "Average Tightness",
+                ],
+                "Value": [
+                    str(self.parent.total_samples),
+                    str(self.parent.num_topics),
+                    str(health["score"]),
+                    f"{self.parent.imbalance_ratio:.2f}",
+                    f"{tq['short_texts_pct']:.1f}%",
+                    f"{duplicate_pct:.1f}%",
+                    str(len(high_pairs)),
+                    f"{avg_tightness:.1f}",
+                ],
+                "Status": [
+                    "OK",
+                    "OK" if 3 <= self.parent.num_topics <= 25 else "CHECK",
+                    health["status"],
+                    "OK" if self.parent.imbalance_ratio < 3 else "CHECK",
+                    "OK" if tq["short_texts_pct"] < 30 else "CHECK",
+                    "OK" if duplicate_pct < 10 else "CHECK",
+                    "OK" if not high_pairs else "CHECK",
+                    "OK" if avg_tightness > 60 else "CHECK",
+                ],
+            }
+        )

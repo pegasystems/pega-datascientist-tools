@@ -24,7 +24,7 @@ class Compute(LazyNamespace):
     """
 
     dependencies: ClassVar[list[str]] = ["numpy", "sklearn", "sentence_transformers", "umap"]
-    dependency_group = "data_quality"
+    dependency_group = "nlp"
 
     def __init__(self, parent: TopicDataQuality) -> None:
         super().__init__()

@@ -151,6 +151,18 @@ st.subheader("Topic Separation Map")
 fig_umap = dq.plot.umap_2d()
 st.plotly_chart(fig_umap)
 
+st.info(
+    """
+**How to read this chart:** Each dot is one text sample, coloured by its topic label.
+The algorithm places semantically similar texts close together.
+
+- **Tight, separated clusters** → topics are well-defined; the model will classify them easily.
+- **Overlapping clusters** → those topics share similar language; the model will confuse them.
+- **Scattered dots of one colour** → that topic is poorly defined or has inconsistent labelling.
+- **A single dot far from its cluster** → potential mislabelling (see "Potential Labelling Errors" below).
+"""
+)
+
 with st.expander("Topic Cluster Quality Scores", expanded=True):
     col1, col2 = st.columns([3, 2])
     with col1:

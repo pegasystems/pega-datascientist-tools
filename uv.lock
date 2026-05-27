@@ -3275,15 +3275,6 @@ app = [
     { name = "streamlit" },
     { name = "xlsxwriter" },
 ]
-data-quality = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "plotly", extra = ["express"] },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "sentence-transformers", marker = "python_full_version < '3.14'" },
-    { name = "umap-learn", marker = "python_full_version < '3.14'" },
-]
 dev = [
     { name = "pre-commit" },
 ]
@@ -3322,6 +3313,15 @@ healthcheck = [
     { name = "quarto" },
     { name = "requests" },
     { name = "xlsxwriter" },
+]
+nlp = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "plotly", extra = ["express"] },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sentence-transformers", marker = "python_full_version < '3.14'" },
+    { name = "umap-learn", marker = "python_full_version < '3.14'" },
 ]
 onnx = [
     { name = "anyio" },
@@ -3411,7 +3411,7 @@ requires-dist = [
     { name = "moto", marker = "extra == 'tests'" },
     { name = "myst-parser", marker = "extra == 'docs'" },
     { name = "nbsphinx", marker = "extra == 'docs'" },
-    { name = "numpy", marker = "extra == 'data-quality'" },
+    { name = "numpy", marker = "extra == 'nlp'" },
     { name = "onnx", marker = "extra == 'onnx'", specifier = ">=1.18,<1.22" },
     { name = "onnxruntime", marker = "python_full_version >= '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.25" },
     { name = "onnxruntime", marker = "python_full_version < '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.24" },
@@ -3420,11 +3420,11 @@ requires-dist = [
     { name = "pdstools", extras = ["adm"], marker = "extra == 'healthcheck'" },
     { name = "pdstools", extras = ["all"], marker = "extra == 'tests'" },
     { name = "pdstools", extras = ["api"], marker = "extra == 'onnx'" },
-    { name = "pdstools", extras = ["app", "data-quality", "explanations", "onnx", "pega-io"], marker = "extra == 'all'" },
+    { name = "pdstools", extras = ["app", "explanations", "nlp", "onnx", "pega-io"], marker = "extra == 'all'" },
     { name = "pdstools", extras = ["healthcheck"], marker = "extra == 'app'" },
     { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0" },
-    { name = "plotly", extras = ["express"], marker = "extra == 'data-quality'", specifier = ">=6.0" },
     { name = "plotly", extras = ["express"], marker = "extra == 'explanations'" },
+    { name = "plotly", extras = ["express"], marker = "extra == 'nlp'", specifier = ">=6.0" },
     { name = "polars", specifier = ">=1.30,!=1.35.1,<=1.39.3" },
     { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = ">=1.30,!=1.35.1,<=1.39.3" },
     { name = "polars-hash", marker = "extra == 'pega-io'" },
@@ -3444,10 +3444,10 @@ requires-dist = [
     { name = "quarto", marker = "extra == 'healthcheck'" },
     { name = "questionary", marker = "extra == 'app'", specifier = ">=2.0" },
     { name = "requests", marker = "extra == 'adm'" },
-    { name = "scikit-learn", marker = "extra == 'data-quality'" },
+    { name = "scikit-learn", marker = "extra == 'nlp'" },
     { name = "scikit-learn", marker = "extra == 'onnx'", specifier = ">=1.6.1" },
     { name = "scipy", marker = "extra == 'onnx'", specifier = ">=1.15.3" },
-    { name = "sentence-transformers", marker = "python_full_version < '3.14' and extra == 'data-quality'" },
+    { name = "sentence-transformers", marker = "python_full_version < '3.14' and extra == 'nlp'" },
     { name = "skl2onnx", marker = "extra == 'onnx'", specifier = ">=1.19.1" },
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-argparse", marker = "extra == 'docs'" },
@@ -3458,11 +3458,11 @@ requires-dist = [
     { name = "streamlit", marker = "extra == 'docs'" },
     { name = "testbook", marker = "extra == 'tests'" },
     { name = "typing-extensions" },
-    { name = "umap-learn", marker = "python_full_version < '3.14' and extra == 'data-quality'" },
+    { name = "umap-learn", marker = "python_full_version < '3.14' and extra == 'nlp'" },
     { name = "xgboost", marker = "extra == 'docs'" },
     { name = "xlsxwriter", marker = "extra == 'healthcheck'", specifier = ">=3.0" },
 ]
-provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "data-quality", "app", "onnx", "all", "dev", "docs", "tests"]
+provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "nlp", "app", "onnx", "all", "dev", "docs", "tests"]
 
 [[package]]
 name = "pexpect"
