@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import quote as _quote
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
@@ -167,7 +168,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         if context is None:
             context = "NoContext"
         endpoint = (
-            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
+            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         )
         data = {}
         if context:
@@ -185,7 +186,11 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()
-                    and cc.context.lower() == context.lower()
+                    and (cc.context or "").lower() == context.lower()
                     and cc.category.lower() == category.lower()
                 ):
                     return cc
+        raise ValueError(
+            f"Model '{new_model}' was added but could not be found in champion challengers "
+            f"for category '{category}' and context '{context}'."
+        )

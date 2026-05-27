@@ -626,7 +626,7 @@ class TestAsyncPrediction:
         async_client.post.assert_awaited_once_with(
             "prweb/api/PredictionStudio/v4/predictions/"
             "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS/"
-            "category/Retention/models/@baseclass!testModel_falcons",
+            "category/Retention/models/%40baseclass%21testModel_falcons",
             data={"contextName": "NoContext"},
         )
         assert result is not None

@@ -12,10 +12,11 @@ from pdstools.infinity import AsyncInfinity, Infinity
 
 class TestInfinity:
     def test_init_without_version(self):
-        """Client without version falls back to latest API (prediction_studio is available)."""
+        """Client without version raises AttributeError when prediction_studio is accessed."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
         assert not client.version
-        assert hasattr(client, "prediction_studio")
+        with pytest.raises(AttributeError, match="pega_version="):
+            _ = client.prediction_studio
 
     def test_init_no_args_raises_type_error(self):
         """Direct ``Infinity()`` with no args is rejected by Python — explicit signature."""
@@ -72,11 +73,12 @@ class TestInfinity:
         )
         assert hasattr(client, "knowledge_buddy")
 
-    def test_getattr_version_none_falls_back_to_latest(self):
-        """When version is None, prediction_studio falls back to the latest API (26)."""
+    def test_getattr_version_none_raises_connection_error(self):
+        """When version is None, accessing prediction_studio raises AttributeError."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
         assert client.version is None
-        assert hasattr(client, "prediction_studio")
+        with pytest.raises(AttributeError, match="pega_version="):
+            _ = client.prediction_studio
 
     def test_getattr_unknown_attribute_raises(self):
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
@@ -134,7 +136,8 @@ class TestAsyncInfinity:
             "secret",
         )
         assert client.version is None
-        assert hasattr(client, "prediction_studio")
+        with pytest.raises(AttributeError, match="pega_version="):
+            _ = client.prediction_studio
 
     def test_init_inferred_version_24_2(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value="24.2")
@@ -155,25 +158,16 @@ class TestAsyncInfinity:
         )
         assert hasattr(client, "knowledge_buddy")
 
-    def test_getattr_version_none_falls_back_to_latest_api(self, mocker):
-        """When version is None, prediction_studio falls back to the latest API (26)."""
+    def test_getattr_version_none_raises_connection_error(self, mocker):
+        """When version is None, accessing prediction_studio raises AttributeError."""
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        assert hasattr(client, "prediction_studio")
-
-    def test_getattr_version_none_falls_back_to_latest(self, mocker):
-        """When version is None, prediction_studio falls back to the latest API (26)."""
-        mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
-        client = AsyncInfinity.from_client_id_and_secret(
-            "https://example.com",
-            "id",
-            "secret",
-        )
-        assert hasattr(client, "prediction_studio")
+        with pytest.raises(AttributeError, match="pega_version="):
+            _ = client.prediction_studio
 
 
 # ---------------------------------------------------------------------------

@@ -50,6 +50,86 @@ def test_connection_eror(httpx_mock: HTTPXMock):
         PegaAuth.token
 
 
+class TestPegaOAuthErrorRedaction:
+    """Auth error messages must expose only safe OAuth fields, never URLs or raw bodies."""
+
+    def _make_auth(self) -> _auth.PegaOAuth:
+        return _auth.PegaOAuth(
+            "https://pega.example.com",
+            client_id="id",
+            client_secret="secret",
+        )
+
+    def test_error_description_surfaced(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=401,
+            json={"error": "invalid_client", "error_description": "Bad credentials"},
+        )
+        with pytest.raises(ConnectionError, match="Bad credentials"):
+            self._make_auth().token
+
+    def test_error_field_used_when_no_description(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=401,
+            json={"error": "invalid_client"},
+        )
+        with pytest.raises(ConnectionError, match="invalid_client"):
+            self._make_auth().token
+
+    def test_no_oauth_fields_shows_fallback(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=401,
+            json={"message": "something internal"},
+        )
+        with pytest.raises(ConnectionError, match="no error detail returned"):
+            self._make_auth().token
+
+    def test_non_json_error_body_safe_message(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=401,
+            content=b"<html>Unauthorized</html>",
+        )
+        with pytest.raises(ConnectionError, match="non-JSON response from token endpoint"):
+            self._make_auth().token
+
+    def test_token_url_not_leaked(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=403,
+            json={"error": "forbidden"},
+        )
+        with pytest.raises(ConnectionError) as exc_info:
+            self._make_auth().token
+        assert "/prweb/PRRestService/oauth2/v1/token" not in str(exc_info.value)
+        assert "pega.example.com" not in str(exc_info.value)
+
+    def test_raw_body_not_leaked(self, httpx_mock: HTTPXMock):
+        secret_body = '{"internal_trace_id": "abc-123", "server": "internal-host"}'
+        httpx_mock.add_response(
+            status_code=500,
+            content=secret_body.encode(),
+        )
+        with pytest.raises(ConnectionError) as exc_info:
+            self._make_auth().token
+        assert "internal_trace_id" not in str(exc_info.value)
+        assert "internal-host" not in str(exc_info.value)
+
+    def test_success_non_json_response_raises(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=200,
+            content=b"not-json",
+        )
+        with pytest.raises(ConnectionError, match="non-JSON response"):
+            self._make_auth().token
+
+    def test_status_code_included_in_message(self, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            status_code=503,
+            json={"error": "service_unavailable"},
+        )
+        with pytest.raises(ConnectionError, match="503"):
+            self._make_auth().token
+
+
 @pytest.mark.filterwarnings("ignore:Could not infer Pega version automatically:UserWarning")
 def test_base_client(httpx_mock: HTTPXMock, monkeypatch):
     _base_client.BaseClient(base_url="TEST", auth="Test")  # no validation yet

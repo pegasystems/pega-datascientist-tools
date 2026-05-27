@@ -279,8 +279,8 @@ class _ChampionChallengerv26Mixin:
             raise PegaMLopsError("Challenger model is not set.")
         endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Promote"
         data = {"contextName": self.context}
-        response = await self._a_patch(endpoint, data=data)
         try:
+            response = await self._a_patch(endpoint, data=data)
             await self._refresh_champion_challenger()
         except PegaException as e:
             raise PegaMLopsError(

@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from urllib.parse import quote as _quote
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -149,7 +150,7 @@ class _Predictionv26Mixin:
         )
         end_date_str = end_date.strftime("%d/%m/%Y") if end_date else None
 
-        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/metric/{metric}"
+        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/metric/{_quote(metric, safe='')}"
         try:
             info = await self._a_get(
                 endpoint,

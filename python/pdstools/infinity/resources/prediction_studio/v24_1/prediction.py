@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import quote as _quote
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
@@ -32,7 +33,7 @@ class _PredictionV24_1Mixin:
         metric: METRIC,
         timeframe: Literal["7d", "4w", "3m", "6m"],
     ) -> pl.DataFrame:
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/metric/{metric}"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/metric/{_quote(metric, safe='')}"
         try:
             info = await self._a_get(endpoint, time_frame=timeframe)
             return (

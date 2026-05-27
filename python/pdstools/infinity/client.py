@@ -83,15 +83,15 @@ class Infinity(SyncAPIClient):
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
-            version = self.version
-            if version is None:
-                raise ConnectionError(
-                    "Could not connect to the Pega Infinity system — version detection failed. "
-                    "Check that the host is reachable and your credentials are valid, or pass "
-                    "'pega_version=' to the constructor to skip auto-detection."
-                )
             from . import resources
 
+            version = self.version
+            if version is None:
+                raise AttributeError(
+                    "Could not determine the Pega platform version — the system "
+                    "may be unreachable or returned an unexpected response. "
+                    "Pass pega_version= explicitly to skip version detection."
+                )
             resource_cls = resources.prediction_studio.get(version)
             instance = resource_cls(client=self)
             object.__setattr__(self, name, instance)
@@ -173,15 +173,15 @@ class AsyncInfinity(AsyncAPIClient):
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
-            version = self.version
-            if version is None:
-                raise ConnectionError(
-                    "Could not connect to the Pega Infinity system — version detection failed. "
-                    "Check that the host is reachable and your credentials are valid, or pass "
-                    "'pega_version=' to the constructor to skip auto-detection."
-                )
             from . import resources
 
+            version = self.version
+            if version is None:
+                raise AttributeError(
+                    "Could not determine the Pega platform version — the system "
+                    "may be unreachable or returned an unexpected response. "
+                    "Pass pega_version= explicitly to skip version detection."
+                )
             resource_cls = resources.prediction_studio.get_async(version)
             instance = resource_cls(client=self)
             object.__setattr__(self, name, instance)

@@ -37,6 +37,7 @@ class _Modelv25Mixin:
         lastUpdateTime: str | None = None,
         modelingTechnique: str | None = None,
         updatedBy: str | None = None,
+        componentName: str | None = None,
         **kwargs,
     ):
         super().__init__(  # type: ignore[call-arg]
@@ -49,6 +50,7 @@ class _Modelv25Mixin:
             lastUpdateTime=lastUpdateTime,
             modelingTechnique=modelingTechnique,
             updatedBy=updatedBy,
+            componentName=componentName,
         )
 
     @api_method
