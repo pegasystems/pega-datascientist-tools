@@ -20,7 +20,7 @@ from anyio import (
 )
 
 from ._auth import PegaOAuth, _read_client_credential_file
-from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
+from ._exceptions import APIConnectionError, APITimeoutError, PegaException, handle_pega_exception
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
