@@ -63,10 +63,9 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             notifications, depending on the value of ``return_df``.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
-        endpoint = f"{endpoint}?category={category}"
 
         notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
@@ -74,6 +73,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             "get",
             endpoint,
             _root="notifications",
+            category=category,
         )
         if return_df:
             return pl.DataFrame(
@@ -206,7 +206,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
         if context is None:
             context = "NoContext"
         endpoint = (
-            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
+            f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         )
         data = {}
         if context:

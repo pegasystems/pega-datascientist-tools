@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import quote as _quote
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList

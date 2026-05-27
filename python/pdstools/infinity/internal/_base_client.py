@@ -77,6 +77,11 @@ class BaseClient(Generic[_HttpxClientT]):
         self.pega_version = pega_version
         self.timeout = timeout
 
+    _MODEL_CATEGORIES_ENDPOINT = (
+        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+    )
+    _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
+
     def _enforce_trailing_slash(self, url: httpx.URL) -> httpx.URL:
         if url.raw_path.endswith(b"/"):
             return url
@@ -220,11 +225,6 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         )
         self.application_name = application_name
 
-    _MODEL_CATEGORIES_ENDPOINT = (
-        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
-    )
-    _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
-
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         # Probe 25-specific endpoint first; it does not exist on older systems.
         # When the probe succeeds we return the latest known version ("26"):
@@ -236,13 +236,25 @@ class SyncAPIClient(BaseClient[httpx.Client]):
                 return "26"
             if probe.status_code in (401, 403):
                 raise PegaException(
-                    f"Authentication failed during version probe (HTTP {probe.status_code}). "
-                    "Check your credentials."
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                        "Check your credentials."
+                    ),
                 )
             if probe.status_code >= 500:
                 raise PegaException(
-                    f"Server error during version probe (HTTP {probe.status_code}). "
-                    "The Infinity system may be unavailable."
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Server error during version probe (HTTP {probe.status_code}). "
+                        "The Infinity system may be unavailable."
+                    ),
                 )
             # 404 or other non-200: endpoint absent on older systems, fall through.
         except PegaException:
@@ -297,7 +309,9 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except httpx.ConnectError as err:
             raise Exception(str(err)) from err
         except Exception as err:
-            raise APIConnectionError(request=f"{request} — caused by: {err}") from err
+            raise APIConnectionError(
+                "Failed to connect to API. Please check network or endpoint configuration."
+            ) from err
         return response
 
     def handle_pega_exception(self, endpoint, params, response):
@@ -512,13 +526,25 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
                 return "26"
             if probe.status_code in (401, 403):
                 raise PegaException(
-                    f"Authentication failed during version probe (HTTP {probe.status_code}). "
-                    "Check your credentials."
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                        "Check your credentials."
+                    ),
                 )
             if probe.status_code >= 500:
                 raise PegaException(
-                    f"Server error during version probe (HTTP {probe.status_code}). "
-                    "The Infinity system may be unavailable."
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Server error during version probe (HTTP {probe.status_code}). "
+                        "The Infinity system may be unavailable."
+                    ),
                 )
             # 404 or other non-200: endpoint absent on older systems, fall through.
         except PegaException:
@@ -577,7 +603,9 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         except httpx.ConnectError as err:
             raise Exception(str(err)) from err
         except Exception as err:
-            raise APIConnectionError(request=str(request)) from err
+            raise APIConnectionError(
+                "Failed to connect to API. Please check network or endpoint configuration."
+            ) from err
         return response
 
     def handle_pega_exception(self, endpoint, params, response):
