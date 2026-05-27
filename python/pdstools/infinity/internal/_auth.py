@@ -42,18 +42,20 @@ class PegaOAuth(httpx.Auth):
         if response.status_code != 200:
             try:
                 body = response.json()
+                # Only surface the safe OAuth error fields; never leak the full body.
+                error_detail = body.get("error_description") or body.get("error") or "no error detail returned"
             except Exception:
-                body = response.text
+                error_detail = "non-JSON response from token endpoint"
             raise ConnectionError(
-                f"Unable to get OAuth token from {self.base_url}/prweb/PRRestService/oauth2/v1/token "
-                f"(status {response.status_code}): {body}"
+                f"Unable to obtain OAuth token (HTTP {response.status_code}): {error_detail}. "
+                "Check that client_id and client_secret are correct."
             )
         try:
             new_token = response.json()
         except Exception:
             raise ConnectionError(
-                f"OAuth token endpoint returned non-JSON response: {response.text[:500]!r}"
-            )
+                "OAuth token endpoint returned a non-JSON response."
+            ) from None
         self._token_expiry = time.time() + new_token.get("expires_in")
         self._token = new_token.get("access_token")
         return self._token

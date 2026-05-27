@@ -201,6 +201,10 @@ class Prediction(_Predictionv26Mixin, PredictionPrevious):
             raise PegaMLopsError("Add conditional model failed")
         champion_challengers = self.get_champion_challengers()
         for cc in champion_challengers:
+            if cc.active_model is None:
+                raise ValueError(
+                    f"Champion challenger has no active model for category '{category}'."
+                )
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()

@@ -16,6 +16,7 @@ _SYNC_VERSION_MAP: dict[str, type[PredictionStudioBase]] = {
     "24.1": v24_1.PredictionStudio,
     "24.2": v24_2.PredictionStudio,
     "25": v25.PredictionStudio,
+    "25.1": v25.PredictionStudio,
     "26": v26.PredictionStudio,
 }
 
@@ -23,6 +24,7 @@ _ASYNC_VERSION_MAP: dict[str, type[AsyncPredictionStudioBase]] = {
     "24.1": v24_1.AsyncPredictionStudio,
     "24.2": v24_2.AsyncPredictionStudio,
     "25": v25.AsyncPredictionStudio,
+    "25.1": v25.AsyncPredictionStudio,
     "26": v26.AsyncPredictionStudio,
 }
 

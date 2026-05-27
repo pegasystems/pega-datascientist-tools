@@ -234,7 +234,19 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
             if probe.status_code == 200:
                 return "26"
-            # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
+            if probe.status_code in (401, 403):
+                raise PegaException(
+                    f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                    "Check your credentials."
+                )
+            if probe.status_code >= 500:
+                raise PegaException(
+                    f"Server error during version probe (HTTP {probe.status_code}). "
+                    "The Infinity system may be unavailable."
+                )
+            # 404 or other non-200: endpoint absent on older systems, fall through.
+        except PegaException:
+            raise
         except Exception as e:
             if on_error == "warn":
                 logger.warning(
@@ -498,7 +510,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
                 raise probe
             if probe.status_code == 200:
                 return "26"
-            # Non-200 (e.g. 404 on 24.x systems): fall through to repository probe.
+            if probe.status_code in (401, 403):
+                raise PegaException(
+                    f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                    "Check your credentials."
+                )
+            if probe.status_code >= 500:
+                raise PegaException(
+                    f"Server error during version probe (HTTP {probe.status_code}). "
+                    "The Infinity system may be unavailable."
+                )
+            # 404 or other non-200: endpoint absent on older systems, fall through.
+        except PegaException:
+            raise
         except Exception as e:
             if on_error == "warn":
                 logger.warning(

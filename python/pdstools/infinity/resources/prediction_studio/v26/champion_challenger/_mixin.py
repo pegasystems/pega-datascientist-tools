@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 import random
@@ -212,7 +212,7 @@ class _ChampionChallengerv26Mixin:
                 raise PegaMLopsError(
                     "Status polling failed and no challenger model was found. "
                     "The model may not have been added successfully."
-                )
+                ) from None
 
             model_status = status["ModelUpdateStatus"]
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, overload
 
@@ -14,9 +14,11 @@ if TYPE_CHECKING:
     from ..types import NotificationCategory
     from collections.abc import Callable
 
+__all__ = ["AsyncModel", "Model"]
+
 
 class _Modelv25Mixin:
-    """v26 Model business logic — defined once."""
+    """v25 Model business logic — defined once."""
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -31,13 +33,10 @@ class _Modelv25Mixin:
         label: str,
         modelType: str,
         status: str,
-        componentName: str | None = None,
         source: str | None = None,
         lastUpdateTime: str | None = None,
         modelingTechnique: str | None = None,
         updatedBy: str | None = None,
-        performance: float | None = None,
-        performanceMeasure: str | None = None,
         **kwargs,
     ):
         super().__init__(  # type: ignore[call-arg]
@@ -46,14 +45,11 @@ class _Modelv25Mixin:
             label=label,
             modelType=modelType,
             status=status,
-            componentName=componentName,
             source=source,
             lastUpdateTime=lastUpdateTime,
             modelingTechnique=modelingTechnique,
             updatedBy=updatedBy,
         )
-        self.performance = performance
-        self.performance_measure = performanceMeasure
 
     @api_method
     async def describe(self) -> ModelAttributes:
@@ -70,7 +66,7 @@ class _Modelv25Mixin:
 
 
 class Model(_Modelv25Mixin, PreviousModel):
-    """v26 Model — inherits all v24.2 functionality."""
+    """v25 Model."""
 
     @overload
     def get_notifications(
@@ -103,13 +99,11 @@ class Model(_Modelv25Mixin, PreviousModel):
         Returns
         -------
         PaginatedList[Notification] or polars.DataFrame
-            A list of notifications or a DataFrame.
 
         """
         endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
         if category is None:
             category = "All"
-
         endpoint = f"{endpoint}?category={category}"
         notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
@@ -126,7 +120,7 @@ class Model(_Modelv25Mixin, PreviousModel):
 
 
 class AsyncModel(_Modelv25Mixin, AsyncPreviousModel):
-    """v26 async Model — inherits all v24.2 functionality."""
+    """v25 async Model."""
 
     async def get_notifications(
         self,
@@ -145,13 +139,11 @@ class AsyncModel(_Modelv25Mixin, AsyncPreviousModel):
         Returns
         -------
         AsyncPaginatedList[AsyncNotification] or polars.DataFrame
-            A list of notifications or a DataFrame.
 
         """
         endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
         if category is None:
             category = "All"
-
         endpoint = f"{endpoint}?category={category}"
         notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
@@ -163,3 +155,4 @@ class AsyncModel(_Modelv25Mixin, AsyncPreviousModel):
         if return_df:
             return await notifications.as_df()
         return notifications
+

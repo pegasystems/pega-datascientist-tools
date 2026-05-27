@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import (
@@ -10,6 +11,8 @@ from typing import (
 )
 
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
@@ -100,6 +103,11 @@ class _PredictionMixin(ABC):
         **kwargs,
     ):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
+        if kwargs:
+            logger.debug(
+                "_PredictionMixin received unexpected fields from API response: %s",
+                list(kwargs.keys()),
+            )
         self.prediction_id = predictionId
         self.label = label
         self.objective = objective

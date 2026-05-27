@@ -1,10 +1,13 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 import polars as pl
 from pydantic import validate_call
+
+logger = logging.getLogger(__name__)
 
 from ......utils import cdh_utils
 from .....internal._constants import METRIC  # noqa: TC001 — runtime needed by pydantic.validate_call
@@ -35,8 +38,6 @@ class _Predictionv25Mixin:
         lastUpdateTime: str | None = None,
         objective: str | None = None,
         subject: str | None = None,
-        performance: float | None = None,
-        performanceMeasure: str | None = None,
         **kwargs,
     ):
         super().__init__(  # type: ignore[call-arg]
@@ -48,9 +49,12 @@ class _Predictionv25Mixin:
             objective=objective,
             subject=subject,
         )
+        if kwargs:
+            logger.debug(
+                "_Predictionv25Mixin received unexpected fields from API response: %s",
+                list(kwargs.keys()),
+            )
         self.type = type
-        self.performance = performance
-        self.performance_measure = performanceMeasure
 
     @api_method
     async def describe(self):

@@ -5,12 +5,8 @@ __all__ = ["AsyncInfinity", "Infinity"]
 from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
-import logging
-
 from ..utils.namespaces import MissingDependenciesException
 from .internal._base_client import AsyncAPIClient, SyncAPIClient
-
-logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import httpx
@@ -88,14 +84,14 @@ class Infinity(SyncAPIClient):
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
             version = self.version
+            if version is None:
+                raise ConnectionError(
+                    "Could not connect to the Pega Infinity system — version detection failed. "
+                    "Check that the host is reachable and your credentials are valid, or pass "
+                    "'pega_version=' to the constructor to skip auto-detection."
+                )
             from . import resources
 
-            if not version:
-                logger.warning(
-                    "Pega version could not be determined; using latest API (26). "
-                    "Pass 'pega_version' to the constructor to skip version detection."
-                )
-                version = "26"
             resource_cls = resources.prediction_studio.get(version)
             instance = resource_cls(client=self)
             object.__setattr__(self, name, instance)
@@ -178,14 +174,14 @@ class AsyncInfinity(AsyncAPIClient):
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
             version = self.version
+            if version is None:
+                raise ConnectionError(
+                    "Could not connect to the Pega Infinity system — version detection failed. "
+                    "Check that the host is reachable and your credentials are valid, or pass "
+                    "'pega_version=' to the constructor to skip auto-detection."
+                )
             from . import resources
 
-            if not version:
-                logger.warning(
-                    "Pega version could not be determined; using latest API (26). "
-                    "Pass 'pega_version' to the constructor to skip version detection."
-                )
-                version = "26"
             resource_cls = resources.prediction_studio.get_async(version)
             instance = resource_cls(client=self)
             object.__setattr__(self, name, instance)
