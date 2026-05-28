@@ -367,31 +367,48 @@ class Aggregates:
 
         grouping_cols: list[str] | None = None if len(grouping) == 0 else grouping
 
+        # polars 1.41 changed the inferred dtype of the synthetic column that
+        # `group_by(None)` produces, so the previous pattern of joining four
+        # summaries on the auto-generated "literal" column now fails with a
+        # SchemaError on later polars versions. Inject a deterministic, typed
+        # sentinel column upfront and use it as the grouping key everywhere
+        # when there are no real grouping columns. Drop it at the end.
+        _sentinel = "_pdstools_overall"
+        if grouping_cols is None:
+            model_data = model_data.with_columns(
+                pl.lit(0, dtype=pl.Int32).alias(_sentinel),
+            )
+            effective_grouping: list[str] = [_sentinel]
+            drop_after: list[str] = [_sentinel]
+        else:
+            effective_grouping = grouping_cols
+            drop_after = []
+
         return (
-            self._summarize_meta_info(grouping_cols, model_data, debug=debug)
+            self._summarize_meta_info(effective_grouping, model_data, debug=debug)
             .join(
-                self._summarize_model_analytics(grouping_cols, model_data, debug=debug),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                self._summarize_model_analytics(effective_grouping, model_data, debug=debug),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
             .join(
-                self._summarize_action_analytics(grouping_cols, model_data, debug=debug),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                self._summarize_action_analytics(effective_grouping, model_data, debug=debug),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
             .join(
                 self._summarize_model_usage(
-                    grouping_cols,
+                    effective_grouping,
                     model_data,
                     debug=debug,
                 ),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
-            .drop(["literal"] if grouping_cols is None else [])
+            .drop(drop_after)
             .sort([] if grouping_cols is None else grouping_cols)
         )
 
@@ -532,7 +549,7 @@ class Aggregates:
         if "Treatment" in self.datamart.context_keys:
             return action_summary.join(
                 treatment_summary,
-                on=("literal" if grouping is None else grouping),
+                on=grouping,
                 nulls_equal=True,
                 how="left",
             ).fill_null(0)
