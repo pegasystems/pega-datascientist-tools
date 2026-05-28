@@ -116,12 +116,12 @@ def seeded_admdatamart() -> ADMDatamart:
     )
 
 
-IA_SAMPLE_JSON = DATA_DIR / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
+IA_SAMPLE_ZIP = DATA_DIR / "ia" / "ImpactAnalyzer_InfinityDemo.zip"
 
 
 @pytest.fixture
 def seeded_impact_analyzer() -> ImpactAnalyzer:
-    """An ImpactAnalyzer loaded from the bundled PDC sample."""
-    if not IA_SAMPLE_JSON.exists():
-        pytest.skip(f"IA sample data missing: {IA_SAMPLE_JSON}")
-    return ImpactAnalyzer.from_pdc(str(IA_SAMPLE_JSON))
+    """An ImpactAnalyzer loaded from the bundled VBD sample."""
+    if not IA_SAMPLE_ZIP.exists():
+        pytest.skip(f"IA sample data missing: {IA_SAMPLE_ZIP}")
+    return ImpactAnalyzer.from_vbd(str(IA_SAMPLE_ZIP))

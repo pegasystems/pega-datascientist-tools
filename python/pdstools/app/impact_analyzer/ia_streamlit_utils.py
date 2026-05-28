@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_PDC_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/CDH_Metrics_ImpactAnalyzer.json"
+SAMPLE_VBD_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/ImpactAnalyzer_InfinityDemo.zip"
 
 
 def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
@@ -36,7 +36,7 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
 
     1. If ``impact_analyzer`` is already in session_state, return ``True``.
     2. Try the ``--data-path`` CLI flag via :func:`handle_data_path_ia`.
-    3. Fall back to :func:`load_sample_pdc`.
+    3. Fall back to :func:`load_sample`.
 
     Parameters
     ----------
@@ -66,13 +66,15 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
             st.session_state["impact_analyzer"] = ia
             st.session_state["ia_is_sample_data"] = False
             st.session_state["ia_data_source_path"] = configured_path
+            st.session_state["ia_data_source_kind"] = "cli"
+            st.session_state["ia_data_source_label"] = configured_path
             if show_toast:
                 st.toast(f"Loaded data from `{configured_path}`.", icon="📂")
             return True
 
     try:
         with st.spinner("Loading sample data…"):
-            ia = load_sample_pdc()
+            ia = load_sample()
     except Exception:
         logger.exception("Failed to auto-load Impact Analyzer sample")
         return False
@@ -82,6 +84,8 @@ def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
 
     st.session_state["impact_analyzer"] = ia
     st.session_state["ia_is_sample_data"] = True
+    st.session_state["ia_data_source_kind"] = "sample"
+    st.session_state["ia_data_source_label"] = "Built-in sample"
     if show_toast:
         st.toast("Loaded sample data — upload your own to replace it.", icon="📊")
     return True
@@ -102,6 +106,47 @@ def ensure_impact_analyzer() -> ImpactAnalyzer:
     return st.session_state["impact_analyzer"]
 
 
+def render_channel_filter(ia: ImpactAnalyzer) -> str:
+    """Render the shared sidebar Channel/Direction selectbox.
+
+    Both the Channel Performance and Details pages call this so the
+    user's channel selection is a single source of truth that persists
+    across page navigation (via the shared ``lift_chart_channel_filter``
+    session-state key). Returns the selected value: ``"Any"`` for the
+    aggregate across all channels, or a specific channel name.
+
+    Channels with no rows in :meth:`ImpactAnalyzer.summarize_experiments`
+    by-channel output are hidden from the dropdown so users don't pick
+    an empty slice. If the dataset has no ``Channel`` column at all, no
+    widget is rendered and ``"Any"`` is returned.
+    """
+    if "Channel" not in ia.ia_data.collect_schema().names():
+        return "Any"
+
+    try:
+        per_channel = ia.summarize_experiments(by="Channel").collect()
+        channels = sorted(per_channel["Channel"].drop_nulls().unique().to_list())
+    except Exception:
+        channels = []
+
+    if not channels:
+        return "Any"
+
+    with st.sidebar:
+        st.divider()
+        st.caption("**Filters**")
+        return st.selectbox(
+            "Channel / Direction",
+            ["Any", *channels],
+            help=(
+                "Filter the page to a specific channel. 'Any' shows the "
+                "aggregate across all channels. Selection is shared "
+                "between the Channel Performance and Details pages."
+            ),
+            key="lift_chart_channel_filter",
+        )
+
+
 def _write_uploaded_file(uploaded_file) -> str:
     suffix = Path(uploaded_file.name).suffix or ".json"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -113,20 +158,20 @@ def _write_uploaded_files(uploaded_files: Iterable) -> list[str]:
     return [_write_uploaded_file(uploaded_file) for uploaded_file in uploaded_files]
 
 
-def _resolve_sample_pdc_path() -> Path:
-    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "CDH_Metrics_ImpactAnalyzer.json"
+def _resolve_sample_path() -> Path:
+    local_path = Path(__file__).resolve().parents[4] / "data" / "ia" / "ImpactAnalyzer_InfinityDemo.zip"
     if local_path.exists():
         return local_path
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp:
-        with urllib.request.urlopen(SAMPLE_PDC_URL) as response:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+        with urllib.request.urlopen(SAMPLE_VBD_URL) as response:
             tmp.write(response.read())
         return Path(tmp.name)
 
 
 @st.cache_resource
-def load_sample_pdc() -> ImpactAnalyzer:
-    sample_path = _resolve_sample_pdc_path()
-    return ImpactAnalyzer.from_pdc(str(sample_path))
+def load_sample() -> ImpactAnalyzer:
+    sample_path = _resolve_sample_path()
+    return ImpactAnalyzer.from_vbd(str(sample_path))
 
 
 @st.cache_resource
@@ -149,9 +194,10 @@ def _detect_file_format(uploaded_file) -> str:
     """
     import json
 
-    # Read first few lines to detect format
+    # Read first line to detect format.  VBD NDJSON rows can easily
+    # exceed 500 bytes so read a generous chunk.
     uploaded_file.seek(0)
-    first_bytes = uploaded_file.read(500)
+    first_bytes = uploaded_file.read(8192)
     uploaded_file.seek(0)
 
     try:
@@ -165,7 +211,18 @@ def _detect_file_format(uploaded_file) -> str:
             return "pdc"
 
         # VBD format (unzipped) has columns like OutcomeTime, MktValue, Channel, etc.
-        vbd_indicators = {"OutcomeTime", "MktValue", "Channel", "AggregateCount", "Outcome"}
+        # Column names may carry Pega prefixes (pxOutcomeTime, pyChannel, …).
+        vbd_indicators = {
+            "OutcomeTime",
+            "MktValue",
+            "Channel",
+            "AggregateCount",
+            "Outcome",
+            "pxOutcomeTime",
+            "pyOutcome",
+            "pyChannel",
+            "MktType",
+        }
         if vbd_indicators.intersection(first_obj.keys()):
             return "vbd"
 
@@ -548,7 +605,7 @@ def handle_data_path_ia() -> ImpactAnalyzer | None:
         return load_vbd_from_path(str(p), outcome_labels_json=outcome_labels_json)
     st.error(
         f"Unsupported file type: {suffix}. Use JSON/NDJSON (monitoring export), "
-        "XLSX (Excel monitoring export), or ZIP (scenario-planner export)."
+        "XLSX (Pega Infinity IA Excel export), or ZIP (scenario-planner export)."
     )
     return None
 

@@ -6,7 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(Pre-release notes accumulate here until the next tag.)
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 
 ## [5.0.0] — TBD
 
@@ -25,13 +30,18 @@ guide.
   list of column names for `by`, in addition to the existing single-string
   form — enables grouping by Channel × Direction etc. in Health Check /
   Model Reports (#700).
-- `ImpactAnalyzer.from_excel` classmethod reads PDC Excel exports
-  (`.xlsx`) using polars' built-in calamine engine (no extra deps). The
-  Streamlit app and `--data-path` CLI flag accept `.xlsx` uploads with
-  auto-detection (#685).
+- `ImpactAnalyzer.from_excel` classmethod reads the **Pega Infinity Impact
+  Analyzer Excel export** — specifically the `Data` sheet, which carries
+  one row per (Date × Channel × Direction × Action × Treatment ×
+  Experiment) with pre-paired Test/Control counts. Rows are exploded
+  into the long IA format (`from_vbd`-style); NBA test traffic that
+  appears across multiple NBA-vs-X experiments is deduplicated to avoid
+  double-counting. Date and number parsing is locale-tolerant
+  (handles ISO/US/EU formats and Excel serial dates). Uses polars'
+  built-in calamine engine; no extra deps required. The Streamlit app
+  and `--data-path` CLI flag accept `.xlsx` uploads with auto-detection.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
-  `fastexcel` optional-dependency shim. `ImpactAnalyzer.from_excel`
-  delegates the file load to `read_data` (#694).
+  `fastexcel` optional-dependency shim.
 - `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
   implemented (was a no-op stub). Mirrors `ADMDatamart.from_s3` for the
   single-file case; `boto3` is gated via `MissingDependenciesException`
