@@ -3027,7 +3027,7 @@ tests = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", marker = "extra == 'pega-io'", specifier = ">=15.0,<16" },
+    { name = "aioboto3", marker = "extra == 'pega-io'", specifier = ">=15.5,<16" },
     { name = "anyio", marker = "extra == 'api'", specifier = ">=4.0,<5" },
     { name = "anyio", marker = "extra == 'docs'" },
     { name = "boto3", marker = "extra == 'pega-io'", specifier = ">=1.40,<2" },
@@ -3047,8 +3047,7 @@ requires-dist = [
     { name = "myst-parser", marker = "extra == 'docs'" },
     { name = "nbsphinx", marker = "extra == 'docs'" },
     { name = "onnx", marker = "extra == 'onnx'", specifier = ">=1.18,<1.22" },
-    { name = "onnxruntime", marker = "python_full_version >= '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.25" },
-    { name = "onnxruntime", marker = "python_full_version < '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.24" },
+    { name = "onnxruntime", marker = "extra == 'onnx'", specifier = ">=1.22,<1.25" },
     { name = "openpyxl", marker = "extra == 'tests'", specifier = ">=3" },
     { name = "papermill", marker = "extra == 'healthcheck'", specifier = ">=2.6,<3" },
     { name = "pdstools", extras = ["adm"], marker = "extra == 'healthcheck'" },
@@ -3058,8 +3057,8 @@ requires-dist = [
     { name = "pdstools", extras = ["healthcheck"], marker = "extra == 'app'" },
     { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0,<7" },
     { name = "plotly", extras = ["express"], marker = "extra == 'explanations'", specifier = ">=6.0,<7" },
-    { name = "polars", specifier = "!=1.35.1,>=1.37,<=1.39.3" },
-    { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = "!=1.35.1,>=1.37,<=1.39.3" },
+    { name = "polars", specifier = "!=1.35.1,>=1.37,<2" },
+    { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = "!=1.35.1,>=1.37,<2" },
     { name = "polars-hash", marker = "extra == 'pega-io'", specifier = ">=0.5,<1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pyarrow", marker = "extra == 'explanations'", specifier = ">=18,<25" },
