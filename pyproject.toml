@@ -40,7 +40,7 @@ requires-python = ">=3.10,<3.15"
 # Bounds are added to deps that ship breaking majors regularly. Stable single-
 # major deps (requests, pyyaml, ipywidgets, etc.) can stay loose.
 dependencies = [
-    "polars>=1.37,!=1.35.1,<=1.39.3",
+    "polars>=1.37,!=1.35.1,<2",
     'typing_extensions',
 ]
 
@@ -53,14 +53,14 @@ adm = [
     'pydot>=4.0,<5',
     'requests',
 ]
-pega_io = ['aioboto3>=15.0,<16', 'boto3>=1.40,<2', 'polars_hash>=0.5,<1']
+pega_io = ['aioboto3>=15.5,<16', 'boto3>=1.40,<2', 'polars_hash>=0.5,<1']
 api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8']
 explanations = ['duckdb>=1.1,<2', "plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45,<2',
-    "polars[rt64]>=1.37,!=1.35.1,<=1.39.3",
+    "polars[rt64]>=1.37,!=1.35.1,<2",
     'humanize>=4.0.0,<5',
     'fastexcel>=0.19,<1',
     'questionary>=2.0,<3',
@@ -70,8 +70,7 @@ onnx = [
     'skl2onnx>=1.19.1', # Updated to be compatible with onnx 1.19.0+
     'onnx>=1.18,<1.22', # Using ONNX 1.18.x specifically
     'pdstools[api]',
-    "onnxruntime>=1.22,<1.24; python_version < '3.11'",
-    "onnxruntime>=1.22,<1.25; python_version >= '3.11'",
+    "onnxruntime>=1.22,<1.25",
     "scipy>=1.15.3",
 ]
 all = ['pdstools[app, pega_io, onnx, explanations]']
