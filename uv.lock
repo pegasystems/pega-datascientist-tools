@@ -2873,7 +2873,6 @@ adm = [
 all = [
     { name = "aioboto3" },
     { name = "anyio" },
-    { name = "boto3" },
     { name = "duckdb" },
     { name = "fastexcel" },
     { name = "great-tables" },
@@ -2977,13 +2976,11 @@ onnx = [
 ]
 pega-io = [
     { name = "aioboto3" },
-    { name = "boto3" },
     { name = "polars-hash" },
 ]
 tests = [
     { name = "aioboto3" },
     { name = "anyio" },
-    { name = "boto3" },
     { name = "coverage" },
     { name = "duckdb" },
     { name = "fastexcel" },
@@ -3030,7 +3027,6 @@ requires-dist = [
     { name = "aioboto3", marker = "extra == 'pega-io'", specifier = ">=15.5,<16" },
     { name = "anyio", marker = "extra == 'api'", specifier = ">=4.0,<5" },
     { name = "anyio", marker = "extra == 'docs'" },
-    { name = "boto3", marker = "extra == 'pega-io'", specifier = ">=1.40,<2" },
     { name = "coverage", marker = "extra == 'tests'", specifier = ">=7" },
     { name = "duckdb", marker = "extra == 'docs'" },
     { name = "duckdb", marker = "extra == 'explanations'", specifier = ">=1.1,<2" },
