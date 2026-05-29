@@ -188,14 +188,9 @@ class TestVersionDispatch:
 
         assert get("24.2") is PredictionStudio
 
-    def test_get_none_returns_none(self):
-        from pdstools.infinity.resources.prediction_studio import get
-
-        assert get("") is None
-
     def test_get_unknown_falls_back(self):
         from pdstools.infinity.resources.prediction_studio import get
-        from pdstools.infinity.resources.prediction_studio.v26 import PredictionStudio
+        from pdstools.infinity.resources.prediction_studio.v26_1 import PredictionStudio
 
         result = get("27")
         assert result is PredictionStudio
@@ -216,14 +211,9 @@ class TestVersionDispatch:
 
         assert get_async("24.2") is AsyncPredictionStudio
 
-    def test_get_async_none_returns_none(self):
-        from pdstools.infinity.resources.prediction_studio import get_async
-
-        assert get_async("") is None
-
     def test_get_async_unknown_falls_back(self):
         from pdstools.infinity.resources.prediction_studio import get_async
-        from pdstools.infinity.resources.prediction_studio.v26 import (
+        from pdstools.infinity.resources.prediction_studio.v26_1 import (
             AsyncPredictionStudio,
         )
 

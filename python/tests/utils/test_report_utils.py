@@ -981,12 +981,13 @@ class TestGetCmdOutput:
     """Tests for the _get_cmd_output helper."""
 
     def test_returns_lines_on_success(self):
-        lines = report_utils._get_cmd_output(["echo", "hello world"])
+        import sys
+        lines = report_utils._get_cmd_output([sys.executable, "-c", "print('hello world')"])
         assert lines[0] == "hello world"
 
     def test_raises_on_missing_executable(self):
         with pytest.raises(FileNotFoundError, match="Command failed"):
-            report_utils._get_cmd_output(["false"])
+            report_utils._get_cmd_output(["__nonexistent_command_xyz__"])
 
 
 class TestGetQuartoAndPandoc:

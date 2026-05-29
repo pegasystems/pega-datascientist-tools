@@ -1,7 +1,7 @@
 """Tests for mutating ChampionChallenger and Prediction APIs.
 
 Covers add_conditional_model, delete_challenger_model, and promote_challenger_model
-across all three API versions (v24_2, v25, v26).
+across all three API versions (v24_2, v25/v26).
 """
 
 from __future__ import annotations
@@ -18,20 +18,18 @@ from pdstools.infinity.resources.prediction_studio.v24_2.model import Model as M
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction._sync import (
     Prediction as Predv24_2,
 )
-from pdstools.infinity.resources.prediction_studio.v25.champion_challenger._sync import (
-    ChampionChallenger as CCv25,
+from pdstools.infinity.resources.prediction_studio.v26_1.champion_challenger._sync import (
+    ChampionChallenger as CCv26_1,
 )
-from pdstools.infinity.resources.prediction_studio.v25.model import Model as Modelv25
-from pdstools.infinity.resources.prediction_studio.v25.prediction._sync import (
-    Prediction as Predv25,
+from pdstools.infinity.resources.prediction_studio.v26_1.model import Model as Modelv26_1
+from pdstools.infinity.resources.prediction_studio.v26_1.prediction._sync import (
+    Prediction as Predv26_1,
 )
-from pdstools.infinity.resources.prediction_studio.v26.champion_challenger._sync import (
-    ChampionChallenger as CCv26,
-)
-from pdstools.infinity.resources.prediction_studio.v26.model import Model as Modelv26
-from pdstools.infinity.resources.prediction_studio.v26.prediction._sync import (
-    Prediction as Predv26,
-)
+
+# v25 and v26 share one implementation — alias for parametrized test readability
+CCv25_1 = CCv26_1
+Modelv25_1 = Modelv26_1
+Predv25_1 = Predv26_1
 
 # ---------------------------------------------------------------------------
 # Parametrize triples: (PredictionClass, CCClass, ModelClass)
@@ -41,8 +39,8 @@ ALL_VERSIONS = pytest.mark.parametrize(
     "PredClass,CCClass,ModelClass",
     [
         pytest.param(Predv24_2, CCv24_2, Modelv24_2, id="v24_2"),
-        pytest.param(Predv25, CCv25, Modelv25, id="v25"),
-        pytest.param(Predv26, CCv26, Modelv26, id="v26"),
+        pytest.param(Predv25_1, CCv25_1, Modelv25_1, id="v25.1"),
+        pytest.param(Predv26_1, CCv26_1, Modelv26_1, id="v26.1"),
     ],
 )
 

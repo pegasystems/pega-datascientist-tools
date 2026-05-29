@@ -275,7 +275,7 @@ def _get_cmd_output(args: list[str]) -> list[str]:
             check=True,
         )
         return result.stdout.split("\n")
-    except subprocess.CalledProcessError as e:
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.error(f"Failed to run command {' '.join(args)}: {e}")
         raise FileNotFoundError(
             f"Command failed. Make sure {args[0]} is installed and in the system PATH.",

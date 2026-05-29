@@ -98,7 +98,7 @@ class TestBaseClient:
         probe_response = MagicMock(spec=httpx.Response)
         probe_response.status_code = 200
         mocker.patch.object(client, "_request", return_value=probe_response)
-        assert client._infer_version() == "26"
+        assert client._infer_version() == "26.1"
 
     def test_infer_version_falls_back_to_24_2_when_model_categories_404(self, mocker):
         client = SyncAPIClient(
@@ -502,7 +502,7 @@ class TestAsyncInferVersion:
         probe = self._mock_probe(200)
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
-        assert client._infer_version() == "26"
+        assert client._infer_version() == "26.1"
 
     def test_falls_back_to_24_2(self, mocker):
         client = self._make_client()
