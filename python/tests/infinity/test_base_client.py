@@ -132,9 +132,7 @@ class TestBaseClient:
             base_url="https://example.com",
             auth=httpx.BasicAuth("user", "pass"),
         )
-        mocker.patch.object(
-            client, "_request", side_effect=Exception("connection refused")
-        )
+        mocker.patch.object(client, "_request", side_effect=Exception("connection refused"))
         result = client._infer_version(on_error="warn")
         assert result is None
 
@@ -510,9 +508,7 @@ class TestAsyncInferVersion:
         repo = {"repository_type": "S3", "repository_name": "Repo"}
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=[probe, repo]
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
         assert client._infer_version() == "24.2"
 
     def test_falls_back_to_24_1(self, mocker):
@@ -521,9 +517,7 @@ class TestAsyncInferVersion:
         repo = {"repository_name": "Repo"}
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=[probe, repo]
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
         assert client._infer_version() == "24.1"
 
     def test_raises_pega_exception_on_401(self, mocker):
@@ -556,41 +550,30 @@ class TestAsyncInferVersion:
         exc = ConnectionError("refused")
         responses = iter([exc])
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses)
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses))
         with pytest.raises(ConnectionError):
             client._infer_version()
 
     def test_error_mode_raises_on_probe_failure(self, mocker):
         client = self._make_client()
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=Exception("network down")
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
         with pytest.raises(Exception, match="network down"):
             client._infer_version(on_error="error")
 
     def test_warn_mode_returns_none_on_probe_failure(self, mocker, caplog):
         client = self._make_client()
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=Exception("network down")
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
         with caplog.at_level("WARNING", logger="pdstools.infinity.internal._base_client"):
             result = client._infer_version(on_error="warn")
         assert result is None
-        assert any(
-            "Could not validate connection" in r.message and r.levelname == "WARNING"
-            for r in caplog.records
-        )
+        assert any("Could not validate connection" in r.message and r.levelname == "WARNING" for r in caplog.records)
 
     def test_ignore_mode_returns_none_on_probe_failure(self, mocker):
         client = self._make_client()
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=Exception("network down")
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
         assert client._infer_version(on_error="ignore") is None
 
     def test_error_mode_raises_on_repo_failure(self, mocker):
@@ -629,8 +612,6 @@ class TestAsyncInferVersion:
         responses = iter([probe, repo_exc])
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
-        mocker.patch.object(
-            client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses)
-        )
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses))
         with pytest.raises(ValueError, match="repo error"):
             client._infer_version()

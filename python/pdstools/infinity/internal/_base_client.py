@@ -77,9 +77,7 @@ class BaseClient(Generic[_HttpxClientT]):
         self.pega_version = pega_version
         self.timeout = timeout
 
-    _MODEL_CATEGORIES_ENDPOINT = (
-        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
-    )
+    _MODEL_CATEGORIES_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
     _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
 
     def _enforce_trailing_slash(self, url: httpx.URL) -> httpx.URL:

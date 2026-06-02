@@ -982,6 +982,7 @@ class TestGetCmdOutput:
 
     def test_returns_lines_on_success(self):
         import sys
+
         lines = report_utils._get_cmd_output([sys.executable, "-c", "print('hello world')"])
         assert lines[0] == "hello world"
 

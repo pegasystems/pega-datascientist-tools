@@ -205,9 +205,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context

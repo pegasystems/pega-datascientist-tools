@@ -179,6 +179,7 @@ class _ChampionChallengerv26_1Mixin:
         try:
             from tqdm import tqdm
         except ImportError:
+
             class tqdm:  # type: ignore[no-redef]
                 def __init__(self, total=None):
                     self.n = 0

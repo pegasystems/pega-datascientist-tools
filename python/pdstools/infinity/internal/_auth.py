@@ -53,9 +53,7 @@ class PegaOAuth(httpx.Auth):
         try:
             new_token = response.json()
         except Exception:
-            raise ConnectionError(
-                "OAuth token endpoint returned a non-JSON response."
-            ) from None
+            raise ConnectionError("OAuth token endpoint returned a non-JSON response.") from None
         self._token_expiry = time.time() + new_token.get("expires_in")
         self._token = new_token.get("access_token")
         return self._token

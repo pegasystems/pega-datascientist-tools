@@ -177,7 +177,13 @@ def test_list_models(
         assert result[0]["model_id"][0] == "@BASECLASS!TESTMODEL_FALCONS"
         assert result[0]["label"][0] == "testModel_falcons"
         assert result[0]["last_update_time"][0] == datetime.datetime(
-            2024, 7, 18, 12, 5, 52, 671000,
+            2024,
+            7,
+            18,
+            12,
+            5,
+            52,
+            671000,
         )
 
 

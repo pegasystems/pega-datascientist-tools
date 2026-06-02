@@ -169,9 +169,7 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context
@@ -186,9 +184,7 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
         champion_challengers = await self.get_champion_challengers()
         for cc in champion_challengers:
             if cc.active_model is None:
-                raise ValueError(
-                    f"Champion challenger has no active model for category '{category}'."
-                )
+                raise ValueError(f"Champion challenger has no active model for category '{category}'.")
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()

@@ -66,7 +66,9 @@ def _make_pega_exc(msg: str = "error"):
     return exc
 
 
-def _make_model(ModelClass, client, model_id: str = "model-001", component_name: str = "Comp", status: str = "Completed"):
+def _make_model(
+    ModelClass, client, model_id: str = "model-001", component_name: str = "Comp", status: str = "Completed"
+):
     return ModelClass(
         client=client,
         modelId=model_id,
@@ -510,7 +512,9 @@ class TestAddModel:
         cc = _make_cc(CCClass, ModelClass, client)
 
         with (
-            patch.object(CCClass, "_check_then_update", new=AsyncMock(return_value={"message": "Approved successfully"})),
+            patch.object(
+                CCClass, "_check_then_update", new=AsyncMock(return_value={"message": "Approved successfully"})
+            ),
             patch.object(CCClass, "_refresh_champion_challenger", new=AsyncMock()),
             patch.object(CCClass, "_sleep", new=AsyncMock()),
         ):
@@ -586,4 +590,3 @@ class TestCloneModel:
         ):
             with pytest.raises(PegaMLopsError, match="adding model"):
                 cc.clone_model(challenger_response_share=0.3, adm_model_type="Gradient_boost")
-

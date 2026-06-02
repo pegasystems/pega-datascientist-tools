@@ -44,9 +44,7 @@ class PredictionStudio(_PredictionStudiov26_1):
 
         """
         endpoint = "/prweb/api/PredictionStudio/v2/models"
-        pages: PaginatedList[Model] = PaginatedList(
-            Model, self._client, "get", endpoint, _root="models", pageSize=100
-        )
+        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
         if not return_df:
             return pages
         return pl.DataFrame([mod._public_dict for mod in pages])
@@ -140,9 +138,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
         return await pages.get(**uniques)
 
-    async def get_model(
-        self, model_id: str | None = None, label: str | None = None, **kwargs
-    ) -> AsyncModel:
+    async def get_model(self, model_id: str | None = None, label: str | None = None, **kwargs) -> AsyncModel:
         """Finds and returns a specific model from Prediction Studio."""
         uniques = {**kwargs}
         if model_id:
