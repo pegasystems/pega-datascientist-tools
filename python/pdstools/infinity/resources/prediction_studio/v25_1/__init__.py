@@ -3,7 +3,7 @@ from __future__ import annotations
 # v25 has the same endpoints as v26 but list-models and list-predictions
 # responses omit performance / performanceMeasure fields.  Override those
 # two resources while re-exporting everything else unchanged from v26.
-from ..v26_1 import (  # noqa: F401
+from ..v26_1 import (
     AsyncChampionChallenger,
     AsyncDatamartExport,
     AsyncRepository,

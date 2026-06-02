@@ -1,7 +1,7 @@
 # Interaction History support
 
 **Priority:** P3
-**Touches:** `python/pdstools/impact_analyzer/`
+**Touches:** `python/pdstools/impactanalyzer/`
 
 `from_ih()` is not yet implemented. Interaction History format differs from the standard DS export.
 

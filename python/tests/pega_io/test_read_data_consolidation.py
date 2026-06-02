@@ -326,3 +326,47 @@ class TestReadDataConsolidation:
         result = read_data(zip_path)
         assert isinstance(result, pl.LazyFrame)
         assert result.collect().shape == (3, 2)
+
+
+class TestReadDataGlobs:
+    """read_data should accept glob patterns and dispatch to polars scanners."""
+
+    def test_glob_parquet_pattern(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        for i in range(3):
+            pl.DataFrame({"a": [i], "b": [f"x{i}"]}).write_parquet(tmp_path / f"part_{i}.parquet")
+
+        result = read_data(str(tmp_path / "*.parquet"))
+        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().sort("a").shape == (3, 2)
+
+    def test_glob_recursive_parquet_pattern(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        sub = tmp_path / "year=2025" / "month=01"
+        sub.mkdir(parents=True)
+        pl.DataFrame({"a": [1, 2]}).write_parquet(sub / "data.parquet")
+
+        result = read_data(str(tmp_path / "**" / "*.parquet"))
+        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().shape == (2, 1)
+
+    def test_glob_csv_pattern(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        pl.DataFrame({"a": [1, 2]}).write_csv(tmp_path / "left.csv")
+        pl.DataFrame({"a": [3, 4]}).write_csv(tmp_path / "right.csv")
+
+        result = read_data(str(tmp_path / "*.csv"))
+        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().sort("a").shape == (4, 1)
+
+    def test_glob_without_extension_defaults_to_parquet(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        pl.DataFrame({"a": [1]}).write_parquet(tmp_path / "data.parquet")
+
+        result = read_data(str(tmp_path / "*"))
+        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().shape == (1, 1)

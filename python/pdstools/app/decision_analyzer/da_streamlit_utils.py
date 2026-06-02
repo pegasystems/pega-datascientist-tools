@@ -5,7 +5,7 @@ from pathlib import Path
 import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.data_read_utils import read_nested_zip_files
+from pdstools.pega_io import read_nested_zip_files
 from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
 
 from pdstools.decision_analyzer.plots import (

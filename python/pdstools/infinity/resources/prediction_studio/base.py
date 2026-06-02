@@ -12,10 +12,10 @@ from typing import (
 
 from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
-
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import polars as pl

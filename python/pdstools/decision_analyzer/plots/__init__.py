@@ -25,13 +25,14 @@ from __future__ import annotations
 # Re-export the module-level imports that the legacy single-file module
 # exposed via ``dir(plots)``. Some downstream code relied on these
 # being addressable as attributes, so we keep them here verbatim.
-from typing import cast
+from typing import ClassVar, cast
 
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
+from ...utils.namespaces import LazyNamespace
 from ...utils.pega_template import colorway
 from ...utils.plot_utils import simplify_facet_titles
 from ..utils import PRIO_FACTORS, apply_filter
@@ -76,15 +77,25 @@ from ._winloss import (
 from ._winloss import global_winloss_distribution as _global_winloss_distribution
 
 
-class Plot:
+class Plot(LazyNamespace):
     """Plotting facade attached to a :class:`DecisionAnalyzer` instance.
 
     Method implementations live in the underscore-prefixed submodules
     (``_sensitivity``, ``_funnel``, …) and are bound onto this class
     below so the public surface and call sites remain unchanged.
+
+    Extends :class:`~pdstools.utils.namespaces.LazyNamespace` so that
+    missing optional dependencies (currently ``plotly``) surface as a
+    standard :class:`~pdstools.utils.namespaces.MissingDependenciesException`
+    on first method call, matching the pattern used by other ``Plots``
+    classes across pdstools.
     """
 
+    dependencies: ClassVar[list[str]] = ["plotly"]
+    dependency_group = "adm"
+
     def __init__(self, decision_data):
+        super().__init__()
         self._decision_data = decision_data
 
     _boxplot_point_cap = _boxplot_point_cap

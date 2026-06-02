@@ -85,3 +85,59 @@ def test_install_hint_is_package_manager_neutral():
     msg = str(exc)
     assert "favorite package manager" in msg
     assert "uv pip install" not in msg
+
+
+def test_repr_reports_missing_dependency_without_raising():
+    class MissingPlotly(LazyNamespace):
+        dependencies = ["fake_dependency"]
+        dependency_group = "adm"
+
+        def __init__(self):
+            super().__init__()
+
+    rep = repr(MissingPlotly())
+    assert "unavailable" in rep
+    assert "fake_dependency" in rep
+    assert "pdstools[adm]" in rep
+
+
+def test_repr_when_all_dependencies_present():
+    class HasPolars(LazyNamespace):
+        dependencies = ["polars"]
+
+        def __init__(self):
+            super().__init__()
+
+    assert repr(HasPolars()) == "<HasPolars>"
+
+
+def test_attribute_access_on_missing_method_raises_friendly_error():
+    """``hasattr`` / ``getattr`` for an unknown method on a namespace
+    with missing deps should surface MissingDependenciesException, not a
+    plain AttributeError, so users see the friendly install hint instead
+    of a confusing 'no such attribute' message."""
+
+    class MissingPlotly(LazyNamespace):
+        dependencies = ["fake_dependency"]
+
+        def __init__(self):
+            super().__init__()
+
+    ns = MissingPlotly()
+    with pytest.raises(MissingDependenciesException):
+        ns.some_method
+
+
+def test_attribute_access_when_deps_present_raises_attribute_error():
+    """When deps are satisfied, accessing a truly missing attribute
+    should still raise AttributeError so normal Python introspection
+    works."""
+
+    class HasPolars(LazyNamespace):
+        dependencies = ["polars"]
+
+        def __init__(self):
+            super().__init__()
+
+    with pytest.raises(AttributeError):
+        HasPolars().nonexistent_method

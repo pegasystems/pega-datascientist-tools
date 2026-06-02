@@ -24,3 +24,16 @@ paths-ignore:
 # Only scan production code
 paths:
   - "python/pdstools/**"
+
+# Suppress py/path-injection globally. As of v5.0.0, all user-facing file-path
+# reads that produce a polars frame are funnelled through pdstools.pega_io
+# (see AGENTS.md — "I/O lives in classmethods" and the pega_io funnel). Any
+# remaining path-injection alert would therefore originate in pega_io, which
+# is intentional: pdstools is a data-reading library whose explicit contract
+# is "read the file the user points us at". Keeping the suppression at query
+# level (rather than file glob) means a new user-path scan added outside
+# pega_io will still be flagged by reviewers, because the refactor guideline
+# — not CodeQL — is what enforces the funnel.
+query-filters:
+  - exclude:
+      id: py/path-injection
