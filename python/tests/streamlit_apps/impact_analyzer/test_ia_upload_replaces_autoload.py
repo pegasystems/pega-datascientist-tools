@@ -41,7 +41,7 @@ def upload_fixture_bytes() -> bytes:
     if not IA_PDC_FIXTURE.exists():
         pytest.skip(f"IA PDC fixture missing: {IA_PDC_FIXTURE}")
 
-    obj = json.loads(IA_PDC_FIXTURE.read_text())
+    obj = json.loads(IA_PDC_FIXTURE.read_text(encoding="utf-8"))
     inner = obj["pxResults"][0].get("pxResults")
     if not isinstance(inner, list) or len(inner) < 16:
         pytest.skip("IA sample structure changed — fixture trim no longer applies")

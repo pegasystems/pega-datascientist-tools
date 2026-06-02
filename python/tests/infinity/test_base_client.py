@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 from pdstools.infinity.internal._base_client import (
+    AsyncAPIClient,
     SyncAPIClient,
 )
 from pdstools.infinity.internal._exceptions import (
@@ -15,6 +16,7 @@ from pdstools.infinity.internal._exceptions import (
     APITimeoutError,
     MultipleErrors,
     NoMonitoringInfo,
+    PegaException,
     handle_pega_exception,
 )
 
@@ -84,6 +86,54 @@ class TestBaseClient:
         repo = {"unexpected_key": "value"}
         with pytest.warns(UserWarning, match="Could not infer"):
             result = client._get_version(repo)
+        assert result is None
+
+    def test_infer_version_returns_26_when_model_categories_200(self, mocker):
+        # Any 25+ system returns "26" (latest); explicit pega_version="25" is
+        # still supported but auto-detection always resolves to the latest API.
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 200
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        assert client._infer_version() == "26.1"
+
+    def test_infer_version_falls_back_to_24_2_when_model_categories_404(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 404
+        repo_json = {
+            "repository_type": "S3",
+            "repository_name": "Repo",
+        }
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        mocker.patch.object(client, "get", return_value=repo_json)
+        assert client._infer_version() == "24.2"
+
+    def test_infer_version_falls_back_to_24_1_when_model_categories_404(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 404
+        repo_json = {"repository_name": "Repo"}
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        mocker.patch.object(client, "get", return_value=repo_json)
+        assert client._infer_version() == "24.1"
+
+    def test_infer_version_warns_on_connection_error(self, mocker):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        mocker.patch.object(client, "_request", side_effect=Exception("connection refused"))
+        result = client._infer_version(on_error="warn")
         assert result is None
 
     def test_pega_version_stored(self):
@@ -426,3 +476,142 @@ class TestSyncClientFactories:
         )
         client = SyncAPIClient.from_client_credentials(str(cred_file))
         assert isinstance(client, SyncAPIClient)
+
+
+# ---------------------------------------------------------------------------
+# AsyncAPIClient — _infer_version
+# ---------------------------------------------------------------------------
+
+
+class TestAsyncInferVersion:
+    def _make_client(self):
+        return AsyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+
+    def _mock_probe(self, status_code):
+        r = MagicMock(spec=httpx.Response)
+        r.status_code = status_code
+        return r
+
+    def test_returns_26_on_model_categories_200(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(200)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        assert client._infer_version() == "26.1"
+
+    def test_falls_back_to_24_2(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(404)
+        repo = {"repository_type": "S3", "repository_name": "Repo"}
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "get", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
+        assert client._infer_version() == "24.2"
+
+    def test_falls_back_to_24_1(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(404)
+        repo = {"repository_name": "Repo"}
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "get", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
+        assert client._infer_version() == "24.1"
+
+    def test_raises_pega_exception_on_401(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(401)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        with pytest.raises(PegaException, match="Authentication failed"):
+            client._infer_version()
+
+    def test_raises_pega_exception_on_403(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(403)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        with pytest.raises(PegaException, match="Authentication failed"):
+            client._infer_version()
+
+    def test_raises_pega_exception_on_500(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(500)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        with pytest.raises(PegaException, match="Server error"):
+            client._infer_version()
+
+    def test_reraises_exception_returned_as_value_by_collect(self, mocker):
+        """_collect_awaitable_blocking stores exceptions as return values; they must be re-raised."""
+        client = self._make_client()
+        exc = ConnectionError("refused")
+        responses = iter([exc])
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses))
+        with pytest.raises(ConnectionError):
+            client._infer_version()
+
+    def test_error_mode_raises_on_probe_failure(self, mocker):
+        client = self._make_client()
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
+        with pytest.raises(Exception, match="network down"):
+            client._infer_version(on_error="error")
+
+    def test_warn_mode_returns_none_on_probe_failure(self, mocker, caplog):
+        client = self._make_client()
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
+        with caplog.at_level("WARNING", logger="pdstools.infinity.internal._base_client"):
+            result = client._infer_version(on_error="warn")
+        assert result is None
+        assert any("Could not validate connection" in r.message and r.levelname == "WARNING" for r in caplog.records)
+
+    def test_ignore_mode_returns_none_on_probe_failure(self, mocker):
+        client = self._make_client()
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=Exception("network down"))
+        assert client._infer_version(on_error="ignore") is None
+
+    def test_error_mode_raises_on_repo_failure(self, mocker):
+        client = self._make_client()
+        probe = self._mock_probe(404)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "get", new=MagicMock())
+        mocker.patch.object(
+            client,
+            "_collect_awaitable_blocking",
+            side_effect=[probe, Exception("repo down")],
+        )
+        with pytest.raises(Exception, match="repo down"):
+            client._infer_version(on_error="error")
+
+    def test_warn_mode_returns_none_on_repo_failure(self, mocker, caplog):
+        client = self._make_client()
+        probe = self._mock_probe(404)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "get", new=MagicMock())
+        mocker.patch.object(
+            client,
+            "_collect_awaitable_blocking",
+            side_effect=[probe, Exception("repo down")],
+        )
+        with caplog.at_level("WARNING", logger="pdstools.infinity.internal._base_client"):
+            result = client._infer_version(on_error="warn")
+        assert result is None
+
+    def test_reraises_exception_returned_as_value_by_repo_collect(self, mocker):
+        """Exception instance returned (not raised) by _collect_awaitable_blocking for the
+        repo fallback must be re-raised by the isinstance check."""
+        client = self._make_client()
+        probe = self._mock_probe(404)
+        repo_exc = ValueError("repo error")
+        responses = iter([probe, repo_exc])
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "get", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses))
+        with pytest.raises(ValueError, match="repo error"):
+            client._infer_version()

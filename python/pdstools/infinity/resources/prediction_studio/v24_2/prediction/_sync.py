@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import quote as _quote
 from typing import Literal, overload, TYPE_CHECKING
 
 import polars as pl
@@ -62,10 +63,9 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             notifications, depending on the value of ``return_df``.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
-        endpoint = f"{endpoint}?category={category}"
 
         notifications: PaginatedList[Notification] = PaginatedList(
             Notification,
@@ -73,6 +73,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             "get",
             endpoint,
             _root="notifications",
+            category=category,
         )
         if return_df:
             return pl.DataFrame(
@@ -204,9 +205,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = (
-            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context
@@ -223,7 +222,11 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()
-                    and cc.context.lower() == context.lower()
+                    and (cc.context or "").lower() == context.lower()
                     and cc.category.lower() == category.lower()
                 ):
                     return cc
+        raise ValueError(
+            f"Model '{new_model}' was added but could not be found in champion challengers "
+            f"for category '{category}' and context '{context}'."
+        )

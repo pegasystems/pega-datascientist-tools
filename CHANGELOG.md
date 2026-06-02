@@ -228,6 +228,11 @@ guide.
 - `pdstools.infinity.internal._base_client._infer_version` now logs
   warnings via the module logger (with `exc_info`) instead of `print()`
   (#736).
+- `_infer_version` now returns `"26"` (the latest version) for any Pega
+  `'25`+ system instead of `"25"`. Both v25 and v26 resource classes
+  share the same API surface, so the latest version is always a safe
+  default. Users who need the v25 resource explicitly can still pass
+  `pega_version="25"` to `Infinity()` / `AsyncInfinity()`.
 - Optional-dependency handling tightened: `MissingDependenciesException`
   is now raised consistently across pdstools instead of bare
   `ImportError`s, and the Quarto `standalone` flag is now wired through
@@ -274,7 +279,7 @@ guide.
 
 - Better diagnostic information when Health Check report generation
   hits a `PermissionDenied` from Quarto on Windows; Infinity API
-  client now supports Pega `'25.1`; Decision Analyzer no longer
+  client now supports Pega `'25`; Decision Analyzer no longer
   crashes with `ColumnNotFoundError: "Stage Group"` when the dataset
   only contains `Stage` — `__init__` now validates `level` against
   `available_levels` and falls back when needed (#642, closes #439,

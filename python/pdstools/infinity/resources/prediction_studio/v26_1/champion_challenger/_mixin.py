@@ -18,40 +18,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class _ChampionChallengerV24_2Mixin:
-    """The ``ChampionChallenger`` class manages champion and challenger models
-    within a prediction context. It provides functionalities for:
-
-    - Refreshing champion challenger data
-    - Deleting challenger models
-    - Promoting challenger models
-    - Updating challenger response percentages
-    - Adding new models
-    - Cloning an ADM active model
-    - Adding/removing predictors
-
-    Attributes
-    ----------
-    client : Client
-        The client used to interact with the API.
-    prediction_id : str
-        The ID of the prediction.
-    active_model : Model
-        The active model in the prediction.
-    cc_id : str | None
-        The ID of the champion challenger.
-    context : str | None
-        The context of the prediction.
-    category : str | None
-        The category of the prediction.
-    challenger_model : Model | None
-        The challenger model.
-    champion_percentage : float | None
-        The percentage of responses attributed to the champion model.
-    model_objective : str | None
-        The objective of the model.
-
-    """
+class _ChampionChallengerv26_1Mixin:
+    """v26 ChampionChallenger business logic — shared parts."""
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -90,7 +58,6 @@ class _ChampionChallengerV24_2Mixin:
         if self._removed:
             return "Champion challenger object has been removed."
 
-        # Base dictionary
         champion_challenger_dict: dict[str, Any] = {
             "prediction_id": self.prediction_id,
             "context": None if self.context == "NoContext" else self.context,
@@ -98,7 +65,6 @@ class _ChampionChallengerV24_2Mixin:
             "model_objective": self.model_objective,
         }
 
-        # Active model details
         if self.active_model:
             if self.active_model.modeling_technique == "Unknown model type":
                 self.active_model.modeling_technique = "Unknown"
@@ -114,7 +80,6 @@ class _ChampionChallengerV24_2Mixin:
                 "champion_percentage": 100 if self.champion_percentage is None else self.champion_percentage,
             }
 
-        # Challenger model details
         if self.challenger_model:
             if self.challenger_model.modeling_technique == "Unknown model type":
                 self.challenger_model.modeling_technique = "Unknown"
@@ -124,7 +89,7 @@ class _ChampionChallengerV24_2Mixin:
                 "component_name": self.challenger_model.component_name,
                 "model_type": self.challenger_model.model_type,
                 "modeling_technique": self.challenger_model.modeling_technique
-                if self.active_model.modeling_technique
+                if self.challenger_model.modeling_technique
                 else None,
                 "role": self.challenger_model.status,
                 "challenger_percentage": 100 - self.champion_percentage
@@ -134,18 +99,8 @@ class _ChampionChallengerV24_2Mixin:
 
         return champion_challenger_dict
 
-    # -- Internal helpers (plain async def, NOT @api_method) ------------------
-    # These are called from within @api_method public methods, so they run
-    # inside the outer _run_sync event loop on the sync path.  Decorating
-    # them with @api_method would cause nested _run_sync → crash.
-
     async def _refresh_champion_challenger(self):
-        """Updates the champion and challenger models for a specific prediction.
-
-        This function fetches the latest prediction details and refreshes the
-        champion and challenger models accordingly.  If there's no challenger
-        model linked, it sets the challenger attribute to None.
-        """
+        """Updates the champion and challenger models for a specific prediction."""
         prediction = await _maybe_await(
             self._client.prediction_studio.get_prediction(
                 prediction_id=self.prediction_id,
@@ -164,32 +119,22 @@ class _ChampionChallengerV24_2Mixin:
                 break
 
     async def _status(self):
-        """Checks the update status of the champion challenger configuration.
-
-        Determines if an update to the champion challenger setup is currently
-        in progress by examining the ``cc_id``.  If no update is underway,
-        it indicates the current setup is active.
-
-        Returns
-        -------
-        str
-            The current status of the update process, or "Active" if no
-            updates are pending.
-
-        """
+        """Checks the update status of the champion challenger configuration."""
         if not self.cc_id:
             return "Active"
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
         return await self._a_get(endpoint)
 
     async def _introduce_model(
         self,
         champion_response_share: float,
         learn_independently: bool = True,
+        action: str = "Approve",
+        review_note: str = "Approved",
     ):
         if not self.cc_id:
             return "Model already introduced."
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
         if self.active_model.model_type.upper() != "SCORECARD":
             if champion_response_share == 1:
                 deployment_mode: dict[str, Any] = {"type": "Shadow"}
@@ -201,14 +146,14 @@ class _ChampionChallengerV24_2Mixin:
                 }
 
             data = {
-                "action": "Approve",
-                "reviewNote": "Approving initial model update from API",
+                "action": action,
+                "reviewNote": review_note,
                 "deploymentMode": deployment_mode,
             }
         else:
             data = {
-                "action": "Approve",
-                "reviewNote": "Approving initial model update from API",
+                "action": action,
+                "reviewNote": review_note,
                 "deploymentMode": {
                     "type": "Replace",
                 },
@@ -219,6 +164,7 @@ class _ChampionChallengerV24_2Mixin:
         self,
         champion_response_share: float,
         learn_independently: bool = True,
+        auto_approve: bool = True,
     ):
         if not self.cc_id:
             return "Model already introduced."
@@ -233,8 +179,8 @@ class _ChampionChallengerV24_2Mixin:
         try:
             from tqdm import tqdm
         except ImportError:
-            # Fall back to a no-op progress bar when tqdm isn't installed.
-            class tqdm:  # type: ignore[no-redef]  # intentional fallback shadowing the imported name
+
+            class tqdm:  # type: ignore[no-redef]
                 def __init__(self, total=None):
                     self.n = 0
 
@@ -249,9 +195,25 @@ class _ChampionChallengerV24_2Mixin:
 
         pbar = tqdm(total=len(status_order))
         model_status = None
-        while model_status != "Ready for review":
+        while model_status not in ("Ready for review", "Approved"):
             await self._sleep(1)
-            status = await self._status()
+            try:
+                status = await self._status()
+            except PegaException:
+                # In some Pega versions the referenceID returned by the clone
+                # endpoint is not queryable via the operations endpoint —
+                # the model may have been auto-approved on creation.
+                logger.debug(
+                    "Status polling failed for cc_id=%s; verifying via refresh.",
+                    self.cc_id,
+                )
+                await self._refresh_champion_challenger()
+                if self.challenger_model:
+                    return {"message": "Approved"}
+                raise PegaMLopsError(
+                    "Status polling failed and no challenger model was found. "
+                    "The model may not have been added successfully."
+                ) from None
 
             model_status = status["ModelUpdateStatus"]
 
@@ -263,9 +225,16 @@ class _ChampionChallengerV24_2Mixin:
             pbar.n = status_order.index(model_status) + 1
             pbar.refresh()
 
+        if model_status == "Approved":
+            await self._refresh_champion_challenger()
+            return {"message": "Approved"}
+
+        if not auto_approve:
+            await self._refresh_champion_challenger()
+            return {"message": "Ready for review"}
+
         pbar.set_description("Introducing model...")
 
-        # Should only get here if status == 'Ready for review'
         response = await self._introduce_model(
             champion_response_share,
             learn_independently,
@@ -274,15 +243,9 @@ class _ChampionChallengerV24_2Mixin:
         pbar.update()
         return response
 
-    # -- Public API methods (@api_method) ------------------------------------
-
     @api_method
     async def delete_challenger_model(self):
         """Removes the challenger model linked to the current prediction.
-
-        This function checks for a challenger model's existence, constructs a
-        request to delete it using the prediction and model IDs, and updates
-        the prediction's data accordingly.
 
         Raises
         ------
@@ -306,10 +269,6 @@ class _ChampionChallengerV24_2Mixin:
     @api_method
     async def promote_challenger_model(self):
         """Switches the challenger model to be the new champion for a prediction.
-
-        Checks for an existing challenger model and sends a request to make
-        it the new champion model.  Updates the prediction's model data
-        afterwards.
 
         Raises
         ------
@@ -336,11 +295,6 @@ class _ChampionChallengerV24_2Mixin:
         new_challenger_response_share: float,
     ):
         """Adjusts traffic distribution between champion and challenger models.
-
-        Modifies how incoming traffic is split between the current champion
-        and the challenger model by updating the challenger's response
-        percentage. Validates the new percentage and the existence of both
-        models before applying changes.
 
         Parameters
         ----------
@@ -396,10 +350,6 @@ class _ChampionChallengerV24_2Mixin:
         parameterized: bool = True,
     ):
         """Adds a new predictor to a specific model in a prediction setup.
-
-        This function introduces a new predictor to a model tied to a
-        prediction.  It differentiates between parameterized and static
-        predictors based on a flag.
 
         Parameters
         ----------
@@ -473,9 +423,6 @@ class _ChampionChallengerV24_2Mixin:
     ):
         """Removes a predictor from a model in a prediction setup.
 
-        This function deletes a predictor, identified by its name, from a
-        model linked to a prediction.
-
         Parameters
         ----------
         name : str
@@ -534,23 +481,15 @@ class _ChampionChallengerV24_2Mixin:
     ):
         """Add a new model as a challenger in the prediction setup.
 
-        Enables the addition of a new model as a challenger, accepting
-        various model types.  It configures the challenger's traffic share,
-        allows for custom predictor to property mappings, and supports
-        labeling the model.  If the active model is a scorecard, the function
-        will replace the active model with the new challenger.
-
         Parameters
         ----------
         new_model : Model, UploadedModel
-            The model to be added as a challenger. Can be a pre-existing
-            model, an uploaded file, or a model identifier.
+            The model to be added as a challenger.
         challenger_response_share : int
             Defines what percentage of traffic should be directed to the
             challenger model.
         predictor_mapping : list of dict, optional
-            Custom mappings for predictors to properties, with each mapping
-            as a dictionary.
+            Custom mappings for predictors to properties.
         model_label : str, optional
             A label for the new challenger model.
         learn_independently: bool, optional
@@ -559,9 +498,6 @@ class _ChampionChallengerV24_2Mixin:
 
         Raises
         ------
-        NotImplementedError
-            If attempting to add a model instance directly, which is not
-            supported.
         ValueError
             If the response_percentage for the challenger is outside the
             0-1 range.
@@ -574,7 +510,6 @@ class _ChampionChallengerV24_2Mixin:
             raise ValueError("Percentage must be between 0 and 1.")
         endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
         data: dict[str, Any] = {}
-        # Import here to avoid circular imports; use duck-typing for Model check
         if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
             new_model = new_model.model_id.split("!")[1]
         elif isinstance(new_model, UploadedModel):
@@ -607,8 +542,6 @@ class _ChampionChallengerV24_2Mixin:
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
 
-        if "Approved" not in response["message"]:
-            raise PegaMLopsError("Error when adding model")
         logger.info("Add model: Refreshing Champion challenger configuration: ")
         await self._sleep(1)
         await self._refresh_champion_challenger()
@@ -624,12 +557,7 @@ class _ChampionChallengerV24_2Mixin:
         predictor_mapping: list[dict] | None = None,
         learn_independently: bool = True,
     ):
-        """Clones the current active model to create a challenger with specific
-        settings.
-
-        This function duplicates the active model, setting it as a challenger
-        in the prediction setup.  It allows choosing the model type, adjusting
-        traffic share, and customizing labels and predictor mappings.
+        """Clones the current active model to create a challenger.
 
         Parameters
         ----------
@@ -638,8 +566,7 @@ class _ChampionChallengerV24_2Mixin:
         adm_model_type : {'Gradient boosting', 'Naive bayes'}
             Specifies the type of the cloned model.
         model_label : str, optional
-            A custom label for the cloned model. Defaults to a generated
-            unique label if not provided.
+            A custom label for the cloned model.
         predictor_mapping : list of dict, optional
             Custom mappings of predictors to properties for the cloned model.
         learn_independently: bool, optional
@@ -650,8 +577,7 @@ class _ChampionChallengerV24_2Mixin:
         ------
         PegaMLopsError
             If the challenger_response_percentage is not within the 0-1 range
-            or adm_model_type is invalid.  Or if there's an error when adding
-            the challenger model.
+            or adm_model_type is invalid.
 
         """
         if isinstance(adm_model_type, AdmModelType):
@@ -676,7 +602,7 @@ class _ChampionChallengerV24_2Mixin:
             "admModelType": adm_model_type,
         }
         if predictor_mapping is not None:
-            data["overrideMmappings"] = [
+            data["overrideMappings"] = [
                 {"predictor": key["predictor"], "property": key["property"]} for key in predictor_mapping
             ]
         try:
@@ -689,7 +615,5 @@ class _ChampionChallengerV24_2Mixin:
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
-        if "Approved" not in response["message"]:
-            raise PegaMLopsError("Error when adding model")
         await self._refresh_champion_challenger()
         logger.info("Clone model: %s", response)

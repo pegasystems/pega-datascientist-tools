@@ -89,7 +89,7 @@ def test_ia_page_title_order(
     queryable attribute, so assert against the source to guarantee the
     convention is followed.
     """
-    source = (ia_app_dir / "pages" / page).read_text()
+    source = (ia_app_dir / "pages" / page).read_text(encoding="utf-8")
     assert f'page_title="{expected_title}"' in source, f"{page} expected page_title={expected_title!r} in source"
 
 

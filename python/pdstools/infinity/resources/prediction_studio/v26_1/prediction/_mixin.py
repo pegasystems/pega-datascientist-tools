@@ -16,14 +16,55 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class _PredictionV24_2Mixin:
-    """v24.2 Prediction business logic — shared parts."""
+class _Predictionv26_1Mixin:
+    """v26 Prediction business logic — shared parts."""
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
         prediction_id: str
         _a_get: Callable[..., Any]
         _a_post: Callable[..., Any]
+
+    def __init__(
+        self,
+        client,
+        *,
+        predictionId: str,
+        label: str,
+        type: str | None = None,
+        status: str | None = None,
+        lastUpdateTime: str | None = None,
+        objective: str | None = None,
+        subject: str | None = None,
+        performance: float | None = None,
+        performanceMeasure: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(  # type: ignore[call-arg]
+            client=client,
+            predictionId=predictionId,
+            label=label,
+            status=status,
+            lastUpdateTime=lastUpdateTime,
+            objective=objective,
+            subject=subject,
+        )
+        self.type = type
+        self.performance = performance
+        self.performance_measure = performanceMeasure
+
+    @api_method
+    async def describe(self):
+        """Fetches details about a prediction.
+
+        Returns
+        -------
+        dict
+            A dictionary containing information about the prediction.
+
+        """
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}"
+        return await self._a_get(endpoint)
 
     async def _get_models(self) -> list[dict[str, str]]:
         """Internal function to fetch models linked to a specific prediction.
@@ -40,7 +81,7 @@ class _PredictionV24_2Mixin:
 
         """
         models_list = []
-        endpoint = f"/prweb/api/PredictionStudio/v3/predictions/{self.prediction_id}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}"
         prediction_details = await self._a_get(endpoint)
         # Extract default models from context and create PredictionModel instances
         for context in prediction_details.get("context", []):

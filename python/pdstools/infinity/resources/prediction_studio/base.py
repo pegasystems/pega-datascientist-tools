@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import (
@@ -13,6 +14,8 @@ from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import polars as pl
@@ -93,18 +96,24 @@ class _PredictionMixin(ABC):
         *,
         predictionId: str,
         label: str,
-        status: str,
-        lastUpdateTime: str,
+        status: str | None = None,
+        lastUpdateTime: str | None = None,
         objective: str | None = None,
         subject: str | None = None,
+        **kwargs,
     ):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
+        if kwargs:
+            logger.debug(
+                "_PredictionMixin received unexpected fields from API response: %s",
+                list(kwargs.keys()),
+            )
         self.prediction_id = predictionId
         self.label = label
         self.objective = objective
         self.subject = subject
         self.status = status
-        self.last_update_time = datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z")
+        self.last_update_time = datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z") if lastUpdateTime else None
 
     @abstractmethod
     def get_metric(

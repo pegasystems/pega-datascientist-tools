@@ -1,27 +1,42 @@
 from __future__ import annotations
 
 from urllib.parse import quote as _quote
+from typing import Literal, overload, TYPE_CHECKING
+
+import polars as pl
 
 from .....internal._exceptions import PegaException, PegaMLopsError
-from .....internal._pagination import AsyncPaginatedList
-from ...base import AsyncNotification
-from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
-from ._mixin import _PredictionV24_2Mixin
-from typing import TYPE_CHECKING
+from .....internal._pagination import PaginatedList
+from ...base import Notification
+from ...v24_1.prediction import Prediction as PredictionPrevious
+from ._mixin import _Predictionv26_1Mixin
 
 if TYPE_CHECKING:
     from ...types import NotificationCategory
-    import polars as pl
 
 
-class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
-    """Async variant of the v24.2 Prediction."""
+class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
+    """v26 Prediction — inherits all v24.2 functionality."""
 
-    async def get_notifications(
+    @overload
+    def get_notifications(
+        self,
+        category: NotificationCategory | None = None,
+        return_df: Literal[False] = False,
+    ) -> PaginatedList[Notification]: ...
+
+    @overload
+    def get_notifications(
+        self,
+        category: NotificationCategory | None = None,
+        return_df: Literal[True] = True,
+    ) -> pl.DataFrame: ...
+
+    def get_notifications(
         self,
         category: NotificationCategory | None = None,
         return_df: bool = False,
-    ) -> AsyncPaginatedList[AsyncNotification] | pl.DataFrame:
+    ) -> PaginatedList[Notification] | pl.DataFrame:
         """Fetches a list of notifications for a specific prediction.
 
         Parameters
@@ -33,40 +48,45 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
 
         Returns
         -------
-        AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+        PaginatedList[Notification] or polars.DataFrame
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
+        endpoint = f"{endpoint}?category={category}"
 
-        notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
-            AsyncNotification,
+        notifications: PaginatedList[Notification] = PaginatedList(
+            Notification,
             self._client,
             "get",
             endpoint,
             _root="notifications",
-            category=category,
         )
         if return_df:
-            return await notifications.as_df()
+            return pl.DataFrame(
+                [notification._public_dict for notification in notifications],
+            )
         return notifications
 
-    async def get_champion_challengers(self):
+    def get_champion_challengers(self):
         """Fetches list of ChampionChallenger objects linked to the prediction.
 
         Returns
         -------
-        list of AsyncChampionChallenger
-            Champion-challenger pairs from a prediction.
+        list of ChampionChallenger
+            A list of entries, each pairing a primary model with its
+            challenger across various segments of the prediction.
 
         """
-        from ..champion_challenger import AsyncChampionChallenger
-        from ..model import AsyncModel
+        from ..champion_challenger import ChampionChallenger
+        from ..model import Model
 
         ccs = []
-        models = await self._get_models()
+        from .....internal._resource import _run_sync
+
+        models = _run_sync(self._get_models)
         non_active = [mod for mod in models if mod["role"] not in {"ACTIVE", "CHAMPION"}]
 
         only_active = [
@@ -83,33 +103,33 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"],
             }
             ccs.append(
-                AsyncChampionChallenger(
+                ChampionChallenger(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     champion_percentage=100 - model["challengerPercentage"],
-                    challenger_model=AsyncModel(
-                        client=self._client,
-                        **active_model_temp,
-                    ),
+                    challenger_model=Model(client=self._client, **active_model_temp),
                     context=model["contextName"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=next(
-                        AsyncModel(
-                            client=self._client,
-                            modelId=mod["id"],
-                            label=mod["label"],
-                            modelType=mod["type"],
-                            status=mod["role"],
-                            componentName=mod["componentName"],
-                            modelingTechnique=mod["modelingTechnique"]
-                            if mod.get("modelingTechnique") is not None
-                            else None,
-                        )
-                        for mod in models
-                        if model["activeModel"] is not None
-                        and mod["id"] == model["activeModel"]
-                        and mod["contextName"] == model["contextName"]
+                        (
+                            Model(
+                                client=self._client,
+                                modelId=mod["id"],
+                                label=mod["label"],
+                                modelType=mod["type"],
+                                status=mod["role"],
+                                componentName=mod["componentName"],
+                                modelingTechnique=mod["modelingTechnique"]
+                                if mod.get("modelingTechnique") is not None
+                                else None,
+                            )
+                            for mod in models
+                            if model["activeModel"] is not None
+                            and mod["id"] == model["activeModel"]
+                            and mod["contextName"] == model["contextName"]
+                        ),
+                        None,
                     ),
                 ),
             )
@@ -124,31 +144,30 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"] if model.get("modelingTechnique") is not None else None,
             }
             ccs.append(
-                AsyncChampionChallenger(
+                ChampionChallenger(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     context=model["contextName"],
                     model_objective=model["model_type"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     challenger_model=None,
-                    active_model=AsyncModel(client=self._client, **active_model_temp),
+                    active_model=Model(client=self._client, **active_model_temp),
                 ),
             )
 
         return ccs
 
-    async def add_conditional_model(
+    def add_conditional_model(
         self,
         new_model,
         category: str,
         context: str | None = None,
     ):
-        """Incorporates a new model into a prediction for a specified category
-        and context.
+        """Incorporates a new model into a prediction for a specified category.
 
         Parameters
         ----------
-        new_model : str or AsyncModel
+        new_model : str or Model
             Identifier of the model to be added.
         category : str
             The category under which the model will be classified.
@@ -157,13 +176,13 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
 
         Returns
         -------
-        AsyncChampionChallenger
+        ChampionChallenger
             An object detailing the updated configuration.
 
         """
-        from ..model import AsyncModel
+        from ..model import Model
 
-        if isinstance(new_model, AsyncModel):
+        if isinstance(new_model, Model):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
@@ -172,15 +191,17 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         if context:
             data["contextName"] = context
         try:
-            response = await self._a_post(endpoint, data=data)
+            response = self._post(endpoint, data=data)
         except PegaException as e:
             raise PegaMLopsError(
                 "Error when adding Conditional model: " + str(e),
             ) from e
         if not response:
             raise PegaMLopsError("Add conditional model failed")
-        champion_challengers = await self.get_champion_challengers()
+        champion_challengers = self.get_champion_challengers()
         for cc in champion_challengers:
+            if cc.active_model is None:
+                raise ValueError(f"Champion challenger has no active model for category '{category}'.")
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()

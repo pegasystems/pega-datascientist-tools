@@ -6,7 +6,7 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
 from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
-from ._mixin import _PredictionV24_2Mixin
+from ._mixin import _Predictionv26_1Mixin
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     import polars as pl
 
 
-class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
-    """Async variant of the v24.2 Prediction."""
+class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
+    """v26 async Prediction — inherits all v24.2 functionality."""
 
     async def get_notifications(
         self,
@@ -37,9 +37,10 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
+        endpoint = f"{endpoint}?category={category}"
 
         notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
@@ -47,7 +48,6 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             "get",
             endpoint,
             _root="notifications",
-            category=category,
         )
         if return_df:
             return await notifications.as_df()
@@ -95,21 +95,24 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=next(
-                        AsyncModel(
-                            client=self._client,
-                            modelId=mod["id"],
-                            label=mod["label"],
-                            modelType=mod["type"],
-                            status=mod["role"],
-                            componentName=mod["componentName"],
-                            modelingTechnique=mod["modelingTechnique"]
-                            if mod.get("modelingTechnique") is not None
-                            else None,
-                        )
-                        for mod in models
-                        if model["activeModel"] is not None
-                        and mod["id"] == model["activeModel"]
-                        and mod["contextName"] == model["contextName"]
+                        (
+                            AsyncModel(
+                                client=self._client,
+                                modelId=mod["id"],
+                                label=mod["label"],
+                                modelType=mod["type"],
+                                status=mod["role"],
+                                componentName=mod["componentName"],
+                                modelingTechnique=mod["modelingTechnique"]
+                                if mod.get("modelingTechnique") is not None
+                                else None,
+                            )
+                            for mod in models
+                            if model["activeModel"] is not None
+                            and mod["id"] == model["activeModel"]
+                            and mod["contextName"] == model["contextName"]
+                        ),
+                        None,
                     ),
                 ),
             )
@@ -143,8 +146,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
         category: str,
         context: str | None = None,
     ):
-        """Incorporates a new model into a prediction for a specified category
-        and context.
+        """Incorporates a new model into a prediction for a specified category.
 
         Parameters
         ----------
@@ -181,6 +183,8 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             raise PegaMLopsError("Add conditional model failed")
         champion_challengers = await self.get_champion_challengers()
         for cc in champion_challengers:
+            if cc.active_model is None:
+                raise ValueError(f"Champion challenger has no active model for category '{category}'.")
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()
