@@ -285,3 +285,43 @@ class ChampionChallenger(_ChampionChallengerMixin, SyncAPIResource):
 
 class AsyncChampionChallenger(_ChampionChallengerMixin, AsyncAPIResource):
     pass
+
+
+class _ModelInstanceMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
+    def __init__(
+        self,
+        client,
+        *,
+        instanceID: str,
+        name: str,
+        type: str,
+        status: str,
+        active: bool,
+        lastUpdateTime: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
+        if kwargs:
+            logger.debug(
+                "_ModelInstanceMixin received unexpected fields from API response: %s",
+                list(kwargs.keys()),
+            )
+        self.instance_id = instanceID
+        self.name = name
+        self.type = type
+        self.status = status
+        self.active = active
+        self.last_update_time = (
+            datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z") if lastUpdateTime is not None else None
+        )
+
+
+class ModelInstance(_ModelInstanceMixin, SyncAPIResource):
+    pass
+
+
+class AsyncModelInstance(_ModelInstanceMixin, AsyncAPIResource):
+    pass
+
+
+__all__ = ["AsyncModelInstance", "ModelInstance"]
