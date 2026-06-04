@@ -3159,7 +3159,6 @@ all = [
     { name = "onnx" },
     { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "onnxscript" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
     { name = "polars", extra = ["rt64"] },
@@ -3177,7 +3176,6 @@ all = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "skl2onnx" },
     { name = "streamlit" },
-    { name = "torch" },
     { name = "xlsxwriter" },
 ]
 api = [
@@ -3245,14 +3243,12 @@ onnx = [
     { name = "onnx" },
     { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "onnxscript" },
     { name = "pydantic" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "skl2onnx" },
-    { name = "torch" },
 ]
 pega-io = [
     { name = "aioboto3" },
@@ -3274,7 +3270,6 @@ tests = [
     { name = "onnx" },
     { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "onnxscript" },
     { name = "openpyxl" },
     { name = "papermill" },
     { name = "plotly", extra = ["express"] },
@@ -3300,8 +3295,11 @@ tests = [
     { name = "skl2onnx" },
     { name = "streamlit" },
     { name = "testbook" },
-    { name = "torch" },
     { name = "xlsxwriter" },
+]
+torch = [
+    { name = "onnxscript" },
+    { name = "torch" },
 ]
 
 [package.dev-dependencies]
@@ -3332,7 +3330,7 @@ requires-dist = [
     { name = "onnx", marker = "extra == 'onnx'", specifier = ">=1.18,<1.22" },
     { name = "onnxruntime", marker = "python_full_version >= '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.25" },
     { name = "onnxruntime", marker = "python_full_version < '3.11' and extra == 'onnx'", specifier = ">=1.22,<1.24" },
-    { name = "onnxscript", marker = "extra == 'onnx'", specifier = ">=0.7,<1" },
+    { name = "onnxscript", marker = "extra == 'torch'", specifier = ">=0.7,<1" },
     { name = "openpyxl", marker = "extra == 'tests'", specifier = ">=3" },
     { name = "papermill", marker = "extra == 'healthcheck'", specifier = ">=2.6,<3" },
     { name = "pdstools", extras = ["adm"], marker = "extra == 'healthcheck'" },
@@ -3372,12 +3370,12 @@ requires-dist = [
     { name = "streamlit", marker = "extra == 'app'", specifier = ">=1.45,<2" },
     { name = "streamlit", marker = "extra == 'docs'" },
     { name = "testbook", marker = "extra == 'tests'", specifier = ">=0.4" },
-    { name = "torch", marker = "extra == 'onnx'", specifier = ">=2.12,<3" },
+    { name = "torch", marker = "extra == 'torch'", specifier = ">=2.12,<3" },
     { name = "typing-extensions" },
     { name = "xgboost", marker = "extra == 'docs'" },
     { name = "xlsxwriter", marker = "extra == 'healthcheck'", specifier = ">=3.0,<4" },
 ]
-provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "app", "onnx", "all", "dev", "docs", "tests"]
+provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "app", "onnx", "torch", "all", "dev", "docs", "tests"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "python-dotenv", specifier = ">=1.2.2" }]

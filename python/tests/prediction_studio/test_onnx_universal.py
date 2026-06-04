@@ -16,15 +16,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _pytorch_available() -> bool:
-    try:
-        import torch  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
 # ============================================================================
 # Fixtures
 # ============================================================================
