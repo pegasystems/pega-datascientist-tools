@@ -88,6 +88,7 @@ jobs:
         # explanations report generation, and the onnx prediction_studio tests.
         # Files in python/tests/torch_test_files.txt are excluded here and
         # exercised separately in FloorTorch.
+        shell: bash
         run: |
           TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
           uv run --no-sync pytest python/tests \

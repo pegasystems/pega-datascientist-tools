@@ -98,6 +98,7 @@ jobs:
         # Files listed in python/tests/torch_test_files.txt are excluded here
         # and run in the dedicated TorchTests job (torch + CUDA wheels add
         # ~2.4 GB; not worth installing across the full matrix).
+        shell: bash
         run: |
           TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
           uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps $TORCH_IGNORES -n auto
