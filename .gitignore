@@ -50,3 +50,6 @@ test_consolidation.py
 
 # Local healthcheck batch outputs (may contain customer names)
 /healthcheck_reports/
+
+# Claude / Copilot local settings (machine-specific, may contain tokens)
+.claude/settings.json
