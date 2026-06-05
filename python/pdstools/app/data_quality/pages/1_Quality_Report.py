@@ -233,6 +233,82 @@ else:
     st.success("No significant outliers detected – good label consistency!")
 
 # ===========================
+# CLEANLAB ANALYSIS
+# ===========================
+st.markdown("---")
+st.subheader("Cleanlab Data Quality Audit")
+
+st.markdown(
+    "**[Cleanlab](https://docs.cleanlab.ai/)** uses confident learning "
+    "to automatically detect label issues, outliers, and near-duplicates "
+    "in your dataset — powered by cross-validated model predictions."
+)
+
+cleanlab_results = dq.compute.cleanlab_audit()
+
+# Topic learnability scorecard
+fig_learn = dq.plot.learnability_scorecard()
+st.plotly_chart(fig_learn)
+
+st.info(
+    """
+**How to read this chart:** Each bar shows how well a classifier can learn to
+recognise that topic (F1 score from 5-fold cross-validation on sentence embeddings).
+
+- **Green (>0.8)** → topic is easily learnable; distinct language patterns.
+- **Orange (0.5–0.8)** → needs attention; may overlap with other topics or lack samples.
+- **Red (<0.5)** → problematic; the model struggles to distinguish this topic. Consider merging, relabelling, or adding more examples.
+"""
+)
+
+# Issue summary chart
+fig_summary = dq.plot.cleanlab_issue_summary()
+st.plotly_chart(fig_summary)
+
+# Label quality distribution
+fig_lq = dq.plot.label_quality_histogram()
+st.plotly_chart(fig_lq)
+
+st.info(
+    """
+**How to read the histogram:** Each bar shows how many samples received a given
+label quality score (0–1). Samples in **red** (score < threshold) are flagged
+as likely mislabeled by Cleanlab's confident learning algorithm.
+
+- **Scores near 1.0** → label is very likely correct.
+- **Scores near 0.0** → label is almost certainly wrong; review these first.
+"""
+)
+
+# Top mislabeled samples table
+label_issues = cleanlab_results["label_issues"]
+flagged = label_issues[label_issues["is_label_issue"]].sort_values("label_score")
+
+if len(flagged) > 0:
+    st.markdown(f"**{len(flagged)} samples flagged as likely mislabeled:**")
+    texts = dq.df.get_column(dq.text_col).to_list()
+    top = flagged.head(20)
+    display_df = pl.DataFrame(
+        {
+            "Text": [texts[i][:120] for i in top.index],
+            "Given Label": top["given_label"].tolist(),
+            "Suggested Label": top["predicted_label"].tolist(),
+            "Label Score": [round(s, 4) for s in top["label_score"].tolist()],
+        }
+    )
+    st.dataframe(display_df.to_pandas(), height=min(500, (min(20, len(flagged)) + 1) * 35 + 3))
+
+    csv_flagged = display_df.write_csv()
+    st.download_button(
+        "Download Mislabeled Samples (CSV)",
+        data=csv_flagged,
+        file_name="cleanlab_label_issues.csv",
+        mime="text/csv",
+    )
+else:
+    st.success("No label issues detected by Cleanlab – labels look clean!")
+
+# ===========================
 # RECOMMENDATIONS
 # ===========================
 st.markdown("---")

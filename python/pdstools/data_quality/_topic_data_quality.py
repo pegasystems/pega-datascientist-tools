@@ -72,6 +72,7 @@ class TopicDataQuality:
     _tfidf_matrix: Any | None = field(default=None, repr=False)
     _umap_coords: Any | None = field(default=None, repr=False)
     _topic_order: list[str] | None = field(default=None, repr=False)
+    _cleanlab_results: dict[str, Any] | None = field(default=None, repr=False)
 
     # Sub-namespace annotations (for IDE auto-complete)
     compute: Compute = field(init=False, repr=False)

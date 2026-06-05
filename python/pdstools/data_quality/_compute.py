@@ -121,3 +121,107 @@ class Compute(LazyNamespace):
             data[t] = sim_matrix[i].tolist()
         self.parent._sim_df = pl.DataFrame(data)
         return self.parent._sim_df
+
+    # ------------------------------------------------------------------
+    # Cleanlab audit
+    # ------------------------------------------------------------------
+
+    def cleanlab_audit(self) -> dict:
+        """Run Cleanlab Datalab audit for label issues, outliers, and near-duplicates.
+
+        Uses the cached sentence embeddings and trains a cross-validated
+        Logistic Regression to produce out-of-sample predicted probabilities,
+        then passes both to Cleanlab's ``Datalab.find_issues()``.
+
+        Results are cached on ``parent._cleanlab_results``.
+
+        Returns
+        -------
+        dict
+            Keys: ``"label_issues"`` (pd.DataFrame), ``"outlier_issues"``
+            (pd.DataFrame), ``"near_duplicate_issues"`` (pd.DataFrame),
+            ``"summary"`` (pd.DataFrame).
+        """
+        if self.parent._cleanlab_results is not None:
+            return self.parent._cleanlab_results
+
+        from cleanlab import Datalab
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import cross_val_predict
+
+        embeddings = self.embeddings()
+        labels = self.parent.df.get_column(self.parent.topic_col).to_list()
+        texts = self.parent.df.get_column(self.parent.text_col).to_list()
+
+        # Out-of-sample predicted probabilities via cross-validation
+        model = LogisticRegression(max_iter=400)
+        pred_probs = cross_val_predict(model, embeddings, labels, method="predict_proba")
+
+        # Cleanlab Datalab audit
+        data_dict = {"texts": texts, "labels": labels}
+        lab = Datalab(data_dict, label_name="labels")
+        lab.find_issues(pred_probs=pred_probs, features=embeddings)
+
+        self.parent._cleanlab_results = {
+            "label_issues": lab.get_issues("label"),
+            "outlier_issues": lab.get_issues("outlier"),
+            "near_duplicate_issues": lab.get_issues("near_duplicate"),
+            "summary": lab.get_issue_summary(),
+        }
+        return self.parent._cleanlab_results
+
+    # ------------------------------------------------------------------
+    # Topic learnability scorecard
+    # ------------------------------------------------------------------
+
+    def topic_learnability(self, *, n_folds: int = 5) -> pl.DataFrame:
+        """Compute per-topic F1 scores via stratified cross-validation.
+
+        Trains a Logistic Regression on the sentence embeddings and
+        measures per-class F1 across folds.
+
+        Parameters
+        ----------
+        n_folds : int, default 5
+            Number of stratified cross-validation folds.
+
+        Returns
+        -------
+        pl.DataFrame
+            Columns: ``topic``, ``f1_mean``, ``f1_std``.
+        """
+        import numpy as np
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.metrics import f1_score
+        from sklearn.model_selection import StratifiedKFold
+        from sklearn.preprocessing import LabelEncoder
+
+        embeddings = self.embeddings()
+        labels = np.array(self.parent.df.get_column(self.parent.topic_col).to_list())
+
+        le = LabelEncoder()
+        y = le.fit_transform(labels)
+        classes = le.classes_
+
+        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        # per-class F1 per fold: shape (n_folds, n_classes)
+        fold_f1s = []
+
+        for train_idx, test_idx in skf.split(embeddings, y):
+            model = LogisticRegression(max_iter=400)
+            model.fit(embeddings[train_idx], y[train_idx])
+            preds = model.predict(embeddings[test_idx])
+            per_class_f1 = f1_score(y[test_idx], preds, labels=range(len(classes)), average=None, zero_division=0.0)
+            fold_f1s.append(per_class_f1)
+
+        fold_f1s_arr = np.array(fold_f1s)  # (n_folds, n_classes)
+        f1_means = fold_f1s_arr.mean(axis=0)
+        f1_stds = fold_f1s_arr.std(axis=0)
+
+        return pl.DataFrame(
+            {
+                "topic": classes.tolist(),
+                "f1_mean": f1_means.tolist(),
+                "f1_std": f1_stds.tolist(),
+            }
+        ).sort("f1_mean", descending=True)

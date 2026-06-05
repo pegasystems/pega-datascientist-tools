@@ -66,6 +66,7 @@ nlp = [
     "sentence-transformers; python_version < '3.14'",
     "umap-learn; python_version < '3.14'",
     "plotly[express]>=6.0,<7",
+    "cleanlab[datalab]",
 ]
 app = [
     'pdstools[healthcheck]',
