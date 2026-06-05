@@ -214,9 +214,10 @@ class TestReadDataExcel:
 
     def test_read_data_xlsx_known_columns_and_value(self):
         df = F.read_data(self.FIXTURE).collect()
-        assert "ExperimentName" in df.columns
-        assert "ChannelName" in df.columns
-        assert df.height == 8
+        # The fixture is a Pega Infinity IA Excel export (Data sheet schema).
+        assert "Experiment Name" in df.columns
+        assert "Channel" in df.columns
+        assert df.height == 41
         # Round-trip parity with a direct pl.read_excel call on the same fixture.
         expected = pl.read_excel(self.FIXTURE)
         assert df.equals(expected)

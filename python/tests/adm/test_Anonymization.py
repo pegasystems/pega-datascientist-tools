@@ -9,11 +9,11 @@ basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture
-def anonymizer():
+def anonymizer(tmp_path):
     return Anonymization(
         path_to_files=f"{basePath}/data/SampleHDS.json",
-        temporary_path="tmp",
-        output_file="anonymised.parquet",
+        temporary_path=str(tmp_path / "chunks"),
+        output_file=str(tmp_path / "anonymised.parquet"),
         skip_columns_with_prefix=["Context_", "Decision_"],
         batch_size=1000,
         file_limit=10,

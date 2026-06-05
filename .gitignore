@@ -40,6 +40,16 @@ r/tests/testthat/d/tmp2
 .dev
 .worktrees
 
+# Stray test artifact from python/tests/adm/test_Anonymization.py
+# when run from the repo root.
+/anonymised.parquet
+
 # Verification scripts with customer data references
 verify_sampling.py
 test_consolidation.py
+
+# Local healthcheck batch outputs (may contain customer names)
+/healthcheck_reports/
+
+# Claude / Copilot local settings (machine-specific, may contain tokens)
+.claude/settings.json

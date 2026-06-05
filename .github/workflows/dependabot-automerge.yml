@@ -20,9 +20,11 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Enable auto-merge for Dependabot PRs
-        if: >-
-          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        # Auto-merge ALL update types (patch, minor, major). Safety comes from
+        # CI: the bracketed test matrix ("Python tests" at locked/highest +
+        # "Python tests floor" at lowest-direct) must pass before the merge
+        # actually lands. Branch protection on master must require both checks
+        # for this gate to be effective.
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}

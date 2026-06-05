@@ -45,13 +45,28 @@ class LazyNamespaceMeta(type):
                 "__init__",
                 "check_dependencies",
                 "_check_dependencies",
+                "_missing_dependencies",
+                "__getattr__",
+                "__repr__",
             ]:
                 dct[attr_name] = require_dependencies(attr_value)
         return super().__new__(cls, name, bases, dct)
 
 
 class LazyNamespace(metaclass=LazyNamespaceMeta):
-    """Lazy namespace."""
+    """Lazy namespace.
+
+    Subclasses declare ``dependencies`` (a list of import names) and
+    optionally ``dependency_group`` (the matching ``pdstools[<extra>]``
+    extras group). Method calls trigger a lazy dependency check that
+    raises :class:`MissingDependenciesException` with a friendly install
+    hint when a required package is missing.
+
+    Attribute access on missing methods (e.g. ``ns.some_method`` without
+    calling) also triggers the dependency check, so introspection
+    (``hasattr``, ``dir``) surfaces missing-dep errors uniformly instead
+    of returning a confusing ``AttributeError``.
+    """
 
     dependencies: list[str] | None
     dependency_group: str | None
@@ -65,18 +80,21 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
             self._check_dependencies()
             self._dependencies_checked = True
 
-    def _check_dependencies(self):
-        not_installed = []
-        if not hasattr(self, "dependencies") or not self.dependencies:
-            return []
-        for package in self.dependencies:
+    def _missing_dependencies(self) -> list[str]:
+        """Return missing dependency names without raising."""
+        not_installed: list[str] = []
+        if not getattr(self, "dependencies", None):
+            return not_installed
+        for package in self.dependencies or []:
             if package in sys.modules:
-                logger.debug(f"{package} is already imported.")
-            elif importlib.util.find_spec(package) is not None:  # pragma: no cover
-                logger.debug(f"{package} is installed, but not imported.")
-            else:
-                logger.debug(f"{package} is NOT installed.")
-                not_installed.append(package)
+                continue
+            if importlib.util.find_spec(package) is not None:  # pragma: no cover
+                continue
+            not_installed.append(package)
+        return not_installed
+
+    def _check_dependencies(self):
+        not_installed = self._missing_dependencies()
         if not_installed:
             raise MissingDependenciesException(
                 not_installed,
@@ -84,6 +102,42 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
                 self.dependency_group if hasattr(self, "dependency_group") else None,
             )
         return not_installed
+
+    def __getattr__(self, name: str):
+        # Only triggered when normal attribute lookup fails. Run the
+        # dependency check first so ``hasattr(ns, "method_name")`` and
+        # similar introspection produce the friendly missing-dep error
+        # instead of a bare AttributeError that obscures the real cause.
+        # Skip dunder/private to avoid interfering with object protocol
+        # and to keep ``__init__``-time access to ``_dependencies_checked``
+        # safe from infinite recursion. Use a re-entry guard so that
+        # the dep-check itself (which reads ``dependency_group`` via
+        # ``hasattr``/``getattr``) can't recurse into us.
+        if name.startswith("_") or name in {
+            "dependencies",
+            "dependency_group",
+            "check_dependencies",
+        }:
+            raise AttributeError(name)
+        if object.__getattribute__(self, "__dict__").get("_in_lazyns_check"):
+            raise AttributeError(name)
+        try:
+            object.__setattr__(self, "_in_lazyns_check", True)
+            self.check_dependencies()
+        finally:
+            object.__setattr__(self, "_in_lazyns_check", False)
+        raise AttributeError(name)
+
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        try:
+            missing = self._missing_dependencies()
+        except Exception:  # pragma: no cover - defensive
+            return f"<{cls_name}>"
+        if missing:
+            extras = f", install pdstools[{self.dependency_group}]" if getattr(self, "dependency_group", None) else ""
+            return f"<{cls_name}: unavailable, missing {', '.join(missing)}{extras}>"
+        return f"<{cls_name}>"
 
 
 class MissingDependenciesException(Exception):

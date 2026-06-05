@@ -23,8 +23,11 @@ _CHANNEL_OUTCOME_DEFAULTS: dict[str, tuple[list[str], list[str]]] = {
 
 # Fallback for all channels not listed above (Web, Mobile, Email, SMS,
 # Push, ATM, IVR, Paid, and any custom channels).
+# Include both Click/Clicked (digital) and Accept/Accepted (voice/custom)
+# variants so the resolver matches common Pega outcome names regardless
+# of channel type.
 _DEFAULT_IMPRESSIONS: list[str] = ["Impression"]
-_DEFAULT_ACCEPTS: list[str] = ["Click", "Clicked"]
+_DEFAULT_ACCEPTS: list[str] = ["Click", "Clicked", "Accept", "Accepted"]
 
 
 def resolve_outcome_labels(

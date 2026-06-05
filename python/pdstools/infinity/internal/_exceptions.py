@@ -135,7 +135,7 @@ def handle_pega_exception(
             response,
             "Invalid request.",
         ) from err
-    details = content.get("errorDetails", None)
+    details = content.get("errorDetails") or content.get("errors")
 
     if not details:
         raise ValueError(f"Cannot parse error message: {content!s}")

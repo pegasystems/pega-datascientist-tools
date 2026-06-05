@@ -103,8 +103,28 @@ class Aggregates:
         )
 
     def get_funnel_data(
-        self, scope: str, additional_filters: pl.Expr | list[pl.Expr] | None = None
+        self,
+        scope: str = "Action",
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
+        """Per-stage funnel: ``(available, passing, filtered)`` triples.
+
+        Parameters
+        ----------
+        scope : str, default ``"Action"``
+            Granularity of the funnel — one of ``"Issue"``, ``"Group"`` or
+            ``"Action"`` (the typical pdstools default; the Streamlit app
+            uses the first available element of the scope hierarchy).
+        additional_filters : pl.Expr | list[pl.Expr] | None
+            Optional polars expressions ANDed together to filter the
+            pre-aggregated view before computing the funnel.
+
+        Returns
+        -------
+        tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]
+            Available (entering each stage), passing (exiting each
+            stage), and filtered (removed at each stage) frames.
+        """
         filtered_df = apply_filter(self.da.preaggregated_filter_view, additional_filters)
 
         interaction_count_expr = (

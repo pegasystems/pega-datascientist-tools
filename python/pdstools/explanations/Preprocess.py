@@ -13,6 +13,7 @@ from typing import ClassVar, TYPE_CHECKING
 import duckdb
 import polars as pl
 
+from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import _COL, _PREDICTOR_TYPE, _TABLE_NAME
 from .resources import queries as queries_data
@@ -174,7 +175,7 @@ class Preprocess(LazyNamespace):
         """
         for path in file_paths:
             try:
-                schema = pl.scan_parquet(path).collect_schema()
+                schema = scan_parquet_path(path).collect_schema()
             except Exception as e:
                 raise ValueError(
                     f"Failed to read parquet schema for {path}: {e}",

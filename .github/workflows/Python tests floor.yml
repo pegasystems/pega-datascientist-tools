@@ -1,0 +1,143 @@
+name: Python tests floor
+
+# Resolves every direct dependency at the *lowest* version compatible with the
+# bounds declared in pyproject.toml (`uv pip install --resolution=lowest-direct`)
+# and runs the core test suite against that pinning. Together with the default
+# "Python tests" workflow (which exercises the locked, "latest within bounds"
+# resolution) this brackets the supported range, so a dependabot PR that breaks
+# either end fails CI before auto-merge can land it.
+#
+# Single cell on purpose: ubuntu-latest + Python 3.10 (our lowest supported
+# Python). The point is "do the floors install and pass core tests", not to
+# re-run the multi-OS / multi-Python matrix at the floor — that would 5×
+# the CI cost for diminishing signal.
+#
+# Streamlit apps, notebook execution, full healthcheck/explanations reports
+# are excluded: they depend on a fast-moving toolchain (streamlit, ipykernel,
+# papermill, onnxruntime) where floor-pinning produces test-brittleness rather
+# than real signal.
+#
+# Torch tests run in a parallel FloorTorch job (same Python 3.10 + ubuntu cell)
+# to verify that the declared torch floor bounds actually install and pass.
+# This mirrors the split introduced in the regular Tests workflow.
+
+on:
+  push:
+    branches:
+      - master
+      - "release/**"
+    paths:
+      - python/**
+      - pyproject.toml
+      - .github/workflows/**
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+    paths:
+      - python/**
+      - pyproject.toml
+      - .github/workflows/**
+      - uv.lock
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  Floor:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false)
+
+    name: pdstools floor (Python 3.10) on ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for draft PR
+        if: github.event_name == 'pull_request'
+        run: |
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then
+            echo "This is a draft PR, exiting."
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python 3.10
+        run: uv python install 3.10
+
+      - name: Install at lowest-direct resolution
+        # Use `uv pip install` rather than `uv sync`: sync resolves the full
+        # project metadata (including docs/dev extras) which pulls in floors we
+        # don't care to test here. pip-install scopes to the activated extras.
+        run: |
+          uv venv --python 3.10
+          uv pip install -e ".[tests]" --resolution=lowest-direct
+
+      - name: Show resolved versions
+        run: uv pip list
+
+      - name: Run core tests at floor
+        # Excludes (see file header for rationale): streamlit_apps, notebook
+        # execution (test_doc_scenarios), full reports, healthcheck and
+        # explanations report generation, and the onnx prediction_studio tests.
+        # Files in python/tests/torch_test_files.txt are excluded here and
+        # exercised separately in FloorTorch.
+        shell: bash
+        run: |
+          TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
+          uv run --no-sync pytest python/tests \
+            --ignore=python/tests/healthcheck \
+            --ignore=python/tests/explanations \
+            --ignore=python/tests/streamlit_apps \
+            --ignore=python/tests/reports \
+            --ignore=python/tests/test_doc_scenarios.py \
+            --ignore=python/tests/prediction_studio/test_local_model_utils.py \
+            --ignore=python/tests/infinity/resources/prediction_studio/test_local_model_utils_24_2.py \
+            $TORCH_IGNORES \
+            --deselect python/tests/adm/test_plots.py::test_predictor_count
+
+  FloorTorch:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false)
+
+    name: pdstools floor torch (Python 3.10) on ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for draft PR
+        if: github.event_name == 'pull_request'
+        run: |
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then
+            echo "This is a draft PR, exiting."
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python 3.10
+        run: uv python install 3.10
+
+      - name: Install at lowest-direct resolution with torch
+        # Installs with both tests and torch extras to verify PyTorch compatibility at floors
+        run: |
+          uv venv --python 3.10
+          uv pip install -e ".[tests,torch]" --resolution=lowest-direct
+
+      - name: Show resolved versions
+        run: uv pip list
+
+      - name: Run PyTorch tests at floor
+        run: |
+          uv run --no-sync pytest $(cat python/tests/torch_test_files.txt)
