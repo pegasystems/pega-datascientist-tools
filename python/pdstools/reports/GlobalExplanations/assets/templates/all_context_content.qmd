@@ -13,7 +13,7 @@ try:
     )
 
     header_tbl.update_layout(title="")
-    header_tbl.show()
+    display(header_tbl)
 except Exception as e:
     report_utils.quarto_plot_exception("Context Header Table", e)
 ```
@@ -23,7 +23,7 @@ except Exception as e:
 
 try:
     overall_fig.update_layout(title="")
-    overall_fig.show()
+    display(overall_fig)
 except Exception as e:
     report_utils.quarto_plot_exception("Context Overall Contributions", e)
 ```

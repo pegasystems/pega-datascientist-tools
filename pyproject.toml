@@ -16,9 +16,10 @@ dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
 ]
@@ -55,18 +56,7 @@ adm = [
 pega_io = ['aioboto3>=15.5,<16', 'polars_hash>=0.5,<1']
 api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8']
-explanations = ['duckdb>=1.1,<2', "plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
-nlp = [
-    # sentence-transformers depends on torch; depend on the [torch] extra
-    # explicitly so onnxscript and the pinned torch range come along.
-    'pdstools[torch]',
-    'numpy',
-    'scikit-learn',
-    "sentence-transformers; python_version < '3.14'",
-    "umap-learn; python_version < '3.14'",
-    "plotly[express]>=6.0,<7",
-    "cleanlab[datalab]; python_version < '3.14'",
-]
+explanations = ["plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45,<2',
@@ -78,23 +68,15 @@ app = [
 onnx = [
     'scikit-learn>=1.6.1',
     'skl2onnx>=1.19.1', # Updated to be compatible with onnx 1.19.0+
-    'onnx>=1.18,<1.23', # Using ONNX 1.18.x specifically
+    'onnx>=1.18,<1.22', # Using ONNX 1.18.x specifically
     'pdstools[api]',
     # onnxruntime 1.24+ dropped cp310 wheels; keep py3.10 on the 1.23.x line.
     "onnxruntime>=1.22,<1.24; python_version < '3.11'",
     "onnxruntime>=1.22,<1.25; python_version >= '3.11'",
     "scipy>=1.15.3",
 ]
-torch = [
-    "torch>=2.12,<3; python_version < '3.14'",
-    "onnxscript>=0.7,<1; python_version < '3.14'",
-]
-# `all` deliberately excludes `torch` and `nlp`: both pull torch (~2.4 GB
-# with CUDA wheels) and would bloat the main CI matrix. Users who want
-# everything install `pdstools[all,torch,nlp]`. CI runs torch- and nlp-
-# requiring tests in the dedicated TorchTests job.
 all = ['pdstools[app, pega_io, onnx, explanations]']
-dev = ['pre-commit', 'ruff>=0.15.19,<0.16', 'mypy>=1.18,<3', 'pyright>=1.1.411,<2', 'pyrefly>=1.1.1,<2', 'types-PyYAML', 'types-requests']
+dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','sphinx-tabs','myst-parser', 'sphinx-argparse', 'xgboost', 'pydantic', 'httpx', 'streamlit', 'duckdb', 'anyio']
 tests = [
     'testbook>=0.4',
@@ -118,12 +100,6 @@ tests = [
 
 [project.scripts]
 pdstools = 'pdstools.cli:main'
-
-[dependency-groups]
-dev = [
-    "nbconvert>=7.17.1",
-    "python-dotenv>=1.2.2",
-]
 
 [tool.ruff]
 target-version = "py310"
@@ -239,11 +215,3 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
-
-[tool.pyrefly]
-python-version = "3.10.0"
-preset = "legacy"
-ignore-missing-imports = ["*"]
-
-[tool.pyrefly.errors]
-unexpected-keyword = "ignore"

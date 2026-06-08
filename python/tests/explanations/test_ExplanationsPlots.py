@@ -1,9 +1,7 @@
 """Test cases for Plots class that handles plotting of explanations data."""
 
-import shutil
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
 import polars as pl
@@ -12,34 +10,19 @@ from pdstools.explanations import Explanations
 from pdstools.explanations.ExplanationsUtils import _SPECIAL
 from pdstools.explanations.Plots import Plots
 
-basePath = Path(__file__).parent.parent.parent.parent
-
-
-def clean_up(root_dir):
-    _root_dir = Path(f"{basePath}/{root_dir}")
-    if _root_dir.exists():
-        for file in _root_dir.iterdir():
-            if file.is_file():
-                file.unlink()
-            elif file.is_dir():
-                # Remove subdirectories recursively
-                shutil.rmtree(file)
-        _root_dir.rmdir()
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
 
 @pytest.fixture(scope="module")
 def plots():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations.from_local_directory(
-        data_folder=f"{basePath}/data/explanations",
+    explanations = Explanations.from_aggregates(
+        aggregated_data_dir=DATA_DIR,
         model_name="AdaptiveBoostCT",
-        from_date=datetime(2025, 3, 28),
-        to_date=datetime(2025, 3, 28),
     )
+    explanations.filter = MagicMock()
+    explanations.filter.is_context_selected.return_value = False
     yield explanations.plot
-
-    # cleanup .tmp folder
-    clean_up(explanations.root_dir)
 
 
 def test_plot_context_table():
@@ -252,21 +235,6 @@ def test_plot_contributions_by_context_return_df(plots):
     assert not context_df["predictor_name"].is_in(list(selected_context)).any()
 
 
-def test_contributions_no_context_logs_instead_of_print(plots, caplog, monkeypatch):
-    """The fallback "no context selected" message must be a log record, not a print."""
-    import logging
-
-    monkeypatch.setattr(plots.explanations.filter, "is_context_selected", lambda: False)
-    # avoid actually opening browser windows from .show()
-    monkeypatch.setattr(go.Figure, "show", lambda self, *a, **kw: None)
-    with caplog.at_level(logging.INFO, logger="pdstools.explanations.Plots"):
-        plots.contributions(top_n=3, top_k=3)
-
-    assert any("No context selected" in rec.message and "interactive()" in rec.message for rec in caplog.records), [
-        rec.message for rec in caplog.records
-    ]
-
-
 def _assert_fig_bar_data_predictors_special_bins(
     predictor_figs,
     predictor_name,
@@ -357,29 +325,6 @@ def test_contributions_no_context(mock_show, plots):
     assert isinstance(plot_list, list)
     assert all(isinstance(fig, go.Figure) for fig in plot_list)
     assert mock_show.call_count == len(plot_list)
-
-
-@patch.object(go.Figure, "show")
-def test_contributions_with_context(mock_show, plots):
-    """Test contributions() dispatches to by-context when context selected."""
-    context = {
-        "pyChannel": "PegaBatch",
-        "pyDirection": "E2E Test",
-        "pyGroup": "E2E Test",
-        "pyIssue": "Batch",
-        "pyName": "P1",
-    }
-    with (
-        patch.object(plots.explanations.filter, "is_context_selected", return_value=True),
-        patch.object(plots.explanations.filter, "get_selected_context", return_value=context),
-    ):
-        context_plot, plot_list = plots.contributions()
-
-    assert isinstance(context_plot, go.Figure)
-    assert isinstance(plot_list, list)
-    assert all(isinstance(fig, go.Figure) for fig in plot_list)
-    # context_plot + overall + predictor plots all get .show()
-    assert mock_show.call_count == 1 + len(plot_list)
 
 
 def test_contributions_invalid_sort_by(plots):

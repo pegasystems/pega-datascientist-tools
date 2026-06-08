@@ -199,7 +199,7 @@ class ReportGenerator:
             template.format(
                 ROOT_DIR=self.root_dir,
                 DATA_FOLDER=self.data_folder,
-                DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
+                DATA_PATTERN=f"batches/BATCH_{file_batch_nb}.parquet",
                 TOP_N=self.top_n,
                 SORT_BY_TEXT=self.sort_by_text,
             )
@@ -236,47 +236,49 @@ class ReportGenerator:
             return self.contexts
 
         unique_contexts_file = f"{self.data_folder}/{UNIQUE_CONTEXTS_FILENAME}"
-        if not os.path.exists(unique_contexts_file):
-            raise FileNotFoundError(
-                f"Unique contexts file not found: {unique_contexts_file}. "
-                "Please ensure that aggregates have been generated."
-            )
-        with open(unique_contexts_file, "r", encoding=ENCODING) as f:
-            self.contexts = json.load(f)
+
+        # Try to load from JSON file first
+        if os.path.exists(unique_contexts_file):
+            with open(unique_contexts_file, "r", encoding=ENCODING) as f:
+                self.contexts = json.load(f)
+                return self.contexts
+
+        if not self.contexts:
+            raise FileNotFoundError(f"Unique contexts file not found in {self.data_folder}")
+
         return self.contexts
 
     def _generate_by_context_qmds(self):
         contexts = self._get_unique_contexts()
 
-        for file_batch_nb, context_batches in contexts.items():
-            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
+        for batch_key, batch_contexts in contexts.items():
+            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{batch_key}.qmd"
 
             # write header
-            self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
+            self._write_header_to_file(batch_key, plots_for_batch_filepath)
 
             # write content
             context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
             single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
 
-            for _query_batch_nb, contexts in context_batches.items():
-                for context in contexts:
-                    context_str = self._get_context_string(context)
-                    context_label = ("plt-" + context_str).lower()
+            for context in batch_contexts:
+                context_str = self._get_context_string(context)
+                context_label = ("plt-" + context_str).lower()
 
-                    self._append_content_to_file(
-                        filename=plots_for_batch_filepath,
-                        template=context_content_template,
-                        context_dict=self._get_context_dict(context),
-                        context_label=context_label,
-                    )
+                self._append_content_to_file(
+                    filename=plots_for_batch_filepath,
+                    template=context_content_template,
+                    context_dict=self._get_context_dict(context),
+                    context_label=context_label,
+                )
 
-                    self._write_single_context_file(
-                        embed_path_for_batch=f"{PLOTS_FOR_BATCH}_{file_batch_nb}.qmd",
-                        filename=f"{self.by_context_folder}/{context_label}.qmd",
-                        template=single_context_template,
-                        context_str=context_str,
-                        context_label=context_label,
-                    )
+                self._write_single_context_file(
+                    embed_path_for_batch=f"{PLOTS_FOR_BATCH}_{batch_key}.qmd",
+                    filename=f"{self.by_context_folder}/{context_label}.qmd",
+                    template=single_context_template,
+                    context_str=context_str,
+                    context_label=context_label,
+                )
 
     def _generate_overview_qmd(self):
         # template file: overview.qmd

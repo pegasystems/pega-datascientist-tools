@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 __all__ = [
     "_COL",
@@ -14,12 +15,16 @@ __all__ = [
 ]
 
 import json
+import logging
+from pathlib import Path
 from enum import Enum
 from typing import ClassVar, Literal, TYPE_CHECKING, TypedDict, cast
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
+
+logger = logging.getLogger(__name__)
 
 
 def validate(top_n: int | None = None, top_k: int | None = None) -> None:
@@ -94,7 +99,7 @@ class _CONTRIBUTION_TYPE(Enum):
 
 
 class _COL(Enum):
-    PARTITON = "partition"
+    PARTITION = "partition"
     PREDICTOR_NAME = "predictor_name"
     PREDICTOR_TYPE = "predictor_type"
     BIN_CONTENTS = "bin_contents"
@@ -171,6 +176,9 @@ class ContextOperations(LazyNamespace):
         self._context_keys: list[str] | None = None
         self.initialized = False
 
+        self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "100"))
+        self.unique_contexts_file = f"{self.aggregate.data_folderpath}/unique_contexts.json"
+
         super().__init__()
 
     def _load(self) -> None:
@@ -180,9 +188,9 @@ class ContextOperations(LazyNamespace):
         if self._df is None:
             self._df = pl.from_dicts(
                 [
-                    {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
+                    {**json.loads(ck)[_COL.PARTITION.value], _COL.PARTITION.value: ck}
                     for ck in self.aggregate.get_df_contextual()
-                    .select(_COL.PARTITON.value)
+                    .select(_COL.PARTITION.value)
                     .unique()
                     .collect()
                     .to_series()
@@ -263,6 +271,33 @@ class ContextOperations(LazyNamespace):
             df.unique().to_dicts(),
         )
 
+    def create_unique_contexts_file(self) -> dict[str, list[str]]:
+        """Create and persist the flat unique-context batch mapping if absent."""
+        unique_contexts_path = Path(self.unique_contexts_file)
+        if unique_contexts_path.exists():
+            return cast("dict[str, list[str]]", json.loads(unique_contexts_path.read_text()))
+
+        list_of_contexts = (
+            self.aggregate.get_df_contextual().select(_COL.PARTITION.value).unique().collect().to_series().to_list()
+        )
+        dict_of_contexts = self._create_context_batches(list_of_contexts)
+
+        with unique_contexts_path.open("w", encoding="utf-8") as file:
+            json.dump(dict_of_contexts, file)
+
+        return cast("dict[str, list[str]]", json.loads(unique_contexts_path.read_text()))
+
+    def create_batch_parquet_files(self, contexts_by_batch: dict[str | int, list[str]]) -> None:
+        """Create one batch parquet file per context batch in a separate batches/ subdirectory."""
+        batch_dir = Path(self.aggregate.data_folderpath) / "batches"
+        batch_dir.mkdir(exist_ok=True)
+
+        for batch_key, contexts in contexts_by_batch.items():
+            batch_df = self.aggregate.get_df_contextual().filter(pl.col(_COL.PARTITION.value).is_in(contexts)).collect()
+            batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
+            batch_df.write_parquet(batch_file_path)
+            logger.info("Created batch file: %s with %d rows", batch_file_path, len(batch_df))
+
     def _filter_df_by_context_infos(
         self,
         df: pl.DataFrame,
@@ -289,7 +324,7 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def _get_clean_df(df: pl.DataFrame) -> pl.DataFrame:
-        return df.select(pl.exclude(_COL.PARTITON.value))
+        return df.select(pl.exclude(_COL.PARTITION.value))
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
@@ -308,3 +343,10 @@ class ContextOperations(LazyNamespace):
             A compact context string such as ``channel1-direction1-...``.
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
+
+    def _create_context_batches(self, all_contexts: list[str]) -> dict[int, list[str]]:
+        batch_size = self.file_batch_limit
+        return {
+            batch_idx: all_contexts[idx : idx + batch_size]
+            for batch_idx, idx in enumerate(range(0, len(all_contexts), batch_size))
+        }

@@ -87,6 +87,9 @@ class Reports(LazyNamespace):
         """
         try:
             self.explanations.aggregate.validate_folder()
+            co = self.explanations.aggregate.context_operations
+            contexts = co.create_unique_contexts_file()
+            co.create_batch_parquet_files(contexts)
         except Exception as e:
             logger.error("Validation failed: %s", e)
             raise
@@ -159,7 +162,7 @@ class Reports(LazyNamespace):
         params["sort_by_text"] = sort_by.text
         params["display_by"] = display_by.value
         params["display_by_text"] = display_by.text
-        params["data_folder"] = self.aggregate_folder.name
+        params["data_folder"] = Path(self.aggregate_folder).name
 
         logger.debug(f"Writing report parameters to {self.params_file}")
         with open(self.params_file, "w", encoding="utf-8") as file:
