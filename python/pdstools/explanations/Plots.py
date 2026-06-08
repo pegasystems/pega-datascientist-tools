@@ -52,7 +52,7 @@ class Plots(LazyNamespace):
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ):
-        """Plots contributions for the overall model or a selected context.
+        """Plots contributions for the overall model.
 
         Parameters
         ----------
@@ -62,9 +62,6 @@ class Plots(LazyNamespace):
             Number of top unique values for each categorical predictor to display.
         return_df : bool
             If True, skip plotting and return the underlying dataframes instead.
-            When a context is selected, returns
-            ``(predictor_df, predictor_value_df)``; otherwise returns the same
-            pair computed against the overall model.
         sort_by : str
             Column to rank/select top predictors. One of
             ``contribution``, ``contribution_abs``,
@@ -85,8 +82,8 @@ class Plots(LazyNamespace):
 
         Returns
         -------
-        tuple[go.Figure, list[go.Figure]]
-            - left: context header if context is selected, otherwise None
+        tuple[None, list[go.Figure]]
+            - left: None (previously returned context plot, no longer supported)
             - right: overall contributions plot and a list of predictor contribution plots.
 
         """
@@ -98,28 +95,6 @@ class Plots(LazyNamespace):
             "remaining": remaining,
             "include_numeric_single_bin": include_numeric_single_bin,
         }
-        if self.explanations.filter.is_context_selected():
-            if return_df:
-                return self.plot_contributions_by_context(
-                    context=self.explanations.filter.get_selected_context(),
-                    top_n=top_n,
-                    top_k=top_k,
-                    return_df=True,
-                    **common_kwargs,
-                )
-            context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
-                context=self.explanations.filter.get_selected_context(),
-                top_n=top_n,
-                top_k=top_k,
-                **common_kwargs,
-            )
-
-            plots = [overall_plot, *predictor_plots]
-            for plot in [context_plot, *plots]:
-                plot.show()
-
-            return context_plot, plots
-
         if return_df:
             return self.plot_contributions_for_overall(
                 top_n=top_n,
@@ -127,11 +102,6 @@ class Plots(LazyNamespace):
                 return_df=True,
                 **common_kwargs,
             )
-
-        logger.info(
-            "No context selected, plotting overall contributions. "
-            "Use explanations.filter.interactive() to select a context.",
-        )
 
         overall_plot, predictor_plots = self.plot_contributions_for_overall(
             top_n=top_n,
@@ -439,7 +409,7 @@ class Plots(LazyNamespace):
         import plotly.graph_objects as go
 
         df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
-            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         )
 
         predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()

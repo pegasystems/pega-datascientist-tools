@@ -35,18 +35,16 @@ def temp_report_dir(mock_templates):
 
         # Create unique_contexts.json with sample data
         contexts = {
-            "1": {
-                "0": [
-                    json.dumps(
-                        {
-                            "partition": {
-                                "Channel": "Web",
-                                "Direction": "Inbound",
-                            }
+            "100": [
+                json.dumps(
+                    {
+                        "partition": {
+                            "Channel": "Web",
+                            "Direction": "Inbound",
                         }
-                    )
-                ]
-            }
+                    }
+                )
+            ]
         }
         with open(data_dir / "unique_contexts.json", "w") as f:
             json.dump(contexts, f)
@@ -198,7 +196,7 @@ class TestReportGeneration:
         generator._generate_by_context_qmds()
 
         # Check that plots_for_batch file was created
-        plots_file = Path(temp_report_dir) / "by-model-context" / "plots_for_batch_1.qmd"
+        plots_file = Path(temp_report_dir) / "by-model-context" / "plots_for_batch_100.qmd"
         assert plots_file.exists()
 
         content = plots_file.read_text()

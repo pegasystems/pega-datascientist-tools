@@ -1,7 +1,6 @@
 """Test cases for Aggregate class that handles loading and processing of aggregate data."""
 
-import shutil
-from datetime import datetime
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,34 +9,17 @@ import pytest
 from pdstools.explanations import Explanations
 from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL
 
-basePath = Path(__file__).parent.parent.parent.parent
-
-
-def clean_up(root_dir):
-    _root_dir = Path(f"{basePath}/{root_dir}")
-    if _root_dir.exists():
-        for file in _root_dir.iterdir():
-            if file.is_file():
-                file.unlink()
-            elif file.is_dir():
-                # Remove subdirectories recursively
-                shutil.rmtree(file)
-        _root_dir.rmdir()
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
 
 @pytest.fixture(scope="class")
 def aggregate():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations.from_local_directory(
-        data_folder=f"{basePath}/data/explanations",
+    explanations = Explanations.from_aggregates(
+        aggregated_data_dir=DATA_DIR,
         model_name="AdaptiveBoostCT",
-        from_date=datetime(2025, 3, 28),
-        to_date=datetime(2025, 3, 28),
     )
     yield explanations.aggregate
-
-    # cleanup .tmp folder
-    clean_up(explanations.root_dir)
 
 
 @pytest.fixture
@@ -91,13 +73,13 @@ class TestAggregateLoadData:
         }
         assert set(overall.columns) == expected_cols
         assert set(contextual.columns) == expected_cols
-        assert overall.height == 1095
-        assert contextual.height == 17743
+        assert overall.height == 1072
+        assert contextual.height == 8064
 
     def test_get_df_overall(self, aggregate):
         """Test get_df_overall returns a populated LazyFrame after loading."""
         df = aggregate.get_df_overall().collect()
-        assert df.height == 1095
+        assert df.height == 1072
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
             "CustomerName",
@@ -161,6 +143,146 @@ class TestAggregateLoadData:
         with pytest.raises(FileNotFoundError):
             aggregate._load_data()
             assert aggregate.initialized is False
+
+
+class TestContextOperations:
+    """Coverage for unique-context batching and file creation."""
+
+    def test_create_context_batches_keys(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(200)]
+        batches = aggregate.context_operations._create_context_batches(contexts)
+        assert list(batches) == [0, 1]
+
+    def test_create_context_batches_sizes(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(230)]
+        batches = aggregate.context_operations._create_context_batches(contexts)
+        assert sum(len(batch) for batch in batches.values()) == len(contexts)
+        assert all(len(batch) <= aggregate.context_operations.file_batch_limit for batch in batches.values())
+
+    def test_create_context_batches_single_batch(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(42)]
+        batches = aggregate.context_operations._create_context_batches(contexts)
+        assert list(batches) == [0]
+        assert len(batches[0]) == 42
+
+    def test_create_context_batches_custom_batch_size(self, aggregate):
+        aggregate.context_operations.file_batch_limit = 50
+        contexts = [f"ctx-{idx}" for idx in range(150)]
+        batches = aggregate.context_operations._create_context_batches(contexts)
+        assert list(batches) == [0, 1, 2]
+        assert all(len(batch) <= 50 for batch in batches.values())
+        aggregate.context_operations.file_batch_limit = 100
+
+    def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = str(output)
+
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        assert output.exists()
+        persisted = json.loads(output.read_text())
+        assert persisted == contexts
+        assert list(persisted) == ["0"]
+        assert all(isinstance(key, str) for key in persisted)
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_unique_contexts_file_idempotent(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = str(output)
+
+        first = aggregate.context_operations.create_unique_contexts_file()
+        first_mtime = output.stat().st_mtime_ns
+        second = aggregate.context_operations.create_unique_contexts_file()
+
+        assert output.stat().st_mtime_ns == first_mtime
+        assert second == first
+        assert json.loads(output.read_text()) == first
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_unique_contexts_file_returns_dict(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = str(output)
+
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        assert contexts == json.loads(output.read_text())
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_batch_parquet_files_creates_files(self, aggregate, tmp_path):
+        original_folder = aggregate.data_folderpath
+        original_file = aggregate.context_operations.unique_contexts_file
+
+        # Copy parquet files to temp directory
+        tmp_path_str = str(tmp_path)
+        Path(tmp_path_str, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path_str, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+
+        aggregate.data_folderpath = tmp_path_str
+        aggregate.context_operations.unique_contexts_file = str(tmp_path / "unique_contexts.json")
+        aggregate.initialized = False
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        aggregate.context_operations.create_batch_parquet_files(contexts)
+
+        expected_files = [tmp_path / "batches" / f"BATCH_{key}.parquet" for key in contexts]
+        assert all(path.exists() for path in expected_files)
+        aggregate.data_folderpath = original_folder
+        aggregate.context_operations.unique_contexts_file = original_file
+        aggregate.initialized = False
+
+    def test_create_batch_parquet_files_row_counts(self, aggregate, tmp_path):
+        original_folder = aggregate.data_folderpath
+        original_file = aggregate.context_operations.unique_contexts_file
+
+        # Copy parquet files to temp directory
+        tmp_path_str = str(tmp_path)
+        Path(tmp_path_str, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path_str, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+
+        aggregate.data_folderpath = tmp_path_str
+        aggregate.context_operations.unique_contexts_file = str(tmp_path / "unique_contexts.json")
+        aggregate.initialized = False  # Reset to force reload with new folder
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        aggregate.context_operations.create_batch_parquet_files(contexts)
+        contextual = aggregate.get_df_contextual().collect()
+
+        for batch_key, batch_contexts in contexts.items():
+            batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
+            expected = contextual.filter(pl.col(_COL.PARTITION.value).is_in(batch_contexts))
+            assert batch_df.height == expected.height
+            assert set(batch_df[_COL.PARTITION.value].unique()) == set(batch_contexts)
+        aggregate.data_folderpath = original_folder
+        aggregate.context_operations.unique_contexts_file = original_file
+        aggregate.initialized = False
+
+    def test_no_file_writes_on_load(self, tmp_path):
+        data_dir = tmp_path / "aggregated_data"
+        data_dir.mkdir()
+        (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+
+        aggregate = Explanations.from_aggregates(aggregated_data_dir=data_dir).aggregate
+        before = sorted(path.name for path in data_dir.iterdir())
+        aggregate._load_data()
+        after = sorted(path.name for path in data_dir.iterdir())
+
+        assert after == before
+
+    def test_no_file_writes_on_init(self, tmp_path):
+        data_dir = tmp_path / "aggregated_data"
+        data_dir.mkdir()
+        (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+
+        before = sorted(path.name for path in data_dir.iterdir())
+        Explanations.from_aggregates(aggregated_data_dir=data_dir)
+        after = sorted(path.name for path in data_dir.iterdir())
+
+        assert after == before
 
 
 class TestAggregatePredictorContributions:
@@ -518,7 +640,7 @@ class TestWeightedAverageComputation:
         """Build a LazyFrame from a list of dicts matching the Aggregate schema."""
 
         schema = {
-            _COL.PARTITON.value: pl.Utf8,
+            _COL.PARTITION.value: pl.Utf8,
             _COL.PREDICTOR_NAME.value: pl.Utf8,
             _COL.PREDICTOR_TYPE.value: pl.Utf8,
             _COL.BIN_CONTENTS.value: pl.Utf8,
@@ -567,7 +689,7 @@ class TestWeightedAverageComputation:
             ]
         )
         result = aggregate._add_total_frequency_to_df(
-            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         ).collect()
 
         assert (result[_SPECIAL.TOTAL_FREQUENCY.value] == 150).all()
@@ -615,8 +737,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         assert result.shape[0] == 1
@@ -656,8 +778,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         weighted = result[_COL.CONTRIBUTION_WEIGHTED.value][0]
@@ -732,8 +854,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         by_name = {row["predictor_name"]: row for row in result.to_dicts()}

@@ -56,7 +56,7 @@ adm = [
 pega_io = ['aioboto3>=15.5,<16', 'polars_hash>=0.5,<1']
 api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8']
-explanations = ['duckdb>=1.1,<2', "plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
+explanations = ["plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45,<2',
