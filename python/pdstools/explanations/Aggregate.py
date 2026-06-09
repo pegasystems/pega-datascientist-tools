@@ -18,7 +18,6 @@ from .ExplanationsUtils import (
     ContextOperations,
     SortBy,
     _resolve_contribution_type,
-    _validate_folder_exists_and_not_empty,
     validate,
 )
 
@@ -172,17 +171,6 @@ class Aggregate(LazyNamespace):
             include_numeric_single_bin=include_numeric_single_bin,
         )
 
-    def validate_folder(self):
-        """Check if the aggregates folder exists.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the aggregates folder does not exist or is empty.
-
-        """
-        _validate_folder_exists_and_not_empty(self.data_folderpath)
-
     def get_unique_contexts_list(
         self,
         context_infos: list[ContextInfo] | None = None,
@@ -196,7 +184,7 @@ class Aggregate(LazyNamespace):
             return
 
         try:
-            self.validate_folder()
+            self.explanations.validate_data_folder()
         except FileNotFoundError as e:
             logger.error("Error validating aggregates folder: %s", e)
             raise

@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -128,21 +127,35 @@ class TestAggregateLoadData:
 
     def test_load_data_folder_does_not_exist(self, aggregate):
         """Test handling of non-existent aggregates folder."""
-        aggregate.initialized = False
-        aggregate.data_folderpath = Path("/non/existent/path")
-        with pytest.raises(FileNotFoundError):
-            aggregate._load_data()
-            assert aggregate.initialized is False
+        original_root = aggregate.explanations.root_dir
+        original_folder = aggregate.explanations.data_folder
+        try:
+            aggregate.initialized = False
+            aggregate.explanations.root_dir = "/non/existent"
+            aggregate.explanations.data_folder = "path"
+            with pytest.raises(FileNotFoundError):
+                aggregate._load_data()
+        finally:
+            aggregate.explanations.root_dir = original_root
+            aggregate.explanations.data_folder = original_folder
 
-    @patch("polars.scan_parquet")
-    def test_load_data_file_not_found_error(self, mock_scan_parquet, aggregate):
-        """Test handling of file not found errors."""
-        aggregate.data_folderpath = Path("/non/existent/path")
-        mock_scan_parquet.side_effect = FileNotFoundError("File not found")
+    def test_load_data_file_not_found_error(self, aggregate):
+        """Test handling of file not found errors (folder exists but no parquet files)."""
+        import tempfile
 
-        with pytest.raises(FileNotFoundError):
-            aggregate._load_data()
-            assert aggregate.initialized is False
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = aggregate.explanations.root_dir
+            original_folder = aggregate.explanations.data_folder
+            try:
+                aggregate.initialized = False
+                aggregate.explanations.root_dir = tmpdir
+                aggregate.explanations.data_folder = "empty"
+                Path(tmpdir, "empty").mkdir()
+                with pytest.raises(FileNotFoundError):
+                    aggregate._load_data()
+            finally:
+                aggregate.explanations.root_dir = original_root
+                aggregate.explanations.data_folder = original_folder
 
 
 class TestContextOperations:
