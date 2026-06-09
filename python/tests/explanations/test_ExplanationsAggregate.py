@@ -16,7 +16,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def aggregate():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        aggregated_data_dir=DATA_DIR,
+        data_folder=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
     yield explanations.aggregate
@@ -129,7 +129,7 @@ class TestAggregateLoadData:
     def test_load_data_folder_does_not_exist(self, aggregate):
         """Test handling of non-existent aggregates folder."""
         aggregate.initialized = False
-        aggregate.data_folderpath = "/non/existent/path"
+        aggregate.data_folderpath = Path("/non/existent/path")
         with pytest.raises(FileNotFoundError):
             aggregate._load_data()
             assert aggregate.initialized is False
@@ -137,7 +137,7 @@ class TestAggregateLoadData:
     @patch("polars.scan_parquet")
     def test_load_data_file_not_found_error(self, mock_scan_parquet, aggregate):
         """Test handling of file not found errors."""
-        aggregate.data_folderpath = "/non/existent/path"
+        aggregate.data_folderpath = Path("/non/existent/path")
         mock_scan_parquet.side_effect = FileNotFoundError("File not found")
 
         with pytest.raises(FileNotFoundError):
@@ -176,7 +176,7 @@ class TestContextOperations:
     def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path):
         output = tmp_path / "unique_contexts.json"
         original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = str(output)
+        aggregate.context_operations.unique_contexts_file = output
 
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
@@ -190,7 +190,7 @@ class TestContextOperations:
     def test_create_unique_contexts_file_idempotent(self, aggregate, tmp_path):
         output = tmp_path / "unique_contexts.json"
         original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = str(output)
+        aggregate.context_operations.unique_contexts_file = output
 
         first = aggregate.context_operations.create_unique_contexts_file()
         first_mtime = output.stat().st_mtime_ns
@@ -204,7 +204,7 @@ class TestContextOperations:
     def test_create_unique_contexts_file_returns_dict(self, aggregate, tmp_path):
         output = tmp_path / "unique_contexts.json"
         original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = str(output)
+        aggregate.context_operations.unique_contexts_file = output
 
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
@@ -216,12 +216,11 @@ class TestContextOperations:
         original_file = aggregate.context_operations.unique_contexts_file
 
         # Copy parquet files to temp directory
-        tmp_path_str = str(tmp_path)
-        Path(tmp_path_str, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path_str, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
 
-        aggregate.data_folderpath = tmp_path_str
-        aggregate.context_operations.unique_contexts_file = str(tmp_path / "unique_contexts.json")
+        aggregate.data_folderpath = tmp_path
+        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
         aggregate.initialized = False
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
@@ -238,12 +237,11 @@ class TestContextOperations:
         original_file = aggregate.context_operations.unique_contexts_file
 
         # Copy parquet files to temp directory
-        tmp_path_str = str(tmp_path)
-        Path(tmp_path_str, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path_str, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
 
-        aggregate.data_folderpath = tmp_path_str
-        aggregate.context_operations.unique_contexts_file = str(tmp_path / "unique_contexts.json")
+        aggregate.data_folderpath = tmp_path
+        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
         aggregate.initialized = False  # Reset to force reload with new folder
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
@@ -265,7 +263,7 @@ class TestContextOperations:
         (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
         (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
 
-        aggregate = Explanations.from_aggregates(aggregated_data_dir=data_dir).aggregate
+        aggregate = Explanations.from_aggregates(data_folder=data_dir).aggregate
         before = sorted(path.name for path in data_dir.iterdir())
         aggregate._load_data()
         after = sorted(path.name for path in data_dir.iterdir())
@@ -279,7 +277,7 @@ class TestContextOperations:
         (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
 
         before = sorted(path.name for path in data_dir.iterdir())
-        Explanations.from_aggregates(aggregated_data_dir=data_dir)
+        Explanations.from_aggregates(data_folder=data_dir)
         after = sorted(path.name for path in data_dir.iterdir())
 
         assert after == before

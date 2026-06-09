@@ -13,7 +13,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 @pytest.fixture(scope="module")
 def explanations():
     return Explanations.from_aggregates(
-        aggregated_data_dir=DATA_DIR,
+        data_folder=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
 

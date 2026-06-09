@@ -69,13 +69,11 @@ class TestPureInit:
 
         assert list(tmp_path.iterdir()) == []
         assert exp.root_dir == ".tmp"
-        assert exp.aggregated_data_dir == Path(".tmp/aggregated_data")
+        assert Path(exp.root_dir) / exp.data_folder == Path(".tmp/aggregated_data")
 
     def test_init_rejects_positional_paths(self):
         with pytest.raises(TypeError):
             Explanations("some_root_dir")  # type: ignore[misc]
-        with pytest.raises(TypeError):
-            Explanations(data_folder="some_folder")  # type: ignore[call-arg]
 
     def test_namespaces_attached(self):
         exp = Explanations()

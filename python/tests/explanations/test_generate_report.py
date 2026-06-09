@@ -104,7 +104,7 @@ def test_embedded_context_templates_use_display(tmp_path, monkeypatch):
     assert "overall_fig.show()" not in all_context_content_template
     assert "display(header_tbl)" in all_context_content_template
     assert "display(overall_fig)" in all_context_content_template
-    assert "aggregated_data_dir = Path" in all_context_header_template
-    assert "aggregated_data_dir = Path" in overview_template
+    assert 'data_folder="{DATA_FOLDER}"' in all_context_header_template
+    assert 'data_folder="{DATA_FOLDER}"' in overview_template
     assert "overall_plot.show()" not in overview_template
     assert "display(overall_plot)" in overview_template

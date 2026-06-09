@@ -1,7 +1,7 @@
 """Test cases for Plots class that handles plotting of explanations data."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import plotly.graph_objects as go
 import polars as pl
@@ -17,7 +17,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def plots():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        aggregated_data_dir=DATA_DIR,
+        data_folder=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
     explanations.filter = MagicMock()
@@ -315,34 +315,9 @@ def _get_predictor_type_from_fig(fig):
 
 
 # --- Tests for contributions() dispatcher ---
-
-
-@patch.object(go.Figure, "show")
-def test_contributions_no_context(mock_show, plots):
-    """Test contributions() dispatches to overall when no context selected."""
-    context_plot, plot_list = plots.contributions()
-    assert context_plot is None
-    assert isinstance(plot_list, list)
-    assert all(isinstance(fig, go.Figure) for fig in plot_list)
-    assert mock_show.call_count == len(plot_list)
-
-
-def test_contributions_invalid_sort_by(plots):
-    """Test contributions() validates sort_by parameter."""
-    with pytest.raises(ValueError, match="Invalid contribution type"):
-        plots.contributions(sort_by="invalid")
-
-
-def test_contributions_invalid_display_by(plots):
-    """Test contributions() validates display_by parameter."""
-    with pytest.raises(ValueError, match="Invalid contribution type"):
-        plots.contributions(display_by="invalid")
-
-
-def test_contributions_unknown_kwarg(plots):
-    """Test contributions() rejects unknown kwargs via the explicit signature."""
-    with pytest.raises(TypeError, match="unexpected keyword argument"):
-        plots.contributions(unknown_param=True)
+# NOTE: The `contributions()` dispatcher was removed from the Plots API.
+# The validation and dispatch behaviours are covered by the
+# plot_contributions_for_overall / plot_contributions_by_context tests above.
 
 
 def test_plot_contributions_for_overall_unknown_kwarg(plots):
