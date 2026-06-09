@@ -150,28 +150,6 @@ if TYPE_CHECKING:
     from .Aggregate import Aggregate
 
 
-def _validate_folder_exists_and_not_empty(folder_path: Path) -> None:
-    """Validate that a folder exists and is not empty.
-
-    Parameters
-    ----------
-    folder_path : Path
-        The folder path to validate.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the folder does not exist or is empty.
-
-    """
-    if not folder_path.exists():
-        raise FileNotFoundError(
-            f"Folder {folder_path.name} does not exist. Please ensure the data is available at the specified path."
-        )
-    if not any(folder_path.iterdir()):
-        raise FileNotFoundError(f"Folder {folder_path} is empty. Please ensure it contains the required data.")
-
-
 class ContextOperations(LazyNamespace):
     """Context related operations such as to filter unique contexts.
 

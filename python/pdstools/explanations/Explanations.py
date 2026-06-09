@@ -9,7 +9,6 @@ from pathlib import Path
 from .Aggregate import Aggregate
 from .Plots import Plots
 from .Reports import Reports
-from .ExplanationsUtils import _validate_folder_exists_and_not_empty
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +151,7 @@ class Explanations:
             from_date=from_date,
             to_date=to_date,
         )
-        instance._validate_data_folder()
+        instance.validate_data_folder()
         return instance
 
     def _init_state(
@@ -194,20 +193,15 @@ class Explanations:
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
 
-    def _validate_data_folder(self) -> None:
-        """Validate that data_folder exists and contains parquet files.
-
-        This is called lazily when data is first accessed, not during init.
-        """
+    def validate_data_folder(self) -> None:
+        """Validate that data_folder exists and contains parquet files."""
         agg_folder = Path(self.root_dir) / self.data_folder
-        try:
-            _validate_folder_exists_and_not_empty(agg_folder)
-        except FileNotFoundError as e:
-            # Provide context-specific error message with proper exception chaining
+
+        if not agg_folder.exists() or not agg_folder.is_dir():
             raise FileNotFoundError(
                 f"Aggregated data directory not found: {agg_folder}. "
                 "Please ensure that pre-aggregated data is available at the specified path"
-            ) from e
+            )
 
         if not any(agg_folder.glob("*.parquet")):
             raise FileNotFoundError(

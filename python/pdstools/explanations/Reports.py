@@ -83,7 +83,7 @@ class Reports(LazyNamespace):
 
         """
         try:
-            self.explanations.aggregate.validate_folder()
+            self.explanations.validate_data_folder()
             co = self.explanations.aggregate.context_operations
             contexts = co.create_unique_contexts_file()
             co.create_batch_parquet_files(contexts)
