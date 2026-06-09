@@ -18,6 +18,7 @@ from .ExplanationsUtils import (
     ContextOperations,
     SortBy,
     _resolve_contribution_type,
+    _validate_folder_exists_and_not_empty,
     validate,
 )
 
@@ -180,16 +181,7 @@ class Aggregate(LazyNamespace):
             If the aggregates folder does not exist or is empty.
 
         """
-        if not self.data_folderpath.exists():
-            raise FileNotFoundError(
-                f"Aggregates folder {self.data_folderpath.name} does not exist. "
-                "Please ensure the aggregates are generated before loading data."
-            )
-        if not any(self.data_folderpath.iterdir()):
-            raise FileNotFoundError(
-                f"Aggregates folder {self.data_folderpath.name} is empty. "
-                "Please ensure the aggregates are generated before loading data."
-            )
+        _validate_folder_exists_and_not_empty(self.data_folderpath)
 
     def get_unique_contexts_list(
         self,

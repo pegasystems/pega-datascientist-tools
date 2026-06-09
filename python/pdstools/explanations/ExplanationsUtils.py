@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 
 __all__ = [
     "_COL",
@@ -16,8 +15,9 @@ __all__ = [
 
 import json
 import logging
-from pathlib import Path
+import os
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar, Literal, TYPE_CHECKING, TypedDict, cast
 
 import polars as pl
@@ -151,6 +151,28 @@ if TYPE_CHECKING:
     from .Aggregate import Aggregate
 
 
+def _validate_folder_exists_and_not_empty(folder_path: Path) -> None:
+    """Validate that a folder exists and is not empty.
+
+    Parameters
+    ----------
+    folder_path : Path
+        The folder path to validate.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the folder does not exist or is empty.
+
+    """
+    if not folder_path.exists():
+        raise FileNotFoundError(
+            f"Folder {folder_path.name} does not exist. Please ensure the data is available at the specified path."
+        )
+    if not any(folder_path.iterdir()):
+        raise FileNotFoundError(f"Folder {folder_path} is empty. Please ensure it contains the required data.")
+
+
 class ContextOperations(LazyNamespace):
     """Context related operations such as to filter unique contexts.
 
@@ -279,14 +301,14 @@ class ContextOperations(LazyNamespace):
         list_of_contexts = (
             self.aggregate.get_df_contextual().select(_COL.PARTITION.value).unique().collect().to_series().to_list()
         )
-        dict_of_contexts = self._create_context_batches(list_of_contexts)
+        dict_of_contexts = self._create_context_batches(list_of_contexts, self.file_batch_limit)
 
         with self.unique_contexts_file.open("w", encoding="utf-8") as file:
             json.dump(dict_of_contexts, file)
 
-        return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
+        return dict_of_contexts
 
-    def create_batch_parquet_files(self, contexts_by_batch: dict[str | int, list[str]]) -> None:
+    def create_batch_parquet_files(self, contexts_by_batch: dict[str, list[str]]) -> None:
         """Create one batch parquet file per context batch in a separate batches/ subdirectory."""
         batch_dir = Path(self.aggregate.data_folderpath) / "batches"
         batch_dir.mkdir(exist_ok=True)
@@ -302,12 +324,10 @@ class ContextOperations(LazyNamespace):
         df: pl.DataFrame,
         context_infos: list[ContextInfo],
     ) -> pl.DataFrame:
-        ret_df = pl.DataFrame()
-
         filter_expressions = self._get_filter_expression(context_infos)
-        for expression in filter_expressions:
-            ret_df = pl.concat([ret_df, df.filter(expression)])
-        return ret_df
+        # Combine all filter expressions with OR logic using Polars idioms
+        masks = [pl.all_horizontal(*expr) for expr in filter_expressions]
+        return df.filter(pl.any_horizontal(*masks))
 
     @staticmethod
     def _get_filter_expression(
@@ -343,9 +363,9 @@ class ContextOperations(LazyNamespace):
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
 
-    def _create_context_batches(self, all_contexts: list[str]) -> dict[int, list[str]]:
-        batch_size = self.file_batch_limit
+    @staticmethod
+    def _create_context_batches(all_contexts: list[str], batch_size: int) -> dict[str, list[str]]:
         return {
-            batch_idx: all_contexts[idx : idx + batch_size]
+            str(batch_idx): all_contexts[idx : idx + batch_size]
             for batch_idx, idx in enumerate(range(0, len(all_contexts), batch_size))
         }
