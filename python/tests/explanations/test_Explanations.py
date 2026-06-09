@@ -108,3 +108,18 @@ class TestPureInit:
 
         assert exp.root_dir == str(tmp_path)
         assert exp.data_folder == "mydata"
+
+
+class TestValidateDataFolder:
+    """Test the _validate_data_folder method of Explanations."""
+
+    def test_folder_exists_but_no_parquet_files(self, tmp_path):
+        """Folder exists but contains no .parquet files raises FileNotFoundError."""
+        data_dir = tmp_path / "aggregated_data"
+        data_dir.mkdir()
+        (data_dir / "readme.txt").write_text("no parquet here")
+
+        exp = Explanations(data_folder=str(data_dir))
+
+        with pytest.raises(FileNotFoundError, match="No parquet files found"):
+            exp._validate_data_folder()

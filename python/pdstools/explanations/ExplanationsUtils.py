@@ -32,12 +32,12 @@ def validate(top_n: int | None = None, top_k: int | None = None) -> None:
     if top_n:
         if not isinstance(top_n, int) or top_n <= 1:
             raise ValueError(
-                f"Invalid top_n value: {top_n}. Must be a positive integer greater than zero.",
+                f"Invalid top_n value: {top_n}. Must be a positive integer greater than 1.",
             )
     if top_k:
         if not isinstance(top_k, int) or top_k <= 1:
             raise ValueError(
-                f"Invalid top_k value: {top_k}. Must be a positive integer greater than zero.",
+                f"Invalid top_k value: {top_k}. Must be a positive integer greater than 1.",
             )
 
 
@@ -65,7 +65,6 @@ class _CONTRIBUTION_TYPE(Enum):
         return obj
 
     def __init__(self, default, alt, text):
-        self.alt = alt
         self.text = text
 
     @classmethod
@@ -178,18 +177,19 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-    aggregate : Aggregate
-        The aggregate object to operate on.
+        aggregate (Aggregate): The aggregate object to operate on.
+
+    Attributes
+    ----------
+        aggregate (Aggregate): The aggregate object.
+        _df (pl.DataFrame | None): DataFrame containing context information.
+        _context_keys (list[str] | None): list of context keys.
+        initialized (bool): Flag indicating if the context operations have been initialized.
 
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
-    aggregate: "Aggregate"
-    """Parent aggregate object used to load contextual data."""
-
-    initialized: bool
-    """Whether the contextual data cache has been loaded."""
 
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate
@@ -225,12 +225,9 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self) -> list[str]:
-        """Return the contextual key columns available in the loaded data.
-
-        Returns
-        -------
-        list[str]
-            Context key names such as ``["pyChannel", "pyDirection", ...]``.
+        """Get context keys.
+        Returns the list of context keys from loaded data.
+            Eg. ['pyChannel', 'pyDirection', ...]
         """
         self._load()
         assert self._context_keys is not None
@@ -241,21 +238,16 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
-        """Return unique contexts as a DataFrame.
-
-        Parameters
-        ----------
-        context_infos : list[ContextInfo] | None, default None
-            Optional context filters. When omitted, returns all unique contexts.
-        with_partition_col : bool, default False
-            Whether to include the raw partition column alongside the expanded
-            context keys.
-
-        Returns
-        -------
-        pl.DataFrame
-            A DataFrame of unique contexts. When ``with_partition_col`` is
-            ``True``, the partition column is retained in the result.
+        """Get the DataFrame filtered by the provided context information.
+        Returns a DataFrame containing unique contexts
+            If `with_partition_col` is True, includes the partition column.
+            If `context_infos` is None, returns the full unique contexts,
+            else filtered by the context
+            Eg. with partition column:
+            | pyChannel | pyDirection | ... | partition |
+            |-----------|-------------|-----|-----------|
+            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
+            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
         """
         self._load()
         assert self._df is not None
@@ -271,20 +263,16 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
-        """Return unique contexts as dictionaries.
-
-        Parameters
-        ----------
-        context_infos : list[ContextInfo] | None, default None
-            Optional context filters. When omitted, returns all unique contexts.
-        with_partition_col : bool, default False
-            Whether to include the raw partition column in each returned item.
-
-        Returns
-        -------
-        list[ContextInfo]
-            Unique context dictionaries, optionally filtered by the provided
-            context information.
+        """Get the list of context information filtered by the provided context information.
+        Returns a list[ContextInfo] containing unique contexts
+            If `with_partition_col` is True, includes the partition column.
+            If `context_infos` is None, returns the full unique contexts,
+            else filtered by the context
+            Eg. without partition column:
+            [
+                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
+                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
+            ]
         """
         self._load()
         df = self.get_df(context_infos, with_partition_col)
@@ -347,19 +335,9 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
-        """Format a context dictionary as a single string.
-
-        Parameters
-        ----------
-        context_info : ContextInfo
-            Context values to format.
-        sep : str, default "-"
-            Separator inserted between context values.
-
-        Returns
-        -------
-        str
-            A compact context string such as ``channel1-direction1-...``.
+        """Get context info str.
+        Returns a string representation of a single context information.
+            Eg. channel1-direction1-...
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
 

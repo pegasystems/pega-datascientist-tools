@@ -244,14 +244,21 @@ class Plots(LazyNamespace):
     ):
         """Build customdata array and hovertemplate for contribution plots.
 
-        Args:
-            df: DataFrame. Must contain a ``frequency_pct`` column when
-                ``include_frequency=True``.
-            x_col: Column used as the contribution value.
-            include_frequency: When False, omits the frequency row from the
-                hover tooltip (e.g. for the whole-model view where it is always 100%).
+        Parameters
+        ----------
+        df : pl.DataFrame
+            DataFrame. Must contain a ``frequency_pct`` column when
+            ``include_frequency=True``.
+        x_col : str
+            Column used as the contribution value.
+        include_frequency : bool, default True
+            When False, omits the frequency row from the hover tooltip
+            (e.g. for the whole-model view where it is always 100%).
 
-        Returns (customdata, hovertemplate).
+        Returns
+        -------
+        tuple[numpy.ndarray, str]
+            Tuple of (customdata, hovertemplate).
         """
         select_cols = [
             _COL.PREDICTOR_NAME.value,
