@@ -448,9 +448,6 @@ class Aggregate(LazyNamespace):
         df: pl.LazyFrame,
         predictors: list[str],
     ) -> pl.LazyFrame:
-        if predictors is None or len(predictors) == 0:
-            return df
-
         return df.filter(pl.col(_COL.PREDICTOR_NAME.value).is_in(predictors))
 
     def _get_df_with_top_limit(
@@ -520,24 +517,6 @@ class Aggregate(LazyNamespace):
             on=_COL.PARTITION.value,
             how="inner",
         )
-
-    def _get_group_by_columns(
-        self,
-        predictors: list[str] | None = None,
-    ) -> list[str]:
-        if predictors is None or len(predictors) == 0:
-            return [
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
-                _COL.PARTITION.value,
-            ]
-        return [
-            _COL.PREDICTOR_NAME.value,
-            _COL.PREDICTOR_TYPE.value,
-            _COL.PARTITION.value,
-            _COL.BIN_CONTENTS.value,
-            _COL.BIN_ORDER.value,
-        ]
 
     def _get_sort_over_columns(
         self,

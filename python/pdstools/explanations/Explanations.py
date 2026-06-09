@@ -52,6 +52,13 @@ class Explanations:
     --------
     Explanations.from_aggregates : Load pre-aggregated parquet files.
 
+    Notes
+    --------
+    Environment variable that influence the batch parquet file generation:
+
+    ``FILE_BATCH_LIMIT``
+        Number of context partitions per batch. Default: ``100``.
+
     Examples
     --------
     Load pre-aggregated explanation data:

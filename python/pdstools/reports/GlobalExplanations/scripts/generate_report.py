@@ -178,7 +178,7 @@ class ReportGenerator:
     ):
         # template file: context.qmd
         with open(filename, "w", encoding=ENCODING) as fw:
-            f_context_template = f"""{
+            fw.write(
                 template.format(
                     EMBED_PATH_FOR_BATCH=embed_path_for_batch,
                     CONTEXT_STR=context_str,
@@ -186,26 +186,23 @@ class ReportGenerator:
                     TOP_N=self.top_n,
                     SORT_BY_TEXT=self.sort_by_text,
                 )
-            }"""
-            fw.write(f_context_template)
+            )
 
     def _write_header_to_file(self, file_batch_nb: str, filename: str):
         # template file: all_context_header.qmd
 
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
-        f_template = f"""{
-            template.format(
-                ROOT_DIR=self.root_dir,
-                DATA_FOLDER=self.data_folder,
-                DATA_PATTERN=f"batches/BATCH_{file_batch_nb}.parquet",
-                TOP_N=self.top_n,
-                SORT_BY_TEXT=self.sort_by_text,
-            )
-        }"""
-
         with open(filename, "w", encoding=ENCODING) as writer:
-            writer.write(f_template)
+            writer.write(
+                template.format(
+                    ROOT_DIR=self.root_dir,
+                    DATA_FOLDER=self.data_folder,
+                    DATA_PATTERN=f"batches/BATCH_{file_batch_nb}.parquet",
+                    TOP_N=self.top_n,
+                    SORT_BY_TEXT=self.sort_by_text,
+                )
+            )
 
     def _append_content_to_file(
         self,
@@ -216,7 +213,8 @@ class ReportGenerator:
     ):
         # template file: all_context_content.qmd
         with open(filename, "a", encoding=ENCODING) as writer:
-            f_content_template = f"""{
+            writer.write("\n")
+            writer.write(
                 template.format(
                     CONTEXT_DICT=context_dict,
                     CONTEXT_LABEL=context_label,
@@ -225,10 +223,7 @@ class ReportGenerator:
                     SORT_BY=self.sort_by,
                     DISPLAY_BY=self.display_by,
                 )
-            }"""
-
-            writer.write("\n")
-            writer.write(f_content_template)
+            )
 
     def _get_unique_contexts(self):
         if self.contexts is not None:
@@ -284,21 +279,18 @@ class ReportGenerator:
         with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
-        f_template = f"""{
-            template.format(
-                ROOT_DIR=self.root_dir,
-                DATA_FOLDER=self.data_folder,
-                TOP_N=self.top_n,
-                TOP_K=self.top_k,
-                SORT_BY=self.sort_by,
-                SORT_BY_TEXT=self.sort_by_text,
-                DISPLAY_BY=self.display_by,
-            )
-        }
-        """
-
         with open(OVERVIEW_FILENAME, "w", encoding=ENCODING) as f:
-            f.write(f_template)
+            f.write(
+                template.format(
+                    ROOT_DIR=self.root_dir,
+                    DATA_FOLDER=self.data_folder,
+                    TOP_N=self.top_n,
+                    TOP_K=self.top_k,
+                    SORT_BY=self.sort_by,
+                    SORT_BY_TEXT=self.sort_by_text,
+                    DISPLAY_BY=self.display_by,
+                )
+            )
 
     def _generate_introduction_qmd(self):
         # template file: getting-started.qmd
@@ -310,18 +302,16 @@ class ReportGenerator:
         else:
             date_info = f"from `{self.from_date}` to `{self.to_date}`"
 
-        f_template = f"""{
-            template.format(
-                TOP_N=self.top_n,
-                TOP_K=self.top_k,
-                DATE_INFO=date_info,
-                SORT_BY_TEXT=self.sort_by_text,
-                MODEL_CONTEXT_LIMIT=self.model_context_limit,
-            )
-        }"""
-
         with open(INTRODUCTION_FILENAME, "w", encoding=ENCODING) as f:
-            f.write(f_template)
+            f.write(
+                template.format(
+                    TOP_N=self.top_n,
+                    TOP_K=self.top_k,
+                    DATE_INFO=date_info,
+                    SORT_BY_TEXT=self.sort_by_text,
+                    MODEL_CONTEXT_LIMIT=self.model_context_limit,
+                )
+            )
 
     def run(self):
         """Main method to generate the report files."""
