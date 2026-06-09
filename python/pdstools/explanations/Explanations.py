@@ -53,6 +53,8 @@ class Explanations:
     >>> exp = Explanations.from_aggregates(
     ...     aggregated_data_dir=Path(".tmp/aggregated_data"),
     ...     model_name="AdaptiveBoostCT",
+    ...     from_date=datetime(2025, 3, 28),
+    ...     to_date=datetime(2025, 3, 28),
     ... )
     >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
 
@@ -63,19 +65,20 @@ class Explanations:
 
     """
 
+    _DEFAULT_ROOT_DIR = ".tmp"
     # Default storage location for aggregated data.
-    _DEFAULT_AGGREGATED_DATA_DIR = ".tmp/aggregated_data"
+    _DEFAULT_DATA_FOLDER = "aggregated_data"
 
     def __init__(
         self,
         *,
-        aggregated_data_dir: str | Path = _DEFAULT_AGGREGATED_DATA_DIR,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
     ):
         self._init_state(
-            aggregated_data_dir=aggregated_data_dir,
+            root_dir=self._DEFAULT_ROOT_DIR,
+            data_folder=self._DEFAULT_DATA_FOLDER,
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
@@ -84,7 +87,8 @@ class Explanations:
     @classmethod
     def from_aggregates(
         cls,
-        aggregated_data_dir: str | Path = _DEFAULT_AGGREGATED_DATA_DIR,
+        root_dir: str = _DEFAULT_ROOT_DIR,
+        data_folder: str = _DEFAULT_DATA_FOLDER,
         *,
         model_name: str | None = None,
         from_date: datetime | None = None,
@@ -98,7 +102,10 @@ class Explanations:
 
         Parameters
         ----------
-        aggregated_data_dir : str | Path, default ".tmp/aggregated_data"
+        root_dir : str, default ".tmp"
+            Working directory under which the pre-aggregated parquet files
+            (and report scratch space) are written.
+        data_folder : str, default "aggregated_data"
             Path to the folder containing pre-aggregated parquet files.
             Must exist and be non-empty; raises FileNotFoundError otherwise.
         model_name : str, optional
@@ -118,54 +125,58 @@ class Explanations:
         Raises
         ------
         FileNotFoundError
-            If ``aggregated_data_dir`` does not exist or is empty.
+            If ``root_dir`` or ``data_folder`` does not exist or is empty.
 
         """
-        instance = cls(
-            aggregated_data_dir=aggregated_data_dir,
+        instance = cls.__new__(cls)
+        instance._init_state(
+            root_dir=root_dir,
+            data_folder=data_folder,
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
         )
-        instance._validate_aggregated_data_dir()
+        instance._validate_data_folder()
         return instance
 
     def _init_state(
         self,
         *,
-        aggregated_data_dir: str | Path,
+        root_dir: str,
+        data_folder: str,
         model_name: str | None,
         from_date: datetime | None,
         to_date: datetime | None,
     ) -> None:
         """Set instance attributes and wire sub-namespaces. Pure (no I/O)."""
-        self.aggregated_data_dir = Path(aggregated_data_dir)
+        self.data_folder = data_folder
         # For backwards compatibility, expose root_dir. If using the default path,
         # compute it as the parent of aggregated_data's parent; otherwise use the path directly.
-        if str(aggregated_data_dir) == self._DEFAULT_AGGREGATED_DATA_DIR:
+        if str(data_folder) == self._DEFAULT_DATA_FOLDER:
             self.root_dir = ".tmp"
         else:
-            self.root_dir = str(self.aggregated_data_dir.parent.parent)
+            self.root_dir = str(Path(data_folder).parent.parent)
         self.model_name = model_name
         self._set_date_range(from_date, to_date)
         self.aggregate = Aggregate(explanations=self)
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
 
-    def _validate_aggregated_data_dir(self) -> None:
-        """Validate that aggregated_data_dir exists and contains parquet files.
+    def _validate_data_folder(self) -> None:
+        """Validate that data_folder exists and contains parquet files.
 
         This is called lazily when data is first accessed, not during init.
         """
-        if not self.aggregated_data_dir.exists():
+        agg_folder = Path(self.root_dir) / self.data_folder
+        if not agg_folder.exists():
             raise FileNotFoundError(
-                f"Aggregated data directory not found: {self.aggregated_data_dir}. "
+                f"Aggregated data directory not found: {agg_folder}. "
                 "Please ensure that pre-aggregated data is available at the specified path"
             )
 
-        if not any(self.aggregated_data_dir.glob("*.parquet")):
+        if not any(agg_folder.glob("*.parquet")):
             raise FileNotFoundError(
-                f"No parquet files found in {self.aggregated_data_dir}. "
+                f"No parquet files found in {agg_folder}. "
                 "Please ensure that pre-aggregated data is available at the specified path"
             )
 

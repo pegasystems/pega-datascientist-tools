@@ -3,8 +3,8 @@ from __future__ import annotations
 __all__ = ["Aggregate"]
 
 import logging
-import pathlib
 from typing import ClassVar, TYPE_CHECKING, cast
+from pathlib import Path
 
 import polars as pl
 
@@ -35,10 +35,10 @@ class Aggregate(LazyNamespace):
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
-        self.data_folderpath = str(explanations.aggregated_data_dir)
+        self.data_folderpath = Path(explanations.root_dir) / explanations.data_folder
+        self.data_pattern = None
         self.df_contextual: pl.LazyFrame | None = None
         self.df_overall: pl.LazyFrame | None = None
-        self.data_pattern = None
         self.context_operations = ContextOperations(aggregate=self)
         self.initialized = False
         super().__init__()
@@ -180,15 +180,14 @@ class Aggregate(LazyNamespace):
             If the aggregates folder does not exist or is empty.
 
         """
-        folder = pathlib.Path(self.data_folderpath)
-        if not folder.exists():
+        if not self.data_folderpath.exists():
             raise FileNotFoundError(
-                f"Aggregates folder {folder.name} does not exist. "
+                f"Aggregates folder {self.data_folderpath.name} does not exist. "
                 "Please ensure the aggregates are generated before loading data."
             )
-        if not any(folder.iterdir()):
+        if not any(self.data_folderpath.iterdir()):
             raise FileNotFoundError(
-                f"Aggregates folder {folder.name} is empty. "
+                f"Aggregates folder {self.data_folderpath.name} is empty. "
                 "Please ensure the aggregates are generated before loading data."
             )
 
@@ -223,7 +222,7 @@ class Aggregate(LazyNamespace):
             _COL.CONTRIBUTION_MAX.value,
         ]
 
-        context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else 'BY_CONTEXT.parquet'}"
+        context_ = self.data_folderpath / (self.data_pattern if self.data_pattern else "BY_CONTEXT.parquet")
 
         self.df_contextual = (
             scan_parquet_path(context_)
@@ -232,7 +231,7 @@ class Aggregate(LazyNamespace):
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
         self.df_overall = (
-            scan_parquet_path(f"{self.data_folderpath}/OVERALL.parquet")
+            scan_parquet_path(self.data_folderpath / "OVERALL.parquet")
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
