@@ -177,7 +177,7 @@ class ContextOperations(LazyNamespace):
         self.initialized = False
 
         self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "100"))
-        self.unique_contexts_file = f"{self.aggregate.data_folderpath}/unique_contexts.json"
+        self.unique_contexts_file = self.aggregate.data_folderpath / "unique_contexts.json"
 
         super().__init__()
 
@@ -273,19 +273,18 @@ class ContextOperations(LazyNamespace):
 
     def create_unique_contexts_file(self) -> dict[str, list[str]]:
         """Create and persist the flat unique-context batch mapping if absent."""
-        unique_contexts_path = Path(self.unique_contexts_file)
-        if unique_contexts_path.exists():
-            return cast("dict[str, list[str]]", json.loads(unique_contexts_path.read_text()))
+        if self.unique_contexts_file.exists():
+            return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
 
         list_of_contexts = (
             self.aggregate.get_df_contextual().select(_COL.PARTITION.value).unique().collect().to_series().to_list()
         )
         dict_of_contexts = self._create_context_batches(list_of_contexts)
 
-        with unique_contexts_path.open("w", encoding="utf-8") as file:
+        with self.unique_contexts_file.open("w", encoding="utf-8") as file:
             json.dump(dict_of_contexts, file)
 
-        return cast("dict[str, list[str]]", json.loads(unique_contexts_path.read_text()))
+        return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
 
     def create_batch_parquet_files(self, contexts_by_batch: dict[str | int, list[str]]) -> None:
         """Create one batch parquet file per context batch in a separate batches/ subdirectory."""
