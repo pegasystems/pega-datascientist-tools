@@ -27,7 +27,11 @@ class Explanations:
 
     Parameters
     ----------
-    aggregated_data_dir : str | Path, default ".tmp/aggregated_data"
+    root_dir : str, optional, default ".tmp"
+        Working directory under which the pre-aggregated parquet files
+        (and report scratch space) are written. Ignored if a custom ``data_folder`` is provided,
+        in which case the parent of ``data_folder`` is used as the root.
+    data_folder : str, optional, default "aggregated_data"
         Path to the folder containing pre-aggregated parquet files.
         Must exist and be non-empty; raises FileNotFoundError otherwise.
     model_name : str, optional
@@ -51,7 +55,7 @@ class Explanations:
 
     >>> from pathlib import Path
     >>> exp = Explanations.from_aggregates(
-    ...     aggregated_data_dir=Path(".tmp/aggregated_data"),
+    ...     data_folder=Path(".tmp/aggregated_data"),
     ...     model_name="AdaptiveBoostCT",
     ...     from_date=datetime(2025, 3, 28),
     ...     to_date=datetime(2025, 3, 28),
@@ -60,7 +64,7 @@ class Explanations:
 
     Construct with a custom aggregates path:
 
-    >>> exp = Explanations(aggregated_data_dir="/path/to/my/aggregates")
+    >>> exp = Explanations(data_folder="/path/to/my/aggregates")
     >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
 
     """
@@ -72,13 +76,15 @@ class Explanations:
     def __init__(
         self,
         *,
+        root_dir: str = _DEFAULT_ROOT_DIR,
+        data_folder: str = _DEFAULT_DATA_FOLDER,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
     ):
         self._init_state(
-            root_dir=self._DEFAULT_ROOT_DIR,
-            data_folder=self._DEFAULT_DATA_FOLDER,
+            root_dir=root_dir,
+            data_folder=data_folder,
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
@@ -87,9 +93,9 @@ class Explanations:
     @classmethod
     def from_aggregates(
         cls,
+        *,
         root_dir: str = _DEFAULT_ROOT_DIR,
         data_folder: str = _DEFAULT_DATA_FOLDER,
-        *,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
@@ -97,8 +103,7 @@ class Explanations:
         """Construct an ``Explanations`` from pre-aggregated parquet files.
 
         This is the standard entry point: it points to a folder containing
-        pre-aggregated parquet files (typically produced by running
-        :class:`Preprocess` separately) and returns a ready-to-query instance.
+        pre-aggregated parquet files and returns a ready-to-query instance.
 
         Parameters
         ----------
@@ -149,13 +154,18 @@ class Explanations:
         to_date: datetime | None,
     ) -> None:
         """Set instance attributes and wire sub-namespaces. Pure (no I/O)."""
+
+        self.root_dir = root_dir
         self.data_folder = data_folder
-        # For backwards compatibility, expose root_dir. If using the default path,
-        # compute it as the parent of aggregated_data's parent; otherwise use the path directly.
-        if str(data_folder) == self._DEFAULT_DATA_FOLDER:
-            self.root_dir = ".tmp"
-        else:
-            self.root_dir = str(Path(data_folder).parent.parent)
+        # If using the default path, compute it as the parent of data_folder's parent;
+        # otherwise use the path directly.
+        if data_folder != self._DEFAULT_DATA_FOLDER:
+            data_folder_path = Path(data_folder)
+            self.data_folder = str(data_folder_path.name)
+            self.root_dir = str(data_folder_path.parent)
+            logger.info(
+                f"Using custom data folder: {data_folder_path}, setting root_dir to {self.root_dir}, data_folder to {self.data_folder}"
+            )
         self.model_name = model_name
         self._set_date_range(from_date, to_date)
         self.aggregate = Aggregate(explanations=self)
