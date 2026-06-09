@@ -18,7 +18,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def reports():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        aggregated_data_dir=DATA_DIR,
+        data_folder=DATA_DIR,
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
         to_date=datetime(2025, 3, 28),
