@@ -27,9 +27,9 @@ def _configure_report_output(explanations: Explanations, tmp_path: Path) -> Path
     explanations.aggregate.data_folderpath = aggregate_dir
     explanations.aggregate.context_operations.unique_contexts_file = aggregate_dir / "unique_contexts.json"
     explanations.report.aggregate_folder = aggregate_dir
-    explanations.report.report_folderpath = str(tmp_path / "reports")
-    explanations.report.report_output_dir = str(Path(explanations.report.report_folderpath) / "_site")
-    explanations.report.params_file = str(Path(explanations.report.report_folderpath) / "scripts" / "params.yml")
+    explanations.report.report_folderpath = tmp_path / "reports"
+    explanations.report.report_output_dir = explanations.report.report_folderpath / "_site"
+    explanations.report.params_file = explanations.report.report_folderpath / "scripts" / "params.yml"
     return aggregate_dir
 
 

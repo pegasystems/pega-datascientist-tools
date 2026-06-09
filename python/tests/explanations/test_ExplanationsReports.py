@@ -1,7 +1,6 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -28,9 +27,9 @@ def reports():
 
 @pytest.fixture
 def report_paths(reports, tmp_path):
-    reports.report_folderpath = os.fspath(tmp_path / "reports")
-    reports.report_output_dir = os.fspath(Path(reports.report_folderpath) / "_site")
-    reports.params_file = os.fspath(Path(reports.report_folderpath) / "scripts" / "params.yml")
+    reports.report_folderpath = tmp_path / "reports"
+    reports.report_output_dir = reports.report_folderpath / "_site"
+    reports.params_file = reports.report_folderpath / "scripts" / "params.yml"
     yield reports
 
 
@@ -39,8 +38,8 @@ def test_validate_report_dir(report_paths):
     reports = report_paths
     reports._validate_report_dir()
 
-    assert os.path.exists(reports.report_folderpath), "Report folder does not exist."
-    assert os.path.isdir(reports.report_folderpath), "Report folder is not a directory."
+    assert reports.report_folderpath.exists(), "Report folder does not exist."
+    assert reports.report_folderpath.is_dir(), "Report folder is not a directory."
 
 
 def test_copy_report_resources(report_paths):
@@ -49,12 +48,12 @@ def test_copy_report_resources(report_paths):
     reports._validate_report_dir()
     reports._copy_report_resources()
 
-    assert os.path.exists(reports.report_folderpath), "Report folder does not exist."
-    assert any(os.scandir(reports.report_folderpath)), "Report folder is empty."
+    assert reports.report_folderpath.exists(), "Report folder does not exist."
+    assert any(reports.report_folderpath.iterdir()), "Report folder is empty."
 
-    assets_folder = os.path.join(reports.report_folderpath, "assets")
-    assert os.path.exists(assets_folder), "Assets folder not copied."
-    assert any(os.scandir(assets_folder)), "Assets folder is empty."
+    assets_folder = reports.report_folderpath / "assets"
+    assert assets_folder.exists(), "Assets folder not copied."
+    assert any(assets_folder.iterdir()), "Assets folder is empty."
 
 
 def test_copy_report_resources_raises_on_error(report_paths):

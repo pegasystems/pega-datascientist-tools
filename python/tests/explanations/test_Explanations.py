@@ -80,3 +80,31 @@ class TestPureInit:
         assert exp.aggregate is not None
         assert exp.plot is not None
         assert exp.report is not None
+
+    def test_absolute_path_splits_correctly(self, tmp_path):
+        """Test that absolute data_folder path is split into root_dir and data_folder."""
+        custom_data_path = tmp_path / "mydata"
+        custom_data_path.mkdir(parents=True)
+
+        exp = Explanations(data_folder=str(custom_data_path))
+
+        assert exp.root_dir == str(tmp_path)
+        assert exp.data_folder == "mydata"
+        assert Path(exp.root_dir) / exp.data_folder == custom_data_path
+
+    def test_relative_path_splits_correctly(self):
+        """Test that relative data_folder path is split into root_dir and data_folder."""
+        exp = Explanations(data_folder="custom/path/mydata")
+
+        assert exp.root_dir == "custom/path"
+        assert exp.data_folder == "mydata"
+
+    def test_path_object_accepted(self, tmp_path):
+        """Test that Path objects are accepted for data_folder."""
+        custom_data_path = tmp_path / "mydata"
+        custom_data_path.mkdir(parents=True)
+
+        exp = Explanations(data_folder=custom_data_path)
+
+        assert exp.root_dir == str(tmp_path)
+        assert exp.data_folder == "mydata"

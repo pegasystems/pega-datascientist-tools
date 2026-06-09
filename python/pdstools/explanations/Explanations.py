@@ -9,6 +9,7 @@ from pathlib import Path
 from .Aggregate import Aggregate
 from .Plots import Plots
 from .Reports import Reports
+from .ExplanationsUtils import _validate_folder_exists_and_not_empty
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,11 @@ class Explanations:
         Working directory under which the pre-aggregated parquet files
         (and report scratch space) are written. Ignored if a custom ``data_folder`` is provided,
         in which case the parent of ``data_folder`` is used as the root.
-    data_folder : str, optional, default "aggregated_data"
+    data_folder : str | Path, optional, default "aggregated_data"
         Path to the folder containing pre-aggregated parquet files.
-        Must exist and be non-empty; raises FileNotFoundError otherwise.
+        Can be a relative path (combined with ``root_dir``) or an absolute path.
+        Note: validation (FileNotFoundError) only occurs via ``from_aggregates``;
+        direct ``__init__`` calls skip validation.
     model_name : str, optional
         Name of the model rule. Used for report metadata only.
     from_date : datetime, optional
@@ -77,7 +80,7 @@ class Explanations:
         self,
         *,
         root_dir: str = _DEFAULT_ROOT_DIR,
-        data_folder: str = _DEFAULT_DATA_FOLDER,
+        data_folder: str | Path = _DEFAULT_DATA_FOLDER,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
@@ -95,7 +98,7 @@ class Explanations:
         cls,
         *,
         root_dir: str = _DEFAULT_ROOT_DIR,
-        data_folder: str = _DEFAULT_DATA_FOLDER,
+        data_folder: str | Path = _DEFAULT_DATA_FOLDER,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
@@ -110,8 +113,9 @@ class Explanations:
         root_dir : str, default ".tmp"
             Working directory under which the pre-aggregated parquet files
             (and report scratch space) are written.
-        data_folder : str, default "aggregated_data"
+        data_folder : str | Path, default "aggregated_data"
             Path to the folder containing pre-aggregated parquet files.
+            Can be a relative path (combined with ``root_dir``) or an absolute path.
             Must exist and be non-empty; raises FileNotFoundError otherwise.
         model_name : str, optional
             Name of the model rule. Used for report metadata only.
@@ -148,7 +152,7 @@ class Explanations:
         self,
         *,
         root_dir: str,
-        data_folder: str,
+        data_folder: str | Path,
         model_name: str | None,
         from_date: datetime | None,
         to_date: datetime | None,
@@ -156,15 +160,26 @@ class Explanations:
         """Set instance attributes and wire sub-namespaces. Pure (no I/O)."""
 
         self.root_dir = root_dir
-        self.data_folder = data_folder
-        # If using the default path, compute it as the parent of data_folder's parent;
-        # otherwise use the path directly.
-        if data_folder != self._DEFAULT_DATA_FOLDER:
-            data_folder_path = Path(data_folder)
+        self.data_folder = str(data_folder) if isinstance(data_folder, Path) else data_folder
+
+        # Path splitting heuristic:
+        # If the provided data_folder is the default literal ("aggregated_data"),
+        # keep it as-is and use root_dir as the parent.
+        # Otherwise, treat it as a full path (absolute or relative) and extract
+        # the parent as root_dir and the name as data_folder.
+        # This allows flexible initialization:
+        #   - Explanations(root_dir=".tmp", data_folder="aggregated_data") -> .tmp/aggregated_data
+        #   - Explanations(data_folder="/custom/path/mydata") -> root_dir="/custom/path", data_folder="mydata"
+        #   - Explanations(data_folder="relative/path/data") -> root_dir="relative/path", data_folder="data"
+        if self.data_folder != self._DEFAULT_DATA_FOLDER:
+            data_folder_path = Path(self.data_folder)
             self.data_folder = str(data_folder_path.name)
             self.root_dir = str(data_folder_path.parent)
             logger.info(
-                f"Using custom data folder: {data_folder_path}, setting root_dir to {self.root_dir}, data_folder to {self.data_folder}"
+                "Using custom data folder: %s, setting root_dir to %s, data_folder to %s",
+                data_folder_path,
+                self.root_dir,
+                self.data_folder,
             )
         self.model_name = model_name
         self._set_date_range(from_date, to_date)
@@ -178,11 +193,14 @@ class Explanations:
         This is called lazily when data is first accessed, not during init.
         """
         agg_folder = Path(self.root_dir) / self.data_folder
-        if not agg_folder.exists():
+        try:
+            _validate_folder_exists_and_not_empty(agg_folder)
+        except FileNotFoundError as e:
+            # Provide context-specific error message with proper exception chaining
             raise FileNotFoundError(
                 f"Aggregated data directory not found: {agg_folder}. "
                 "Please ensure that pre-aggregated data is available at the specified path"
-            )
+            ) from e
 
         if not any(agg_folder.glob("*.parquet")):
             raise FileNotFoundError(

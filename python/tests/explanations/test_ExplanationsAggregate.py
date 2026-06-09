@@ -7,7 +7,7 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL, ContextOperations
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -150,28 +150,32 @@ class TestContextOperations:
 
     def test_create_context_batches_keys(self, aggregate):
         contexts = [f"ctx-{idx}" for idx in range(200)]
-        batches = aggregate.context_operations._create_context_batches(contexts)
-        assert list(batches) == [0, 1]
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
+        assert list(batches) == ["0", "1"]
 
     def test_create_context_batches_sizes(self, aggregate):
         contexts = [f"ctx-{idx}" for idx in range(230)]
-        batches = aggregate.context_operations._create_context_batches(contexts)
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
         assert sum(len(batch) for batch in batches.values()) == len(contexts)
         assert all(len(batch) <= aggregate.context_operations.file_batch_limit for batch in batches.values())
 
     def test_create_context_batches_single_batch(self, aggregate):
         contexts = [f"ctx-{idx}" for idx in range(42)]
-        batches = aggregate.context_operations._create_context_batches(contexts)
-        assert list(batches) == [0]
-        assert len(batches[0]) == 42
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
+        assert list(batches) == ["0"]
+        assert len(batches["0"]) == 42
 
     def test_create_context_batches_custom_batch_size(self, aggregate):
-        aggregate.context_operations.file_batch_limit = 50
         contexts = [f"ctx-{idx}" for idx in range(150)]
-        batches = aggregate.context_operations._create_context_batches(contexts)
-        assert list(batches) == [0, 1, 2]
+        batches = aggregate.context_operations._create_context_batches(contexts, 50)
+        assert list(batches) == ["0", "1", "2"]
         assert all(len(batch) <= 50 for batch in batches.values())
-        aggregate.context_operations.file_batch_limit = 100
 
     def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path):
         output = tmp_path / "unique_contexts.json"
@@ -1014,3 +1018,16 @@ def assert_symbolic_bins_per_predictor_capped(df, top_k):
                 f"Symbolic predictor {row['predictor_name']!r} has {row['n']} bins, "
                 f"expected at most {expected_max} (top_k + 1 remaining)."
             )
+
+
+def test_create_context_batches_empty_list():
+    """Test that empty context list returns empty batches dict."""
+    batches = ContextOperations._create_context_batches([], 100)
+    assert batches == {}
+
+
+def test_create_context_batches_none():
+    """Test that None context list returns empty batches dict."""
+    batches = ContextOperations._create_context_batches([], 100)
+    assert isinstance(batches, dict)
+    assert len(batches) == 0
