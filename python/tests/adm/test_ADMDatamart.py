@@ -741,3 +741,31 @@ def test_agb_filter_skipped_when_modeltechnique_unknown():
     dm = ADMDatamart(model_df=df)
     model_ids = dm.model_data.select("ModelID").collect().get_column("ModelID").to_list()
     assert set(model_ids) == {"m_agb_real", "m_agb_empty", "m_nb_empty"}
+
+
+def test_from_databricks_view():
+    """Test the from_databricks_view classmethod."""
+    from unittest.mock import patch
+
+    from pdstools.utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA
+
+    df = pl.DataFrame({c: [None] for c in _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA}).lazy()
+
+    with patch(
+        "pdstools.utils.cdh_utils._validate_databricks_model_snapshots",
+        return_value=df,
+    ):
+        with patch.object(ADMDatamart, "__init__", return_value=None) as mock_init:
+            ADMDatamart.from_databricks_view(df)
+            mock_init.assert_called_once()
+            passed_df = mock_init.call_args[1]["model_df"]
+            assert isinstance(passed_df, pl.LazyFrame)
+            # Databricks columns must be renamed to pdstools conventions.
+            result_cols = set(passed_df.collect_schema().names())
+            assert "pyAppliesToClass" in result_cols
+            assert "pyConfigurationName" in result_cols
+            assert "pySnapshotTime" in result_cols
+            # Raw Databricks names must not appear in the output.
+            assert "AppliesToClass" not in result_cols
+            assert "Configuration" not in result_cols
+            assert "SnapshotDate" not in result_cols
