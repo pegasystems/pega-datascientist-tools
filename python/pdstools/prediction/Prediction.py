@@ -449,7 +449,7 @@ class Prediction:
         Parameters
         ----------
         df : pl.LazyFrame
-            The Polars LazyFrame containing the PDC data
+            The Polars LazyFrame containing the databricks data
         query : Optional[QUERY], optional
             An optional query to apply to the input data, by default None
 
@@ -489,7 +489,7 @@ class Prediction:
                     "pyCount": pl.Float64,
                 }
             )
-            .drop(
+            .drop(  # TODO select instead of drop
                 [
                     "PacID",
                     "EnvironmentName",

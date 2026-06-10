@@ -472,6 +472,67 @@ class ADMDatamart:
         )
 
     @classmethod
+    def from_databricks_view(cls, df: pl.LazyFrame) -> "ADMDatamart":
+        """Build an ADMDatamart from a Databricks view `vw_gold_ml_models_snapshots_summary`, containing the cleaned and deduplicated model snapshots data.
+
+        Filters and renames the databricks view to the columns expected by :class:`ADMDatamart`, then returns the initialised instance.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The Polars LazyFrame containing the databricks data
+        query : Optional[QUERY], optional
+            An optional query to apply to the input data, by default None
+
+        Returns
+        -------
+        ADMDatamart
+            The initialised datamart. Use ``dm.model_data`` for the
+            transformed frame.
+        """
+
+        cdh_utils._validate_databricks_model_snapshots(df)
+
+        # Rename Databricks column names to pdstools conventions.
+        # When the view is renamed, update _DATABRICKS_PREDICTION_SCHEMA in
+        # pdstools/utils/cdh_utils/_io.py and the dict below.
+        databricks_to_pdstools = {
+            "AppliesToClass": "pyAppliesToClass",
+            "ModelID": "pyModelID",
+            "Configuration": "pyConfigurationName",
+            "Negatives": "pyNegatives",
+            "Positives": "pyPositives",
+            "ResponseCount": "pyResponseCount",
+            "SnapshotDate": "pySnapshotTime",
+            "Performance": "pyPerformance",
+            "Channel": "pyChannel",
+            "Direction": "pyDirection",
+            "Issue": "pyIssue",
+            "Group": "pyGroup",
+            "Name": "pyName",
+            "Treatment": "pyTreatment",
+        }
+
+        adm_data = (
+            df.rename(databricks_to_pdstools)
+            .with_columns(
+                pyTotalPredictors=pl.lit(None),
+                pyActivePredictors=pl.lit(None),
+            )
+            .cast(
+                {
+                    "pyPerformance": pl.Float32,
+                    "pyNegatives": pl.Int64,
+                    "pyPositives": pl.Int64,
+                    "pyResponseCount": pl.Int64,
+                }
+            )
+        )
+        # TODO select only the columns we actually need
+
+        return cls(model_df=adm_data, extract_pyname_keys=True)
+
+    @classmethod
     def from_pdc(cls, df: pl.LazyFrame) -> "ADMDatamart":
         """Build an ADMDatamart from a (Pega-internal) PDC dataset.
 

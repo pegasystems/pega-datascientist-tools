@@ -154,40 +154,56 @@ _DATABRICKS_PREDICTION_SCHEMA = frozenset(
     }
 )
 
+_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA = frozenset(
+    {
+        "PacID",
+        "EnvironmentName",
+        "ModelID",
+        "Channel",
+        "Direction",
+        "Issue",
+        "Group",
+        "Name",
+        "Treatment",
+        "ExtraContextKeys",
+        "Positives",
+        "Negatives",
+        "ResponseCount",
+        "Performance",
+        "SnapshotDate",
+        "Configuration",
+        "AppliesToClass",
+        "ModelTechnique",
+    }
+)
 
-def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Validate the schema of the Databricks predictions view LazyFrame.
 
-    Raises ``ValueError`` if any expected columns are missing.
-    Logs a warning if unexpected columns are present, which indicates
-    that the view schema may have changed and
-    ``_DATABRICKS_PREDICTION_SCHEMA`` needs updating.
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        Raw LazyFrame from the Databricks predictions view.
-
-    Returns
-    -------
-    pl.LazyFrame
-        The input frame, unchanged.
-
-    Raises
-    ------
-    ValueError
-        If any column in ``_DATABRICKS_PREDICTION_SCHEMA`` is absent.
-    """
+def _validate_databricks_schema(df: pl.LazyFrame, schema: set, view_name: str, schema_const_name: str) -> pl.LazyFrame:
     df_cols = set(df.collect_schema().names())
-    if missing := _DATABRICKS_PREDICTION_SCHEMA - df_cols:
-        raise ValueError(f"Required columns missing from Databricks predictions view: {missing}")
-    if extra := df_cols - _DATABRICKS_PREDICTION_SCHEMA:
+    if missing := schema - df_cols:
+        raise ValueError(f"Required columns missing from Databricks {view_name} view: {missing}")
+    if extra := df_cols - schema:
         logger.warning(
-            "Unexpected columns in Databricks predictions view: %s. "
-            "The view schema may have changed — update _DATABRICKS_PREDICTION_SCHEMA in pdstools.",
+            "Unexpected columns in Databricks %s view: %s. The view schema may have changed — update %s in pdstools.",
+            view_name,
             extra,
+            schema_const_name,
         )
     return df
+
+
+def _validate_databricks_model_snapshots(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Validate the schema of the Databricks model snapshots view LazyFrame."""
+    return _validate_databricks_schema(
+        df, _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA, "model snapshots", "_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA"
+    )
+
+
+def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Validate the schema of the Databricks predictions view LazyFrame."""
+    return _validate_databricks_schema(
+        df, _DATABRICKS_PREDICTION_SCHEMA, "predictions", "_DATABRICKS_PREDICTION_SCHEMA"
+    )
 
 
 def _read_pdc(pdc_data: pl.LazyFrame):

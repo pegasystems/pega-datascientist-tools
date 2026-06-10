@@ -54,6 +54,7 @@ from ._dates import (
 from ._io import (
     _read_pdc,
     _validate_databricks_predictions,
+    _validate_databricks_model_snapshots,
     create_working_and_temp_dir,
     get_latest_pdstools_version,
     process_files_to_bytes,
