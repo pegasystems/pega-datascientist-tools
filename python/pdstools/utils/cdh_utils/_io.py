@@ -135,7 +135,6 @@ def create_working_and_temp_dir(
     return working_dir, Path(temp_dir_name)
 
 
-# Reads PDC data. TODO: generalize the arg to be a File, string, or LazyFrame etc.
 # Full expected schema of the Databricks vw_gold_ml_models_predictions_summary view.
 # When the view schema changes, update this set only.
 _DATABRICKS_PREDICTION_SCHEMA = frozenset(
@@ -153,6 +152,8 @@ _DATABRICKS_PREDICTION_SCHEMA = frozenset(
     }
 )
 
+# Full expected schema of the Databricks vw_gold_ml_models_snapshots_summary view.
+# When the view schema changes, update this set only.
 _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA = frozenset(
     {
         "PacID",

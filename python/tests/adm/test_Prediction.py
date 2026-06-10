@@ -388,15 +388,18 @@ def test_from_mock_data():
     assert len(unique_dates) == 30
 
 
-def test_from_pdc():
-    # TODO replace for test_from_databricks_view
-    """Test the from_pdc class method."""
-    # Create mock PDC data with all required columns
-    pdc_data = pl.DataFrame(
+def test_from_databricks_view():
+    """Test the from_databricks_view class method."""
+    # Create mock data matching _DATABRICKS_PREDICTION_SCHEMA
+    databricks_data = pl.DataFrame(
         {
-            "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
-            "ModelName": ["MYCUSTOMPREDICTION"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4 + ["PREDICTWEBPROPENSITY"] * 4,
-            "ModelID": ["ID1"] * 12,  # Added missing required column
+            "PacID": ["pac1"] * 12,
+            "EnvironmentName": ["env1"] * 12,
+            "Configuration": ["MYCUSTOMPREDICTION"] * 4
+            + ["PREDICTMOBILEPROPENSITY"] * 4
+            + ["PREDICTWEBPROPENSITY"] * 4,
+            "AppliesToClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
+            "SnapshotDate": [datetime.datetime(2040, 4, 1)] * 12,
             "ModelType": [
                 "Prediction_Test",
                 "Prediction_Control",
@@ -404,37 +407,38 @@ def test_from_pdc():
                 "Prediction",
             ]
             * 3,
-            "Name": ["auc"] * 12,
-            "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
             "Performance": [65.0] * 4 + [70.0] * 8,
             "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1 + [400, 100, 500, 1000],
             "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1 + [2000, 1000, 3000, 6000],
             "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1 + [2400, 1100, 3500, 7000],
-            "ADMModelType": [""] * 12,
-            "TotalPositives": [0] * 12,
-            "TotalResponses": [0] * 12,
         },
     ).lazy()
 
-    # We need to patch the _read_pdc function to avoid actual processing
-    with patch("pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data):
-        # Patch __init__ so we can inspect what from_pdc passes through
-        # without depending on real prediction-column validation.
+    # Patch _validate_databricks_predictions to skip schema validation and
+    # patch __init__ to inspect what from_databricks_view passes through
+    # without depending on real prediction-column validation.
+    with patch(
+        "pdstools.utils.cdh_utils._validate_databricks_predictions",
+        return_value=databricks_data,
+    ):
         with patch.object(Prediction, "__init__", return_value=None) as mock_init:
             # Test normal initialization — first positional arg is the
             # transformed prediction LazyFrame.
-            Prediction.from_pdc(pdc_data)
+            Prediction.from_databricks_view(databricks_data)
             mock_init.assert_called_once()
             assert isinstance(mock_init.call_args[0][0], pl.LazyFrame)
 
             # Reset the mock for the next test
             mock_init.reset_mock()
 
-            # Test with query
-            Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
+            # Test with query — it must be forwarded as a keyword argument.
+            Prediction.from_databricks_view(
+                databricks_data,
+                query={"Configuration": ["PREDICTWEBPROPENSITY"]},
+            )
             mock_init.assert_called_once()
             assert mock_init.call_args[1].get("query") == {
-                "ModelName": ["PREDICTWEBPROPENSITY"],
+                "Configuration": ["PREDICTWEBPROPENSITY"],
             }
 
 
