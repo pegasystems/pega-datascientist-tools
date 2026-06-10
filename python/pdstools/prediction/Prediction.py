@@ -145,8 +145,14 @@ class Prediction:
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
         # TODO we may want to assert that this results in exactly one record for
-        # every combination of model ID and snapshot time.
-        usage_cols = ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        # every combination of model ID and snapshot time and data usage.
+        usage_cols = [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+        ]
         counts_control = prepped.filter(pl.col.pyDataUsage == "Control").select(usage_cols)
         counts_test = prepped.filter(pl.col.pyDataUsage == "Test").select(usage_cols)
         counts_NBA = prepped.filter(pl.col.pyDataUsage == "NBA").select(usage_cols)
@@ -429,6 +435,71 @@ class Prediction:
             cache_file_prefix + "prediction_data",
             cache_directory=cache_directory,
         )
+        return cls(prediction_data, query=query)
+
+    @classmethod
+    def from_databricks_view(
+        cls,
+        df: pl.LazyFrame,
+        *,
+        query: QUERY | None = None,
+    ):
+        """Import from the Databricks `vw_gold_ml_models_predictions_summary` view, containing predictions data. These data originate from the PDC data written to S3, but are already cleaned, deduplicated, and separated from the model snapshots.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The Polars LazyFrame containing the PDC data
+        query : Optional[QUERY], optional
+            An optional query to apply to the input data, by default None
+
+        Returns
+        -------
+        Prediction
+            The initialized Prediction class. Use ``pred.predictions`` to
+            access the transformed prediction frame directly.
+
+        """
+
+        cdh_utils._validate_databricks_predictions(df)
+
+        # Rename Databricks column names to pdstools conventions.
+        # When the view is renamed, update _DATABRICKS_PREDICTION_SCHEMA in
+        # pdstools/utils/cdh_utils/_io.py and the dict below.
+        databricks_to_pdstools = {
+            "SnapshotDate": "pySnapShotTime",
+            "Positives": "pyPositives",
+            "Negatives": "pyNegatives",
+            "ResponseCount": "pyCount",
+            "Performance": "pyValue",
+        }
+
+        prediction_data = (
+            df.rename(databricks_to_pdstools)
+            .with_columns(
+                pyModelId=pl.format("{}!{}", pl.col("AppliesToClass"), pl.col("Configuration")),
+                pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
+                pyModelType=pl.lit("PREDICTION"),
+                pySnapshotType=pl.lit("Daily"),
+            )
+            .cast(
+                {
+                    "pyNegatives": pl.Float64,
+                    "pyPositives": pl.Float64,
+                    "pyCount": pl.Float64,
+                }
+            )
+            .drop(
+                [
+                    "PacID",
+                    "EnvironmentName",
+                    "Configuration",
+                    "AppliesToClass",
+                    "ModelType",  # Drop after extracting pyDataUsage
+                ]
+            )
+        )
+
         return cls(prediction_data, query=query)
 
     @classmethod

@@ -53,6 +53,7 @@ from ._dates import (
 )
 from ._io import (
     _read_pdc,
+    _validate_databricks_predictions,
     create_working_and_temp_dir,
     get_latest_pdstools_version,
     process_files_to_bytes,

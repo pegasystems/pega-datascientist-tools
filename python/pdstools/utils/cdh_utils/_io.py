@@ -137,6 +137,59 @@ def create_working_and_temp_dir(
 
 
 # Reads PDC data. TODO: generalize the arg to be a File, string, or LazyFrame etc.
+# Full expected schema of the Databricks vw_gold_ml_models_predictions_summary view.
+# When the view schema changes, update this set only.
+_DATABRICKS_PREDICTION_SCHEMA = frozenset(
+    {
+        "PacID",
+        "EnvironmentName",
+        "Configuration",
+        "AppliesToClass",
+        "SnapshotDate",
+        "Positives",
+        "Negatives",
+        "ResponseCount",
+        "Performance",
+        "ModelType",
+    }
+)
+
+
+def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Validate the schema of the Databricks predictions view LazyFrame.
+
+    Raises ``ValueError`` if any expected columns are missing.
+    Logs a warning if unexpected columns are present, which indicates
+    that the view schema may have changed and
+    ``_DATABRICKS_PREDICTION_SCHEMA`` needs updating.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Raw LazyFrame from the Databricks predictions view.
+
+    Returns
+    -------
+    pl.LazyFrame
+        The input frame, unchanged.
+
+    Raises
+    ------
+    ValueError
+        If any column in ``_DATABRICKS_PREDICTION_SCHEMA`` is absent.
+    """
+    df_cols = set(df.collect_schema().names())
+    if missing := _DATABRICKS_PREDICTION_SCHEMA - df_cols:
+        raise ValueError(f"Required columns missing from Databricks predictions view: {missing}")
+    if extra := df_cols - _DATABRICKS_PREDICTION_SCHEMA:
+        logger.warning(
+            "Unexpected columns in Databricks predictions view: %s. "
+            "The view schema may have changed — update _DATABRICKS_PREDICTION_SCHEMA in pdstools.",
+            extra,
+        )
+    return df
+
+
 def _read_pdc(pdc_data: pl.LazyFrame):
     required_cols = set(
         [
