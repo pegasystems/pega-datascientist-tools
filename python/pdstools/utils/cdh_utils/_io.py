@@ -10,12 +10,11 @@ import zipfile
 from io import StringIO
 from pathlib import Path
 
-import polars as pl
-
 from ._common import logger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import polars as pl
     from os import PathLike
 
 
@@ -204,43 +203,3 @@ def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
     return _validate_databricks_schema(
         df, _DATABRICKS_PREDICTION_SCHEMA, "predictions", "_DATABRICKS_PREDICTION_SCHEMA"
     )
-
-
-def _read_pdc(pdc_data: pl.LazyFrame):
-    required_cols = set(
-        [
-            "ModelType",
-            "ModelClass",
-            "ModelName",
-            "ModelID",
-            "Performance",
-            "Name",
-            "SnapshotTime",
-            "Positives",
-            "Negatives",
-            "ResponseCount",
-            "TotalPositives",
-            "TotalResponses",
-        ],
-    )
-    optional_cols = set(
-        [
-            "Channel",
-            "Direction",
-            "Name",
-            "Group",
-            "Issue",
-            "ADMModelType",  # introduced later see US-648869
-        ],
-    )
-
-    df_cols = set(pdc_data.collect_schema().names())
-    if not required_cols.issubset(df_cols):
-        raise ValueError(
-            f"Required columns missing: {required_cols.difference(df_cols)}",
-        )
-    pdc_data = pdc_data.select(required_cols.union(optional_cols.intersection(df_cols)))
-    if "ADMModelType" not in df_cols:
-        pdc_data = pdc_data.with_columns(ADMModelType=pl.lit(None))
-
-    return pdc_data

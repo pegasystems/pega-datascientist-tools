@@ -52,7 +52,6 @@ from ._dates import (
     to_prpc_date_time,
 )
 from ._io import (
-    _read_pdc,
     _validate_databricks_predictions,
     _validate_databricks_model_snapshots,
     create_working_and_temp_dir,

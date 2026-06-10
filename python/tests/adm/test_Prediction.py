@@ -389,6 +389,7 @@ def test_from_mock_data():
 
 
 def test_from_pdc():
+    # TODO replace for test_from_databricks_view
     """Test the from_pdc class method."""
     # Create mock PDC data with all required columns
     pdc_data = pl.DataFrame(
