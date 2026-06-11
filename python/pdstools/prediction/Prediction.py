@@ -9,6 +9,7 @@ import polars as pl
 
 from ..pega_io.File import read_ds_export
 from ..utils import cdh_utils
+from ..utils.cdh_utils._io import _DATABRICKS_PREDICTION_COLUMNS
 from ..utils.metric_limits import (
     get_predictions_channel_mapping,
     is_standard_NBAD_prediction,
@@ -444,13 +445,17 @@ class Prediction:
         *,
         query: QUERY | None = None,
     ):
-        """Import from the Databricks `vw_gold_ml_models_predictions_summary` view, containing predictions data. These data originate from the PDC data written to S3, but are already cleaned, deduplicated, and separated from the model snapshots.
+        """Import from the Databricks predictions summary view.
+
+        The input view is validated against the expected Databricks schema,
+        then renamed and cast into the prediction shape used by
+        :class:`Prediction`.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            The Polars LazyFrame containing the databricks data
-        query : Optional[QUERY], optional
+            The Polars LazyFrame containing the Databricks data.
+        query : QUERY, optional
             An optional query to apply to the input data, by default None
 
         Returns
@@ -461,11 +466,6 @@ class Prediction:
 
         """
 
-        cdh_utils._validate_databricks_predictions(df)
-
-        # Rename Databricks column names to pdstools conventions.
-        # When the view is renamed, update _DATABRICKS_PREDICTION_SCHEMA in
-        # pdstools/utils/cdh_utils/_io.py and the dict below.
         databricks_to_pdstools = {
             "SnapshotDate": "pySnapShotTime",
             "Positives": "pyPositives",
@@ -473,6 +473,14 @@ class Prediction:
             "ResponseCount": "pyCount",
             "Performance": "pyValue",
         }
+
+        cdh_utils._validate_databricks_rename_map(
+            databricks_to_pdstools,
+            _DATABRICKS_PREDICTION_COLUMNS,
+            "predictions",
+            "_DATABRICKS_PREDICTION_COLUMNS",
+        )
+        cdh_utils._validate_databricks_predictions(df)
 
         prediction_data = (
             df.rename(databricks_to_pdstools)

@@ -2,7 +2,6 @@
 
 import datetime
 import shutil
-from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -30,6 +29,31 @@ mock_prediction_data = pl.DataFrame(
         "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
     },
 ).lazy()
+
+
+def _make_databricks_prediction_data(configuration_names: list[str]) -> pl.LazyFrame:
+    """Build a small Databricks-style predictions LazyFrame for tests."""
+
+    model_types = ["Prediction_Test", "Prediction_Control", "Prediction_NBA", "Prediction"]
+    rows = []
+    for configuration_name in configuration_names:
+        rows.append(
+            pl.DataFrame(
+                {
+                    "PacID": ["pac1"] * 4,
+                    "EnvironmentName": ["env1"] * 4,
+                    "Configuration": [configuration_name] * 4,
+                    "AppliesToClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 4,
+                    "SnapshotDate": [datetime.datetime(2040, 4, 1)] * 4,
+                    "ModelType": model_types,
+                    "Performance": [65.0] * 4,
+                    "Positives": [400, 100, 500, 1000],
+                    "Negatives": [2000, 1000, 3000, 6000],
+                    "ResponseCount": [2400, 1100, 3500, 7000],
+                }
+            )
+        )
+    return pl.concat(rows, how="vertical").lazy()
 
 
 @pytest.fixture
@@ -388,58 +412,112 @@ def test_from_mock_data():
     assert len(unique_dates) == 30
 
 
-def test_from_databricks_view():
+def test_from_databricks_view_transforms_data():
     """Test the from_databricks_view class method."""
-    # Create mock data matching _DATABRICKS_PREDICTION_SCHEMA
-    databricks_data = pl.DataFrame(
+
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION"])
+    result = Prediction.from_databricks_view(databricks_data).predictions.collect()
+    assert result.select(
+        [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+            "Performance",
+            "Positives_Test",
+            "Positives_Control",
+            "Positives_NBA",
+            "CTR",
+            "CTR_Test",
+            "CTR_Control",
+            "CTR_NBA",
+            "CTR_Lift",
+            "isValidPrediction",
+        ]
+    ).to_dicts() == [
         {
-            "PacID": ["pac1"] * 12,
-            "EnvironmentName": ["env1"] * 12,
-            "Configuration": ["MYCUSTOMPREDICTION"] * 4
-            + ["PREDICTMOBILEPROPENSITY"] * 4
-            + ["PREDICTWEBPROPENSITY"] * 4,
-            "AppliesToClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
-            "SnapshotDate": [datetime.datetime(2040, 4, 1)] * 12,
-            "ModelType": [
-                "Prediction_Test",
-                "Prediction_Control",
-                "Prediction_NBA",
-                "Prediction",
-            ]
-            * 3,
-            "Performance": [65.0] * 4 + [70.0] * 8,
-            "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1 + [400, 100, 500, 1000],
-            "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1 + [2000, 1000, 3000, 6000],
-            "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1 + [2400, 1100, 3500, 7000],
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 400.0,
+            "Negatives": 2000.0,
+            "ResponseCount": 2400.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.16666666666666666,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
         },
-    ).lazy()
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 100.0,
+            "Negatives": 1000.0,
+            "ResponseCount": 1100.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.09090909090909091,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 500.0,
+            "Negatives": 3000.0,
+            "ResponseCount": 3500.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.14285714285714285,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 1000.0,
+            "Negatives": 6000.0,
+            "ResponseCount": 7000.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.14285714285714285,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+    ]
 
-    # Patch _validate_databricks_predictions to skip schema validation and
-    # patch __init__ to inspect what from_databricks_view passes through
-    # without depending on real prediction-column validation.
-    with patch(
-        "pdstools.utils.cdh_utils._validate_databricks_predictions",
-        return_value=databricks_data,
-    ):
-        with patch.object(Prediction, "__init__", return_value=None) as mock_init:
-            # Test normal initialization — first positional arg is the
-            # transformed prediction LazyFrame.
-            Prediction.from_databricks_view(databricks_data)
-            mock_init.assert_called_once()
-            assert isinstance(mock_init.call_args[0][0], pl.LazyFrame)
 
-            # Reset the mock for the next test
-            mock_init.reset_mock()
+def test_from_databricks_view_applies_query():
+    """Test that the from_databricks_view query parameter filters results."""
 
-            # Test with query — it must be forwarded as a keyword argument.
-            Prediction.from_databricks_view(
-                databricks_data,
-                query={"Configuration": ["PREDICTWEBPROPENSITY"]},
-            )
-            mock_init.assert_called_once()
-            assert mock_init.call_args[1].get("query") == {
-                "Configuration": ["PREDICTWEBPROPENSITY"],
-            }
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION", "PREDICTWEBPROPENSITY"])
+    pred = Prediction.from_databricks_view(
+        databricks_data,
+        query={"ModelName": ["PREDICTWEBPROPENSITY"]},
+    )
+    result = pred.predictions.collect()
+    assert result.height == 4
+    assert result["ModelName"].unique().to_list() == ["PREDICTWEBPROPENSITY"]
 
 
 def test_prediction_plots_internal_method(preds_singleday):

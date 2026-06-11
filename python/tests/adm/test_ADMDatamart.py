@@ -1,5 +1,6 @@
 """Testing the functionality of the ADMDatamart functions"""
 
+import datetime
 import os
 import pathlib
 
@@ -8,6 +9,33 @@ import pytest
 from pdstools import ADMDatamart
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+
+
+def _make_databricks_model_snapshots_data() -> pl.LazyFrame:
+    """Build a small Databricks-style model snapshots LazyFrame for tests."""
+
+    return pl.DataFrame(
+        {
+            "PacID": ["pac-1"],
+            "EnvironmentName": ["dev"],
+            "ModelID": ["model-1"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Name"],
+            "Treatment": ["Treatment"],
+            "ExtraContextKeys": [None],
+            "Positives": [10],
+            "Negatives": [3],
+            "ResponseCount": [13],
+            "Performance": [0.75],
+            "SnapshotDate": [datetime.datetime(2024, 1, 2, 3, 4, 5)],
+            "Configuration": ["Config"],
+            "AppliesToClass": ["MyClass"],
+            "ModelTechnique": ["GradientBoost"],
+        }
+    ).lazy()
 
 
 @pytest.fixture
@@ -745,27 +773,49 @@ def test_agb_filter_skipped_when_modeltechnique_unknown():
 
 def test_from_databricks_view():
     """Test the from_databricks_view classmethod."""
-    from unittest.mock import patch
 
-    from pdstools.utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA
+    result = ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data()).model_data.collect()
+    assert result.to_dicts() == [
+        {
+            "PacID": "pac-1",
+            "EnvironmentName": "dev",
+            "ModelID": "model-1",
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "Issue": "Issue",
+            "Group": "Group",
+            "Name": "Name",
+            "Treatment": "Treatment",
+            "ExtraContextKeys": None,
+            "Positives": 10.0,
+            "Negatives": 3.0,
+            "ResponseCount": 13.0,
+            "Performance": 0.75,
+            "SnapshotTime": datetime.datetime(2024, 1, 2, 3, 4, 5),
+            "Configuration": "Config",
+            "AppliesToClass": "MyClass",
+            "ModelTechnique": "GradientBoost",
+            "TotalPredictors": None,
+            "ActivePredictors": None,
+            "SuccessRate": 0.7692307692307693,
+            "IsUpdated": True,
+            "LastUpdate": datetime.datetime(2024, 1, 2, 3, 4, 5),
+        }
+    ]
 
-    df = pl.DataFrame({c: [None] for c in _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA}).lazy()
 
-    with patch(
-        "pdstools.utils.cdh_utils._validate_databricks_model_snapshots",
-        return_value=df,
-    ):
-        with patch.object(ADMDatamart, "__init__", return_value=None) as mock_init:
-            ADMDatamart.from_databricks_view(df)
-            mock_init.assert_called_once()
-            passed_df = mock_init.call_args[1]["model_df"]
-            assert isinstance(passed_df, pl.LazyFrame)
-            # Databricks columns must be renamed to pdstools conventions.
-            result_cols = set(passed_df.collect_schema().names())
-            assert "pyAppliesToClass" in result_cols
-            assert "pyConfigurationName" in result_cols
-            assert "pySnapshotTime" in result_cols
-            # Raw Databricks names must not appear in the output.
-            assert "AppliesToClass" not in result_cols
-            assert "Configuration" not in result_cols
-            assert "SnapshotDate" not in result_cols
+def test_from_databricks_view_validates_rename_keys(monkeypatch):
+    """Test that the Databricks rename map only uses known source columns."""
+
+    from importlib import import_module
+
+    adm_datamart_module = import_module("pdstools.adm.ADMDatamart")
+
+    monkeypatch.setattr(
+        adm_datamart_module,
+        "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        frozenset({"PacID", "EnvironmentName", "Channel"}),
+    )
+
+    with pytest.raises(ValueError, match="rename map contains keys not present"):
+        ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data())

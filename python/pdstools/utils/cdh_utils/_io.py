@@ -9,9 +9,9 @@ import tempfile
 import zipfile
 from io import StringIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ._common import logger
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import polars as pl
@@ -137,7 +137,7 @@ def create_working_and_temp_dir(
 
 # Full expected schema of the Databricks vw_gold_ml_models_predictions_summary view.
 # When the view schema changes, update this set only.
-_DATABRICKS_PREDICTION_SCHEMA = frozenset(
+_DATABRICKS_PREDICTION_COLUMNS = frozenset(
     {
         "PacID",
         "EnvironmentName",
@@ -154,7 +154,7 @@ _DATABRICKS_PREDICTION_SCHEMA = frozenset(
 
 # Full expected schema of the Databricks vw_gold_ml_models_snapshots_summary view.
 # When the view schema changes, update this set only.
-_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA = frozenset(
+_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS = frozenset(
     {
         "PacID",
         "EnvironmentName",
@@ -195,12 +195,27 @@ def _validate_databricks_schema(df: pl.LazyFrame, schema: set, view_name: str, s
 def _validate_databricks_model_snapshots(df: pl.LazyFrame) -> pl.LazyFrame:
     """Validate the schema of the Databricks model snapshots view LazyFrame."""
     return _validate_databricks_schema(
-        df, _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA, "model snapshots", "_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA"
+        df, _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS, "model snapshots", "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS"
     )
 
 
 def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
     """Validate the schema of the Databricks predictions view LazyFrame."""
     return _validate_databricks_schema(
-        df, _DATABRICKS_PREDICTION_SCHEMA, "predictions", "_DATABRICKS_PREDICTION_SCHEMA"
+        df, _DATABRICKS_PREDICTION_COLUMNS, "predictions", "_DATABRICKS_PREDICTION_COLUMNS"
     )
+
+
+def _validate_databricks_rename_map(
+    rename_map: dict[str, str],
+    schema: set,
+    view_name: str,
+    schema_const_name: str,
+) -> None:
+    """Validate that a Databricks rename map only uses known source columns."""
+
+    invalid_keys = set(rename_map) - schema
+    if invalid_keys:
+        raise ValueError(
+            f"Databricks {view_name} rename map contains keys not present in {schema_const_name}: {sorted(invalid_keys)}"
+        )

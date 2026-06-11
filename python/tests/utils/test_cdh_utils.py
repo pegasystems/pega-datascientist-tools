@@ -11,8 +11,8 @@ from pdstools.utils import cdh_utils
 from zoneinfo import ZoneInfo as timezone
 
 from pdstools.utils.cdh_utils._io import (
-    _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA,
-    _DATABRICKS_PREDICTION_SCHEMA,
+    _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+    _DATABRICKS_PREDICTION_COLUMNS,
 )
 
 
@@ -1421,49 +1421,66 @@ class TestValidateDatabricksSchema:
     # ------------------------------------------------------------------
 
     def test_predictions_exact_schema_returns_frame(self):
-        df = _make_lazy(list(_DATABRICKS_PREDICTION_SCHEMA))
+        df = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS))
         result = cdh_utils._validate_databricks_predictions(df)
         assert isinstance(result, pl.LazyFrame)
-        assert set(result.collect_schema().names()) == _DATABRICKS_PREDICTION_SCHEMA
+        assert set(result.collect_schema().names()) == _DATABRICKS_PREDICTION_COLUMNS
 
     def test_predictions_missing_columns_raises(self):
-        incomplete = _make_lazy(list(_DATABRICKS_PREDICTION_SCHEMA)[:-2])
+        incomplete = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS)[:-2])
         with pytest.raises(ValueError, match="Required columns missing from Databricks predictions view"):
             cdh_utils._validate_databricks_predictions(incomplete)
 
     def test_predictions_extra_columns_warns_and_returns_frame(self, caplog):
         import logging
 
-        extra_cols = [*_DATABRICKS_PREDICTION_SCHEMA, "ExtraCol", "AnotherExtra"]
+        extra_cols = [*_DATABRICKS_PREDICTION_COLUMNS, "ExtraCol", "AnotherExtra"]
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_predictions(df)
         assert isinstance(result, pl.LazyFrame)
         assert "Unexpected columns" in caplog.text
-        assert "_DATABRICKS_PREDICTION_SCHEMA" in caplog.text
+        assert "_DATABRICKS_PREDICTION_COLUMNS" in caplog.text
 
     # ------------------------------------------------------------------
     # _validate_databricks_model_snapshots
     # ------------------------------------------------------------------
 
     def test_model_snapshots_exact_schema_returns_frame(self):
-        df = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA))
+        df = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS))
         result = cdh_utils._validate_databricks_model_snapshots(df)
         assert isinstance(result, pl.LazyFrame)
-        assert set(result.collect_schema().names()) == _DATABRICKS_MODEL_SNAPSHOTS_SCHEMA
+        assert set(result.collect_schema().names()) == _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 
     def test_model_snapshots_missing_columns_raises(self):
-        incomplete = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA)[:-2])
+        incomplete = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS)[:-2])
         with pytest.raises(ValueError, match="Required columns missing from Databricks model snapshots view"):
             cdh_utils._validate_databricks_model_snapshots(incomplete)
 
     def test_model_snapshots_extra_columns_warns_and_returns_frame(self, caplog):
         import logging
 
-        extra_cols = [*_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA, "ExtraCol"]
+        extra_cols = [*_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS, "ExtraCol"]
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_model_snapshots(df)
         assert isinstance(result, pl.LazyFrame)
         assert "Unexpected columns" in caplog.text
-        assert "_DATABRICKS_MODEL_SNAPSHOTS_SCHEMA" in caplog.text
+        assert "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS" in caplog.text
+
+    def test_validate_databricks_rename_map_accepts_known_keys(self):
+        cdh_utils._validate_databricks_rename_map(
+            {"PacID": "pyPacID", "Channel": "pyChannel"},
+            _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+            "model snapshots",
+            "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        )
+
+    def test_validate_databricks_rename_map_rejects_unknown_keys(self):
+        with pytest.raises(ValueError, match="rename map contains keys not present"):
+            cdh_utils._validate_databricks_rename_map(
+                {"PacID": "pyPacID", "NotAColumn": "x"},
+                _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+                "model snapshots",
+                "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+            )

@@ -15,6 +15,7 @@ from .. import pega_io
 from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
+from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 from . import Schema
 from .trees import AGB
 from .Aggregates import Aggregates
@@ -473,16 +474,16 @@ class ADMDatamart:
 
     @classmethod
     def from_databricks_view(cls, df: pl.LazyFrame) -> "ADMDatamart":
-        """Build an ADMDatamart from a Databricks view `vw_gold_ml_models_snapshots_summary`, containing the cleaned and deduplicated model snapshots data.
+        """Build an ADMDatamart from the Databricks model snapshots view.
 
-        Filters and renames the databricks view to the columns expected by :class:`ADMDatamart`, then returns the initialised instance.
+        The input view is validated against the expected Databricks schema,
+        then renamed and cast into the ADM model-data shape used by
+        :class:`ADMDatamart`.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            The Polars LazyFrame containing the databricks data
-        query : Optional[QUERY], optional
-            An optional query to apply to the input data, by default None
+            The Polars LazyFrame containing the Databricks data.
 
         Returns
         -------
@@ -491,11 +492,6 @@ class ADMDatamart:
             transformed frame.
         """
 
-        cdh_utils._validate_databricks_model_snapshots(df)
-
-        # Rename Databricks column names to pdstools conventions.
-        # When the view is renamed, update _DATABRICKS_PREDICTION_SCHEMA in
-        # pdstools/utils/cdh_utils/_io.py and the dict below.
         databricks_to_pdstools = {
             "AppliesToClass": "pyAppliesToClass",
             "ModelID": "pyModelID",
@@ -513,8 +509,16 @@ class ADMDatamart:
             "Treatment": "pyTreatment",
         }
 
+        cdh_utils._validate_databricks_rename_map(
+            databricks_to_pdstools,
+            _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+            "model snapshots",
+            "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        )
+
         adm_data = (
-            df.rename(databricks_to_pdstools)
+            cdh_utils._validate_databricks_model_snapshots(df)
+            .rename(databricks_to_pdstools)
             .with_columns(
                 pyTotalPredictors=pl.lit(None),
                 pyActivePredictors=pl.lit(None),
@@ -528,8 +532,6 @@ class ADMDatamart:
                 }
             )
         )
-        # TODO select only the columns we actually need
-
         return cls(model_df=adm_data, extract_pyname_keys=True)
 
     def _validate_model_data(
