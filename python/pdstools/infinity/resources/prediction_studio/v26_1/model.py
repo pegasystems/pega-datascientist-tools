@@ -7,7 +7,13 @@ import polars as pl
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncModel as AsyncPreviousModel
-from ..base import AsyncNotification, ModelAttributes, Notification
+from ..base import (
+    AsyncModelInstance,
+    AsyncNotification,
+    ModelAttributes,
+    ModelInstance,
+    Notification,
+)
 from ..base import Model as PreviousModel
 
 if TYPE_CHECKING:
@@ -124,6 +130,49 @@ class Model(_Modelv26_1Mixin, PreviousModel):
             )
         return notifications
 
+    @overload
+    def list_instances(
+        self,
+        return_df: Literal[False] = False,
+    ) -> PaginatedList[ModelInstance]: ...
+
+    @overload
+    def list_instances(
+        self,
+        return_df: Literal[True] = True,
+    ) -> pl.DataFrame: ...
+
+    def list_instances(
+        self,
+        return_df: bool = False,
+    ) -> PaginatedList[ModelInstance] | pl.DataFrame:
+        """Fetches a list of model instances for a specific model.
+
+        Parameters
+        ----------
+        return_df : bool, default False
+            If True, returns the model instances as a DataFrame.
+
+        Returns
+        -------
+        PaginatedList[ModelInstance] or polars.DataFrame
+            A list of model instances or a DataFrame.
+
+        """
+        endpoint = f"/prweb/api/PredictionStudio/v1/models/{self.model_id}/instances"
+        instances: PaginatedList[ModelInstance] = PaginatedList(
+            ModelInstance,
+            self._client,
+            "get",
+            endpoint,
+            _root="instances",
+        )
+        if return_df:
+            return pl.DataFrame(
+                [instance._public_dict for instance in instances],
+            )
+        return instances
+
 
 class AsyncModel(_Modelv26_1Mixin, AsyncPreviousModel):
     """v26 async Model — inherits all v24.2 functionality."""
@@ -163,3 +212,44 @@ class AsyncModel(_Modelv26_1Mixin, AsyncPreviousModel):
         if return_df:
             return await notifications.as_df()
         return notifications
+
+    @overload
+    def list_instances(
+        self,
+        return_df: Literal[False] = False,
+    ) -> AsyncPaginatedList[AsyncModelInstance]: ...
+
+    @overload
+    def list_instances(
+        self,
+        return_df: Literal[True] = True,
+    ) -> pl.DataFrame: ...
+
+    async def list_instances(
+        self,
+        return_df: bool = False,
+    ) -> AsyncPaginatedList[AsyncModelInstance] | pl.DataFrame:
+        """Fetches a list of model instances for a specific model.
+
+        Parameters
+        ----------
+        return_df : bool, default False
+            If True, returns the model instances as a DataFrame.
+
+        Returns
+        -------
+        AsyncPaginatedList[AsyncModelInstance] or polars.DataFrame
+            A list of model instances or a DataFrame.
+
+        """
+        endpoint = f"/prweb/api/PredictionStudio/v1/models/{self.model_id}/instances"
+        instances: AsyncPaginatedList[AsyncModelInstance] = AsyncPaginatedList(
+            AsyncModelInstance,
+            self._client,
+            "get",
+            endpoint,
+            _root="instances",
+        )
+        if return_df:
+            return await instances.as_df()
+        return instances
