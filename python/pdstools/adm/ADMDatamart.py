@@ -19,6 +19,7 @@ from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 from . import Schema
 from .trees import AGB
 from .Aggregates import Aggregates
+from .Analysis import Analysis
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
@@ -101,6 +102,7 @@ class ADMDatamart:
     plot: Plots
     aggregates: Aggregates
     agb: AGB
+    analysis: Analysis
     generate: Reports
     bin_aggregator: BinAggregator
     first_action_dates: pl.LazyFrame | None
@@ -124,6 +126,7 @@ class ADMDatamart:
         self.plot = Plots(datamart=self)
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
+        self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
 
         model_data_validated = self._validate_model_data(
