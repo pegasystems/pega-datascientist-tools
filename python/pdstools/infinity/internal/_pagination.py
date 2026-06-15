@@ -214,10 +214,18 @@ class PaginatedList(Generic[T]):
 
         content: list[T] = []
         if self._root:
-            try:
+            if self._root in response:
                 response = response[self._root]
-            except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}") from e
+            elif not response:
+                # An empty body (e.g. ``{}`` when there are no items) is an
+                # empty page, not a malformed payload — yield zero elements.
+                # A *populated* dict missing the root key is still a genuine
+                # format error and falls through to the raise below.
+                response = []
+            else:
+                raise ValueError(
+                    f"Json format unexpected, {self._root} not found.",
+                )
 
         for element in response:
             if element is not None:
@@ -293,10 +301,18 @@ class AsyncPaginatedList(Generic[T]):
 
         content: list[T] = []
         if self._root:
-            try:
+            if self._root in response:
                 response = response[self._root]
-            except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}") from e
+            elif not response:
+                # An empty body (e.g. ``{}`` when there are no items) is an
+                # empty page, not a malformed payload — yield zero elements.
+                # A *populated* dict missing the root key is still a genuine
+                # format error and falls through to the raise below.
+                response = []
+            else:
+                raise ValueError(
+                    f"Json format unexpected, {self._root} not found.",
+                )
 
         for element in response:
             if element is not None:

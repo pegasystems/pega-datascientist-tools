@@ -198,6 +198,16 @@ class TestPaginatedList:
         with pytest.raises(ValueError, match="Json format unexpected"):
             list(pl_)
 
+    def test_empty_dict_response_yields_empty(self):
+        """An empty ``{}`` body (no items configured) is an empty page, not an
+        error — distinct from a populated dict missing the root key.
+        """
+        client = MagicMock()
+        client.request.return_value = {}
+        pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
+        assert list(pl_) == []
+        assert pl_.as_df().is_empty()
+
     def test_repr(self):
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
@@ -449,6 +459,16 @@ class TestAsyncPaginatedList:
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         with pytest.raises(ValueError, match="Json format unexpected"):
             await apl.collect()
+
+    @pytest.mark.asyncio
+    async def test_async_empty_dict_response_yields_empty(self):
+        """An empty ``{}`` body is an empty page, not an error (async)."""
+        client = MagicMock()
+        client.request = AsyncMock(return_value={})
+        apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
+        assert await apl.collect() == []
+        df = await apl.as_df()
+        assert df.is_empty()
 
     def test_async_repr(self):
         client = MagicMock()
