@@ -275,6 +275,7 @@ def test_list_predictions(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
+        assert result.shape == (2, 6)
 
 
 @pytest.mark.parametrize(

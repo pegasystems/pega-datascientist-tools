@@ -224,9 +224,6 @@ def test_get_model(prediction_studio_client, mocker, fetch_type, fetch_value):
                 "subject",
                 "status",
                 "last_update_time",
-                "type",
-                "performance",
-                "performance_measure",
             ],
         ),
     ],
@@ -252,6 +249,7 @@ def test_list_predictions(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
+        assert result.shape == (2, 6)
 
 
 @pytest.mark.parametrize(
