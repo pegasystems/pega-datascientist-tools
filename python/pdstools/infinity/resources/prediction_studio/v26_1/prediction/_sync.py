@@ -3,7 +3,6 @@ from __future__ import annotations
 from urllib.parse import quote as _quote
 from typing import Literal, overload, TYPE_CHECKING
 
-import polars as pl
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
@@ -12,6 +11,7 @@ from ...v24_1.prediction import Prediction as PredictionPrevious
 from ._mixin import _Predictionv26_1Mixin
 
 if TYPE_CHECKING:
+    import polars as pl
     from ...types import NotificationCategory
 
 
@@ -65,9 +65,7 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
             _root="notifications",
         )
         if return_df:
-            return pl.DataFrame(
-                [notification._public_dict for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications
 
     def get_champion_challengers(self):

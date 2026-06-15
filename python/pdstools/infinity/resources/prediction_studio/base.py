@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import (
     Any,
     Literal,
@@ -14,7 +13,7 @@ from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
-from .schemas import ModelData, ModelInstanceData, PredictionData
+from .schemas import ModelData, ModelInstanceData, NotificationData, PredictionData
 
 logger = logging.getLogger(__name__)
 
@@ -155,36 +154,45 @@ class _PredictionMixin(ABC):
     def describe(self): ...
 
 
-class _NotificationMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
-    def __init__(
-        self,
-        client,
-        *,
-        description: str,
-        modelType: str,
-        notificationID: str,
-        notificationType: str,
-        notificationMnemonic: str,
-        context: str,
-        impact: str,
-        triggerTime: str,
-        modelID: str | None = None,
-        predictionID: str | None = None,
-    ):
+class _NotificationMixin(ABC):
+    """Behaviour wrapper around a :class:`NotificationData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``notification.notification_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``get_notifications``) produce a stable, fully-populated schema.
+    """
+
+    _data: NotificationData
+    _data_cls: type[NotificationData] = NotificationData
+
+    def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
-        if modelID:
-            self.model_id = modelID
-        if predictionID:
-            self.prediction_id = predictionID
-        if context:
-            self.context = context
-        self.notification_type = notificationType
-        self.notification_id = notificationID
-        self.notification_mnemonic = notificationMnemonic
-        self.description = description
-        self.model_type = modelType
-        self.impact = impact
-        self.trigger_time = datetime.strptime(triggerTime, "%Y%m%dT%H%M%S.%f %Z")
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
 
 
 class UploadedModel(ABC): ...  # noqa: B024 — ABC marker for subclass discovery

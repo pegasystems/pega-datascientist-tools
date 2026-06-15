@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Literal, overload, TYPE_CHECKING
 
-import polars as pl
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
@@ -15,6 +14,7 @@ from ..repository import Repository
 from ._mixin import _PredictionStudiov26_1Mixin
 
 if TYPE_CHECKING:
+    import polars as pl
     from ...types import NotificationCategory
 
 
@@ -253,7 +253,5 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             pageSize=100,
         )
         if return_df:
-            return pl.DataFrame(
-                [notification._public_dict for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications

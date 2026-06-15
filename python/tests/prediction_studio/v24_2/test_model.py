@@ -135,6 +135,9 @@ def test_model_describe(model_client, mocker):
                 len(df) == 2,
                 df.columns
                 == [
+                    "model_id",
+                    "prediction_id",
+                    "context",
                     "notification_type",
                     "notification_id",
                     "notification_mnemonic",
@@ -143,7 +146,7 @@ def test_model_describe(model_client, mocker):
                     "impact",
                     "trigger_time",
                 ],
-                df.shape == (2, 7),
+                df.shape == (2, 10),
             ),
         ),
     ],

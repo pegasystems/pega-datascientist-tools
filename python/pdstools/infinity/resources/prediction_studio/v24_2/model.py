@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-import polars as pl
 
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
@@ -11,6 +10,7 @@ from ..base import AsyncNotification, ModelAttributes, Notification
 from ..base import Model as PreviousModel
 
 if TYPE_CHECKING:
+    import polars as pl
     from ..types import NotificationCategory
     from collections.abc import Callable
 
@@ -88,9 +88,7 @@ class Model(_ModelV24_2Mixin, PreviousModel):
             _root="notifications",
         )
         if return_df:
-            return pl.DataFrame(
-                [getattr(notification, "_public_dict", {}) for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications
 
 
