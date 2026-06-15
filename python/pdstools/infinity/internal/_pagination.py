@@ -57,13 +57,15 @@ class _Slice(Generic[T]):
             else:
                 return
 
-    def __getitem__(self, index: int) -> T | None:
+    def __getitem__(self, index: int) -> T:
+        if index < 0:
+            raise IndexError("Cannot negative index a PaginatedList slice")
         i: int = 0
         for e in self:
             if i == index:
                 return e
             i += 1
-        return None
+        raise IndexError(index)
 
     def _finished(self, index: int) -> bool:
         return self._stop is not None and index >= self._stop

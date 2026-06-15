@@ -262,6 +262,13 @@ class TestPaginatedList:
         item = sliced[1]
         assert item.id == "B"
 
+    def test_slice_getitem_index_out_of_bounds_raises(self):
+        client = _single_page_client()
+        pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
+        sliced = pl_[0:3]
+        with pytest.raises(IndexError):
+            sliced[3]
+
     def test_contains_by_id(self):
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")

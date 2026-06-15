@@ -65,12 +65,14 @@ class BaseClient(Generic[_HttpxClientT]):
         *,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
         self.auth = auth
+        self.application_name = application_name
         self.verify = verify
         self.pega_version = pega_version
         self.timeout = timeout
@@ -122,6 +124,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         base_url: str,
         client_id: str,
         client_secret: str,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -134,6 +137,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
                 client_secret=client_secret,
                 verify=verify,
             ),
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -144,6 +148,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         cls,
         file_path: str,
         verify: bool = False,
+        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: float = 90,
     ):
@@ -154,6 +159,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
             base_url=base_url,
             client_id=creds["Client ID"],
             client_secret=creds["Client Secret"],
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -167,6 +173,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         password: str | None = None,
         *,
         verify: bool = True,
+        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: int = 90,
     ):
@@ -187,6 +194,7 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         return cls(
             base_url=base_url,
             auth=auth,
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -200,6 +208,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -207,6 +216,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         super().__init__(
             base_url=base_url,
             auth=auth,
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
         )
@@ -477,6 +487,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
+        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -484,6 +495,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         super().__init__(
             base_url=base_url,
             auth=auth,
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
         )

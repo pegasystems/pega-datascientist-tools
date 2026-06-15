@@ -174,6 +174,14 @@ class TestBaseClient:
         )
         assert client.pega_version == "24.2"
 
+    def test_application_name_stored(self):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+            application_name="MyApp",
+        )
+        assert client.application_name == "MyApp"
+
 
 # ---------------------------------------------------------------------------
 # SyncAPIClient — request dispatch
@@ -469,17 +477,21 @@ class TestSyncClientFactories:
             base_url="https://example.com",
             client_id="test-id",
             client_secret="test-secret",
+            application_name="MyApp",
         )
         assert isinstance(client, SyncAPIClient)
         assert str(client._base_url) == "https://example.com"
+        assert client.application_name == "MyApp"
 
     def test_from_basic_auth(self):
         client = SyncAPIClient.from_basic_auth(
             base_url="https://example.com",
             user_name="admin",
             password="secret",
+            application_name="MyApp",
         )
         assert isinstance(client, SyncAPIClient)
+        assert client.application_name == "MyApp"
 
     def test_from_basic_auth_missing_fields_raises(self):
         with pytest.raises(ValueError):
@@ -496,8 +508,12 @@ class TestSyncClientFactories:
             "Client Secret\n"
             "test-secret\n",
         )
-        client = SyncAPIClient.from_client_credentials(str(cred_file))
+        client = SyncAPIClient.from_client_credentials(
+            str(cred_file),
+            application_name="MyApp",
+        )
         assert isinstance(client, SyncAPIClient)
+        assert client.application_name == "MyApp"
 
 
 # ---------------------------------------------------------------------------
