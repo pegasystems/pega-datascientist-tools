@@ -8,7 +8,8 @@ from ..adm.trees import ADMTreesModel
 from ..valuefinder.ValueFinder import ValueFinder
 from typing import TYPE_CHECKING
 
-_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
+_REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
+_SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
     from ..utils.types import QUERY
@@ -52,12 +53,15 @@ def sample_trees():
     -------
     ADMTreesModel
         An :class:`~pdstools.adm.trees.ADMTreesModel` loaded from the
-        bundled ``data/agb/ModelExportWithSampleCount.json`` file.
+        bundled ``data/agb/ModelExportWithSampleCount.json`` file (dev
+        environment) or from the canonical GitHub raw URL (installed
+        package).
     """
-    path = _DATA_DIR / "ModelExportWithSampleCount.json"
+    local = _REPO_DATA_DIR / "ModelExportWithSampleCount.json"
+    source = local if local.exists() else _SAMPLE_TREES_URL
     with warnings.catch_warnings(record=True) as w:
         try:
-            return ADMTreesModel.from_file(path)
+            return ADMTreesModel.from_file(source)
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",

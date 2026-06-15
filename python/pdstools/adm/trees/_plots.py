@@ -13,6 +13,7 @@ Examples
 
 from __future__ import annotations
 
+import logging
 import unicodedata
 from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
@@ -20,6 +21,8 @@ import polars as pl
 
 from ...utils.namespaces import LazyNamespace, MissingDependenciesException
 from ._nodes import _iter_nodes
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -48,8 +51,45 @@ class Plots(LazyNamespace):
     # Original plots
     # ------------------------------------------------------------------
 
-    def splits_per_variable(self, subset: set | None = None, show: bool = True):
-        """Box-plot of gains per split for each variable."""
+    @overload
+    def splits_per_variable(
+        self, subset: set | None = ..., *, show: bool = ..., return_df: Literal[True]
+    ) -> pl.DataFrame: ...
+
+    @overload
+    def splits_per_variable(
+        self, subset: set | None = ..., *, show: bool = ..., return_df: Literal[False] = ...
+    ) -> list: ...
+
+    def splits_per_variable(
+        self,
+        subset: set | None = None,
+        *,
+        show: bool = True,
+        return_df: bool = False,
+    ) -> "list[go.Figure] | pl.DataFrame":
+        """Box-plot of gains per split, grouped by predictor variable.
+
+        Parameters
+        ----------
+        subset : set or None, default None
+            If provided, only plot predictors whose names are in this set.
+        show : bool, default True
+            If True, call ``fig.show()`` for each figure.
+        return_df : bool, default False
+            If True, return the underlying gains DataFrame instead of figures.
+
+        Returns
+        -------
+        list[plotly.graph_objects.Figure] or pl.DataFrame
+            List of figures when ``return_df=False``; DataFrame with columns
+            ``split``, ``gains``, ``predictor`` when ``return_df=True``.
+        """
+        if return_df:
+            base = self.trees_model.gains_per_split
+            if subset is not None:
+                base = base.filter(pl.col("predictor").is_in(subset))
+            return base
         try:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
@@ -86,22 +126,91 @@ class Plots(LazyNamespace):
                 figlist.append(fig)
         return figlist
 
+    @overload
+    def tree(
+        self,
+        tree_number: int,
+        highlighted: dict | list | None = ...,
+        *,
+        show: bool = ...,
+        return_df: Literal[True],
+    ) -> pl.DataFrame: ...
+
+    @overload
+    def tree(
+        self,
+        tree_number: int,
+        highlighted: dict | list | None = ...,
+        *,
+        show: bool = ...,
+        return_df: Literal[False] = ...,
+    ) -> "pydot.Graph": ...
+
     def tree(
         self,
         tree_number: int,
         highlighted: dict | list | None = None,
+        *,
         show: bool = True,
-    ) -> "pydot.Graph":
-        """Plot the chosen decision tree."""
-        try:
-            import pydot
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm") from None
+        return_df: bool = False,
+    ) -> "pydot.Graph | pl.DataFrame":
+        """Visualise one decision tree or return its node structure as a DataFrame.
+
+        Parameters
+        ----------
+        tree_number : int
+            Index of the tree to visualise.
+        highlighted : dict or list or None, default None
+            If a dict, score it through the tree and highlight the visited
+            nodes in green.  If a list, treat it directly as the set of
+            node keys to highlight.
+        show : bool, default True
+            If True, render the graph as a PNG via IPython's ``display``.
+        return_df : bool, default False
+            If True, return the node structure as a DataFrame instead of the
+            ``pydot.Graph``.
+
+        Returns
+        -------
+        pydot.Graph or pl.DataFrame
+            The pydot graph when ``return_df=False``; DataFrame with columns
+            ``node_id``, ``score``, ``split``, ``gain``, ``parent_node``,
+            ``left_child``, ``right_child`` when ``return_df=True``.
+        """
         if isinstance(highlighted, dict):
             highlighted = self.trees_model.get_visited_nodes(tree_number, highlighted)[0]
         else:  # pragma: no cover
             highlighted = highlighted or []
         nodes = self.trees_model.get_tree_representation(tree_number)
+        if return_df:
+            rows = [
+                {
+                    "node_id": k,
+                    "score": node["score"],
+                    "split": node.get("split"),
+                    "gain": node.get("gain"),
+                    "parent_node": node.get("parent_node"),
+                    "left_child": node.get("left_child"),
+                    "right_child": node.get("right_child"),
+                }
+                for k, node in nodes.items()
+            ]
+            return pl.DataFrame(
+                rows,
+                schema={
+                    "node_id": pl.Int64,
+                    "score": pl.Float64,
+                    "split": pl.String,
+                    "gain": pl.Float64,
+                    "parent_node": pl.Int64,
+                    "left_child": pl.Int64,
+                    "right_child": pl.Int64,
+                },
+            )
+        try:
+            import pydot
+        except ImportError:  # pragma: no cover
+            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm") from None
         from ._nodes import parse_split
 
         graph = pydot.Dot("my_graph", graph_type="graph", rankdir="BT")
@@ -150,29 +259,50 @@ class Plots(LazyNamespace):
             try:
                 from IPython.display import Image, display
             except ImportError:
-                raise ValueError(
-                    "IPython not installed, please install it using your package manager (e.g. `pip install IPython`).",
-                ) from None
+                raise ImportError("IPython is not installed. Install it to display tree plots.") from None
             try:
                 create_png = getattr(graph, "create_png")
                 display(Image(create_png()))
             except FileNotFoundError as exc:
-                import logging
-
-                logging.getLogger("pdstools.adm.ADMTrees").error(
+                logger.error(
                     "Dot/Graphviz not installed; please install it on your machine: %s",
                     exc,
                 )
         return graph
 
-    def contribution_per_tree(self, x: dict, show: bool = True) -> "go.Figure":
-        """Plot the per-tree contribution toward the final propensity."""
-        try:
-            import plotly.express as px
-            import plotly.graph_objects as go
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
+    @overload
+    def contribution_per_tree(self, x: dict, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
 
+    @overload
+    def contribution_per_tree(self, x: dict, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+
+    def contribution_per_tree(
+        self,
+        x: dict,
+        *,
+        show: bool = True,
+        return_df: bool = False,
+    ) -> "go.Figure | pl.DataFrame":
+        """Plot the per-tree contribution toward the final propensity.
+
+        Parameters
+        ----------
+        x : dict
+            Feature values for a single subject, mapping predictor name to
+            its observed value.
+        show : bool, default True
+            If True, call ``fig.show()``.
+        return_df : bool, default False
+            If True, return the underlying scores DataFrame instead of the
+            figure.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or pl.DataFrame
+            Figure when ``return_df=False``; DataFrame with columns
+            ``treeID``, ``score``, ``scoresum``, ``mean``, ``propensity``
+            when ``return_df=True``.
+        """
         scores = (
             self.trees_model.get_all_visited_nodes(x)
             .sort("treeID")
@@ -185,6 +315,13 @@ class Plots(LazyNamespace):
                 ],
             )
         )
+        if return_df:
+            return scores.select(["treeID", "score", "scoresum", "mean", "propensity"])
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+        except ImportError:  # pragma: no cover
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
         fig = px.scatter(
             scores,
             x="row_idx",
@@ -516,7 +653,7 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
-        max_val = max(df["early_gain"].max(), df["late_gain"].max())  # type: ignore[type-var]
+        max_val = max(df["early_gain"].max() or 0.0, df["late_gain"].max() or 0.0)
         fig = px.scatter(
             df,
             x="early_gain",
@@ -950,22 +1087,62 @@ class Plots(LazyNamespace):
             fig.show()  # pragma: no cover
         return fig
 
+    @overload
+    def splits_per_variable_type(
+        self,
+        predictor_categorization: "Callable | None" = ...,
+        *,
+        return_df: Literal[True],
+    ) -> pl.DataFrame: ...
+
+    @overload
+    def splits_per_variable_type(
+        self,
+        predictor_categorization: "Callable | None" = ...,
+        *,
+        return_df: Literal[False] = ...,
+    ) -> "go.Figure": ...
+
     def splits_per_variable_type(
         self,
         predictor_categorization: "Callable | None" = None,
+        *,
+        return_df: bool = False,
         **kwargs,
-    ) -> "go.Figure":
-        """Stacked-area chart of categorised split counts per tree."""
-        try:
-            import plotly.express as px
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
+    ) -> "go.Figure | pl.DataFrame":
+        """Stacked-area chart of categorised split counts per tree.
+
+        Parameters
+        ----------
+        predictor_categorization : callable or None, default None
+            Optional function mapping predictor name to a type label.
+            When ``None``, uses the model's built-in categorisation.
+        return_df : bool, default False
+            If True, return the underlying wide-format DataFrame instead of
+            the figure.
+        **kwargs
+            Additional keyword arguments forwarded to
+            ``plotly.express.area``.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or pl.DataFrame
+            Figure when ``return_df=False``; wide-format DataFrame with
+            one column per predictor type and one row per tree when
+            ``return_df=True``.
+        """
         if predictor_categorization is not None:  # pragma: no cover
             to_plot = self.trees_model.compute_categorization_over_time(predictor_categorization)[0]
         else:
             to_plot = self.trees_model.splits_per_variable_type[0]
         df = pl.DataFrame(to_plot)
         df = df.select(sorted(df.columns))
+        if return_df:
+            return df
+        try:
+            import plotly.express as px
+        except ImportError:  # pragma: no cover
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
         fig = px.area(
             df,
             title="Variable types per tree",

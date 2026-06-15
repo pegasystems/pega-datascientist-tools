@@ -24,6 +24,19 @@ def test_plot_splits_per_variable(tree_sample: ADMTreesModel):
     tree_sample.plot.splits_per_variable(show=False)
 
 
+def test_plot_splits_per_variable_return_df(tree_sample: ADMTreesModel):
+    df = tree_sample.plot.splits_per_variable(return_df=True)
+    assert df.columns == ["split", "gains", "predictor"]
+    assert df.height > 0
+
+
+def test_plot_splits_per_variable_return_df_subset(tree_sample: ADMTreesModel):
+    predictors = tree_sample.plot.splits_per_variable(return_df=True)["predictor"].unique().to_list()
+    first = predictors[0]
+    df = tree_sample.plot.splits_per_variable(subset={first}, return_df=True)
+    assert (df["predictor"] == first).all()
+
+
 def sample_x(trees):
     from random import sample
 
@@ -51,6 +64,19 @@ def test_plot_first_tree(tree_sample, sampledX):
     tree_sample.plot.tree(42, highlighted=sampledX, show=False)
 
 
+def test_plot_tree_return_df(tree_sample: ADMTreesModel):
+    df = tree_sample.plot.tree(0, return_df=True)
+    assert df.columns == ["node_id", "score", "split", "gain", "parent_node", "left_child", "right_child"]
+    assert df.height > 0
+    # Root node (id=1) has no parent
+    root = df.filter(df["node_id"] == 1).row(0, named=True)
+    assert root["parent_node"] is None
+    # All leaf nodes have no children
+    leaves = df.filter(df["split"].is_null())
+    assert (leaves["left_child"].is_null()).all()
+    assert (leaves["right_child"].is_null()).all()
+
+
 def test_score(tree_sample, sampledX):
     assert 0 <= tree_sample.score(sampledX) <= 1
 
@@ -59,8 +85,29 @@ def test_plotContributionPerTree(tree_sample, sampledX):
     tree_sample.plot.contribution_per_tree(sampledX, show=False)
 
 
+def test_plot_contribution_per_tree_return_df(tree_sample, sampledX):
+    df = tree_sample.plot.contribution_per_tree(sampledX, return_df=True)
+    assert df.columns == ["treeID", "score", "scoresum", "mean", "propensity"]
+    assert df.height > 0
+    # Final propensity is the sigmoid of the total score sum — must be in (0, 1)
+    assert 0 < df["propensity"][-1] < 1
+    # scoresum must be monotonically non-decreasing (tree scores can be negative but sum grows)
+    # The last scoresum equals the sum of all individual scores
+    assert df["scoresum"][-1] == pytest.approx(df["score"].sum(), rel=1e-6)
+
+
 def test_plotSplitsPerVariableType(tree_sample):
     tree_sample.plot.splits_per_variable_type()
+
+
+def test_plot_splits_per_variable_type_return_df(tree_sample: ADMTreesModel):
+    df = tree_sample.plot.splits_per_variable_type(return_df=True)
+    # Wide format: one column per predictor type, one row per tree
+    assert df.height == len(tree_sample.model)
+    assert df.width > 0
+    # All counts are non-negative integers
+    for col in df.columns:
+        assert (df[col] >= 0).all()
 
 
 # --- metrics tests ---------------------------------------------------------
