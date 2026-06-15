@@ -78,6 +78,7 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
             challenger across various segments of the prediction.
 
         """
+        from ...base import ChampionChallengerList
         from ..champion_challenger import ChampionChallenger
         from ..model import Model
 
@@ -153,7 +154,7 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
                 ),
             )
 
-        return ccs
+        return ChampionChallengerList(ccs)
 
     def add_conditional_model(
         self,

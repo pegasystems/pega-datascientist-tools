@@ -62,6 +62,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             Champion-challenger pairs from a prediction.
 
         """
+        from ...base import ChampionChallengerList
         from ..champion_challenger import AsyncChampionChallenger
         from ..model import AsyncModel
 
@@ -135,7 +136,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                 ),
             )
 
-        return ccs
+        return ChampionChallengerList(ccs)
 
     async def add_conditional_model(
         self,

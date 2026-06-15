@@ -327,6 +327,81 @@ class AsyncChampionChallenger(_ChampionChallengerMixin, AsyncAPIResource):
     pass
 
 
+class ChampionChallengerList(list):
+    """List-like container with label-based lookup for champion/challengers.
+
+    Notes
+    -----
+    Integer indexing, iteration, and list semantics are preserved. String
+    lookup first tries ``challenger_model.label`` and then falls back to
+    ``active_model.label``.
+    """
+
+    def __getitem__(self, index):
+        if isinstance(index, str):
+            return self._resolve_string_key(index)
+
+        return super().__getitem__(index)
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            try:
+                self._resolve_string_key(item)
+            except KeyError:
+                return False
+            return True
+        return super().__contains__(item)
+
+    def keys(self) -> list[str]:
+        """Return challenger labels, falling back to active labels when needed."""
+        labels: list[str] = []
+        for item in self:
+            challenger_model = getattr(item, "challenger_model", None)
+            challenger_label = getattr(challenger_model, "label", None)
+            if challenger_label is not None:
+                labels.append(challenger_label)
+                continue
+
+            active_model = getattr(item, "active_model", None)
+            active_label = getattr(active_model, "label", None)
+            if active_label is not None:
+                labels.append(active_label)
+        return labels
+
+    def _resolve_string_key(self, key: str):
+        challenger_matches = []
+        active_matches = []
+
+        for item in self:
+            challenger_model = getattr(item, "challenger_model", None)
+            challenger_label = getattr(challenger_model, "label", None)
+            if challenger_label == key:
+                challenger_matches.append(item)
+
+            active_model = getattr(item, "active_model", None)
+            active_label = getattr(active_model, "label", None)
+            if active_label == key:
+                active_matches.append(item)
+
+        if len(challenger_matches) == 1:
+            return challenger_matches[0]
+        if len(challenger_matches) > 1:
+            raise KeyError(
+                f"Label {key!r} is ambiguous; matched {len(challenger_matches)} challenger models. "
+                "Use the model id instead.",
+            )
+        if len(active_matches) == 1:
+            return active_matches[0]
+        if len(active_matches) > 1:
+            raise KeyError(
+                f"Label {key!r} is ambiguous; matched {len(active_matches)} active models. Use the model id instead.",
+            )
+
+        raise KeyError(
+            f"{key!r} was not found. Available challenger labels: {self.keys()[:5]}.",
+        )
+
+
 class _ModelInstanceMixin(ABC):
     """Behaviour wrapper around a :class:`ModelInstanceData` payload.
 

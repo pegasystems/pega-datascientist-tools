@@ -10,6 +10,14 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+class _MissingLookupKeyError(KeyError):
+    """Internal KeyError used for missing string-key lookups."""
+
+
+class _AmbiguousLabelKeyError(KeyError):
+    """Internal KeyError used for ambiguous label-based lookups."""
+
+
 def _resolve_id_field(content_class: Any) -> str:
     """Return the attribute name used for string/``in`` lookups.
 
@@ -17,6 +25,85 @@ def _resolve_id_field(content_class: Any) -> str:
     ``"prediction_id"``). Anything else falls back to ``"id"``.
     """
     return getattr(content_class, "_id_field", "id")
+
+
+def _preferred_keys(items: list[Any], id_field: str) -> list[Any]:
+    """Return user-facing mapping keys for a resource collection.
+
+    Parameters
+    ----------
+    items : list[Any]
+        Collected resource items.
+    id_field : str
+        Attribute name used for id-based lookup.
+
+    Returns
+    -------
+    list[Any]
+        Labels when the collection exposes them, otherwise ids.
+
+    """
+    labels = [getattr(item, "label", None) for item in items if getattr(item, "label", None) is not None]
+    if labels:
+        return labels
+    return [getattr(item, id_field, None) for item in items]
+
+
+def _resolve_string_lookup(items: Any, key: str, id_field: str) -> Any:
+    """Resolve a string key by id first, then by label.
+
+    Parameters
+    ----------
+    items : iterable
+        Resource items to scan.
+    key : str
+        String key to resolve.
+    id_field : str
+        Attribute name used for id-based lookup.
+
+    Returns
+    -------
+    Any
+        The matching resource.
+
+    Raises
+    ------
+    _AmbiguousLabelKeyError
+        If multiple resources share the requested label.
+    _MissingLookupKeyError
+        If neither an id nor a label match is found.
+
+    """
+    label_matches: list[Any] = []
+    available_keys: list[Any] = []
+    has_labels = False
+
+    for element in items:
+        id_value = getattr(element, id_field, None)
+        if id_value == key:
+            return element
+
+        label_value = getattr(element, "label", None)
+        if label_value is not None:
+            has_labels = True
+            available_keys.append(label_value)
+            if label_value == key:
+                label_matches.append(element)
+        else:
+            available_keys.append(id_value)
+
+    if len(label_matches) == 1:
+        return label_matches[0]
+    if len(label_matches) > 1:
+        raise _AmbiguousLabelKeyError(
+            f"Label {key!r} is ambiguous; matched {len(label_matches)} resources. Use the id instead.",
+        )
+
+    visible_keys = available_keys[:5]
+    key_type = "labels" if has_labels else "ids"
+    raise _MissingLookupKeyError(
+        f"{key!r} was not found. Available {key_type}: {visible_keys}.",
+    )
 
 
 def _frame_from_resources(content_class: Any, items: Any) -> pl.DataFrame:
@@ -122,25 +209,32 @@ class PaginatedList(Generic[T]):
         if isinstance(index, slice):
             return _Slice(self, index)
         id_field = _resolve_id_field(self._content_class)
-        for element in self.__iter__():
-            if getattr(element, id_field, None) == index:
-                return element
-
-        raise IndexError(index)
+        return _resolve_string_lookup(self.__iter__(), index, id_field)
 
     def __contains__(self, key: object) -> bool:
-        """Mapping-style membership test by id field.
+        """Perform mapping-style membership tests by id, then label.
 
         ``"PREDICT_X" in client.prediction_studio.list_predictions()`` walks the
-        list (fetching pages as needed) and compares each element's id field.
+        list (fetching pages as needed), first comparing each element's id field
+        and then falling back to ``label`` when the resource exposes one.
         """
+        if not isinstance(key, str):
+            return False
         id_field = _resolve_id_field(self._content_class)
-        return any(getattr(element, id_field, None) == key for element in self)
+        try:
+            _resolve_string_lookup(iter(self), key, id_field)
+        except _MissingLookupKeyError:
+            return False
+        return True
 
     def keys(self) -> list[Any]:
-        """Return the id-field value of every element (mapping-style keys)."""
+        """Return mapping-style keys for every element.
+
+        String lookups try ids first and then labels, so this returns labels
+        when available and otherwise falls back to ids.
+        """
         id_field = _resolve_id_field(self._content_class)
-        return [getattr(element, id_field, None) for element in self]
+        return _preferred_keys(list(self), id_field)
 
     @overload
     def get(self, __key: int | str, __default: str | None = None) -> T: ...
@@ -159,13 +253,14 @@ class PaginatedList(Generic[T]):
     ) -> T | _Slice[T] | Any:
         """Returns the specified key or default.
 
-        If a string is provided as key, the content class needs an id field
-        (``_id_field``, defaulting to ``"id"``) to look up against.
+        If a string is provided as key, lookup first uses the content class id
+        field (``_id_field``, defaulting to ``"id"``) and then falls back to
+        ``label`` when available.
 
         Parameters
         ----------
         __key : int | slice | str
-            Can be a int (index), slice (start:end), or string (id attribute)
+            Can be an int (index), slice (start:end), or string (id/label)
         __default : str | None, optional
             The value to return if none found, by default None
 
@@ -351,7 +446,11 @@ class AsyncPaginatedList(Generic[T]):
         __default: T | None = None,
         **kwargs: Any,
     ) -> T | None:
-        """Async version of PaginatedList.get()."""
+        """Async version of :meth:`PaginatedList.get`.
+
+        String lookup first uses the content class id field and then falls back
+        to ``label`` when available.
+        """
         if kwargs:
             async for element in self:
                 if all(getattr(element, name) == value for name, value in kwargs.items()):
@@ -363,18 +462,20 @@ class AsyncPaginatedList(Generic[T]):
                     return items[__key]
                 if isinstance(__key, str):
                     id_field = _resolve_id_field(self._content_class)
-                    for el in items:
-                        if getattr(el, id_field, None) == __key:
-                            return el
+                    return _resolve_string_lookup(items, __key, id_field)
             except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
         return __default
 
     async def keys(self) -> list[Any]:
-        """Return the id-field value of every element (mapping-style keys)."""
+        """Return mapping-style keys for every element.
+
+        String lookups try ids first and then labels, so this returns labels
+        when available and otherwise falls back to ids.
+        """
         id_field = _resolve_id_field(self._content_class)
         items = await self.collect()
-        return [getattr(element, id_field, None) for element in items]
+        return _preferred_keys(items, id_field)
 
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""

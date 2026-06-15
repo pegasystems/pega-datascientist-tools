@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call
 
 import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import AsyncPaginatedList, PaginatedList
 from pdstools.infinity.internal._resource import AsyncAPIResource, SyncAPIResource
+from pdstools.infinity.resources.prediction_studio.base import ChampionChallengerList
 
 # ---------------------------------------------------------------------------
 # Minimal content class for pagination tests.
@@ -40,6 +42,30 @@ class _AsyncCustomIdItem(AsyncAPIResource):
     def __init__(self, client, *, model_id: str, name: str):
         super().__init__(client=client)
         self.model_id = model_id
+        self.name = name
+
+
+class _LabeledItem(SyncAPIResource):
+    """Tiny sync resource with both id and label fields."""
+
+    _id_field = "model_id"
+
+    def __init__(self, client, *, model_id: str, label: str, name: str):
+        super().__init__(client=client)
+        self.model_id = model_id
+        self.label = label
+        self.name = name
+
+
+class _AsyncLabeledItem(AsyncAPIResource):
+    """Tiny async resource with both id and label fields."""
+
+    _id_field = "model_id"
+
+    def __init__(self, client, *, model_id: str, label: str, name: str):
+        super().__init__(client=client)
+        self.model_id = model_id
+        self.label = label
         self.name = name
 
 
@@ -91,6 +117,26 @@ def _empty_page_client():
     return client
 
 
+def _labeled_page():
+    return _make_page(
+        [
+            {"model_id": "m1", "label": "Alpha", "name": "First"},
+            {"model_id": "m2", "label": "Beta", "name": "Second"},
+            {"model_id": "m3", "label": "Gamma", "name": "Third"},
+        ],
+    )
+
+
+def _ambiguous_labeled_page():
+    return _make_page(
+        [
+            {"model_id": "m1", "label": "Shared", "name": "First"},
+            {"model_id": "m2", "label": "Shared", "name": "Second"},
+            {"model_id": "m3", "label": "Unique", "name": "Third"},
+        ],
+    )
+
+
 # ---------------------------------------------------------------------------
 # PaginatedList (sync)
 # ---------------------------------------------------------------------------
@@ -124,7 +170,7 @@ class TestPaginatedList:
     def test_getitem_by_string_id_missing_raises(self):
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
-        with pytest.raises(IndexError):
+        with pytest.raises(KeyError, match="Available ids"):
             pl_["Z"]
 
     def test_getitem_negative_index_raises(self):
@@ -279,6 +325,38 @@ class TestPaginatedList:
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
         assert pl_.keys() == ["A", "B", "C"]
+
+
+class TestLabeledPaginatedList:
+    def _client(self, page):
+        client = MagicMock()
+        client.request.return_value = page
+        return client
+
+    def test_getitem_by_label(self):
+        pl_ = PaginatedList(_LabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert pl_["Beta"].model_id == "m2"
+
+    def test_getitem_by_id_with_label_present(self):
+        pl_ = PaginatedList(_LabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert pl_["m1"].label == "Alpha"
+
+    def test_getitem_by_label_ambiguous_raises(self):
+        pl_ = PaginatedList(_LabeledItem, self._client(_ambiguous_labeled_page()), "get", "/m", _root="items")
+        with pytest.raises(KeyError, match="ambiguous"):
+            pl_["Shared"]
+
+    def test_getitem_missing_label_lists_available_labels(self):
+        pl_ = PaginatedList(_LabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        with pytest.raises(KeyError, match="Available labels: \\['Alpha', 'Beta', 'Gamma'\\]"):
+            pl_["Missing"]
+
+    def test_contains_get_and_keys_use_label_fallback(self):
+        pl_ = PaginatedList(_LabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert "Gamma" in pl_
+        assert pl_.get("Alpha").name == "First"
+        assert pl_.get("Missing", "fallback") == "fallback"
+        assert pl_.keys() == ["Alpha", "Beta", "Gamma"]
 
 
 # ---------------------------------------------------------------------------
@@ -521,3 +599,81 @@ class TestAsyncPaginatedList:
         apl = AsyncPaginatedList(_AsyncCustomIdItem, client, "get", "/m", _root="items")
         item = await apl.get("m2")
         assert item.name == "Second"
+
+
+class TestAsyncLabeledPaginatedList:
+    def _client(self, page):
+        client = MagicMock()
+        client.request = AsyncMock(return_value=page)
+        return client
+
+    @pytest.mark.asyncio
+    async def test_async_get_by_label(self):
+        apl = AsyncPaginatedList(_AsyncLabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert (await apl.get("Beta")).model_id == "m2"
+
+    @pytest.mark.asyncio
+    async def test_async_get_by_id_with_label_present(self):
+        apl = AsyncPaginatedList(_AsyncLabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert (await apl.get("m1")).label == "Alpha"
+
+    @pytest.mark.asyncio
+    async def test_async_get_by_label_ambiguous_returns_default(self):
+        apl = AsyncPaginatedList(
+            _AsyncLabeledItem,
+            self._client(_ambiguous_labeled_page()),
+            "get",
+            "/m",
+            _root="items",
+        )
+        assert await apl.get("Shared", "fallback") == "fallback"
+
+    @pytest.mark.asyncio
+    async def test_async_get_missing_label_returns_default(self):
+        apl = AsyncPaginatedList(_AsyncLabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert await apl.get("Missing", "fallback") == "fallback"
+
+    @pytest.mark.asyncio
+    async def test_async_keys_prefer_labels(self):
+        apl = AsyncPaginatedList(_AsyncLabeledItem, self._client(_labeled_page()), "get", "/m", _root="items")
+        assert await apl.keys() == ["Alpha", "Beta", "Gamma"]
+
+
+def _cc(active_label: str, challenger_label: str | None = None):
+    challenger_model = None
+    if challenger_label is not None:
+        challenger_model = SimpleNamespace(label=challenger_label)
+    return SimpleNamespace(
+        active_model=SimpleNamespace(label=active_label),
+        challenger_model=challenger_model,
+    )
+
+
+class TestChampionChallengerList:
+    def test_string_lookup_uses_challenger_label(self):
+        ccs = ChampionChallengerList([_cc("Champion A", "Challenger A"), _cc("Champion B", "Challenger B")])
+        assert ccs["Challenger B"].active_model.label == "Champion B"
+
+    def test_string_lookup_falls_back_to_active_label(self):
+        ccs = ChampionChallengerList([_cc("Champion Only"), _cc("Champion B", "Challenger B")])
+        assert ccs["Champion Only"].active_model.label == "Champion Only"
+
+    def test_string_lookup_ambiguous_raises(self):
+        ccs = ChampionChallengerList([_cc("Champion A", "Shared"), _cc("Champion B", "Shared")])
+        with pytest.raises(KeyError, match="ambiguous"):
+            ccs["Shared"]
+
+    def test_missing_label_lists_available_labels(self):
+        ccs = ChampionChallengerList([_cc("Champion Only"), _cc("Champion B", "Challenger B")])
+        with pytest.raises(
+            KeyError,
+            match="Available challenger labels: \\['Champion Only', 'Challenger B'\\]",
+        ):
+            ccs["Missing"]
+
+    def test_contains_keys_and_integer_indexing(self):
+        ccs = ChampionChallengerList([_cc("Champion Only"), _cc("Champion B", "Challenger B")])
+        assert "Champion Only" in ccs
+        assert "Missing" not in ccs
+        assert ccs.keys() == ["Champion Only", "Challenger B"]
+        assert ccs[1].challenger_model.label == "Challenger B"
