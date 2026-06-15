@@ -36,7 +36,6 @@ class Infinity(SyncAPIClient):
         *,
         base_url: "str | httpx.URL",
         auth: "httpx.Auth | PegaOAuth",
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -51,7 +50,6 @@ class Infinity(SyncAPIClient):
         super().__init__(
             base_url=base_url,
             auth=auth,
-            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -126,7 +124,6 @@ class AsyncInfinity(AsyncAPIClient):
         *,
         base_url: "str | httpx.URL",
         auth: "httpx.Auth | PegaOAuth",
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -141,7 +138,6 @@ class AsyncInfinity(AsyncAPIClient):
         super().__init__(
             base_url=base_url,
             auth=auth,
-            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,

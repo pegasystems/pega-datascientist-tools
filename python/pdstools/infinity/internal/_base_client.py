@@ -65,14 +65,12 @@ class BaseClient(Generic[_HttpxClientT]):
         *,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
         self.auth = auth
-        self.application_name = application_name
         self.verify = verify
         self.pega_version = pega_version
         self.timeout = timeout
@@ -102,9 +100,13 @@ class BaseClient(Generic[_HttpxClientT]):
         )
 
     def _get_version(self, repo):
-        if len(repo) == 1 and "repository_name" in repo:
+        # Real systems return camelCase keys (repositoryName/repositoryType);
+        # some older/mocked responses use snake_case. Accept both.
+        has_name = "repository_name" in repo or "repositoryName" in repo
+        has_type = "repository_type" in repo or "repositoryType" in repo
+        if len(repo) == 1 and has_name:
             return "24.1"
-        if "repository_type" in repo:
+        if has_type:
             return "24.2"
         warnings.warn(
             """Could not infer Pega version automatically.
@@ -120,7 +122,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         base_url: str,
         client_id: str,
         client_secret: str,
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -134,7 +135,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
                 verify=verify,
             ),
             verify=verify,
-            application_name=application_name,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -144,7 +144,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         cls,
         file_path: str,
         verify: bool = False,
-        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: float = 90,
     ):
@@ -155,7 +154,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
             base_url=base_url,
             client_id=creds["Client ID"],
             client_secret=creds["Client Secret"],
-            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -169,7 +167,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         password: str | None = None,
         *,
         verify: bool = True,
-        application_name: str | None = None,
         pega_version: str | None = None,
         timeout: int = 90,
     ):
@@ -191,7 +188,6 @@ For full compatibility, please supply the pega_version argument to the Infinity 
             base_url=base_url,
             auth=auth,
             verify=verify,
-            application_name=application_name,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -204,7 +200,6 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -221,7 +216,6 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             verify=verify,
             timeout=timeout,
         )
-        self.application_name = application_name
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         # Probe 25-specific endpoint first; it does not exist on older systems.
@@ -254,7 +248,14 @@ class SyncAPIClient(BaseClient[httpx.Client]):
                         "The Infinity system may be unavailable."
                     ),
                 )
-            # 404 or other non-200: endpoint absent on older systems, fall through.
+            if probe.status_code != 404:
+                # The endpoint resolved but returned a client error other than
+                # 404 (e.g. 400 when the model-category data dictionary is
+                # absent). The v3 predictions API only exists on 25+/26
+                # systems — a pre-25 system returns 404 because the path
+                # itself is unknown — so its presence implies 26.1.
+                return "26.1"
+            # 404: endpoint absent on older systems, fall through.
         except PegaException:
             raise
         except Exception as e:
@@ -476,7 +477,6 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         self,
         base_url: str | httpx.URL,
         auth: httpx.Auth | PegaOAuth,
-        application_name: str | None = None,
         verify: bool = False,
         pega_version: str | None = None,
         timeout: float = 90,
@@ -493,7 +493,6 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             verify=verify,
             timeout=timeout,
         )
-        self.application_name = application_name
 
     def _collect_awaitable_blocking(
         self,
@@ -544,7 +543,14 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
                         "The Infinity system may be unavailable."
                     ),
                 )
-            # 404 or other non-200: endpoint absent on older systems, fall through.
+            if probe.status_code != 404:
+                # The endpoint resolved but returned a client error other than
+                # 404 (e.g. 400 when the model-category data dictionary is
+                # absent). The v3 predictions API only exists on 25+/26
+                # systems — a pre-25 system returns 404 because the path
+                # itself is unknown — so its presence implies 26.1.
+                return "26.1"
+            # 404: endpoint absent on older systems, fall through.
         except PegaException:
             raise
         except Exception as e:

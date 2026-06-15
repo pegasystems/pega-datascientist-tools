@@ -78,6 +78,23 @@ class TestBaseClient:
         repo = {"repository_type": "S3", "repository_name": "TestRepo"}
         assert client._get_version(repo) == "24.2"
 
+    def test_get_version_24_1_camelcase(self):
+        # Real systems return camelCase repository keys.
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        repo = {"repositoryName": "TestRepo"}
+        assert client._get_version(repo) == "24.1"
+
+    def test_get_version_24_2_camelcase(self):
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        repo = {"repositoryType": "S3", "repositoryName": "TestRepo"}
+        assert client._get_version(repo) == "24.2"
+
     def test_get_version_unknown_warns(self):
         client = SyncAPIClient(
             base_url="https://example.com",
@@ -127,6 +144,19 @@ class TestBaseClient:
         mocker.patch.object(client, "get", return_value=repo_json)
         assert client._infer_version() == "24.1"
 
+    def test_infer_version_returns_26_when_model_categories_400(self, mocker):
+        # A non-404 client error (e.g. 400 when the model-category data
+        # dictionary is absent) means the v3 endpoint resolved, which only
+        # happens on 25+/26 systems -> 26.1.
+        client = SyncAPIClient(
+            base_url="https://example.com",
+            auth=httpx.BasicAuth("user", "pass"),
+        )
+        probe_response = MagicMock(spec=httpx.Response)
+        probe_response.status_code = 400
+        mocker.patch.object(client, "_request", return_value=probe_response)
+        assert client._infer_version() == "26.1"
+
     def test_infer_version_warns_on_connection_error(self, mocker):
         client = SyncAPIClient(
             base_url="https://example.com",
@@ -143,14 +173,6 @@ class TestBaseClient:
             pega_version="24.2",
         )
         assert client.pega_version == "24.2"
-
-    def test_application_name_stored(self):
-        client = SyncAPIClient(
-            base_url="https://example.com",
-            auth=httpx.BasicAuth("user", "pass"),
-            application_name="MyApp",
-        )
-        assert client.application_name == "MyApp"
 
 
 # ---------------------------------------------------------------------------
@@ -519,6 +541,14 @@ class TestAsyncInferVersion:
         mocker.patch.object(client, "get", new=MagicMock())
         mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
         assert client._infer_version() == "24.1"
+
+    def test_returns_26_on_model_categories_400(self, mocker):
+        # Non-404 client error means the v3 endpoint resolved -> 26.1.
+        client = self._make_client()
+        probe = self._mock_probe(400)
+        mocker.patch.object(client, "_request", new=MagicMock())
+        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        assert client._infer_version() == "26.1"
 
     def test_raises_pega_exception_on_401(self, mocker):
         client = self._make_client()
