@@ -15,6 +15,7 @@ from ..base import (
     Notification,
 )
 from ..base import Model as PreviousModel
+from ..schemas import ModelDataV26_1
 
 if TYPE_CHECKING:
     from ..types import NotificationCategory
@@ -29,37 +30,10 @@ class _Modelv26_1Mixin:
         model_id: str
         _a_get: Callable[..., Any]
 
-    def __init__(
-        self,
-        client,
-        *,
-        modelId: str,
-        label: str,
-        modelType: str,
-        status: str,
-        componentName: str | None = None,
-        source: str | None = None,
-        lastUpdateTime: str | None = None,
-        modelingTechnique: str | None = None,
-        updatedBy: str | None = None,
-        performance: float | None = None,
-        performanceMeasure: str | None = None,
-        **kwargs,
-    ):
-        super().__init__(  # type: ignore[call-arg]
-            client=client,
-            modelId=modelId,
-            label=label,
-            modelType=modelType,
-            status=status,
-            componentName=componentName,
-            source=source,
-            lastUpdateTime=lastUpdateTime,
-            modelingTechnique=modelingTechnique,
-            updatedBy=updatedBy,
-        )
-        self.performance = performance
-        self.performance_measure = performanceMeasure
+    # Construction is handled by base ``_ModelMixin`` (payload -> _data_cls).
+    # v26.1 payloads additionally carry ``performance`` / ``performanceMeasure``,
+    # captured by the version-specific ``ModelDataV26_1`` schema.
+    _data_cls = ModelDataV26_1
 
     @api_method
     async def describe(self) -> ModelAttributes:

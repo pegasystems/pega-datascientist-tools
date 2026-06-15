@@ -10,6 +10,20 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def _frame_from_resources(content_class: Any, items: Any) -> pl.DataFrame:
+    """Build a DataFrame from resource items with a locked schema when available.
+
+    Resources backed by the Pydantic data layer expose ``_public_schema()``,
+    which yields a stable column set and dtypes so that empty results,
+    all-null optionals, and forward-compatible extra fields don't change the
+    output schema. Resources that have not yet migrated fall back to Polars'
+    value inference (``schema=None``).
+    """
+    schema_fn = getattr(content_class, "_public_schema", None)
+    schema = schema_fn() if callable(schema_fn) else None
+    return pl.DataFrame((getattr(item, "_public_dict", {}) for item in items), schema=schema)
+
+
 class _Slice(Generic[T]):
     """A lazy slice view over a :class:`PaginatedList`."""
 
@@ -46,7 +60,7 @@ class _Slice(Generic[T]):
         return self._stop is not None and index >= self._stop
 
     def as_df(self) -> pl.DataFrame:
-        return pl.DataFrame(getattr(prediction, "_public_dict", {}) for prediction in self)
+        return _frame_from_resources(self._list._content_class, self)
 
 
 class PaginatedList(Generic[T]):
@@ -162,6 +176,10 @@ class PaginatedList(Generic[T]):
 
     def __repr__(self) -> str:
         return f"<PaginatedList of type {self._content_class.__name__}>"
+
+    def as_df(self) -> pl.DataFrame:
+        """Collect all pages into a polars DataFrame."""
+        return _frame_from_resources(self._content_class, self)
 
     def _get_next_page(self) -> list[T]:
         response = self._client.request(
@@ -315,4 +333,4 @@ class AsyncPaginatedList(Generic[T]):
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""
         items = await self.collect()
-        return pl.DataFrame(getattr(item, "_public_dict", {}) for item in items)
+        return _frame_from_resources(self._content_class, items)

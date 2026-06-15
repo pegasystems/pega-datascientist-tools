@@ -72,7 +72,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
         if not return_df:
             return pages
 
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
 
     @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
     def list_predictions(

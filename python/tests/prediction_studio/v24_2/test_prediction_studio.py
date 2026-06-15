@@ -163,6 +163,7 @@ def test_repository(prediction_studio_client, mocker):
                 "modeling_technique",
                 "source",
                 "status",
+                "component_name",
                 "last_update_time",
                 "updated_by",
             ],
@@ -192,7 +193,7 @@ def test_list_models(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
-        assert result.shape == (2, 8)
+        assert result.shape == (2, 9)
         assert result[0]["model_id"][0] == "@BASECLASS!TESTMODEL_FALCONS"
         assert result[0]["label"][0] == "testModel_falcons"
         assert result[0]["model_type"][0] == "Adaptive model"
