@@ -27,7 +27,7 @@ Welcome to the PDS Tools Python documentation
    articles/decision_analyzer
    articles/hds_analysis
    articles/ADMBinningInsights
-   articles/AGBModelVisualisation
+   articles/AGBExplained
 
 .. toctree::
    :maxdepth: 1
