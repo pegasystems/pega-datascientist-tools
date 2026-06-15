@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, cast, overload
 
-import polars as pl
 
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ..v26_1.prediction_studio._async import AsyncPredictionStudio as _AsyncPredictionStudiov26_1
@@ -11,6 +10,8 @@ from .model import AsyncModel, Model
 from .prediction import AsyncPrediction, Prediction
 
 if TYPE_CHECKING:
+    import polars as pl
+
     pass
 
 
@@ -47,7 +48,7 @@ class PredictionStudio(_PredictionStudiov26_1):
         pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
         if not return_df:
             return pages
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
 
     @overload  # type: ignore[override]
     def list_predictions(self, return_df: Literal[False] = False) -> PaginatedList[Prediction]: ...
