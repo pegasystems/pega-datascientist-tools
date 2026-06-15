@@ -4,6 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import (
     Any,
+    ClassVar,
     Literal,
     TypedDict,
     TYPE_CHECKING,
@@ -66,6 +67,7 @@ class _ModelMixin(ABC):
 
     _data: ModelData
     _data_cls: type[ModelData] = ModelData
+    _id_field: ClassVar[str] = "model_id"
 
     def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
@@ -114,6 +116,7 @@ class _PredictionMixin(ABC):
 
     _data: PredictionData
     _data_cls: type[PredictionData] = PredictionData
+    _id_field: ClassVar[str] = "prediction_id"
 
     def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
@@ -166,6 +169,7 @@ class _NotificationMixin(ABC):
 
     _data: NotificationData
     _data_cls: type[NotificationData] = NotificationData
+    _id_field: ClassVar[str] = "notification_id"
 
     def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
@@ -335,6 +339,7 @@ class _ModelInstanceMixin(ABC):
 
     _data: ModelInstanceData
     _data_cls: type[ModelInstanceData] = ModelInstanceData
+    _id_field: ClassVar[str] = "instance_id"
 
     def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource

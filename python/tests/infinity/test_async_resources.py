@@ -288,7 +288,7 @@ class TestAsyncPredictionStudio:
         async_client.request.return_value = mock_response_model
         result = await async_ps.list_models(return_df=True)
         assert isinstance(result, pl.DataFrame)
-        assert result.shape == (2, 8)
+        assert result.shape == (2, 9)
         assert result.columns == [
             "model_id",
             "label",
@@ -296,6 +296,7 @@ class TestAsyncPredictionStudio:
             "modeling_technique",
             "source",
             "status",
+            "component_name",
             "last_update_time",
             "updated_by",
         ]

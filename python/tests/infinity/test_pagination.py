@@ -32,6 +32,17 @@ class _AsyncItem(AsyncAPIResource):
         self.name = name
 
 
+class _AsyncCustomIdItem(AsyncAPIResource):
+    """Async content class whose id lives on a non-default field name."""
+
+    _id_field = "model_id"
+
+    def __init__(self, client, *, model_id: str, name: str):
+        super().__init__(client=client)
+        self.model_id = model_id
+        self.name = name
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -102,14 +113,19 @@ class TestPaginatedList:
         assert item.id == "B"
         assert item.name == "Bob"
 
-    def test_getitem_by_string_id_requires_dict_content_class(self):
-        """String indexing expects the content class to support `in` and dict-like
-        item access. With SyncAPIResource subclasses it raises TypeError.
-        """
+    def test_getitem_by_string_id(self):
+        """String indexing looks up by the id field (defaults to ``id``)."""
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
-        with pytest.raises(TypeError):
-            pl_["B"]
+        item = pl_["B"]
+        assert item.id == "B"
+        assert item.name == "Bob"
+
+    def test_getitem_by_string_id_missing_raises(self):
+        client = _single_page_client()
+        pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
+        with pytest.raises(IndexError):
+            pl_["Z"]
 
     def test_getitem_negative_index_raises(self):
         client = _single_page_client()
@@ -132,14 +148,13 @@ class TestPaginatedList:
         item = pl_.get(0)
         assert item.id == "A"
 
-    def test_get_by_string_returns_default_for_resource_classes(self):
-        """get() by string falls back to default because __getitem__ for string
-        fails with resource classes that don't support dict-like 'in' checks.
-        """
+    def test_get_by_string_id(self):
+        """get() by string resolves via the id field."""
         client = _single_page_client()
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
         result = pl_.get("C", "not_found")
-        assert result == "not_found"
+        assert result.id == "C"
+        assert result.name == "Charlie"
 
     def test_get_default_on_missing(self):
         client = _single_page_client()
@@ -236,6 +251,62 @@ class TestPaginatedList:
         sliced = pl_[0:3]
         item = sliced[1]
         assert item.id == "B"
+
+    def test_contains_by_id(self):
+        client = _single_page_client()
+        pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
+        assert "B" in pl_
+        assert "Z" not in pl_
+
+    def test_keys(self):
+        client = _single_page_client()
+        pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
+        assert pl_.keys() == ["A", "B", "C"]
+
+
+# ---------------------------------------------------------------------------
+# Custom _id_field resolution
+# ---------------------------------------------------------------------------
+
+
+class _CustomIdItem(SyncAPIResource):
+    """Content class whose id lives on a non-default field name."""
+
+    _id_field = "model_id"
+
+    def __init__(self, client, *, model_id: str, name: str):
+        super().__init__(client=client)
+        self.model_id = model_id
+        self.name = name
+
+
+class TestCustomIdField:
+    def _client(self):
+        client = MagicMock()
+        client.request.return_value = {
+            "items": [
+                {"model_id": "m1", "name": "First"},
+                {"model_id": "m2", "name": "Second"},
+            ],
+        }
+        return client
+
+    def test_getitem_uses_id_field(self):
+        pl_ = PaginatedList(_CustomIdItem, self._client(), "get", "/m", _root="items")
+        assert pl_["m2"].name == "Second"
+
+    def test_get_uses_id_field(self):
+        pl_ = PaginatedList(_CustomIdItem, self._client(), "get", "/m", _root="items")
+        assert pl_.get("m1").name == "First"
+
+    def test_contains_uses_id_field(self):
+        pl_ = PaginatedList(_CustomIdItem, self._client(), "get", "/m", _root="items")
+        assert "m1" in pl_
+        assert "nope" not in pl_
+
+    def test_keys_uses_id_field(self):
+        pl_ = PaginatedList(_CustomIdItem, self._client(), "get", "/m", _root="items")
+        assert pl_.keys() == ["m1", "m2"]
 
 
 # ---------------------------------------------------------------------------
@@ -396,3 +467,30 @@ class TestAsyncPaginatedList:
         await apl.collect()
         second_call = client.request.call_args_list[1]
         assert second_call == call("get", "/items", pageToken="tok")
+
+    @pytest.mark.asyncio
+    async def test_async_keys(self):
+        client = self._make_async_client(
+            [
+                _make_page(
+                    [{"id": "A", "name": "Alice"}, {"id": "B", "name": "Bob"}],
+                ),
+            ],
+        )
+        apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
+        assert await apl.keys() == ["A", "B"]
+
+    @pytest.mark.asyncio
+    async def test_async_get_uses_id_field(self):
+        client = MagicMock()
+        client.request = AsyncMock(
+            return_value={
+                "items": [
+                    {"model_id": "m1", "name": "First"},
+                    {"model_id": "m2", "name": "Second"},
+                ],
+            },
+        )
+        apl = AsyncPaginatedList(_AsyncCustomIdItem, client, "get", "/m", _root="items")
+        item = await apl.get("m2")
+        assert item.name == "Second"

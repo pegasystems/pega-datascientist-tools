@@ -10,6 +10,15 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def _resolve_id_field(content_class: Any) -> str:
+    """Return the attribute name used for string/``in`` lookups.
+
+    Resources backed by the Pydantic data layer declare ``_id_field`` (e.g.
+    ``"prediction_id"``). Anything else falls back to ``"id"``.
+    """
+    return getattr(content_class, "_id_field", "id")
+
+
 def _frame_from_resources(content_class: Any, items: Any) -> pl.DataFrame:
     """Build a DataFrame from resource items with a locked schema when available.
 
@@ -110,14 +119,26 @@ class PaginatedList(Generic[T]):
             return self._elements[index]
         if isinstance(index, slice):
             return _Slice(self, index)
-        assert "id" in self._content_class, (
-            "To pass a string as index for a paginated list, the content class needs an 'id' field."
-        )
+        id_field = _resolve_id_field(self._content_class)
         for element in self.__iter__():
-            if getattr(element, "id", None) == index:
+            if getattr(element, id_field, None) == index:
                 return element
 
         raise IndexError(index)
+
+    def __contains__(self, key: object) -> bool:
+        """Mapping-style membership test by id field.
+
+        ``"PREDICT_X" in client.prediction_studio.list_predictions()`` walks the
+        list (fetching pages as needed) and compares each element's id field.
+        """
+        id_field = _resolve_id_field(self._content_class)
+        return any(getattr(element, id_field, None) == key for element in self)
+
+    def keys(self) -> list[Any]:
+        """Return the id-field value of every element (mapping-style keys)."""
+        id_field = _resolve_id_field(self._content_class)
+        return [getattr(element, id_field, None) for element in self]
 
     @overload
     def get(self, __key: int | str, __default: str | None = None) -> T: ...
@@ -136,8 +157,8 @@ class PaginatedList(Generic[T]):
     ) -> T | _Slice[T] | Any:
         """Returns the specified key or default.
 
-        If string type provided as key, the content_class needs to be a Pydantic class,
-        with an attribute called 'id'.
+        If a string is provided as key, the content class needs an id field
+        (``_id_field``, defaulting to ``"id"``) to look up against.
 
         Parameters
         ----------
@@ -323,12 +344,19 @@ class AsyncPaginatedList(Generic[T]):
                 if isinstance(__key, int):
                     return items[__key]
                 if isinstance(__key, str):
+                    id_field = _resolve_id_field(self._content_class)
                     for el in items:
-                        if getattr(el, "id", None) == __key:
+                        if getattr(el, id_field, None) == __key:
                             return el
             except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
         return __default
+
+    async def keys(self) -> list[Any]:
+        """Return the id-field value of every element (mapping-style keys)."""
+        id_field = _resolve_id_field(self._content_class)
+        items = await self.collect()
+        return [getattr(element, id_field, None) for element in items]
 
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""
