@@ -1,15 +1,17 @@
-# AGBExplained: new article notebook + 9 library plot methods
+# AGBExplained: new article notebook + 13 library plot methods
 
 **Priority:** P1
 
 **Files touched:**
-- `python/pdstools/adm/trees/_model.py` — 9 new plot methods
+- `python/pdstools/adm/trees/_plots.py` — 13 plot methods in `Trees.plot.*` namespace (9 new + 4 original)
+- `python/pdstools/adm/trees/_model.py` — wires `self.plot = Plots(self)`; all `plot_*` methods removed
+- `python/pdstools/adm/trees/__init__.py` — exports `Plots`
 - `python/pdstools/adm/trees/_nodes.py` — add `sampleCount` to `Node`
 - `python/pdstools/utils/datasets.py` — swap `sample_trees()` to new sample file
 - `data/agb/ModelExportWithSampleCount.json` — new anonymized 100-tree sample (produced from one-off script)
 - `examples/articles/AGBExplained.ipynb` — create new article notebook
 - `examples/adm/AGBModelVisualisation.ipynb` — **delete** (all content ported to AGBExplained)
-- `python/tests/adm/test_trees.py` — tests for all 9 new methods
+- `python/tests/adm/test_ADMTrees.py` — tests for all 13 plot methods
 
 ## Problem
 
@@ -52,65 +54,73 @@ Backward-compatible: the old sample and any user-supplied model without
 `sampleCount` keys → all `Node.sampleCount` are `None`; no existing code
 is affected.
 
-### ⏳ Phase 1 — 9 new plot methods in `_model.py` (TODO)
+### ✅ Phase 1 — 13 plot methods in `_plots.py` namespace (DONE)
 
-All follow the `show: bool = True` / `return_df: bool = False` pattern
-with `@overload` stubs (see `plot_contribution_per_tree` as the template).
-Lazy-import plotly inside each method body; raise
-`MissingDependenciesException(["plotly"], "AGB", deps_group="adm")`.
-Place all 9 after `plot_contribution_per_tree` (~line 1200), before
-private helpers.
+All methods live in `python/pdstools/adm/trees/_plots.py` as the `Plots(LazyNamespace)`
+class and are accessed via `Trees.plot.<method>()`.  The 4 original methods
+(`splits_per_variable`, `tree`, `contribution_per_tree`, `splits_per_variable_type`)
+were migrated from `_model.py`; 9 new methods were added.
+
+All 9 new methods follow the `show: bool = True` / `return_df: bool = False`
+keyword-only pattern (note: keyword-only — `*` before `show` and `return_df`)
+with `@overload` stubs.  Plotly is lazy-imported inside each method body;
+`MissingDependenciesException(["plotly"], "AGB", deps_group="adm")` is raised
+when it is absent.
+
+Node labels in `plot.tree()` are NFD-normalized and stripped of non-ASCII
+characters before being passed to pydot, preventing `UnicodeEncodeError` on
+Windows (cp1252 encoding).
 
 **Methods 1–6 — no `sampleCount` required:**
 
-1. **`plot_gain_per_tree(show=True, return_df=False)`** (Fig 2a)
+1. **`Trees.plot.gain_per_tree()`** (Fig 2a)
    - Data: `tree_stats` — `gains.list.sum()` as `total_gain`
    - Chart: bar of `total_gain` per `treeID`; secondary y-axis line for root `score`
    - `return_df` columns: `treeID`, `total_gain`, `score`
 
-2. **`plot_cumulative_gain_share(show=True, return_df=False)`** (Fig 2c)
+2. **`Trees.plot.cumulative_gain_share()`** (Fig 2c)
    - Data: cumsum of per-tree total gain divided by grand total
    - Chart: line (S-curve); annotate 50 % crossover tree
    - `return_df` columns: `treeID`, `cumulative_gain_share`
 
-3. **`plot_feature_importance_by_gain(top_n=15, show=True, return_df=False)`** (Fig 3)
+3. **`Trees.plot.feature_importance_by_gain(top_n=15)`** (Fig 3)
    - Data: `gains_per_split.group_by("predictor").agg(pl.sum("gains"))`, `head(top_n)`
    - Namespace: first dot-segment of predictor name
    - Chart: horizontal bar, color by namespace
    - `return_df` columns: `predictor`, `total_gain`, `namespace`
 
-4. **`plot_early_vs_late_gain(show=True, return_df=False)`** (Fig 3b)
+4. **`Trees.plot.early_vs_late_gain()`** (Fig 3b)
    - Data: fresh tree walk — per predictor sum gains in first-quartile trees vs last-quartile trees
    - Chart: scatter, log-log axes, x=early_gain, y=late_gain, size=total_gain, color=namespace; y=x diagonal reference line
    - `return_df` columns: `predictor`, `early_gain`, `late_gain`, `total_gain`, `namespace`
 
-5. **`plot_gain_by_namespace(show=True, return_df=False)`** (Fig 6)
+5. **`Trees.plot.gain_by_namespace()`** (Fig 6)
    - Data: `gains_per_split` with namespace from first dot-segment; `group_by` namespace, sum, normalise
    - Chart: horizontal bar sorted descending
    - `return_df` columns: `namespace`, `total_gain`, `gain_share`
 
-6. **`plot_feature_role_map(show=True, return_df=False)`** (Fig 4)
+6. **`Trees.plot.feature_role_map()`** (Fig 4)
    - Data: fresh tree walk via `_iter_nodes` — per predictor: `mean_depth`, `tree_coverage` (distinct trees used), `total_gain`, `namespace`
    - Chart: bubble scatter — x=mean_depth, y=tree_coverage, size=total_gain, color=namespace; hover shows predictor name
    - `return_df` columns: `predictor`, `mean_depth`, `tree_coverage`, `total_gain`, `namespace`
 
 **Methods 7–9 — require `sampleCount`:**
 
-Methods 7–9 must raise a clear `ValueError("sampleCount data not available …")` when
+Methods 7–9 raise `ValueError("sampleCount data not available …")` when
 all `Node.sampleCount` values are `None` (i.e. the model was loaded from a
 file without this field).
 
-7. **`plot_training_stream_timeline(show=True, return_df=False)`** (Fig 2d)
+7. **`Trees.plot.training_stream_timeline()`** (Fig 2d)
    - Data: root `sampleCount` per tree (= cumulative responses seen when tree was built)
    - Chart: line, x=treeID, y=root_sample_count
    - `return_df` columns: `treeID`, `root_sample_count`
 
-8. **`plot_inter_tree_gaps(show=True, return_df=False)`** (Fig 2e)
+8. **`Trees.plot.inter_tree_gaps()`** (Fig 2e)
    - Data: `root_sampleCount[i] − root_sampleCount[i−1]` (responses between consecutive tree additions)
    - Chart: bar showing training cadence / activity bursts
    - `return_df` columns: `treeID`, `sample_gap`
 
-9. **`plot_gain_decay_dual_lens(show=True, return_df=False)`** (Fig 2b)
+9. **`Trees.plot.gain_decay_dual_lens()`** (Fig 2b)
    - Data: per tree — `total_gain`, `treeID`, `node_age = totalCount − root_sampleCount`
    - Chart: dual x-axis line: left axis = treeID, right axis = node_age; y = total_gain
    - `return_df` columns: `treeID`, `node_age`, `total_gain`
@@ -119,7 +129,7 @@ file without this field).
 predictor name, e.g. `IH.Mobile.Inbound.Clicked.pxLastOutcomeTime.DaysSince`
 → `IH`.  Predictors with no dot (e.g. `pyTreatment`) → use the full name.
 
-### ⏳ Phase 2 — Update `datasets.sample_trees()` (TODO)
+### ✅ Phase 2 — Update `datasets.sample_trees()` (DONE)
 
 Change `sample_trees()` in `python/pdstools/utils/datasets.py` from `from_url(remote_url)` to
 `ADMTreesModel.from_file(_DATA_DIR / "ModelExportWithSampleCount.json")`.
@@ -129,7 +139,21 @@ Keep the `warnings.catch_warnings` + `RuntimeError` wrapper pattern.
 
 Style: same as `ADMExplained.ipynb` — markdown-heavy, LaTeX formulas,
 code verifies the math, `great_tables.GT` tables, cells **not pre-run**.
-All cells use `datasets.sample_trees()` as the single data source.
+`datasets.sample_trees()` is the single data source.
+
+Imports block (mirrors `ADMExplained.ipynb` style):
+```python
+import polars as pl
+from math import exp
+from great_tables import GT
+from pdstools import datasets
+
+Trees = datasets.sample_trees()
+```
+
+The `pio.renderers.default = "notebook_connected"` cell (with a Jupyter tag
+to hide it in docs renders) must appear before the imports cell — same
+pattern as `ADMExplained.ipynb`.
 
 **Sections:**
 
@@ -138,36 +162,36 @@ All cells use `datasets.sample_trees()` as the single data source.
    - Show raw dict for tree 0; explain JSON fields
    - `Trees.predictors` — name→type mapping (one cell, confirms symbolic vs numeric)
    - Gain formula (information gain / log-loss reduction)
-   - `Trees.plot_tree(0)` — visualise
+   - `Trees.plot.tree(0)` — visualise
 
 2. **The Ensemble: How Trees Build on Each Other**
    - Gradient boosting intuition; additive formula $\hat{y} = \sum_k f_k(x)$
    - Gain decay: early trees capture main signal, later trees refine
    - `Trees.tree_stats` — GT table
-   - `Trees.plot_gain_per_tree()` — NEW
-   - `Trees.plot_cumulative_gain_share()` — NEW
+   - `Trees.plot.gain_per_tree()` — NEW
+   - `Trees.plot.cumulative_gain_share()` — NEW
    - Sub-section: *Training stream* (uses `sampleCount` data)
-     - `Trees.plot_training_stream_timeline()` — NEW
-     - `Trees.plot_inter_tree_gaps()` — NEW
-     - `Trees.plot_gain_decay_dual_lens()` — NEW
+     - `Trees.plot.training_stream_timeline()` — NEW
+     - `Trees.plot.inter_tree_gaps()` — NEW
+     - `Trees.plot.gain_decay_dual_lens()` — NEW
 
 3. **Scoring a Customer**
    - Define a concrete `x` dict from predictor values in the sample model
-   - `Trees.plot_tree(0, highlighted=x)` — traversal path
+   - `Trees.plot.tree(0, highlighted=x)` — traversal path
    - `Trees.get_all_visited_nodes(x)` — leaf-score table
    - Raw score sum + sigmoid derivation $p = 1/(1+e^{-s})$
    - `Trees.score(x)` — confirm match
-   - `Trees.plot_contribution_per_tree(x)` — running propensity
+   - `Trees.plot.contribution_per_tree(x)` — running propensity
 
 4. **Feature Importance: Which Predictors Drive the Model?**
    - Gain as importance metric (XGBoost-style gain formula)
    - `Trees.grouped_gains_per_split` — summary table
-   - `Trees.plot_splits_per_variable(subset=[…])` — existing box-plot
-   - `Trees.plot_feature_importance_by_gain()` — NEW
-   - `Trees.plot_gain_by_namespace()` — NEW
+   - `Trees.plot.splits_per_variable(subset=[…])` — existing box-plot
+   - `Trees.plot.feature_importance_by_gain()` — NEW
+   - `Trees.plot.gain_by_namespace()` — NEW
    - Namespace explanation: `IH.*` = interaction history, `Customer.*` = attributes, `py*` = policy/context
-   - `Trees.plot_early_vs_late_gain()` — NEW; "early learner vs late refiner"
-   - `Trees.plot_feature_role_map()` — NEW; "router vs refiner" (shallow+wide vs deep+narrow)
+   - `Trees.plot.early_vs_late_gain()` — NEW; "early learner vs late refiner"
+   - `Trees.plot.feature_role_map()` — NEW; "router vs refiner" (shallow+wide vs deep+narrow)
    - Inline cell (not a library method): gain by split depth
 
 5. **Model Health at a Glance**
@@ -188,19 +212,19 @@ All content from the old notebook is covered in `AGBExplained.ipynb`:
 | `Trees.tree_stats` | Section 2 |
 | `Trees.splits_per_tree[k]` / `gains_per_tree[k]` | Subsumed by `tree_stats` GT table (Section 2) |
 | `Trees.grouped_gains_per_split` | Section 4 |
-| `Trees.plot_splits_per_variable(subset=[…])` | Section 4 |
-| `Trees.plot_tree(k)` | Section 1 |
-| `Trees.plot_tree(k, highlighted=x)` | Section 3 |
+| `Trees.plot.splits_per_variable(subset=[…])` | Section 4 |
+| `Trees.plot.tree(k)` | Section 1 |
+| `Trees.plot.tree(k, highlighted=x)` | Section 3 |
 | `Trees.get_all_visited_nodes(x)` | Section 3 |
 | Sigmoid derivation + `Trees.score(x)` | Section 3 |
-| `Trees.plot_contribution_per_tree(x)` | Section 3 |
+| `Trees.plot.contribution_per_tree(x)` | Section 3 |
 | `sampleX` random helper | Replaced by concrete `x` dict (better for didactics) |
 | PNG/PDF export note | Deliberately omitted — low value one-liner |
 
 ## Verification
 
 ```bash
-uv run pytest python/tests/adm/ -k "trees or agb" -q
+uv run pytest python/tests/adm/test_ADMTrees.py -q
 uv run ruff check python/pdstools/adm/trees/
 uv run ruff format --check python/pdstools/adm/trees/
 ```
@@ -212,7 +236,6 @@ For each of the 9 new methods verify:
 
 ## Scope
 
-- **In**: 9 library methods, 1 new article notebook, 1 redirect, 1 anonymized sample, `Node.sampleCount`
+- **In**: 9 new library plot methods (plus 4 migrated originals), 1 new article notebook, 1 anonymized sample, `Node.sampleCount`
 - **Out**: Fig 5 (parent→child interaction graph; needs graph-layout library, low-confidence interpretation), Fig 4b gain-by-depth as a library method (3-line inline cell in the notebook suffices)
-- `return_df` added only to the 9 new methods; existing methods not refactored
 - Anonymization script is one-off / local only — never checked in

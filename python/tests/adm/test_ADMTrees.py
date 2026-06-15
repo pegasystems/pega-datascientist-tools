@@ -21,7 +21,7 @@ def test_has_models(tree_sample: ADMTreesModel):
 
 
 def test_plot_splits_per_variable(tree_sample: ADMTreesModel):
-    tree_sample.plot_splits_per_variable(show=False)
+    tree_sample.plot.splits_per_variable(show=False)
 
 
 def sample_x(trees):
@@ -48,7 +48,7 @@ def sampledX(tree_sample: ADMTreesModel):
 
 
 def test_plot_first_tree(tree_sample, sampledX):
-    tree_sample.plot_tree(42, highlighted=sampledX, show=False)
+    tree_sample.plot.tree(42, highlighted=sampledX, show=False)
 
 
 def test_score(tree_sample, sampledX):
@@ -56,11 +56,11 @@ def test_score(tree_sample, sampledX):
 
 
 def test_plotContributionPerTree(tree_sample, sampledX):
-    tree_sample.plot_contribution_per_tree(sampledX, show=False)
+    tree_sample.plot.contribution_per_tree(sampledX, show=False)
 
 
 def test_plotSplitsPerVariableType(tree_sample):
-    tree_sample.plot_splits_per_variable_type()
+    tree_sample.plot.splits_per_variable_type()
 
 
 # --- metrics tests ---------------------------------------------------------
@@ -879,12 +879,12 @@ def rich_model() -> ADMTreesModel:
 
 
 # ---------------------------------------------------------------------------
-# plot_gain_per_tree
+# plot.gain_per_tree
 # ---------------------------------------------------------------------------
 
 
 def test_plot_gain_per_tree_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_gain_per_tree(show=False, return_df=True)
+    df = rich_model.plot.gain_per_tree(show=False, return_df=True)
     assert df.columns == ["treeID", "total_gain", "score"]
     assert df.height == 100
     # First tree is the heaviest booster.
@@ -900,17 +900,17 @@ def test_plot_gain_per_tree_return_df(rich_model: ADMTreesModel):
 def test_plot_gain_per_tree_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_gain_per_tree(show=False)
+    fig = rich_model.plot.gain_per_tree(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_cumulative_gain_share
+# plot.cumulative_gain_share
 # ---------------------------------------------------------------------------
 
 
 def test_plot_cumulative_gain_share_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_cumulative_gain_share(show=False, return_df=True)
+    df = rich_model.plot.cumulative_gain_share(show=False, return_df=True)
     assert df.columns == ["treeID", "cumulative_gain_share"]
     assert df.height == 100
     # Share must be monotonically non-decreasing and end at exactly 1.
@@ -925,17 +925,17 @@ def test_plot_cumulative_gain_share_return_df(rich_model: ADMTreesModel):
 def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_cumulative_gain_share(show=False)
+    fig = rich_model.plot.cumulative_gain_share(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_feature_importance_by_gain
+# plot.feature_importance_by_gain
 # ---------------------------------------------------------------------------
 
 
 def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_feature_importance_by_gain(show=False, return_df=True)
+    df = rich_model.plot.feature_importance_by_gain(show=False, return_df=True)
     assert df.columns == ["predictor", "total_gain", "namespace"]
     assert df.height == 15
     # Top predictor must be pyGroup.
@@ -948,24 +948,24 @@ def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
 
 
 def test_plot_feature_importance_by_gain_top_n(rich_model: ADMTreesModel):
-    df = rich_model.plot_feature_importance_by_gain(5, show=False, return_df=True)
+    df = rich_model.plot.feature_importance_by_gain(5, show=False, return_df=True)
     assert df.height == 5
 
 
 def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_feature_importance_by_gain(show=False)
+    fig = rich_model.plot.feature_importance_by_gain(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_early_vs_late_gain
+# plot.early_vs_late_gain
 # ---------------------------------------------------------------------------
 
 
 def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_early_vs_late_gain(show=False, return_df=True)
+    df = rich_model.plot.early_vs_late_gain(show=False, return_df=True)
     assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "namespace"]
     assert df.height == 189
     # Every predictor that appears has non-negative gains in each bucket.
@@ -985,17 +985,17 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_early_vs_late_gain(show=False)
+    fig = rich_model.plot.early_vs_late_gain(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_gain_by_namespace
+# plot.gain_by_namespace
 # ---------------------------------------------------------------------------
 
 
 def test_plot_gain_by_namespace_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_gain_by_namespace(show=False, return_df=True)
+    df = rich_model.plot.gain_by_namespace(show=False, return_df=True)
     assert df.columns == ["namespace", "total_gain", "gain_share"]
     # 7 distinct namespaces in the anonymized model.
     assert df.height == 7
@@ -1010,17 +1010,17 @@ def test_plot_gain_by_namespace_return_df(rich_model: ADMTreesModel):
 def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_gain_by_namespace(show=False)
+    fig = rich_model.plot.gain_by_namespace(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_feature_role_map
+# plot.feature_role_map
 # ---------------------------------------------------------------------------
 
 
 def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_feature_role_map(show=False, return_df=True)
+    df = rich_model.plot.feature_role_map(show=False, return_df=True)
     assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "namespace"]
     assert df.height == 197
     # pyGroup is used in 68 distinct trees.
@@ -1036,17 +1036,17 @@ def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
 def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_feature_role_map(show=False)
+    fig = rich_model.plot.feature_role_map(show=False)
     assert isinstance(fig, go.Figure)
 
 
 # ---------------------------------------------------------------------------
-# plot_training_stream_timeline  (requires sampleCount)
+# plot.training_stream_timeline  (requires sampleCount)
 # ---------------------------------------------------------------------------
 
 
 def test_plot_training_stream_timeline_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_training_stream_timeline(show=False, return_df=True)
+    df = rich_model.plot.training_stream_timeline(show=False, return_df=True)
     assert df.columns == ["treeID", "root_sample_count"]
     assert df.height == 100
     # First tree sees all 15 M+ samples (oldest in the training stream).
@@ -1060,22 +1060,22 @@ def test_plot_training_stream_timeline_return_df(rich_model: ADMTreesModel):
 def test_plot_training_stream_timeline_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_training_stream_timeline(show=False)
+    fig = rich_model.plot.training_stream_timeline(show=False)
     assert isinstance(fig, go.Figure)
 
 
 def test_plot_training_stream_timeline_no_samplecount_raises(tree_sample: ADMTreesModel):
     with pytest.raises(ValueError, match="sampleCount"):
-        tree_sample.plot_training_stream_timeline(show=False)
+        tree_sample.plot.training_stream_timeline(show=False)
 
 
 # ---------------------------------------------------------------------------
-# plot_inter_tree_gaps  (requires sampleCount)
+# plot.inter_tree_gaps  (requires sampleCount)
 # ---------------------------------------------------------------------------
 
 
 def test_plot_inter_tree_gaps_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_inter_tree_gaps(show=False, return_df=True)
+    df = rich_model.plot.inter_tree_gaps(show=False, return_df=True)
     assert df.columns == ["treeID", "sample_gap"]
     # n-1 rows for n trees.
     assert df.height == 99
@@ -1089,22 +1089,22 @@ def test_plot_inter_tree_gaps_return_df(rich_model: ADMTreesModel):
 def test_plot_inter_tree_gaps_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_inter_tree_gaps(show=False)
+    fig = rich_model.plot.inter_tree_gaps(show=False)
     assert isinstance(fig, go.Figure)
 
 
 def test_plot_inter_tree_gaps_no_samplecount_raises(tree_sample: ADMTreesModel):
     with pytest.raises(ValueError, match="sampleCount"):
-        tree_sample.plot_inter_tree_gaps(show=False)
+        tree_sample.plot.inter_tree_gaps(show=False)
 
 
 # ---------------------------------------------------------------------------
-# plot_gain_decay_dual_lens  (requires sampleCount)
+# plot.gain_decay_dual_lens  (requires sampleCount)
 # ---------------------------------------------------------------------------
 
 
 def test_plot_gain_decay_dual_lens_return_df(rich_model: ADMTreesModel):
-    df = rich_model.plot_gain_decay_dual_lens(show=False, return_df=True)
+    df = rich_model.plot.gain_decay_dual_lens(show=False, return_df=True)
     assert df.columns == ["treeID", "total_gain", "node_age"]
     assert df.height == 100
     # Tree 0 is youngest (node_age = totalCount - sampleCount[0] = 0).
@@ -1121,10 +1121,10 @@ def test_plot_gain_decay_dual_lens_return_df(rich_model: ADMTreesModel):
 def test_plot_gain_decay_dual_lens_figure(rich_model: ADMTreesModel):
     import plotly.graph_objects as go
 
-    fig = rich_model.plot_gain_decay_dual_lens(show=False)
+    fig = rich_model.plot.gain_decay_dual_lens(show=False)
     assert isinstance(fig, go.Figure)
 
 
 def test_plot_gain_decay_dual_lens_no_samplecount_raises(tree_sample: ADMTreesModel):
     with pytest.raises(ValueError, match="sampleCount"):
-        tree_sample.plot_gain_decay_dual_lens(show=False)
+        tree_sample.plot.gain_decay_dual_lens(show=False)
