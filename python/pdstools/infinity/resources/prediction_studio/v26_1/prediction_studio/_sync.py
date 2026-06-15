@@ -112,7 +112,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
 
         if not return_df:
             return pages
-        return pl.DataFrame([pred._public_dict for pred in pages])
+        return pages.as_df()
 
     def get_prediction(
         self,

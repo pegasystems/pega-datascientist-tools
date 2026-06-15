@@ -74,7 +74,7 @@ class PredictionStudio(_PredictionStudiov26_1):
         )
         if not return_df:
             return pages
-        return pl.DataFrame([pred._public_dict for pred in pages])
+        return pages.as_df()
 
 
 class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
