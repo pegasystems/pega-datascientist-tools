@@ -142,9 +142,7 @@ class Model(_Modelv26_1Mixin, PreviousModel):
             _root="instances",
         )
         if return_df:
-            return pl.DataFrame(
-                [instance._public_dict for instance in instances],
-            )
+            return instances.as_df()
         return instances
 
 

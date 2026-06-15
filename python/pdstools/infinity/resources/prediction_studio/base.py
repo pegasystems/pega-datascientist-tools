@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
-from .schemas import ModelData
+from .schemas import ModelData, ModelInstanceData
 
 logger = logging.getLogger(__name__)
 
@@ -301,33 +301,45 @@ class AsyncChampionChallenger(_ChampionChallengerMixin, AsyncAPIResource):
     pass
 
 
-class _ModelInstanceMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
-    def __init__(
-        self,
-        client,
-        *,
-        instanceID: str,
-        name: str,
-        type: str,
-        status: str,
-        active: bool,
-        lastUpdateTime: str | None = None,
-        **kwargs,
-    ):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
-        if kwargs:
-            logger.debug(
-                "_ModelInstanceMixin received unexpected fields from API response: %s",
-                list(kwargs.keys()),
-            )
-        self.instance_id = instanceID
-        self.name = name
-        self.type = type
-        self.status = status
-        self.active = active
-        self.last_update_time = (
-            datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z") if lastUpdateTime is not None else None
-        )
+class _ModelInstanceMixin(ABC):
+    """Behaviour wrapper around a :class:`ModelInstanceData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``instance.instance_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``list_instances``) produce a stable, fully-populated schema.
+    """
+
+    _data: ModelInstanceData
+    _data_cls: type[ModelInstanceData] = ModelInstanceData
+
+    def __init__(self, client, **payload):
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
 
 
 class ModelInstance(_ModelInstanceMixin, SyncAPIResource):
