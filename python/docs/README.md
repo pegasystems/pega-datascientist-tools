@@ -43,7 +43,8 @@ The deploy workflow (`.github/workflows/Docs deploy.yml`) publishes to a
 - pushes to `master` → builds into `dev/`
 - pushes of tags matching `V*` or `v*` → builds into `<semver>/` (the leading
   `V`/`v` is stripped)
-- manual dispatches → rebuild the selected branch or tag
+- manual dispatches → rebuild the selected branch or tag, or backfill an older
+  tag by supplying `source_ref`
 
 After each deploy, `python/docs/versioned_docs.py` regenerates:
 
@@ -53,6 +54,20 @@ After each deploy, `python/docs/versioned_docs.py` regenerates:
 `Python release.yml` triggers a second docs deploy after PyPI publish completes,
 so the redirect flips to the newly-released version only once PyPI has the
 package.
+
+### Backfilling older tags
+
+Older tags that already existed before this workflow lands will not publish
+automatically. To backfill them:
+
+1. Open **Actions → Build & Deploy docs → Run workflow**
+2. Run it from the branch that contains this workflow
+3. Set `source_ref` to the historical tag, for example `V4.7.1`
+4. Leave `publish_slug` empty unless you need a non-standard output directory
+
+The workflow checks out that tag for the build, publishes into the normalized
+slug (`4.7.1/` for `V4.7.1`), and then refreshes `versions.json` plus the root
+redirect.
 
 ### Local testing of the switcher
 

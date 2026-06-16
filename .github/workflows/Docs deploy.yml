@@ -8,6 +8,15 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Git ref to build from (for example V4.7.1 to backfill an older tag)"
+        required: false
+        type: string
+      publish_slug:
+        description: "Published docs slug to write under gh-pages (defaults to the normalized tag name or dev)"
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,19 +30,41 @@ jobs:
     runs-on: ubuntu-latest
     name: Build & Deploy docs
     steps:
-      - uses: actions/checkout@v4
-
       - name: Resolve docs version slug
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
+          source_ref="${{ github.event.inputs.source_ref }}"
+          publish_slug="${{ github.event.inputs.publish_slug }}"
+
+          if [ -n "${publish_slug}" ]; then
+            slug="${publish_slug}"
+          elif [ -n "${source_ref}" ]; then
+            slug="${source_ref#V}"
+            slug="${slug#v}"
+            if [ "${slug}" = "master" ] || [ "${slug}" = "main" ]; then
+              slug="dev"
+            fi
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             slug="${GITHUB_REF_NAME#V}"
             slug="${slug#v}"
           else
             slug="dev"
           fi
+
+          if [ -n "${source_ref}" ]; then
+            checkout_ref="${source_ref}"
+          else
+            checkout_ref="${GITHUB_REF_NAME}"
+          fi
+
           echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "checkout_ref=${checkout_ref}" >> "$GITHUB_OUTPUT"
           echo "Building docs as: ${slug}"
+          echo "Checking out ref: ${checkout_ref}"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.version.outputs.checkout_ref }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -74,7 +105,7 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./public
           keep_files: true
-          commit_message: "docs: deploy ${{ steps.version.outputs.slug }} (${{ github.sha }})"
+          commit_message: "docs: deploy ${{ steps.version.outputs.slug }} from ${{ steps.version.outputs.checkout_ref }} (${{ github.sha }})"
 
   refresh-manifest:
     name: Refresh versions.json
