@@ -41,6 +41,42 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             datamart_export_location=response["datamartExportLocation"],
         )
 
+    @property
+    def models(self) -> PaginatedList[Model]:
+        """All models, addressable by label or id.
+
+        Returns
+        -------
+        PaginatedList[Model]
+            A lazily-fetched, mapping-style collection. Supports
+            ``ps.models['My Model']`` (by label or id),
+            ``'My Model' in ps.models``, ``ps.models.keys()`` and iteration.
+        """
+        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+
+    @property
+    def predictions(self) -> PaginatedList[Prediction]:
+        """All predictions, addressable by label or id.
+
+        Returns
+        -------
+        PaginatedList[Prediction]
+            A lazily-fetched, mapping-style collection. Supports
+            ``ps.predictions['My Prediction']`` (by label or id),
+            ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
+            and iteration.
+        """
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        return PaginatedList(
+            Prediction,
+            self._client,
+            "get",
+            endpoint,
+            _root="predictions",
+            pageSize=100,
+        )
+
     @overload
     def list_models(
         self,
@@ -67,8 +103,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             Returns a list of models or a DataFrame with model information.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+        pages = self.models
         if not return_df:
             return pages
 
@@ -100,15 +135,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             Returns a list of predictions or a DataFrame.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
-        pages: PaginatedList[Prediction] = PaginatedList(
-            Prediction,
-            self._client,
-            "get",
-            endpoint,
-            _root="predictions",
-            pageSize=100,
-        )
+        pages = self.predictions
 
         if not return_df:
             return pages
