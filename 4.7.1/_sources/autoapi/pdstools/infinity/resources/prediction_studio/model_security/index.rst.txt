@@ -1,0 +1,148 @@
+pdstools.infinity.resources.prediction_studio.model_security
+============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.model_security
+
+.. autoapi-nested-parse::
+
+   Lightweight security helpers for Pega ONNX models.
+
+   Provides:
+   - Extensible allow-list validation for ``pegaMetadata`` keys.
+   - Size-limit checks (predictor count, possible values, string length).
+   - SHA-256 hashing / verification of model files.
+
+   Usage
+   -----
+   >>> from pdstools.infinity.resources.prediction_studio.model_security import (
+   ...     ModelSecurityValidator,
+   ...     compute_model_hash,
+   ...     verify_model_hash,
+   ... )
+   >>> validator = ModelSecurityValidator()
+   >>> result = validator.validate_metadata(metadata_dict)
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.model_security.logger
+   pdstools.infinity.resources.prediction_studio.model_security.ALLOWED_PEGA_KEYS
+   pdstools.infinity.resources.prediction_studio.model_security.ALLOWED_PREDICTOR_KEYS
+   pdstools.infinity.resources.prediction_studio.model_security.ALLOWED_OUTPUT_KEYS
+   pdstools.infinity.resources.prediction_studio.model_security.MAX_STRING_LENGTH
+   pdstools.infinity.resources.prediction_studio.model_security.MAX_PREDICTOR_COUNT
+   pdstools.infinity.resources.prediction_studio.model_security.MAX_POSSIBLE_VALUES
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.model_security.SecurityResult
+   pdstools.infinity.resources.prediction_studio.model_security.ModelSecurityValidator
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.model_security.compute_model_hash
+   pdstools.infinity.resources.prediction_studio.model_security.verify_model_hash
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: ALLOWED_PEGA_KEYS
+   :type:  set[str]
+
+.. py:data:: ALLOWED_PREDICTOR_KEYS
+   :type:  set[str]
+
+.. py:data:: ALLOWED_OUTPUT_KEYS
+   :type:  set[str]
+
+.. py:data:: MAX_STRING_LENGTH
+   :type:  int
+   :value: 10000
+
+
+.. py:data:: MAX_PREDICTOR_COUNT
+   :type:  int
+   :value: 1000
+
+
+.. py:data:: MAX_POSSIBLE_VALUES
+   :type:  int
+   :value: 100
+
+
+.. py:class:: SecurityResult
+
+   Simple validation result container.
+
+
+   .. py:attribute:: is_secure
+      :type:  bool
+      :value: True
+
+
+
+   .. py:attribute:: issues
+      :type:  list[str]
+      :value: []
+
+
+
+   .. py:method:: _add(msg: str, *, fail: bool = False) -> None
+
+
+   .. py:method:: __str__() -> str
+
+
+.. py:class:: ModelSecurityValidator(extra_allowed_keys: set[str] | None = None)
+
+   Validate ``pegaMetadata`` dictionaries against an extensible allow-list.
+
+   :param extra_allowed_keys: Additional top-level pegaMetadata keys to accept.
+   :type extra_allowed_keys: set[str] | None
+
+
+   .. py:attribute:: allowed_keys
+
+
+   .. py:method:: validate_metadata(metadata: dict[str, Any]) -> SecurityResult
+
+      Check *metadata* against the allow-list and size limits.
+
+
+
+   .. py:method:: sanitize_metadata(metadata: dict[str, Any]) -> dict[str, Any]
+
+      Return a copy of *metadata* with only allowed keys retained.
+
+
+
+   .. py:method:: _check_string_lengths(data: Any, result: SecurityResult, path: str = '') -> None
+      :staticmethod:
+
+
+
+.. py:function:: compute_model_hash(model_path: str | pathlib.Path) -> str
+
+   Compute the SHA-256 hex digest of an ONNX model file.
+
+
+.. py:function:: verify_model_hash(model_path: str | pathlib.Path, expected_hash: str) -> bool
+
+   Return ``True`` if the file's SHA-256 matches *expected_hash*.
+
+

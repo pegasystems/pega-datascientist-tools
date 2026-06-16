@@ -1,0 +1,69 @@
+pdstools.valuefinder.ValueFinder
+================================
+
+.. py:module:: pdstools.valuefinder.ValueFinder
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.ValueFinder.ValueFinder
+
+
+Module Contents
+---------------
+
+.. py:class:: ValueFinder(df: polars.LazyFrame, *, query: pdstools.utils.types.QUERY | None = None, n_customers: int | None = None, threshold: float | None = None)
+
+   Analyze the Value Finder dataset for detailed insights
+
+
+   .. py:attribute:: df
+      :type:  polars.LazyFrame
+
+
+   .. py:attribute:: n_customers
+      :type:  int
+
+
+   .. py:attribute:: nbad_stages
+      :value: ['Eligibility', 'Applicability', 'Suitability', 'Arbitration']
+
+
+
+   .. py:attribute:: aggregates
+
+
+   .. py:attribute:: plot
+
+
+   .. py:method:: from_ds_export(filename: str | None = None, base_path: os.PathLike | str = '.', *, query: pdstools.utils.types.QUERY | None = None, n_customers: int | None = None, threshold: float | None = None)
+      :classmethod:
+
+
+
+   .. py:method:: from_dataflow_export(files: collections.abc.Iterable[str] | str, *, query: pdstools.utils.types.QUERY | None = None, n_customers: int | None = None, threshold: float | None = None, cache_file_prefix: str = '', extension: Literal['json'] = 'json', compression: Literal['gzip'] = 'gzip', cache_directory: os.PathLike | str = 'cache')
+      :classmethod:
+
+
+
+   .. py:method:: set_threshold(new_threshold: float | None = None)
+
+
+   .. py:property:: threshold
+
+
+   .. py:method:: save_data(path: os.PathLike | str = '.') -> pathlib.Path | None
+
+      Cache the pyValueFinder dataset to a Parquet file
+
+      :param path: Where to place the file
+      :type path: str
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (Optional[Path], Optional[Path])
+
+
+

@@ -1,0 +1,62 @@
+pdstools.infinity.resources.prediction_studio.v24_2.datamart_export
+===================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.datamart_export
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.datamart_export._DatamartExportV24_2Mixin
+   pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.DatamartExport
+   pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.AsyncDatamartExport
+
+
+Module Contents
+---------------
+
+.. py:class:: _DatamartExportV24_2Mixin(client, referenceId: str, location: str, repositoryName: str)
+
+   v24.2 DatamartExport business logic — defined once.
+
+
+   .. py:attribute:: reference_id
+
+
+   .. py:attribute:: location
+
+
+   .. py:attribute:: repository_name
+
+
+   .. py:method:: get_export_status()
+      :async:
+
+
+      Fetches the current export status of a datamart.
+
+      This method queries the export status of a datamart by its reference ID.
+
+      :returns: The response from the server containing the export status of the datamart.
+      :rtype: dict
+
+
+
+.. py:class:: DatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.DataMartExport`
+
+
+   v24.2 DatamartExport business logic — defined once.
+
+
+.. py:class:: AsyncDatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncDataMartExport`
+
+
+   v24.2 DatamartExport business logic — defined once.
+
+

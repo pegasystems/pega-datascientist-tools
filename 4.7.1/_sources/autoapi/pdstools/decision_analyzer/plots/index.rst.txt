@@ -1,0 +1,283 @@
+pdstools.decision_analyzer.plots
+================================
+
+.. py:module:: pdstools.decision_analyzer.plots
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.plots.DEFAULT_BOXPLOT_POINT_CAP
+   pdstools.decision_analyzer.plots._ECDF_MAX_ROWS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.plots.Plot
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.plots.offer_quality_piecharts
+   pdstools.decision_analyzer.plots.offer_quality_single_pie
+   pdstools.decision_analyzer.plots.getTrendChart
+   pdstools.decision_analyzer.plots.plot_priority_component_distribution
+   pdstools.decision_analyzer.plots.plot_component_overview
+   pdstools.decision_analyzer.plots.create_win_distribution_plot
+   pdstools.decision_analyzer.plots.create_parameter_distribution_boxplots
+
+
+Module Contents
+---------------
+
+.. py:data:: DEFAULT_BOXPLOT_POINT_CAP
+   :value: 20000
+
+
+.. py:class:: Plot(decision_data)
+
+   .. py:attribute:: _decision_data
+
+
+   .. py:method:: _boxplot_point_cap() -> int
+
+
+   .. py:method:: threshold_deciles(thresholding_on, thresholding_name, return_df=False)
+
+
+   .. py:method:: distribution_as_treemap(df: polars.LazyFrame, stage: str, scope_options: list[str])
+
+
+   .. py:method:: sensitivity(win_rank: int = 1, hide_priority=True, return_df=False, reference_group=None, additional_filters=None, total_decisions: int | None = None)
+
+      Sensitivity of the prioritization factors.
+
+      If reference_group is None, this works as global sensitivity,
+      otherwise it is local sensitivity where the focus is on the
+      reference_group.
+
+      When *total_decisions* is provided the x-axis shows percentages
+      relative to that number and the hover includes both the absolute
+      influence count and the total decisions.
+
+
+
+   .. py:method:: global_winloss_distribution(level, win_rank, return_df=False, additional_filters=None)
+
+
+   .. py:method:: propensity_vs_optionality(stage='Arbitration', df=None, return_df=False)
+
+
+   .. py:method:: optionality_funnel(df)
+
+
+   .. py:method:: action_variation(stage='Final', color_by=None, return_df=False)
+
+      Plot action variation (Lorenz curve showing action concentration).
+
+      Args:
+          stage: Stage to analyze
+          color_by: Optional dimension to color by (e.g., "Channel/Direction")
+          return_df: If True, return the data instead of the figure
+
+
+
+   .. py:method:: trend_chart(stage: str, scope: str, return_df=False, additional_filters=None) -> tuple[plotly.graph_objects.Figure, str | None]
+
+
+   .. py:method:: decision_funnel(scope: str, additional_filters: polars.Expr | list[polars.Expr] | None = None, return_df=False)
+
+      Return (passing_fig, filtered_fig) for the Action Funnel tabs.
+
+      passing_fig shows actions that exit each stage (Passing Actions tab).
+      filtered_fig shows actions removed at each stage (Filtered Actions tab).
+
+
+
+   .. py:method:: decisions_without_actions_plot(additional_filters: polars.Expr | list[polars.Expr] | None = None, return_df=False)
+
+      Bar chart showing decisions with no remaining actions per stage, as % of total.
+
+
+
+   .. py:method:: filtering_components(stages: list[str], top_n, AvailableNBADStages, additional_filters: polars.Expr | list[polars.Expr] | None = None, return_df=False)
+
+
+   .. py:method:: distribution(df: polars.LazyFrame, scope: str, breakdown: str, metric: str = 'Decisions', horizontal=False)
+
+
+   .. py:method:: prio_factor_boxplots(reference: polars.Expr | list[polars.Expr] | None = None, return_df=False, additional_filters=None, others_filter: polars.Expr | list[polars.Expr] | None = None) -> tuple[plotly.graph_objects.Figure, str | None]
+
+
+   .. py:method:: rank_boxplot(reference: polars.Expr | list[polars.Expr] | None = None, return_df=False, additional_filters=None)
+
+
+   .. py:method:: component_action_impact(top_n: int = 10, scope: str = 'Action', additional_filters: polars.Expr | list[polars.Expr] | None = None, return_df=False)
+
+      Horizontal bar chart showing which items each component filters most.
+
+      One facet per component (top components by total filtering), bars show
+      items sorted by filtered decision count. The scope controls whether the
+      breakdown is at Issue, Group, or Action level.
+
+      :param top_n: Maximum number of items per component.
+      :type top_n: int, default 10
+      :param scope: Granularity: ``"Issue"``, ``"Group"``, or ``"Action"``.
+      :type scope: str, default "Action"
+      :param additional_filters: Extra filters applied before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+      :param return_df: If True, return the DataFrame instead of a figure.
+      :type return_df: bool, default False
+
+      :rtype: go.Figure or pl.DataFrame
+
+
+
+   .. py:method:: component_drilldown(component_name: str, scope: str = 'Action', additional_filters: polars.Expr | list[polars.Expr] | None = None, sort_by: str = 'Filtered Decisions', return_df=False)
+
+      Bar chart drilling into a single component's filtered actions with
+      value context.
+
+      Shows filtered actions sorted by the chosen metric, with secondary
+      axis for average scoring values when available.
+
+      :param component_name: The pxComponentName to drill into.
+      :type component_name: str
+      :param scope: The granularity level to display (Issue, Group, or Action).
+      :type scope: str, default "Action"
+      :param additional_filters: Extra filters applied before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+      :param sort_by: Column to sort by. Also accepts "avg_Value", "avg_Priority".
+      :type sort_by: str, default "Filtered Decisions"
+      :param return_df: If True, return the DataFrame instead of a figure.
+      :type return_df: bool, default False
+
+      :rtype: go.Figure or pl.DataFrame
+
+
+
+   .. py:method:: optionality_per_stage(return_df=False)
+
+
+   .. py:method:: optionality_trend(df: polars.LazyFrame, return_df=False)
+
+
+.. py:function:: offer_quality_piecharts(df: polars.LazyFrame, propensityTH, AvailableNBADStages, return_df=False, level='Stage Group')
+
+.. py:function:: offer_quality_single_pie(df: polars.LazyFrame, stage: str, propensityTH, level='Stage Group')
+
+   Create a single pie chart showing offer quality for a specific stage.
+
+   :param df: Offer quality data from get_offer_quality()
+   :type df: pl.LazyFrame
+   :param stage: Stage name to display (e.g., "Arbitration", "Output")
+   :type stage: str
+   :param propensityTH: Propensity threshold used for relevance categorization
+   :type propensityTH: float
+   :param level: Grouping level (Stage or Stage Group)
+   :type level: str, default "Stage Group"
+
+   :returns: Single pie chart figure
+   :rtype: plotly.graph_objects.Figure
+
+
+.. py:function:: getTrendChart(df: polars.LazyFrame, stage: str = 'Output', return_df=False, level='Stage Group')
+
+.. py:data:: _ECDF_MAX_ROWS
+   :value: 50000
+
+
+.. py:function:: plot_priority_component_distribution(value_data: polars.LazyFrame, component: str, granularity: str, color_discrete_map: dict[str, str] | None = None)
+
+   Violin + ECDF + summary statistics for a single prioritization component.
+
+   :returns: violin_fig, ecdf_fig, stats_df
+   :rtype: tuple of (go.Figure, go.Figure, pl.DataFrame)
+
+
+.. py:function:: plot_component_overview(value_data: polars.LazyFrame, components: list[str], granularity: str) -> plotly.graph_objects.Figure
+
+   Small-multiples violin panel showing all components side by side.
+
+   Each component gets its own subplot with a fully independent x-axis
+   so their different scales are always visible.
+
+   :rtype: go.Figure
+
+
+.. py:function:: create_win_distribution_plot(data: polars.DataFrame, win_count_col: str, scope_config: dict[str, str | list[str]], title_suffix: str, y_axis_title: str) -> tuple[plotly.graph_objects.Figure, polars.DataFrame]
+
+   Create a win distribution bar chart with highlighted selected items.
+
+   This function creates a bar chart showing win counts across actions, groups, or issues
+   based on the scope configuration. It automatically aggregates data appropriately and
+   highlights the selected item in red while showing others in grey.
+
+   :param data: DataFrame containing win distribution data with action identifiers and win counts
+   :type data: pl.DataFrame
+   :param win_count_col: Column name containing win counts to plot (e.g., "original_win_count", "new_win_count")
+   :type win_count_col: str
+   :param scope_config: Configuration dictionary from get_scope_config() containing:
+                        - level: "Action", "Group", or "Issue"
+                        - group_cols: List of columns for grouping
+                        - x_col: Column name for x-axis
+                        - selected_value: Value to highlight in red
+                        - plot_title_prefix: Prefix for plot title
+   :type scope_config: dict[str, str | list[str]]
+   :param title_suffix: Suffix to add to plot title (e.g., "Current Performance", "After Lever Adjustment")
+   :type title_suffix: str
+   :param y_axis_title: Title for y-axis (e.g., "Current Win Count", "New Win Count")
+   :type y_axis_title: str
+
+   :returns:
+
+             - Plotly figure with bar chart
+             - Processed plot data (aggregated if needed)
+   :rtype: tuple[go.Figure, pl.DataFrame]
+
+   .. rubric:: Notes
+
+   - For Action level: Shows individual actions
+   - For Group/Issue level: Automatically aggregates data by summing win counts
+   - Selected item is highlighted in red (#FF0000), others in grey
+   - "No Winner" bar (if present in data) is shown in orange (#FFA500) to highlight interactions without winners
+   - If selected item not found, uses light blue as fallback color
+   - X-axis labels are hidden to avoid clutter, scope level shown as x-axis title
+   - "No Winner" data is calculated and added by get_win_distribution_data() when all_interactions parameter is provided
+
+   .. rubric:: Examples
+
+   >>> scope_config = get_scope_config("Service", "Cards", "MyAction")
+   >>> fig, plot_data = create_win_distribution_plot(
+   ...     distribution_data,
+   ...     "new_win_count",
+   ...     scope_config,
+   ...     "After Lever Adjustment",
+   ...     "New Win Count"
+   ... )
+
+
+.. py:function:: create_parameter_distribution_boxplots(segmented_df: polars.DataFrame, parameters: list[str] | None = None, title: str = 'Parameter Distributions: Selected Actions vs Competitors') -> plotly.graph_objects.Figure
+
+   Create box plots comparing parameter distributions between selected actions and others.
+
+   :param segmented_df: DataFrame with columns for parameters and a 'segment' column
+                        containing "Selected Actions" or "Others"
+   :type segmented_df: pl.DataFrame
+   :param parameters: List of parameter column names to plot
+   :type parameters: list[str], optional
+   :param title: Title for the plot
+   :type title: str, optional
+
+   :returns: Plotly figure with box plots
+   :rtype: go.Figure
+
+

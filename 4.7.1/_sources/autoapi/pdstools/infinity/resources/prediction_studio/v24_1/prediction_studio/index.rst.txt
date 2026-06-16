@@ -1,0 +1,69 @@
+pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio
+=====================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio._PredictionStudioV24_1Mixin
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio
+
+
+Module Contents
+---------------
+
+.. py:class:: _PredictionStudioV24_1Mixin
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:attribute:: version
+      :type:  str
+      :value: '24.1'
+
+
+
+   .. py:method:: upload_model(model, file_name)
+      :abstractmethod:
+
+      :async:
+
+
+
+.. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.PredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.Repository
+
+
+.. py:class:: AsyncPredictionStudio(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+      :async:
+
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.AsyncRepository
+      :async:
+
+
+

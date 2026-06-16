@@ -1,0 +1,471 @@
+pdstools.infinity.resources.knowledge_buddy.knowledge_buddy
+===========================================================
+
+.. py:module:: pdstools.infinity.resources.knowledge_buddy.knowledge_buddy
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.UnavailableBuddyError
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.NoAPIAccessError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy
+
+
+Module Contents
+---------------
+
+.. py:class:: TextInput
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: value
+      :type:  str
+
+
+.. py:class:: FilterAttributes
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: values
+      :type:  list[dict[Literal['value'], str]]
+
+      D.values() -> an object providing a view on D's values
+
+
+.. py:class:: AttributeValue(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: value
+      :type:  str
+
+
+.. py:class:: Attribute(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: values
+      :type:  list[AttributeValue]
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+.. py:class:: Chunk(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: attributes
+      :type:  list[Attribute]
+
+
+   .. py:attribute:: content
+      :type:  str
+
+
+.. py:class:: SearchResultValue(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: chunks
+      :type:  list[Chunk]
+
+
+.. py:class:: SearchResult(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: value
+      :type:  pydantic.Json[SearchResultValue] | SearchResultValue | str
+
+
+.. py:class:: BuddyResponse(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: question_id
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: answer
+      :type:  str
+
+
+   .. py:attribute:: status
+      :type:  str
+
+
+   .. py:attribute:: search_results
+      :type:  list[SearchResult] | None
+      :value: None
+
+
+
+.. py:exception:: UnavailableBuddyError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`pdstools.infinity.internal._exceptions.PegaException`
+
+
+   Request contains invalid inputs
+
+
+.. py:exception:: NoAPIAccessError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`pdstools.infinity.internal._exceptions.PegaException`
+
+
+   You do not have access to the API. Contact the administrator.
+
+
+.. py:class:: _KnowledgeBuddyMixin
+
+   Knowledge Buddy business logic — defined once.
+
+
+   .. py:attribute:: _a_post
+      :type:  collections.abc.Callable[Ellipsis, Any]
+
+
+   .. py:method:: _install_exception_hook()
+
+
+   .. py:method:: question(question: str, buddy: str, include_search_results: bool = False, question_source: str | None = None, question_tag: str | None = None, additional_text_inputs: list[TextInput] | None = None, filter_attributes: list[FilterAttributes] | None = None, user_name: str | None = None, user_email: str | None = None) -> BuddyResponse
+      :async:
+
+
+      Send a question to the Knowledge Buddy.
+
+      :param question: Input the question.
+      :type question: str: (Required)
+      :param buddy: Input the buddy name.
+                    If you do not have the required role to access the buddy,
+                    an access error will be displayed.
+      :type buddy: str (Required)
+      :param include_search_results: If set to true, this property returns chunks of data related to each
+                                     SEARCHRESULTS information variable that is defined for the Knowledge Buddy,
+                                     which is the same information that is returned during a semantic search.
+      :type include_search_results: bool (Default: False)
+      :param question_source: Input a source for the question based on the use case.
+                              This information can be used for reporting purposes.
+      :type question_source: str (Optional)
+      :param question_tag: Input a tag for the question based on the use case.
+                           This information can be used for reporting purposes.
+      :type question_tag: str (Optional)
+      :param additional_text_inputs: Input the search variable values, where key is the search variable name
+                                     and value is the data that replaces the variable.
+                                     Search variables are defined in the Information section of the Knowledge Buddy.
+      :type additional_text_inputs: list[TextInput]: (Optional)
+      :param filter_attributes: Input the filter attributes to get the filtered chunks from the vector database.
+                                User-defined attributes ingested with content can be used as filters.
+                                Filters are recommended to improve the semantic search performance.
+                                Database indexes can be used further to enhance the search.
+      :type filter_attributes: list[FilterAttributes]: (Optional)
+
+
+
+   .. py:method:: feedback(question_id: str, helpful: Literal['Yes', 'No', 'Unsure'] = 'Unsure', comments: str | None = None)
+      :async:
+
+
+      Capture feedback for a question asked to the Knowledge Buddy.
+
+      :param question_id: The Knowledge Buddy case Id that is required to capture the feedback.
+      :type question_id: str: (Required)
+      :param helpful: Was this comment helpful? Valid values are Yes, No and Unsure.
+                      Empty value defaults to Unsure.
+      :type helpful: str (Optional)
+      :param comments: Text of the comment.
+      :type comments: str (Optional)
+
+
+
+   .. py:method:: _custom_exception_hook(base_url: httpx.URL | str, endpoint: str, params: dict, response: httpx.Response) -> None | Exception
+      :staticmethod:
+
+
+
+.. py:class:: KnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+
+.. py:class:: AsyncKnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+

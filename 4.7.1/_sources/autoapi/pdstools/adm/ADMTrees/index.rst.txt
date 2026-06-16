@@ -1,0 +1,574 @@
+pdstools.adm.ADMTrees
+=====================
+
+.. py:module:: pdstools.adm.ADMTrees
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMTrees.AGB
+   pdstools.adm.ADMTrees.ADMTrees
+   pdstools.adm.ADMTrees.ADMTreesModel
+   pdstools.adm.ADMTrees.MultiTrees
+
+
+Module Contents
+---------------
+
+.. py:class:: AGB(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: discover_model_types(df: polars.LazyFrame, by: str = 'Configuration') -> dict
+
+      Discovers the type of model embedded in the pyModelData column.
+
+      By default, we do a group_by Configuration, because a model rule can only
+      contain one type of model. Then, for each configuration, we look into the
+      pyModelData blob and find the _serialClass, returning it in a dict.
+
+      :param df: The dataframe to search for model types
+      :type df: pl.LazyFrame
+      :param by: The column to look for types in. Configuration is recommended.
+      :type by: str
+      :param allow_collect: set to True to allow discovering modelTypes, even if in lazy strategy.
+                            It will fetch one modelData string per configuration.
+      :type allow_collect: bool, default = False
+
+
+
+   .. py:method:: get_agb_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: pdstools.utils.types.QUERY | None = None, verbose: bool = True, **kwargs) -> ADMTrees
+
+      Method to automatically extract AGB models.
+
+      Recommended to subset using the querying functionality
+      to cut down on execution time, because it checks for each
+      model ID. If you only have AGB models remaining after the query,
+      it will only return proper AGB models.
+
+      :param last: Whether to only look at the last snapshot for each model
+      :type last: bool, default = False
+      :param by: Which column to determine unique models with
+      :type by: str, default = 'Configuration'
+      :param n_threads: The number of threads to use for extracting the models.
+                        Since we use multithreading, setting this to a reasonable value
+                        helps speed up the import.
+      :type n_threads: int, default = 6
+      :param query: Please refer to :meth:`._apply_query`
+      :type query: Optional[Union[pl.Expr, list[pl.Expr], str, dict[str, list]]]
+      :param verbose: Whether to print out information while importing
+      :type verbose: bool, default = False
+
+
+
+.. py:class:: ADMTrees
+
+   .. py:method:: get_multi_trees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
+      :staticmethod:
+
+
+
+.. py:class:: ADMTreesModel(file: str, **kwargs)
+
+   Functions for ADM Gradient boosting
+
+   ADM Gradient boosting models consist of multiple trees,
+   which build upon each other in a 'boosting' fashion.
+   This class provides some functions to extract data from
+   these trees, such as the features on which the trees split,
+   important values for these features, statistics about the trees,
+   or visualising each individual tree.
+
+   :param file: The input file as a json (see notes)
+   :type file: str
+
+   .. attribute:: trees
+
+      
+
+      :type: dict
+
+   .. attribute:: properties
+
+      
+
+      :type: dict
+
+   .. attribute:: learning_rate
+
+      
+
+      :type: float
+
+   .. attribute:: model
+
+      
+
+      :type: dict
+
+   .. attribute:: treeStats
+
+      
+
+      :type: dict
+
+   .. attribute:: splitsPerTree
+
+      
+
+      :type: dict
+
+   .. attribute:: gainsPerTree
+
+      
+
+      :type: dict
+
+   .. attribute:: gainsPerSplit
+
+      
+
+      :type: pl.DataFrame
+
+   .. attribute:: groupedGainsPerSplit
+
+      
+
+      :type: dict
+
+   .. attribute:: predictors
+
+      
+
+      :type: set
+
+   .. attribute:: allValuesPerSplit
+
+      
+
+      :type: dict
+
+   .. rubric:: Notes
+
+   The input file is the extracted json file of the 'save model'
+   action in Prediction Studio. The Datamart column 'pyModelData'
+   also contains this information, but it is compressed and
+   the values for each split is encoded. Using the 'save model'
+   button, only that data is decompressed and decoded.
+
+
+   .. py:attribute:: nospaces
+      :value: True
+
+
+
+   .. py:method:: _read_model(file, **kwargs)
+
+
+   .. py:method:: _decode_trees()
+
+
+   .. py:method:: _post_import_cleanup(decode, **kwargs)
+
+
+   .. py:method:: _depth(d: dict) -> int
+
+      Calculates the depth of the tree, used in TreeStats.
+
+
+
+   .. py:method:: _safe_numeric_compare(left: float, operator: str, right: float) -> bool
+
+      Safely compare two numeric values without using eval().
+
+      This method replaces dangerous eval() calls with safe numeric comparisons.
+
+      :param left: Left operand for comparison
+      :type left: Union[int, float]
+      :param operator: Comparison operator as string ('<', '>', '==', '<=', '>=', '!=')
+      :type operator: str
+      :param right: Right operand for comparison
+      :type right: Union[int, float]
+
+      :returns: Result of the comparison
+      :rtype: bool
+
+      :raises ValueError: If operator is not supported
+
+
+
+   .. py:method:: _safe_condition_evaluate(value: Any, operator: str, comparison_set: set | float | str) -> bool
+
+      Safely evaluate conditions without using eval().
+
+      This method replaces dangerous eval() calls with safe condition evaluation.
+
+      :param value: The value to test
+      :type value: Any
+      :param operator: The operator ('in', '<', '>', '==')
+      :type operator: str
+      :param comparison_set: The value or set to compare against
+      :type comparison_set: Union[set, float, str]
+
+      :returns: Result of the condition evaluation
+      :rtype: bool
+
+
+
+   .. py:property:: metrics
+      :type: dict[str, Any]
+
+
+      Compute CDH_ADM005-style diagnostic metrics for this model.
+
+      Returns a flat dictionary of key/value pairs aligned with the
+      CDH_ADM005 telemetry event specification.  Metrics that cannot be
+      computed from an exported model (e.g. saturation counts that
+      require bin-level data) are omitted.
+
+      .. seealso:: :py:obj:`Pega`
+
+      :returns: Metric name → value mapping.
+      :rtype: dict[str, Any]
+
+
+   .. py:method:: metric_descriptions() -> dict[str, str]
+      :staticmethod:
+
+
+      Return a dictionary mapping metric names to human-readable descriptions.
+
+      These descriptions document every metric returned by the
+      :attr:`metrics` property. They can be used programmatically to
+      annotate reports or plots.
+
+      :returns: Metric name → one-line description.
+      :rtype: dict[str, str]
+
+
+
+   .. py:method:: _compute_metrics() -> dict[str, Any]
+
+      Walk the trees once to gather all diagnostic metrics.
+
+      For the full list of returned keys and their descriptions, see
+      :meth:`metric_descriptions`.
+
+      For exported (decoded) models, predictor types are inferred from
+      split operators (``<`` → numeric, ``in``/``==`` → symbolic).
+      For encoded models (from datamart blobs with ``inputsEncoder``),
+      the encoder metadata provides authoritative type information.
+
+
+
+   .. py:method:: _accumulate_gain(tree: dict, var_gain: dict[str, float]) -> None
+      :staticmethod:
+
+
+      Recursively accumulate gain per predictor variable.
+
+
+
+   .. py:method:: _get_encoder_info() -> dict[str, dict[str, Any]] | None
+
+      Extract predictor metadata from the inputsEncoder if present.
+
+      Returns a dict mapping predictor name to a dict with keys:
+      - ``type``: ``"numeric"`` or ``"symbolic"``
+      - ``used_bins``: number of bins currently used
+      - ``max_bins``: maximum bins allowed (``None`` if unknown)
+
+      Returns ``None`` if no encoder metadata is available (e.g. for
+      exported/decoded models).
+
+
+
+   .. py:property:: predictors
+
+
+   .. py:property:: tree_stats
+
+
+   .. py:property:: splits_per_tree
+
+
+   .. py:property:: gains_per_tree
+
+
+   .. py:property:: gains_per_split
+
+
+   .. py:property:: grouped_gains_per_split
+
+
+   .. py:property:: all_values_per_split
+
+
+   .. py:property:: splits_per_variable_type
+
+
+   .. py:method:: parse_split_values(value) -> tuple[str, str, str]
+
+      Parses the raw 'split' string into its three components.
+
+      Once the split is parsed, Python can use it to evaluate.
+
+      :param value: The raw 'split' string
+      :type value: str
+
+      :returns: * *tuple[str, str, str]*
+                * *The variable on which the split is done,*
+                * *The direction of the split (< or 'in')*
+                * *The value on which to split*
+
+
+
+   .. py:method:: parse_split_values_with_spaces(value) -> tuple[str, str, str]
+      :staticmethod:
+
+
+
+   .. py:method:: get_predictors() -> dict | None
+
+      Extract predictor names and types from model metadata.
+
+      Tries to find predictor metadata from the ``configuration``
+      section of the JSON.  Models exported via the Prediction Studio
+      "Save Model" button include a ``configuration`` key with an
+      explicit predictor list.  However, models exported in the newer
+      format (e.g. via automated pipelines or newer Pega versions) may
+      omit the ``configuration`` section entirely, containing only
+      ``type``, ``modelVersion``, ``algorithm``, ``trainingStats``,
+      ``auc``, etc. at the top level.  In that case, predictor names
+      and types are inferred from the tree split nodes instead.
+
+
+
+   .. py:method:: _infer_predictors_from_splits() -> dict | None
+
+      Infer predictor names and types from tree split nodes.
+
+      When no explicit predictor metadata is available (e.g. in exported
+      models without a ``configuration`` section), we walk the trees and
+      derive predictor names from splits. The operator determines the
+      type: ``<`` → numeric, ``in``/``==`` → symbolic.
+
+      :returns: Mapping of predictor name → type ("numeric" or "symbolic").
+      :rtype: dict[str, str] | None
+
+
+
+   .. py:method:: get_gains_per_split() -> tuple[dict, dict, polars.DataFrame]
+
+      Function to compute the gains of each split in each tree.
+
+
+
+   .. py:method:: get_grouped_gains_per_split() -> polars.DataFrame
+
+      Function to get the gains per split, grouped by split.
+
+      It adds some additional information, such as the possible values,
+      the mean gains, and the number of times the split is performed.
+
+
+
+   .. py:method:: get_splits_recursively(tree: dict, splits: list, gains: list) -> tuple[list, list]
+
+      Recursively finds splits and their gains for each node.
+
+      By Python's mutatable list mechanic, the easiest way to achieve
+      this is to explicitly supply the function with empty lists.
+      Therefore, the 'splits' and 'gains' parameter expect
+      empty lists when initially called.
+
+      :param tree:
+      :type tree: dict
+      :param splits:
+      :type splits: list
+      :param gains:
+      :type gains: list
+
+      :returns: * *tuple[list, list]*
+                * *Each split, and its corresponding gain*
+
+
+
+   .. py:method:: plot_splits_per_variable(subset: set | None = None, show=True)
+
+      Plots the splits for each variable in the tree.
+
+      :param subset: Optional parameter to subset the variables to plot
+      :type subset: Optional[set]
+      :param show: Whether to display each plot
+      :type show: bool
+
+      :rtype: plt.figure
+
+
+
+   .. py:method:: get_tree_stats() -> polars.DataFrame
+
+      Generate a dataframe with useful stats for each tree
+
+
+
+   .. py:method:: get_all_values_per_split() -> dict
+
+      Generate a dictionary with the possible values for each split
+
+
+
+   .. py:method:: get_nodes_recursively(tree: dict, nodelist: dict, counter: list, childs: dict) -> tuple[dict, dict]
+
+      Recursively walks through each node, used for tree representation.
+
+      Again, nodelist, counter and childs expects
+      empty dict, dict and list parameters.
+
+      :param tree:
+      :type tree: dict
+      :param nodelist:
+      :type nodelist: dict
+      :param counter:
+      :type counter: dict
+      :param childs:
+      :type childs: list
+
+      :returns: * *tuple[dict, list]*
+                * *The dictionary of nodes and the list of child nodes*
+
+
+
+   .. py:method:: _fill_child_node_ids(nodeinfo: dict, childs: dict) -> dict
+      :staticmethod:
+
+
+      Utility function to add child info to nodes
+
+
+
+   .. py:method:: get_tree_representation(tree_number: int) -> dict
+
+      Generates a more usable tree representation.
+
+      In this tree representation, each node has an ID,
+      and its attributes are the attributes,
+      with parent and child nodes added as well.
+
+      :param tree_number: The number of the tree, in order of the original json
+      :type tree_number: int
+      :param returns:
+      :type returns: dict
+
+
+
+   .. py:method:: plot_tree(tree_number: int, highlighted: dict | list | None = None, show=True) -> pydot.Graph
+
+      Plots the chosen decision tree.
+
+      :param tree_number: The number of the tree to visualise
+      :type tree_number: int
+      :param highlighted: Optional parameter to highlight nodes in green
+                          If a dictionary, it expects an 'x': i.e., features
+                          with their corresponding values.
+                          If a list, expects a list of node IDs for that tree.
+      :type highlighted: Optional[dict, list]
+
+      :rtype: pydot.Graph
+
+
+
+   .. py:method:: get_visited_nodes(treeID: int, x: dict, save_all: bool = False) -> tuple[list, float, list]
+
+      Finds all visited nodes for a given tree, given an x
+
+      :param treeID: The ID of the tree
+      :type treeID: int
+      :param x: Features to split on, with their values
+      :type x: dict
+      :param save_all: Whether to save all gains for each individual split
+      :type save_all: bool, default = False
+
+      :returns: The list of visited nodes,
+                The score of the final leaf node,
+                The gains for each split in the visited nodes
+      :rtype: list, float, list
+
+
+
+   .. py:method:: get_all_visited_nodes(x: dict) -> polars.DataFrame
+
+      Loops through each tree, and records the scoring info
+
+      :param x: Features to split on, with their values
+      :type x: dict
+
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: score(x: dict) -> float
+
+      Computes the score for a given x
+
+
+
+   .. py:method:: plot_contribution_per_tree(x: dict, show=True)
+
+      Plots the contribution of each tree towards the final propensity.
+
+
+
+   .. py:method:: predictor_categorization(x: str, context_keys=None)
+
+
+   .. py:method:: compute_categorization_over_time(predictorCategorization=None, context_keys=None)
+
+
+   .. py:method:: plot_splits_per_variable_type(predictor_categorization=None, **kwargs)
+
+
+.. py:class:: MultiTrees
+
+   .. py:attribute:: trees
+      :type:  dict
+
+
+   .. py:attribute:: model_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: context_keys
+      :type:  list | None
+      :value: None
+
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: __getitem__(index)
+
+
+   .. py:method:: __len__()
+
+
+   .. py:method:: __add__(other)
+
+
+   .. py:property:: first
+
+
+   .. py:property:: last
+
+
+   .. py:method:: compute_over_time(predictor_categorization=None)
+
+

@@ -1,0 +1,73 @@
+pdstools.valuefinder.Schema
+===========================
+
+.. py:module:: pdstools.valuefinder.Schema
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Schema.pyValueFinder
+
+
+Module Contents
+---------------
+
+.. py:class:: pyValueFinder
+
+   .. py:attribute:: pyDirection
+
+
+   .. py:attribute:: pySubjectType
+
+
+   .. py:attribute:: ModelPositives
+
+
+   .. py:attribute:: pyGroup
+
+
+   .. py:attribute:: pyPropensity
+
+
+   .. py:attribute:: FinalPropensity
+
+
+   .. py:attribute:: pyStage
+
+
+   .. py:attribute:: pxRank
+
+
+   .. py:attribute:: pxPriority
+
+
+   .. py:attribute:: pyModelPropensity
+
+
+   .. py:attribute:: pyChannel
+
+
+   .. py:attribute:: Value
+
+
+   .. py:attribute:: pyName
+
+
+   .. py:attribute:: StartingEvidence
+
+
+   .. py:attribute:: pySubjectID
+
+
+   .. py:attribute:: DecisionTime
+
+
+   .. py:attribute:: pyTreatment
+
+
+   .. py:attribute:: pyIssue
+
+

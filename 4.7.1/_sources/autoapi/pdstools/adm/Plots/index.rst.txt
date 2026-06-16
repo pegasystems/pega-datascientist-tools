@@ -1,0 +1,439 @@
+pdstools.adm.Plots
+==================
+
+.. py:module:: pdstools.adm.Plots
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:class:: Plots(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   .. py:attribute:: dependencies
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: bubble_chart(*, last: bool = True, rounding: int = 5, query: pdstools.utils.types.QUERY | None = None, facet: str | polars.Expr | None = None, color: str | None = 'Performance', show_metric_limits: bool = False, return_df: bool = False)
+
+      The Bubble Chart, as seen in Prediction Studio
+
+      :param last: Whether to only include the latest snapshot, by default True
+      :type last: bool, optional
+      :param rounding: To how many digits to round the performance number
+      :type rounding: int, optional
+      :param query: The query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param facet: Column name or Polars expression to facet the plot into subplots, by default None
+      :type facet: Optional[Union[str, pl.Expr]], optional
+      :param show_metric_limits: Whether to show dashed vertical lines at the ModelPerformance
+                                 metric limit thresholds (from MetricLimits.csv), by default False
+      :type show_metric_limits: bool, optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+
+
+   .. py:method:: over_time(metric: str = 'Performance', by: polars.Expr | str = 'ModelID', *, every: str | datetime.timedelta = '1d', cumulative: bool = True, query: pdstools.utils.types.QUERY | None = None, facet: str | None = None, show_metric_limits: bool = False, return_df: bool = False)
+
+      Statistics over time
+
+      :param metric: The metric to plot, by default "Performance"
+      :type metric: str, optional
+      :param by: The column to group by, by default "ModelID"
+      :type by: Union[pl.Expr, str], optional
+      :param every: By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
+                    for periods.
+      :type every: Union[str, timedelta], optional
+      :param cumulative: Whether to show cumulative values or period-over-period changes, by default True
+      :type cumulative: bool, optional
+      :param query: The query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param facet: Whether to facet the plot into subplots, by default None
+      :type facet: Optional[str], optional
+      :param show_metric_limits: Whether to show dashed horizontal lines at the metric limit
+                                 thresholds (from MetricLimits.csv), by default False.
+                                 Only applies when metric is "Performance".
+      :type show_metric_limits: bool, optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+
+
+   .. py:method:: proposition_success_rates(metric: str = 'SuccessRate', by: str = 'Name', *, top_n: int = 0, query: pdstools.utils.types.QUERY | None = None, facet: str | None = None, return_df: bool = False)
+
+      Proposition Success Rates
+
+      :param metric: The metric to plot, by default "SuccessRate"
+      :type metric: str, optional
+      :param by: By which column to group the, by default "Name"
+      :type by: str, optional
+      :param top_n: Whether to take a top_n on the `by` column, by default 0
+      :type top_n: int, optional
+      :param query: A query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param facet: What facetting column to apply to the graph, by default None
+      :type facet: Optional[str], optional
+      :param return_df: Whether to return a DataFrame instead of the graph, by default False
+      :type return_df: bool, optional
+
+
+
+   .. py:method:: score_distribution(model_id: str, *, active_range: bool = True, return_df: bool = False)
+
+      Generate a score distribution plot for a specific model.
+
+      :param model_id: The ID of the model to generate the score distribution for
+      :type model_id: str
+      :param active_range: Whether to filter to active score range only, by default True
+      :type active_range: bool, optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly figure showing score distribution or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+      :raises ValueError: If no data is available for the provided model ID
+
+
+
+   .. py:method:: multiple_score_distributions(query: pdstools.utils.types.QUERY | None = None, show_all: bool = True) -> list[Figure]
+
+      Generate the score distribution plot for all models in the query
+
+      :param query: A query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param show_all: Whether to 'show' all plots or just get a list of them, by default True
+      :type show_all: bool, optional
+
+      :returns: A list of Plotly charts, one for each model instance
+      :rtype: list[go.Figure]
+
+
+
+   .. py:method:: predictor_binning(model_id: str, predictor_name: str, return_df: bool = False)
+
+      Generate a predictor binning plot for a specific model and predictor.
+
+      :param model_id: The ID of the model containing the predictor
+      :type model_id: str
+      :param predictor_name: Name of the predictor to analyze
+      :type predictor_name: str
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly figure showing predictor binning or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+      :raises ValueError: If no data is available for the provided model ID and predictor name
+
+
+
+   .. py:method:: multiple_predictor_binning(model_id: str, query: pdstools.utils.types.QUERY | None = None, show_all=True) -> list[Figure]
+
+      Generate predictor binning plots for all predictors in a model.
+
+      :param model_id: The ID of the model to generate predictor binning plots for
+      :type model_id: str
+      :param query: A query to apply to the predictor data, by default None
+      :type query: Optional[QUERY], optional
+      :param show_all: Whether to display all plots or just return the list, by default True
+      :type show_all: bool, optional
+
+      :returns: A list of Plotly figures, one for each predictor in the model
+      :rtype: list[Figure]
+
+
+
+   .. py:method:: _boxplot_pre_aggregated(df: polars.LazyFrame, *, y_col: str, metric_col: str, metric_weight_col: str | None = None, legend_col: str | None = None, return_df: bool = False)
+
+
+   .. py:method:: predictor_performance(*, metric: str = 'Performance', top_n: int | None = None, active_only: bool = False, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Plots a box plot of the performance of the predictors
+
+      Use the query argument to drill down to a more specific subset
+      If top n is given, chooses the top predictors based on the
+      weighted average performance across models, ordered by their median performance.
+
+      :param metric: The metric to plot, by default "Performance"
+                     This is more for future-proofing, once FeatureImportance gets more used.
+      :type metric: str, optional
+      :param top_n: The top n predictors to plot, by default None
+      :type top_n: Optional[int], optional
+      :param active_only: Whether to only consider active predictor performance, by default False
+      :type active_only: bool, optional
+      :param query: The query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      .. seealso::
+
+         :py:obj:`pdstools.adm.ADMDatamart.apply_predictor_categorization`
+             how to override the out of the box predictor categorization
+
+
+
+   .. py:method:: predictor_category_performance(*, metric: str = 'Performance', active_only: bool = False, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Plot the predictor category performance
+
+      :param metric: The metric to plot, by default "Performance"
+      :type metric: str, optional
+      :param active_only: Whether to only analyze active predictors, by default False
+      :type active_only: bool, optional
+      :param query: An optional query to apply, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: An optional flag to get the dataframe instead, by default False
+      :type return_df: bool, optional
+
+      :returns: A Plotly figure
+      :rtype: px.Figure
+
+      .. seealso::
+
+         :py:obj:`pdstools.adm.ADMDatamart.apply_predictor_categorization`
+             how to override the out of the box predictor categorization
+
+
+
+   .. py:method:: predictor_contribution(*, by: str = 'Configuration', query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Plots the predictor contribution for each configuration
+
+      :param by: By which column to plot the contribution, by default "Configuration"
+      :type by: str, optional
+      :param query: An optional query to apply to the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: An optional flag to get a Dataframe instead, by default False
+      :type return_df: bool, optional
+
+      :returns: A plotly figure
+      :rtype: px.Figure
+
+      .. seealso::
+
+         :py:obj:`pdstools.adm.ADMDatamart.apply_predictor_categorization`
+             how to override the out of the box predictor categorization
+
+
+
+   .. py:method:: predictor_performance_heatmap(*, top_predictors: int = 20, top_groups: int | None = None, by: str = 'Name', active_only: bool = False, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Generate a heatmap showing predictor performance across different groups.
+
+      :param top_predictors: Number of top-performing predictors to include, by default 20
+      :type top_predictors: int, optional
+      :param top_groups: Number of top groups to include, by default None (all groups)
+      :type top_groups: int, optional
+      :param by: Column to group by for the heatmap, by default "Name"
+      :type by: str, optional
+      :param active_only: Whether to only include active predictors, by default False
+      :type active_only: bool, optional
+      :param query: Optional query to filter the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly heatmap figure or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+
+
+   .. py:method:: gains_chart(value: str, *, index: str | None = None, by: str | list[str] | None = None, query: pdstools.utils.types.QUERY | None = None, title: str | None = None, return_df: bool = False) -> Figure | polars.LazyFrame
+
+      Generate a gains chart showing cumulative distribution of a metric.
+
+      Creates a gains/lift chart to visualize model response skewness. Shows what
+      percentage of the total value (e.g., responses, positives) is driven by what
+      percentage of models. Useful for identifying if a small number of models
+      drive most of the volume.
+
+      :param value: Column name containing the metric to compute gains for (e.g., "ResponseCount", "Positives")
+      :type value: str
+      :param index: Column name to normalize by (e.g., population size). If None, uses model count.
+      :type index: str, optional
+      :param by: Column(s) to group by for separate gain curves (e.g., "Channel" or ["Channel", "Direction"])
+      :type by: str | list[str], optional
+      :param query: Optional query to filter the data before computing gains
+      :type query: QUERY, optional
+      :param title: Chart title. If None, uses "Gains Chart"
+      :type title: str, optional
+      :param return_df: If True, return the gains data instead of the figure
+      :type return_df: bool, default False
+
+      :returns: Plotly figure showing the gains chart, or LazyFrame if return_df=True
+      :rtype: Figure | pl.LazyFrame
+
+      .. rubric:: Examples
+
+      >>> # Single gains curve for response count
+      >>> fig = datamart.plot.gains_chart(value="ResponseCount")
+
+      >>> # Gains curves by channel for positives
+      >>> fig = datamart.plot.gains_chart(
+      ...     value="Positives",
+      ...     by=["Channel", "Direction"],
+      ...     title="Cumulative Positives by Channel"
+      ... )
+
+
+
+   .. py:method:: performance_volume_distribution(*, by: str | list[str] | None = None, query: pdstools.utils.types.QUERY | None = None, bin_width: int = 3, title: str | None = None, return_df: bool = False) -> Figure | polars.LazyFrame
+
+      Generate a performance vs volume distribution chart.
+
+      Shows how response volume is distributed across different model performance
+      ranges. Helps identify if volume is driven by high-performing or low-performing
+      models. Ideally, most volume should be in the 60-80 AUC range.
+
+      :param by: Column(s) to group by for separate curves (e.g., "Channel" or ["Channel", "Direction"])
+                 If None, creates a single curve for all data
+      :type by: str | list[str], optional
+      :param query: Optional query to filter the data before analysis
+      :type query: QUERY, optional
+      :param bin_width: Width of performance bins in AUC points (default creates bins of 3: 50-53, 53-56, etc.)
+      :type bin_width: int, default 3
+      :param title: Chart title. If None, uses "Performance vs Volume"
+      :type title: str, optional
+      :param return_df: If True, return the binned data instead of the figure
+      :type return_df: bool, default False
+
+      :returns: Plotly figure showing performance distribution, or LazyFrame if return_df=True
+      :rtype: Figure | pl.LazyFrame
+
+      .. rubric:: Notes
+
+      Performance is binned from 50-100 using the specified bin_width. The chart shows
+      what percentage of responses fall into each performance bin, grouped by the `by`
+      parameter if provided.
+
+      .. rubric:: Examples
+
+      >>> # Single curve for all channels
+      >>> fig = datamart.plot.performance_volume_distribution()
+
+      >>> # Separate curves per channel
+      >>> fig = datamart.plot.performance_volume_distribution(
+      ...     by=["Channel", "Direction"],
+      ...     title="Performance Distribution by Channel"
+      ... )
+
+
+
+   .. py:method:: tree_map(metric: Literal['ResponseCount', 'Positives', 'Performance', 'SuccessRate', 'percentage_without_responses'] = 'Performance', *, by: str = 'Name', query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Generate a tree map visualization showing hierarchical model metrics.
+
+      :param metric: The metric to visualize in the tree map, by default "Performance"
+      :type metric: Literal["ResponseCount", "Positives", "Performance", "SuccessRate", "percentage_without_responses"], optional
+      :param by: Column to group by for the tree map hierarchy, by default "Name"
+      :type by: str, optional
+      :param query: Optional query to filter the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly treemap figure or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+
+
+   .. py:method:: predictor_count(*, by: str | list[str] = ['EntryType', 'Type'], query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Generate a box plot showing the distribution of predictor counts by type.
+
+      :param by: Column(s) to group predictors by, by default ["EntryType", "Type"]
+      :type by: Union[str, list[str]], optional
+      :param query: Optional query to filter the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly box plot figure or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+
+
+   .. py:method:: binning_lift(model_id: str, predictor_name: str, *, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Generate a binning lift plot for a specific predictor showing propensity lift per bin.
+
+      :param model_id: The ID of the model containing the predictor
+      :type model_id: str
+      :param predictor_name: Name of the predictor to analyze for lift
+      :type predictor_name: str
+      :param query: Optional query to filter the predictor data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly bar chart showing binning lift or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+
+
+   .. py:method:: action_overlap(group_col: str | list[str] | polars.Expr = 'Channel', overlap_col='Name', *, show_fraction=True, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
+
+      Generate an overlap matrix heatmap showing shared actions across different groups.
+
+      :param group_col: Column(s) to group by for overlap analysis, by default "Channel"
+      :type group_col: Union[str, list[str], pl.Expr], optional
+      :param overlap_col: Column containing values to analyze for overlap, by default "Name"
+      :type overlap_col: str, optional
+      :param show_fraction: Whether to show overlap as fraction or absolute count, by default True
+      :type show_fraction: bool, optional
+      :param query: Optional query to filter the data, by default None
+      :type query: Optional[QUERY], optional
+      :param return_df: Whether to return a dataframe instead of a plot, by default False
+      :type return_df: bool, optional
+
+      :returns: Plotly heatmap showing action overlap or DataFrame if return_df=True
+      :rtype: Union[Figure, pl.LazyFrame]
+
+
+
+   .. py:method:: partitioned_plot(func: collections.abc.Callable, facets: list[dict[str, str | None]], show_plots: bool = True, *args, **kwargs)
+
+      Execute a plotting function across multiple faceted subsets of data.
+
+      This method applies a given plotting function to multiple filtered subsets of data,
+      where each subset is defined by the facet conditions. It's useful for generating
+      multiple plots with different filter conditions applied.
+
+      :param func: The plotting function to execute for each facet
+      :type func: Callable
+      :param facets: list of dictionaries defining filter conditions for each facet
+      :type facets: list[dict[str, Optional[str]]]
+      :param show_plots: Whether to display the plots as they are generated, by default True
+      :type show_plots: bool, optional
+      :param \*args: Additional positional arguments to pass to the plotting function
+      :type \*args: tuple
+      :param \*\*kwargs: Additional keyword arguments to pass to the plotting function
+      :type \*\*kwargs: dict
+
+      :returns: list of Plotly figures, one for each facet condition
+      :rtype: list[Figure]
+
+
+

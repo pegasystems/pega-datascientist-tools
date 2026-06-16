@@ -1,0 +1,54 @@
+pdstools.infinity.resources.prediction_studio.v24_1.prediction
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1.prediction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction._PredictionV24_1Mixin
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction
+
+
+Module Contents
+---------------
+
+.. py:class:: _PredictionV24_1Mixin
+
+   v24.1 Prediction business logic — defined once.
+
+
+   .. py:attribute:: prediction_id
+      :type:  str
+
+
+   .. py:method:: get_metric(*, metric: pdstools.infinity.internal._constants.METRIC, timeframe: Literal['7d', '4w', '3m', '6m']) -> polars.DataFrame
+      :async:
+
+
+
+   .. py:method:: describe()
+      :async:
+
+
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Prediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPrediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+

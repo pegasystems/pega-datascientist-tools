@@ -1,0 +1,636 @@
+pdstools.infinity.resources.prediction_studio.v24_2
+===================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/champion_challenger/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/datamart_export/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model_upload/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction_studio/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/repository/index
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncChampionChallenger
+   pdstools.infinity.resources.prediction_studio.v24_2.ChampionChallenger
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncDatamartExport
+   pdstools.infinity.resources.prediction_studio.v24_2.DatamartExport
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncModel
+   pdstools.infinity.resources.prediction_studio.v24_2.Model
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncPrediction
+   pdstools.infinity.resources.prediction_studio.v24_2.Prediction
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncPredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_2.PredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_2.AsyncRepository
+   pdstools.infinity.resources.prediction_studio.v24_2.Repository
+
+
+Package Contents
+----------------
+
+.. py:class:: AsyncChampionChallenger(client, prediction_id: str, active_model, cc_id: str | None = None, context: str | None = None, category: str | None = None, challenger_model=None, champion_percentage: float | None = None, model_objective: str | None = None)
+
+   Bases: :py:obj:`_ChampionChallengerV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncChampionChallenger`
+
+
+   The ``ChampionChallenger`` class manages champion and challenger models
+   within a prediction context. It provides functionalities for:
+
+   - Refreshing champion challenger data
+   - Deleting challenger models
+   - Promoting challenger models
+   - Updating challenger response percentages
+   - Adding new models
+   - Cloning an ADM active model
+   - Adding/removing predictors
+
+   .. attribute:: client
+
+      The client used to interact with the API.
+
+      :type: Client
+
+   .. attribute:: prediction_id
+
+      The ID of the prediction.
+
+      :type: str
+
+   .. attribute:: active_model
+
+      The active model in the prediction.
+
+      :type: Model
+
+   .. attribute:: cc_id
+
+      The ID of the champion challenger.
+
+      :type: str | None
+
+   .. attribute:: context
+
+      The context of the prediction.
+
+      :type: str | None
+
+   .. attribute:: category
+
+      The category of the prediction.
+
+      :type: str | None
+
+   .. attribute:: challenger_model
+
+      The challenger model.
+
+      :type: Model | None
+
+   .. attribute:: champion_percentage
+
+      The percentage of responses attributed to the champion model.
+
+      :type: float | None
+
+   .. attribute:: model_objective
+
+      The objective of the model.
+
+      :type: str | None
+
+
+   .. py:method:: list_available_models_to_add(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList | polars.DataFrame
+      :async:
+
+
+      Fetches a list of models eligible to be challengers.
+
+      :param return_df: Determines the format of the returned data: a DataFrame if True,
+                        otherwise an async list of model instances. Defaults to False.
+      :type return_df: bool, optional
+
+      :returns: An async list of model instances or a DataFrame of models.
+      :rtype: AsyncPaginatedList[AsyncModel] or pl.DataFrame
+
+
+
+.. py:class:: ChampionChallenger(client, prediction_id: str, active_model, cc_id: str | None = None, context: str | None = None, category: str | None = None, challenger_model=None, champion_percentage: float | None = None, model_objective: str | None = None)
+
+   Bases: :py:obj:`_ChampionChallengerV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.ChampionChallenger`
+
+
+   The ``ChampionChallenger`` class manages champion and challenger models
+   within a prediction context. It provides functionalities for:
+
+   - Refreshing champion challenger data
+   - Deleting challenger models
+   - Promoting challenger models
+   - Updating challenger response percentages
+   - Adding new models
+   - Cloning an ADM active model
+   - Adding/removing predictors
+
+   .. attribute:: client
+
+      The client used to interact with the API.
+
+      :type: Client
+
+   .. attribute:: prediction_id
+
+      The ID of the prediction.
+
+      :type: str
+
+   .. attribute:: active_model
+
+      The active model in the prediction.
+
+      :type: Model
+
+   .. attribute:: cc_id
+
+      The ID of the champion challenger.
+
+      :type: str | None
+
+   .. attribute:: context
+
+      The context of the prediction.
+
+      :type: str | None
+
+   .. attribute:: category
+
+      The category of the prediction.
+
+      :type: str | None
+
+   .. attribute:: challenger_model
+
+      The challenger model.
+
+      :type: Model | None
+
+   .. attribute:: champion_percentage
+
+      The percentage of responses attributed to the champion model.
+
+      :type: float | None
+
+   .. attribute:: model_objective
+
+      The objective of the model.
+
+      :type: str | None
+
+
+   .. py:method:: list_available_models_to_add(return_df: bool = False) -> pdstools.infinity.internal._pagination.PaginatedList | polars.DataFrame
+
+      Fetches a list of models eligible to be challengers.
+
+      Queries for models that can be added as challengers to the current
+      prediction for the current active model. Offers the option to return
+      the results in a DataFrame format for easier data handling.
+
+      :param return_df: Determines the format of the returned data: a DataFrame if True,
+                        otherwise a list of model instances. Defaults to False.
+      :type return_df: bool, optional
+
+      :returns: A list of model instances or a DataFrame of models, based on the
+                ``return_df`` parameter choice.
+      :rtype: PaginatedList[Model] or pl.DataFrame
+
+
+
+.. py:class:: AsyncDatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncDataMartExport`
+
+
+   v24.2 DatamartExport business logic — defined once.
+
+
+.. py:class:: DatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.DataMartExport`
+
+
+   v24.2 DatamartExport business logic — defined once.
+
+
+.. py:class:: AsyncModel(client, *, modelId: str, label: str, modelType: str, status: str, componentName: str | None = None, source: str | None = None, lastUpdateTime: str | None = None, modelingTechnique: str | None = None, updatedBy: str | None = None)
+
+   Bases: :py:obj:`_ModelV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncModel`
+
+
+   v24.2 Model business logic — defined once.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.base.AsyncNotification] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of notifications for a specific model.
+
+      :param category: The category of notifications to retrieve. If not specified, all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise, returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the notifications.
+      :rtype: AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+
+
+
+.. py:class:: Model(client, *, modelId: str, label: str, modelType: str, status: str, componentName: str | None = None, source: str | None = None, lastUpdateTime: str | None = None, modelingTechnique: str | None = None, updatedBy: str | None = None)
+
+   Bases: :py:obj:`_ModelV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Model`
+
+
+   v24.2 Model business logic — defined once.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.base.Notification]
+                  get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[True] = True) -> polars.DataFrame
+
+      Fetches a list of notifications for a specific model.
+
+      This function retrieves notifications related to a model. You can filter these notifications by their category.
+      Optionally, the notifications can be returned as a DataFrame for easier analysis and visualization.
+
+      :param category: The category of notifications to retrieve. If not specified, all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise, returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the notifications, depending on the value of `return_df`.
+      :rtype: PaginatedList[Notification] or polars.DataFrame
+
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction`
+
+
+   Async variant of the v24.2 Prediction.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.base.AsyncNotification] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of notifications for a specific prediction.
+
+      :param category: The category of notifications to retrieve.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None
+      :param return_df: If True, returns the notifications as a DataFrame.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame.
+      :rtype: AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+
+
+
+   .. py:method:: get_champion_challengers()
+      :async:
+
+
+      Fetches list of ChampionChallenger objects linked to the prediction.
+
+      :returns: Champion-challenger pairs from a prediction.
+      :rtype: list of AsyncChampionChallenger
+
+
+
+   .. py:method:: add_conditional_model(new_model, category: str, context: str | None = None)
+      :async:
+
+
+      Incorporates a new model into a prediction for a specified category
+      and context.
+
+      :param new_model: Identifier of the model to be added.
+      :type new_model: str or AsyncModel
+      :param category: The category under which the model will be classified.
+      :type category: str
+      :param context: The specific context or scenario.
+      :type context: str, optional
+
+      :returns: An object detailing the updated configuration.
+      :rtype: AsyncChampionChallenger
+
+
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction`
+
+
+   The ``Prediction`` class provide functionality including retrieving
+   notifications, models, adding conditional models, getting champion
+   challengers, metrics, and plotting metrics.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.base.Notification]
+                  get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[True] = True) -> polars.DataFrame
+
+      Fetches a list of notifications for a specific prediction.
+
+      This function retrieves notifications related to a prediction. You
+      can filter these notifications by their category.  Optionally, the
+      notifications can be returned as a DataFrame for easier analysis
+      and visualization.
+
+      :param category: The category of notifications to retrieve. If not specified,
+                       all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise,
+                        returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the
+                notifications, depending on the value of ``return_df``.
+      :rtype: PaginatedList[Notification] or polars.DataFrame
+
+
+
+   .. py:method:: get_champion_challengers()
+
+      Fetches list of ChampionChallenger objects linked to the prediction.
+
+      This function fetches Champion-challenger pairs from a prediction.
+      In cases where a challenger model is absent, it returns a
+      ChampionChallenger object containing only the champion model.
+
+      :returns: A list of entries, each pairing a primary model with its
+                challenger across various segments of the prediction.
+      :rtype: list of ChampionChallenger
+
+
+
+   .. py:method:: add_conditional_model(new_model, category: str, context: str | None = None)
+
+      Incorporates a new model into a prediction for a specified category
+      and context.
+
+      :param new_model: Identifier of the model to be added.
+      :type new_model: str or Model
+      :param category: The category under which the model will be classified.
+      :type category: str
+      :param context: The specific context or scenario in which the model will be
+                      utilized.
+      :type context: str, optional
+
+      :returns: An object detailing the updated configuration with the newly
+                added model.
+      :rtype: ChampionChallenger
+
+
+
+.. py:class:: AsyncPredictionStudio(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.AsyncPredictionStudio`
+
+
+   v24.2 PredictionStudio business logic — shared parts.
+
+
+   .. py:attribute:: version
+      :type:  str
+      :value: '24.2'
+
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_2.repository.AsyncRepository
+      :async:
+
+
+      Gets information about the repository from Prediction Studio.
+
+      :returns: A simple object with the repository's details.
+      :rtype: AsyncRepository
+
+
+
+   .. py:method:: list_models(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_2.model.AsyncModel] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of all models from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame.
+      :type return_df: bool, optional
+
+      :rtype: AsyncPaginatedList[AsyncModel] or polars.DataFrame
+
+
+
+   .. py:method:: list_predictions(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_2.prediction.AsyncPrediction] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of all predictions from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame.
+      :type return_df: bool, optional
+
+      :rtype: AsyncPaginatedList[AsyncPrediction] or polars.DataFrame
+
+
+
+   .. py:method:: get_prediction(prediction_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v24_2.prediction.AsyncPrediction
+      :async:
+
+
+      Finds and returns a specific prediction from Prediction Studio.
+
+      :param prediction_id: The unique ID of the prediction.
+      :type prediction_id: str, optional
+      :param label: The label of the prediction.
+      :type label: str, optional
+
+      :rtype: AsyncPrediction
+
+
+
+   .. py:method:: get_model(model_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v24_2.model.AsyncModel
+      :async:
+
+
+      Finds and returns a specific model from Prediction Studio.
+
+      :param model_id: The unique ID of the model.
+      :type model_id: str, optional
+      :param label: The label of the model.
+      :type label: str, optional
+
+      :rtype: AsyncModel
+
+
+
+   .. py:method:: trigger_datamart_export() -> pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.AsyncDatamartExport
+      :async:
+
+
+      Initiates an export of model data to the Repository.
+
+      :returns: An object with information about the data export process.
+      :rtype: AsyncDatamartExport
+
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.base.AsyncNotification] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of notifications from Prediction Studio.
+
+      :param category: The category of notifications to retrieve.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns as a DataFrame.
+      :type return_df: bool, default False
+
+      :rtype: AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+
+
+
+.. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.PredictionStudio`
+
+
+   v24.2 PredictionStudio business logic — shared parts.
+
+
+   .. py:attribute:: version
+      :type:  str
+      :value: '24.2'
+
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_2.repository.Repository
+
+      Gets information about the repository from Prediction Studio.
+
+      :returns: A simple object with the repository's details, ready to use.
+      :rtype: Repository
+
+
+
+   .. py:method:: list_models(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_2.model.Model]
+                  list_models(return_df: Literal[True]) -> polars.DataFrame
+
+      Fetches a list of all models from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame. By default False.
+      :type return_df: bool, optional
+
+      :returns: Returns a list of models or a DataFrame with model information.
+      :rtype: PaginatedList[Model] or polars.DataFrame
+
+
+
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_2.prediction.Prediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
+
+      Fetches a list of all predictions from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame. By default False.
+      :type return_df: bool, optional
+
+      :returns: Returns a list of predictions or a DataFrame.
+      :rtype: PaginatedList[Prediction] or polars.DataFrame
+
+
+
+   .. py:method:: get_prediction(prediction_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v24_2.prediction.Prediction
+
+      Finds and returns a specific prediction from Prediction Studio.
+
+      :param prediction_id: The unique ID of the prediction.
+      :type prediction_id: str, optional
+      :param label: The label of the prediction.
+      :type label: str, optional
+      :param \*\*kwargs: Other details to narrow down the search.
+      :type \*\*kwargs: dict, optional
+
+      :returns: The prediction that matches your search criteria.
+      :rtype: Prediction
+
+      :raises ValueError: If you don't provide an ID or label.
+
+
+
+   .. py:method:: get_model(model_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v24_2.model.Model
+
+      Finds and returns a specific model from Prediction Studio.
+
+      :param model_id: The unique ID of the model.
+      :type model_id: str, optional
+      :param label: The label of the model.
+      :type label: str, optional
+      :param \*\*kwargs: Other details to help find the model.
+      :type \*\*kwargs: dict, optional
+
+      :returns: The model that matches your search.
+      :rtype: Model
+
+      :raises ValueError: If you don't provide an ID or label.
+
+
+
+   .. py:method:: trigger_datamart_export() -> pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.DatamartExport
+
+      Initiates an export of model data to the Repository.
+
+      :returns: An object with information about the data export process.
+      :rtype: DatamartExport
+
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.base.Notification]
+                  get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[True] = True) -> polars.DataFrame
+
+      Fetches a list of notifications from Prediction Studio.
+
+      :param category: The category of notifications to retrieve.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns the notifications as a DataFrame.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame.
+      :rtype: PaginatedList[Notification] or polars.DataFrame
+
+
+
+.. py:class:: AsyncRepository(client, type, repository_name, bucket_name, root_path, datamart_export_location)
+
+   Bases: :py:obj:`_RepositoryV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.repository.AsyncRepository`
+
+
+   v24.2 Repository data — defined once.
+
+
+.. py:class:: Repository(client, type, repository_name, bucket_name, root_path, datamart_export_location)
+
+   Bases: :py:obj:`_RepositoryV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.Repository`
+
+
+   v24.2 Repository data — defined once.
+
+

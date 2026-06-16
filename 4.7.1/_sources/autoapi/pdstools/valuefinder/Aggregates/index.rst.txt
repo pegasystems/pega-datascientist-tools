@@ -1,0 +1,52 @@
+pdstools.valuefinder.Aggregates
+===============================
+
+.. py:module:: pdstools.valuefinder.Aggregates
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Aggregates.Aggregates
+
+
+Module Contents
+---------------
+
+.. py:class:: Aggregates(vf: pdstools.valuefinder.ValueFinder.ValueFinder)
+
+   .. py:attribute:: vf
+
+
+   .. py:attribute:: _quantile_from_threshold
+      :type:  dict[float, float]
+
+
+   .. py:method:: get_customer_summary(*, threshold: float | None = None) -> polars.LazyFrame
+
+      Computes the summary of propensities for all customers
+
+      :param th: The threshold to consider an action 'good'.
+                 If a customer has actions with propensity above this,
+                 the customer has at least one relevant action.
+                 If not given, will default to 5th quantile.
+      :type th: Optional[float]
+
+
+
+   .. py:method:: get_counts_per_stage(*, threshold: float | None = None)
+
+
+   .. py:property:: max_propensity_per_customer
+      :type: polars.DataFrame
+
+
+
+   .. py:method:: get_threshold_from_quantile(quantile: float) -> float
+
+
+   .. py:method:: get_counts_for_threshold(threshold: float) -> polars.DataFrame
+
+

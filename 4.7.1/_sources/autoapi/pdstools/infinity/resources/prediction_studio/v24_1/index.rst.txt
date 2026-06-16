@@ -1,0 +1,125 @@
+pdstools.infinity.resources.prediction_studio.v24_1
+===================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction_studio/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/repository/index
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.AsyncPredictionStudioBase
+   pdstools.infinity.resources.prediction_studio.v24_1.PredictionStudioBase
+   pdstools.infinity.resources.prediction_studio.v24_1.AsyncPrediction
+   pdstools.infinity.resources.prediction_studio.v24_1.Prediction
+   pdstools.infinity.resources.prediction_studio.v24_1.AsyncPredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_1.PredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_1.AsyncRepository
+   pdstools.infinity.resources.prediction_studio.v24_1.Repository
+
+
+Package Contents
+----------------
+
+.. py:class:: AsyncPredictionStudioBase(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: PredictionStudioBase(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPrediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Prediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+
+.. py:class:: AsyncPredictionStudio(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+      :async:
+
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.AsyncRepository
+      :async:
+
+
+
+.. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.PredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.Repository
+
+
+.. py:class:: AsyncRepository(client, repository_name: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncRepository`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: name
+
+
+.. py:class:: Repository(client, repository_name: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.Repository`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: name
+
+

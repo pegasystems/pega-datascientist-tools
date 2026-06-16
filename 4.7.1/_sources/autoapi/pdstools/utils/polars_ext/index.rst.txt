@@ -1,0 +1,34 @@
+pdstools.utils.polars_ext
+=========================
+
+.. py:module:: pdstools.utils.polars_ext
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.polars_ext.Sample
+
+
+Module Contents
+---------------
+
+.. py:class:: Sample(ldf: polars.LazyFrame)
+
+   .. py:attribute:: _ldf
+
+
+   .. py:method:: sample(n)
+
+
+   .. py:method:: height()
+
+
+   .. py:method:: shape()
+
+
+   .. py:method:: item()
+
+

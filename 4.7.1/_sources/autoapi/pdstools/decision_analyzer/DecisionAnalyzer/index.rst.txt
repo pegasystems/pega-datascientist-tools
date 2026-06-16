@@ -1,0 +1,938 @@
+pdstools.decision_analyzer.DecisionAnalyzer
+===========================================
+
+.. py:module:: pdstools.decision_analyzer.DecisionAnalyzer
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.DecisionAnalyzer.logger
+   pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: DEFAULT_SAMPLE_SIZE
+   :value: 10000
+
+
+   Default number of unique interactions to sample for resource-intensive analyses.
+
+.. py:class:: DecisionAnalyzer(raw_data: polars.LazyFrame, level='Stage Group', sample_size=DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, polars.DataType] | None = None)
+
+   Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
+
+   This class processes raw decision data to create a comprehensive analysis
+   framework for NBA (Next-Best-Action). It supports two data source formats:
+
+   - **Explainability Extract (v1)**: Simpler format with actions at the
+     arbitration stage. Stages are synthetically derived from ranking.
+   - **Decision Analyzer / EEV2 (v2)**: Full pipeline data with real stage
+     information, filter component names, and detailed strategy tracking.
+
+   Data can be loaded via class methods or directly:
+
+   - :meth:`from_explainability_extract`: Load from an Explainability Extract file.
+   - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
+   - Direct ``__init__``: Auto-detects format from the data schema.
+
+   .. attribute:: decision_data
+
+      Interaction-level decision data (with global filters applied if any).
+
+      :type: pl.LazyFrame
+
+   .. attribute:: extract_type
+
+      Either ``"explainability_extract"`` or ``"decision_analyzer"``.
+
+      :type: str
+
+   .. attribute:: plot
+
+      Plot accessor for visualization methods.
+
+      :type: Plot
+
+   .. rubric:: Examples
+
+   >>> from pdstools import DecisionAnalyzer
+   >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+   >>> da.overview_stats
+   >>> da.plot.sensitivity()
+
+
+   .. py:method:: from_explainability_extract(source: str | os.PathLike, **kwargs) -> DecisionAnalyzer
+      :classmethod:
+
+
+      Create a DecisionAnalyzer from an Explainability Extract (v1) file.
+
+      :param source: Path to the Explainability Extract parquet file, or a URL.
+      :type source: str | os.PathLike
+      :param \*\*kwargs: Additional keyword arguments passed to ``__init__`` (e.g.
+                         ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+
+      :rtype: DecisionAnalyzer
+
+      .. rubric:: Examples
+
+      >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+
+
+
+   .. py:method:: from_decision_analyzer(source: str | os.PathLike, **kwargs) -> DecisionAnalyzer
+      :classmethod:
+
+
+      Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
+
+      :param source: Path to the Decision Analyzer parquet file, or a URL.
+      :type source: str | os.PathLike
+      :param \*\*kwargs: Additional keyword arguments passed to ``__init__`` (e.g.
+                         ``sample_size``, ``mandatory_expr``, ``additional_columns``).
+
+      :rtype: DecisionAnalyzer
+
+      .. rubric:: Examples
+
+      >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+
+
+
+   .. py:attribute:: _default_filter_fields
+      :value: ['Decision Time', 'Channel', 'Direction', 'Issue', 'Group', 'Action', 'Treatment', 'Stage',...
+
+
+
+   .. py:attribute:: plot
+
+
+   .. py:attribute:: level
+      :value: 'Stage Group'
+
+
+
+   .. py:attribute:: sample_size
+      :value: 10000
+
+
+
+   .. py:attribute:: _thresholding_cache
+      :type:  dict[tuple[str, tuple[int, Ellipsis]], polars.DataFrame]
+
+
+   .. py:attribute:: _sensitivity_cache
+      :type:  dict[int, polars.LazyFrame]
+
+
+   .. py:attribute:: extract_type
+      :value: 'decision_analyzer'
+
+
+
+   .. py:attribute:: validation_error
+      :value: 'The following default columns are missing: '
+
+
+
+   .. py:attribute:: decision_data
+
+
+   .. py:attribute:: fields_for_data_filtering
+
+
+   .. py:attribute:: preaggregation_columns
+
+
+   .. py:attribute:: max_win_rank
+      :value: 5
+
+
+
+   .. py:attribute:: AvailableNBADStages
+      :value: ['Arbitration', 'Output']
+
+
+
+   .. py:property:: available_levels
+      :type: list[str]
+
+
+      Stage granularity levels available for this dataset.
+
+      Returns ``["Stage Group", "Stage"]`` for Decision Analyzer (v2) data
+      when both columns are present, or ``["Stage Group"]`` for
+      Explainability Extract (v1) data where only synthetic stages exist.
+
+
+   .. py:method:: set_level(level: str)
+
+      Switch the stage granularity level used for all analyses.
+
+      Recomputes the available stages for the new level and invalidates
+      all cached properties so subsequent queries use the new granularity.
+
+      :param level: ``"Stage Group"`` or ``"Stage"``.
+      :type level: str
+
+
+
+   .. py:method:: _recompute_available_stages()
+
+      Derive ``AvailableNBADStages`` from the data for the current level.
+
+      At "Stage Group" level, synthetically injects "Arbitration" if it
+      has no data rows (it is used as an anchor point by many analyses).
+
+      At "Stage" level, detects Stage Groups that have no individual
+      stages represented in the data and inserts the group name as a
+      placeholder so the full pipeline is visible.
+
+
+
+   .. py:property:: color_mappings
+      :type: dict[str, dict[str, str]]
+
+
+      Compute consistent color mappings for all categorical dimensions.
+
+      Color assignments are based on all unique values in the full dataset
+      (before sampling), sorted alphabetically. This ensures colors remain
+      consistent throughout the session regardless of filtering.
+
+      :returns: Nested dictionary mapping dimension names to color dictionaries.
+                Example: {
+                    "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                    "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
+                }
+      :rtype: dict[str, dict[str, str]]
+
+      .. rubric:: Notes
+
+      Uses @cached_property so computation happens once on first access.
+      Colors are assigned from the Pega colorway using modulo indexing.
+
+      .. seealso::
+
+         :py:obj:`pdstools.utils.color_mapping.create_categorical_color_mappings`
+             Generic utility for creating color mappings in any Streamlit app.
+
+
+   .. py:property:: stages_from_arbitration_down
+
+      All stages from Arbitration onward, respecting the current level.
+
+      At "Stage Group" level this slices from the literal "Arbitration"
+      entry.  At "Stage" level it finds stages whose Stage Order is >=
+      the Arbitration group order (3800) using the stage_to_group_mapping.
+
+
+   .. py:property:: stages_with_propensity
+
+      Infer which stages have meaningful propensity scores from the data.
+
+      Examines the sample data to determine which stages have non-null, non-default
+      propensity values. Returns stages where propensity-based classification makes sense.
+
+
+   .. py:property:: propensity_validation_warning
+      :type: str | None
+
+
+      Validate propensity values and return warning message if issues detected.
+
+      Checks for:
+      1. Invalid propensities (> 1.0) - mathematically impossible for probabilities
+      2. Unusually high propensities (> 0.1) - uncommon for typical marketing interactions
+
+      Returns None if validation passes or propensity data is not available.
+      Uses sample data for efficiency.
+
+
+   .. py:property:: arbitration_stage
+      :type: polars.LazyFrame
+
+
+      Sample rows remaining at or after the Arbitration stage.
+
+
+   .. py:property:: num_sample_interactions
+      :type: int
+
+
+      Number of unique interactions in the sample.
+      Automatically triggers sampling if not yet calculated.
+
+
+   .. py:method:: _invalidate_cached_properties()
+
+      Resets the properties of the class. Needed for global filters.
+
+
+
+   .. py:property:: preaggregated_filter_view
+
+      Pre-aggregates the full dataset over customers and interactions providing
+      a view of what is filtered at a stage.
+
+      This pre-aggregation is pretty similar to what "VBD" does to interaction
+      history. It aggregates over individual customers and interactions giving
+      summary statistics that are sufficient to drive most of the analyses
+      (but not all). The results of this pre-aggregation are much smaller
+      than the original data and is expected to easily fit in memory. We therefore
+      use polars caching to efficiently cache this.
+
+      This "filter" view keeps the same organization as the decision analyzer data
+      in that it records the actions that get filtered out at stages. From this
+      a "remaining" view is easily derived.
+
+
+   .. py:property:: preaggregated_remaining_view
+
+      Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
+
+      This pre-aggregation builds on the filter view and aggregates over
+      the stages remaining.
+
+
+   .. py:property:: sample
+
+      Hash-based deterministic sample of interactions for resource-intensive analyses.
+
+      Selects up to ``sample_size`` unique interactions using a hash of
+      Interaction ID. All actions within a selected interaction are kept.
+      If fewer interactions exist than ``sample_size``, no sampling is performed.
+
+      When the ``--sample`` CLI flag is active, this operates on the
+      already-reduced dataset, so two layers of sampling may apply.
+
+
+   .. py:property:: filtered_sample
+
+      Sample data with page-level filters applied.
+
+      Reads filter expressions from st.session_state.page_channel_expr if available.
+      Falls back to unfiltered sample if no page filters are set or not in Streamlit context.
+
+      This property is not cached because it depends on mutable session_state.
+      Page-level code should cache the result locally if needed for performance.
+
+      :returns: Sampled data with page filters applied, or unfiltered sample if no filters.
+      :rtype: pl.LazyFrame
+
+
+   .. py:method:: get_available_fields_for_filtering(categoricalOnly=False) -> list[str]
+
+      Return column names available for data filtering.
+
+      :param categoricalOnly: If True, return only string/categorical columns.
+      :type categoricalOnly: bool, default False
+
+
+
+   .. py:method:: cleanup_raw_data(df: polars.LazyFrame)
+
+      This method cleans up the raw data we read from parquet/S3/whatever.
+
+      This likely needs to change as and when we get closer to product, to
+      match what comes out of Pega. It does some modest type casting and
+      potentially changing back some of the temporary column names that have
+      been added to generate more data.
+
+
+
+   .. py:method:: get_possible_scope_values() -> list[str]
+
+      Return scope hierarchy columns present in the data (e.g. Issue, Group, Action).
+
+
+
+   .. py:method:: get_possible_stage_values() -> list[str]
+
+      Return the list of available stage values for the current level.
+
+
+
+   .. py:property:: stage_to_group_mapping
+      :type: dict[str, str]
+
+
+      Map each Stage name to its Stage Group.
+
+      Only meaningful when ``level == "Stage"`` and both columns exist.
+      Returns an empty dict otherwise (including v1 / explainability data).
+
+
+   .. py:method:: get_distribution_data(stage: str, grouping_levels: str | list[str], additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Distribution of decisions by grouping columns at a given stage.
+
+      :param stage: Stage to filter on.
+      :type stage: str
+      :param grouping_levels: Column(s) to group by (e.g. ``"Action"`` or ``["Channel", "Action"]``).
+      :type grouping_levels: str or list of str
+      :param additional_filters: Extra filters applied before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+
+      :returns: Columns from *grouping_levels* plus ``Decisions``, sorted descending.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_funnel_data(scope, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> tuple[polars.LazyFrame, polars.DataFrame, polars.DataFrame]
+
+
+   .. py:method:: get_decisions_without_actions_data(additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.DataFrame
+
+      Per-stage count of interactions newly left with no remaining actions.
+
+      Returns a DataFrame with columns [self.level, "decisions_without_actions"],
+      sorted in pipeline order. For each stage X, the value is the number of
+      interactions that lose their final remaining action at stage X.
+
+
+
+   .. py:method:: get_funnel_summary(available_df: polars.LazyFrame, passing_df: polars.DataFrame, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.DataFrame
+
+      Per-stage summary: Available, Passing, Filtered actions and Decisions.
+
+      The table matches the funnel chart: it starts with a synthetic
+      "Available Actions" row and excludes the Output stage.
+
+      :param available_df: First element returned by ``get_funnel_data`` (actions entering each stage).
+      :type available_df: pl.LazyFrame
+      :param passing_df: Second element returned by ``get_funnel_data`` (actions exiting each stage).
+      :type passing_df: pl.DataFrame
+      :param additional_filters: Same filters used when calling ``get_funnel_data``.
+      :type additional_filters: optional
+
+      :returns: One row per stage in pipeline order with raw counts first,
+                then per-decision averages.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_filter_component_data(top_n: int, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.DataFrame
+
+      Top-N filter components per stage, ranked by filtered-decision count.
+
+      :param top_n: Maximum number of components to return per stage.
+      :type top_n: int
+      :param additional_filters: Extra filters applied before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+
+      :returns: Columns include the stage level, Component Name, and
+                Filtered Decisions.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_component_action_impact(top_n: int = 10, scope: str = 'Action', additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.DataFrame
+
+      Per-component breakdown of which items are filtered and how many.
+
+      For each component, returns the top-N items (at the chosen scope
+      granularity) it filters out. The scope controls whether the breakdown
+      is at Issue, Group, or Action level.
+
+      :param top_n: Maximum number of items to return per component.
+      :type top_n: int, default 10
+      :param scope: Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
+      :type scope: str, default "Action"
+      :param additional_filters: Extra filters to apply before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+
+      :returns: Columns include pxComponentName, StageGroup, scope columns, and
+                Filtered Decisions. Sorted by component then descending count.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_component_drilldown(component_name: str, scope: str = 'Action', additional_filters: polars.Expr | list[polars.Expr] | None = None, sort_by: str = 'Filtered Decisions') -> polars.DataFrame
+
+      Deep-dive into a single filter component showing dropped actions and
+      their potential value.
+
+      Since scoring columns (Priority, Value, Propensity) are typically null
+      on FILTERED_OUT rows, this method derives the action's "potential value"
+      by looking up average scores from rows where the same action survives
+      (non-null Priority/Value). This gives the "value of what's being
+      dropped" perspective.
+
+      :param component_name: The pxComponentName to drill into.
+      :type component_name: str
+      :param scope: Granularity level: ``"Issue"``, ``"Group"``, or ``"Action"``.
+      :type scope: str, default "Action"
+      :param additional_filters: Extra filters to apply before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+      :param sort_by: Column to sort results by (descending).
+      :type sort_by: str, default "Filtered Decisions"
+
+      :returns: Columns include scope columns, Filtered Decisions,
+                avg_Priority, avg_Value, avg_Propensity, Component Type (if
+                available).
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: re_rank(additional_filters: polars.Expr | list[polars.Expr] | None = None, overrides: list[polars.Expr] = []) -> polars.LazyFrame
+
+      Recalculate priority and rank for all PVCL component combinations.
+
+      Computes five alternative priority scores by selectively dropping one
+      component at a time (Propensity, Value, Context Weight, Levers) and
+      ranks actions within each interaction for each variant.  This is the
+      foundation for sensitivity analysis.
+
+      :param additional_filters: Filters applied to the sample before ranking.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+      :param overrides: Column override expressions applied before priority calculation
+                        (e.g. to simulate lever adjustments).
+      :type overrides: list of pl.Expr, optional
+
+      :returns: Sample data augmented with ``prio_*`` and ``rank_*`` columns
+                for each PVCL variant.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_selected_group_rank_boundaries(group_filter: polars.Expr | list[polars.Expr], additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Compute selected-group rank boundaries per interaction.
+
+      For each interaction where the selected comparison group is present,
+      returns the best (lowest) and worst (highest) rank observed for the
+      selected rows in arbitration-relevant stages.
+
+
+
+   .. py:method:: get_win_loss_distribution_data(level: str | list[str], win_rank: int | None = None, additional_filters: polars.Expr | list[polars.Expr] | None = None, group_filter: polars.Expr | list[polars.Expr] | None = None, status: Literal['Wins', 'Losses'] | None = None, top_k: int | None = None) -> polars.LazyFrame
+
+      Win/loss distribution at a given scope level.
+
+      Operates in two modes depending on whether *group_filter* is provided:
+
+      * **Without group_filter** (rank-based): uses pre-aggregated data and
+        a fixed *win_rank* threshold to split wins/losses.
+      * **With group_filter** (group-based): uses sample data and
+        per-interaction rank boundaries of the selected group to identify
+        actions it beats (*Wins*) or loses to (*Losses*).
+
+      :param level: Column(s) to group the distribution by (e.g. ``"Action"``).
+      :type level: str or list of str
+      :param win_rank: Fixed rank threshold (required when *group_filter* is ``None``).
+      :type win_rank: int, optional
+      :param additional_filters: Extra filters applied before aggregation.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+      :param group_filter: Filter defining the comparison group.
+      :type group_filter: pl.Expr or list of pl.Expr, optional
+      :param status: Required when *group_filter* is provided.
+      :type status: {"Wins", "Losses"}, optional
+      :param top_k: Limit the number of rows returned (group_filter mode only).
+      :type top_k: int, optional
+
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: _winning_from(interactions: polars.LazyFrame, win_rank: int, groupby_cols: list[str], top_k: int = 20, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Actions beaten by the comparison group in its winning interactions.
+
+      :param interactions: Interaction IDs where the comparison group wins.
+      :param win_rank: Rank threshold used to define "winning".
+      :param groupby_cols: Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
+      :param top_k: Return only the top-k entries.
+      :param additional_filters: Optional extra filters (e.g. channel filter).
+
+
+
+   .. py:method:: _losing_to(interactions: polars.LazyFrame, win_rank: int, groupby_cols: list[str], top_k: int = 20, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Actions that beat the comparison group in its losing interactions.
+
+      :param interactions: Interaction IDs where the comparison group loses.
+      :param win_rank: Rank threshold used to define "winning".
+      :param groupby_cols: Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
+      :param top_k: Return only the top-k entries.
+      :param additional_filters: Optional extra filters (e.g. channel filter).
+
+
+
+   .. py:method:: get_optionality_data(df=None, by_day: bool = False) -> polars.LazyFrame
+
+      Average number of actions per stage, optionally broken down by day.
+
+      Computes per-interaction action counts at each stage using
+      ``aggregate_remaining_per_stage``, then aggregates into a histogram.
+
+      :param df: Input data.  Defaults to :attr:`sample`.
+      :type df: pl.LazyFrame, optional
+      :param by_day: If True, include ``"day"`` in the grouping for trend analysis.
+                     When False, zero-action rows are injected for stages where some
+                     interactions have no remaining actions.
+      :type by_day: bool, default False
+
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_optionality_funnel(df=None) -> polars.LazyFrame
+
+      Optionality funnel: interaction counts bucketed by available-action count.
+
+      Buckets action counts into 0–6 and 7+, then counts interactions per
+      stage and bucket.  Used by the optionality funnel chart.
+
+      :param df: Input data.  Defaults to :attr:`sample`.
+      :type df: pl.LazyFrame, optional
+
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_action_variation_data(stage, color_by=None)
+
+      Get action variation data, optionally broken down by a categorical dimension.
+
+      Args:
+          stage: The stage to analyze
+          color_by: Optional categorical column to break down the variation by.
+                   Can use "Channel/Direction" to combine Channel and Direction columns.
+
+
+
+   .. py:method:: get_ab_test_results() -> polars.DataFrame
+
+      A/B test summary: control vs test counts and control percentage per stage.
+
+      :returns: One row per stage with columns for Control, Test counts and
+                Control Percentage.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_thresholding_data(fld: str, quantile_range=range(10, 100, 10)) -> polars.DataFrame
+
+      Quantile-based thresholding analysis at Arbitration.
+
+      Computes counts and threshold values at each quantile for the given
+      field (*fld*).  Results are cached per ``(fld, quantile_range)``.
+
+      :param fld: Column name to compute quantiles for (e.g. ``"Propensity"``).
+      :type fld: str
+      :param quantile_range: Percentile breakpoints to compute.
+      :type quantile_range: range, default ``range(10, 100, 10)``
+
+      :returns: Long-format table with columns ``Decile``, ``Count``,
+                ``Threshold``, and the stage-level column.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: priority_component_distribution(component, granularity, stage=None, additional_filters=None)
+
+      Data for a single component's distribution, grouped by granularity.
+
+      :param component: Column name of the component to analyze.
+      :type component: str
+      :param granularity: Column to group by (e.g. "Issue", "Group", "Action").
+      :type granularity: str
+      :param stage: Filter to actions remaining at this stage. If None, uses all
+                    rows with non-null Priority.
+      :type stage: str, optional
+      :param additional_filters: Extra filters applied to the sample (e.g. channel filter).
+      :type additional_filters: pl.Expr or list[pl.Expr], optional
+
+
+
+   .. py:method:: all_components_distribution(granularity, stage=None, additional_filters=None)
+
+      Data for the overview panel: all prioritization components at once.
+
+      :param granularity: Column to group by.
+      :type granularity: str
+      :param stage: Filter to actions remaining at this stage.
+      :type stage: str, optional
+      :param additional_filters: Extra filters applied to the sample (e.g. channel filter).
+      :type additional_filters: pl.Expr or list[pl.Expr], optional
+
+
+
+   .. py:method:: _remaining_at_stage(stage=None, additional_filters=None)
+
+      Return sample rows remaining at *stage*.
+
+      Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
+      order is >= the selected stage are "remaining" there.  If *stage*
+      is None, falls back to rows with non-null Priority.
+
+
+
+   .. py:method:: aggregate_remaining_per_stage(df: polars.LazyFrame, group_by_columns: list[str], aggregations: list = []) -> polars.LazyFrame
+
+      Workhorse function to convert the raw Decision Analyzer data (filter view) to
+      the aggregates remaining per stage, ensuring all stages are represented.
+
+
+
+   .. py:method:: filtered_action_counts(groupby_cols: list, propensityTH: float | None = None, priorityTH: float | None = None, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Return action counts from the sample, optionally classified by propensity/priority thresholds.
+
+      :param groupby_cols: Column names to group by.
+      :type groupby_cols: list
+      :param propensityTH: Propensity threshold for classifying offers.
+      :type propensityTH: float, optional
+      :param priorityTH: Priority threshold for classifying offers.
+      :type priorityTH: float, optional
+      :param additional_filters: Extra filters applied to the sample (e.g. channel filter).
+      :type additional_filters: pl.Expr or list[pl.Expr], optional
+
+      :returns: Aggregated action counts per group, with quality buckets when
+                both thresholds are provided.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_offer_quality(df: polars.LazyFrame, group_by: str | list[str]) -> polars.LazyFrame
+
+      Cumulative offer-quality breakdown across stages.
+
+      Takes a filtered-action-counts frame (from :meth:`filtered_action_counts`)
+      and converts it to a remaining-per-stage view, joining in customers
+      that have zero actions so they are counted as well.
+
+      :param df: Filtered action counts with columns ``no_of_offers``,
+                 ``new_models``, ``poor_propensity_offers``, etc.
+      :type df: pl.LazyFrame
+      :param group_by: Columns to group by (e.g. ``["Interaction ID"]``).
+      :type group_by: str or list of str
+
+      :returns: Per-stage quality classification with boolean flag columns
+                (``has_no_offers``, ``atleast_one_relevant_action``, etc.).
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:property:: overview_stats
+      :type: dict[str, object]
+
+
+      Creates an overview from the full (filtered) dataset.
+
+      Aggregate metrics (Decisions, Customers, Actions, Channels, Duration)
+      are computed over ``decision_data`` so they reflect the true counts.
+      Only the average-offers-per-stage KPI uses the sample (it requires
+      interaction-level optionality analysis that would be too expensive on
+      the full data).
+
+
+   .. py:method:: get_sensitivity(win_rank=1, group_filter=None, additional_filters=None)
+
+      Global or local sensitivity of the prioritization factors.
+
+      :param win_rank: Maximum rank to be considered a winner.
+      :type win_rank: int
+      :param group_filter: Selected offers, only used in local sensitivity analysis.
+                           When ``None`` (global), results are cached by ``win_rank``.
+      :type group_filter: pl.Expr, optional
+      :param additional_filters: Extra filters applied to the sample before re-ranking
+                                 (e.g. channel filter).  When set, caching is bypassed.
+      :type additional_filters: pl.Expr or list[pl.Expr], optional
+
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_offer_variability_stats(stage: str) -> dict[str, float]
+
+      Summary statistics for action variation at a stage.
+
+      :param stage: Stage to analyse.
+      :type stage: str
+
+      :returns: ``n90`` — number of actions covering 90 % of decisions.
+                ``gini`` — Gini coefficient of decision concentration.
+      :rtype: dict
+
+
+
+   .. py:method:: get_winning_or_losing_interactions(group_filter: polars.Expr | list[polars.Expr], win: bool, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
+
+      Interaction IDs where the comparison group wins or loses.
+
+      :param group_filter: Filter defining the comparison group.
+      :type group_filter: pl.Expr or list of pl.Expr
+      :param win: If True, return interactions where the group wins (there are
+                  lower-ranked actions outside the group).  If False, return
+                  interactions where the group loses (there are higher-ranked
+                  actions outside the group).
+      :type win: bool
+      :param additional_filters: Extra filters (e.g. channel filter).
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+
+      :returns: Single-column frame of unique ``Interaction ID`` values.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_win_loss_counts(group_filter: polars.Expr | list[polars.Expr], win_rank: int = 1, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> dict[str, int]
+
+      Count wins and losses for the comparison group at a given rank threshold.
+
+      A **win** is an interaction where at least one member of the comparison
+      group achieves a rank of *win_rank* or better (lower). A **loss** is
+      any interaction where the group participates but none rank that high.
+
+      :param group_filter: Filter expression(s) defining the comparison group.
+      :param win_rank: Rank threshold. The group "wins" when its best rank <= win_rank.
+      :param additional_filters: Optional extra filters (e.g. channel/direction).
+
+      :rtype: dict with keys ``"wins"``, ``"losses"``, ``"total"``.
+
+
+
+   .. py:method:: get_win_loss_distributions(interactions_win: polars.LazyFrame, interactions_loss: polars.LazyFrame, groupby_cols: list[str], top_k: int, additional_filters: polars.Expr | list[polars.Expr] | None = None, group_filter: polars.Expr | list[polars.Expr] | None = None, win_rank: int | None = None) -> tuple[polars.LazyFrame, polars.LazyFrame]
+
+      Distribution of actions the comparison group wins from and loses to.
+
+      Computes two aggregated distributions in a single pass over the
+      stage-filtered data:
+
+      * **winning_from**: actions ranked below the comparison group (i.e.
+        actions it beats).
+      * **losing_to**: actions ranked above the comparison group (i.e.
+        actions that beat it).
+
+      Either *group_filter* or *win_rank* must be provided to define the
+      rank boundary.  When *group_filter* is given the boundary is the
+      per-interaction best/worst rank of the selected group.  When only
+      *win_rank* is given a fixed rank threshold is used instead.
+
+      :param interactions_win: Interaction IDs where the comparison group wins (from
+                               ``get_winning_or_losing_interactions(win=True)``).
+      :param interactions_loss: Interaction IDs where the comparison group loses (from
+                                ``get_winning_or_losing_interactions(win=False)``).
+      :param groupby_cols: Columns to group by (e.g. ``["Action"]``).
+      :param top_k: Return only the top-k entries per distribution.
+      :param additional_filters: Optional extra filters (e.g. channel/direction).
+      :param group_filter: Filter expression(s) defining the comparison group.
+      :param win_rank: Fixed rank threshold. Required when *group_filter* is ``None``.
+
+      :returns: * tuple of (winning_from, losing_to), both ``pl.LazyFrame`` with
+                * columns from *groupby_cols* plus ``Decisions``.
+
+
+
+   .. py:method:: get_win_distribution_data(lever_condition: polars.Expr, lever_value: float | None = None, all_interactions: int | None = None) -> polars.DataFrame
+
+      Calculate win distribution data for business lever analysis.
+
+      This method generates distribution data showing how actions perform in
+      arbitration decisions, both in baseline conditions and optionally with
+      lever adjustments applied.
+
+      :param lever_condition: Polars expression defining which actions to apply the lever to.
+                              Example: pl.col("Action") == "SpecificAction" or
+                                      (pl.col("Issue") == "Service") & (pl.col("Group") == "Cards")
+      :type lever_condition: pl.Expr
+      :param lever_value: The lever multiplier value to apply to selected actions.
+                          If None, returns baseline distribution only.
+                          If provided, returns both original and lever-adjusted win counts.
+      :type lever_value: float, optional
+      :param all_interactions: Total number of interactions to calculate "no winner" count.
+                               If provided, enables calculation of interactions without any winner.
+                               If None, "no winner" data is not calculated.
+      :type all_interactions: int, optional
+
+      :returns: DataFrame containing win distribution with columns:
+                - pyIssue, pyGroup, pyName: Action identifiers
+                - original_win_count: Number of rank-1 wins in baseline scenario
+                - new_win_count: Number of rank-1 wins after lever adjustment (only if lever_value provided)
+                - n_decisions_survived_to_arbitration: Number of arbitration decisions the action participated in
+                - selected_action: "Selected" for actions matching lever_condition, "Rest" for others
+                - no_winner_count: Number of interactions without any winner (only if all_interactions provided)
+      :rtype: pl.DataFrame
+
+      .. rubric:: Notes
+
+      - Only includes actions that survive to arbitration stage
+      - Win counts represent rank-1 (first place) finishes in arbitration decisions
+      - This is a zero-sum analysis: boosting selected actions suppresses others
+      - Results are sorted by win count (new_win_count if available, else original_win_count)
+      - When all_interactions is provided, "no winner" represents interactions without any rank-1 winner
+
+      .. rubric:: Examples
+
+      Get baseline distribution for a specific action:
+      >>> lever_cond = pl.col("Action") == "MyAction"
+      >>> baseline = decision_analyzer.get_win_distribution_data(lever_cond)
+
+      Get distribution with 2x lever applied to service actions:
+      >>> lever_cond = pl.col("Issue") == "Service"
+      >>> with_lever = decision_analyzer.get_win_distribution_data(lever_cond, 2.0)
+
+      Get distribution with no winner count:
+      >>> total_interactions = 10000
+      >>> with_no_winner = decision_analyzer.get_win_distribution_data(lever_cond, 2.0, total_interactions)
+
+
+
+   .. py:method:: get_trend_data(stage: str = 'AvailableActions', scope: Literal['Group', 'Issue', 'Action'] | None = 'Group', additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.DataFrame
+
+      Daily trend of unique decisions from a given stage onward.
+
+      :param stage: Starting stage; all stages from this point onward are included.
+      :type stage: str, default "AvailableActions"
+      :param scope: Optional grouping dimension.  If ``None``, returns totals by day.
+      :type scope: {"Group", "Issue", "Action"} or None, default "Group"
+      :param additional_filters: Extra filters applied to the sample.
+      :type additional_filters: pl.Expr or list of pl.Expr, optional
+
+      :returns: Columns: ``day``, optionally *scope*, and ``Decisions``.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: find_lever_value(lever_condition: polars.Expr, target_win_percentage: float, win_rank: int = 1, low: float = 0, high: float = 100, precision: float = 0.01, ranking_stages: list[str] | None = None) -> float
+
+      Binary search algorithm to find lever value needed to achieve a desired win percentage.
+
+      :param lever_condition: Polars expression that defines which actions should receive the lever
+      :type lever_condition: pl.Expr
+      :param target_win_percentage: The desired win percentage (0-100)
+      :type target_win_percentage: float
+      :param win_rank: Consider actions winning if they rank <= this value
+      :type win_rank: int, default 1
+      :param low: Lower bound for lever search range
+      :type low: float, default 0
+      :param high: Upper bound for lever search range
+      :type high: float, default 100
+      :param precision: Search precision - smaller values give more accurate results
+      :type precision: float, default 0.01
+      :param ranking_stages: List of stages to include in analysis. Defaults to ["Arbitration"]
+      :type ranking_stages: list[str], optional
+
+      :returns: The lever value needed to achieve the target win percentage
+      :rtype: float
+
+      :raises ValueError: If the target win percentage cannot be achieved within the search range
+
+
+

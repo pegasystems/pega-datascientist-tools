@@ -1,0 +1,693 @@
+pdstools.utils.cdh_utils
+========================
+
+.. py:module:: pdstools.utils.cdh_utils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.cdh_utils.logger
+   pdstools.utils.cdh_utils.F
+   pdstools.utils.cdh_utils.Figure
+   pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.cdh_utils.is_valid_polars_duration
+   pdstools.utils.cdh_utils._apply_query
+   pdstools.utils.cdh_utils._combine_queries
+   pdstools.utils.cdh_utils.default_predictor_categorization
+   pdstools.utils.cdh_utils._extract_keys
+   pdstools.utils.cdh_utils.parse_pega_date_time_formats
+   pdstools.utils.cdh_utils.safe_range_auc
+   pdstools.utils.cdh_utils.auc_from_probs
+   pdstools.utils.cdh_utils.auc_from_bincounts
+   pdstools.utils.cdh_utils.aucpr_from_probs
+   pdstools.utils.cdh_utils.aucpr_from_bincounts
+   pdstools.utils.cdh_utils.auc_to_gini
+   pdstools.utils.cdh_utils._capitalize
+   pdstools.utils.cdh_utils._polars_capitalize
+   pdstools.utils.cdh_utils.from_prpc_date_time
+   pdstools.utils.cdh_utils.to_prpc_date_time
+   pdstools.utils.cdh_utils.weighted_average_polars
+   pdstools.utils.cdh_utils.weighted_performance_polars
+   pdstools.utils.cdh_utils.overlap_matrix
+   pdstools.utils.cdh_utils.overlap_lists_polars
+   pdstools.utils.cdh_utils.z_ratio
+   pdstools.utils.cdh_utils.lift
+   pdstools.utils.cdh_utils.bin_log_odds
+   pdstools.utils.cdh_utils.log_odds_polars
+   pdstools.utils.cdh_utils.feature_importance
+   pdstools.utils.cdh_utils._apply_schema_types
+   pdstools.utils.cdh_utils.gains_table
+   pdstools.utils.cdh_utils.lazy_sample
+   pdstools.utils.cdh_utils.legend_color_order
+   pdstools.utils.cdh_utils.process_files_to_bytes
+   pdstools.utils.cdh_utils.get_latest_pdstools_version
+   pdstools.utils.cdh_utils.setup_logger
+   pdstools.utils.cdh_utils.create_working_and_temp_dir
+   pdstools.utils.cdh_utils.safe_flatten_list
+   pdstools.utils.cdh_utils._get_start_end_date_args
+   pdstools.utils.cdh_utils._read_pdc
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: F
+
+.. py:data:: Figure
+
+.. py:data:: POLARS_DURATION_PATTERN
+
+.. py:function:: is_valid_polars_duration(value: str, max_length: int = 30) -> bool
+
+   Validate Polars duration syntax.
+
+   Checks if a string is a valid Polars duration (e.g., "1d", "1w", "1mo", "1h30m").
+   Used to validate user input before passing to Polars methods like dt.truncate()
+   or group_by_dynamic().
+
+   :param value: The duration string to validate.
+   :type value: str
+   :param max_length: Maximum allowed string length (prevents excessive input).
+   :type max_length: int, default 30
+
+   :returns: True if the string is a valid Polars duration, False otherwise.
+   :rtype: bool
+
+   .. rubric:: Examples
+
+   >>> is_valid_polars_duration("1d")
+   True
+   >>> is_valid_polars_duration("1w")
+   True
+   >>> is_valid_polars_duration("1h30m")
+   True
+   >>> is_valid_polars_duration("invalid")
+   False
+   >>> is_valid_polars_duration("")
+   False
+
+
+.. py:function:: _apply_query(df: polars.LazyFrame, query: pdstools.utils.types.QUERY | None = None, allow_empty: bool = False) -> polars.LazyFrame
+                 _apply_query(df: polars.DataFrame, query: pdstools.utils.types.QUERY | None = None, allow_empty: bool = False) -> polars.DataFrame
+
+.. py:function:: _combine_queries(existing_query: pdstools.utils.types.QUERY, new_query: polars.Expr) -> pdstools.utils.types.QUERY
+
+.. py:function:: default_predictor_categorization(x: str | polars.Expr = pl.col('PredictorName')) -> polars.Expr
+
+   Function to determine the 'category' of a predictor.
+
+   It is possible to supply a custom function.
+   This function can accept an optional column as input
+   And as output should be a Polars expression.
+   The most straight-forward way to implement this is with
+   pl.when().then().otherwise(), which you can chain.
+
+   By default, this function returns "Primary" whenever
+   there is no '.' anywhere in the name string,
+   otherwise returns the first string before the first period
+
+   :param x: The column to parse
+   :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
+
+
+.. py:function:: _extract_keys(df: F, key: str = 'Name', capitalize: bool = True) -> F
+
+   Extracts keys out of the pyName column
+
+   This is not a lazy operation as we don't know the possible keys
+   in advance. For that reason, we select only the key column,
+   extract the keys from that, and then collect the resulting dataframe.
+   This dataframe is then joined back to the original dataframe.
+
+   This is relatively efficient, but we still do need the whole
+   pyName column in memory to do this, so it won't work completely
+   lazily from e.g. s3. That's why it only works with eager mode.
+
+   The data in column for which the JSON is extract is normalized a
+   little by taking out non-space, non-printable characters. Not just
+   ASCII of course. This may be relatively expensive.
+
+   JSON extraction only happens on the unique values so saves a lot
+   of time with multiple snapshots of the same models, it also only
+   processes rows for which the key column appears to be valid JSON.
+   It will break when you "trick" it with malformed JSON.
+
+   Column values for columns that are also encoded in the key column
+   will be overwritten with values from the key column, but only for
+   rows that are JSON. In previous versions all values were overwritten
+   resulting in many nulls.
+
+   :param df: The dataframe to extract the keys from
+   :type df: Union[pl.DataFrame, pl.LazyFrame]
+   :param key: The column with embedded JSON
+   :type key: str
+   :param capitalize: If True (default) normalizes the names of the embedded columns
+                      otherwise keeps the names as-is.
+   :type capitalize: bool
+
+
+.. py:function:: parse_pega_date_time_formats(timestamp_col='SnapshotTime', timestamp_fmt: str | None = None, timestamp_dtype: polars._typing.PolarsTemporalType = pl.Datetime) -> polars.Expr
+
+   Parses Pega DateTime formats.
+
+   Supports commonly used formats:
+
+   - "%Y-%m-%d %H:%M:%S"
+   - "%Y%m%dT%H%M%S.%f %Z"
+   - "%d-%b-%y"
+   - "%d%b%Y:%H:%M:%S"
+   - "%Y%m%d"
+
+   Removes timezones, and rounds to seconds, with a 'ns' time unit.
+
+   In the implementation, the last expression uses timestamp_fmt or %Y.
+   This is a bit of a hack, because if we pass None, it tries to infer automatically.
+   Inferring raises when it can't find an appropriate format, so that's not good.
+
+   :param timestampCol: The column to parse
+   :type timestampCol: str, default = 'SnapshotTime'
+   :param timestamp_fmt: An optional format to use rather than the default formats
+   :type timestamp_fmt: str, default = None
+   :param timestamp_dtype: The data type to convert into. Can be either Date, Datetime, or Time.
+   :type timestamp_dtype: PolarsTemporalType, default = pl.Datetime
+
+
+.. py:function:: safe_range_auc(auc: float) -> float
+
+   Internal helper to keep auc a safe number between 0.5 and 1.0 always.
+
+   :param auc: The AUC (Area Under the Curve) score
+   :type auc: float
+
+   :returns: 'Safe' AUC score, between 0.5 and 1.0
+   :rtype: float
+
+
+.. py:function:: auc_from_probs(groundtruth: list[int], probs: list[float]) -> float
+
+   Calculates AUC from an array of truth values and predictions.
+   Calculates the area under the ROC curve from an array of truth values and
+   predictions, making sure to always return a value between 0.5 and 1.0 and
+   returns 0.5 when there is just one groundtruth label.
+
+   :param groundtruth: The 'true' values, Positive values must be represented as
+                       True or 1. Negative values must be represented as False or 0.
+   :type groundtruth: list[int]
+   :param probs: The predictions, as a numeric vector of the same length as groundtruth
+   :type probs: list[float]
+   :param Returns: The AUC as a value between 0.5 and 1.
+   :type Returns: float
+
+   .. rubric:: Examples
+
+   >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+
+
+.. py:function:: auc_from_bincounts(pos: collections.abc.Sequence[int] | polars.Series, neg: collections.abc.Sequence[int] | polars.Series, probs: collections.abc.Sequence[float] | polars.Series | None = None) -> float
+
+   Calculates AUC from counts of positives and negatives directly
+   This is an efficient calculation of the area under the ROC curve directly from an array of positives
+   and negatives. It makes sure to always return a value between 0.5 and 1.0
+   and will return 0.5 when there is just one groundtruth label.
+
+   :param pos: Vector with counts of the positive responses
+   :type pos: list[int]
+   :param neg: Vector with counts of the negative responses
+   :type neg: list[int]
+   :param probs: Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
+   :type probs: list[float]
+
+   :returns: The AUC as a value between 0.5 and 1.
+   :rtype: float
+
+   .. rubric:: Examples
+
+   >>> auc_from_bincounts([3,1,0], [2,0,1])
+
+
+.. py:function:: aucpr_from_probs(groundtruth: list[int], probs: list[float]) -> float
+
+   Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+   Calculates the area under the PR curve from an array of truth values and
+   predictions. Returns 0.0 when there is just one groundtruth label.
+
+   :param groundtruth: The 'true' values, Positive values must be represented as
+                       True or 1. Negative values must be represented as False or 0.
+   :type groundtruth: list[int]
+   :param probs: The predictions, as a numeric vector of the same length as groundtruth
+   :type probs: list[float]
+   :param Returns: The AUC as a value between 0.5 and 1.
+   :type Returns: float
+
+   .. rubric:: Examples
+
+   >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+
+
+.. py:function:: aucpr_from_bincounts(pos: collections.abc.Sequence[int] | polars.Series, neg: collections.abc.Sequence[int] | polars.Series, probs: collections.abc.Sequence[float] | polars.Series | None = None) -> float
+
+   Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+   This is an efficient calculation of the area under the PR curve directly from an
+   array of positives and negatives. Returns 0.0 when there is just one
+   groundtruth label.
+
+   :param pos: Vector with counts of the positive responses
+   :type pos: list[int]
+   :param neg: Vector with counts of the negative responses
+   :type neg: list[int]
+   :param probs: Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
+   :type probs: list[float]
+
+   :returns: The PR AUC as a value between 0.0 and 1.
+   :rtype: float
+
+   .. rubric:: Examples
+
+   >>> aucpr_from_bincounts([3,1,0], [2,0,1])
+
+
+.. py:function:: auc_to_gini(auc: float) -> float
+
+   Convert AUC performance metric to GINI
+
+   :param auc: The AUC (number between 0.5 and 1)
+   :type auc: float
+
+   :returns: GINI metric, a number between 0 and 1
+   :rtype: float
+
+   .. rubric:: Examples
+
+   >>> auc2GINI(0.8232)
+
+
+.. py:function:: _capitalize(fields: str | collections.abc.Iterable[str], extra_endwords: collections.abc.Iterable[str] | None = None) -> list[str]
+
+   Applies automatic capitalization, aligned with the R counterpart.
+
+   :param fields: A list of names
+   :type fields: list
+
+   :returns: **fields** -- The input list, but each value properly capitalized
+   :rtype: list
+
+   .. rubric:: Notes
+
+   The capitalize_endwords list contains atomic word parts that are commonly
+   found in Pega field names. Compound words (like "ResponseCount") don't need
+   to be listed separately because the algorithm processes words by length,
+   allowing shorter components ("Response", "Count") to handle them.
+
+
+.. py:function:: _polars_capitalize(df: F, extra_endwords: collections.abc.Iterable[str] | None = None) -> F
+
+.. py:function:: from_prpc_date_time(x: str, return_string: bool = False, use_timezones: bool = True) -> datetime.datetime | str
+
+   Convert from a Pega date-time string.
+
+   :param x: String of Pega date-time
+   :type x: str
+   :param return_string: If True it will return the date in string format. If
+                         False it will return in datetime type
+   :type return_string: bool, default=False
+
+   :returns: The converted date in datetime format or string.
+   :rtype: Union[datetime.datetime, str]
+
+   .. rubric:: Examples
+
+   >>> fromPRPCDateTime("20180316T134127.847 GMT")
+   >>> fromPRPCDateTime("20180316T134127.847 GMT", True)
+   >>> fromPRPCDateTime("20180316T184127.846")
+   >>> fromPRPCDateTime("20180316T184127.846", True)
+
+
+.. py:function:: to_prpc_date_time(dt: datetime.datetime) -> str
+
+   Convert to a Pega date-time string
+
+   :param x: A datetime object
+   :type x: datetime.datetime
+
+   :returns: A string representation in the format used by Pega
+   :rtype: str
+
+   .. rubric:: Examples
+
+   >>> toPRPCDateTime(datetime.datetime.now())
+
+
+.. py:function:: weighted_average_polars(vals: str | polars.Expr, weights: str | polars.Expr) -> polars.Expr
+
+.. py:function:: weighted_performance_polars(vals: str | polars.Expr = 'Performance', weights: str | polars.Expr = 'ResponseCount') -> polars.Expr
+
+   Polars function to return a weighted performance
+
+
+.. py:function:: overlap_matrix(df: polars.DataFrame, list_col: str, by: str, show_fraction: bool = True) -> polars.DataFrame
+
+   Calculate the overlap of a list element with all other list elements returning a full matrix.
+
+   For each list in the specified column, this function calculates the overlap ratio (intersection size
+   divided by the original list size) with every other list in the column, including itself. The result
+   is a matrix where each row represents the overlap ratios for one list with all others.
+
+   :param df: The Polars DataFrame containing the list column and grouping column.
+   :type df: pl.DataFrame
+   :param list_col: The name of the column containing the lists. Each element in this column should be a list.
+   :type list_col: str
+   :param by: The name of the column to use for grouping and labeling the rows in the result matrix.
+   :type by: str
+
+   :returns: A DataFrame where:
+             - Each row represents the overlap ratios for one list with all others
+             - Each column (except the last) represents the overlap ratio with a specific list
+             - Column names are formatted as "Overlap_{list_col_name}_{by}"
+             - The last column contains the original values from the 'by' column
+   :rtype: pl.DataFrame
+
+   .. rubric:: Examples
+
+   >>> import polars as pl
+   >>> df = pl.DataFrame({
+   ...     "Channel": ["Mobile", "Web", "Email"],
+   ...     "Actions": [
+   ...         [1, 2, 3],
+   ...         [2, 3, 4, 6],
+   ...         [3, 5, 7, 8]
+   ...     ]
+   ... })
+   >>> overlap_matrix(df, "Actions", "Channel")
+   shape: (3, 4)
+   ┌───────────────────┬───────────────┬───────────────┬─────────┐
+   │ Overlap_Actions_M… │ Overlap_Actio… │ Overlap_Actio… │ Channel │
+   │ ---               │ ---           │ ---           │ ---     │
+   │ f64               │ f64           │ f64           │ str     │
+   ╞═══════════════════╪═══════════════╪═══════════════╪═════════╡
+   │ 1.0               │ 0.6666667     │ 0.3333333     │ Mobile  │
+   │ 0.5               │ 1.0           │ 0.25          │ Web     │
+   │ 0.25              │ 0.25          │ 1.0           │ Email   │
+   └───────────────────┴───────────────┴───────────────┴─────────┘
+
+
+.. py:function:: overlap_lists_polars(col: polars.Series) -> polars.Series
+
+   Calculate the average overlap ratio of each list element with all other list elements into a single Series.
+
+   For each list in the input Series, this function calculates the average overlap (intersection)
+   with all other lists, normalized by the size of the original list. The overlap ratio represents
+   how much each list has in common with all other lists on average.
+
+   :param col: A Polars Series where each element is a list. The function will calculate
+               the overlap between each list and all other lists in the Series.
+   :type col: pl.Series
+
+   :returns: A Polars Series of float values representing the average overlap ratio for each list.
+             Each value is calculated as:
+             (sum of intersection sizes with all other lists) / (number of other lists) / (size of original list)
+   :rtype: pl.Series
+
+   .. rubric:: Examples
+
+   >>> import polars as pl
+   >>> data = pl.Series([
+   ...     [1, 2, 3],
+   ...     [2, 3, 4, 6],
+   ...     [3, 5, 7, 8]
+   ... ])
+   >>> overlap_lists_polars(data)
+   shape: (3,)
+   Series: '' [f64]
+   [
+       0.5
+       0.375
+       0.25
+   ]
+   >>> df = pl.DataFrame({"Channel" : ["Mobile", "Web", "Email"], "Actions" : pl.Series([
+   ...     [1, 2, 3],
+   ...     [2, 3, 4, 6],
+   ...     [3, 5, 7, 8]
+   ... ])})
+   >>> df.with_columns(pl.col("Actions").map_batches(overlap_lists_polars))
+   shape: (3, 2)
+   ┌─────────┬─────────┐
+   │ Channel │ Actions │
+   │ ---     │ ---     │
+   │ str     │ f64     │
+   ╞═════════╪═════════╡
+   │ Mobile  │ 0.5     │
+   │ Web     │ 0.375   │
+   │ Email   │ 0.25    │
+   └─────────┴─────────┘
+
+
+.. py:function:: z_ratio(pos_col: str | polars.Expr = pl.col('BinPositives'), neg_col: str | polars.Expr = pl.col('BinNegatives')) -> polars.Expr
+
+   Calculates the Z-Ratio for predictor bins.
+
+   The Z-ratio is a measure of how the propensity in a bin differs from the average,
+   but takes into account the size of the bin and thus is statistically more relevant.
+   It represents the number of standard deviations from the avreage,
+   so centers around 0. The wider the spread, the better the predictor is.
+
+   To recreate the OOTB ZRatios from the datamart, use in a group_by.
+   See `examples`.
+
+   :param posCol: The (Polars) column of the bin positives
+   :type posCol: pl.Expr
+   :param negCol: The (Polars) column of the bin positives
+   :type negCol: pl.Expr
+
+   .. rubric:: Examples
+
+   >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+
+
+.. py:function:: lift(pos_col: str | polars.Expr = pl.col('BinPositives'), neg_col: str | polars.Expr = pl.col('BinNegatives')) -> polars.Expr
+
+   Calculates the Lift for predictor bins.
+
+   The Lift is the ratio of the propensity in a particular bin over the average
+   propensity. So a value of 1 is the average, larger than 1 means higher
+   propensity, smaller means lower propensity.
+
+   :param posCol: The (Polars) column of the bin positives
+   :type posCol: pl.Expr
+   :param negCol: The (Polars) column of the bin positives
+   :type negCol: pl.Expr
+
+   .. rubric:: Examples
+
+   >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+
+
+.. py:function:: bin_log_odds(bin_pos: list[float], bin_neg: list[float]) -> list[float]
+
+.. py:function:: log_odds_polars(positives: polars.Expr | str = pl.col('Positives'), negatives: polars.Expr | str = pl.col('ResponseCount') - pl.col('Positives')) -> polars.Expr
+
+   Calculate log odds per bin with correct Laplace smoothing.
+
+   Formula (per bin i in predictor p):
+       log(pos_i + 1/nBins) - log(sum(pos) + 1)
+       - [log(neg_i + 1/nBins) - log(sum(neg) + 1)]
+
+   Laplace smoothing uses 1/nBins where nBins is the number of bins
+   for that specific predictor. This matches the platform implementation
+   in GroupedPredictor.java.
+
+   Must be used with .over() to calculate nBins per predictor group:
+       .with_columns(log_odds_polars().over("PredictorName", "ModelID"))
+
+   :param positives: Column with positive response counts per bin
+   :type positives: pl.Expr or str
+   :param negatives: Column with negative response counts per bin
+   :type negatives: pl.Expr or str
+
+   :returns: Log odds expression (use with .over() for correct grouping)
+   :rtype: pl.Expr
+
+   .. seealso::
+
+      :py:obj:`feature_importance`
+          Calculate predictor importance from log odds
+      
+      :py:obj:`bin_log_odds`
+          Pure Python version (reference implementation)
+
+   .. rubric:: References
+
+   - ADM Explained: Log Odds calculation section
+   - Issue #263: https://github.com/pegasystems/pega-datascientist-tools/issues/263
+   - Platform: GroupedPredictor.java lines 603-606
+
+   .. rubric:: Examples
+
+   >>> # For propensity calculation in classifier
+   >>> df.with_columns(
+   ...     log_odds_polars(
+   ...         pl.col("BinPositives"),
+   ...         pl.col("BinNegatives")
+   ...     ).over("PredictorName", "ModelID")
+   ... )
+
+
+.. py:function:: feature_importance(over: list[str] | None = ['PredictorName', 'ModelID'], scaled: bool = True) -> polars.Expr
+
+   Calculate feature importance for Naive Bayes predictors.
+
+   Feature importance represents the weighted average of absolute log odds
+   values across all bins, weighted by bin response counts. This measures
+   how strongly the predictor differentiates between positive and negative
+   outcomes.
+
+   Algorithm (matches platform GroupedPredictor.calculatePredictorImportance()):
+   1. Calculate log odds per bin with Laplace smoothing (1/nBins)
+   2. Take absolute value of each bin's log odds
+   3. Calculate weighted average: Sum(|logOdds(bin)| × binResponses) / totalResponses
+   4. Optional: Scale to 0-100 range (scaled=True, default)
+
+   This matches the Pega platform implementation in:
+   adaptive-learning-core-lib/.../GroupedPredictor.java lines 371-382
+
+   Formula:
+       Feature Importance = Σ |logOdds(bin)| × (binResponses / totalResponses)
+
+   :param over: Grouping columns, default ["PredictorName", "ModelID"]
+   :type over: list[str], optional
+   :param scaled: If True, scale importance to 0-100 where max predictor = 100
+   :type scaled: bool, default True
+
+   :returns: Feature importance expression
+   :rtype: pl.Expr
+
+   .. rubric:: Examples
+
+   >>> df.with_columns(
+   ...     feature_importance().over("PredictorName", "ModelID")
+   ... )
+
+   .. rubric:: Notes
+
+   This implementation matches the platform calculation exactly. Issue #263
+   incorrectly suggested "diff from mean" based on R implementation, but
+   the platform actually uses weighted average of absolute log odds.
+
+   .. seealso::
+
+      :py:obj:`log_odds_polars`
+          Calculate per-bin log odds
+
+   .. rubric:: References
+
+   - Issue #263: Calculation of Feature Importance incorrect
+   - Issue #404: Add feature importance explanation to ADM Explained
+   - Platform: GroupedPredictor.java calculatePredictorImportance()
+   - ADM Explained: Feature Importance section
+
+
+.. py:function:: _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
+
+   This function is used to convert the data types of columns in a DataFrame to a desired types.
+   The desired types are defined in a `PegaDefaultTables` class.
+
+   :param df: The DataFrame whose columns' data types need to be converted.
+   :type df: pl.LazyFrame
+   :param definition: A `PegaDefaultTables` object that contains the desired data types for the columns.
+   :type definition: PegaDefaultTables
+   :param verbose: If True, the function will print a message when a column is not in the default table schema.
+   :type verbose: bool
+   :param timestamp_opts: Additional arguments for timestamp parsing.
+   :type timestamp_opts: str
+
+   :returns: A list with polars expressions for casting data types.
+   :rtype: list
+
+
+.. py:function:: gains_table(df, value: str, index=None, by=None)
+
+   Calculates cumulative gains from any data frame.
+
+   The cumulative gains are the cumulative values expressed
+   as a percentage vs the size of the population, also expressed
+   as a percentage.
+
+   :param df: The (Polars) dataframe with the raw values
+   :type df: pl.DataFrame
+   :param value: The name of the field with the values (plotted on y-axis)
+   :type value: str
+   :param index = None: Optional name of the field for the x-axis. If not passed in
+                        all records are used and weighted equally.
+   :param by = None: Grouping field(s), can also be None
+
+   :returns: A (Polars) dataframe with cum_x and cum_y columns and optionally
+             the grouping column(s). Values for cum_x and cum_y are relative
+             so expressed as values 0-1.
+   :rtype: pl.DataFrame
+
+   .. rubric:: Examples
+
+   >>> gains_data = gains_table(df, 'ResponseCount', by=['Channel','Direction])
+
+
+.. py:function:: lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F
+
+.. py:function:: legend_color_order(fig)
+
+   Orders legend colors alphabetically in order to provide pega color
+   consistency among different categories
+
+
+.. py:function:: process_files_to_bytes(file_paths: list[str | pathlib.Path], base_file_name: str | pathlib.Path) -> tuple[bytes, str]
+
+   Processes a list of file paths, returning file content as bytes and a corresponding file name.
+   Useful for zipping muliple model reports and the byte object is used for downloading files in
+   Streamlit app.
+
+   This function handles three scenarios:
+   1. Single file: Returns the file's content as bytes and the provided base file name.
+   2. Multiple files: Creates a zip file containing all files, returns the zip file's content as bytes
+      and a generated zip file name.
+   3. No files: Returns empty bytes and an empty string.
+
+   :param file_paths: A list of file paths to process. Can be empty, contain a single path, or multiple paths.
+   :type file_paths: list[Union[str, Path]]
+   :param base_file_name: The base name to use for the output file. For a single file, this name is returned as is.
+                          For multiple files, this is used as part of the generated zip file name.
+   :type base_file_name: Union[str, Path]
+
+   :returns: A tuple containing:
+             - bytes: The content of the single file or the created zip file, or empty bytes if no files.
+             - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
+   :rtype: tuple[bytes, str]
+
+
+.. py:function:: get_latest_pdstools_version()
+
+.. py:function:: setup_logger()
+
+   Returns a logger and log buffer in root level
+
+
+.. py:function:: create_working_and_temp_dir(name: str | None = None, working_dir: os.PathLike | None = None) -> tuple[pathlib.Path, pathlib.Path]
+
+   Creates a working directory for saving files and a temp_dir
+
+
+.. py:function:: safe_flatten_list(alist: list, extras: list | None = None) -> list
+
+.. py:function:: _get_start_end_date_args(data: polars.Series | polars.LazyFrame | polars.DataFrame, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, datetime_field='SnapshotTime')
+
+.. py:function:: _read_pdc(pdc_data: polars.LazyFrame)
+

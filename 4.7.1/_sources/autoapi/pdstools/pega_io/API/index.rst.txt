@@ -1,0 +1,42 @@
+pdstools.pega_io.API
+====================
+
+.. py:module:: pdstools.pega_io.API
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.pega_io.API._read_client_credential_file
+   pdstools.pega_io.API.get_url
+   pdstools.pega_io.API.get_token
+
+
+Module Contents
+---------------
+
+.. py:function:: _read_client_credential_file(credential_file: os.PathLike)
+
+.. py:function:: get_url(credential_file: os.PathLike)
+
+   Returns the URL of the Infinity instance in the credential file
+
+
+.. py:function:: get_token(credential_file: os.PathLike, verify: bool = True)
+
+   Get API credentials to a Pega Platform instance.
+
+   After setting up OAuth2 authentication in Dev Studio, you should
+   be able to download a credential file. Simply point this method to that file,
+   and it'll read the relevant properties and give you your access token.
+
+   :param credentialFile: The credential file downloaded after setting up OAuth in a Pega system
+   :type credentialFile: str
+   :param verify: Whether to only allow safe SSL requests.
+                  In case you're connecting to an unsecured API endpoint, you need to
+                  explicitly set verify to False, otherwise Python will yell at you.
+   :type verify: bool, default = True
+
+

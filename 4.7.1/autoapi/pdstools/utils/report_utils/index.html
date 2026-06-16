@@ -1,0 +1,1189 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.utils.show_versions" href="../show_versions/index.html"><link rel="prev" title="pdstools.utils.progress_utils" href="../progress_utils/index.html">
+        <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>pdstools.utils.report_utils - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMTrees/index.html">pdstools.adm.ADMTrees</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Schema/index.html">pdstools.adm.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/resources/index.html">pdstools.explanations.resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Plots/index.html">pdstools.ih.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" checked="" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../_sources/autoapi/pdstools/utils/report_utils/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-pdstools.utils.report_utils">
+<span id="pdstools-utils-report-utils"></span><h1>pdstools.utils.report_utils<a class="headerlink" href="#module-pdstools.utils.report_utils" title="Link to this heading">¶</a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.logger" title="pdstools.utils.report_utils.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.get_output_filename" title="pdstools.utils.report_utils.get_output_filename"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_filename</span></code></a>(→ str)</p></td>
+<td><p>Generate the output filename based on the report parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.copy_quarto_file" title="pdstools.utils.report_utils.copy_quarto_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_quarto_file</span></code></a>(→ None)</p></td>
+<td><p>Copy the report quarto file to the temporary directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils._write_params_files" title="pdstools.utils.report_utils._write_params_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_write_params_files</span></code></a>(→ None)</p></td>
+<td><p>Write parameters to YAML files for Quarto processing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.run_quarto" title="pdstools.utils.report_utils.run_quarto"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_quarto</span></code></a>(, verbose, *, full_embed)</p></td>
+<td><p>Run the Quarto command to generate the report.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils._set_command_options" title="pdstools.utils.report_utils._set_command_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_set_command_options</span></code></a>(→ list[str])</p></td>
+<td><p>Set the options for the Quarto command.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.copy_report_resources" title="pdstools.utils.report_utils.copy_report_resources"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_report_resources</span></code></a>(resource_dict)</p></td>
+<td><p>Copy report resources from the reports directory to specified destinations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.generate_zipped_report" title="pdstools.utils.report_utils.generate_zipped_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_zipped_report</span></code></a>(output_filename, folder_to_zip)</p></td>
+<td><p>Generate a zipped archive of a directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils._get_cmd_output" title="pdstools.utils.report_utils._get_cmd_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_cmd_output</span></code></a>(→ list[str])</p></td>
+<td><p>Get command output in an OS-agnostic way.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils._get_version_only" title="pdstools.utils.report_utils._get_version_only"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_version_only</span></code></a>(→ str)</p></td>
+<td><p>Extract version number from version string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.get_quarto_with_version" title="pdstools.utils.report_utils.get_quarto_with_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_quarto_with_version</span></code></a>(→ tuple[pathlib.Path, str])</p></td>
+<td><p>Get Quarto executable path and version.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.get_pandoc_with_version" title="pdstools.utils.report_utils.get_pandoc_with_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pandoc_with_version</span></code></a>(→ tuple[pathlib.Path, str])</p></td>
+<td><p>Get Pandoc executable path and version.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_print" title="pdstools.utils.report_utils.quarto_print"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_print</span></code></a>(text)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_info" title="pdstools.utils.report_utils.quarto_callout_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_callout_info</span></code></a>(info)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_important" title="pdstools.utils.report_utils.quarto_callout_important"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_callout_important</span></code></a>(info)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_plot_exception" title="pdstools.utils.report_utils.quarto_plot_exception"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_plot_exception</span></code></a>(plot_name, e)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_no_prediction_data_warning" title="pdstools.utils.report_utils.quarto_callout_no_prediction_data_warning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_callout_no_prediction_data_warning</span></code></a>([extra])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_no_predictor_data_warning" title="pdstools.utils.report_utils.quarto_callout_no_predictor_data_warning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quarto_callout_no_predictor_data_warning</span></code></a>([extra])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.polars_col_exists" title="pdstools.utils.report_utils.polars_col_exists"><code class="xref py py-obj docutils literal notranslate"><span class="pre">polars_col_exists</span></code></a>(df, col)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.polars_subset_to_existing_cols" title="pdstools.utils.report_utils.polars_subset_to_existing_cols"><code class="xref py py-obj docutils literal notranslate"><span class="pre">polars_subset_to_existing_cols</span></code></a>(all_columns, cols)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.create_metric_itable" title="pdstools.utils.report_utils.create_metric_itable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_metric_itable</span></code></a>(source_table[, column_to_metric, ...])</p></td>
+<td><p>Create an interactive table with RAG coloring for metric columns.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.create_metric_gttable" title="pdstools.utils.report_utils.create_metric_gttable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_metric_gttable</span></code></a>(source_table[, title, subtitle, ...])</p></td>
+<td><p>Create a great_tables table with RAG coloring for metric columns.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.n_unique_values" title="pdstools.utils.report_utils.n_unique_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_unique_values</span></code></a>(dm, all_dm_cols, fld)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.max_by_hierarchy" title="pdstools.utils.report_utils.max_by_hierarchy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_by_hierarchy</span></code></a>(dm, all_dm_cols, fld, grouping)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.avg_by_hierarchy" title="pdstools.utils.report_utils.avg_by_hierarchy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avg_by_hierarchy</span></code></a>(dm, all_dm_cols, fld, grouping)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.sample_values" title="pdstools.utils.report_utils.sample_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_values</span></code></a>(dm, all_dm_cols, fld[, n])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.show_credits" title="pdstools.utils.report_utils.show_credits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_credits</span></code></a>([quarto_source])</p></td>
+<td><p>Display a credits section with build metadata at the end of a report.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.serialize_query" title="pdstools.utils.report_utils.serialize_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">serialize_query</span></code></a>(→ dict | None)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.deserialize_query" title="pdstools.utils.report_utils.deserialize_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize_query</span></code></a>(→ pdstools.utils.types.QUERY | None)</p></td>
+<td><p>Deserialize a query that was previously serialized with serialize_query.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.gains_table" title="pdstools.utils.report_utils.gains_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gains_table</span></code></a>(→ polars.DataFrame)</p></td>
+<td><p>Calculate cumulative gains for visualization.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.report_utils.check_report_for_errors" title="pdstools.utils.report_utils.check_report_for_errors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_report_for_errors</span></code></a>(→ list[str])</p></td>
+<td><p>Check generated report HTML for error indicators.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#pdstools.utils.report_utils.logger" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.get_output_filename">
+<span class="sig-name descname"><span class="pre">get_output_filename</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">report_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'html'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils.get_output_filename" title="Link to this definition">¶</a></dt>
+<dd><p>Generate the output filename based on the report parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>report_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>model_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>output_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.copy_quarto_file">
+<span class="sig-name descname"><span class="pre">copy_quarto_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qmd_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils.copy_quarto_file" title="Link to this definition">¶</a></dt>
+<dd><p>Copy the report quarto file to the temporary directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qmd_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the Quarto markdown file to copy</p></li>
+<li><p><strong>temp_dir</strong> (<em>Path</em>) – Destination directory to copy files to</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils._write_params_files">
+<span class="sig-name descname"><span class="pre">_write_params_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'type':</span> <span class="pre">'default'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analysis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_embed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils._write_params_files" title="Link to this definition">¶</a></dt>
+<dd><p>Write parameters to YAML files for Quarto processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>temp_dir</strong> (<em>Path</em>) – Directory where YAML files will be written</p></li>
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Parameters to write to params.yml, by default None</p></li>
+<li><p><strong>project</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Project configuration to write to _quarto.yml, by default {“type”: “default”}</p></li>
+<li><p><strong>analysis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Analysis configuration to write to _quarto.yml, by default None</p></li>
+<li><p><strong>full_embed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default=False</em>) – When True, embeds all resources (JavaScript libraries like Plotly,
+itables, etc.) for a fully standalone HTML (larger output).
+When False, loads JavaScript libraries from CDN and skips esbuild
+bundling (smaller output, but requires internet).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.run_quarto">
+<span class="sig-name descname"><span class="pre">run_quarto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qmd_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'html'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'type':</span> <span class="pre">'default'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analysis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Path()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_embed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils.run_quarto" title="Link to this definition">¶</a></dt>
+<dd><p>Run the Quarto command to generate the report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qmd_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the Quarto markdown file to render, by default None</p></li>
+<li><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the output file, by default None</p></li>
+<li><p><strong>output_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Type of output format (html, pdf, etc.), by default “html”</p></li>
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Parameters to pass to Quarto execution, by default None</p></li>
+<li><p><strong>project</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Project configuration settings, by default {“type”: “default”}</p></li>
+<li><p><strong>analysis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Analysis configuration settings, by default None</p></li>
+<li><p><strong>temp_dir</strong> (<em>Path</em><em>, </em><em>optional</em>) – Temporary directory for processing, by default Path(“.”)</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print detailed execution logs, by default False</p></li>
+<li><p><strong>full_embed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default=False</em>) – When True, fully embeds all JavaScript libraries (Plotly, itables,
+etc.) into the HTML output (larger file).
+When False, loads JavaScript libraries from CDN and skips esbuild
+bundling, avoiding the need for esbuild (see issue #620).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Return code from the Quarto process (0 for success)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – If the Quarto process fails (non-zero return code), includes captured output</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/subprocess.html#subprocess.SubprocessError" title="(in Python v3.14)"><strong>subprocess.SubprocessError</strong></a> – If the Quarto command fails to execute</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If required files are not found</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils._set_command_options">
+<span class="sig-name descname"><span class="pre">_set_command_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execute_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.report_utils._set_command_options" title="Link to this definition">¶</a></dt>
+<dd><p>Set the options for the Quarto command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Output format type (html, pdf, etc.), by default None</p></li>
+<li><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the output file, by default None</p></li>
+<li><p><strong>execute_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include parameter execution flag, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of command line options for Quarto</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.copy_report_resources">
+<span class="sig-name descname"><span class="pre">copy_report_resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.copy_report_resources" title="Link to this definition">¶</a></dt>
+<dd><p>Copy report resources from the reports directory to specified destinations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>resource_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>]</em>) – list of tuples containing (source_path, destination_path) pairs</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.generate_zipped_report">
+<span class="sig-name descname"><span class="pre">generate_zipped_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder_to_zip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.generate_zipped_report" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a zipped archive of a directory.</p>
+<p>This is a general-purpose utility function that can compress any directory
+into a zip archive. While named for report generation, it works with any
+directory structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the output file (extension will be replaced with .zip)</p></li>
+<li><p><strong>folder_to_zip</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to the directory to be compressed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If the folder to zip does not exist or is not a directory</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">generate_zipped_report</span><span class="p">(</span><span class="s2">&quot;my_archive.zip&quot;</span><span class="p">,</span> <span class="s2">&quot;/path/to/directory&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generate_zipped_report</span><span class="p">(</span><span class="s2">&quot;report_2023&quot;</span><span class="p">,</span> <span class="s2">&quot;/tmp/report_output&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils._get_cmd_output">
+<span class="sig-name descname"><span class="pre">_get_cmd_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.report_utils._get_cmd_output" title="Link to this definition">¶</a></dt>
+<dd><p>Get command output in an OS-agnostic way.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils._get_version_only">
+<span class="sig-name descname"><span class="pre">_get_version_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">versionstr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils._get_version_only" title="Link to this definition">¶</a></dt>
+<dd><p>Extract version number from version string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>versionstr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.get_quarto_with_version">
+<span class="sig-name descname"><span class="pre">get_quarto_with_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.report_utils.get_quarto_with_version" title="Link to this definition">¶</a></dt>
+<dd><p>Get Quarto executable path and version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)">pathlib.Path</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.get_pandoc_with_version">
+<span class="sig-name descname"><span class="pre">get_pandoc_with_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.report_utils.get_pandoc_with_version" title="Link to this definition">¶</a></dt>
+<dd><p>Get Pandoc executable path and version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)">pathlib.Path</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_print">
+<span class="sig-name descname"><span class="pre">quarto_print</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_print" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_callout_info">
+<span class="sig-name descname"><span class="pre">quarto_callout_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_callout_info" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_callout_important">
+<span class="sig-name descname"><span class="pre">quarto_callout_important</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_callout_important" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_plot_exception">
+<span class="sig-name descname"><span class="pre">quarto_plot_exception</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)"><span class="pre">Exception</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_plot_exception" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plot_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>e</strong> (<a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)"><em>Exception</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_callout_no_prediction_data_warning">
+<span class="sig-name descname"><span class="pre">quarto_callout_no_prediction_data_warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_callout_no_prediction_data_warning" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.quarto_callout_no_predictor_data_warning">
+<span class="sig-name descname"><span class="pre">quarto_callout_no_predictor_data_warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.quarto_callout_no_predictor_data_warning" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.polars_col_exists">
+<span class="sig-name descname"><span class="pre">polars_col_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.polars_col_exists" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.polars_subset_to_existing_cols">
+<span class="sig-name descname"><span class="pre">polars_subset_to_existing_cols</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.polars_subset_to_existing_cols" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.create_metric_itable">
+<span class="sig-name descname"><span class="pre">create_metric_itable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_to_metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_descriptions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_metric_validation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_issues_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rag_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">itable_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.create_metric_itable" title="Link to this definition">¶</a></dt>
+<dd><p>Create an interactive table with RAG coloring for metric columns.</p>
+<p>Displays the table using itables with cells colored based on RAG
+(Red/Amber/Green) status derived from metric thresholds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_table</strong> (<em>pl.DataFrame</em>) – DataFrame containing data columns to be colored.</p></li>
+<li><p><strong>column_to_metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – <p>Mapping from column names (or tuples of column names) to one of:</p>
+<ul>
+<li><p><strong>str</strong>: metric ID to look up in MetricLimits.csv</p></li>
+<li><p><strong>callable</strong>: function(value) -&gt; “RED”|”AMBER”|”YELLOW”|”GREEN”<a href="#id1"><span class="problematic" id="id2">|</span></a>None</p></li>
+<li><p><strong>tuple</strong>: (metric_id, value_mapping) where value_mapping is a dict
+that maps column values to metric values before evaluation.
+Supports tuple keys for multiple values: {(“Yes”, “yes”): True}</p></li>
+</ul>
+<p>If a column is not in this dict, its name is used as the metric ID.</p>
+</p></li>
+<li><p><strong>column_descriptions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Mapping from column names to tooltip descriptions. When provided,
+column headers will display the description as a tooltip on hover.
+Example: {“Performance”: “Model AUC performance metric”}</p></li>
+<li><p><strong>color_background</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – If True, colors the cell background. If False, colors the text (foreground).</p></li>
+<li><p><strong>strict_metric_validation</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default True</em>) – If True, raises an exception if a metric ID in column_to_metric
+is not found in MetricLimits.csv. Set to False to skip validation.</p></li>
+<li><p><strong>highlight_issues_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
+Set to False to also highlight GREEN values.</p></li>
+<li><p><strong>rag_source</strong> (<em>pl.DataFrame</em><em>, </em><em>optional</em>) – If provided, RAG thresholds are evaluated against this DataFrame
+instead of <code class="docutils literal notranslate"><span class="pre">source_table</span></code>. Use this when <code class="docutils literal notranslate"><span class="pre">source_table</span></code> contains
+non-numeric display values (e.g. HTML strings) but you still want
+RAG coloring based on the original numeric data. Must have the same
+columns and row order as <code class="docutils literal notranslate"><span class="pre">source_table</span></code>.</p></li>
+<li><p><strong>**itable_kwargs</strong> – Additional keyword arguments passed to itables.show().
+Common options include: lengthMenu, paging, searching, ordering.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An itables display object that will render in Jupyter/Quarto.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>itables HTML display</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pdstools.utils.report_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_metric_itable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">create_metric_itable</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">df</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">column_to_metric</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="c1"># Simple metric ID</span>
+<span class="gp">... </span>        <span class="s2">&quot;Performance&quot;</span><span class="p">:</span> <span class="s2">&quot;ModelPerformance&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="c1"># Custom RAG function</span>
+<span class="gp">... </span>        <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="n">standard_NBAD_channels_rag</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="c1"># Value mapping: column values -&gt; metric values</span>
+<span class="gp">... </span>        <span class="s2">&quot;AGB&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;UsingAGB&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;Yes&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}),</span>
+<span class="gp">... </span>        <span class="c1"># Multiple column values to same metric value</span>
+<span class="gp">... </span>        <span class="s2">&quot;AGB&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;UsingAGB&quot;</span><span class="p">,</span> <span class="p">{(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;YES&quot;</span><span class="p">):</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}),</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">column_descriptions</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;Performance&quot;</span><span class="p">:</span> <span class="s2">&quot;Model AUC performance metric&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="s2">&quot;Communication channel for the action&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">paging</span><span class="o">=</span><span class="kc">False</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.create_metric_gttable">
+<span class="sig-name descname"><span class="pre">create_metric_gttable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subtitle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_to_metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_descriptions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_metric_validation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_issues_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">gt_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.create_metric_gttable" title="Link to this definition">¶</a></dt>
+<dd><p>Create a great_tables table with RAG coloring for metric columns.</p>
+<p>Displays the table using great_tables with cells colored based on RAG
+(Red/Amber/Green) status derived from metric thresholds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_table</strong> (<em>pl.DataFrame</em>) – DataFrame containing data columns to be colored.</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Table title.</p></li>
+<li><p><strong>subtitle</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Table subtitle.</p></li>
+<li><p><strong>column_to_metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – <p>Mapping from column names (or tuples of column names) to one of:</p>
+<ul>
+<li><p><strong>str</strong>: metric ID to look up in MetricLimits.csv</p></li>
+<li><p><strong>callable</strong>: function(value) -&gt; “RED”|”AMBER”|”YELLOW”|”GREEN”<a href="#id3"><span class="problematic" id="id4">|</span></a>None</p></li>
+<li><p><strong>tuple</strong>: (metric_id, value_mapping) where value_mapping is a dict
+that maps column values to metric values before evaluation.
+Supports tuple keys for multiple values: {(“Yes”, “yes”): True}</p></li>
+</ul>
+<p>If a column is not in this dict, its name is used as the metric ID.</p>
+</p></li>
+<li><p><strong>column_descriptions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Mapping from column names to tooltip descriptions. When provided,
+column headers will display the description as a tooltip on hover.
+Example: {“Performance”: “Model AUC performance metric”}</p></li>
+<li><p><strong>color_background</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default True</em>) – If True, colors the cell background. If False, colors the text.</p></li>
+<li><p><strong>strict_metric_validation</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default True</em>) – If True, raises an exception if a metric ID in column_to_metric
+is not found in MetricLimits.csv. Set to False to skip validation.</p></li>
+<li><p><strong>highlight_issues_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default True</em>) – If True, only RED/AMBER/YELLOW values are styled (GREEN is not highlighted).
+Set to False to also highlight GREEN values.</p></li>
+<li><p><strong>**gt_kwargs</strong> – Additional keyword arguments passed to great_tables.GT constructor.
+Common options include: rowname_col, groupname_col.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A great_tables instance with RAG coloring applied.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>great_tables.GT</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pdstools.utils.report_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_metric_gttable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">create_metric_gttable</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">df</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Model Overview&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">column_to_metric</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="c1"># Simple metric ID</span>
+<span class="gp">... </span>        <span class="s2">&quot;Performance&quot;</span><span class="p">:</span> <span class="s2">&quot;ModelPerformance&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="c1"># Custom RAG function</span>
+<span class="gp">... </span>        <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="n">standard_NBAD_channels_rag</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="c1"># Value mapping: column values -&gt; metric values</span>
+<span class="gp">... </span>        <span class="s2">&quot;AGB&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;UsingAGB&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;Yes&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}),</span>
+<span class="gp">... </span>        <span class="c1"># Multiple column values to same metric value</span>
+<span class="gp">... </span>        <span class="s2">&quot;AGB&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;UsingAGB&quot;</span><span class="p">,</span> <span class="p">{(</span><span class="s2">&quot;Yes&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;YES&quot;</span><span class="p">):</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}),</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">column_descriptions</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;Performance&quot;</span><span class="p">:</span> <span class="s2">&quot;Model AUC performance metric&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="s2">&quot;Communication channel for the action&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">rowname_col</span><span class="o">=</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.n_unique_values">
+<span class="sig-name descname"><span class="pre">n_unique_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_dm_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fld</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.n_unique_values" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.max_by_hierarchy">
+<span class="sig-name descname"><span class="pre">max_by_hierarchy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_dm_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.max_by_hierarchy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.avg_by_hierarchy">
+<span class="sig-name descname"><span class="pre">avg_by_hierarchy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_dm_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.avg_by_hierarchy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.sample_values">
+<span class="sig-name descname"><span class="pre">sample_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_dm_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.sample_values" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.show_credits">
+<span class="sig-name descname"><span class="pre">show_credits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quarto_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.report_utils.show_credits" title="Link to this definition">¶</a></dt>
+<dd><p>Display a credits section with build metadata at the end of a report.</p>
+<p>Prints a formatted block containing the generation timestamp, Quarto and
+Pandoc versions, and optionally the source notebook path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>quarto_source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path or identifier of the source .qmd file. Include this for
+standalone reports where knowing the source is useful. Omit for
+Quarto website projects where pages are generated from templates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.serialize_query">
+<span class="sig-name descname"><span class="pre">serialize_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils.serialize_query" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>pdstools.utils.types.QUERY</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.deserialize_query">
+<span class="sig-name descname"><span class="pre">deserialize_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">serialized_query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.utils.report_utils.deserialize_query" title="Link to this definition">¶</a></dt>
+<dd><p>Deserialize a query that was previously serialized with serialize_query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>serialized_query</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>]</em>) – A serialized query dictionary created by serialize_query</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The deserialized query</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY">QUERY</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.gains_table">
+<span class="sig-name descname"><span class="pre">gains_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.utils.report_utils.gains_table" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate cumulative gains for visualization.</p>
+<p>Computes cumulative distribution of a value metric, sorted by the ratio
+of value to index (or by value alone if no index). Used for gains charts
+to show model response skewness.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.LazyFrame</em><em> | </em><em>pl.DataFrame</em>) – Input data containing the value and optional index columns</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column name containing the metric to compute gains for (e.g., “ResponseCount”)</p></li>
+<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Column name to normalize by (e.g., population size). If None, uses row count.</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Column(s) to group by for separate gain curves. If None, computes single curve.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with columns:
+- cum_x: Cumulative proportion of index (or models)
+- cum_y: Cumulative proportion of value
+- by columns: if <cite>by</cite> is specified</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Single gains curve for response count</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gains</span> <span class="o">=</span> <span class="n">gains_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;ResponseCount&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Gains curves by channel, normalized by population</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gains</span> <span class="o">=</span> <span class="n">gains_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;Positives&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;Population&quot;</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="s2">&quot;Channel&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.report_utils.check_report_for_errors">
+<span class="sig-name descname"><span class="pre">check_report_for_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.report_utils.check_report_for_errors" title="Link to this definition">¶</a></dt>
+<dd><p>Check generated report HTML for error indicators.</p>
+<p>Scans the HTML file for error patterns that indicate plot rendering failures
+or exceptions during report generation. These errors are typically hidden in
+collapsed callout sections but should be caught in testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>html_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Path to the HTML file to check</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of error descriptions found (empty if no errors)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If the HTML file does not exist</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pdstools.utils.report_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_report_for_errors</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">errors</span> <span class="o">=</span> <span class="n">check_report_for_errors</span><span class="p">(</span><span class="s2">&quot;HealthCheck.html&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span><span class="si">}</span><span class="s2"> error(s):&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../show_versions/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">pdstools.utils.show_versions</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../progress_utils/index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">pdstools.utils.progress_utils</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools.utils.report_utils</a><ul>
+<li><a class="reference internal" href="#attributes">Attributes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.get_output_filename"><code class="docutils literal notranslate"><span class="pre">get_output_filename()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.copy_quarto_file"><code class="docutils literal notranslate"><span class="pre">copy_quarto_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils._write_params_files"><code class="docutils literal notranslate"><span class="pre">_write_params_files()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.run_quarto"><code class="docutils literal notranslate"><span class="pre">run_quarto()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils._set_command_options"><code class="docutils literal notranslate"><span class="pre">_set_command_options()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.copy_report_resources"><code class="docutils literal notranslate"><span class="pre">copy_report_resources()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.generate_zipped_report"><code class="docutils literal notranslate"><span class="pre">generate_zipped_report()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils._get_cmd_output"><code class="docutils literal notranslate"><span class="pre">_get_cmd_output()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils._get_version_only"><code class="docutils literal notranslate"><span class="pre">_get_version_only()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.get_quarto_with_version"><code class="docutils literal notranslate"><span class="pre">get_quarto_with_version()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.get_pandoc_with_version"><code class="docutils literal notranslate"><span class="pre">get_pandoc_with_version()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_print"><code class="docutils literal notranslate"><span class="pre">quarto_print()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_info"><code class="docutils literal notranslate"><span class="pre">quarto_callout_info()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_important"><code class="docutils literal notranslate"><span class="pre">quarto_callout_important()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_plot_exception"><code class="docutils literal notranslate"><span class="pre">quarto_plot_exception()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_no_prediction_data_warning"><code class="docutils literal notranslate"><span class="pre">quarto_callout_no_prediction_data_warning()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.quarto_callout_no_predictor_data_warning"><code class="docutils literal notranslate"><span class="pre">quarto_callout_no_predictor_data_warning()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.polars_col_exists"><code class="docutils literal notranslate"><span class="pre">polars_col_exists()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.polars_subset_to_existing_cols"><code class="docutils literal notranslate"><span class="pre">polars_subset_to_existing_cols()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.create_metric_itable"><code class="docutils literal notranslate"><span class="pre">create_metric_itable()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.create_metric_gttable"><code class="docutils literal notranslate"><span class="pre">create_metric_gttable()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.n_unique_values"><code class="docutils literal notranslate"><span class="pre">n_unique_values()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.max_by_hierarchy"><code class="docutils literal notranslate"><span class="pre">max_by_hierarchy()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.avg_by_hierarchy"><code class="docutils literal notranslate"><span class="pre">avg_by_hierarchy()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.sample_values"><code class="docutils literal notranslate"><span class="pre">sample_values()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.show_credits"><code class="docutils literal notranslate"><span class="pre">show_credits()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.serialize_query"><code class="docutils literal notranslate"><span class="pre">serialize_query()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.deserialize_query"><code class="docutils literal notranslate"><span class="pre">deserialize_query()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.gains_table"><code class="docutils literal notranslate"><span class="pre">gains_table()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.report_utils.check_report_for_errors"><code class="docutils literal notranslate"><span class="pre">check_report_for_errors()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../_static/documentation_options.js?v=3304f9e4"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    </body>
+</html>

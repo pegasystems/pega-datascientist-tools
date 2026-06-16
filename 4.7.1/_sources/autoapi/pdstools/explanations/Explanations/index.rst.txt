@@ -1,0 +1,108 @@
+pdstools.explanations.Explanations
+==================================
+
+.. py:module:: pdstools.explanations.Explanations
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Explanations.Explanations
+
+
+Module Contents
+---------------
+
+.. py:class:: Explanations(root_dir: str = '.tmp', data_folder: str = 'explanations_data', data_file: str | None = None, model_name: str | None = '', from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None)
+
+   Process and explore explanation data for Adaptive Gradient Boost models.
+
+   Class is initialied with data location, which should point to the location of the
+   model's explanation parquet files downloaded from the explanations file repository.
+   These parquet files can then be processed to create aggregates to explain the contribution
+   of different predictors on a global level.
+
+   :param data_folder: The path of the folder containing the model explanation parquet files for processing.
+   :type data_folder: str
+   :param data_file: Direct path to a single explanation file (URL or local path). When provided, this takes
+                     precedence over data_folder. Useful for loading files from remote locations.
+   :type data_file: str, optional
+   :param model_name: The name of the model rule. Will be used to identify files in the data folder
+                      and to validate that the correct files are being processed.
+   :type model_name: str, optional
+   :param end_date: Defines the end date of the duration over which aggregates will be collected.
+   :type end_date: datetime, optional, default = datetime.today()
+   :param start_date: Defines the start date of the duration over which aggregaates wille be collected.
+   :type start_date: datetime, optional, default = end_date - timedelta(7)
+   :param Environment variables:
+   :param -------------------:
+   :param BATCH_LIMIT: The maximum number of unique contexts to process in a single batch. Default is 10.
+   :type BATCH_LIMIT: int
+   :param MEMORY_LIMIT: Set the memory limit for the duckdb buffer manager.
+                        If not set will use 80% of RAM. Default is 2(in GB).
+   :type MEMORY_LIMIT: int
+   :param THREAD_COUNT: Set the amount of threads for duck db parallel query execution. Default is 4.
+   :type THREAD_COUNT: int
+   :param PROGRESS_BAR: Show progress bar when running duckdb queries.
+                        0 = no progress bar, 1 = show progress bar. Default is 0.
+   :type PROGRESS_BAR: int
+
+
+   .. py:attribute:: root_dir
+      :value: '.tmp'
+
+
+
+   .. py:attribute:: data_folder
+      :value: 'explanations_data'
+
+
+
+   .. py:attribute:: data_file
+      :value: None
+
+
+
+   .. py:attribute:: model_name
+      :value: ''
+
+
+
+   .. py:attribute:: from_date
+      :value: None
+
+
+
+   .. py:attribute:: to_date
+      :value: None
+
+
+
+   .. py:attribute:: preprocess
+
+
+   .. py:attribute:: aggregate
+
+
+   .. py:attribute:: plot
+
+
+   .. py:attribute:: report
+
+
+   .. py:attribute:: filter
+
+
+   .. py:method:: _set_date_range(from_date: datetime.datetime | None, to_date: datetime.datetime | None, days: int = 7)
+
+      Set the date range for processing explanation files.
+
+      :param start_date: The start date for the date range. If None, defaults to 7 days before end_date.
+      :type start_date: datetime, optional
+      :param end_date: The end date for the date range. If None, defaults to today.
+      :type end_date: datetime, optional
+
+
+

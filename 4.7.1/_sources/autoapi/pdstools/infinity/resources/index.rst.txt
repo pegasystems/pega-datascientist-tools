@@ -1,0 +1,44 @@
+pdstools.infinity.resources
+===========================
+
+.. py:module:: pdstools.infinity.resources
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/knowledge_buddy/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/index
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.AsyncKnowledgeBuddy
+   pdstools.infinity.resources.KnowledgeBuddy
+
+
+Package Contents
+----------------
+
+.. py:class:: AsyncKnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+
+.. py:class:: KnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+

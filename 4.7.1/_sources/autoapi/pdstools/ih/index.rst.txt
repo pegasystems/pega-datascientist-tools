@@ -1,0 +1,302 @@
+pdstools.ih
+===========
+
+.. py:module:: pdstools.ih
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/ih/Aggregates/index
+   /autoapi/pdstools/ih/IH/index
+   /autoapi/pdstools/ih/Plots/index
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.ih.IH
+
+
+Package Contents
+----------------
+
+.. py:class:: IH(data: polars.LazyFrame)
+
+   Analyze Interaction History data from Pega CDH.
+
+   The IH class provides analysis and visualization capabilities for
+   customer interaction data from Pega's Customer Decision Hub. It supports
+   engagement, conversion, and open rate metrics through customizable
+   outcome label mappings.
+
+   .. attribute:: data
+
+      The underlying interaction history data.
+
+      :type: pl.LazyFrame
+
+   .. attribute:: aggregates
+
+      Aggregation methods accessor.
+
+      :type: Aggregates
+
+   .. attribute:: plot
+
+      Plot accessor for visualization methods.
+
+      :type: Plots
+
+   .. attribute:: positive_outcome_labels
+
+      Mapping of metric types to positive outcome labels.
+
+      :type: dict
+
+   .. attribute:: negative_outcome_labels
+
+      Mapping of metric types to negative outcome labels.
+
+      :type: dict
+
+   .. seealso::
+
+      :py:obj:`pdstools.adm.ADMDatamart`
+          For ADM model analysis.
+      
+      :py:obj:`pdstools.impactanalyzer.ImpactAnalyzer`
+          For Impact Analyzer experiments.
+
+   .. rubric:: Examples
+
+   >>> from pdstools import IH
+   >>> ih = IH.from_ds_export("interaction_history.zip")
+   >>> ih.aggregates.summary_by_channel().collect()
+   >>> ih.plot.response_count_trend()
+
+
+   .. py:attribute:: data
+      :type:  polars.LazyFrame
+
+
+   .. py:attribute:: outcome_labels_used
+      :type:  dict | None
+
+
+   .. py:attribute:: positive_outcome_labels
+      :type:  dict[str, list[str]]
+
+      Mapping of metric types to positive outcome labels.
+
+
+   .. py:attribute:: negative_outcome_labels
+      :type:  dict[str, list[str]]
+
+      Mapping of metric types to negative outcome labels.
+
+
+   .. py:attribute:: aggregates
+
+
+   .. py:attribute:: plot
+
+
+   .. py:method:: _scan_outcome_labels() -> dict | None
+
+      Scan data for channel/outcome combinations and resolve defaults.
+
+      Returns None if the required columns are not present.
+
+
+
+   .. py:method:: from_ds_export(ih_filename: os.PathLike | str, query: pdstools.utils.types.QUERY | None = None) -> IH
+      :classmethod:
+
+
+      Create an IH instance from a Pega Dataset Export.
+
+      :param ih_filename: Path to the dataset export file (parquet, csv, ndjson, or zip).
+      :type ih_filename: Union[os.PathLike, str]
+      :param query: Polars expression to filter the data. Default is None.
+      :type query: Optional[QUERY], optional
+
+      :returns: Initialized IH instance.
+      :rtype: IH
+
+      .. rubric:: Examples
+
+      >>> ih = IH.from_ds_export("Data-pxStrategyResult_pxInteractionHistory.zip")
+      >>> ih.data.collect_schema()
+
+
+
+   .. py:method:: from_s3() -> IH
+      :classmethod:
+
+      :abstractmethod:
+
+
+      Create an IH instance from S3 data.
+
+      .. note::
+          Not implemented yet. Please let us know if you would like this!
+
+      :raises NotImplementedError: This method is not yet implemented.
+
+
+
+   .. py:method:: from_mock_data(days: int = 90, n: int = 100000) -> IH
+      :classmethod:
+
+
+      Create an IH instance with synthetic sample data.
+
+      Generates realistic interaction history data for testing and
+      demonstration purposes. Includes inbound (Web) and outbound (Email)
+      channels with configurable propensities and model noise.
+
+      :param days: Number of days of data to generate.
+      :type days: int, default 90
+      :param n: Number of interaction records to generate.
+      :type n: int, default 100000
+
+      :returns: IH instance with synthetic data.
+      :rtype: IH
+
+      .. rubric:: Examples
+
+      >>> ih = IH.from_mock_data(days=30, n=10000)
+      >>> ih.data.select("pyChannel").collect().unique()
+
+
+
+   .. py:method:: get_sequences(positive_outcome_label: str, level: str, outcome_column: str, customerid_column: str) -> tuple[list[tuple[str, Ellipsis]], list[tuple[int, Ellipsis]], list[collections.defaultdict], list[collections.defaultdict]]
+
+      Extract customer action sequences for PMI analysis.
+
+      Processes customer interaction data to produce action sequences,
+      outcome labels, and frequency counts needed for Pointwise Mutual
+      Information (PMI) calculations.
+
+      :param positive_outcome_label: Outcome label marking the target event (e.g., "Conversion").
+      :type positive_outcome_label: str
+      :param level: Column name containing the action/offer/treatment.
+      :type level: str
+      :param outcome_column: Column name containing the outcome label.
+      :type outcome_column: str
+      :param customerid_column: Column name identifying unique customers.
+      :type customerid_column: str
+
+      :returns: * **customer_sequences** (*list[tuple[str, ...]]*) -- Action sequences per customer.
+                * **customer_outcomes** (*list[tuple[int, ...]]*) -- Binary outcomes (1=positive, 0=other) per sequence position.
+                * **count_actions** (*list[defaultdict]*) -- Action frequency counts:
+                  - [0]: First element counts in bigrams
+                  - [1]: Second element counts in bigrams
+                * **count_sequences** (*list[defaultdict]*) -- Sequence frequency counts:
+                  - [0]: All bigrams
+                  - [1]: ≥3-grams ending with positive outcome
+                  - [2]: Bigrams ending with positive outcome
+                  - [3]: Unique n-grams per customer
+
+      .. seealso::
+
+         :py:obj:`calculate_pmi`
+             Compute PMI scores from sequence counts.
+         
+         :py:obj:`pmi_overview`
+             Generate PMI analysis summary.
+
+
+
+   .. py:method:: calculate_pmi(count_actions: list[collections.defaultdict], count_sequences: list[collections.defaultdict]) -> dict[tuple[str, Ellipsis], float | dict[str, float | dict]]
+      :staticmethod:
+
+
+      Compute PMI scores for action sequences.
+
+      Calculates Pointwise Mutual Information scores for bigrams and
+      higher-order n-grams. Higher values indicate more informative
+      or surprising action sequences.
+
+      :param count_actions: Action frequency counts from :meth:`get_sequences`.
+      :type count_actions: list[defaultdict]
+      :param count_sequences: Sequence frequency counts from :meth:`get_sequences`.
+      :type count_sequences: list[defaultdict]
+
+      :returns: PMI scores for sequences:
+                - Bigrams: Direct PMI value (float)
+                - N-grams (n≥3): dict with 'average_pmi' and 'links' (constituent bigram PMIs)
+      :rtype: dict[tuple[str, ...], Union[float, dict]]
+
+      .. seealso::
+
+         :py:obj:`get_sequences`
+             Extract sequences for PMI analysis.
+         
+         :py:obj:`pmi_overview`
+             Generate PMI analysis summary.
+
+      .. rubric:: Notes
+
+      Bigram PMI is calculated as:
+
+      .. math::
+
+          PMI(a, b) = \log_2 \frac{P(a, b)}{P(a) \cdot P(b)}
+
+      N-gram PMI is the average of constituent bigram PMIs.
+
+
+
+   .. py:method:: pmi_overview(ngrams_pmi: dict[tuple[str, Ellipsis], float | dict], count_sequences: list[collections.defaultdict], customer_sequences: list[tuple[str, Ellipsis]], customer_outcomes: list[tuple[int, Ellipsis]]) -> polars.DataFrame
+      :staticmethod:
+
+
+      Generate PMI analysis summary DataFrame.
+
+      Creates a summary of action sequences ranked by their significance
+      in predicting positive outcomes.
+
+      :param ngrams_pmi: PMI scores from :meth:`calculate_pmi`.
+      :type ngrams_pmi: dict[tuple[str, ...], Union[float, dict]]
+      :param count_sequences: Sequence frequency counts from :meth:`get_sequences`.
+      :type count_sequences: list[defaultdict]
+      :param customer_sequences: Customer action sequences from :meth:`get_sequences`.
+      :type customer_sequences: list[tuple[str, ...]]
+      :param customer_outcomes: Customer outcome sequences from :meth:`get_sequences`.
+      :type customer_outcomes: list[tuple[int, ...]]
+
+      :returns: Summary DataFrame with columns:
+
+                - **Sequence**: Action sequence tuple
+                - **Length**: Number of actions in sequence
+                - **Avg PMI**: Average PMI value
+                - **Frequency**: Total occurrence count
+                - **Unique freq**: Unique customer count
+                - **Score**: PMI × log(Frequency), sorted descending
+      :rtype: pl.DataFrame
+
+      .. seealso::
+
+         :py:obj:`get_sequences`
+             Extract sequences for analysis.
+         
+         :py:obj:`calculate_pmi`
+             Compute PMI scores.
+
+      .. rubric:: Examples
+
+      >>> seqs, outs, actions, counts = ih.get_sequences(
+      ...     "Conversion", "pyName", "pyOutcome", "pxInteractionID"
+      ... )
+      >>> pmi = IH.calculate_pmi(actions, counts)
+      >>> IH.pmi_overview(pmi, counts, seqs, outs)
+
+
+

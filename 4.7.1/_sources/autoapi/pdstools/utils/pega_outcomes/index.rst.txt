@@ -1,0 +1,132 @@
+pdstools.utils.pega_outcomes
+============================
+
+.. py:module:: pdstools.utils.pega_outcomes
+
+.. autoapi-nested-parse::
+
+   Pega standard outcome domain knowledge.
+
+   Provides channel-aware defaults for outcome label resolution, based on
+   Pega CDH standard outcomes documentation. Designed for use by any pdstools
+   component that maps raw Pega outcome strings to business metrics.
+
+   The Impact Analyzer uses this for Impressions/Accepts per Channel/Direction.
+   The IH class uses it for per-channel Engagement labels and direction-aware
+   OpenRate applicability.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.pega_outcomes._CHANNEL_OUTCOME_DEFAULTS
+   pdstools.utils.pega_outcomes._DEFAULT_IMPRESSIONS
+   pdstools.utils.pega_outcomes._DEFAULT_ACCEPTS
+   pdstools.utils.pega_outcomes._OPENRATE_POSITIVE
+   pdstools.utils.pega_outcomes._OPENRATE_NEGATIVE
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.pega_outcomes.resolve_outcome_labels
+   pdstools.utils.pega_outcomes.get_channel_defaults
+   pdstools.utils.pega_outcomes.get_openrate_labels
+
+
+Module Contents
+---------------
+
+.. py:data:: _CHANNEL_OUTCOME_DEFAULTS
+   :type:  dict[str, tuple[list[str], list[str]]]
+
+.. py:data:: _DEFAULT_IMPRESSIONS
+   :type:  list[str]
+   :value: ['Impression']
+
+
+.. py:data:: _DEFAULT_ACCEPTS
+   :type:  list[str]
+   :value: ['Click', 'Clicked']
+
+
+.. py:function:: resolve_outcome_labels(channels_with_outcomes: dict[str, list[str]]) -> dict[str, dict[str, list[str]]]
+
+   Resolve explicit per-channel outcome label mappings from data.
+
+   For each channel, looks up Pega standard outcome defaults by matching
+   the channel prefix (the part before '/'), then filters to only outcome
+   values actually present in the data. Channels not in the defaults table
+   fall back to the global digital-channel defaults.
+
+   :param channels_with_outcomes: Mapping of channel (Channel/Direction format) to the distinct
+                                  outcome strings present in the data for that channel.
+   :type channels_with_outcomes: dict[str, list[str]]
+
+   :returns:
+
+             Per-channel mapping of the form::
+
+                 {
+                     "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+                     "Call Center/Inbound": {"Impressions": ["Impression"], "Accepts": ["Accepted"]},
+                 }
+
+             Only outcome values present in the data are included.
+   :rtype: dict[str, dict[str, list[str]]]
+
+   .. rubric:: Examples
+
+   >>> resolve_outcome_labels({"Web/Inbound": ["Impression", "Clicked", "Rejected"]})
+   {'Web/Inbound': {'Impressions': ['Impression'], 'Accepts': ['Clicked']}}
+
+   >>> resolve_outcome_labels({"Call Center/Inbound": ["Impression", "Accepted"]})
+   {'Call Center/Inbound': {'Impressions': ['Impression'], 'Accepts': ['Accepted']}}
+
+
+.. py:function:: get_channel_defaults(channel: str) -> dict[str, list[str]]
+
+   Return the unfiltered Pega standard outcome defaults for a channel.
+
+   Looks up the channel prefix (part before '/') in the defaults table.
+   Returns all candidate outcome values regardless of what is in the data.
+
+   :param channel: Channel in "Channel/Direction" format (e.g. "Web/Inbound").
+   :type channel: str
+
+   :returns: ``{"Impressions": [...], "Accepts": [...]}`` with all standard
+             candidate values for this channel type.
+   :rtype: dict[str, list[str]]
+
+
+.. py:data:: _OPENRATE_POSITIVE
+   :type:  list[str]
+   :value: ['Opened', 'Open']
+
+
+.. py:data:: _OPENRATE_NEGATIVE
+   :type:  list[str]
+   :value: ['Impression', 'Pending']
+
+
+.. py:function:: get_openrate_labels(channel: str) -> dict[str, list[str]] | None
+
+   Return OpenRate outcome labels if applicable for this channel.
+
+   OpenRate (whether a pushed message was opened) only applies to outbound
+   channels. Returns None for inbound channels or channels without a
+   direction component.
+
+   :param channel: Channel in "Channel/Direction" format (e.g. "Email/Outbound").
+   :type channel: str
+
+   :returns: ``{"positive": [...], "negative": [...]}`` for outbound channels,
+             None for inbound or unknown direction.
+   :rtype: dict[str, list[str]] or None
+
+

@@ -1,0 +1,229 @@
+pdstools.utils.streamlit_utils
+==============================
+
+.. py:module:: pdstools.utils.streamlit_utils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.streamlit_utils._MENU_ITEMS
+   pdstools.utils.streamlit_utils._ASSETS_DIR
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.streamlit_utils._is_newer_version_available
+   pdstools.utils.streamlit_utils._apply_sidebar_logo
+   pdstools.utils.streamlit_utils.standard_page_config
+   pdstools.utils.streamlit_utils.show_sidebar_branding
+   pdstools.utils.streamlit_utils.show_version_header
+   pdstools.utils.streamlit_utils.ensure_session_data
+   pdstools.utils.streamlit_utils.get_data_path
+   pdstools.utils.streamlit_utils.get_sample_limit
+   pdstools.utils.streamlit_utils.get_filter_specs
+   pdstools.utils.streamlit_utils.get_temp_dir
+   pdstools.utils.streamlit_utils.parse_sample_spec
+   pdstools.utils.streamlit_utils.get_current_index
+   pdstools.utils.streamlit_utils.cached_sample
+   pdstools.utils.streamlit_utils.cached_datamart
+   pdstools.utils.streamlit_utils.cached_sample_prediction
+   pdstools.utils.streamlit_utils.cached_prediction_table
+   pdstools.utils.streamlit_utils.import_datamart
+   pdstools.utils.streamlit_utils.from_uploaded_file
+   pdstools.utils.streamlit_utils.from_file_path
+   pdstools.utils.streamlit_utils.model_selection_df
+   pdstools.utils.streamlit_utils.filter_dataframe
+   pdstools.utils.streamlit_utils.model_and_row_counts
+   pdstools.utils.streamlit_utils.configure_predictor_categorization
+   pdstools.utils.streamlit_utils.convert_df
+   pdstools.utils.streamlit_utils.st_get_latest_pdstools_version
+   pdstools.utils.streamlit_utils.show_about_page
+
+
+Module Contents
+---------------
+
+.. py:data:: _MENU_ITEMS
+
+.. py:data:: _ASSETS_DIR
+
+.. py:function:: _is_newer_version_available(installed: str, latest: str) -> bool
+
+   Return True only when *latest* is strictly newer than *installed*.
+
+   Uses PEP 440 parsing so that pre-release / dev versions of *installed*
+   (e.g. ``4.6.0rc1``) are correctly recognised as newer than an older
+   stable release on PyPI (e.g. ``4.5.2``).
+
+
+.. py:function:: _apply_sidebar_logo()
+
+   Re-apply the sidebar logo from session state (for sub-pages).
+
+
+.. py:function:: standard_page_config(page_title: str, layout: str = 'wide', **kwargs)
+
+   Apply a consistent ``st.set_page_config`` across all pdstools apps.
+
+   :param page_title: The browser-tab title for the page.
+   :type page_title: str
+   :param layout: Streamlit layout mode.
+   :type layout: str, default "wide"
+   :param \*\*kwargs: Extra keyword arguments forwarded to ``st.set_page_config``.
+
+
+.. py:function:: show_sidebar_branding(title: str)
+
+   Display the Pega logo and an app title at the top of the sidebar.
+
+   Uses ``st.logo`` for the logo and CSS injection for the title, so both
+   render above the page navigation. Call once from the Home page; sub-pages
+   re-apply automatically via ``standard_page_config`` or ``ensure_data``.
+
+   :param title: Application title shown below the logo in the sidebar.
+   :type title: str
+
+
+.. py:function:: show_version_header(check_latest: bool = True)
+
+   Display the pdstools version, an upgrade hint, and optionally a staleness warning.
+
+   :param check_latest: If *True*, queries PyPI for the latest version and shows an upgrade
+                        warning when the installed version is outdated.
+   :type check_latest: bool, default True
+
+
+.. py:function:: ensure_session_data(key: str, message: str | None = None)
+
+   Guard that stops page execution when *key* is missing from session state.
+
+   :param key: The ``st.session_state`` key to check.
+   :type key: str
+   :param message: Custom warning text. Falls back to a generic "Please load data on the Home page."
+   :type message: str or None
+
+
+.. py:function:: get_data_path() -> str | None
+
+   Return the data path set via ``--data-path`` CLI flag.
+
+   Returns ``None`` when no path was configured.
+
+
+.. py:function:: get_sample_limit() -> str | None
+
+   Return the raw sample limit string set via ``--sample`` CLI flag.
+
+   Returns ``None`` when no sampling was requested.
+
+
+.. py:function:: get_filter_specs() -> list[str] | None
+
+   Return the filter specs set via ``--filter`` CLI flags.
+
+   Returns ``None`` when no filters were configured.
+
+
+.. py:function:: get_temp_dir() -> str | None
+
+   Return the temp directory set via ``--temp-dir`` CLI flag.
+
+   Returns ``None`` when no temp directory was configured.
+
+
+.. py:function:: parse_sample_spec(value: str) -> dict[str, int | float]
+
+   Parse a ``--sample`` flag value into keyword arguments.
+
+   Supports absolute counts (``"100000"``), percentages (``"10%"``),
+   and human-readable notation (``"100k"``, ``"1M"``).
+
+   :returns: Either ``{"n": <int>}`` or ``{"fraction": <float>}``.
+   :rtype: dict
+
+
+.. py:function:: get_current_index(options, key, default=0)
+
+   Get index from session state if key exists and value is in options, else return default.
+
+
+.. py:function:: cached_sample()
+
+.. py:function:: cached_datamart(**kwargs)
+
+   Load ADMDatamart with caching.
+
+   :param \*\*kwargs: Arguments passed to ADMDatamart.from_ds_export
+
+
+.. py:function:: cached_sample_prediction()
+
+.. py:function:: cached_prediction_table(**kwargs)
+
+   Load Prediction with caching.
+
+   :param \*\*kwargs: Arguments passed to Prediction.from_ds_export
+
+
+.. py:function:: import_datamart(extract_pyname_keys: bool, infer_schema_length: int = 10000)
+
+   Import ADMDatamart data from various sources.
+
+   :param extract_pyname_keys: Whether to extract additional keys from pyName column
+   :type extract_pyname_keys: bool
+   :param infer_schema_length: Number of rows to scan for schema inference when reading CSV/JSON files.
+                               For large production datasets, increase this value (e.g., 200000) if columns
+                               are not being detected correctly.
+   :type infer_schema_length: int, default 10000
+
+
+.. py:function:: from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000)
+
+.. py:function:: from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000)
+
+.. py:function:: model_selection_df(df: polars.LazyFrame, context_keys: list)
+
+.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: dict | None = None, queries=[]) -> polars.LazyFrame
+
+   Adds a UI on top of a dataframe to let viewers filter columns
+
+   :param df: Original dataframe
+   :type df: pl.DataFrame
+
+   :returns: The filtered LazyFrame
+   :rtype: pl.LazyFrame
+
+
+.. py:function:: model_and_row_counts(df: pdstools.utils.types.ANY_FRAME)
+
+   Returns unique model id count and row count from a dataframe
+
+   :param df: The input dataframe
+   :type df: Union[pl.DataFrame, pl.LazyFrame]
+
+   :returns: unique model count
+             row count
+   :rtype: Tuple[int, int]
+
+
+.. py:function:: configure_predictor_categorization()
+
+.. py:function:: convert_df(df)
+
+.. py:function:: st_get_latest_pdstools_version()
+
+.. py:function:: show_about_page()
+
+   Render a standardised About page with version and dependency information.
+
+   Mirrors the Credits section of the Quarto ADM Health Check report.
+   Call this from a Streamlit page to display pdstools version info,
+   platform details, and an expandable dependency listing.
+
+

@@ -1,0 +1,83 @@
+pdstools.utils.namespaces
+=========================
+
+.. py:module:: pdstools.utils.namespaces
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.logger
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.MissingDependenciesException
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.LazyNamespaceMeta
+   pdstools.utils.namespaces.LazyNamespace
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.require_dependencies
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:function:: require_dependencies(func)
+
+.. py:class:: LazyNamespaceMeta
+
+   Bases: :py:obj:`type`
+
+
+.. py:class:: LazyNamespace
+
+   .. py:attribute:: dependencies
+      :type:  list[str] | None
+
+
+   .. py:attribute:: dependency_group
+      :type:  str | None
+
+
+   .. py:attribute:: _dependencies_checked
+      :value: False
+
+
+
+   .. py:method:: check_dependencies()
+
+
+   .. py:method:: _check_dependencies()
+
+
+.. py:exception:: MissingDependenciesException(deps: list[str], namespace: str | None = None, deps_group: str | None = None)
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: message
+
+

@@ -1,0 +1,605 @@
+pdstools.explanations.ExplanationsUtils
+=======================================
+
+.. py:module:: pdstools.explanations.ExplanationsUtils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils.defaults
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE
+   pdstools.explanations.ExplanationsUtils._TABLE_NAME
+   pdstools.explanations.ExplanationsUtils._CONTRIBUTION_TYPE
+   pdstools.explanations.ExplanationsUtils._COL
+   pdstools.explanations.ExplanationsUtils._SPECIAL
+   pdstools.explanations.ExplanationsUtils.ContextInfo
+   pdstools.explanations.ExplanationsUtils.ContextOperations
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils._resolve_agg_filter_kwargs
+   pdstools.explanations.ExplanationsUtils._resolve_plot_filter_kwargs
+
+
+Module Contents
+---------------
+
+.. py:class:: _PREDICTOR_TYPE(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: NUMERIC
+      :value: 'NUMERIC'
+
+
+
+   .. py:attribute:: SYMBOLIC
+      :value: 'SYMBOLIC'
+
+
+
+.. py:class:: _TABLE_NAME(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: NUMERIC
+      :value: 'numeric'
+
+
+
+   .. py:attribute:: SYMBOLIC
+      :value: 'symbolic'
+
+
+
+   .. py:attribute:: NUMERIC_OVERALL
+      :value: 'numeric_overall'
+
+
+
+   .. py:attribute:: SYMBOLIC_OVERALL
+      :value: 'symbolic_overall'
+
+
+
+   .. py:attribute:: CREATE
+      :value: 'create'
+
+
+
+   .. py:attribute:: MODEL_CONTEXTS
+      :value: 'model_contexts'
+
+
+
+.. py:class:: _CONTRIBUTION_TYPE(default, alt, text)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: alt
+
+
+   .. py:attribute:: text
+
+
+   .. py:method:: validate_and_get_type(val)
+      :classmethod:
+
+
+      Get the accepted contribution type which is validated against user input
+
+
+
+   .. py:attribute:: CONTRIBUTION
+      :value: ('contribution', 'contribution', 'average contribution')
+
+
+
+   .. py:attribute:: CONTRIBUTION_ABS
+      :value: ('contribution_abs', '|contribution|', 'absolute average contribution')
+
+
+
+   .. py:attribute:: CONTRIBUTION_WEIGHTED
+      :value: ('contribution_weighted', 'contribution weighted', 'weighted average contribution')
+
+
+
+   .. py:attribute:: CONTRIBUTION_WEIGHTED_ABS
+      :value: ('contribution_weighted_abs', '|contribution weighted|', 'absolute weighted average contribution')
+
+
+
+   .. py:attribute:: FREQUENCY
+      :value: ('frequency', 'frequency', 'frequency')
+
+
+
+   .. py:attribute:: CONTRIBUTION_MIN
+      :value: ('contribution_min', 'contribution min', 'minimum contribution')
+
+
+
+   .. py:attribute:: CONTRIBUTION_MAX
+      :value: ('contribution_max', 'contribution max', 'maximum contribution')
+
+
+
+.. py:class:: _COL(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: PARTITON
+      :value: 'partition'
+
+
+
+   .. py:attribute:: PREDICTOR_NAME
+      :value: 'predictor_name'
+
+
+
+   .. py:attribute:: PREDICTOR_TYPE
+      :value: 'predictor_type'
+
+
+
+   .. py:attribute:: BIN_CONTENTS
+      :value: 'bin_contents'
+
+
+
+   .. py:attribute:: BIN_ORDER
+      :value: 'bin_order'
+
+
+
+   .. py:attribute:: CONTRIBUTION
+      :value: 'contribution'
+
+
+
+   .. py:attribute:: CONTRIBUTION_ABS
+      :value: 'contribution_abs'
+
+
+
+   .. py:attribute:: CONTRIBUTION_MIN
+      :value: 'contribution_min'
+
+
+
+   .. py:attribute:: CONTRIBUTION_MAX
+      :value: 'contribution_max'
+
+
+
+   .. py:attribute:: CONTRIBUTION_WEIGHTED
+      :value: 'contribution_weighted'
+
+
+
+   .. py:attribute:: CONTRIBUTION_WEIGHTED_ABS
+      :value: 'contribution_weighted_abs'
+
+
+
+   .. py:attribute:: FREQUENCY
+      :value: 'frequency'
+
+
+
+.. py:class:: _SPECIAL(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: REMAINING
+      :value: 'remaining'
+
+
+
+   .. py:attribute:: TOTAL_FREQUENCY
+      :value: 'total_frequency'
+
+
+
+   .. py:attribute:: MISSING
+      :value: 'missing'
+
+
+
+.. py:data:: defaults
+
+.. py:function:: _resolve_agg_filter_kwargs(**kwargs) -> dict
+
+   Extract and validate aggregate-layer filter kwargs, filling defaults.
+
+   Valid keys: ``sort_by``, ``descending``, ``missing``, ``remaining``,
+   ``include_numeric_single_bin``.
+   Any other key raises ``TypeError``.
+   ``sort_by`` is validated against the accepted ``_CONTRIBUTION_TYPE`` values.
+
+
+.. py:function:: _resolve_plot_filter_kwargs(**kwargs) -> dict
+
+   Extract and validate plot-layer filter kwargs, filling defaults.
+
+   Extends aggregate filter kwargs with ``display_by``. Any other key raises
+   ``TypeError``. Both ``sort_by`` and ``display_by`` are validated against the
+   accepted ``_CONTRIBUTION_TYPE`` values.
+
+   ``sort_by`` and ``display_by`` are returned as ``_CONTRIBUTION_TYPE`` enum
+   members so callers can use ``.value`` and ``.alt`` without re-validating.
+
+
+.. py:class:: ContextInfo
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: context_key
+      :type:  str
+
+
+   .. py:attribute:: context_value
+      :type:  str
+
+
+.. py:class:: ContextOperations(aggregate: pdstools.explanations.Aggregate.Aggregate)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Context related operations such as to filter unique contexts.
+
+   :param aggregate (Aggregate):
+   :type aggregate (Aggregate): The aggregate object to operate on.
+
+   .. attribute:: aggregate (Aggregate)
+
+      
+
+      :type: The aggregate object.
+
+   .. attribute:: _df (Optional[pl.DataFrame])
+
+      
+
+      :type: DataFrame containing context information.
+
+   .. attribute:: _context_keys (Optional[list[str]])
+
+      
+
+      :type: list of context keys.
+
+   .. attribute:: initialized (bool)
+
+      
+
+      :type: Flag indicating if the context operations have been initialized.
+
+   .. method:: get_context_keys():
+
+      Returns the list of context keys from loaded data.
+      Eg. ['pyChannel', 'pyDirection', ...]
+      
+
+   .. method:: get_df(context_infos=None, with_partition_col=False):
+
+      Returns a DataFrame containing unique contexts
+      If `with_partition_col` is True, includes the partition column.
+      If `context_infos` is None, returns the full unique contexts,
+      else filtered by the context
+      Eg. with partition column:
+      | pyChannel | pyDirection | ... | partition |
+      |-----------|-------------|-----|-----------|
+      | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
+      | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
+      
+
+   .. method:: get_list(context_infos=None, with_partition_col=False):
+
+      Returns a list[ContextInfo] containing unique contexts
+      If `with_partition_col` is True, includes the partition column.
+      If `context_infos` is None, returns the full unique contexts,
+      else filtered by the context
+      Eg. without partition column:
+      [
+          {"pyChannel": "channel1", "pyDirection": "direction1", ...},
+          {"pyChannel": "channel1", "pyDirection": "direction2", ...},
+      ]
+      
+
+   .. method:: get_context_info_str(context_info, sep="-"):
+
+      Returns a string representation of a single context information.
+      Eg. channel1-direction1-...
+
+
+   .. py:attribute:: dependencies
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: aggregate
+
+
+   .. py:attribute:: _df
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: _context_keys
+      :type:  list[str] | None
+      :value: None
+
+
+
+   .. py:attribute:: initialized
+      :value: False
+
+
+
+   .. py:method:: _load()
+
+
+   .. py:method:: get_context_keys()
+
+
+   .. py:method:: get_df(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> polars.DataFrame
+
+      Get the DataFrame filtered by the provided context information.
+
+
+
+   .. py:method:: get_list(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> list[ContextInfo]
+
+      Get the list of context information filtered by the provided context information.
+
+
+
+   .. py:method:: _filter_df_by_context_infos(df, context_infos)
+
+
+   .. py:method:: _get_filter_expression(context_infos)
+      :staticmethod:
+
+
+
+   .. py:method:: _get_clean_df(df: polars.DataFrame) -> polars.DataFrame
+      :staticmethod:
+
+
+
+   .. py:method:: get_context_info_str(context_info: ContextInfo, sep: str = '-') -> str
+      :staticmethod:
+
+
+

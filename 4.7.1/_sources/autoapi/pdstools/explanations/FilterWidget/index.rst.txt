@@ -1,0 +1,171 @@
+pdstools.explanations.FilterWidget
+==================================
+
+.. py:module:: pdstools.explanations.FilterWidget
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.FilterWidget.FilterWidget
+
+
+Module Contents
+---------------
+
+.. py:class:: FilterWidget(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   .. py:attribute:: dependencies
+      :value: ['ipywidgets']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: _ANY_CONTEXT
+      :value: 'Any'
+
+
+
+   .. py:attribute:: _CHANGED_VALUE
+      :value: 'new'
+
+
+
+   .. py:attribute:: _CHANGED_WIDGET
+      :value: 'owner'
+
+
+
+   .. py:attribute:: _selector_widget
+      :type:  ipywidgets.widgets.Select | None
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: _raw_list
+      :type:  list[pdstools.explanations.ExplanationsUtils.ContextInfo]
+      :value: []
+
+
+
+   .. py:attribute:: _filtered_list
+      :type:  list[pdstools.explanations.ExplanationsUtils.ContextInfo]
+      :value: []
+
+
+
+   .. py:attribute:: _combobox_widgets
+      :type:  dict[str, ipywidgets.widgets.Combobox]
+
+
+   .. py:attribute:: _context_operations
+      :type:  pdstools.explanations.ExplanationsUtils.ContextOperations | None
+      :value: None
+
+
+
+   .. py:attribute:: _selected_context_key
+      :type:  dict[str, str] | None
+      :value: None
+
+
+
+   .. py:method:: interactive()
+
+      Initializes the interactive filter widget and displays it.
+      This is used in combination with explanations.plot.contributions() to allow users to
+      filter by context if required.
+      Select the context from the list of contexts for plotting contributions for selected context else
+      the overall contributions will be plotted.
+      Alternatively, the context can be set using `set_selected_context()` method.
+
+
+
+   .. py:method:: set_selected_context(context_info: pdstools.explanations.ExplanationsUtils.ContextInfo | None = None)
+
+      Set the selected context information.
+
+      Args:
+          context_info (Optional[ContextInfo]):
+              If None, initializes the selected context with 'Any' for all keys.
+              i.e overall model contributions
+              If provided, sets the selected context to the given context information.
+              Context is passed as a dictionary
+              Eg. context_info =
+                  {
+                      "pyChannel": "channel1",
+                      "pyDirection": "direction1",
+                      ...
+                  }
+
+
+
+
+   .. py:method:: is_context_selected() -> bool
+
+      Method returns True only if all context keys
+      are selected with a value other than 'Any'.
+
+
+
+   .. py:method:: get_selected_context()
+
+      Get the currently selected context information.
+
+
+
+   .. py:method:: _init_selected_context()
+
+
+   .. py:method:: _display_context_selector()
+
+
+   .. py:method:: _get_selected_context(with_any_option: bool = True) -> pdstools.explanations.ExplanationsUtils.ContextInfo | None
+
+
+   .. py:method:: _get_context_combobox_widgets() -> dict[str, ipywidgets.widgets.Combobox]
+
+
+   .. py:method:: _get_context_selector_widget() -> ipywidgets.widgets.Select
+
+
+   .. py:method:: _on_button_clicked(_)
+
+      Clear the filter widget and reset the context selection.
+
+
+
+   .. py:method:: _on_combobox_change(change)
+
+
+   .. py:method:: _on_selector_change(change)
+
+
+   .. py:method:: _get_changed_value(change)
+
+
+   .. py:method:: _get_changed_widget(change)
+
+
+   .. py:method:: _get_options_for_context_widget(name: str, with_any_option: bool = True) -> list[str]
+
+
+   .. py:method:: _get_options_for_context_selector(with_any_option: bool = True) -> list[str]
+
+
+   .. py:method:: _filter_contexts_by_selected() -> list[pdstools.explanations.ExplanationsUtils.ContextInfo]
+
+
+   .. py:method:: _context_infos_to_dictionary(context_infos: list[pdstools.explanations.ExplanationsUtils.ContextInfo]) -> dict[str, pdstools.explanations.ExplanationsUtils.ContextInfo]
+
+

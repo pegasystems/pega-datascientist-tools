@@ -1,0 +1,98 @@
+pdstools.utils.progress_utils
+=============================
+
+.. py:module:: pdstools.utils.progress_utils
+
+.. autoapi-nested-parse::
+
+   Utilities for progress feedback and time estimation.
+
+   This module provides functions to estimate operation times and format them
+   in user-friendly ways. Used primarily by the Decision Analysis Tool Streamlit
+   app to show progress feedback for long-running operations like:
+
+   - Extracting large zip archives
+   - Sampling large datasets
+
+   The estimates are based on calibrated speeds and provide ranges to account
+   for system variability.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.progress_utils.estimate_extraction_time
+   pdstools.utils.progress_utils.format_time_estimate
+   pdstools.utils.progress_utils.estimate_sampling_time
+
+
+Module Contents
+---------------
+
+.. py:function:: estimate_extraction_time(file_size_bytes: int) -> tuple[float, float]
+
+   Estimate extraction time for a zip file based on size.
+
+   Uses calibrated extraction speeds to provide min/max range.
+   Conservative estimates to avoid under-promising.
+
+   :param file_size_bytes: Size of the file in bytes
+   :type file_size_bytes: int
+
+   :returns: (min_seconds, max_seconds) for a range estimate
+   :rtype: tuple[float, float]
+
+   .. rubric:: Examples
+
+   >>> min_time, max_time = estimate_extraction_time(1024 * 1024 * 1024)  # 1 GB
+   >>> min_time < max_time
+   True
+
+
+.. py:function:: format_time_estimate(min_sec: float, max_sec: float) -> str
+
+   Format time range as user-friendly string.
+
+   Uses humanize library to create natural language time descriptions.
+   Shows ranges for operations over 10 seconds, simple descriptions for
+   shorter operations.
+
+   :param min_sec: Minimum estimated time in seconds
+   :type min_sec: float
+   :param max_sec: Maximum estimated time in seconds
+   :type max_sec: float
+
+   :returns: User-friendly time description
+   :rtype: str
+
+   .. rubric:: Examples
+
+   >>> format_time_estimate(2, 5)
+   'a few seconds'
+
+   >>> format_time_estimate(120, 180)
+   '2 minutes to 3 minutes'
+
+
+.. py:function:: estimate_sampling_time(total_rows: int, sample_size: int) -> tuple[float, float]
+
+   Estimate time for sampling operations based on dataset size.
+
+   :param total_rows: Total number of rows in the dataset
+   :type total_rows: int
+   :param sample_size: Target sample size
+   :type sample_size: int
+
+   :returns: (min_seconds, max_seconds) for a range estimate
+   :rtype: tuple[float, float]
+
+   .. rubric:: Examples
+
+   >>> min_time, max_time = estimate_sampling_time(1_000_000, 50_000)
+   >>> min_time < max_time
+   True
+
+

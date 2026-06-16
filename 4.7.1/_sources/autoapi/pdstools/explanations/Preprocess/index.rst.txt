@@ -1,0 +1,228 @@
+pdstools.explanations.Preprocess
+================================
+
+.. py:module:: pdstools.explanations.Preprocess
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Preprocess.Preprocess
+
+
+Module Contents
+---------------
+
+.. py:class:: Preprocess(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   .. py:attribute:: dependencies
+      :value: ['duckdb', 'polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: SEP
+      :value: ', '
+
+
+
+   .. py:attribute:: LEFT_PREFIX
+      :value: 'l'
+
+
+
+   .. py:attribute:: RIGHT_PREFIX
+      :value: 'r'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: explanations_folder
+
+
+   .. py:attribute:: data_file
+
+
+   .. py:attribute:: data_foldername
+      :value: 'aggregated_data'
+
+
+
+   .. py:attribute:: data_folderpath
+
+
+   .. py:attribute:: from_date
+
+
+   .. py:attribute:: to_date
+
+
+   .. py:attribute:: model_name
+
+
+   .. py:attribute:: model_context_limit
+
+
+   .. py:attribute:: query_batch_limit
+
+
+   .. py:attribute:: file_batch_limit
+
+
+   .. py:attribute:: memory_limit
+
+
+   .. py:attribute:: thread_count
+
+
+   .. py:attribute:: progress_bar
+
+
+   .. py:attribute:: _conn
+      :value: None
+
+
+
+   .. py:attribute:: selected_files
+      :type:  list[str]
+      :value: []
+
+
+
+   .. py:attribute:: contexts
+      :type:  dict[str, dict[str, list[str]]] | None
+      :value: None
+
+
+
+   .. py:attribute:: unique_contexts_filename
+      :value: 'Instance of pathlib.Path/unique_contexts.json'
+
+
+
+   .. py:method:: generate()
+
+      Process explanation parquet files and save calculated aggregates.
+
+      This method reads the explanation data from the provided location and creates
+      aggregates for multiple contexts which are used to create global explanation plots.
+
+      The different context aggregates are as follows:
+      i) Overall Numeric Predictor Contributions
+          The average contribution towards predicted model propensity
+          for each numeric predictor value decile.
+      ii) Overal Symbolic Predictor Contributions
+          The average contribution towards predicted model propensity
+          for each symoblic predictor value.
+      iii) Context Specific Numeric Predictor Contributions
+          The average contribution towards predicted model propensity
+          for each numeric predictor value decile, grouped by context key partition.
+      iv) Overal Symbolic Predictor Contributions
+          The average contribution towards predicted model propensity
+          for each symoblic predictor value, grouped by context key partition.
+
+      Each of the aggregates are written to parquet files to a temporary output dirtectory
+
+
+
+   .. py:method:: _clean_query(query)
+      :staticmethod:
+
+
+
+   .. py:method:: _is_cached()
+
+
+   .. py:method:: _validate_explanations_folder()
+
+
+   .. py:method:: _run_agg(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _create_in_mem_table(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _create_unique_contexts_file(filename, data)
+      :staticmethod:
+
+
+
+   .. py:method:: _create_context_batches(all_contexts: list[str])
+
+
+   .. py:method:: _get_contexts(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _agg_in_batches(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _agg_overall(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE, where_condition='TRUE')
+
+
+   .. py:method:: _delete_in_mem_table(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _get_table_name(predictor_type) -> pdstools.explanations.ExplanationsUtils._TABLE_NAME
+      :staticmethod:
+
+
+
+   .. py:method:: _get_create_table_sql_formatted(tbl_name: pdstools.explanations.ExplanationsUtils._TABLE_NAME, predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _parquet_in_batches(file_batch_nb: str, query_batches: dict[str, list[str]], predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _parquet_overall(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE, where_condition='TRUE')
+
+
+   .. py:method:: _write_to_parquet(df: polars.DataFrame, file_name: str)
+
+
+   .. py:method:: _read_overall_sql_file(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _read_batch_sql_file(predictor_type: pdstools.explanations.ExplanationsUtils._PREDICTOR_TYPE)
+
+
+   .. py:method:: _read_resource_file(package_name, filename_w_ext)
+
+
+   .. py:method:: _get_model_contexts_sql_formatted(tbl_name: pdstools.explanations.ExplanationsUtils._TABLE_NAME)
+
+
+   .. py:method:: _get_overall_sql_formatted(sql, tbl_name: pdstools.explanations.ExplanationsUtils._TABLE_NAME, where_condition)
+
+
+   .. py:method:: _get_batch_sql_formatted(sql, tbl_name: pdstools.explanations.ExplanationsUtils._TABLE_NAME, where_condition='TRUE')
+
+
+   .. py:method:: _get_selected_files()
+
+
+   .. py:method:: _populate_selected_files()
+
+
+   .. py:method:: _populate_selected_files_from_local()
+
+
+   .. py:method:: _populate_selected_files_from_url(file_url: str)
+
+
+   .. py:method:: _execute_query(query: str)
+
+      Execute a query on the in-memory DuckDB connection.
+
+
+

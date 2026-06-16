@@ -1,0 +1,231 @@
+pdstools.infinity.resources.prediction_studio.v24_2.prediction
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.prediction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.prediction._PredictionV24_2Mixin
+   pdstools.infinity.resources.prediction_studio.v24_2.prediction.Prediction
+   pdstools.infinity.resources.prediction_studio.v24_2.prediction.AsyncPrediction
+
+
+Module Contents
+---------------
+
+.. py:class:: _PredictionV24_2Mixin
+
+   v24.2 Prediction business logic — shared parts.
+
+
+   .. py:attribute:: prediction_id
+      :type:  str
+
+
+   .. py:method:: _get_models() -> list[dict[str, str]]
+      :async:
+
+
+      Internal function to fetch models linked to a specific prediction.
+
+      This function gathers all models that are connected to a particular
+      prediction.  It organizes these models into three groups: default
+      models, category models, and supporting models, each serving a
+      unique role in making the prediction.
+
+      :returns: A collection of model dicts associated with the prediction.
+      :rtype: list of dict
+
+
+
+   .. py:method:: get_metric(*, metric: pdstools.infinity.internal._constants.METRIC, start_date: datetime.date | None = None, end_date: datetime.date | None = None, frequency: Literal['Daily', 'Weekly', 'Monthly'] = 'Daily') -> polars.DataFrame
+      :async:
+
+
+      Fetches and returns metric data for a prediction within a specified
+      date range, using datetime objects for dates.
+
+      This method retrieves metric data, such as performance or usage
+      statistics, for a given prediction. The data can be fetched for a
+      specific period and at a defined frequency (daily, weekly, or monthly).
+
+      :param metric: The type of metric to retrieve.
+      :type metric: METRIC
+      :param start_date: The start date for the data retrieval.
+      :type start_date: datetime
+      :param end_date: The end date for the data retrieval. If not provided, data is
+                       fetched until the current date.
+      :type end_date: datetime, optional
+      :param frequency: The frequency at which to retrieve the data. Defaults to "Daily".
+      :type frequency: {"Daily", "Weekly", "Monthly"}, optional
+
+      :returns: A DataFrame containing the requested metric data, including
+                values, snapshot times, and data usage.
+      :rtype: pl.DataFrame
+
+      :raises NoMonitoringInfo: If no monitoring data is available for the given parameters.
+
+
+
+   .. py:method:: package_staged_changes(message: str | None = None)
+      :async:
+
+
+      Initiates the deployment of pending changes for a prediction model
+      into the production setting.
+
+      This function initiates a Change Request (CR) to either deploy pending
+      changes directly to a Revision Manager, if available, or to create a
+      branch with all pending changes in Prediction Studio.  An optional
+      message can be included to detail the nature of the changes being
+      deployed.
+
+      :param message: Descriptive message about the changes being deployed. Defaults to
+                      "Approving the changes" if not specified.
+      :type message: str, optional
+
+      :returns: Details the result of the deployment process.
+      :rtype: dict
+
+
+
+   .. py:method:: get_staged_changes()
+      :async:
+
+
+      Retrieves a list of changes for a specific prediction.
+
+      This method is used to fetch the list of changes that have been made
+      to a prediction but not yet deployed to the production environment.
+      The changes are staged and pending deployment.
+
+      :returns: A list of changes staged for the prediction, detailing each
+                modification pending deployment.
+      :rtype: list
+
+
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction`
+
+
+   The ``Prediction`` class provide functionality including retrieving
+   notifications, models, adding conditional models, getting champion
+   challengers, metrics, and plotting metrics.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.base.Notification]
+                  get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[True] = True) -> polars.DataFrame
+
+      Fetches a list of notifications for a specific prediction.
+
+      This function retrieves notifications related to a prediction. You
+      can filter these notifications by their category.  Optionally, the
+      notifications can be returned as a DataFrame for easier analysis
+      and visualization.
+
+      :param category: The category of notifications to retrieve. If not specified,
+                       all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise,
+                        returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the
+                notifications, depending on the value of ``return_df``.
+      :rtype: PaginatedList[Notification] or polars.DataFrame
+
+
+
+   .. py:method:: get_champion_challengers()
+
+      Fetches list of ChampionChallenger objects linked to the prediction.
+
+      This function fetches Champion-challenger pairs from a prediction.
+      In cases where a challenger model is absent, it returns a
+      ChampionChallenger object containing only the champion model.
+
+      :returns: A list of entries, each pairing a primary model with its
+                challenger across various segments of the prediction.
+      :rtype: list of ChampionChallenger
+
+
+
+   .. py:method:: add_conditional_model(new_model, category: str, context: str | None = None)
+
+      Incorporates a new model into a prediction for a specified category
+      and context.
+
+      :param new_model: Identifier of the model to be added.
+      :type new_model: str or Model
+      :param category: The category under which the model will be classified.
+      :type category: str
+      :param context: The specific context or scenario in which the model will be
+                      utilized.
+      :type context: str, optional
+
+      :returns: An object detailing the updated configuration with the newly
+                added model.
+      :rtype: ChampionChallenger
+
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction`
+
+
+   Async variant of the v24.2 Prediction.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.base.AsyncNotification] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of notifications for a specific prediction.
+
+      :param category: The category of notifications to retrieve.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None
+      :param return_df: If True, returns the notifications as a DataFrame.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame.
+      :rtype: AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+
+
+
+   .. py:method:: get_champion_challengers()
+      :async:
+
+
+      Fetches list of ChampionChallenger objects linked to the prediction.
+
+      :returns: Champion-challenger pairs from a prediction.
+      :rtype: list of AsyncChampionChallenger
+
+
+
+   .. py:method:: add_conditional_model(new_model, category: str, context: str | None = None)
+      :async:
+
+
+      Incorporates a new model into a prediction for a specified category
+      and context.
+
+      :param new_model: Identifier of the model to be added.
+      :type new_model: str or AsyncModel
+      :param category: The category under which the model will be classified.
+      :type category: str
+      :param context: The specific context or scenario.
+      :type context: str, optional
+
+      :returns: An object detailing the updated configuration.
+      :rtype: AsyncChampionChallenger
+
+
+

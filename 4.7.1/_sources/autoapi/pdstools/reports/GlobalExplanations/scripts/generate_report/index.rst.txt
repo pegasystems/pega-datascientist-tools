@@ -1,0 +1,277 @@
+pdstools.reports.GlobalExplanations.scripts.generate_report
+===========================================================
+
+.. py:module:: pdstools.reports.GlobalExplanations.scripts.generate_report
+
+.. autoapi-nested-parse::
+
+   Pre-render script for the GlobalExplanations Quarto website project.
+
+   This script is executed by Quarto as a pre-render step (configured in _quarto.yml) before the website is built.
+   It reads .qmd templates from assets/templates/, substitutes parameter placeholders (e.g. {TOP_N}, {SORT_BY_TYPE})
+   with values from params.yml, and writes the final .qmd files that Quarto then renders into the website.
+
+   Templates are located in: assets/templates/
+   Generated .qmd files are written to the project root for Quarto to render.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.reports.GlobalExplanations.scripts.generate_report.logger
+   pdstools.reports.GlobalExplanations.scripts.generate_report.ENCODING
+   pdstools.reports.GlobalExplanations.scripts.generate_report.CONTEXT_FOLDER
+   pdstools.reports.GlobalExplanations.scripts.generate_report.TOP_N
+   pdstools.reports.GlobalExplanations.scripts.generate_report.TOP_K
+   pdstools.reports.GlobalExplanations.scripts.generate_report.FROM_DATE_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.TO_DATE_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.SORT_BY_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.SORT_BY_TEXT_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.DISPLAY_BY_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.DISPLAY_BY_TEXT_DEFAULT
+   pdstools.reports.GlobalExplanations.scripts.generate_report.DATA_FOLDER
+   pdstools.reports.GlobalExplanations.scripts.generate_report.UNIQUE_CONTEXTS_FILENAME
+   pdstools.reports.GlobalExplanations.scripts.generate_report.PLOTS_FOR_BATCH
+   pdstools.reports.GlobalExplanations.scripts.generate_report.PARAMS_FILENAME
+   pdstools.reports.GlobalExplanations.scripts.generate_report.TEMPLATES_FOLDER
+   pdstools.reports.GlobalExplanations.scripts.generate_report.INTRODUCTION_FILENAME
+   pdstools.reports.GlobalExplanations.scripts.generate_report.OVERVIEW_FILENAME
+   pdstools.reports.GlobalExplanations.scripts.generate_report.ALL_CONTEXT_HEADER_TEMPLATE
+   pdstools.reports.GlobalExplanations.scripts.generate_report.ALL_CONTEXT_CONTENT_TEMPLATE
+   pdstools.reports.GlobalExplanations.scripts.generate_report.SINGLE_CONTEXT_TEMPLATE
+   pdstools.reports.GlobalExplanations.scripts.generate_report.generator
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.reports.GlobalExplanations.scripts.generate_report.ReportGenerator
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: ENCODING
+   :value: 'utf-8'
+
+
+.. py:data:: CONTEXT_FOLDER
+   :value: 'by-model-context'
+
+
+.. py:data:: TOP_N
+   :value: 20
+
+
+.. py:data:: TOP_K
+   :value: 20
+
+
+.. py:data:: FROM_DATE_DEFAULT
+   :value: 'N/A'
+
+
+.. py:data:: TO_DATE_DEFAULT
+   :value: 'N/A'
+
+
+.. py:data:: SORT_BY_DEFAULT
+   :value: 'contribution_abs'
+
+
+.. py:data:: SORT_BY_TEXT_DEFAULT
+   :value: 'absolute average contribution'
+
+
+.. py:data:: DISPLAY_BY_DEFAULT
+   :value: 'contribution'
+
+
+.. py:data:: DISPLAY_BY_TEXT_DEFAULT
+   :value: 'average contribution'
+
+
+.. py:data:: DATA_FOLDER
+   :value: 'aggregated_data'
+
+
+.. py:data:: UNIQUE_CONTEXTS_FILENAME
+   :value: 'unique_contexts.json'
+
+
+.. py:data:: PLOTS_FOR_BATCH
+   :value: 'plots_for_batch'
+
+
+.. py:data:: PARAMS_FILENAME
+   :value: 'params.yml'
+
+
+.. py:data:: TEMPLATES_FOLDER
+   :value: './assets/templates'
+
+
+.. py:data:: INTRODUCTION_FILENAME
+   :value: 'getting-started.qmd'
+
+
+.. py:data:: OVERVIEW_FILENAME
+   :value: 'overview.qmd'
+
+
+.. py:data:: ALL_CONTEXT_HEADER_TEMPLATE
+   :value: 'all_context_header.qmd'
+
+
+.. py:data:: ALL_CONTEXT_CONTENT_TEMPLATE
+   :value: 'all_context_content.qmd'
+
+
+.. py:data:: SINGLE_CONTEXT_TEMPLATE
+   :value: 'context.qmd'
+
+
+.. py:class:: ReportGenerator
+
+   Quarto pre-render generator for the GlobalExplanations website project.
+   Reads .qmd templates from assets/templates/, substitutes parameter
+   placeholders with values from params.yml, and writes the rendered .qmd
+   files for Quarto to build. Shared configuration (front matter, theme,
+   branding) is inherited from _quarto.yml; templates only contain
+   page-specific content and code cells.
+
+
+   .. py:attribute:: report_folder
+
+
+   .. py:attribute:: root_dir
+      :value: ''
+
+
+
+   .. py:attribute:: data_folder
+      :value: ''
+
+
+
+   .. py:attribute:: top_n
+      :value: None
+
+
+
+   .. py:attribute:: top_k
+      :value: None
+
+
+
+   .. py:attribute:: from_date
+      :value: None
+
+
+
+   .. py:attribute:: to_date
+      :value: None
+
+
+
+   .. py:attribute:: sort_by
+      :value: None
+
+
+
+   .. py:attribute:: sort_by_text
+      :value: None
+
+
+
+   .. py:attribute:: display_by
+      :value: None
+
+
+
+   .. py:attribute:: display_by_text
+      :value: None
+
+
+
+   .. py:attribute:: model_context_limit
+
+
+   .. py:attribute:: by_context_folder
+
+
+   .. py:attribute:: plots_for_batch_filepath
+
+
+   .. py:attribute:: contexts
+      :value: None
+
+
+
+   .. py:method:: _log_params()
+
+
+   .. py:method:: _read_params()
+
+
+   .. py:method:: _get_context_dict(context_info: str) -> dict
+      :staticmethod:
+
+
+
+   .. py:method:: _get_context_string(context_info: str) -> str
+
+
+   .. py:method:: _read_template(template_filename: str) -> str
+      :staticmethod:
+
+
+      Read a template file and return its content.
+
+      Templates contain placeholder strings (e.g., {ROOT_DIR}, {TOP_N}) that
+      will be substituted with actual values during report generation.
+
+      :param template_filename: Name of the template file in the templates folder
+      :type template_filename: str
+
+      :returns: Template content with placeholders intact
+      :rtype: str
+
+
+
+   .. py:method:: _write_single_context_file(embed_path_for_batch: str, filename: str, template: str, context_str: str, context_label: str)
+
+
+   .. py:method:: _write_header_to_file(file_batch_nb: str, filename: str)
+
+
+   .. py:method:: _append_content_to_file(filename: str, template: str, context_dict: dict, context_label: str)
+
+
+   .. py:method:: _get_unique_contexts()
+
+
+   .. py:method:: _generate_by_context_qmds()
+
+
+   .. py:method:: _generate_overview_qmd()
+
+
+   .. py:method:: _generate_introduction_qmd()
+
+
+   .. py:method:: run()
+
+      Main method to generate the report files.
+
+
+
+.. py:data:: generator
+

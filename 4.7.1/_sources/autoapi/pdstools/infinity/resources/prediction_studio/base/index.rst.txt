@@ -1,0 +1,551 @@
+pdstools.infinity.resources.prediction_studio.base
+==================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.base
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.base.DEPLOYMENT_MODE
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.base.ModelValidationError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.base.Metrics
+   pdstools.infinity.resources.prediction_studio.base.ModelAttributes
+   pdstools.infinity.resources.prediction_studio.base._ModelMixin
+   pdstools.infinity.resources.prediction_studio.base._PredictionMixin
+   pdstools.infinity.resources.prediction_studio.base._NotificationMixin
+   pdstools.infinity.resources.prediction_studio.base.UploadedModel
+   pdstools.infinity.resources.prediction_studio.base.LocalModel
+   pdstools.infinity.resources.prediction_studio.base._RepositoryMixin
+   pdstools.infinity.resources.prediction_studio.base._DataMartExportMixin
+   pdstools.infinity.resources.prediction_studio.base._PredictionStudioBaseMixin
+   pdstools.infinity.resources.prediction_studio.base._ChampionChallengerMixin
+   pdstools.infinity.resources.prediction_studio.base.Model
+   pdstools.infinity.resources.prediction_studio.base.AsyncModel
+   pdstools.infinity.resources.prediction_studio.base.Prediction
+   pdstools.infinity.resources.prediction_studio.base.AsyncPrediction
+   pdstools.infinity.resources.prediction_studio.base.Notification
+   pdstools.infinity.resources.prediction_studio.base.AsyncNotification
+   pdstools.infinity.resources.prediction_studio.base.Repository
+   pdstools.infinity.resources.prediction_studio.base.AsyncRepository
+   pdstools.infinity.resources.prediction_studio.base.DataMartExport
+   pdstools.infinity.resources.prediction_studio.base.AsyncDataMartExport
+   pdstools.infinity.resources.prediction_studio.base.PredictionStudioBase
+   pdstools.infinity.resources.prediction_studio.base.AsyncPredictionStudioBase
+   pdstools.infinity.resources.prediction_studio.base.ChampionChallenger
+   pdstools.infinity.resources.prediction_studio.base.AsyncChampionChallenger
+
+
+Module Contents
+---------------
+
+.. py:data:: DEPLOYMENT_MODE
+
+.. py:class:: Metrics
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: lift
+      :type:  float
+
+
+   .. py:attribute:: performance
+      :type:  float
+
+
+   .. py:attribute:: performanceMeasure
+      :type:  Literal['AUC']
+
+
+.. py:class:: ModelAttributes
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: modelId
+      :type:  str
+
+
+   .. py:attribute:: status
+      :type:  str
+
+
+   .. py:attribute:: label
+      :type:  str
+
+
+   .. py:attribute:: type
+      :type:  str
+
+
+   .. py:attribute:: subject
+      :type:  str
+
+
+   .. py:attribute:: objective
+      :type:  str
+
+
+   .. py:attribute:: outcome_type
+      :type:  str
+
+
+   .. py:attribute:: model_type
+      :type:  str
+
+
+   .. py:attribute:: modeling_technique
+      :type:  str
+
+
+   .. py:attribute:: source
+      :type:  str
+
+
+   .. py:attribute:: targetLabels
+      :type:  list[dict[Literal['label'], str]]
+
+
+   .. py:attribute:: alternativeLabels
+      :type:  list[dict[Literal['label'], str]]
+
+
+   .. py:attribute:: metrics
+      :type:  dict[str, Any]
+
+
+.. py:class:: _ModelMixin(client, *, modelId: str, label: str, modelType: str, status: str, componentName: str | None = None, source: str | None = None, lastUpdateTime: str | None = None, modelingTechnique: str | None = None, updatedBy: str | None = None)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: model_id
+
+
+   .. py:attribute:: label
+
+
+   .. py:attribute:: model_type
+
+
+   .. py:attribute:: modeling_technique
+      :value: None
+
+
+
+   .. py:attribute:: source
+      :value: None
+
+
+
+   .. py:attribute:: status
+
+
+   .. py:attribute:: updated_by
+      :value: None
+
+
+
+   .. py:method:: describe() -> ModelAttributes
+      :abstractmethod:
+
+
+
+.. py:class:: _PredictionMixin(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: prediction_id
+
+
+   .. py:attribute:: label
+
+
+   .. py:attribute:: objective
+      :value: None
+
+
+
+   .. py:attribute:: subject
+      :value: None
+
+
+
+   .. py:attribute:: status
+
+
+   .. py:attribute:: last_update_time
+
+
+   .. py:method:: get_metric(*, metric: Literal['Performance', 'Total_responses', 'Lift', 'Success_rate'], timeframe: Literal['7d', '4w', '3m', '6m']) -> polars.DataFrame
+      :abstractmethod:
+
+
+
+   .. py:method:: describe()
+      :abstractmethod:
+
+
+
+.. py:class:: _NotificationMixin(client, *, description: str, modelType: str, notificationID: str, notificationType: str, notificationMnemonic: str, context: str, impact: str, triggerTime: str, modelID: str | None = None, predictionID: str | None = None)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: notification_type
+
+
+   .. py:attribute:: notification_id
+
+
+   .. py:attribute:: notification_mnemonic
+
+
+   .. py:attribute:: description
+
+
+   .. py:attribute:: model_type
+
+
+   .. py:attribute:: impact
+
+
+   .. py:attribute:: trigger_time
+
+
+.. py:class:: UploadedModel
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:exception:: ModelValidationError
+
+   Bases: :py:obj:`Exception`
+
+
+   Exception for errors during model validation.
+
+
+.. py:class:: LocalModel(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:method:: validate() -> bool
+
+      Validates a model.
+
+      :raises ModelValidationError: If the model is invalid or if the validation process fails.:
+
+
+
+   .. py:method:: get_file_path() -> str
+      :abstractmethod:
+
+
+      Returns the file path of the model.
+
+      :returns: **str**
+      :rtype: The file path of the model.
+
+
+
+.. py:class:: _RepositoryMixin
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:property:: s3_url
+      :type: str
+
+
+
+.. py:class:: _DataMartExportMixin(client, **kwargs)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: referenceId
+
+
+   .. py:attribute:: location
+
+
+   .. py:attribute:: repositoryName
+
+
+.. py:class:: _PredictionStudioBaseMixin
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: version
+      :type:  str
+
+
+   .. py:method:: list_predictions()
+      :abstractmethod:
+
+
+
+   .. py:method:: repository()
+      :abstractmethod:
+
+
+
+.. py:class:: _ChampionChallengerMixin
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:method:: _status()
+      :abstractmethod:
+
+
+
+   .. py:method:: _introduce_model(champion_response_percentage: float)
+      :abstractmethod:
+
+
+
+   .. py:method:: _check_then_update(champion_response_percentage: float)
+      :abstractmethod:
+
+
+
+.. py:class:: Model(client, *, modelId: str, label: str, modelType: str, status: str, componentName: str | None = None, source: str | None = None, lastUpdateTime: str | None = None, modelingTechnique: str | None = None, updatedBy: str | None = None)
+
+   Bases: :py:obj:`_ModelMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncModel(client, *, modelId: str, label: str, modelType: str, status: str, componentName: str | None = None, source: str | None = None, lastUpdateTime: str | None = None, modelingTechnique: str | None = None, updatedBy: str | None = None)
+
+   Bases: :py:obj:`_ModelMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
+
+   Bases: :py:obj:`_PredictionMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: Notification(client, *, description: str, modelType: str, notificationID: str, notificationType: str, notificationMnemonic: str, context: str, impact: str, triggerTime: str, modelID: str | None = None, predictionID: str | None = None)
+
+   Bases: :py:obj:`_NotificationMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncNotification(client, *, description: str, modelType: str, notificationID: str, notificationType: str, notificationMnemonic: str, context: str, impact: str, triggerTime: str, modelID: str | None = None, predictionID: str | None = None)
+
+   Bases: :py:obj:`_NotificationMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: Repository(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_RepositoryMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncRepository(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_RepositoryMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: DataMartExport(client, **kwargs)
+
+   Bases: :py:obj:`_DataMartExportMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncDataMartExport(client, **kwargs)
+
+   Bases: :py:obj:`_DataMartExportMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: PredictionStudioBase(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncPredictionStudioBase(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: ChampionChallenger(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_ChampionChallengerMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:class:: AsyncChampionChallenger(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_ChampionChallengerMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+

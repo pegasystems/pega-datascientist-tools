@@ -1,0 +1,1417 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.adm.Aggregates" href="../Aggregates/index.html"><link rel="prev" title="pdstools.adm.ADMDatamart" href="../ADMDatamart/index.html">
+        <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>pdstools.adm.ADMTrees - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.adm.ADMTrees</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../Schema/index.html">pdstools.adm.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/resources/index.html">pdstools.explanations.resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Plots/index.html">pdstools.ih.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/report_utils/index.html">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../_sources/autoapi/pdstools/adm/ADMTrees/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-pdstools.adm.ADMTrees">
+<span id="pdstools-adm-admtrees"></span><h1>pdstools.adm.ADMTrees<a class="headerlink" href="#module-pdstools.adm.ADMTrees" title="Link to this heading">¶</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.adm.ADMTrees.AGB" title="pdstools.adm.ADMTrees.AGB"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AGB</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTrees" title="pdstools.adm.ADMTrees.ADMTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADMTrees</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel" title="pdstools.adm.ADMTrees.ADMTreesModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADMTreesModel</span></code></a></p></td>
+<td><p>Functions for ADM Gradient boosting</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees" title="pdstools.adm.ADMTrees.MultiTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTrees</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.AGB">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">AGB</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart" title="pdstools.adm.ADMDatamart.ADMDatamart"><span class="pre">pdstools.adm.ADMDatamart.ADMDatamart</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.AGB" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>datamart</strong> (<a class="reference internal" href="../ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart" title="pdstools.adm.ADMDatamart.ADMDatamart"><em>pdstools.adm.ADMDatamart.ADMDatamart</em></a>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.AGB.datamart">
+<span class="sig-name descname"><span class="pre">datamart</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.AGB.datamart" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.AGB.discover_model_types">
+<span class="sig-name descname"><span class="pre">discover_model_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.AGB.discover_model_types" title="Link to this definition">¶</a></dt>
+<dd><p>Discovers the type of model embedded in the pyModelData column.</p>
+<p>By default, we do a group_by Configuration, because a model rule can only
+contain one type of model. Then, for each configuration, we look into the
+pyModelData blob and find the _serialClass, returning it in a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The dataframe to search for model types</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The column to look for types in. Configuration is recommended.</p></li>
+<li><p><strong>allow_collect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default = False</em>) – set to True to allow discovering modelTypes, even if in lazy strategy.
+It will fetch one modelData string per configuration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.AGB.get_agb_models">
+<span class="sig-name descname"><span class="pre">get_agb_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTrees" title="pdstools.adm.ADMTrees.ADMTrees"><span class="pre">ADMTrees</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.AGB.get_agb_models" title="Link to this definition">¶</a></dt>
+<dd><p>Method to automatically extract AGB models.</p>
+<p>Recommended to subset using the querying functionality
+to cut down on execution time, because it checks for each
+model ID. If you only have AGB models remaining after the query,
+it will only return proper AGB models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default = False</em>) – Whether to only look at the last snapshot for each model</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>default = 'Configuration'</em>) – Which column to determine unique models with</p></li>
+<li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>default = 6</em>) – The number of threads to use for extracting the models.
+Since we use multithreading, setting this to a reasonable value
+helps speed up the import.</p></li>
+<li><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><em>pl.Expr</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>]</em><em>]</em><em>]</em>) – Please refer to <code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_query()</span></code></p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default = False</em>) – Whether to print out information while importing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTrees" title="pdstools.adm.ADMTrees.ADMTrees">ADMTrees</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTrees">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ADMTrees</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTrees" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTrees.get_multi_trees">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_multi_trees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTrees.get_multi_trees" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>polars.DataFrame</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ADMTreesModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel" title="Link to this definition">¶</a></dt>
+<dd><p>Functions for ADM Gradient boosting</p>
+<p>ADM Gradient boosting models consist of multiple trees,
+which build upon each other in a ‘boosting’ fashion.
+This class provides some functions to extract data from
+these trees, such as the features on which the trees split,
+important values for these features, statistics about the trees,
+or visualising each individual tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The input file as a json (see notes)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.trees">
+<span class="sig-name descname"><span class="pre">trees</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.trees" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.properties">
+<span class="sig-name descname"><span class="pre">properties</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.properties" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.learning_rate">
+<span class="sig-name descname"><span class="pre">learning_rate</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.learning_rate" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.model" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.treeStats">
+<span class="sig-name descname"><span class="pre">treeStats</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.treeStats" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.splitsPerTree">
+<span class="sig-name descname"><span class="pre">splitsPerTree</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.splitsPerTree" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.gainsPerTree">
+<span class="sig-name descname"><span class="pre">gainsPerTree</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.gainsPerTree" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.gainsPerSplit">
+<span class="sig-name descname"><span class="pre">gainsPerSplit</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.gainsPerSplit" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.groupedGainsPerSplit">
+<span class="sig-name descname"><span class="pre">groupedGainsPerSplit</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.groupedGainsPerSplit" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.predictors">
+<span class="sig-name descname"><span class="pre">predictors</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.predictors" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)">set</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.allValuesPerSplit">
+<span class="sig-name descname"><span class="pre">allValuesPerSplit</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.allValuesPerSplit" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<p>The input file is the extracted json file of the ‘save model’
+action in Prediction Studio. The Datamart column ‘pyModelData’
+also contains this information, but it is compressed and
+the values for each split is encoded. Using the ‘save model’
+button, only that data is decompressed and decoded.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.nospaces">
+<span class="sig-name descname"><span class="pre">nospaces</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.nospaces" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._read_model">
+<span class="sig-name descname"><span class="pre">_read_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._read_model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._decode_trees">
+<span class="sig-name descname"><span class="pre">_decode_trees</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._decode_trees" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._post_import_cleanup">
+<span class="sig-name descname"><span class="pre">_post_import_cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._post_import_cleanup" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._depth">
+<span class="sig-name descname"><span class="pre">_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._depth" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the depth of the tree, used in TreeStats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>d</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._safe_numeric_compare">
+<span class="sig-name descname"><span class="pre">_safe_numeric_compare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._safe_numeric_compare" title="Link to this definition">¶</a></dt>
+<dd><p>Safely compare two numeric values without using eval().</p>
+<p>This method replaces dangerous eval() calls with safe numeric comparisons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>left</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Left operand for comparison</p></li>
+<li><p><strong>operator</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Comparison operator as string (‘&lt;’, ‘&gt;’, ‘==’, ‘&lt;=’, ‘&gt;=’, ‘!=’)</p></li>
+<li><p><strong>right</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Right operand for comparison</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Result of the comparison</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If operator is not supported</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._safe_condition_evaluate">
+<span class="sig-name descname"><span class="pre">_safe_condition_evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">comparison_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._safe_condition_evaluate" title="Link to this definition">¶</a></dt>
+<dd><p>Safely evaluate conditions without using eval().</p>
+<p>This method replaces dangerous eval() calls with safe condition evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>Any</em>) – The value to test</p></li>
+<li><p><strong>operator</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The operator (‘in’, ‘&lt;’, ‘&gt;’, ‘==’)</p></li>
+<li><p><strong>comparison_set</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><em>set</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – The value or set to compare against</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Result of the condition evaluation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.metrics">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">metrics</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.metrics" title="Link to this definition">¶</a></dt>
+<dd><p>Compute CDH_ADM005-style diagnostic metrics for this model.</p>
+<p>Returns a flat dictionary of key/value pairs aligned with the
+CDH_ADM005 telemetry event specification.  Metrics that cannot be
+computed from an exported model (e.g. saturation counts that
+require bin-level data) are omitted.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Pega</span></code></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Metric name → value mapping.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.metric_descriptions">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">metric_descriptions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.metric_descriptions" title="Link to this definition">¶</a></dt>
+<dd><p>Return a dictionary mapping metric names to human-readable descriptions.</p>
+<p>These descriptions document every metric returned by the
+<a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.metrics" title="pdstools.adm.ADMTrees.ADMTreesModel.metrics"><code class="xref py py-attr docutils literal notranslate"><span class="pre">metrics</span></code></a> property. They can be used programmatically to
+annotate reports or plots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Metric name → one-line description.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._compute_metrics">
+<span class="sig-name descname"><span class="pre">_compute_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._compute_metrics" title="Link to this definition">¶</a></dt>
+<dd><p>Walk the trees once to gather all diagnostic metrics.</p>
+<p>For the full list of returned keys and their descriptions, see
+<a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.metric_descriptions" title="pdstools.adm.ADMTrees.ADMTreesModel.metric_descriptions"><code class="xref py py-meth docutils literal notranslate"><span class="pre">metric_descriptions()</span></code></a>.</p>
+<p>For exported (decoded) models, predictor types are inferred from
+split operators (<code class="docutils literal notranslate"><span class="pre">&lt;</span></code> → numeric, <code class="docutils literal notranslate"><span class="pre">in</span></code>/<code class="docutils literal notranslate"><span class="pre">==</span></code> → symbolic).
+For encoded models (from datamart blobs with <code class="docutils literal notranslate"><span class="pre">inputsEncoder</span></code>),
+the encoder metadata provides authoritative type information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._accumulate_gain">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_accumulate_gain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._accumulate_gain" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively accumulate gain per predictor variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>var_gain</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._get_encoder_info">
+<span class="sig-name descname"><span class="pre">_get_encoder_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._get_encoder_info" title="Link to this definition">¶</a></dt>
+<dd><p>Extract predictor metadata from the inputsEncoder if present.</p>
+<p>Returns a dict mapping predictor name to a dict with keys:
+- <code class="docutils literal notranslate"><span class="pre">type</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;numeric&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;symbolic&quot;</span></code>
+- <code class="docutils literal notranslate"><span class="pre">used_bins</span></code>: number of bins currently used
+- <code class="docutils literal notranslate"><span class="pre">max_bins</span></code>: maximum bins allowed (<code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown)</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> if no encoder metadata is available (e.g. for
+exported/decoded models).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, Any]] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id0">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictors</span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.tree_stats">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tree_stats</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.tree_stats" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.splits_per_tree">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">splits_per_tree</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.splits_per_tree" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.gains_per_tree">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">gains_per_tree</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.gains_per_tree" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.gains_per_split">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">gains_per_split</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.gains_per_split" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.grouped_gains_per_split">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">grouped_gains_per_split</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.grouped_gains_per_split" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.all_values_per_split">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">all_values_per_split</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.all_values_per_split" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.splits_per_variable_type">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">splits_per_variable_type</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.splits_per_variable_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values">
+<span class="sig-name descname"><span class="pre">parse_split_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values" title="Link to this definition">¶</a></dt>
+<dd><p>Parses the raw ‘split’ string into its three components.</p>
+<p>Once the split is parsed, Python can use it to evaluate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The raw ‘split’ string</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>tuple[str, str, str]</em></p></li>
+<li><p><em>The variable on which the split is done,</em></p></li>
+<li><p><em>The direction of the split (&lt; or ‘in’)</em></p></li>
+<li><p><em>The value on which to split</em></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values_with_spaces">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">parse_split_values_with_spaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values_with_spaces" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_predictors">
+<span class="sig-name descname"><span class="pre">get_predictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_predictors" title="Link to this definition">¶</a></dt>
+<dd><p>Extract predictor names and types from model metadata.</p>
+<p>Tries to find predictor metadata from the <code class="docutils literal notranslate"><span class="pre">configuration</span></code>
+section of the JSON.  Models exported via the Prediction Studio
+“Save Model” button include a <code class="docutils literal notranslate"><span class="pre">configuration</span></code> key with an
+explicit predictor list.  However, models exported in the newer
+format (e.g. via automated pipelines or newer Pega versions) may
+omit the <code class="docutils literal notranslate"><span class="pre">configuration</span></code> section entirely, containing only
+<code class="docutils literal notranslate"><span class="pre">type</span></code>, <code class="docutils literal notranslate"><span class="pre">modelVersion</span></code>, <code class="docutils literal notranslate"><span class="pre">algorithm</span></code>, <code class="docutils literal notranslate"><span class="pre">trainingStats</span></code>,
+<code class="docutils literal notranslate"><span class="pre">auc</span></code>, etc. at the top level.  In that case, predictor names
+and types are inferred from the tree split nodes instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._infer_predictors_from_splits">
+<span class="sig-name descname"><span class="pre">_infer_predictors_from_splits</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._infer_predictors_from_splits" title="Link to this definition">¶</a></dt>
+<dd><p>Infer predictor names and types from tree split nodes.</p>
+<p>When no explicit predictor metadata is available (e.g. in exported
+models without a <code class="docutils literal notranslate"><span class="pre">configuration</span></code> section), we walk the trees and
+derive predictor names from splits. The operator determines the
+type: <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> → numeric, <code class="docutils literal notranslate"><span class="pre">in</span></code>/<code class="docutils literal notranslate"><span class="pre">==</span></code> → symbolic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mapping of predictor name → type (“numeric” or “symbolic”).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_gains_per_split">
+<span class="sig-name descname"><span class="pre">get_gains_per_split</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_gains_per_split" title="Link to this definition">¶</a></dt>
+<dd><p>Function to compute the gains of each split in each tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>, polars.DataFrame]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_grouped_gains_per_split">
+<span class="sig-name descname"><span class="pre">get_grouped_gains_per_split</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_grouped_gains_per_split" title="Link to this definition">¶</a></dt>
+<dd><p>Function to get the gains per split, grouped by split.</p>
+<p>It adds some additional information, such as the possible values,
+the mean gains, and the number of times the split is performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_splits_recursively">
+<span class="sig-name descname"><span class="pre">get_splits_recursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_splits_recursively" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively finds splits and their gains for each node.</p>
+<p>By Python’s mutatable list mechanic, the easiest way to achieve
+this is to explicitly supply the function with empty lists.
+Therefore, the ‘splits’ and ‘gains’ parameter expect
+empty lists when initially called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>splits</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>)</p></li>
+<li><p><strong>gains</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>tuple[list, list]</em></p></li>
+<li><p><em>Each split, and its corresponding gain</em></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable">
+<span class="sig-name descname"><span class="pre">plot_splits_per_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable" title="Link to this definition">¶</a></dt>
+<dd><p>Plots the splits for each variable in the tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>subset</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><em>set</em></a><em>]</em>) – Optional parameter to subset the variables to plot</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether to display each plot</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plt.figure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_tree_stats">
+<span class="sig-name descname"><span class="pre">get_tree_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_tree_stats" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a dataframe with useful stats for each tree</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_all_values_per_split">
+<span class="sig-name descname"><span class="pre">get_all_values_per_split</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_all_values_per_split" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a dictionary with the possible values for each split</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_nodes_recursively">
+<span class="sig-name descname"><span class="pre">get_nodes_recursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodelist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_nodes_recursively" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively walks through each node, used for tree representation.</p>
+<p>Again, nodelist, counter and childs expects
+empty dict, dict and list parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>nodelist</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>counter</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>childs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>tuple[dict, list]</em></p></li>
+<li><p><em>The dictionary of nodes and the list of child nodes</em></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._fill_child_node_ids">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_fill_child_node_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodeinfo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._fill_child_node_ids" title="Link to this definition">¶</a></dt>
+<dd><p>Utility function to add child info to nodes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nodeinfo</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>childs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_tree_representation">
+<span class="sig-name descname"><span class="pre">get_tree_representation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_tree_representation" title="Link to this definition">¶</a></dt>
+<dd><p>Generates a more usable tree representation.</p>
+<p>In this tree representation, each node has an ID,
+and its attributes are the attributes,
+with parent and child nodes added as well.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_number</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The number of the tree, in order of the original json</p></li>
+<li><p><strong>returns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.plot_tree">
+<span class="sig-name descname"><span class="pre">plot_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlighted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pydot.Graph</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_tree" title="Link to this definition">¶</a></dt>
+<dd><p>Plots the chosen decision tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_number</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The number of the tree to visualise</p></li>
+<li><p><strong>highlighted</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>]</em>) – Optional parameter to highlight nodes in green
+If a dictionary, it expects an ‘x’: i.e., features
+with their corresponding values.
+If a list, expects a list of node IDs for that tree.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pydot.Graph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_visited_nodes">
+<span class="sig-name descname"><span class="pre">get_visited_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">treeID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_visited_nodes" title="Link to this definition">¶</a></dt>
+<dd><p>Finds all visited nodes for a given tree, given an x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>treeID</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The ID of the tree</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Features to split on, with their values</p></li>
+<li><p><strong>save_all</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default = False</em>) – Whether to save all gains for each individual split</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of visited nodes,
+The score of the final leaf node,
+The gains for each split in the visited nodes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.get_all_visited_nodes">
+<span class="sig-name descname"><span class="pre">get_all_visited_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_all_visited_nodes" title="Link to this definition">¶</a></dt>
+<dd><p>Loops through each tree, and records the scoring info</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Features to split on, with their values</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pl.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.score">
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.score" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the score for a given x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.plot_contribution_per_tree">
+<span class="sig-name descname"><span class="pre">plot_contribution_per_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_contribution_per_tree" title="Link to this definition">¶</a></dt>
+<dd><p>Plots the contribution of each tree towards the final propensity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.predictor_categorization">
+<span class="sig-name descname"><span class="pre">predictor_categorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.predictor_categorization" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.compute_categorization_over_time">
+<span class="sig-name descname"><span class="pre">compute_categorization_over_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.compute_categorization_over_time" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable_type">
+<span class="sig-name descname"><span class="pre">plot_splits_per_variable_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor_categorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">MultiTrees</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees" title="Link to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.trees">
+<span class="sig-name descname"><span class="pre">trees</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.trees" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.model_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.context_keys">
+<span class="sig-name descname"><span class="pre">context_keys</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.context_keys" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.__getitem__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.__len__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.__add__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.first">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">first</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.first" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.last">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">last</span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.last" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMTrees.MultiTrees.compute_over_time">
+<span class="sig-name descname"><span class="pre">compute_over_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor_categorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.MultiTrees.compute_over_time" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../Aggregates/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">pdstools.adm.Aggregates</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../ADMDatamart/index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">pdstools.adm.ADMDatamart</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools.adm.ADMTrees</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.AGB"><code class="docutils literal notranslate"><span class="pre">AGB</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.AGB.datamart"><code class="docutils literal notranslate"><span class="pre">datamart</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.AGB.discover_model_types"><code class="docutils literal notranslate"><span class="pre">discover_model_types()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.AGB.get_agb_models"><code class="docutils literal notranslate"><span class="pre">get_agb_models()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTrees"><code class="docutils literal notranslate"><span class="pre">ADMTrees</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTrees.get_multi_trees"><code class="docutils literal notranslate"><span class="pre">get_multi_trees()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.trees"><code class="docutils literal notranslate"><span class="pre">trees</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.properties"><code class="docutils literal notranslate"><span class="pre">properties</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.learning_rate"><code class="docutils literal notranslate"><span class="pre">learning_rate</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.model"><code class="docutils literal notranslate"><span class="pre">model</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.treeStats"><code class="docutils literal notranslate"><span class="pre">treeStats</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.splitsPerTree"><code class="docutils literal notranslate"><span class="pre">splitsPerTree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.gainsPerTree"><code class="docutils literal notranslate"><span class="pre">gainsPerTree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.gainsPerSplit"><code class="docutils literal notranslate"><span class="pre">gainsPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.groupedGainsPerSplit"><code class="docutils literal notranslate"><span class="pre">groupedGainsPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.predictors"><code class="docutils literal notranslate"><span class="pre">predictors</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.allValuesPerSplit"><code class="docutils literal notranslate"><span class="pre">allValuesPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.nospaces"><code class="docutils literal notranslate"><span class="pre">nospaces</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._read_model"><code class="docutils literal notranslate"><span class="pre">_read_model()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._decode_trees"><code class="docutils literal notranslate"><span class="pre">_decode_trees()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._post_import_cleanup"><code class="docutils literal notranslate"><span class="pre">_post_import_cleanup()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._depth"><code class="docutils literal notranslate"><span class="pre">_depth()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._safe_numeric_compare"><code class="docutils literal notranslate"><span class="pre">_safe_numeric_compare()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._safe_condition_evaluate"><code class="docutils literal notranslate"><span class="pre">_safe_condition_evaluate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.metrics"><code class="docutils literal notranslate"><span class="pre">metrics</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.metric_descriptions"><code class="docutils literal notranslate"><span class="pre">metric_descriptions()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._compute_metrics"><code class="docutils literal notranslate"><span class="pre">_compute_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._accumulate_gain"><code class="docutils literal notranslate"><span class="pre">_accumulate_gain()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._get_encoder_info"><code class="docutils literal notranslate"><span class="pre">_get_encoder_info()</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">predictors</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.tree_stats"><code class="docutils literal notranslate"><span class="pre">tree_stats</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.splits_per_tree"><code class="docutils literal notranslate"><span class="pre">splits_per_tree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.gains_per_tree"><code class="docutils literal notranslate"><span class="pre">gains_per_tree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.gains_per_split"><code class="docutils literal notranslate"><span class="pre">gains_per_split</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.grouped_gains_per_split"><code class="docutils literal notranslate"><span class="pre">grouped_gains_per_split</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.all_values_per_split"><code class="docutils literal notranslate"><span class="pre">all_values_per_split</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.splits_per_variable_type"><code class="docutils literal notranslate"><span class="pre">splits_per_variable_type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values"><code class="docutils literal notranslate"><span class="pre">parse_split_values()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.parse_split_values_with_spaces"><code class="docutils literal notranslate"><span class="pre">parse_split_values_with_spaces()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_predictors"><code class="docutils literal notranslate"><span class="pre">get_predictors()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._infer_predictors_from_splits"><code class="docutils literal notranslate"><span class="pre">_infer_predictors_from_splits()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_gains_per_split"><code class="docutils literal notranslate"><span class="pre">get_gains_per_split()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_grouped_gains_per_split"><code class="docutils literal notranslate"><span class="pre">get_grouped_gains_per_split()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_splits_recursively"><code class="docutils literal notranslate"><span class="pre">get_splits_recursively()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable"><code class="docutils literal notranslate"><span class="pre">plot_splits_per_variable()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_tree_stats"><code class="docutils literal notranslate"><span class="pre">get_tree_stats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_all_values_per_split"><code class="docutils literal notranslate"><span class="pre">get_all_values_per_split()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_nodes_recursively"><code class="docutils literal notranslate"><span class="pre">get_nodes_recursively()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel._fill_child_node_ids"><code class="docutils literal notranslate"><span class="pre">_fill_child_node_ids()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_tree_representation"><code class="docutils literal notranslate"><span class="pre">get_tree_representation()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_tree"><code class="docutils literal notranslate"><span class="pre">plot_tree()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_visited_nodes"><code class="docutils literal notranslate"><span class="pre">get_visited_nodes()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.get_all_visited_nodes"><code class="docutils literal notranslate"><span class="pre">get_all_visited_nodes()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.score"><code class="docutils literal notranslate"><span class="pre">score()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_contribution_per_tree"><code class="docutils literal notranslate"><span class="pre">plot_contribution_per_tree()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.predictor_categorization"><code class="docutils literal notranslate"><span class="pre">predictor_categorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.compute_categorization_over_time"><code class="docutils literal notranslate"><span class="pre">compute_categorization_over_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.ADMTreesModel.plot_splits_per_variable_type"><code class="docutils literal notranslate"><span class="pre">plot_splits_per_variable_type()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees"><code class="docutils literal notranslate"><span class="pre">MultiTrees</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.trees"><code class="docutils literal notranslate"><span class="pre">trees</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.model_name"><code class="docutils literal notranslate"><span class="pre">model_name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.context_keys"><code class="docutils literal notranslate"><span class="pre">context_keys</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.__repr__"><code class="docutils literal notranslate"><span class="pre">__repr__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.__getitem__"><code class="docutils literal notranslate"><span class="pre">__getitem__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.__len__"><code class="docutils literal notranslate"><span class="pre">__len__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.first"><code class="docutils literal notranslate"><span class="pre">first</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.last"><code class="docutils literal notranslate"><span class="pre">last</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMTrees.MultiTrees.compute_over_time"><code class="docutils literal notranslate"><span class="pre">compute_over_time()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../_static/documentation_options.js?v=3304f9e4"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    </body>
+</html>

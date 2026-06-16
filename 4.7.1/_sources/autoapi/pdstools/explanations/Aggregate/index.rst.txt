@@ -1,0 +1,275 @@
+pdstools.explanations.Aggregate
+===============================
+
+.. py:module:: pdstools.explanations.Aggregate
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Aggregate.Aggregate
+
+
+Module Contents
+---------------
+
+.. py:class:: Aggregate(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   .. py:attribute:: dependencies
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: data_folderpath
+
+
+   .. py:attribute:: data_pattern
+      :value: None
+
+
+
+   .. py:attribute:: df_contextual
+      :value: None
+
+
+
+   .. py:attribute:: df_overall
+      :value: None
+
+
+
+   .. py:attribute:: context_operations
+
+
+   .. py:attribute:: initialized
+      :value: False
+
+
+
+   .. py:method:: get_df_contextual() -> polars.LazyFrame
+
+      Get the contextual dataframe, loading it if not already loaded.
+
+
+
+   .. py:method:: get_df_overall() -> polars.LazyFrame
+
+      Get the overall dataframe, loading it if not already loaded.
+
+
+
+   .. py:method:: get_predictor_contributions(context: dict[str, str] | None = None, top_n: int = defaults.top_n, **filter_kwargs)
+
+      Get the top-n predictor contributions for a given context or overall.
+
+      Args:
+          context (Optional[dict[str, str]]):
+              The context to filter contributions by.
+              If None, contributions for all contexts will be returned.
+          top_n (int):
+              Number of top predictors.
+          **filter_kwargs:
+              Optional filtering and sorting controls. Valid keys:
+
+              - ``sort_by`` (str): Column to rank/select top predictors.
+                Options: ``contribution``, ``contribution_abs``,
+                ``contribution_weighted``, ``contribution_weighted_abs``.
+                Default: ``"contribution_abs"``.
+              - ``descending`` (bool): Sort most- or least-impactful first.
+                Default: ``True``.
+              - ``missing`` (bool): Include missing-value bins. Default: ``True``.
+              - ``remaining`` (bool): Include an aggregated "remaining" row for
+                predictors outside the top-n. Default: ``True``.
+              - ``include_numeric_single_bin`` (bool): Include numeric predictors
+                that have only a single bin. Default: ``False``.
+
+
+
+   .. py:method:: get_predictor_value_contributions(predictors: list[str], context: dict[str, str] | None = None, top_k: int = defaults.top_k, **filter_kwargs)
+
+      Get the top-k predictor value contributions for a given context or overall.
+
+      Args:
+          predictors (list[str]): Required.
+              list of predictors to get the contributions for.
+          context (Optional[dict[str, str]]):
+              The context to filter contributions by.
+              If None, contributions for all contexts will be returned.
+          top_k (int):
+              Number of unique categorical predictor values to return.
+          **filter_kwargs:
+              Optional filtering and sorting controls. Valid keys:
+
+              - ``sort_by`` (str): Column to rank/select top predictors.
+                Options: ``contribution``, ``contribution_abs``,
+                ``contribution_weighted``, ``contribution_weighted_abs``.
+                Default: ``"contribution_abs"``.
+              - ``descending`` (bool): Sort most- or least-impactful first.
+                Default: ``True``.
+              - ``missing`` (bool): Include missing-value bins. Default: ``True``.
+              - ``remaining`` (bool): Include an aggregated "remaining" row for
+                values outside the top-k. Default: ``True``.
+              - ``include_numeric_single_bin`` (bool): Include numeric predictors
+                that have only a single bin. Default: ``False``.
+
+
+
+   .. py:method:: validate_folder()
+
+      Check if the aggregates folder exists.
+
+      Raises:
+          FileNotFoundError: If the aggregates folder does not exist or is empty.
+
+
+
+
+   .. py:method:: get_unique_contexts_list(context_infos: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None, with_partition_col: bool = False) -> list[pdstools.explanations.ExplanationsUtils.ContextInfo]
+
+
+   .. py:method:: _load_data()
+
+
+   .. py:method:: _get_predictor_contributions(contexts: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None, predictors: list[str] | None = None, limit: int = defaults.top_n, descending: bool = defaults.descending, missing: bool = defaults.missing, remaining: bool = defaults.remaining, include_numeric_single_bin: bool = defaults.include_numeric_single_bin, sort_by: str = defaults.sort_by.value) -> polars.DataFrame
+
+
+   .. py:method:: _get_predictor_value_contributions(contexts: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None, predictors: list[str] | None = None, limit: int = defaults.top_k, descending: bool = defaults.descending, missing: bool = defaults.missing, remaining: bool = defaults.remaining, include_numeric_single_bin: bool = defaults.include_numeric_single_bin, sort_by: str = defaults.sort_by.value) -> polars.DataFrame
+
+
+   .. py:method:: _get_df_with_sort_info(df: polars.LazyFrame, sort_by: str = defaults.sort_by.value) -> polars.LazyFrame
+
+      Add a sort column and value to the dataframe based on the predictor type.
+      # Sort logic:
+      #  - numeric predictors are sorted by bin order
+      #  - symbolic predictors are sorted by contribution type
+
+
+
+   .. py:method:: _filter_for_predictors(df: polars.LazyFrame, predictors: list[str]) -> polars.LazyFrame
+
+
+   .. py:method:: _get_df_with_top_limit(df: polars.LazyFrame, over: list[str], sort_by: str = defaults.sort_by.value, limit: int = defaults.top_k, descending: bool = defaults.descending) -> polars.LazyFrame
+
+      Return the top `limit` rows per group, ranked by `sort_by`.
+
+      For each unique combination of values in `over`, keeps only the `limit`
+      rows with the highest (or lowest) value in `sort_by`.
+
+      When `descending=True` (the default), the rows with the **largest**
+      values are kept — i.e. the most impactful contributions rise to the top.
+      When `descending=False`, the rows with the **smallest** values are kept
+      instead, which is useful when selecting the least influential predictors.
+
+      Note: Polars' `top_k_by` uses a `reverse` parameter whose semantics are
+      the **opposite** of `descending`. `reverse=False` returns the k largest
+      values, while `reverse=True` returns the k smallest. To keep the
+      caller-facing API intuitive (`descending=True` → largest values), we
+      pass `reverse=not descending` to Polars internally.
+
+
+
+   .. py:method:: _get_missing_predictor_values_df(df: polars.LazyFrame) -> polars.LazyFrame
+
+
+   .. py:method:: _get_df(contexts: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None)
+
+
+   .. py:method:: _get_base_df(df_filtered_contexts: polars.DataFrame | None = None) -> polars.LazyFrame
+
+
+   .. py:method:: _get_group_by_columns(predictors: list[str] | None = None) -> list[str]
+
+
+   .. py:method:: _get_sort_over_columns(predictors: list[str] | None = None) -> list[str]
+
+
+   .. py:method:: _calculate_remaining_aggregates(df_all: polars.LazyFrame, df_anti: polars.LazyFrame, anti_on: list[str], frequency_over: list[str], aggregate_over: list[str]) -> polars.LazyFrame
+
+      Anti-join to isolate non-top rows, aggregate, and label as 'remaining'.
+
+
+
+   .. py:method:: _label_remaining(df: polars.LazyFrame, aggregate_over: list[str]) -> polars.LazyFrame
+      :staticmethod:
+
+
+      Add 'remaining' labels based on aggregation granularity.
+
+
+
+   .. py:method:: _calculate_aggregates(df: polars.LazyFrame, frequency_over: list[str], aggregate_over: list[str]) -> polars.LazyFrame
+
+      Enrich with total_frequency at frequency_over level, then aggregate at aggregate_over level.
+
+
+
+   .. py:method:: _add_total_frequency_to_df(df, group_by)
+      :staticmethod:
+
+
+
+   .. py:method:: add_frequency_pct_to_df(df, group_by)
+
+      Add a frequency percentage column to the dataframe based on the total frequency per group.
+
+
+
+   .. py:method:: _get_mean_aggregates()
+      :staticmethod:
+
+
+      Get mean contribution aggregates.
+
+
+
+   .. py:method:: _get_weighted_aggregates()
+      :staticmethod:
+
+
+      Get frequency-weighted contribution aggregates normalized by total frequency.
+
+
+
+   .. py:method:: _get_frequency_aggregate()
+      :staticmethod:
+
+
+      Get frequency sum aggregate.
+
+
+
+   .. py:method:: _get_bounds_aggregates()
+      :staticmethod:
+
+
+      Get min and max contribution bounds.
+
+
+
+   .. py:method:: _agg_over_columns_in_df(df, group_by)
+
+      Aggregate contribution metrics over specified columns.
+
+
+
+   .. py:method:: _filter_single_bin_numeric_predictors(df: polars.LazyFrame) -> polars.LazyFrame
+      :staticmethod:
+
+
+      Remove numeric predictors that have only a single non-missing bin.
+
+
+

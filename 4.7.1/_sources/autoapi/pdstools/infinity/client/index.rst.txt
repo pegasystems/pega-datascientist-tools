@@ -1,0 +1,64 @@
+pdstools.infinity.client
+========================
+
+.. py:module:: pdstools.infinity.client
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.client.Infinity
+   pdstools.infinity.client.AsyncInfinity
+
+
+Module Contents
+---------------
+
+.. py:class:: Infinity(*args, **kwargs)
+
+   Bases: :py:obj:`pdstools.infinity.internal._base_client.SyncAPIClient`
+
+
+   The Pega Infinity DX API client
+
+
+   .. py:attribute:: version
+      :type:  str
+
+
+   .. py:attribute:: knowledge_buddy
+
+
+   .. py:attribute:: _VERSION_DEPENDENT_RESOURCES
+
+
+   .. py:method:: __getattr__(name: str)
+
+
+.. py:class:: AsyncInfinity(*args, **kwargs)
+
+   Bases: :py:obj:`pdstools.infinity.internal._base_client.AsyncAPIClient`
+
+
+   The async Pega Infinity DX API client.
+
+   Provides the same functionality as :class:`Infinity` but with
+   native ``async``/``await`` support.  Resources expose ``async def``
+   methods that can be awaited directly.
+
+
+   .. py:attribute:: version
+      :type:  str
+
+
+   .. py:attribute:: knowledge_buddy
+
+
+   .. py:attribute:: _VERSION_DEPENDENT_RESOURCES
+
+
+   .. py:method:: __getattr__(name: str)
+
+

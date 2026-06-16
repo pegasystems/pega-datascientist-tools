@@ -1,0 +1,1038 @@
+pdstools.infinity.resources.prediction_studio.local_model_utils
+===============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.local_model_utils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.local_model_utils.logger
+   pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError
+   pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType
+   pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor
+   pdstools.infinity.resources.prediction_studio.local_model_utils.Output
+   pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata
+   pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel
+   pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel
+   pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: PEGA_METADATA
+   :value: 'pegaMetadata'
+
+
+.. py:class:: OutcomeType(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Create a collection of name/value pairs.
+
+   Example enumeration:
+
+   >>> class Color(Enum):
+   ...     RED = 1
+   ...     BLUE = 2
+   ...     GREEN = 3
+
+   Access them by:
+
+   - attribute access::
+
+   >>> Color.RED
+   <Color.RED: 1>
+
+   - value lookup:
+
+   >>> Color(1)
+   <Color.RED: 1>
+
+   - name lookup:
+
+   >>> Color['RED']
+   <Color.RED: 1>
+
+   Enumerations can be iterated over, and know how many members they have:
+
+   >>> len(Color)
+   3
+
+   >>> list(Color)
+   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
+
+   Methods can be added to enumerations, and members can have their own
+   attributes -- see the documentation for details.
+
+
+   .. py:attribute:: BINARY
+      :value: 'binary'
+
+
+
+   .. py:attribute:: CATEGORICAL
+      :value: 'categorical'
+
+
+
+   .. py:attribute:: CONTINUOUS
+      :value: 'continuous'
+
+
+
+.. py:class:: Predictor(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   A single predictor (feature) in an ONNX model.
+
+   **Automatic name derivation** — When *pega_property* is supplied
+   (e.g. ``".Customer.Age"``) and *name* is omitted, the predictor
+   ``name`` is automatically set to the leaf segment of the property
+   path (``"Age"``).  Pega Prediction Studio auto‑maps predictors by
+   matching ``name`` against its data‑model properties, so this
+   guarantees correct field mapping on upload without any manual work.
+
+   If *name* is provided explicitly it is always used as‑is.
+
+   .. seealso::
+
+      :py:obj:`Metadata.build_predictor_list`
+          Batch‑build predictors from a list of Pega property paths or plain feature names.
+
+
+   .. py:attribute:: name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: index
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: input_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: data_type
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: pega_property
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:method:: _derive_name_from_pega_property(data)
+      :classmethod:
+
+
+      Auto‑derive ``name`` from the leaf of ``pega_property``.
+
+      Runs before individual field validators so that every
+      downstream validator already sees a resolved ``name``.
+
+
+
+   .. py:method:: validate_input_name(v)
+
+
+   .. py:method:: validate_name(v)
+
+
+   .. py:method:: validate_index(v)
+
+
+   .. py:method:: validate_data_type(v)
+
+
+.. py:class:: Output(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: possible_values
+      :type:  list[str | int | float]
+      :value: None
+
+
+
+   .. py:attribute:: label_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: score_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: min_value
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: max_value
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:method:: validate_label_name(v)
+
+
+.. py:class:: Metadata(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: type
+      :type:  OutcomeType | None
+      :value: None
+
+
+
+   .. py:attribute:: predictor_list
+      :type:  list[Predictor]
+      :value: None
+
+
+
+   .. py:attribute:: output
+      :type:  Output | None
+      :value: None
+
+
+
+   .. py:attribute:: modeling_technique
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: internal
+      :type:  bool | None
+      :value: None
+
+
+
+   .. py:attribute:: file_source
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: objective
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: rule_set
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: rule_set_version
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: predict_method_uses_name_value_pair
+      :type:  bool | None
+      :value: None
+
+
+
+   .. py:attribute:: model_version
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: created_by
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: created_date
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: last_modified_date
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: training_dataset
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: experiment_id
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: parent_model_id
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: baseline_auc
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: baseline_accuracy
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: performance_threshold
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:method:: validate_type(v, values)
+
+
+   .. py:method:: validate_output(v, values)
+
+
+   .. py:method:: to_json() -> str
+
+
+   .. py:method:: from_json(json_str: str) -> Metadata
+      :classmethod:
+
+
+
+   .. py:method:: build_predictor_list(features: list[str], input_name: str = 'features', *, data_types: list[str] | dict[str, str] | None = None) -> list[Predictor]
+      :staticmethod:
+
+
+      Build a predictor list from feature names or Pega property paths.
+
+      This is the **recommended** one‑liner for constructing
+      predictors.  Each entry in *features* can be:
+
+      * A **Pega property path** starting with ``"."``
+        (e.g. ``".Customer.Age"``).  The leaf segment becomes the
+        predictor ``name`` (``"Age"``) and the full path is stored as
+        ``pega_property`` so Pega Prediction Studio auto‑maps the
+        field on upload.
+      * A **plain feature name** (e.g. ``"Age"``).  Used as‑is for
+        ``name``; ``pega_property`` is left unset.
+
+      Indices are assigned automatically (1‑based) in the order the
+      features appear.
+
+      :param features: Ordered list of feature identifiers.  The order **must**
+                       match the column order in the ONNX input tensor.  Accepts
+                       any mix of plain names and Pega property paths.
+      :param input_name: Name of the ONNX input node.  Default ``"features"``.
+      :param data_types: Optional type annotations for features.  Accepts either:
+
+                         * A **list** of ``"Numeric"`` / ``"Symbolic"`` values,
+                           one per feature (must match *features* length).
+                         * A **dict** mapping feature *names* (the leaf segment for
+                           Pega paths) to ``"Numeric"`` or ``"Symbolic"``.  Only the
+                           features present in the dict are overridden; the rest
+                           default to ``"Numeric"``.
+
+                         When ``None`` every feature defaults to ``"Numeric"``.
+
+      :rtype: list[Predictor]
+
+      .. rubric:: Examples
+
+      >>> # Using Pega property paths (recommended for auto-mapping):
+      >>> Metadata.build_predictor_list(
+      ...     [".Customer.Age", ".Customer.Tenure", ".Customer.MonthlyCharges"],
+      ... )  # doctest: +SKIP
+
+      >>> # Using plain feature names:
+      >>> Metadata.build_predictor_list(["Age", "Tenure", "MonthlyCharges"])
+      ... # doctest: +SKIP
+
+      >>> # Sparse overrides via dict:
+      >>> Metadata.build_predictor_list(
+      ...     [".Customer.Age", ".Customer.ContractType"],
+      ...     data_types={"ContractType": "Symbolic"},
+      ... )  # doctest: +SKIP
+
+
+
+   .. py:method:: _convert_keys(data: dict, conversion_func) -> dict
+      :staticmethod:
+
+
+
+   .. py:method:: _to_snake_case(string: str) -> str
+      :staticmethod:
+
+
+
+   .. py:method:: _to_camel_case(string: str) -> str
+      :staticmethod:
+
+
+
+   .. py:class:: _ONNXMetadataEncoder(*, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, sort_keys=False, indent=None, separators=None, default=None)
+
+      Bases: :py:obj:`json.JSONEncoder`
+
+
+      Extensible JSON <https://json.org> encoder for Python data structures.
+
+      Supports the following objects and types by default:
+
+      +-------------------+---------------+
+      | Python            | JSON          |
+      +===================+===============+
+      | dict              | object        |
+      +-------------------+---------------+
+      | list, tuple       | array         |
+      +-------------------+---------------+
+      | str               | string        |
+      +-------------------+---------------+
+      | int, float        | number        |
+      +-------------------+---------------+
+      | True              | true          |
+      +-------------------+---------------+
+      | False             | false         |
+      +-------------------+---------------+
+      | None              | null          |
+      +-------------------+---------------+
+
+      To extend this to recognize other objects, subclass and implement a
+      ``.default()`` method with another method that returns a serializable
+      object for ``o`` if possible, otherwise it should call the superclass
+      implementation (to raise ``TypeError``).
+
+
+
+      .. py:method:: default(o)
+
+         Implement this method in a subclass such that it returns
+         a serializable object for ``o``, or calls the base implementation
+         (to raise a ``TypeError``).
+
+         For example, to support arbitrary iterators, you could
+         implement default like this::
+
+             def default(self, o):
+                 try:
+                     iterable = iter(o)
+                 except TypeError:
+                     pass
+                 else:
+                     return list(iterable)
+                 # Let the base class default method raise the TypeError
+                 return super().default(o)
+
+
+
+
+
+   .. py:method:: _strip_empty(data)
+      :staticmethod:
+
+
+      Recursively remove keys whose value is ``[]``.
+
+
+
+.. py:exception:: ONNXModelCreationError
+
+   Bases: :py:obj:`Exception`
+
+
+   Exception for errors during ONNX conversion and save.
+
+
+.. py:exception:: ONNXModelValidationError
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.ModelValidationError`
+
+
+   Exception for errors during ONNX validation.
+
+
+.. py:class:: PMMLModel(file_path: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: file_path
+      :type:  str
+
+
+   .. py:method:: get_file_path() -> str
+
+      Returns the file path of the model.
+
+      :returns: **str**
+      :rtype: The file path of the model.
+
+
+
+.. py:class:: H2OModel(file_path: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: file_path
+      :type:  str
+
+
+   .. py:method:: get_file_path() -> str
+
+      Returns the file path of the model.
+
+      :returns: **str**
+      :rtype: The file path of the model.
+
+
+
+.. py:class:: ONNXModel(model: onnx.ModelProto)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
+
+
+   !!! abstract "Usage Documentation"
+       [Models](../concepts/models.md)
+
+   A base class for creating Pydantic models.
+
+   Attributes:
+       __class_vars__: The names of the class variables defined on the model.
+       __private_attributes__: Metadata about the private attributes of the model.
+       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+       __pydantic_core_schema__: The core schema of the model.
+       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+       __pydantic_decorators__: Metadata containing the decorators defined on the model.
+           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+       __pydantic_post_init__: The name of the post-init method for the model, if defined.
+       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+           is set to `'allow'`.
+       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+       __pydantic_private__: Values of private attributes set on the model instance.
+
+
+   .. py:attribute:: _model
+      :type:  onnx.ModelProto
+
+
+   .. py:method:: from_onnx_proto(model: onnx.ModelProto) -> ONNXModel
+      :classmethod:
+
+
+      Creates an ONNXModel object.
+
+      :param model: An onnx ModelProto object
+      :type model: ModelProto
+
+      :returns: An instance of the ONNXModel class.
+      :rtype: ONNXModel
+
+      :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.
+      :raises ONNXModelCreationError: If the ONNXModel object cannot be created.
+
+
+
+   .. py:method:: from_sklearn_pipeline(model: sklearn.pipeline.Pipeline, initial_types: list) -> ONNXModel
+      :classmethod:
+
+
+      Creates an ONNXModel object.
+
+      :param model: A sklearn Pipeline object
+      :type model: Pipeline
+      :param initial_types: A list of initial types for the model's input variables if the model is a Sklearn Pipeline object.
+      :type initial_types: list
+
+      :returns: An instance of the ONNXModel class.
+      :rtype: ONNXModel
+
+      :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.
+      :raises ONNXModelCreationError: If the ONNXModel object cannot be created.
+
+
+
+   .. py:method:: from_pytorch(model, dummy_input, *, input_names: list[str] | None = None, output_names: list[str] | None = None, opset_version: int = 17, fixed_batch_size: bool = True) -> ONNXModel
+      :classmethod:
+
+
+      Create an ONNXModel from a PyTorch ``nn.Module``.
+
+      The model is exported via ``torch.onnx.export`` with static shapes.
+      When *fixed_batch_size* is ``True`` (the default), any remaining
+      dynamic dimensions are replaced with a batch size of 1 so that the
+      resulting ONNX file is accepted by Pega Prediction Studio.
+
+      :param model: A PyTorch ``nn.Module`` (already in eval mode is recommended).
+      :param dummy_input: Example input tensor(s) matching the model's forward signature.
+      :param input_names: Optional list of ONNX input node names.  Defaults to ``["input"]``.
+      :param output_names: Optional list of ONNX output node names.  Defaults to ``["output"]``.
+      :param opset_version: ONNX opset version.  Default ``17``.
+      :param fixed_batch_size: Replace dynamic dimensions with batch size 1.
+
+      :rtype: ONNXModel
+
+      :raises ONNXModelCreationError: If PyTorch is not installed or the export fails.
+
+
+
+   .. py:method:: _fix_dynamic_shapes(proto: onnx.ModelProto, batch_size: int = 1) -> None
+      :staticmethod:
+
+
+      Replace dynamic (symbolic) dimensions with a fixed *batch_size*.
+
+      Pega Prediction Studio rejects ONNX models whose input or output
+      nodes contain symbolic dimension parameters (e.g. ``"batch"``).
+      This helper iterates every dimension on every input/output and
+      replaces symbolic dims with the given integer value.
+
+      :param proto: An ``onnx.ModelProto`` — **modified in place**.
+      :param batch_size: The integer value to substitute.  Default ``1``.
+
+
+
+   .. py:method:: get_metadata() -> Metadata | None
+
+      Return the embedded ``Metadata`` or ``None`` if absent.
+
+
+
+   .. py:method:: add_metadata(metadata: Metadata) -> ONNXModel
+
+      Adds metadata to the ONNX model.
+
+      :param metadata: The metadata to be added.
+      :type metadata: Meta
+
+      :returns: The ONNXModel object with the added metadata.
+      :rtype: ONNXModel
+
+      :raises ImportError: If the optional dependencies for ONNX Metadata addition are not installed.
+
+
+
+   .. py:method:: validate() -> bool
+
+      Validates an ONNX model.
+
+      :raises ImportError: If the optional dependencies for ONNX Validation are not installed.:
+      :raises ONNXModelValidationError: If the model is invalid or if the validation process fails.:
+
+
+
+   .. py:method:: run(test_data: dict)
+
+      Run the prediction using the provided test data.
+
+      :param test_data: The test data to be used for prediction. It is a dictionary where each key is a column name from the dataset, and each value is a NumPy array representing the column data as a vector. For example:
+
+                        {
+                            'column1': array([[value1], [value2], [value3]]),
+                            'column2': array([[value4], [value5], [value6]]),
+                            'column3': array([[value7], [value8], [value9]])
+                        }
+      :type test_data: dict
+
+      :returns: The prediction result.
+      :rtype: Any
+
+
+
+   .. py:method:: save(onnx_file_path: str)
+
+      Saves the ONNX model to the specified file path.
+
+      :param onnx_file_path: The file path where the ONNX model should be saved.
+      :type onnx_file_path: str
+
+      :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.:
+
+
+
+   .. py:method:: __check_for_valid_input_node_structure(error_stream, session, metadata) -> bool
+
+      Checks if the output node structure of the ONNX model is valid.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param session: The ONNX runtime session containing the model.
+      :type session: onnxruntime.InferenceSession
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if the output node structure is valid, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_input_nodes(error_stream, model_input_info, metadata) -> bool
+
+      Validates the input nodes of the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if the input nodes are valid, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __check_for_valid_output_node_structure(error_stream, session, metadata) -> bool
+
+      Checks if the output node structure of the ONNX model is valid.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param session: The ONNX runtime session containing the model.
+      :type session: onnxruntime.InferenceSession
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if the output node structure is valid, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_tensor_output_node_structure(error_stream, node_name, value_info) -> bool
+
+      Validates the tensor output node structure of the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param node_name: The name of the output node.
+      :type node_name: str
+      :param value_info: The value information of the output node.
+      :type value_info: Any
+
+      :returns: True if the output node is of type Tensor, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_label_output_node_exist(error_stream, model_output_info, metadata) -> bool
+
+      Validates the existence of the label output node in the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_output_info: A dictionary containing information about the model's output nodes.
+      :type model_output_info: dict
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if the label output node exists, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_input_node_dimensions(error_stream, model_input_info) -> bool
+
+      Validates the dimensions of the input nodes in the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+
+      :returns: True if all input nodes have valid dimensions, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_input_node_shapes(error_stream, model_input_info) -> bool
+
+      Validates the dimensions of the input nodes in the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+
+      :returns: True if all input nodes have valid dimensions, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_predictor_mappings(error_stream, model_input_info, metadata) -> bool
+
+      Validates the predictor mappings in the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if all predictor mappings are valid, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __validate_predictor_index_mappings(error_stream, metadata) -> bool
+
+      Validates the predictor index mappings in the ONNX model's metadata.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param metadata: The metadata associated with the model.
+      :type metadata: Meta
+
+      :returns: True if the predictor index mappings are valid, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __create_predictor_map(metadata)
+
+      Creates a mapping of input names to their corresponding predictors.
+
+      :param metadata: The metadata associated with the model, containing the predictor list.
+      :type metadata: Meta
+
+      :returns: A dictionary where the keys are input names and the values are lists of predictors.
+      :rtype: dict
+
+
+
+   .. py:method:: __validate_input_node_sizes(error_stream, model_input_info, metadata) -> bool
+
+      Validates the sizes of the input nodes in the ONNX model.
+
+      :param error_stream: The stream to which error messages are written.
+      :type error_stream: Any
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+      :param metadata: The metadata associated with the model, containing the predictor list.
+      :type metadata: Meta
+
+      :returns: True if all input nodes have valid sizes, False otherwise.
+      :rtype: bool
+
+
+
+   .. py:method:: __get_missing_predictors(model_input_info, predictor_input_names) -> str
+
+      Identifies the missing predictors in the ONNX model's input nodes.
+
+      :param model_input_info: A dictionary containing information about the model's input nodes.
+      :type model_input_info: dict
+      :param predictor_input_names: A list of predictor input names.
+      :type predictor_input_names: list
+
+      :returns: A comma-separated string of missing predictor names.
+      :rtype: str
+
+
+

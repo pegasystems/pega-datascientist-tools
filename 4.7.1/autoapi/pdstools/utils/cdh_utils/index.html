@@ -1,0 +1,1606 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.utils.color_mapping" href="../color_mapping/index.html"><link rel="prev" title="pdstools.utils" href="../index.html">
+        <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>pdstools.utils.cdh_utils - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMTrees/index.html">pdstools.adm.ADMTrees</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Schema/index.html">pdstools.adm.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/resources/index.html">pdstools.explanations.resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Plots/index.html">pdstools.ih.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" checked="" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../report_utils/index.html">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../_sources/autoapi/pdstools/utils/cdh_utils/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-pdstools.utils.cdh_utils">
+<span id="pdstools-utils-cdh-utils"></span><h1>pdstools.utils.cdh_utils<a class="headerlink" href="#module-pdstools.utils.cdh_utils" title="Link to this heading">¶</a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.logger" title="pdstools.utils.cdh_utils.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><code class="xref py py-obj docutils literal notranslate"><span class="pre">F</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.Figure" title="pdstools.utils.cdh_utils.Figure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Figure</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN" title="pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">POLARS_DURATION_PATTERN</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.is_valid_polars_duration" title="pdstools.utils.cdh_utils.is_valid_polars_duration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_valid_polars_duration</span></code></a>(→ bool)</p></td>
+<td><p>Validate Polars duration syntax.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._apply_query" title="pdstools.utils.cdh_utils._apply_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_query</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._combine_queries" title="pdstools.utils.cdh_utils._combine_queries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_combine_queries</span></code></a>(→ pdstools.utils.types.QUERY)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.default_predictor_categorization" title="pdstools.utils.cdh_utils.default_predictor_categorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_predictor_categorization</span></code></a>() → polars.Expr)</p></td>
+<td><p>Function to determine the 'category' of a predictor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._extract_keys" title="pdstools.utils.cdh_utils._extract_keys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_extract_keys</span></code></a>(→ F)</p></td>
+<td><p>Extracts keys out of the pyName column</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.parse_pega_date_time_formats" title="pdstools.utils.cdh_utils.parse_pega_date_time_formats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_pega_date_time_formats</span></code></a>(→ polars.Expr)</p></td>
+<td><p>Parses Pega DateTime formats.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
+<td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs" title="pdstools.utils.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ float)</p></td>
+<td><p>Calculates AUC from an array of truth values and predictions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="pdstools.utils.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates AUC from counts of positives and negatives directly</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="pdstools.utils.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ float)</p></td>
+<td><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_to_gini" title="pdstools.utils.cdh_utils.auc_to_gini"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_to_gini</span></code></a>(→ float)</p></td>
+<td><p>Convert AUC performance metric to GINI</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize" title="pdstools.utils.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list[str])</p></td>
+<td><p>Applies automatic capitalization, aligned with the R counterpart.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._polars_capitalize" title="pdstools.utils.cdh_utils._polars_capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_polars_capitalize</span></code></a>(→ F)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.from_prpc_date_time" title="pdstools.utils.cdh_utils.from_prpc_date_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_prpc_date_time</span></code></a>(→ datetime.datetime | str)</p></td>
+<td><p>Convert from a Pega date-time string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.to_prpc_date_time" title="pdstools.utils.cdh_utils.to_prpc_date_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_prpc_date_time</span></code></a>(→ str)</p></td>
+<td><p>Convert to a Pega date-time string</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_average_polars" title="pdstools.utils.cdh_utils.weighted_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_average_polars</span></code></a>(→ polars.Expr)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_performance_polars" title="pdstools.utils.cdh_utils.weighted_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_performance_polars</span></code></a>(→ polars.Expr)</p></td>
+<td><p>Polars function to return a weighted performance</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.overlap_matrix" title="pdstools.utils.cdh_utils.overlap_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overlap_matrix</span></code></a>(→ polars.DataFrame)</p></td>
+<td><p>Calculate the overlap of a list element with all other list elements returning a full matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.overlap_lists_polars" title="pdstools.utils.cdh_utils.overlap_lists_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overlap_lists_polars</span></code></a>(→ polars.Series)</p></td>
+<td><p>Calculate the average overlap ratio of each list element with all other list elements into a single Series.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.z_ratio" title="pdstools.utils.cdh_utils.z_ratio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">z_ratio</span></code></a>(, neg_col)</p></td>
+<td><p>Calculates the Z-Ratio for predictor bins.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.lift" title="pdstools.utils.cdh_utils.lift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lift</span></code></a>(, neg_col)</p></td>
+<td><p>Calculates the Lift for predictor bins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.bin_log_odds" title="pdstools.utils.cdh_utils.bin_log_odds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bin_log_odds</span></code></a>(→ list[float])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.log_odds_polars" title="pdstools.utils.cdh_utils.log_odds_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_odds_polars</span></code></a>(, negatives)</p></td>
+<td><p>Calculate log odds per bin with correct Laplace smoothing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.feature_importance" title="pdstools.utils.cdh_utils.feature_importance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">feature_importance</span></code></a>(→ polars.Expr)</p></td>
+<td><p>Calculate feature importance for Naive Bayes predictors.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._apply_schema_types" title="pdstools.utils.cdh_utils._apply_schema_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_schema_types</span></code></a>(→ F)</p></td>
+<td><p>This function is used to convert the data types of columns in a DataFrame to a desired types.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.gains_table" title="pdstools.utils.cdh_utils.gains_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gains_table</span></code></a>(df, value[, index, by])</p></td>
+<td><p>Calculates cumulative gains from any data frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.lazy_sample" title="pdstools.utils.cdh_utils.lazy_sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lazy_sample</span></code></a>(→ F)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order" title="pdstools.utils.cdh_utils.legend_color_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">legend_color_order</span></code></a>(fig)</p></td>
+<td><p>Orders legend colors alphabetically in order to provide pega color</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.process_files_to_bytes" title="pdstools.utils.cdh_utils.process_files_to_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_files_to_bytes</span></code></a>(→ tuple[bytes, str])</p></td>
+<td><p>Processes a list of file paths, returning file content as bytes and a corresponding file name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.get_latest_pdstools_version" title="pdstools.utils.cdh_utils.get_latest_pdstools_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_pdstools_version</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.setup_logger" title="pdstools.utils.cdh_utils.setup_logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_logger</span></code></a>()</p></td>
+<td><p>Returns a logger and log buffer in root level</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.create_working_and_temp_dir" title="pdstools.utils.cdh_utils.create_working_and_temp_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_working_and_temp_dir</span></code></a>(→ tuple[pathlib.Path, ...)</p></td>
+<td><p>Creates a working directory for saving files and a temp_dir</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_flatten_list" title="pdstools.utils.cdh_utils.safe_flatten_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_flatten_list</span></code></a>(→ list)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._get_start_end_date_args" title="pdstools.utils.cdh_utils._get_start_end_date_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_start_end_date_args</span></code></a>(data[, start_date, end_date, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._read_pdc" title="pdstools.utils.cdh_utils._read_pdc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_read_pdc</span></code></a>(pdc_data)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.logger" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.F">
+<span class="sig-name descname"><span class="pre">F</span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.F" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.Figure">
+<span class="sig-name descname"><span class="pre">Figure</span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.Figure" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN">
+<span class="sig-name descname"><span class="pre">POLARS_DURATION_PATTERN</span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.is_valid_polars_duration">
+<span class="sig-name descname"><span class="pre">is_valid_polars_duration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.is_valid_polars_duration" title="Link to this definition">¶</a></dt>
+<dd><p>Validate Polars duration syntax.</p>
+<p>Checks if a string is a valid Polars duration (e.g., “1d”, “1w”, “1mo”, “1h30m”).
+Used to validate user input before passing to Polars methods like dt.truncate()
+or group_by_dynamic().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The duration string to validate.</p></li>
+<li><p><strong>max_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>default 30</em>) – Maximum allowed string length (prevents excessive input).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the string is a valid Polars duration, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">is_valid_polars_duration</span><span class="p">(</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_valid_polars_duration</span><span class="p">(</span><span class="s2">&quot;1w&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_valid_polars_duration</span><span class="p">(</span><span class="s2">&quot;1h30m&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_valid_polars_duration</span><span class="p">(</span><span class="s2">&quot;invalid&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_valid_polars_duration</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._apply_query">
+<span class="sig-name descname"><span class="pre">_apply_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._apply_query" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_apply_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._combine_queries">
+<span class="sig-name descname"><span class="pre">_combine_queries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">existing_query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._combine_queries" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>existing_query</strong> (<a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>pdstools.utils.types.QUERY</em></a>)</p></li>
+<li><p><strong>new_query</strong> (<em>polars.Expr</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="../types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY">pdstools.utils.types.QUERY</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.default_predictor_categorization">
+<span class="sig-name descname"><span class="pre">default_predictor_categorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.default_predictor_categorization" title="Link to this definition">¶</a></dt>
+<dd><p>Function to determine the ‘category’ of a predictor.</p>
+<p>It is possible to supply a custom function.
+This function can accept an optional column as input
+And as output should be a Polars expression.
+The most straight-forward way to implement this is with
+pl.when().then().otherwise(), which you can chain.</p>
+<p>By default, this function returns “Primary” whenever
+there is no ‘.’ anywhere in the name string,
+otherwise returns the first string before the first period</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><em>default = pl.col</em><em>(</em><em>'PredictorName'</em><em>)</em>) – The column to parse</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._extract_keys">
+<span class="sig-name descname"><span class="pre">_extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capitalize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._extract_keys" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts keys out of the pyName column</p>
+<p>This is not a lazy operation as we don’t know the possible keys
+in advance. For that reason, we select only the key column,
+extract the keys from that, and then collect the resulting dataframe.
+This dataframe is then joined back to the original dataframe.</p>
+<p>This is relatively efficient, but we still do need the whole
+pyName column in memory to do this, so it won’t work completely
+lazily from e.g. s3. That’s why it only works with eager mode.</p>
+<p>The data in column for which the JSON is extract is normalized a
+little by taking out non-space, non-printable characters. Not just
+ASCII of course. This may be relatively expensive.</p>
+<p>JSON extraction only happens on the unique values so saves a lot
+of time with multiple snapshots of the same models, it also only
+processes rows for which the key column appears to be valid JSON.
+It will break when you “trick” it with malformed JSON.</p>
+<p>Column values for columns that are also encoded in the key column
+will be overwritten with values from the key column, but only for
+rows that are JSON. In previous versions all values were overwritten
+resulting in many nulls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p></li>
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The column with embedded JSON</p></li>
+<li><p><strong>capitalize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True (default) normalizes the names of the embedded columns
+otherwise keeps the names as-is.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F">F</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.parse_pega_date_time_formats">
+<span class="sig-name descname"><span class="pre">parse_pega_date_time_formats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SnapshotTime'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars._typing.PolarsTemporalType</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.Datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.parse_pega_date_time_formats" title="Link to this definition">¶</a></dt>
+<dd><p>Parses Pega DateTime formats.</p>
+<p>Supports commonly used formats:</p>
+<ul class="simple">
+<li><p>“%Y-%m-%d %H:%M:%S”</p></li>
+<li><p>“%Y%m%dT%H%M%S.%f %Z”</p></li>
+<li><p>“%d-%b-%y”</p></li>
+<li><p>“%d%b%Y:%H:%M:%S”</p></li>
+<li><p>“%Y%m%d”</p></li>
+</ul>
+<p>Removes timezones, and rounds to seconds, with a ‘ns’ time unit.</p>
+<p>In the implementation, the last expression uses timestamp_fmt or %Y.
+This is a bit of a hack, because if we pass None, it tries to infer automatically.
+Inferring raises when it can’t find an appropriate format, so that’s not good.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestampCol</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>default = 'SnapshotTime'</em>) – The column to parse</p></li>
+<li><p><strong>timestamp_fmt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>default = None</em>) – An optional format to use rather than the default formats</p></li>
+<li><p><strong>timestamp_dtype</strong> (<em>PolarsTemporalType</em><em>, </em><em>default = pl.Datetime</em>) – The data type to convert into. Can be either Date, Datetime, or Time.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_range_auc">
+<span class="sig-name descname"><span class="pre">safe_range_auc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.safe_range_auc" title="Link to this definition">¶</a></dt>
+<dd><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>auc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The AUC (Area Under the Curve) score</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>‘Safe’ AUC score, between 0.5 and 1.0</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.auc_from_probs">
+<span class="sig-name descname"><span class="pre">auc_from_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groundtruth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.auc_from_probs" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates AUC from an array of truth values and predictions.
+Calculates the area under the ROC curve from an array of truth values and
+predictions, making sure to always return a value between 0.5 and 1.0 and
+returns 0.5 when there is just one groundtruth label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>groundtruth</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – The ‘true’ values, Positive values must be represented as
+True or 1. Negative values must be represented as False or 0.</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – The predictions, as a numeric vector of the same length as groundtruth</p></li>
+<li><p><strong>Returns</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The AUC as a value between 0.5 and 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_probs</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.auc_from_bincounts">
+<span class="sig-name descname"><span class="pre">auc_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates AUC from counts of positives and negatives directly
+This is an efficient calculation of the area under the ROC curve directly from an array of positives
+and negatives. It makes sure to always return a value between 0.5 and 1.0
+and will return 0.5 when there is just one groundtruth label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Vector with counts of the positive responses</p></li>
+<li><p><strong>neg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Vector with counts of the negative responses</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The AUC as a value between 0.5 and 1.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_bincounts</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.aucpr_from_probs">
+<span class="sig-name descname"><span class="pre">aucpr_from_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groundtruth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+Calculates the area under the PR curve from an array of truth values and
+predictions. Returns 0.0 when there is just one groundtruth label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>groundtruth</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – The ‘true’ values, Positive values must be represented as
+True or 1. Negative values must be represented as False or 0.</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – The predictions, as a numeric vector of the same length as groundtruth</p></li>
+<li><p><strong>Returns</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The AUC as a value between 0.5 and 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_probs</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.aucpr_from_bincounts">
+<span class="sig-name descname"><span class="pre">aucpr_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">collections.abc.Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Series</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+This is an efficient calculation of the area under the PR curve directly from an
+array of positives and negatives. Returns 0.0 when there is just one
+groundtruth label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Vector with counts of the positive responses</p></li>
+<li><p><strong>neg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Vector with counts of the negative responses</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The PR AUC as a value between 0.0 and 1.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">aucpr_from_bincounts</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.auc_to_gini">
+<span class="sig-name descname"><span class="pre">auc_to_gini</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.auc_to_gini" title="Link to this definition">¶</a></dt>
+<dd><p>Convert AUC performance metric to GINI</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>auc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The AUC (number between 0.5 and 1)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>GINI metric, a number between 0 and 1</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc2GINI</span><span class="p">(</span><span class="mf">0.8232</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._capitalize">
+<span class="sig-name descname"><span class="pre">_capitalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">collections.abc.Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_endwords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">collections.abc.Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._capitalize" title="Link to this definition">¶</a></dt>
+<dd><p>Applies automatic capitalization, aligned with the R counterpart.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fields</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>) – A list of names</p></li>
+<li><p><strong>extra_endwords</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><em>collections.abc.Iterable</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fields</strong> – The input list, but each value properly capitalized</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The capitalize_endwords list contains atomic word parts that are commonly
+found in Pega field names. Compound words (like “ResponseCount”) don’t need
+to be listed separately because the algorithm processes words by length,
+allowing shorter components (“Response”, “Count”) to handle them.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._polars_capitalize">
+<span class="sig-name descname"><span class="pre">_polars_capitalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_endwords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">collections.abc.Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._polars_capitalize" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><em>F</em></a>)</p></li>
+<li><p><strong>extra_endwords</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><em>collections.abc.Iterable</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F">F</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.from_prpc_date_time">
+<span class="sig-name descname"><span class="pre">from_prpc_date_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_timezones</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.from_prpc_date_time" title="Link to this definition">¶</a></dt>
+<dd><p>Convert from a Pega date-time string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – String of Pega date-time</p></li>
+<li><p><strong>return_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default=False</em>) – If True it will return the date in string format. If
+False it will return in datetime type</p></li>
+<li><p><strong>use_timezones</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The converted date in datetime format or string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[<a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)">datetime.datetime</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fromPRPCDateTime</span><span class="p">(</span><span class="s2">&quot;20180316T134127.847 GMT&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fromPRPCDateTime</span><span class="p">(</span><span class="s2">&quot;20180316T134127.847 GMT&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fromPRPCDateTime</span><span class="p">(</span><span class="s2">&quot;20180316T184127.846&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fromPRPCDateTime</span><span class="p">(</span><span class="s2">&quot;20180316T184127.846&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.to_prpc_date_time">
+<span class="sig-name descname"><span class="pre">to_prpc_date_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.to_prpc_date_time" title="Link to this definition">¶</a></dt>
+<dd><p>Convert to a Pega date-time string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><em>datetime.datetime</em></a>) – A datetime object</p></li>
+<li><p><strong>dt</strong> (<a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><em>datetime.datetime</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A string representation in the format used by Pega</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">toPRPCDateTime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighted_average_polars">
+<span class="sig-name descname"><span class="pre">weighted_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighted_average_polars" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vals</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+<li><p><strong>weights</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighted_performance_polars">
+<span class="sig-name descname"><span class="pre">weighted_performance_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Performance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ResponseCount'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighted_performance_polars" title="Link to this definition">¶</a></dt>
+<dd><p>Polars function to return a weighted performance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vals</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+<li><p><strong>weights</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.overlap_matrix">
+<span class="sig-name descname"><span class="pre">overlap_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.overlap_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the overlap of a list element with all other list elements returning a full matrix.</p>
+<p>For each list in the specified column, this function calculates the overlap ratio (intersection size
+divided by the original list size) with every other list in the column, including itself. The result
+is a matrix where each row represents the overlap ratios for one list with all others.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The Polars DataFrame containing the list column and grouping column.</p></li>
+<li><p><strong>list_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The name of the column containing the lists. Each element in this column should be a list.</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The name of the column to use for grouping and labeling the rows in the result matrix.</p></li>
+<li><p><strong>show_fraction</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame where:
+- Each row represents the overlap ratios for one list with all others
+- Each column (except the last) represents the overlap ratio with a specific list
+- Column names are formatted as “Overlap_{list_col_name}_{by}”
+- The last column contains the original values from the ‘by’ column</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<span class="gp">... </span>    <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Mobile&quot;</span><span class="p">,</span> <span class="s2">&quot;Web&quot;</span><span class="p">,</span> <span class="s2">&quot;Email&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">&quot;Actions&quot;</span><span class="p">:</span> <span class="p">[</span>
+<span class="gp">... </span>        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="p">]</span>
+<span class="gp">... </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">overlap_matrix</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;Actions&quot;</span><span class="p">,</span> <span class="s2">&quot;Channel&quot;</span><span class="p">)</span>
+<span class="go">shape: (3, 4)</span>
+<span class="go">┌───────────────────┬───────────────┬───────────────┬─────────┐</span>
+<span class="go">│ Overlap_Actions_M… │ Overlap_Actio… │ Overlap_Actio… │ Channel │</span>
+<span class="go">│ ---               │ ---           │ ---           │ ---     │</span>
+<span class="go">│ f64               │ f64           │ f64           │ str     │</span>
+<span class="go">╞═══════════════════╪═══════════════╪═══════════════╪═════════╡</span>
+<span class="go">│ 1.0               │ 0.6666667     │ 0.3333333     │ Mobile  │</span>
+<span class="go">│ 0.5               │ 1.0           │ 0.25          │ Web     │</span>
+<span class="go">│ 0.25              │ 0.25          │ 1.0           │ Email   │</span>
+<span class="go">└───────────────────┴───────────────┴───────────────┴─────────┘</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.overlap_lists_polars">
+<span class="sig-name descname"><span class="pre">overlap_lists_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Series</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.overlap_lists_polars" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the average overlap ratio of each list element with all other list elements into a single Series.</p>
+<p>For each list in the input Series, this function calculates the average overlap (intersection)
+with all other lists, normalized by the size of the original list. The overlap ratio represents
+how much each list has in common with all other lists on average.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>col</strong> (<em>pl.Series</em>) – A Polars Series where each element is a list. The function will calculate
+the overlap between each list and all other lists in the Series.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A Polars Series of float values representing the average overlap ratio for each list.
+Each value is calculated as:
+(sum of intersection sizes with all other lists) / (number of other lists) / (size of original list)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.Series</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">overlap_lists_polars</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="go">shape: (3,)</span>
+<span class="go">Series: &#39;&#39; [f64]</span>
+<span class="go">[</span>
+<span class="go">    0.5</span>
+<span class="go">    0.375</span>
+<span class="go">    0.25</span>
+<span class="go">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;Channel&quot;</span> <span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Mobile&quot;</span><span class="p">,</span> <span class="s2">&quot;Web&quot;</span><span class="p">,</span> <span class="s2">&quot;Email&quot;</span><span class="p">],</span> <span class="s2">&quot;Actions&quot;</span> <span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">])})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Actions&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">map_batches</span><span class="p">(</span><span class="n">overlap_lists_polars</span><span class="p">))</span>
+<span class="go">shape: (3, 2)</span>
+<span class="go">┌─────────┬─────────┐</span>
+<span class="go">│ Channel │ Actions │</span>
+<span class="go">│ ---     │ ---     │</span>
+<span class="go">│ str     │ f64     │</span>
+<span class="go">╞═════════╪═════════╡</span>
+<span class="go">│ Mobile  │ 0.5     │</span>
+<span class="go">│ Web     │ 0.375   │</span>
+<span class="go">│ Email   │ 0.25    │</span>
+<span class="go">└─────────┴─────────┘</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.z_ratio">
+<span class="sig-name descname"><span class="pre">z_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinPositives')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinNegatives')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.z_ratio" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the Z-Ratio for predictor bins.</p>
+<p>The Z-ratio is a measure of how the propensity in a bin differs from the average,
+but takes into account the size of the bin and thus is statistically more relevant.
+It represents the number of standard deviations from the avreage,
+so centers around 0. The wider the spread, the better the predictor is.</p>
+<p>To recreate the OOTB ZRatios from the datamart, use in a group_by.
+See <cite>examples</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>posCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
+<li><p><strong>negCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
+<li><p><strong>pos_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+<li><p><strong>neg_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">zRatio</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.lift">
+<span class="sig-name descname"><span class="pre">lift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinPositives')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinNegatives')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.lift" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the Lift for predictor bins.</p>
+<p>The Lift is the ratio of the propensity in a particular bin over the average
+propensity. So a value of 1 is the average, larger than 1 means higher
+propensity, smaller means lower propensity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>posCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
+<li><p><strong>negCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
+<li><p><strong>pos_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+<li><p><strong>neg_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>polars.Expr</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">lift</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.bin_log_odds">
+<span class="sig-name descname"><span class="pre">bin_log_odds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bin_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.bin_log_odds" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bin_pos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>)</p></li>
+<li><p><strong>bin_neg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.log_odds_polars">
+<span class="sig-name descname"><span class="pre">log_odds_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positives</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('Positives')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negatives</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('ResponseCount')</span> <span class="pre">-</span> <span class="pre">pl.col('Positives')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.log_odds_polars" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate log odds per bin with correct Laplace smoothing.</p>
+<dl class="simple">
+<dt>Formula (per bin i in predictor p):</dt><dd><p>log(pos_i + 1/nBins) - log(sum(pos) + 1)
+- [log(neg_i + 1/nBins) - log(sum(neg) + 1)]</p>
+</dd>
+</dl>
+<p>Laplace smoothing uses 1/nBins where nBins is the number of bins
+for that specific predictor. This matches the platform implementation
+in GroupedPredictor.java.</p>
+<dl class="simple">
+<dt>Must be used with .over() to calculate nBins per predictor group:</dt><dd><p>.with_columns(log_odds_polars().over(“PredictorName”, “ModelID”))</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>positives</strong> (<em>pl.Expr</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column with positive response counts per bin</p></li>
+<li><p><strong>negatives</strong> (<em>pl.Expr</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column with negative response counts per bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Log odds expression (use with .over() for correct grouping)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.Expr</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#pdstools.utils.cdh_utils.feature_importance" title="pdstools.utils.cdh_utils.feature_importance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">feature_importance</span></code></a></dt><dd><p>Calculate predictor importance from log odds</p>
+</dd>
+<dt><a class="reference internal" href="#pdstools.utils.cdh_utils.bin_log_odds" title="pdstools.utils.cdh_utils.bin_log_odds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bin_log_odds</span></code></a></dt><dd><p>Pure Python version (reference implementation)</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>ADM Explained: Log Odds calculation section</p></li>
+<li><p>Issue #263: <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/issues/263">https://github.com/pegasystems/pega-datascientist-tools/issues/263</a></p></li>
+<li><p>Platform: GroupedPredictor.java lines 603-606</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># For propensity calculation in classifier</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">log_odds_polars</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="p">)</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">,</span> <span class="s2">&quot;ModelID&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.feature_importance">
+<span class="sig-name descname"><span class="pre">feature_importance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">over</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['PredictorName',</span> <span class="pre">'ModelID']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.feature_importance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate feature importance for Naive Bayes predictors.</p>
+<p>Feature importance represents the weighted average of absolute log odds
+values across all bins, weighted by bin response counts. This measures
+how strongly the predictor differentiates between positive and negative
+outcomes.</p>
+<p>Algorithm (matches platform GroupedPredictor.calculatePredictorImportance()):
+1. Calculate log odds per bin with Laplace smoothing (1/nBins)
+2. Take absolute value of each bin’s log odds
+3. Calculate weighted average: Sum(<a href="#id1"><span class="problematic" id="id2">|logOdds(bin)|</span></a> × binResponses) / totalResponses
+4. Optional: Scale to 0-100 range (scaled=True, default)</p>
+<p>This matches the Pega platform implementation in:
+adaptive-learning-core-lib/…/GroupedPredictor.java lines 371-382</p>
+<dl class="simple">
+<dt>Formula:</dt><dd><p>Feature Importance = Σ <a href="#id3"><span class="problematic" id="id4">|logOdds(bin)|</span></a> × (binResponses / totalResponses)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>over</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Grouping columns, default [“PredictorName”, “ModelID”]</p></li>
+<li><p><strong>scaled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default True</em>) – If True, scale importance to 0-100 where max predictor = 100</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Feature importance expression</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.Expr</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">feature_importance</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">,</span> <span class="s2">&quot;ModelID&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<p>This implementation matches the platform calculation exactly. Issue #263
+incorrectly suggested “diff from mean” based on R implementation, but
+the platform actually uses weighted average of absolute log odds.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#pdstools.utils.cdh_utils.log_odds_polars" title="pdstools.utils.cdh_utils.log_odds_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_odds_polars</span></code></a></dt><dd><p>Calculate per-bin log odds</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Issue #263: Calculation of Feature Importance incorrect</p></li>
+<li><p>Issue #404: Add feature importance explanation to ADM Explained</p></li>
+<li><p>Platform: GroupedPredictor.java calculatePredictorImportance()</p></li>
+<li><p>ADM Explained: Feature Importance section</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._apply_schema_types">
+<span class="sig-name descname"><span class="pre">_apply_schema_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">definition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">timestamp_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._apply_schema_types" title="Link to this definition">¶</a></dt>
+<dd><p>This function is used to convert the data types of columns in a DataFrame to a desired types.
+The desired types are defined in a <cite>PegaDefaultTables</cite> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The DataFrame whose columns’ data types need to be converted.</p></li>
+<li><p><strong>definition</strong> (<a class="reference internal" href="../table_definitions/index.html#pdstools.utils.table_definitions.PegaDefaultTables" title="pdstools.utils.table_definitions.PegaDefaultTables"><em>PegaDefaultTables</em></a>) – A <cite>PegaDefaultTables</cite> object that contains the desired data types for the columns.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, the function will print a message when a column is not in the default table schema.</p></li>
+<li><p><strong>timestamp_opts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Additional arguments for timestamp parsing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list with polars expressions for casting data types.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.gains_table">
+<span class="sig-name descname"><span class="pre">gains_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.gains_table" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates cumulative gains from any data frame.</p>
+<p>The cumulative gains are the cumulative values expressed
+as a percentage vs the size of the population, also expressed
+as a percentage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The (Polars) dataframe with the raw values</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The name of the field with the values (plotted on y-axis)</p></li>
+<li><p><strong>None</strong> (<em>by =</em>) – Optional name of the field for the x-axis. If not passed in
+all records are used and weighted equally.</p></li>
+<li><p><strong>None</strong> – Grouping field(s), can also be None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A (Polars) dataframe with cum_x and cum_y columns and optionally
+the grouping column(s). Values for cum_x and cum_y are relative
+so expressed as values 0-1.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">gains_data</span> <span class="o">=</span> <span class="n">gains_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s1">&#39;ResponseCount&#39;</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Channel&#39;</span><span class="p">,</span><span class="s1">&#39;Direction])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.lazy_sample">
+<span class="sig-name descname"><span class="pre">lazy_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><span class="pre">F</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.lazy_sample" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F"><em>F</em></a>)</p></li>
+<li><p><strong>n_rows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>with_replacement</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.utils.cdh_utils.F" title="pdstools.utils.cdh_utils.F">F</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.legend_color_order">
+<span class="sig-name descname"><span class="pre">legend_color_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.legend_color_order" title="Link to this definition">¶</a></dt>
+<dd><p>Orders legend colors alphabetically in order to provide pega color
+consistency among different categories</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.process_files_to_bytes">
+<span class="sig-name descname"><span class="pre">process_files_to_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><span class="pre">bytes</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.process_files_to_bytes" title="Link to this definition">¶</a></dt>
+<dd><p>Processes a list of file paths, returning file content as bytes and a corresponding file name.
+Useful for zipping muliple model reports and the byte object is used for downloading files in
+Streamlit app.</p>
+<p>This function handles three scenarios:
+1. Single file: Returns the file’s content as bytes and the provided base file name.
+2. Multiple files: Creates a zip file containing all files, returns the zip file’s content as bytes</p>
+<blockquote>
+<div><p>and a generated zip file name.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>No files: Returns empty bytes and an empty string.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>]</em>) – A list of file paths to process. Can be empty, contain a single path, or multiple paths.</p></li>
+<li><p><strong>base_file_name</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The base name to use for the output file. For a single file, this name is returned as is.
+For multiple files, this is used as part of the generated zip file name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing:
+- bytes: The content of the single file or the created zip file, or empty bytes if no files.
+- str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)">bytes</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.get_latest_pdstools_version">
+<span class="sig-name descname"><span class="pre">get_latest_pdstools_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.get_latest_pdstools_version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.setup_logger">
+<span class="sig-name descname"><span class="pre">setup_logger</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.setup_logger" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a logger and log buffer in root level</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.create_working_and_temp_dir">
+<span class="sig-name descname"><span class="pre">create_working_and_temp_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">os.PathLike</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.create_working_and_temp_dir" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a working directory for saving files and a temp_dir</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>working_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><em>os.PathLike</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)">pathlib.Path</a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)">pathlib.Path</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_flatten_list">
+<span class="sig-name descname"><span class="pre">safe_flatten_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.safe_flatten_list" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alist</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>)</p></li>
+<li><p><strong>extras</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._get_start_end_date_args">
+<span class="sig-name descname"><span class="pre">_get_start_end_date_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Series</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="(in Python v3.14)"><span class="pre">datetime.timedelta</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datetime_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SnapshotTime'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils._get_start_end_date_args" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>polars.Series</em><em> | </em><em>polars.LazyFrame</em><em> | </em><em>polars.DataFrame</em>)</p></li>
+<li><p><strong>start_date</strong> (<a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><em>datetime.datetime</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>end_date</strong> (<a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><em>datetime.datetime</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>window</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="(in Python v3.14)"><em>datetime.timedelta</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._read_pdc">
+<span class="sig-name descname"><span class="pre">_read_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdc_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils._read_pdc" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pdc_data</strong> (<em>polars.LazyFrame</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../color_mapping/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">pdstools.utils.color_mapping</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">pdstools.utils</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools.utils.cdh_utils</a><ul>
+<li><a class="reference internal" href="#attributes">Attributes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.F"><code class="docutils literal notranslate"><span class="pre">F</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.Figure"><code class="docutils literal notranslate"><span class="pre">Figure</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.POLARS_DURATION_PATTERN"><code class="docutils literal notranslate"><span class="pre">POLARS_DURATION_PATTERN</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.is_valid_polars_duration"><code class="docutils literal notranslate"><span class="pre">is_valid_polars_duration()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._apply_query"><code class="docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._combine_queries"><code class="docutils literal notranslate"><span class="pre">_combine_queries()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.default_predictor_categorization"><code class="docutils literal notranslate"><span class="pre">default_predictor_categorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._extract_keys"><code class="docutils literal notranslate"><span class="pre">_extract_keys()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.parse_pega_date_time_formats"><code class="docutils literal notranslate"><span class="pre">parse_pega_date_time_formats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs"><code class="docutils literal notranslate"><span class="pre">aucpr_from_probs()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="docutils literal notranslate"><span class="pre">aucpr_from_bincounts()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_to_gini"><code class="docutils literal notranslate"><span class="pre">auc_to_gini()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize"><code class="docutils literal notranslate"><span class="pre">_capitalize()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._polars_capitalize"><code class="docutils literal notranslate"><span class="pre">_polars_capitalize()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.from_prpc_date_time"><code class="docutils literal notranslate"><span class="pre">from_prpc_date_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.to_prpc_date_time"><code class="docutils literal notranslate"><span class="pre">to_prpc_date_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_average_polars"><code class="docutils literal notranslate"><span class="pre">weighted_average_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_performance_polars"><code class="docutils literal notranslate"><span class="pre">weighted_performance_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.overlap_matrix"><code class="docutils literal notranslate"><span class="pre">overlap_matrix()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.overlap_lists_polars"><code class="docutils literal notranslate"><span class="pre">overlap_lists_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.z_ratio"><code class="docutils literal notranslate"><span class="pre">z_ratio()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.lift"><code class="docutils literal notranslate"><span class="pre">lift()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.bin_log_odds"><code class="docutils literal notranslate"><span class="pre">bin_log_odds()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.log_odds_polars"><code class="docutils literal notranslate"><span class="pre">log_odds_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.feature_importance"><code class="docutils literal notranslate"><span class="pre">feature_importance()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._apply_schema_types"><code class="docutils literal notranslate"><span class="pre">_apply_schema_types()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.gains_table"><code class="docutils literal notranslate"><span class="pre">gains_table()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.lazy_sample"><code class="docutils literal notranslate"><span class="pre">lazy_sample()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order"><code class="docutils literal notranslate"><span class="pre">legend_color_order()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.process_files_to_bytes"><code class="docutils literal notranslate"><span class="pre">process_files_to_bytes()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.get_latest_pdstools_version"><code class="docutils literal notranslate"><span class="pre">get_latest_pdstools_version()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.setup_logger"><code class="docutils literal notranslate"><span class="pre">setup_logger()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.create_working_and_temp_dir"><code class="docutils literal notranslate"><span class="pre">create_working_and_temp_dir()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_flatten_list"><code class="docutils literal notranslate"><span class="pre">safe_flatten_list()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._get_start_end_date_args"><code class="docutils literal notranslate"><span class="pre">_get_start_end_date_args()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._read_pdc"><code class="docutils literal notranslate"><span class="pre">_read_pdc()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../_static/documentation_options.js?v=3304f9e4"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    </body>
+</html>
