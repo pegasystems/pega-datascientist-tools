@@ -1,0 +1,407 @@
+pdstools.impactanalyzer.ImpactAnalyzer
+======================================
+
+.. py:module:: pdstools.impactanalyzer.ImpactAnalyzer
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.ImpactAnalyzer.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: ImpactAnalyzer(raw_data: polars.LazyFrame)
+
+   Analyze and visualize Impact Analyzer experiment results from Pega CDH.
+
+   The ImpactAnalyzer class provides analysis and visualization capabilities
+   for NBA (Next-Best-Action) Impact Analyzer experiments. It processes experiment
+   data from Pega's Customer Decision Hub to compare the effectiveness of different
+   NBA strategies including adaptive models, propensity prioritization, lever usage,
+   and engagement policies.
+
+   Data can be loaded from four sources:
+
+   - **PDC exports** via :meth:`from_pdc`: Uses pre-aggregated experiment data from
+     PDC JSON exports. Value Lift is copied from PDC data as it cannot be
+     re-calculated from the available numbers.
+   - **Pega Infinity Impact Analyzer Excel export** via :meth:`from_excel`:
+     Reads the ``Data`` sheet of the ``.xlsx`` file produced by the Impact
+     Analyzer landing page in Pega Infinity. Pre-paired Test vs Control
+     counts are exploded to long form and NBA traffic is deduplicated
+     across experiments.
+   - **VBD exports** via :meth:`from_vbd`: Reconstructs experiment metrics from raw
+     VBD Actuals or Scenario Planner Actuals data. Allows flexible time ranges and
+     data selection. Value Lift is calculated from ValuePerImpression.
+   - **Interaction History** via :meth:`from_ih`: Loads experiment metrics from
+     Interaction History data. Not yet implemented.
+
+   .. math::
+
+       \text{Engagement Lift} = \frac{\text{SuccessRate}_{test} - \text{SuccessRate}_{control}}{\text{SuccessRate}_{control}}
+
+   .. math::
+
+       \text{Value Lift} = \frac{\text{ValueCapture}_{test} - \text{ValueCapture}_{control}}{\text{ValueCapture}_{control}}
+
+   .. attribute:: ia_data
+
+      The underlying experiment data containing control group metrics.
+
+      :type: pl.LazyFrame
+
+   .. attribute:: plot
+
+      Plot accessor for visualization methods.
+
+      :type: Plots
+
+   .. seealso::
+
+      :py:obj:`pdstools.adm.ADMDatamart`
+          For ADM model analysis.
+      
+      :py:obj:`pdstools.ih.IH`
+          For Interaction History analysis.
+
+   .. rubric:: Examples
+
+   >>> from pdstools import ImpactAnalyzer
+   >>> ia = ImpactAnalyzer.from_pdc("impact_analyzer_export.json")
+   >>> ia.overall_summary().collect()
+   >>> ia.plot.overview()
+
+
+   .. py:attribute:: ia_data
+      :type:  polars.LazyFrame
+
+
+   .. py:attribute:: outcome_labels_used
+      :type:  dict | None
+
+
+   .. py:attribute:: default_ia_experiments
+      :type:  ClassVar[dict[str, tuple[str, str]]]
+
+      Default experiments mapping experiment names to (control, test) group tuples.
+
+      Names and ordering match the Pega Infinity Impact Analyzer product UI.
+      Insertion order is the canonical display order — see
+      `summarize_experiments` for how it is preserved through aggregation.
+
+
+   .. py:attribute:: outcome_labels
+      :type:  ClassVar[dict[str, list[str]]]
+
+      Mapping of metric names to outcome labels used for aggregation.
+
+
+   .. py:attribute:: default_ia_controlgroups
+      :type:  ClassVar[dict[str, list[str | None]]]
+
+
+   .. py:attribute:: plot
+
+
+   .. py:method:: from_pdc(pdc_source: str | pathlib.Path | os.PathLike | list[str] | list[pathlib.Path] | list[os.PathLike], *, reader: collections.abc.Callable | None = None, query: pdstools.utils.types.QUERY | None = None, return_wide_df: Literal[True], return_df: bool = ...) -> polars.LazyFrame
+                  from_pdc(pdc_source: str | pathlib.Path | os.PathLike | list[str] | list[pathlib.Path] | list[os.PathLike], *, reader: collections.abc.Callable | None = None, query: pdstools.utils.types.QUERY | None = None, return_wide_df: Literal[False] = ..., return_df: Literal[True]) -> polars.LazyFrame
+                  from_pdc(pdc_source: str | pathlib.Path | os.PathLike | list[str] | list[pathlib.Path] | list[os.PathLike], *, reader: collections.abc.Callable | None = None, query: pdstools.utils.types.QUERY | None = None) -> ImpactAnalyzer
+      :classmethod:
+
+
+      Create an ImpactAnalyzer instance from PDC JSON export(s).
+
+      Loads pre-aggregated experiment data from Pega Decision Central JSON exports.
+      Value Lift metrics are copied directly from the PDC data.
+
+      :param pdc_source: Path to PDC JSON file, or a list of paths to concatenate.
+      :type pdc_source: Union[Path, str, os.PathLike, list[Union[Path, str, os.PathLike]]]
+      :param reader: Custom function to read source data into a dict. If None, uses
+                     standard JSON file reader. Default is None.
+      :type reader: Optional[Callable], optional
+      :param query: Polars expression to filter the data. Default is None.
+      :type query: Optional[QUERY], optional
+      :param return_wide_df: If True, return the raw wide-format data as a LazyFrame for
+                             debugging. Default is False.
+      :type return_wide_df: bool, optional
+      :param return_df: If True, return the processed data as a LazyFrame instead of
+                        an ImpactAnalyzer instance. Default is False.
+      :type return_df: bool, optional
+
+      :returns: ImpactAnalyzer instance, or LazyFrame if return_df or return_wide_df
+                is True.
+      :rtype: ImpactAnalyzer or pl.LazyFrame
+
+      :raises ValueError: If an empty list of source files is provided.
+
+      .. rubric:: Examples
+
+      >>> ia = ImpactAnalyzer.from_pdc("CDH_Metrics_ImpactAnalyzer.json")
+      >>> ia.overall_summary().collect()
+
+
+
+   .. py:method:: from_vbd(vbd_source: os.PathLike | str, *, outcome_labels: dict | None = None, return_df: Literal[True]) -> polars.LazyFrame | None
+                  from_vbd(vbd_source: os.PathLike | str, *, outcome_labels: dict | None = None) -> ImpactAnalyzer | None
+      :classmethod:
+
+
+      Create an ImpactAnalyzer instance from VBD data.
+
+      Processes VBD Actuals or Scenario Planner Actuals data to reconstruct
+      Impact Analyzer experiment metrics. Provides more flexible time ranges
+      and data selection compared to PDC exports.
+
+      Value Lift is calculated from ValuePerImpression since raw value data
+      is available in VBD exports.
+
+      :param vbd_source: Path to VBD export file (parquet, csv, ndjson, or zip).
+      :type vbd_source: Union[os.PathLike, str]
+      :param outcome_labels: Outcome value mappings for Impressions and Accepts. Accepts two formats:
+
+                             **Global override** — replaces class defaults for all channels::
+
+                                 {"Impressions": ["Sent"], "Accepts": ["Click", "Clicked"]}
+
+                             **Per-channel** — overrides per channel; unconfigured channels fall back
+                             to the class-level defaults::
+
+                                 {
+                                     "Email/Outbound": {
+                                         "Impressions": ["Sent"],
+                                         "Accepts": ["Click", "Clicked"],
+                                     }
+                                 }
+
+                             Default is None (use :attr:`outcome_labels` class attribute).
+      :type outcome_labels: dict or None, optional
+      :param return_df: If True, return processed data as LazyFrame instead of
+                        ImpactAnalyzer instance. Default is False.
+      :type return_df: bool, optional
+
+      :returns: ImpactAnalyzer instance, LazyFrame if return_df is True,
+                or None if the source contains no data.
+      :rtype: ImpactAnalyzer or pl.LazyFrame or None
+
+      .. rubric:: Examples
+
+      >>> ia = ImpactAnalyzer.from_vbd("ScenarioPlannerActuals.zip")
+      >>> ia.summary_by_channel().collect()
+
+
+
+   .. py:method:: from_ih(ih_source: os.PathLike | str, *, return_df: Literal[True]) -> polars.LazyFrame | None
+                  from_ih(ih_source: os.PathLike | str) -> ImpactAnalyzer | None
+      :classmethod:
+
+
+      Create an ImpactAnalyzer instance from Interaction History data.
+
+      .. note::
+          This method is not yet implemented.
+
+      Reconstructs experiment metrics from Interaction History data, allowing
+      analysis of experiments using detailed interaction-level records.
+
+      :param ih_source: Path to Interaction History export file.
+      :type ih_source: Union[os.PathLike, str]
+      :param return_df: If True, return processed data as LazyFrame instead of
+                        ImpactAnalyzer instance. Default is False.
+      :type return_df: bool, optional
+
+      :returns: ImpactAnalyzer instance, LazyFrame if return_df is True,
+                or None if the source contains no data.
+      :rtype: ImpactAnalyzer or pl.LazyFrame or None
+
+      :raises NotImplementedError: This method is not yet implemented.
+
+
+
+   .. py:method:: from_excel(excel_source: str | pathlib.Path | os.PathLike, *, sheet_name: str = 'Data', query: pdstools.utils.types.QUERY | None = None, return_df: bool = False) -> ImpactAnalyzer | pl.LazyFrame
+      :classmethod:
+
+
+      Create an ImpactAnalyzer instance from a Pega Infinity IA Excel export.
+
+      Reads the ``Data`` sheet of the Impact Analyzer Excel export produced
+      by the Impact Analyzer landing page in Pega Infinity. Each row of the
+      Data sheet describes one (Date, Channel, Direction, Issue, Group,
+      Action, Treatment, Experiment) bucket with pre-paired Test and Control
+      impression / accept / value counts.  This method explodes those rows
+      to the long format used by :class:`ImpactAnalyzer` and deduplicates
+      the NBA test arm across experiments (the same NBA traffic is reported
+      against multiple control experiments and would otherwise be double
+      counted).
+
+      The Channel field is built as ``"<Channel>/<Direction>"`` to match the
+      convention used by :meth:`from_vbd`.
+
+      Excel reading is handled by polars' built-in ``calamine`` engine
+      through :func:`pdstools.pega_io.File._read_excel`.
+
+      :param excel_source: Path to the ``.xlsx`` file.
+      :type excel_source: Union[str, Path, os.PathLike]
+      :param sheet_name: Sheet to read.  The exporter ships several sheets; only ``Data``
+                         carries the row-level counts needed for analysis.
+      :type sheet_name: str, default "Data"
+      :param query: Polars expression to filter the long-form data before
+                    aggregation.  Default is ``None``.
+      :type query: Optional[QUERY], optional
+      :param return_df: If ``True``, return the normalised data as a :class:`~polars.LazyFrame`
+                        instead of an :class:`ImpactAnalyzer` instance.  Default is ``False``.
+      :type return_df: bool, optional
+
+      :returns: An :class:`ImpactAnalyzer` instance, or a :class:`~polars.LazyFrame`
+                when *return_df* is ``True``.
+      :rtype: ImpactAnalyzer or pl.LazyFrame
+
+      :raises ValueError: If the requested sheet is missing required columns.
+
+      .. rubric:: Examples
+
+      >>> ia = ImpactAnalyzer.from_excel("ImpactAnalyzerExport.xlsx")
+      >>> ia.overall_summary().collect()
+
+
+
+   .. py:method:: summary_by_channel() -> polars.LazyFrame
+
+      Get experiment summary pivoted by channel.
+
+      Returns experiment lift metrics (CTR_Lift and Value_Lift) for each
+      experiment, with one row per channel.
+
+      :returns: Wide-format summary with columns:
+
+                - **Channel**: Channel name
+                - **CTR_Lift <Experiment>**: Engagement lift for each experiment
+                - **Value_Lift <Experiment>**: Value lift for each experiment
+      :rtype: pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`overall_summary`
+             Summary without channel breakdown.
+         
+         :py:obj:`summarize_experiments`
+             Long-format experiment summary.
+
+      .. rubric:: Examples
+
+      >>> ia.summary_by_channel().collect()
+
+
+
+   .. py:method:: overall_summary() -> polars.LazyFrame
+
+      Get overall experiment summary aggregated across all channels.
+
+      Returns experiment lift metrics (CTR_Lift and Value_Lift) for each
+      experiment, aggregated across all data.
+
+      :returns: Single-row wide-format summary with columns:
+
+                - **CTR_Lift <Experiment>**: Engagement lift for each experiment
+                - **Value_Lift <Experiment>**: Value lift for each experiment
+      :rtype: pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`summary_by_channel`
+             Summary with channel breakdown.
+         
+         :py:obj:`summarize_experiments`
+             Long-format experiment summary.
+
+      .. rubric:: Examples
+
+      >>> ia.overall_summary().collect()
+
+
+
+   .. py:method:: summarize_control_groups(by: collections.abc.Sequence[str | polars.Expr] | str | polars.Expr | None = None, drop_internal_cols: bool = True) -> polars.LazyFrame
+
+      Aggregate metrics by control group.
+
+      Summarizes impressions, accepts, CTR, and value metrics for each
+      control group, optionally grouped by additional dimensions.
+
+      :param by: Column name(s) or expression(s) to group by in addition to
+                 ControlGroup. Default is None (aggregate all data).
+      :type by: Optional[Union[list[str], list[pl.Expr], str, pl.Expr]], optional
+      :param drop_internal_cols: If True, drop internal columns prefixed with 'Pega_'.
+                                 Default is True.
+      :type drop_internal_cols: bool, optional
+
+      :returns: Aggregated metrics with columns: ControlGroup, Impressions,
+                Accepts, CTR, ValuePerImpression, plus any grouping columns.
+      :rtype: pl.LazyFrame
+
+      .. rubric:: Examples
+
+      >>> ia.summarize_control_groups().collect()
+      >>> ia.summarize_control_groups(by="Channel").collect()
+
+
+
+   .. py:method:: summarize_experiments(by: collections.abc.Sequence[str | polars.Expr] | str | polars.Expr | None = None) -> polars.LazyFrame
+
+      Summarize experiment metrics comparing test vs control groups.
+
+      Computes lift metrics for each defined experiment by comparing
+      test and control group performance.
+
+      .. note::
+          Returns all default experiments regardless of whether they are
+          active in the data. Experiments without data will have null values
+          for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).
+
+      :param by: Column name(s) or expression(s) to group by. Default is None
+                 (aggregate all data).
+      :type by: Optional[Union[list[str], list[pl.Expr], str, pl.Expr]], optional
+
+      :returns: Experiment summary with columns:
+
+                - **Experiment**: Experiment name
+                - **Test**, **Control**: Control group names for the experiment
+                - **Impressions_Test**, **Impressions_Control**: Impression counts (null if not active)
+                - **Accepts_Test**, **Accepts_Control**: Accept counts (null if not active)
+                - **CTR_Test**, **CTR_Control**: Click-through rates (null if not active)
+                - **Control_Fraction**: Fraction of impressions in control group
+                - **CTR_Lift**: Engagement lift (null if experiment not active)
+                - **Value_Lift**: Value lift (null if experiment not active)
+      :rtype: pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`summarize_control_groups`
+             Lower-level control group aggregation.
+         
+         :py:obj:`overall_summary`
+             Pivoted overall summary.
+         
+         :py:obj:`summary_by_channel`
+             Pivoted summary by channel.
+
+      .. rubric:: Examples
+
+      >>> ia.summarize_experiments().collect()
+      >>> ia.summarize_experiments(by="Channel").collect()
+
+
+

@@ -1,0 +1,293 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "source": [
+    "## Link to article\n",
+    "\n",
+    "This notebook is included in the documentation, where the interactive Plotly charts show up. See:\n",
+    "https://pegasystems.github.io/pega-datascientist-tools/Python/articles/vf_analysis.html"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "> **📦 Optional dependencies**\n",
+    ">\n",
+    "> This article uses features from the pdstools `adm` extra. Install with your favorite package manager, e.g. `pip install \"pdstools[adm]\"`.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "outputs": [],
+   "source": [
+    "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+    "# Do not run if you're running the notebook seperately\n",
+    "\n",
+    "import plotly.io as pio\n",
+    "\n",
+    "pio.renderers.default = \"notebook_connected\""
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Value Finder Analysis\n",
+    "Every Value Finder simulation populates a dataset, the **pyValueFinder** dataset.  This dataset contains a lot more information than is what is currently presented on screen.\n",
+    "\n",
+    "The data held in this dataset can be analysed to uncover insights into your decision framework. This notebook provides a sample analysis of the Value Finder simulation results.\n",
+    "\n",
+    "In the data folder we've stored a copy of such a dataset, generated from an (internal) demo application (CDHSample). To run this notebook on your own data, you should export the **pyValueFinder** dataset from Dev Studio then follow the instructions below.\n",
+    "\n",
+    "This is how Value Finder results of the sample data are presented in Pega (8.6, it may look different in other versions):\n",
+    "\n",
+    "![Pega value finder screen](pegarun_8_6_0.png)\n",
+    "\n",
+    "For the sample provided, the relevant action setting is 1.2%. There are 10.000 customers, 3491 without actions, 555 with only irrelevant actions and 5954 with at least one relevant action.\n",
+    "\n",
+    "PDSTools defines a class **ValueFinder** that wraps the operations on this dataset. The \"datasets\" import is used for the example but you won't need this if you load your own Value Finder dataset.\n",
+    "\n",
+    "Just like with the **ADMDatamart** class, you can supply your own path and filename as such:\n",
+    "```python\n",
+    "vf = ValueFinder(path = '[PATH TO DATA]', filename=\"[NAME OF DATASET EXPORT]\")\n",
+    "```\n",
+    "\n",
+    "- If only a path is supplied, it will automatically look for the latest file. \n",
+    "- It is also possible to supply a dataframe as the 'df' argument directly, in which case it will use that instead. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pdstools import ValueFinder, datasets\n",
+    "import polars as pl\n",
+    "import numpy as np\n",
+    "\n",
+    "# Load sample data - replace with your own data:\n",
+    "# vf = ValueFinder(path='...', filename='...')\n",
+    "vf = datasets.sample_value_finder()"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "When reading the data, we filter out unnecessary data, and the result is kept in the `df` property:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "vf.df.head(5).collect()"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Basic Analysis: Pie Charts and Customer Segmentation\n",
+    "\n",
+    "The piechart shown in platform is based on a propensity threshold. For the sample data, this threshold follows from a propensity quantile of 5.2%.\n",
+    "\n",
+    "The `plot.pie_charts()` function shows piecharts for all stages in the engagement policies (in platform you only see the last one). The threshold is calculated automatically, but you can specify it explicitly."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Automatic threshold calculation\n",
+    "vf.plot.pie_charts()\n",
+    "\n",
+    "# Or specify threshold explicitly (e.g., 5.2% quantile)\n",
+    "vf.plot.pie_charts(quantiles=[0.052])"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Hover over the charts to see the details. For the sample data, the rightmost pie chart corresponds to the numbers in Pega as shown in the screenshot above.\n",
+    "\n",
+    "* Red = customers not receiving any action\n",
+    "* Yellow = customers not receiving any \"relevant\" actions, sometimes also called \"under served\"\n",
+    "* Green = customers that receive at least one \"relevant\" action, sometimes also called \"well served\"\n",
+    "\n",
+    "With \"relevant\" defined as having a propensity above the threshold. This defaults to the 5th percentile."
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Propensity Analysis\n",
+    "\n",
+    "Insights into the propensity distribution per stage are crucial. The `plot.propensity_threshold()` function visualizes this distribution. You often see a spike at 0.5, which corresponds to models without responses (their propensity defaults to 0.5/1 = 0.5).\n",
+    "\n",
+    "The dotted vertical line represents the computed threshold."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "vf.plot.propensity_threshold()"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "These different propensities represent \n",
+    "\n",
+    "* *pyModelPropensity* = the actual propensities from the models\n",
+    "* *pyPropensity* = model or random propensity, depending on the ModelControl (or, when models are executed from an extension point after the standard Predictions, their propensity, but such a configuration is not supported by Value Finder)\n",
+    "* *FinalPropensity* = the propensity after possible adjustments by Thompson Sampling; Thompson Sampling basically smoothes the propensities, you would expect any peak at 0.5 caused by empty models to be smoothed out\n",
+    "\n",
+    "We can also look at the propensity distributions across the different stages. This is based on the model propensities, not any of the subsequent overrides:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "vf.plot.propensity_distribution()"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Threshold Simulation\n",
+    "\n",
+    "The effect of the propensity threshold selection on the number of actions for a customer can be simulated by supplying a list of quantiles or propensities. This generates aggregated counts per stage for different threshold values."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Simulate thresholds from 1% to 99% in 1% increments\n",
+    "vf.plot.pie_charts(quantiles=np.arange(0.01, 1, 0.01))"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The further to the left you put the slider threshold, the more \"green\" you will see. As you raise the threshold, more customers will be reported as getting \"not relevant\" actions.\n",
+    "\n",
+    "The same effect can be visualized as a funnel. Use `plot.distribution_per_threshold()` to show the threshold on the x-axis."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Default threshold range\n",
+    "vf.plot.distribution_per_threshold()\n",
+    "\n",
+    "# Custom threshold range (1% to 99% in 1% increments)\n",
+    "vf.plot.distribution_per_threshold(quantiles=np.arange(0.01, 1, 0.01))"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Funnel Analysis\n",
+    "\n",
+    "You can analyze how individual actions are distributed across stages. Since there are typically many actions, it's useful to filter to a specific group or issue.\n",
+    "\n",
+    "The `plot.funnel_chart()` function shows how actions flow through the stages. **Rule of thumb**: If there are only a few actions in each stage, or if certain actions are completely filtered out between stages, this may indicate strong filtering issues."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Filter to Sales issue actions (adjust query for your data)\n",
+    "vf.plot.funnel_chart(\"Name\", query=pl.col(\"Issue\") == \"Sales\")"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Hierarchical Funnel Views\n",
+    "\n",
+    "Start with a coarse-grained view at the Issue level, then drill down to Group or individual Action level as needed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# High-level view: Issue level\n",
+    "vf.plot.funnel_chart(\"Issue\")\n",
+    "\n",
+    "# Mid-level view: Groups within Sales issue\n",
+    "vf.plot.funnel_chart(\"Group\", query=pl.col(\"Issue\") == \"Sales\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "pega-datascientist-tools",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

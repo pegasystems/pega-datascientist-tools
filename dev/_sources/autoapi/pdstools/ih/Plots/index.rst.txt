@@ -1,0 +1,321 @@
+pdstools.ih.Plots
+=================
+
+.. py:module:: pdstools.ih.Plots
+
+.. autoapi-nested-parse::
+
+   Plotting utilities for Interaction History visualization.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.ih.Plots.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.ih.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: Plots(ih: pdstools.ih.IH.IH)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Visualization methods for Interaction History data.
+
+   This class provides plotting capabilities for analyzing customer
+   interaction data. It is accessed through the `plot` attribute of an
+   :class:`~pdstools.ih.IH.IH` instance.
+
+   All plot methods support:
+   - Custom titles via `title` parameter
+   - Data filtering via `query` parameter
+   - Returning underlying data via `return_df=True`
+
+   .. attribute:: ih
+
+      Reference to the parent IH instance.
+
+      :type: IH
+
+   .. seealso::
+
+      :py:obj:`pdstools.ih.IH`
+          Main analysis class.
+      
+      :py:obj:`pdstools.ih.Aggregates`
+          Aggregation methods.
+
+   .. rubric:: Examples
+
+   >>> ih = IH.from_ds_export("interaction_history.zip")
+   >>> ih.plot.success_rate(metric="Engagement")
+   >>> ih.plot.response_count_tree_map()
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: ih
+
+
+   .. py:method:: overall_gauges(condition: str | polars.Expr, *, metric: str = ..., by: str = ..., reference_values: dict[str, float] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  overall_gauges(condition: str | polars.Expr, *, metric: str = ..., by: str = ..., reference_values: dict[str, float] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create gauge charts showing success rates by condition and dimension.
+
+      Generates a grid of gauge charts displaying success rates for combinations
+      of the specified condition and grouping dimension, with optional reference
+      values for comparison.
+
+      :param condition: Column to condition on (e.g., "Experiment", "Issue").
+      :type condition: str or pl.Expr
+      :param metric: Metric to display: "Engagement", "Conversion", or "OpenRate".
+      :type metric: str, default "Engagement"
+      :param by: Dimension for grouping (column name).
+      :type by: str, default "Channel"
+      :param reference_values: Reference values per dimension for comparison thresholds.
+      :type reference_values: dict[str, float], optional
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly figure, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. rubric:: Examples
+
+      >>> ih.plot.overall_gauges("Issue", metric="Engagement", by="Channel")
+
+
+
+   .. py:method:: response_count_tree_map(*, by: list[str] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  response_count_tree_map(*, by: list[str] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a treemap of response count distribution.
+
+      Displays hierarchical response counts across dimensions, allowing
+      exploration of how responses are distributed across categories.
+
+      :param by: Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
+      :type by: list[str], optional
+      :param title: Custom title.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly treemap, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`success_rate_tree_map`
+             Treemap colored by success rates.
+
+      .. rubric:: Examples
+
+      >>> ih.plot.response_count_tree_map()
+      >>> ih.plot.response_count_tree_map(by=["Channel", "Issue", "Name"])
+
+
+
+   .. py:method:: success_rate_tree_map(*, metric: str = ..., by: list[str] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  success_rate_tree_map(*, metric: str = ..., by: list[str] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a treemap colored by success rates.
+
+      Displays hierarchical success rates across dimensions, with color
+      indicating performance levels for easy identification of high and
+      low performing areas.
+
+      :param metric: Metric to display: "Engagement", "Conversion", or "OpenRate".
+      :type metric: str, default "Engagement"
+      :param by: Hierarchy dimensions. Defaults to Direction, Channel, Issue, Group, Name.
+      :type by: list[str], optional
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly treemap, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`response_count_tree_map`
+             Treemap by response counts.
+
+      .. rubric:: Examples
+
+      >>> ih.plot.success_rate_tree_map(metric="Conversion")
+
+
+
+   .. py:method:: action_distribution(*, by: str = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., color: str | None = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  action_distribution(*, by: str = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., color: str | None = ..., facet: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a bar chart of action distribution.
+
+      Displays action counts across categories, optionally colored and
+      faceted by additional dimensions.
+
+      :param by: Dimension for y-axis categories.
+      :type by: str, default "Name"
+      :param title: Chart title.
+      :type title: str, default "Action Distribution"
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param color: Dimension for bar coloring.
+      :type color: str, optional
+      :param facet: Dimension for faceting.
+      :type facet: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly bar chart, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. rubric:: Examples
+
+      >>> ih.plot.action_distribution(by="Name", color="Channel")
+
+
+
+   .. py:method:: success_rate(*, metric: str = ..., every: str | datetime.timedelta = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  success_rate(*, metric: str = ..., every: str | datetime.timedelta = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a line chart of success rates over time.
+
+      Displays success rate trends for the specified metric, optionally
+      faceted by dimension for comparative analysis.
+
+      :param metric: Metric to display: "Engagement", "Conversion", or "OpenRate".
+      :type metric: str, default "Engagement"
+      :param every: Time aggregation period (e.g., "1d", "1w", "1mo").
+      :type every: str or timedelta, default "1d"
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param facet: Dimension for faceting and coloring.
+      :type facet: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly line chart, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`response_count`
+             Response counts over time.
+         
+         :py:obj:`model_performance_trend`
+             Model AUC over time.
+
+      .. rubric:: Examples
+
+      >>> ih.plot.success_rate(metric="Conversion", every="1w")
+
+
+
+   .. py:method:: response_count(*, every: str | datetime.timedelta = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  response_count(*, every: str | datetime.timedelta = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a bar chart of response counts over time.
+
+      Displays response counts colored by outcome type, optionally
+      faceted by dimension.
+
+      :param every: Time aggregation period (e.g., "1d", "1w", "1mo").
+      :type every: str or timedelta, default "1d"
+      :param title: Chart title.
+      :type title: str, default "Responses"
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param facet: Dimension for faceting.
+      :type facet: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly bar chart, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`success_rate`
+             Success rates over time.
+
+      .. rubric:: Examples
+
+      >>> ih.plot.response_count(every="1w", facet="Channel")
+
+
+
+   .. py:method:: model_performance_trend(*, metric: str = ..., every: str | datetime.timedelta = ..., by: str | None = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  model_performance_trend(*, metric: str = ..., every: str | datetime.timedelta = ..., by: str | None = ..., title: str = ..., query: pdstools.utils.types.QUERY | None = ..., facet: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a line chart of model AUC over time.
+
+      Displays model performance (Area Under the ROC Curve) calculated from
+      propensity scores and actual outcomes. Higher AUC indicates better
+      predictive accuracy.
+
+      :param metric: Metric for AUC calculation: "Engagement", "Conversion", or "OpenRate".
+      :type metric: str, default "Engagement"
+      :param every: Time aggregation period (e.g., "1d", "1w", "1mo").
+      :type every: str or timedelta, default "1d"
+      :param by: Dimension for line coloring.
+      :type by: str, optional
+      :param title: Chart title.
+      :type title: str, default "Model Performance over Time"
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param facet: Dimension for faceting.
+      :type facet: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly line chart (y-axis in AUC percentage), or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`success_rate`
+             Success rate trends.
+
+      .. rubric:: Examples
+
+      >>> ih.plot.model_performance_trend(by="Channel", every="1w")
+
+
+

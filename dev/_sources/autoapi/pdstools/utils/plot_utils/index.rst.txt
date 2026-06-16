@@ -1,0 +1,218 @@
+pdstools.utils.plot_utils
+=========================
+
+.. py:module:: pdstools.utils.plot_utils
+
+.. autoapi-nested-parse::
+
+   Plot utilities for pdstools visualizations.
+
+   This module centralizes the small helpers that the plotting modules across
+   pdstools all reach for: a typed ``Figure`` alias that survives without plotly
+   installed, an optional-dependency import shim, label abbreviation,
+   facet-title cleanup, dynamic facet sizing, and report-layout adjustments.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.plot_utils.logger
+   pdstools.utils.plot_utils.Figure
+   pdstools.utils.plot_utils.LIFT_DIRECTION_COLORS
+   pdstools.utils.plot_utils.COLORSCALES
+   pdstools.utils.plot_utils.DEFAULT_LABEL_MAX_LENGTH
+   pdstools.utils.plot_utils.HOVER_PERFORMANCE_PCT
+   pdstools.utils.plot_utils.HOVER_SUCCESS_RATE_PCT
+   pdstools.utils.plot_utils.HOVER_RESPONSE_COUNT
+   pdstools.utils.plot_utils.HOVER_LIFT_PCT
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.plot_utils.get_colorscale
+   pdstools.utils.plot_utils.abbreviate_label
+   pdstools.utils.plot_utils.abbreviate_label_expr
+   pdstools.utils.plot_utils.simplify_facet_titles
+   pdstools.utils.plot_utils.fig_update_facet
+   pdstools.utils.plot_utils.update_axes_clean
+   pdstools.utils.plot_utils.apply_report_layout
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:type:: Figure
+   :canonical: '_Figure'
+
+
+.. py:data:: LIFT_DIRECTION_COLORS
+   :type:  dict[str, str]
+
+.. py:data:: COLORSCALES
+   :type:  dict[str, Any]
+
+.. py:function:: get_colorscale(metric: str, default: str = 'other') -> list[tuple[float, str]] | list[str]
+
+   Get the colorscale for a metric.
+
+   :param metric: The metric name to look up (e.g., "Performance", "SuccessRate").
+   :type metric: str
+   :param default: The default colorscale key to use if metric not found, by default "other".
+   :type default: str, optional
+
+   :returns: A Plotly-compatible colorscale (list of (position, color) tuples or list of colors).
+   :rtype: list[tuple[float, str]] | list[str]
+
+   .. rubric:: Examples
+
+   >>> get_colorscale("Performance")
+   [(0, '#d91c29'), (0.01, '#F76923'), (0.3, '#20aa50'), (0.8, '#20aa50'), (1, '#0000FF')]
+   >>> get_colorscale("UnknownMetric")
+   ['#d91c29', '#F76923', '#20aa50']
+
+
+.. py:data:: DEFAULT_LABEL_MAX_LENGTH
+   :value: 25
+
+
+.. py:function:: abbreviate_label(label: str, max_length: int = DEFAULT_LABEL_MAX_LENGTH, *, from_end: bool = False) -> str
+
+   Truncate a label to ``max_length`` chars, appending ``...`` when shortened.
+
+   Used for axis tick labels (predictor names, bin symbols, action names) that
+   would otherwise overflow plot containers. Note that truncation is not
+   guaranteed to produce unique labels — callers that require uniqueness
+   must enforce that themselves.
+
+   :param label: The original label.
+   :type label: str
+   :param max_length: Maximum length before the ellipsis is appended, by default 25.
+   :type max_length: int, optional
+   :param from_end: If True, keep the trailing ``max_length`` characters and prepend
+                    ``...`` instead of truncating from the end. Useful for action /
+                    treatment names whose distinguishing suffix is more informative
+                    than the common prefix. Defaults to False.
+   :type from_end: bool, optional
+
+   :returns: The original ``label`` if it fits, otherwise the truncated label
+             with ``...`` on the truncated side.
+   :rtype: str
+
+
+.. py:function:: abbreviate_label_expr(column: str | polars.Expr, max_length: int = DEFAULT_LABEL_MAX_LENGTH) -> polars.Expr
+
+   Polars expression equivalent of :func:`abbreviate_label`.
+
+   :param column: Column name or expression producing string values to abbreviate.
+   :type column: str | pl.Expr
+   :param max_length: Maximum length before the ellipsis is appended, by default 25.
+   :type max_length: int, optional
+
+   :returns: Expression that yields the abbreviated string.
+   :rtype: pl.Expr
+
+
+.. py:function:: simplify_facet_titles(fig: Figure) -> Figure
+
+   Strip the ``column=`` prefix from Plotly facet annotations.
+
+   Plotly Express labels facets as ``"<column_name>=<value>"``; in our
+   reports the column name is redundant context. This helper rewrites each
+   facet annotation to show only the value.
+
+   :param fig: The faceted Plotly figure to update in place.
+   :type fig: Figure
+
+   :returns: The same figure (returned for chaining).
+   :rtype: Figure
+
+
+.. py:function:: fig_update_facet(fig: Figure, n_cols: int = 2, base_height: int = 250, step_height: int = 270) -> Figure
+
+   Resize a faceted plot proportionally to its row count and clean labels.
+
+   Combines :func:`simplify_facet_titles` with a height calculation that
+   grows the figure as facet rows are added — Plotly Express does not do
+   this on its own, so without this helper faceted plots squash together as
+   more facets are introduced.
+
+   :param fig: The faceted figure to update.
+   :type fig: Figure
+   :param n_cols: Number of facet columns, by default 2.
+   :type n_cols: int, optional
+   :param base_height: Height (px) for a single-row layout, by default 250.
+   :type base_height: int, optional
+   :param step_height: Additional height (px) per row of facets, by default 270.
+   :type step_height: int, optional
+
+   :returns: The same figure with adjusted ``height`` and simplified facet titles.
+   :rtype: Figure
+
+
+.. py:function:: update_axes_clean(fig: Figure, x_title: str | None = '', y_title: str | None = '') -> Figure
+
+   Clear or set both axis titles in one call.
+
+   A surprising number of plots only need to blank one or both axis titles —
+   this helper replaces the repeated
+   ``fig.update_xaxes(title=...).update_yaxes(title=...)`` pairs.
+
+   :param fig: The figure to update.
+   :type fig: Figure
+   :param x_title: New x-axis title; ``""`` clears it (default), ``None`` leaves it.
+   :type x_title: str | None, optional
+   :param y_title: New y-axis title; ``""`` clears it (default), ``None`` leaves it.
+   :type y_title: str | None, optional
+
+   :returns: The same figure (returned for chaining).
+   :rtype: Figure
+
+
+.. py:function:: apply_report_layout(fig: Figure, *, n_facets: int = 1, base_height: int = 400, per_facet_height: int = 200, width: int | None = None) -> Figure
+
+   Apply Quarto-friendly sizing to a figure.
+
+   Quarto HTML reports render charts in a fixed-width container, so charts
+   benefit from a consistent width and a height that scales with the number
+   of facets. Use this in report templates instead of repeating
+   ``update_layout(height=..., width=...)`` calls in every code chunk.
+
+   :param fig: The figure to size.
+   :type fig: Figure
+   :param n_facets: Number of facets in the figure (1 for non-faceted), by default 1.
+   :type n_facets: int, optional
+   :param base_height: Height (px) for a single-facet figure, by default 400.
+   :type base_height: int, optional
+   :param per_facet_height: Additional height (px) per extra facet, by default 200.
+   :type per_facet_height: int, optional
+   :param width: Optional fixed width (px). When ``None`` the figure stays responsive.
+   :type width: int | None, optional
+
+   :returns: The same figure with adjusted ``height`` (and ``width`` if provided).
+   :rtype: Figure
+
+
+.. py:data:: HOVER_PERFORMANCE_PCT
+   :value: 'Performance: %{y:.2%}'
+
+
+.. py:data:: HOVER_SUCCESS_RATE_PCT
+   :value: 'Success Rate: %{y:.3%}'
+
+
+.. py:data:: HOVER_RESPONSE_COUNT
+   :value: 'Responses: %{y:,d}'
+
+
+.. py:data:: HOVER_LIFT_PCT
+   :value: 'Lift: %{x:.2%}'
+
+

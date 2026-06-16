@@ -1,0 +1,209 @@
+pdstools.adm.Reports
+====================
+
+.. py:module:: pdstools.adm.Reports
+
+.. autoapi-nested-parse::
+
+   Report-generation namespace for :class:`ADMDatamart`.
+
+   Exposed via the ``dm.generate`` namespace facade. Wraps Quarto-driven
+   HealthCheck and ModelReport rendering plus an Excel export.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Reports.ReportOptions
+   pdstools.adm.Reports.Reports
+
+
+Module Contents
+---------------
+
+.. py:class:: ReportOptions
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Shared rendering/output options for report-generating methods.
+
+   Passed via ``**options`` to :meth:`Reports.model_reports` and
+   :meth:`Reports.health_check`. These eight keys are shared between
+   both methods; each method also takes its own method-specific kwargs
+   as normal parameters. All ``ReportOptions`` keys are optional —
+   per-method defaults apply when a key is omitted.
+
+   Keys
+   ----
+   title : str
+       Title shown in the report.
+   subtitle : str
+       Subtitle shown under the title.
+   disclaimer : str
+       Disclaimer text included in the report.
+   output_dir : str or path-like or None
+       Directory for the output file. If None, uses the current working
+       directory.
+   output_type : {"html", "pdf"}
+       Output format. Defaults to ``"html"``.
+   qmd_file : str or path-like or None
+       Path to a custom Quarto template. If None, the built-in template
+       is used.
+   full_embed : bool
+       When True, fully embed all JavaScript libraries (Plotly, itables,
+       etc.) into the HTML output (larger file, requires esbuild). When
+       False (default), load JavaScript libraries from CDN. See issue
+       #620.
+   keep_temp_files : bool
+       If True, the temporary working directory is preserved after the
+       report is generated. Defaults to False.
+
+
+   .. py:attribute:: title
+      :type:  str
+
+
+   .. py:attribute:: subtitle
+      :type:  str
+
+
+   .. py:attribute:: disclaimer
+      :type:  str
+
+
+   .. py:attribute:: output_dir
+      :type:  str | os.PathLike[str] | None
+
+
+   .. py:attribute:: output_type
+      :type:  OutputType
+
+
+   .. py:attribute:: qmd_file
+      :type:  str | os.PathLike[str] | None
+
+
+   .. py:attribute:: full_embed
+      :type:  bool
+
+
+   .. py:attribute:: keep_temp_files
+      :type:  bool
+
+
+.. py:class:: Reports(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Report generation namespace attached to :class:`ADMDatamart` as ``dm.generate``.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['yaml']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'healthcheck'
+
+
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: model_reports(model_ids: str | list[str], *, name: str | None = None, only_active_predictors: bool = True, progress_callback: collections.abc.Callable[[int, int], None] | None = None, model_file_path: str | os.PathLike[str] | None = None, predictor_file_path: str | os.PathLike[str] | None = None, **options: Unpack[ReportOptions]) -> pathlib.Path
+
+      Generate model reports for Naive Bayes ADM models.
+
+      :param model_ids: The model ID (or list of model IDs) to generate reports for.
+      :type model_ids: str or list of str
+      :param name: Base file name of the report.
+      :type name: str, optional
+      :param only_active_predictors: Whether to only include active predictor details.
+      :type only_active_predictors: bool, default=True
+      :param progress_callback: Function called as ``progress_callback(current, total)`` after each model
+                                report is rendered. Used by the Streamlit app.
+      :type progress_callback: callable, optional
+      :param model_file_path: Path to an existing model-data file. If provided, skips re-exporting the
+                              datamart's model data.
+      :type model_file_path: str or path-like, optional
+      :param predictor_file_path: Path to an existing predictor-data file. If provided, skips re-exporting
+                                  the datamart's predictor data.
+      :type predictor_file_path: str or path-like, optional
+      :param \*\*options: Shared rendering/output options. See :class:`ReportOptions` for the full
+                          list (``title``, ``subtitle``, ``disclaimer``, ``output_dir``,
+                          ``output_type``, ``qmd_file``, ``full_embed``, ``keep_temp_files``).
+      :type \*\*options: Unpack[ReportOptions]
+
+      :returns: The path to the generated report file (or zip if multiple model IDs).
+      :rtype: Path
+
+      :raises ValueError: If ``model_ids`` is empty or report generation fails.
+      :raises FileNotFoundError: If required input files are not found.
+      :raises subprocess.SubprocessError: If the Quarto subprocess fails.
+
+
+
+   .. py:method:: health_check(name: str | None = None, *, query: pdstools.utils.types.QUERY | None = None, prediction: pdstools.prediction.Prediction.Prediction | None = None, model_file_path: str | os.PathLike[str] | None = None, predictor_file_path: str | os.PathLike[str] | None = None, prediction_file_path: str | os.PathLike[str] | None = None, **options: Unpack[ReportOptions]) -> pathlib.Path
+
+      Generate the ADM Health Check report.
+
+      Optionally includes predictor and prediction sections when the corresponding
+      data is available on the datamart or supplied via ``prediction``.
+
+      :param name: Base file name of the report.
+      :type name: str, optional
+      :param query: Extra filter applied to the datamart data before rendering.
+      :type query: QUERY, optional
+      :param prediction: Prediction object to include in the report. If provided without
+                         ``prediction_file_path``, prediction data is cached to a temporary file.
+      :type prediction: Prediction, optional
+      :param model_file_path: Path to an existing model-data file. If provided, skips re-exporting the
+                              datamart's model data.
+      :type model_file_path: str or path-like, optional
+      :param predictor_file_path: Path to an existing predictor-data file. If provided, skips re-exporting
+                                  the datamart's predictor data.
+      :type predictor_file_path: str or path-like, optional
+      :param prediction_file_path: Path to an existing prediction-data file. If neither this nor ``prediction``
+                                   is provided, the prediction section is omitted.
+      :type prediction_file_path: str or path-like, optional
+      :param \*\*options: Shared rendering/output options. See :class:`ReportOptions` for the full
+                          list (``title``, ``subtitle``, ``disclaimer``, ``output_dir``,
+                          ``output_type``, ``qmd_file``, ``full_embed``, ``keep_temp_files``).
+      :type \*\*options: Unpack[ReportOptions]
+
+      :returns: The path to the generated report file.
+      :rtype: Path
+
+      :raises ValueError: If report generation fails.
+      :raises FileNotFoundError: If required input files are not found.
+      :raises subprocess.SubprocessError: If the Quarto subprocess fails.
+
+
+
+   .. py:method:: excel_report(name: str | os.PathLike[str] = Path('Tables.xlsx'), *, predictor_binning: bool = False) -> tuple[pathlib.Path | None, list[str]]
+
+      Export raw datamart tables to an Excel workbook.
+
+      Writes the last snapshots of model data, predictor summaries, and optionally
+      predictor binning data to separate sheets. Sheets that are unavailable or
+      exceed Excel's row / size limits are skipped with a warning rather than
+      failing the whole export.
+
+      :param name: Path where the Excel file will be written.
+      :type name: str or path-like, default=Path("Tables.xlsx")
+      :param predictor_binning: If True, include the (potentially large) predictor binning sheet.
+      :type predictor_binning: bool, default=False
+
+      :returns: The path to the created Excel file (``None`` if no data was available),
+                and a list of warning messages (empty if nothing was skipped).
+      :rtype: tuple of (Path or None, list of str)
+
+
+

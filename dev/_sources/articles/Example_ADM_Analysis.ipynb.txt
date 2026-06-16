@@ -1,0 +1,463 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "source": [
+    "### Link to article\n",
+    "\n",
+    "This notebook is included in the documentation, where the interactive Plotly charts show up. See:\n",
+    "https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_ADM_Analysis.html"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "> **📦 Optional dependencies**\n",
+    ">\n",
+    "> This article uses features from the pdstools `adm` extra. Install with your favorite package manager, e.g. `pip install \"pdstools[adm]\"`.\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Example ADM analysis\n",
+    "See this notebook for an introduction to the ADMDatamart class to get an overview of the currently implemented features in the Python version of CDH Tools. If you have any suggestions for new features, please do not hesitate to raise an issue in Git, or even better: create a pull request yourself!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Reading the data\n",
+    "Reading the data is quite simple. All you need to do is to give a directory location to the ADMSnapshot class and it will automatically detect the latest files and import them. There is also a default function to import the CDH Sample data directly from the internet, as you can see below:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "outputs": [],
+   "source": [
+    "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+    "# Do not run if you're running the notebook seperately\n",
+    "# Hidden from doc by virtue of cell tags - in VSCode right-click on the bar to the left of this cell, edit cell tags, see metadata\n",
+    "\n",
+    "import plotly.io as pio\n",
+    "\n",
+    "pio.renderers.default = \"notebook_connected\"\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pdstools import ADMDatamart, datasets\n",
+    "import polars as pl\n",
+    "\n",
+    "CDHSample = datasets.cdh_sample()\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Bubble Chart\n",
+    "To start out with the bubble chart, which we can simply call by calling plotPerformanceSuccessRateBubbleChart with our main class."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.bubble_chart()\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Looks like a healthy bubble plot, but sometimes it is useful to consider only certain models in the analysis. Note that the bubble chart automatically considers only the last snapshot by default, though this is a parameter. \n",
+    "\n",
+    "To reduce the information, let's only consider models with more than 500 responses within the CreditCards group. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "query = (pl.col(\"ResponseCount\") > 500) & (pl.col(\"Group\") == \"CreditCards\")\n",
+    "fig = CDHSample.plot.bubble_chart(query=query)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Alternatively, we could only look at the top n best performing models within our query. To do this, we need to supply a list of model IDs which we can easily extract from the data as such.\n",
+    "\n",
+    "Note here the alternative querying syntax you can use, which was default in the previous version of CDH Tools: if you have a list (list) to subset a column's values with, you can simply supply a dictionary with 'column name':list to only get values in that list for that column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "top30ids = (\n",
+    "    CDHSample.aggregates.last()\n",
+    "    .sort(\"Performance\", descending=True)\n",
+    "    .select(\"ModelID\")\n",
+    "    .head(30)\n",
+    "    .collect()\n",
+    "    .to_series()\n",
+    "    .to_list()\n",
+    ")\n",
+    "\n",
+    "fig = CDHSample.plot.bubble_chart(query={\"ModelID\": top30ids})\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The bubble chart gives some information about which models perform well, but that is not always informative: if we don't know in which channels, issues or groups our issues lie then we may not be looking in the right place. This is where the Treemap visualisation is quite handy. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.tree_map()\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "By default the Treemap shows the weighted performance, where the performance is weighted by the response count. The squares represent Model IDs: the larger a square, the more model IDs are within that combination of context keys. We can also color the Treemap by another variable, such as the SuccessRate:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.tree_map(\"SuccessRate\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Similar to the responses, the success rate over time can also be of interest. With 'plotOverTime', you can plot the success rate of different models as they develop over time."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.over_time(\"SuccessRate\", by=\"ModelID\", query=pl.col(\"Channel\") == \"Web\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "And if it is not interesting to consider the success rate over time, there is also 'plotPropositionSuccessRates', which by default considers the last state of the models and plots the histogram of their success rates."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.proposition_success_rates(query=pl.col(\"Channel\") == \"Web\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "If we want to look at the distribution of responses and their propensities for a given model, we can subset that model and call plotScoreDistribution. Note here we subset the model by its ID."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.score_distribution(model_id=\"08ca1302-9fc0-57bf-9031-d4179d400493\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Alternatively, we can also subset a model by its model name, and then further drill down by group/issue/channel/configuration. See the example below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "figs = CDHSample.plot.multiple_score_distributions(\n",
+    "    query=(pl.col(\"Name\") == \"HomeOwners\")\n",
+    "    & (pl.col(\"Group\") == \"Bundles\")\n",
+    "    & (pl.col(\"Issue\") == \"Sales\")\n",
+    "    & (pl.col(\"Channel\") == \"Web\")\n",
+    "    & (pl.col(\"Configuration\") == \"OmniAdaptiveModel\"),\n",
+    "    show_all=False,\n",
+    ")\n",
+    "for fig in figs:\n",
+    "    fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Similarly, we can also display the distribution of a single predictor and its binning. This function loops through each predictor of a model and generates the binning image for that predictor. For that reason we recommend subsetting the predictor names ahead of time or, depending on how many predictors the model has, a lot of images will be generated."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "figs = CDHSample.plot.multiple_predictor_binning(\n",
+    "    model_id=\"08ca1302-9fc0-57bf-9031-d4179d400493\",\n",
+    "    query=(\n",
+    "        pl.col(\"PredictorName\").is_in(\n",
+    "            [\n",
+    "                \"Customer.Age\",\n",
+    "                \"Customer.AnnualIncome\",\n",
+    "                \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+    "            ]\n",
+    "        )\n",
+    "    ),\n",
+    "    show_all=False,\n",
+    ");\n",
+    "for fig in figs:\n",
+    "    fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Alternatively we can look at the performance of a predictor over multiple models. Again, we recommend subsetting the predictor names with a list to make it more legible. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.predictor_performance(\n",
+    "    query=pl.col(\"PredictorName\").is_in(\n",
+    "        [\n",
+    "            \"Customer.Age\",\n",
+    "            \"Customer.AnnualIncome\",\n",
+    "            \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+    "        ]\n",
+    "    )\n",
+    ")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "What the two previous visualisations could not represent very well is the performance of the predictors over different models. That is what the plotPredictorPerformanceHeatmap function does; again with subsetting of predictors as a recommended step."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.predictor_performance_heatmap(\n",
+    "    query=pl.col(\"PredictorName\").is_in(\n",
+    "        [\n",
+    "            \"Customer.Age\",\n",
+    "            \"Customer.AnnualIncome\",\n",
+    "            \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+    "        ]\n",
+    "    )\n",
+    ")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### External model scores as ADM predictors\n",
+    "\n",
+    "When you integrate scores from third-party ML models or custom scoring pipelines\n",
+    "as ADM predictors, you may want to analyse their contribution separately from\n",
+    "native customer-profile or interaction-history predictors.\n",
+    "\n",
+    "The `apply_predictor_categorization` method lets you supply your own mapping so\n",
+    "that downstream plots automatically colour-code predictors by that label.  The\n",
+    "simplest form is a dictionary: keys become category labels and values are\n",
+    "substrings (or regular expressions when `use_regexp=True`) matched against\n",
+    "`PredictorName`.\n",
+    "\n",
+    "> **Note – simulated data:** The CDH sample dataset does not contain predictors\n",
+    "> with an external-score naming convention, so the example below re-tags the\n",
+    "> `IH` (interaction-history) predictors as *External Model Score* to illustrate\n",
+    "> the workflow.  In a real deployment you would replace `\"IH\"` with whatever\n",
+    "> prefix or pattern your external-score predictors use, for example\n",
+    "> `\"ExtScore_\"` or `\"ModelOutput.\"`, and add as many additional categories as\n",
+    "> needed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Tag predictors whose names contain \"IH\" as External Model Scores.\n",
+    "# In production, replace \"IH\" with your actual naming pattern, e.g. \"ExtScore_\".\n",
+    "CDHSample.apply_predictor_categorization(\n",
+    "    categorization={\"External Model Score\": [\"IH\"]},\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Feature importance: external scores vs. native predictors\n",
+    "\n",
+    "`plot.predictor_performance` renders a box-plot of predictor performance across\n",
+    "models and colours each predictor by its `PredictorCategory`, so external model\n",
+    "scores are immediately visually distinguished from native `Customer` or\n",
+    "`Primary` predictors."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.predictor_performance(top_n=20)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Lift contribution by predictor category\n",
+    "\n",
+    "`plot.predictor_contribution` shows what fraction of the overall lift each\n",
+    "category contributes per ADM configuration.  This lets you answer the question\n",
+    "*\"how much of our model's predictive power comes from external scores versus\n",
+    "our own data?\"*"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.predictor_contribution()\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Interpreting the results\n",
+    "\n",
+    "**Predictor performance** measures how well a single predictor separates\n",
+    "positives from negatives within an individual model (AUC on a 0.5–1.0 scale).\n",
+    "An external model score with performance ≥ 0.6 is already a meaningful signal;\n",
+    "above 0.7 it is a strong one.  Compare it to the native predictors in the same\n",
+    "box-plot: if the external score sits at the top, it is the dominant driver of\n",
+    "propensity for those models.\n",
+    "\n",
+    "**Lift contribution** (the bar chart) normalises performance across all active\n",
+    "predictors within a configuration and expresses each category's share as a\n",
+    "percentage.  A large *External Model Score* bar means those third-party scores\n",
+    "are carrying a disproportionate amount of the model's lift — which is fine if\n",
+    "the scores are stable and monitored, but worth flagging if data freshness or\n",
+    "availability could be a risk.\n",
+    "\n",
+    "Typical action items:\n",
+    "\n",
+    "* **High contribution, high performance** — the external score is providing\n",
+    "  real value; ensure it is refreshed regularly and has a fallback strategy for\n",
+    "  missing values.\n",
+    "* **High contribution, mediocre performance** — the native predictors are weak;\n",
+    "  consider enriching the customer profile before reducing reliance on external\n",
+    "  scores.\n",
+    "* **Low contribution** — the external score is not being used by the models;\n",
+    "  check whether it is actually active and whether the feature engineering\n",
+    "  (binning, scaling) is appropriate."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": ".venv",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

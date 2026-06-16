@@ -1,0 +1,175 @@
+pdstools.explanations.Aggregate
+===============================
+
+.. py:module:: pdstools.explanations.Aggregate
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Aggregate.Aggregate
+
+
+Module Contents
+---------------
+
+.. py:class:: Aggregate(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Aggregate.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: data_folderpath
+
+
+   .. py:attribute:: data_pattern
+      :value: None
+
+
+
+   .. py:attribute:: df_contextual
+      :type:  polars.LazyFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: df_overall
+      :type:  polars.LazyFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: context_operations
+
+
+   .. py:attribute:: initialized
+      :value: False
+
+
+
+   .. py:method:: get_df_contextual() -> polars.LazyFrame
+
+      Get the contextual dataframe, loading it if not already loaded.
+
+
+
+   .. py:method:: get_df_overall() -> polars.LazyFrame
+
+      Get the overall dataframe, loading it if not already loaded.
+
+
+
+   .. py:method:: get_predictor_contributions(context: dict[str, str] | None = None, top_n: int = 20, *, sort_by: pdstools.explanations.ExplanationsUtils.SortBy = 'contribution_abs', descending: bool = True, missing: bool = True, remaining: bool = True, include_numeric_single_bin: bool = False) -> polars.DataFrame
+
+      Get the top-n predictor contributions for a given context or overall.
+
+      :param context: The context to filter contributions by.
+                      If None, contributions for all contexts will be returned.
+      :type context: dict[str, str] | None
+      :param top_n: Number of top predictors.
+      :type top_n: int
+      :param sort_by: Column to rank/select top predictors. One of
+                      ``contribution``, ``contribution_abs``,
+                      ``contribution_weighted``, ``contribution_weighted_abs``.
+                      Default: ``"contribution_abs"``.
+      :type sort_by: str
+      :param descending: Sort most- or least-impactful first. Default: ``True``.
+      :type descending: bool
+      :param missing: Include missing-value bins. Default: ``True``.
+      :type missing: bool
+      :param remaining: Include an aggregated "remaining" row for predictors outside
+                        the top-n. Default: ``True``.
+      :type remaining: bool
+      :param include_numeric_single_bin: Include numeric predictors that have only a single bin.
+                                         Default: ``False``.
+      :type include_numeric_single_bin: bool
+
+
+
+   .. py:method:: get_predictor_value_contributions(predictors: list[str], context: dict[str, str] | None = None, top_k: int = 20, *, sort_by: pdstools.explanations.ExplanationsUtils.SortBy = 'contribution_abs', descending: bool = True, missing: bool = True, remaining: bool = True, include_numeric_single_bin: bool = False) -> polars.DataFrame
+
+      Get the top-k predictor value contributions for a given context or overall.
+
+      :param predictors: Required. list of predictors to get the contributions for.
+      :type predictors: list[str]
+      :param context: The context to filter contributions by.
+                      If None, contributions for all contexts will be returned.
+      :type context: dict[str, str] | None
+      :param top_k: Number of unique categorical predictor values to return.
+      :type top_k: int
+      :param sort_by: Column to rank/select top predictors. One of
+                      ``contribution``, ``contribution_abs``,
+                      ``contribution_weighted``, ``contribution_weighted_abs``.
+                      Default: ``"contribution_abs"``.
+      :type sort_by: str
+      :param descending: Sort most- or least-impactful first. Default: ``True``.
+      :type descending: bool
+      :param missing: Include missing-value bins. Default: ``True``.
+      :type missing: bool
+      :param remaining: Include an aggregated "remaining" row for values outside
+                        the top-k. Default: ``True``.
+      :type remaining: bool
+      :param include_numeric_single_bin: Include numeric predictors that have only a single bin.
+                                         Default: ``False``.
+      :type include_numeric_single_bin: bool
+
+
+
+   .. py:method:: validate_folder()
+
+      Check if the aggregates folder exists.
+
+      :raises FileNotFoundError: If the aggregates folder does not exist or is empty.
+
+
+
+   .. py:method:: get_unique_contexts_list(context_infos: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None, with_partition_col: bool = False) -> list[pdstools.explanations.ExplanationsUtils.ContextInfo]
+
+      Get unique contexts list.
+
+
+
+   .. py:method:: add_frequency_pct_to_df(df, group_by) -> polars.LazyFrame
+
+      Add a frequency percentage column to the dataframe based on the total frequency per group.
+
+
+
+   .. py:method:: add_context_frequency_pct_to_df(df: polars.DataFrame, join_on: list[str]) -> polars.DataFrame
+
+      Add frequency_pct showing this context's share of the overall model.
+
+      For each row, computes
+      ``frequency_pct = df.frequency / overall_model_frequency * 100``
+      where the overall model frequency is summed over ``join_on`` columns
+      from the overall (non-contextual) dataset.
+
+      :param df: DataFrame with a ``frequency`` column (context data).
+      :type df: pl.DataFrame
+      :param join_on: Columns to join on, typically
+                      ``[predictor_name, predictor_type]``.
+      :type join_on: list[str]
+
+      :returns: *df* with an added ``frequency_pct`` column (0–100).
+      :rtype: pl.DataFrame
+
+
+

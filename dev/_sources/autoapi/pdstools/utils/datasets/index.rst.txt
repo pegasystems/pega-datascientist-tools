@@ -1,0 +1,48 @@
+pdstools.utils.datasets
+=======================
+
+.. py:module:: pdstools.utils.datasets
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.datasets.cdh_sample
+   pdstools.utils.datasets.sample_trees
+   pdstools.utils.datasets.sample_value_finder
+
+
+Module Contents
+---------------
+
+.. py:function:: cdh_sample(query: pdstools.utils.types.QUERY | None = None) -> pdstools.adm.ADMDatamart.ADMDatamart
+
+   Import a sample dataset from the CDH Sample application
+
+   :param query: An optional query to apply to the data, by default None
+   :type query: QUERY | None, optional
+
+   :returns: The ADM Datamart class populated with CDH Sample data
+   :rtype: ADMDatamart
+
+
+.. py:function:: sample_trees()
+
+   Sample trees.
+
+
+.. py:function:: sample_value_finder(threshold: float | None = None) -> pdstools.valuefinder.ValueFinder.ValueFinder
+
+   Import a sample dataset of a Value Finder simulation
+
+   This simulation was ran on a stock CDH Sample system.
+
+   :param threshold: Optional override of the propensity threshold in the system, by default None
+   :type threshold: float | None, optional
+
+   :returns: The Value Finder class populated with the Value Finder simulation data
+   :rtype: ValueFinder
+
+

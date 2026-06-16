@@ -1,0 +1,17 @@
+pdstools.infinity.resources.prediction_studio.v24_1
+===================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction_studio/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/repository/index
+
+

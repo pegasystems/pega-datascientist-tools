@@ -1,0 +1,169 @@
+pdstools.explanations.Schema
+============================
+
+.. py:module:: pdstools.explanations.Schema
+
+.. autoapi-nested-parse::
+
+   Polars schemas for explanations input parquet files and aggregate outputs.
+
+   Mirrors the pattern used by ``pdstools.adm.Schema``: each class is a
+   collection of class-level attributes naming the expected columns and
+   their polars dtypes. Apply with ``cdh_utils._apply_schema_types``.
+
+   The raw explanation parquet schema is the public contract between Pega
+   and the Explanations module. Validating against it up front (in
+   ``Preprocess.generate``) turns malformed inputs into a clear
+   ``ValueError`` instead of a cryptic DuckDB error mid-processing.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.explanations.Schema.REQUIRED_RAW_COLUMNS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Schema.RawExplanationData
+   pdstools.explanations.Schema.ContextualAggregate
+   pdstools.explanations.Schema.OverallAggregate
+
+
+Module Contents
+---------------
+
+.. py:class:: RawExplanationData
+
+   Schema for a single explanation parquet file produced by Pega.
+
+   Each row is one (sample, predictor) shap-coefficient observation.
+   Context columns (``pyChannel``, ``pyDirection``, ``pyIssue``,
+   ``pyGroup``, ``pyName``, ``pyTreatment``) are user-configurable and
+   not all of them are required to be present, so they are not part of
+   the strict required-columns check. The ``partition`` column
+   (JSON-encoded context dict) is required because every downstream
+   SQL aggregation groups by it.
+
+
+   .. py:attribute:: pySubjectID
+
+
+   .. py:attribute:: pyInteractionID
+
+
+   .. py:attribute:: predictor_name
+
+
+   .. py:attribute:: predictor_type
+
+
+   .. py:attribute:: symbolic_value
+
+
+   .. py:attribute:: numeric_value
+
+
+   .. py:attribute:: shap_coeff
+
+
+   .. py:attribute:: score
+
+
+   .. py:attribute:: partition
+
+
+.. py:data:: REQUIRED_RAW_COLUMNS
+   :type:  tuple[str, Ellipsis]
+   :value: ('pyInteractionID', 'predictor_name', 'predictor_type', 'shap_coeff', 'partition')
+
+
+   Columns that must be present in every raw explanation parquet file.
+
+   ``symbolic_value`` and ``numeric_value`` are technically optional per
+   row (one is null depending on ``predictor_type``), but at least one
+   must exist as a column or the SQL queries fail. We check this
+   separately in ``_validate_raw_data``.
+
+.. py:class:: ContextualAggregate
+
+   Schema for the per-context aggregate parquet (``*_BATCH_*.parquet``).
+
+   Produced by ``Preprocess._parquet_in_batches`` from
+   ``resources/queries/numeric.sql`` or ``symbolic.sql``.
+
+
+   .. py:attribute:: partition
+
+
+   .. py:attribute:: predictor_name
+
+
+   .. py:attribute:: predictor_type
+
+
+   .. py:attribute:: bin_contents
+
+
+   .. py:attribute:: bin_order
+
+
+   .. py:attribute:: contribution_abs
+
+
+   .. py:attribute:: contribution
+
+
+   .. py:attribute:: contribution_min
+
+
+   .. py:attribute:: contribution_max
+
+
+   .. py:attribute:: frequency
+
+
+.. py:class:: OverallAggregate
+
+   Schema for the per-model aggregate parquet (``*_OVERALL.parquet``).
+
+   Same shape as ``ContextualAggregate`` but ``partition`` is always the
+   literal string ``'whole_model'``.
+
+
+   .. py:attribute:: partition
+
+
+   .. py:attribute:: predictor_name
+
+
+   .. py:attribute:: predictor_type
+
+
+   .. py:attribute:: bin_contents
+
+
+   .. py:attribute:: bin_order
+
+
+   .. py:attribute:: contribution_abs
+
+
+   .. py:attribute:: contribution
+
+
+   .. py:attribute:: contribution_min
+
+
+   .. py:attribute:: contribution_max
+
+
+   .. py:attribute:: frequency
+
+

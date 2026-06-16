@@ -1,0 +1,130 @@
+pdstools.infinity.resources.prediction_studio.schemas.model
+===========================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.schemas.model
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.schemas.model.ModelData
+   pdstools.infinity.resources.prediction_studio.schemas.model.ModelDataV26_1
+
+
+Module Contents
+---------------
+
+.. py:class:: ModelData(/, **data: Any)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.schemas._base.ResourceData`
+
+
+   Typed payload for a Prediction Studio model.
+
+   Fields use Pythonic snake_case names with Pega camelCase aliases. Unknown
+   fields from newer Pega releases are retained (``extra="allow"``) and surface
+   on ``model_dump()`` / attribute access.
+
+   :param model_id: Unique model identifier (alias ``modelId``).
+   :type model_id: str
+   :param label: Human-readable model name.
+   :type label: str
+   :param model_type: The model type, e.g. ``"Adaptive model"`` (alias ``modelType``).
+   :type model_type: str or None
+   :param modeling_technique: Underlying technique (alias ``modelingTechnique``).
+   :type modeling_technique: str or None
+   :param source: Origin of the model, e.g. ``"Pega"``.
+   :type source: str or None
+   :param status: Lifecycle status, e.g. ``"Completed"``.
+   :type status: str or None
+   :param component_name: Component the model belongs to (alias ``componentName``).
+   :type component_name: str or None
+   :param last_update_time: Last modification time (alias ``lastUpdateTime``), parsed from the
+                            Pega timestamp format.
+   :type last_update_time: datetime or None
+   :param updated_by: Operator who last updated the model (alias ``updatedBy``).
+   :type updated_by: str or None
+
+
+   .. py:attribute:: model_id
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: label
+      :type:  str
+
+
+   .. py:attribute:: model_type
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: modeling_technique
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: source
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: status
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: component_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: last_update_time
+      :type:  datetime.datetime | None
+      :value: None
+
+
+
+   .. py:attribute:: updated_by
+      :type:  str | None
+      :value: None
+
+
+
+.. py:class:: ModelDataV26_1(/, **data: Any)
+
+   Bases: :py:obj:`ModelData`
+
+
+   Typed payload for a Prediction Studio model in API v26.1+.
+
+   Extends :class:`ModelData` with the performance metrics surfaced by the
+   v26.1 models endpoint.
+
+   :param performance: Model performance metric (e.g. AUC).
+   :type performance: float or None
+   :param performance_measure: The performance metric name (alias ``performanceMeasure``).
+   :type performance_measure: str or None
+
+
+   .. py:attribute:: performance
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: performance_measure
+      :type:  str | None
+      :value: None
+
+
+

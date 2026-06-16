@@ -1,0 +1,167 @@
+pdstools.explanations.ExplanationsUtils
+=======================================
+
+.. py:module:: pdstools.explanations.ExplanationsUtils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils.SortBy
+   pdstools.explanations.ExplanationsUtils.DisplayBy
+   pdstools.explanations.ExplanationsUtils.ContributionType
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils.ContextInfo
+   pdstools.explanations.ExplanationsUtils.ContextOperations
+
+
+Module Contents
+---------------
+
+.. py:data:: SortBy
+
+.. py:data:: DisplayBy
+
+.. py:data:: ContributionType
+
+.. py:class:: ContextInfo
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Context info.
+
+
+   .. py:attribute:: context_key
+      :type:  str
+
+
+   .. py:attribute:: context_value
+      :type:  str
+
+
+.. py:class:: ContextOperations(aggregate: pdstools.explanations.Aggregate.Aggregate)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Context related operations such as to filter unique contexts.
+
+   :param aggregate (Aggregate):
+   :type aggregate (Aggregate): The aggregate object to operate on.
+
+   .. attribute:: aggregate (Aggregate)
+
+      
+
+      :type: The aggregate object.
+
+   .. attribute:: _df (pl.DataFrame | None)
+
+      
+
+      :type: DataFrame containing context information.
+
+   .. attribute:: _context_keys (list[str] | None)
+
+      
+
+      :type: list of context keys.
+
+   .. attribute:: initialized (bool)
+
+      
+
+      :type: Flag indicating if the context operations have been initialized.
+
+   .. method:: get_context_keys():
+
+      Returns the list of context keys from loaded data.
+      Eg. ['pyChannel', 'pyDirection', ...]
+      
+
+   .. method:: get_df(context_infos=None, with_partition_col=False):
+
+      Returns a DataFrame containing unique contexts
+      If `with_partition_col` is True, includes the partition column.
+      If `context_infos` is None, returns the full unique contexts,
+      else filtered by the context
+      Eg. with partition column:
+      | pyChannel | pyDirection | ... | partition |
+      |-----------|-------------|-----|-----------|
+      | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
+      | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
+      
+
+   .. method:: get_list(context_infos=None, with_partition_col=False):
+
+      Returns a list[ContextInfo] containing unique contexts
+      If `with_partition_col` is True, includes the partition column.
+      If `context_infos` is None, returns the full unique contexts,
+      else filtered by the context
+      Eg. without partition column:
+      [
+          {"pyChannel": "channel1", "pyDirection": "direction1", ...},
+          {"pyChannel": "channel1", "pyDirection": "direction2", ...},
+      ]
+      
+
+   .. method:: get_context_info_str(context_info, sep="-"):
+
+      Returns a string representation of a single context information.
+      Eg. channel1-direction1-...
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: aggregate
+
+
+   .. py:attribute:: initialized
+      :value: False
+
+
+
+   .. py:method:: get_context_keys() -> list[str]
+
+      Get context keys.
+
+
+
+   .. py:method:: get_df(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> polars.DataFrame
+
+      Get the DataFrame filtered by the provided context information.
+
+
+
+   .. py:method:: get_list(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> list[ContextInfo]
+
+      Get the list of context information filtered by the provided context information.
+
+
+
+   .. py:method:: get_context_info_str(context_info: ContextInfo, sep: str = '-') -> str
+      :staticmethod:
+
+
+      Get context info str.
+
+
+

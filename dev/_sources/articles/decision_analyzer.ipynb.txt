@@ -1,0 +1,634 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Decision Analysis\n",
+    "\n",
+    "This notebook demonstrates the `DecisionAnalyzer` class from pdstools for analyzing NBA decision data.\n",
+    "\n",
+    "The class works with two data formats:\n",
+    "- **Explainability Extract (v1)**: Actions at the arbitration stage only.\n",
+    "- **Decision Analyzer / EEV2 (v2)**: Full decision funnel with stage information and filter components.\n",
+    "\n",
+    "The analyses below cover the decision funnel, action distribution, sensitivity analysis, win/loss patterns, personalization, and lever experimentation."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "> **📦 Optional dependencies**\n",
+    ">\n",
+    "> This article uses features from the pdstools `adm` extra. Install with your favorite package manager, e.g. `pip install \"pdstools[adm]\"`.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "outputs": [],
+   "source": [
+    "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+    "# Do not run if you're running the notebook seperately\n",
+    "\n",
+    "import plotly.io as pio\n",
+    "\n",
+    "pio.renderers.default = \"notebook_connected\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pdstools.pega_io import read_data\n",
+    "from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer\n",
+    "from pdstools.decision_analyzer.plots import create_win_distribution_plot\n",
+    "from pdstools.decision_analyzer.utils import get_scope_config\n",
+    "from pdstools import read_ds_export\n",
+    "import polars as pl"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Read Data\n",
+    "\n",
+    "Load the sample EEV2 data and create a `DecisionAnalyzer` instance. The sample data can be downloaded directly from [GitHub](https://github.com/pegasystems/pega-datascientist-tools/raw/master/data/sample_eev2.parquet)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df = read_ds_export(\n",
+    "    filename=\"sample_eev2.parquet\",\n",
+    "    path=\"https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data\",\n",
+    ")\n",
+    "decision_data = DecisionAnalyzer(df)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Overview"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "General statistics of the dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.overview_stats"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "A single decision. The number of rows shows how many actions are available at the Arbitration stage. `Rank` shows the action ranking (null in earlier stages where propensity is not yet set)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "selected_interaction_id = (\n",
+    "    decision_data.decision_data.select(\"Interaction ID\")\n",
+    "    .first()\n",
+    "    .collect()\n",
+    "    .row(0)[0]\n",
+    ")\n",
+    "print(f\"{selected_interaction_id=}\")\n",
+    "decision_data.decision_data.filter(\n",
+    "    pl.col(\"Interaction ID\") == selected_interaction_id\n",
+    ").sort(\"Rank\").collect()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Decision Funnel\n",
+    "\n",
+    "Shows which actions are filtered out at each stage and by which component. Useful for answering: where do specific actions get dropped?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Remaining View"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "remanining_funnel, filtered_funnel = decision_data.plot.decision_funnel(\n",
+    "    scope=\"Issue\", additional_filters=None, return_df=False\n",
+    ")\n",
+    "remanining_funnel"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Filter View"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filtered_funnel"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Custom filter analysis using the raw data to see exactly which components are filtering and how much."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filter_table = (\n",
+    "    decision_data.decision_data.filter(pl.col(\"Record Type\") == \"FILTERED_OUT\")\n",
+    "    .group_by([\"Stage Order\", \"Stage Group\", \"Stage\", \"Component Name\"])\n",
+    "    .agg(pl.len().alias(\"filter count\"))\n",
+    "    .with_columns(\n",
+    "        (\n",
+    "            pl.format(\n",
+    "                \"{}%\",\n",
+    "                ((pl.col(\"filter count\") / pl.sum(\"filter count\")) * 100).round(1),\n",
+    "            )\n",
+    "        ).alias(\"percent of all filters\")\n",
+    "    )\n",
+    "    .collect()\n",
+    "    .sort(\"filter count\", descending=True)\n",
+    ")\n",
+    "filter_table"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Action Distribution\n",
+    "\n",
+    "Distribution of actions at the Arbitration stage. Helps identify action groups that rarely survive to Arbitration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "stage = \"Arbitration\"\n",
+    "scope_options = [\"Issue\", \"Group\", \"Action\"]\n",
+    "distribution_data = decision_data.aggregates.get_distribution_data(stage, scope_options)\n",
+    "fig = decision_data.plot.distribution_as_treemap(\n",
+    "    df=distribution_data, stage=stage, scope_options=scope_options\n",
+    ")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Global Sensitivity\n",
+    "\n",
+    "Shows the impact of each arbitration factor (Propensity, Value, Context Weight, Levers) on the final decision. Each bar represents how many decisions would change if that factor were removed. Ideally, Propensity should have the strongest influence."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.plot.sensitivity(win_rank=1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Wins and Losses in Arbitration"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Distribution of wins and losses by Issue. The `level` parameter can be set to `\"Group\"` or `\"Action\"` for different granularity. Actions are classified as winning or losing based on `win_rank`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.plot.global_winloss_distribution(level=\"Issue\", win_rank=1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Optionality Analysis\n",
+    "\n",
+    "Shows how many actions are available per customer at the Arbitration stage. Limited optionality reduces the ability to personalize. The bars show decision counts per number of available actions; the line shows average propensity of the top-ranked action. Average propensity should increase with more available actions."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.plot.propensity_vs_optionality(stage=\"Arbitration\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Win/Loss Analysis"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Win Analysis\n",
+    "Select an action and see how often it wins and which actions it defeats."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "win_rank = 1\n",
+    "selected_action = (\n",
+    "    decision_data.decision_data.filter(pl.col(\"Rank\") == 1)\n",
+    "    .group_by(\"Action\")\n",
+    "    .len()\n",
+    "    .sort(\"len\", descending=True)\n",
+    "    .collect()\n",
+    "    .get_column(\"Action\")\n",
+    "    .to_list()[1]\n",
+    ")\n",
+    "filter_statement = pl.col(\"Action\") == selected_action\n",
+    "\n",
+    "interactions_where_comparison_group_wins = (\n",
+    "    decision_data.scoring.get_winning_or_losing_interactions(\n",
+    "        group_filter=filter_statement,\n",
+    "        win=True,\n",
+    "    )\n",
+    ")\n",
+    "\n",
+    "print(\n",
+    "    f\"selected action '{selected_action}' wins(Rank{win_rank}) in {interactions_where_comparison_group_wins.collect().height} interactions.\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Actions that lose to the selected action in arbitration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Losing actions in interactions where the selected action wins.\n",
+    "groupby_cols = [\"Issue\", \"Group\", \"Action\"]\n",
+    "winning_from = decision_data.scoring._winning_from(\n",
+    "    interactions=interactions_where_comparison_group_wins,\n",
+    "    win_rank=win_rank,\n",
+    "    groupby_cols=groupby_cols,\n",
+    "    top_k=20,\n",
+    ")\n",
+    "\n",
+    "decision_data.plot.distribution_as_treemap(\n",
+    "    df=winning_from, stage=\"Arbitration\", scope_options=groupby_cols\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Loss Analysis\n",
+    "Actions that beat the selected action in arbitration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "interactions_where_comparison_group_loses = (\n",
+    "    decision_data.scoring.get_winning_or_losing_interactions(\n",
+    "        group_filter=filter_statement,\n",
+    "        win=False,\n",
+    "    )\n",
+    ")\n",
+    "\n",
+    "print(\n",
+    "    f\"selected action '{selected_action}' loses in {interactions_where_comparison_group_loses.collect().height} interactions.\"\n",
+    ")\n",
+    "# Winning actions in interactions where the selected action loses.\n",
+    "losing_to = decision_data.scoring._losing_to(\n",
+    "    interactions=interactions_where_comparison_group_loses,\n",
+    "    win_rank=win_rank,\n",
+    "    groupby_cols=groupby_cols,\n",
+    "    top_k=20,\n",
+    ")\n",
+    "\n",
+    "decision_data.plot.distribution_as_treemap(\n",
+    "    df=losing_to, stage=\"Arbitration\", scope_options=groupby_cols\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Sensitivity for Selected Action\n",
+    "Change in win count when each prioritization factor is individually removed. Unlike the global sensitivity above, negative values are possible: a negative value means removing that factor would increase wins for the selected action (i.e., that factor is hurting it)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.plot.sensitivity(\n",
+    "    reference_group=pl.col(\"Action\") == selected_action\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Prioritization Factor Distributions\n",
+    "\n",
+    "Box plots comparing the arbitration factor distributions of the selected action vs competitors in the same interactions."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, warning_message = decision_data.plot.prio_factor_boxplots(\n",
+    "    reference=pl.col(\"Action\") == selected_action,\n",
+    ")\n",
+    "if warning_message:\n",
+    "    print(warning_message)\n",
+    "else:\n",
+    "    fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Rank Distribution\n",
+    "\n",
+    "Distribution of the prioritization rank for the selected action. Low ranks indicate the action is not often winning."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "decision_data.plot.rank_boxplot(\n",
+    "    reference=pl.col(\"Action\") == selected_action,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Arbitration Component Distribution\n",
+    "\n",
+    "Distribution of prioritization components (Propensity, Value, Context Weight, Levers). Since prioritization uses multiplication, components with wide value ranges can dominate. Use the histogram for volume distribution and box plots for spread analysis."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pdstools.decision_analyzer.plots import plot_priority_component_distribution\n",
+    "\n",
+    "component = \"Value\"\n",
+    "granularity = \"Issue\"\n",
+    "value_data = decision_data.scoring.priority_component_distribution(\n",
+    "    component=component,\n",
+    "    granularity=granularity,\n",
+    ")\n",
+    "\n",
+    "violin_fig, ecdf_fig, stats_df = plot_priority_component_distribution(\n",
+    "    value_data=value_data, component=component, granularity=granularity\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "violin_fig"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ecdf_fig"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Experimenting with Levers\n",
+    "\n",
+    "Levers can be adjusted to increase or decrease win counts for action groups. Steps:\n",
+    "\n",
+    "1. Select a group of actions\n",
+    "2. Check current win counts and winner distribution\n",
+    "3. Apply a new lever value and observe the change\n",
+    "\n",
+    "**Note:** Boosting an action's volume shows it to more uninterested customers, lowering propensity and click-through rate. This is a zero-sum game: increasing one group's wins decreases others'. Compare before/after distributions carefully."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Selecting the actions in \"Savings\" group under \"Sales\" issue\n",
+    "selected_issue = \"Sales\"\n",
+    "selected_group = \"Savings\"\n",
+    "lever_condition = (pl.col(\"Issue\") == selected_issue) & (\n",
+    "    pl.col(\"Group\") == selected_group\n",
+    ")\n",
+    "original_distribution = decision_data.scoring.get_win_distribution_data(\n",
+    "    lever_condition,\n",
+    "    all_interactions=decision_data.sample_size,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# You can see per action, how many times they win and how many times they survive to arbitration(max possible win count)\n",
+    "original_distribution"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Analyze the current winner distribution. In this example we are in Group granularity\n",
+    "# If we specified an action(using Action column) we could go into Action level. Notice that selected_action is \"All\", which means all actions under the selected issue, group\n",
+    "scope_config = get_scope_config(\n",
+    "    selected_issue = selected_issue,\n",
+    "    selected_group = selected_group,\n",
+    "    selected_action = \"All\",\n",
+    ")\n",
+    "original_fig, original_plot_data = create_win_distribution_plot(\n",
+    "    data = original_distribution,\n",
+    "    win_count_col = \"original_win_count\",\n",
+    "    scope_config = scope_config,\n",
+    "    title_suffix = \"In Arbitration\",\n",
+    "    y_axis_title = \"Current Win Count\",\n",
+    ")\n",
+    "original_fig"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# You can hover over the plot above, but you can also see the number of wins from the data.\n",
+    "original_plot_data.filter(lever_condition)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Now lets set the lever of selected actions to 5 and see how the new distribution looks like\n",
+    "lever = 5\n",
+    "distribution = decision_data.scoring.get_win_distribution_data(\n",
+    "    lever_condition,\n",
+    "    lever,\n",
+    "    all_interactions=decision_data.sample_size,\n",
+    ")\n",
+    "\n",
+    "new_fig, new_plot_data = create_win_distribution_plot(\n",
+    "    data = distribution,\n",
+    "    win_count_col = \"new_win_count\",\n",
+    "    scope_config = scope_config,\n",
+    "    title_suffix = \"After Lever Adjustment\",\n",
+    "    y_axis_title = \"New Win Count\",\n",
+    ")\n",
+    "new_fig"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "new_plot_data.filter(lever_condition)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "pega-datascientist-tools",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

@@ -1,0 +1,29 @@
+pdstools.utils.cdh_utils
+========================
+
+.. py:module:: pdstools.utils.cdh_utils
+
+.. autoapi-nested-parse::
+
+   Helpers for working with Pega CDH-style data.
+
+   This package preserves the public surface of the previous ``cdh_utils`` module
+   while splitting the implementation across several focused private submodules:
+
+   * ``_dates`` — Pega date-time parsing and start/end-date resolution.
+   * ``_namespacing`` — Pega field-name normalisation (``_capitalize``) and
+     predictor-categorisation defaults.
+   * ``_polars`` — Polars expression / frame helpers (queries, sampling,
+     schema casting, list-overlap utilities, weighted averages).
+   * ``_metrics`` — Performance metrics: AUC, lift, log-odds, gains tables and
+     feature importance.
+   * ``_io`` — File, temp-directory, logger setup and version-check helpers.
+   * ``_misc`` — Small standalone helpers (list flattening, plot legend colors).
+
+   Submodule names are underscore-prefixed; only this ``__init__`` is the
+   supported import surface. Imports such as
+   ``from pdstools.utils.cdh_utils import safe_int`` continue to resolve
+   unchanged.
+
+
+

@@ -1,0 +1,91 @@
+pdstools.impactanalyzer.Schema
+==============================
+
+.. py:module:: pdstools.impactanalyzer.Schema
+
+.. autoapi-nested-parse::
+
+   Schema definitions for Impact Analyzer experiment data.
+
+   These classes mirror the convention used by ``pdstools.adm.Schema`` and document
+   the columns expected by :class:`ImpactAnalyzer`. Required columns are validated
+   in :meth:`ImpactAnalyzer._validate_ia_data`; optional columns (e.g. those
+   prefixed with ``Pega_``) are populated only by some data sources.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.Schema.REQUIRED_IA_COLUMNS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.Schema.ImpactAnalyzerData
+
+
+Module Contents
+---------------
+
+.. py:class:: ImpactAnalyzerData
+
+   Normalised long-format experiment data consumed by :class:`ImpactAnalyzer`.
+
+   Required columns
+   ----------------
+   SnapshotTime : pl.Datetime | pl.Date
+       Snapshot date for the row.
+   ControlGroup : pl.Utf8
+       Control / test group identifier (e.g. ``"NBA"``, ``"PropensityPriority"``).
+   Impressions : numeric
+       Impression count.
+   Accepts : numeric
+       Accept count.
+   ValuePerImpression : pl.Float64
+       Average per-impression value (may be null for PDC data).
+   Channel : pl.Utf8
+       Channel name (or ``Channel/Direction`` for VBD data).
+
+   Optional columns
+   ----------------
+   Pega_ValueLift, Pega_ValueLiftInterval : pl.Float64
+       Pre-computed lift values present only in PDC exports.
+
+
+   .. py:attribute:: SnapshotTime
+
+
+   .. py:attribute:: ControlGroup
+
+
+   .. py:attribute:: Impressions
+
+
+   .. py:attribute:: Accepts
+
+
+   .. py:attribute:: ValuePerImpression
+
+
+   .. py:attribute:: Channel
+
+
+   .. py:attribute:: Pega_ValueLift
+
+
+   .. py:attribute:: Pega_ValueLiftInterval
+
+
+.. py:data:: REQUIRED_IA_COLUMNS
+   :type:  tuple[str, Ellipsis]
+   :value: ('SnapshotTime', 'ControlGroup', 'Impressions', 'Accepts', 'ValuePerImpression', 'Channel')
+
+
+   Columns that must be present on the LazyFrame passed to :class:`ImpactAnalyzer`.
+

@@ -1,0 +1,537 @@
+pdstools.adm.ADMDatamart
+========================
+
+.. py:module:: pdstools.adm.ADMDatamart
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMDatamart.ADMDatamart
+
+
+Module Contents
+---------------
+
+.. py:class:: ADMDatamart(model_df: polars.LazyFrame | None = None, predictor_df: polars.LazyFrame | None = None, *, query: pdstools.utils.types.QUERY | None = None, extract_pyname_keys: bool = True)
+
+   Monitor and analyze ADM data from the Pega Datamart.
+
+   To initialize this class, either
+   1. Initialize directly with the model_df and predictor_df polars LazyFrames
+   2. Use one of the class methods: `from_ds_export`, `from_s3`, `from_dataflow_export` etc.
+
+   This class will read in the data from different sources, properly structure them
+   from further analysis, and apply correct typing and useful renaming.
+
+   There is also a few "namespaces" that you can call from this class:
+
+   - `.plot` contains ready-made plots to analyze the data with
+   - `.aggregates` contains mostly internal data aggregations queries
+   - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
+   - `.generate` leads to some ready-made reports, such as the Health Check
+   - `.bin_aggregator` allows you to compare the bins across various models
+
+   :param model_df: The Polars LazyFrame representation of the model snapshot table.
+   :type model_df: pl.LazyFrame, optional
+   :param predictor_df: The Polars LazyFrame represenation of the predictor binning table.
+   :type predictor_df: pl.LazyFrame, optional
+   :param query: An optional query to apply to the input data.
+                 For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
+   :type query: QUERY, optional
+   :param extract_pyname_keys: Whether to extract extra keys from the `pyName` column.
+                               In older Pega versions, this contained pyTreatment among other
+                               (customizable) fields. By default True
+   :type extract_pyname_keys: bool, default = True
+
+   .. rubric:: Examples
+
+   >>> from pdstools import ADMDatamart
+   >>> from glob import glob
+   >>> dm = ADMDatamart(
+            model_df = pl.scan_parquet('models.parquet'),
+            predictor_df = pl.scan_parquet('predictors.parquet')
+            query = {"Configuration":["Web_Click_Through"]}
+            )
+   >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
+   >>> dm = ADMDatamart.from_s3("pega_export", "model_snapshots.parquet")
+   >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+
+   .. note::
+
+      This class depends on two datasets:
+      
+      - `pyModelSnapshots` corresponds to the `model_data` attribute
+      - `pyADMPredictorSnapshots` corresponds to the `predictor_data` attribute
+      
+      For instructions on how to download these datasets, please refer to the following
+      article: https://docs.pega.com/bundle/platform/page/platform/decision-management/exporting-monitoring-database.html
+
+   .. seealso::
+
+      :py:obj:`pdstools.adm.Plots`
+          The out of the box plots on the Datamart data
+      
+      :py:obj:`pdstools.adm.Reports`
+          Methods to generate the Health Check and Model Report
+      
+      :py:obj:`pdstools.utils.cdh_utils._apply_query`
+          How to query the ADMDatamart class and methods
+
+
+   .. py:attribute:: model_data
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: predictor_data
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: combined_data
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: plot
+      :type:  pdstools.adm.Plots.Plots
+
+
+   .. py:attribute:: aggregates
+      :type:  pdstools.adm.Aggregates.Aggregates
+
+
+   .. py:attribute:: agb
+      :type:  pdstools.adm.trees.AGB
+
+
+   .. py:attribute:: generate
+      :type:  pdstools.adm.Reports.Reports
+
+
+   .. py:attribute:: bin_aggregator
+      :type:  pdstools.adm.BinAggregator.BinAggregator
+
+
+   .. py:attribute:: first_action_dates
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: context_keys
+      :type:  list[str]
+      :value: ['Channel', 'Direction', 'Issue', 'Group', 'Name']
+
+
+
+   .. py:method:: from_ds_export(model_filename: str | None = None, predictor_filename: str | None = None, base_path: os.PathLike | str = '.', *, query: pdstools.utils.types.QUERY | None = None, extract_pyname_keys: bool = True, infer_schema_length: int = 10000)
+      :classmethod:
+
+
+      Import the ADMDatamart class from a Pega Dataset Export
+
+      :param model_filename: The full path or name (if base_path is given) to the model snapshot files,
+                             by default None
+      :type model_filename: Optional[str], optional
+      :param predictor_filename: The full path or name (if base_path is given) to the predictor binning
+                                 snapshot files, by default None
+      :type predictor_filename: Optional[str], optional
+      :param base_path: A base path to provide so that we can automatically find the most recent
+                        files for both the model and predictor snapshots, if model_filename and
+                        predictor_filename are not given as full paths, by default "."
+      :type base_path: Union[os.PathLike, str], optional
+      :param query: An optional argument to filter out selected data, by default None
+      :type query: Optional[QUERY], optional
+      :param extract_pyname_keys: Whether to extract additional keys from the `pyName` column, by default True
+      :type extract_pyname_keys: bool, optional
+      :param infer_schema_length: Number of rows to scan when inferring the schema for CSV/JSON files.
+                                  For large production datasets, increase this value (e.g., 200000) if columns
+                                  are not being detected correctly. Higher values use more memory but provide
+                                  more accurate schema detection. By default 10000
+      :type infer_schema_length: int, optional
+
+      :returns: The properly initialized ADMDatamart class
+      :rtype: ADMDatamart
+
+      .. rubric:: Examples
+
+      >>> from pdstools import ADMDatamart
+
+      >>> # To automatically find the most recent files in the 'my_export_folder' dir:
+      >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
+
+      >>> # To specify individual files:
+      >>> dm = ADMDatamart.from_ds_export(
+              model_df='/Downloads/model_snapshots.parquet',
+              predictor_df = '/Downloads/predictor_snapshots.parquet'
+              )
+
+      >>> # To use a higher schema inference length for large datasets:
+      >>> dm = ADMDatamart.from_ds_export(
+              base_path='/my_export_folder',
+              infer_schema_length=200000
+              )
+
+      .. note::
+
+         By default, the dataset export in Infinity returns a zip file per table.
+         You do not need to open up this zip file! You can simply point to the zip,
+         and this method will be able to read in the underlying data.
+
+      .. seealso::
+
+         :py:obj:`pdstools.pega_io.File.read_ds_export`
+             More information on file compatibility
+         
+         :py:obj:`pdstools.utils.cdh_utils._apply_query`
+             How to query the ADMDatamart class and methods
+
+
+
+   .. py:method:: from_s3(bucket: str, model_key: str, predictor_key: str | None = None, *, region: str | None = None, boto3_client=None, query: pdstools.utils.types.QUERY | None = None, extract_pyname_keys: bool = True, infer_schema_length: int = 10000) -> ADMDatamart
+      :classmethod:
+
+
+      Import the ADMDatamart class from objects stored in S3.
+
+      Downloads the model snapshot (and optional predictor snapshot) from
+      the given S3 bucket to a temporary directory, then delegates to
+      :meth:`from_ds_export` for parsing.
+
+      :param bucket: Name of the S3 bucket holding the export files.
+      :type bucket: str
+      :param model_key: S3 object key for the model snapshot file.
+      :type model_key: str
+      :param predictor_key: S3 object key for the predictor binning snapshot file. If omitted,
+                            only the model data is loaded.
+      :type predictor_key: str | None, optional
+      :param region: AWS region name. Ignored if ``boto3_client`` is provided.
+      :type region: str | None, optional
+      :param boto3_client: Pre-configured ``boto3`` S3 client. Use this to inject custom
+                           credentials, endpoints, or sessions. When omitted, a default
+                           client is created via ``boto3.client("s3", region_name=region)``.
+      :type boto3_client: optional
+      :param query: An optional argument to filter the data, by default None.
+      :type query: QUERY | None, optional
+      :param extract_pyname_keys: Whether to extract additional keys from the ``pyName`` column,
+                                  by default True.
+      :type extract_pyname_keys: bool, optional
+      :param infer_schema_length: Number of rows to scan when inferring the schema for CSV/JSON
+                                  files. By default 10000.
+      :type infer_schema_length: int, optional
+
+      :returns: The properly initialized ADMDatamart class.
+      :rtype: ADMDatamart
+
+      .. rubric:: Examples
+
+      >>> from pdstools import ADMDatamart
+      >>> dm = ADMDatamart.from_s3(
+      ...     bucket="my-pega-exports",
+      ...     model_key="datamart/model_snapshots.parquet",
+      ...     predictor_key="datamart/predictor_snapshots.parquet",
+      ... )
+
+      .. note::
+
+         ``boto3`` is an optional dependency; install the ``pega_io`` extra
+         (or install ``boto3`` directly) before calling this method.
+
+      .. seealso::
+
+         :py:obj:`ADMDatamart.from_ds_export`
+             Underlying parser for downloaded files.
+         
+         :py:obj:`pdstools.pega_io.S3.S3Data`
+             Async helper for bulk dataflow exports.
+
+
+
+   .. py:method:: from_dataflow_export(model_data_files: collections.abc.Iterable[str] | str, predictor_data_files: collections.abc.Iterable[str] | str, *, query: pdstools.utils.types.QUERY | None = None, extract_pyname_keys: bool = True, cache_file_prefix: str = '', cache_directory: os.PathLike | str = 'cache')
+      :classmethod:
+
+
+      Read in data generated by a data flow, such as the Prediction Studio export.
+
+      Dataflows are able to export data from and to various sources.
+      As they are meant to be used in production, they are highly resiliant.
+      For every partition and every node, a dataflow will output a small json file
+      every few seconds. While this is great for production loads, it can be a bit
+      more tricky to read in the data for smaller-scale and ad-hoc analyses.
+
+      This method aims to make the ingestion of such highly partitioned data easier.
+      It reads in every individual small json file that the dataflow has output,
+      and caches them to a parquet file in the `cache_directory` folder.
+      As such, if you re-run this method later with more data added since the last
+      export, we will not read in from the (slow) dataflow files, but rather from the
+      (much faster) cache.
+
+      :param model_data_files: A list of files to read in as the model snapshots
+      :type model_data_files: Union[Iterable[str], str]
+      :param predictor_data_files: A list of files to read in as the predictor snapshots
+      :type predictor_data_files: Union[Iterable[str], str]
+      :param query: A, by default None
+      :type query: Optional[QUERY], optional
+      :param extract_pyname_keys: Whether to extract extra keys from the pyName column, by default True
+      :type extract_pyname_keys: bool, optional
+      :param cache_file_prefix: An optional prefix for the cache files, by default ""
+      :type cache_file_prefix: str, optional
+      :param cache_directory: Where to store the cached files, by default "cache"
+      :type cache_directory: Union[os.PathLike, str], optional
+
+      :returns: An initialized instance of the datamart class
+      :rtype: ADMDatamart
+
+      .. rubric:: Examples
+
+      >>> from pdstools import ADMDatamart
+      >>> import glob
+      >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+
+      .. seealso::
+
+         :py:obj:`pdstools.utils.cdh_utils._apply_query`
+             How to query the ADMDatamart class and methods
+         
+         :py:obj:`glob`
+             Makes creating lists of files much easier
+
+
+
+   .. py:method:: from_databricks_view(df: polars.LazyFrame) -> ADMDatamart
+      :classmethod:
+
+
+      Build an ADMDatamart from the Databricks model snapshots view.
+
+      The input view is validated against the expected Databricks schema,
+      then renamed and cast into the ADM model-data shape used by
+      :class:`ADMDatamart`.
+
+      :param df: The Polars LazyFrame containing the Databricks data.
+      :type df: pl.LazyFrame
+
+      :returns: The initialised datamart. Use ``dm.model_data`` for the
+                transformed frame.
+      :rtype: ADMDatamart
+
+
+
+   .. py:method:: apply_predictor_categorization(categorization: polars.Expr | collections.abc.Callable[Ellipsis, polars.Expr] | dict[str, str | list[str]] = cdh_utils.default_predictor_categorization, *, use_regexp: bool = False, df: polars.LazyFrame | None = None)
+
+      Apply a new predictor categorization to the datamart tables
+
+      In certain plots, we use the predictor categorization to indicate what 'kind'
+      a certain predictor is, such as IH, Customer, etc. Call this method with a
+      custom Polars Expression (or a method that returns one) or a simple mapping
+      and it will be applied to the predictor data (and the combined dataset too).
+      When the categorization provides no match, the existing categories are kept
+      as they are.
+
+      For a reference implementation of a custom predictor categorization,
+      refer to `pdstools.utils.cdh_utils.default_predictor_categorization`.
+
+      :param categorization: A Polars Expression (or method that returns one) that returns the
+                             predictor categories. Should be based on Polars' when.then.otherwise syntax.
+                             Alternatively can be a dictionary of categories to (list of) string matches
+                             which can be either exact (the default) or regular expressions.
+                             By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
+      :type categorization: Union[pl.Expr, Callable[..., pl.Expr], dict[str, Union[str, list[str]]]]
+      :param use_regexp: Treat the mapping patterns in the `categorization` dictionary as regular expressions
+                         rather than plain strings. When treated as regular expressions, they will be
+                         interpreted in non-strict mode, so invalid expressions will return in no match. See
+                         https://docs.pola.rs/api/python/stable/reference/series/api/polars.Series.str.contains.html
+                         for exact behavior of the regular expressions.
+                         By default, False
+      :type use_regexp: bool, optional
+      :param df: A Polars Lazyframe to apply the categorization to.
+                 If not provided, applies it over the predictor data and combined datasets.
+                 By default, None
+      :type df: Optional[pl.LazyFrame], optional
+
+      .. seealso::
+
+         :py:obj:`pdstools.utils.cdh_utils.default_predictor_categorization`
+             The default method
+
+      .. rubric:: Examples
+
+      >>> dm = ADMDatamart(my_data) #uses the OOTB predictor categorization
+
+      >>> # Uses a custom Polars expression to set the categories
+      >>> dm.apply_predictor_categorization(categorization=pl.when(
+      >>> pl.col("PredictorName").cast(pl.Utf8).str.contains("Propensity")
+      >>> ).then(pl.lit("External Model")
+      >>> )
+
+      >>> # Uses a simple dictionary to set the categories
+      >>> dm.apply_predictor_categorization(categorization={
+      >>> "External Model" : ["Score", "Propensity"]}
+      >>> )
+
+
+
+   .. py:method:: save_data(path: os.PathLike | str = '.', selected_model_ids: list[str] | None = None) -> tuple[pathlib.Path | None, pathlib.Path | None]
+
+      Caches model_data and predictor_data to files.
+
+      :param path: Where to place the files
+      :type path: str
+      :param selected_model_ids: Optional list of model IDs to restrict to
+      :type selected_model_ids: list[str]
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (Optional[Path], Optional[Path])
+
+
+
+   .. py:property:: unique_channels
+      :type: list[str]
+
+
+      Sorted list of unique channels in the data.
+
+      Used for making the color schemes in different plots consistent.
+
+
+   .. py:property:: unique_configurations
+      :type: list[str]
+
+
+      Sorted list of unique configurations in the data.
+
+      Used for making the color schemes in different plots consistent.
+
+
+   .. py:property:: unique_channel_direction
+      :type: list[str]
+
+
+      Sorted list of unique channel+direction combos in the data.
+
+      Used for making the color schemes in different plots consistent.
+
+
+   .. py:property:: unique_configuration_channel_direction
+      :type: list[str]
+
+
+      Sorted list of unique configuration+channel+direction combos.
+
+      Used for making the color schemes in different plots consistent.
+
+
+   .. py:property:: unique_predictor_categories
+      :type: list[str]
+
+
+      Sorted list of unique predictor categories in the data.
+
+      Used for making the color schemes in different plots consistent.
+
+
+   .. py:property:: predictor_category_color_map
+      :type: dict[str, str]
+
+
+      Stable color mapping for predictor categories across all plots.
+
+      Assigns a consistent color to each ``PredictorCategory`` value found
+      in the full dataset, using the Pega colorway and alphabetical ordering.
+      This prevents the same category from receiving different colors when
+      different subsets of categories appear in different chart partitions.
+
+      :returns: Mapping from category name to hex color, e.g.
+                ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
+      :rtype: dict[str, str]
+
+
+   .. py:property:: has_single_snapshot
+      :type: bool
+
+
+      True when the model data contains only one unique SnapshotTime.
+
+      Trend / over-time plots are meaningless with a single snapshot.
+      Use this property to skip or replace those sections in reports.
+
+      .. rubric:: Examples
+
+      >>> dm = ADMDatamart.from_ds_export(model_filename="models.parquet")
+      >>> if dm.has_single_snapshot:
+      ...     print("No trend data available")
+
+
+   .. py:method:: get_last_data_for_report() -> polars.DataFrame
+
+      Get the last snapshot of data formatted for report display.
+
+      This method provides a standardized view of the most recent model data
+      with formatting suitable for Health Check reports and other documents.
+      It handles null values, type conversions, and creates useful combined
+      columns like "Channel/Direction".
+
+      :returns: Collected DataFrame with the following transformations applied:
+                - Categorical columns cast to strings
+                - String and Null columns filled with "NA"
+                - SuccessRate and Performance filled with 0 for nulls/NaNs
+                - ResponseCount filled with 0 for nulls
+                - Channel/Direction combined column created
+      :rtype: pl.DataFrame
+
+      .. rubric:: Examples
+
+      >>> datamart = ADMDatamart.from_ds_export(model_filename="models.csv")
+      >>> last_data = datamart.get_last_data_for_report()
+      >>> # Use in reports without additional processing
+      >>> active_models = last_data.filter(pl.col("ResponseCount") > 1000)
+
+
+
+   .. py:method:: active_ranges(model_ids: str | list[str] | None = None) -> polars.LazyFrame
+
+      Calculate the active, reachable bins in classifiers.
+
+      The classifiers exported by Pega contain (in certain product versions) more than
+      the bins that can be reached given the current state of the predictors. This method
+      first calculates the min and max score range from the predictor log odds, then maps
+      that to the interval boundaries of the classifier(s) to find the min and max index.
+
+      It returns a LazyFrame with the score min/max, the min/max index, as well as the
+      AUC as reported in the datamart data, when calculated from the full range, and when
+      calculated from the reachable bins only.
+
+      This information can be used in the Health Check documents or when verifying the
+      AUC numbers from the datamart.
+
+      :param model_ids: An optional list of model id's, or just a single one, to report on. When
+                        not given, the information is returned for all models.
+      :type model_ids: Optional[Union[str, list[str]]], optional
+
+      :returns: A table with all the index and AUC information for all the models with the following fields:
+
+                Model Identification:
+                - ModelID - The unique identifier for the model
+
+                AUC Metrics:
+                - AUC_Datamart - The AUC value as reported in the datamart
+                - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
+                - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+
+                Classifier Information:
+                - Bins - The total number of bins in the classifier
+                - nActivePredictors - The number of active predictors in the model
+
+                Log Odds Information (mostly for internal use):
+                - classifierLogOffset - The log offset of the classifier (baseline log odds)
+                - sumMinLogOdds - The sum of minimum log odds across all active predictors
+                - sumMaxLogOdds - The sum of maximum log odds across all active predictors
+                - score_min - The minimum score (normalized sum of log odds including classifier offset)
+                - score_max - The maximum score (normalized sum of log odds including classifier offset)
+
+                Active Range Information:
+                - idx_min - The minimum bin index that can be reached given the current binning of all predictors
+                - idx_max - The maximum bin index that can be reached given the current binning of all predictors
+      :rtype: pl.LazyFrame
+
+
+

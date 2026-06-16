@@ -1,0 +1,204 @@
+pdstools.ih.Aggregates
+======================
+
+.. py:module:: pdstools.ih.Aggregates
+
+.. autoapi-nested-parse::
+
+   Aggregation methods for Interaction History analysis.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.ih.Aggregates.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.ih.Aggregates.Aggregates
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: Aggregates(ih: pdstools.ih.IH.IH)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Aggregation methods for Interaction History data.
+
+   This class provides aggregation capabilities for summarizing customer
+   interaction data. It is accessed through the `aggregates` attribute of an
+   :class:`~pdstools.ih.IH.IH` instance.
+
+   All aggregation methods support:
+   - Grouping by dimensions via `by` parameter
+   - Time bucketing via `every` parameter
+   - Data filtering via `query` parameter
+
+   .. attribute:: ih
+
+      Reference to the parent IH instance.
+
+      :type: IH
+
+   .. seealso::
+
+      :py:obj:`pdstools.ih.IH`
+          Main analysis class.
+      
+      :py:obj:`pdstools.ih.Plots`
+          Visualization methods.
+
+   .. rubric:: Examples
+
+   >>> ih = IH.from_ds_export("interaction_history.zip")
+   >>> ih.aggregates.summary_success_rates(by="Channel").collect()
+   >>> ih.aggregates.summary_outcomes(every="1w").collect()
+
+
+   .. py:attribute:: ih
+
+
+   .. py:method:: summarize_by_interaction(by: str | collections.abc.Sequence[str | polars.Expr] | polars.Expr | None = None, every: str | datetime.timedelta | None = None, query: pdstools.utils.types.QUERY | None = None, debug: bool = False) -> polars.LazyFrame
+
+      Summarize outcomes per interaction.
+
+      Groups data by interaction ID and determines the outcome for each
+      interaction based on configured positive/negative outcome labels.
+
+      :param by: Grouping dimension(s). Default is None.
+      :type by: str, list[str], or pl.Expr, optional
+      :param every: Time aggregation period (e.g., "1d", "1w"). Default is None.
+      :type every: str or timedelta, optional
+      :param query: Polars expression to filter data before aggregation.
+      :type query: QUERY, optional
+      :param debug: If True, include the Outcomes column (list of unique outcome values per interaction).
+                    If False, the Outcomes column is dropped from the results.
+
+                    This parameter affects the return value structure, not logging output.
+                    For debug logging, use logging.basicConfig(level=logging.DEBUG).
+      :type debug: bool, default False
+
+      :returns: Interaction-level data with columns:
+
+                - **InteractionID**: Unique interaction identifier
+                - **Interaction_Outcome_<metric>**: Boolean outcome per metric
+                - **Propensity**: Propensity value from interaction
+                - Plus any grouping columns
+      :rtype: pl.LazyFrame
+
+      .. rubric:: Notes
+
+      An interaction has a positive outcome for a metric if any outcome
+      matches the positive labels. Otherwise, if any matches negative
+      labels, the outcome is False. Otherwise it's null.
+
+      .. seealso::
+
+         :py:obj:`summary_success_rates`
+             Aggregated success rates.
+
+      .. rubric:: Examples
+
+      >>> ih.aggregates.summarize_by_interaction(by="Channel").collect()
+
+
+
+   .. py:method:: summary_success_rates(by: str | collections.abc.Sequence[str | polars.Expr] | polars.Expr | None = None, every: str | datetime.timedelta | None = None, query: pdstools.utils.types.QUERY | None = None, debug: bool = False) -> polars.LazyFrame
+
+      Calculate success rates with standard errors.
+
+      Aggregates interactions into success rates for each configured metric,
+      with standard errors for statistical significance assessment.
+
+      :param by: Grouping dimension(s). Default is None.
+      :type by: str, list[str], or pl.Expr, optional
+      :param every: Time aggregation period (e.g., "1d", "1w"). Default is None.
+      :type every: str or timedelta, optional
+      :param query: Polars expression to filter data before aggregation.
+      :type query: QUERY, optional
+      :param debug: If True, include the Outcomes column (list of unique outcome values per group).
+                    If False, the Outcomes column is dropped from the results.
+
+                    This parameter affects the return value structure, not logging output.
+                    For debug logging, use logging.basicConfig(level=logging.DEBUG).
+      :type debug: bool, default False
+
+      :returns: Success rate summary with columns:
+
+                - **Positives_<metric>**: Count of positive outcomes
+                - **Negatives_<metric>**: Count of negative outcomes
+                - **Interactions**: Total interaction count
+                - **SuccessRate_<metric>**: Positive / (Positive + Negative)
+                - **StdErr_<metric>**: Standard error of the proportion
+                - Plus any grouping columns
+      :rtype: pl.LazyFrame
+
+      .. rubric:: Notes
+
+      Standard error is calculated as:
+
+      .. math::
+
+          SE = \sqrt{\frac{p(1-p)}{n}}
+
+      where p is the success rate and n is the sample size.
+
+      .. seealso::
+
+         :py:obj:`summarize_by_interaction`
+             Interaction-level outcomes.
+         
+         :py:obj:`summary_outcomes`
+             Outcome counts.
+
+      .. rubric:: Examples
+
+      >>> ih.aggregates.summary_success_rates(by="Channel", every="1w").collect()
+
+
+
+   .. py:method:: summary_outcomes(by: str | collections.abc.Sequence[str | polars.Expr] | polars.Expr | None = None, every: str | datetime.timedelta | None = None, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Count outcomes by type.
+
+      Aggregates outcome counts, useful for understanding the distribution
+      of outcomes across dimensions or time periods.
+
+      :param by: Grouping dimension(s). Default is None.
+      :type by: str, list[str], or pl.Expr, optional
+      :param every: Time aggregation period (e.g., "1d", "1w"). Default is None.
+      :type every: str or timedelta, optional
+      :param query: Polars expression to filter data before aggregation.
+      :type query: QUERY, optional
+
+      :returns: Outcome counts with columns:
+
+                - **Outcome**: Outcome type label
+                - **Count**: Number of occurrences
+                - Plus any grouping columns
+      :rtype: pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`summary_success_rates`
+             Success rates by metric.
+
+      .. rubric:: Examples
+
+      >>> ih.aggregates.summary_outcomes(by="Channel").collect()
+      >>> ih.aggregates.summary_outcomes(every="1mo").collect()
+
+
+

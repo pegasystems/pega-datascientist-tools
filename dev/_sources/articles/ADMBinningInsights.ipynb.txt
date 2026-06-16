@@ -1,0 +1,360 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Customer Profiles from ADM-NB Models\n",
+    "\n",
+    "The predictor binning from ADM models can deliver great insights to marketing and business and provides transparency into the models. \n",
+    "\n",
+    "Both AGB and NB types of ADM models already provide overall predictor importance views like these:\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "> **📦 Optional dependencies**\n",
+    ">\n",
+    "> This article uses features from the pdstools `adm` extra. Install with your favorite package manager, e.g. `pip install \"pdstools[adm]\"`.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "outputs": [],
+   "source": [
+    "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+    "# Do not run if you're running the notebook seperately\n",
+    "# Hidden from doc by virtue of cell tags - in VSCode right-click on the bar to the left of this cell, edit cell tags, see metadata\n",
+    "\n",
+    "import plotly.io as pio\n",
+    "\n",
+    "pio.renderers.default = \"notebook_connected\"\n",
+    "import warnings\n",
+    "\n",
+    "warnings.simplefilter(\"ignore\", SyntaxWarning)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from pdstools import datasets\n",
+    "from pdstools import ADMDatamart, datasets\n",
+    "import polars as pl\n",
+    "pl.Config.set_tbl_rows(20)  \n",
+    "\n",
+    "dm = datasets.cdh_sample()\n",
+    "# replace this with your own datamart data, see PDS tools documentation for examples\n",
+    "# dm = ADMDatamart(\n",
+    "#     model_filename=\"...\",\n",
+    "#     predictor_filename=\"...\",\n",
+    "# )\n",
+    "\n",
+    "fig = dm.plot.predictor_performance(top_n=10)\n",
+    "fig.update_layout(\n",
+    "    height=400, width=800, title=\"Feature Importance\", xaxis_title=\"\", yaxis_title=\"\"\n",
+    ")\n",
+    "\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "While helpful to understand how a model works, a global perspective on the model features is not of much use to understand who accepts what. For this type of insight, we need to dive deeper into how the model partitions the customers. The Pega ADM models can provide such information."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Predictor Binning for Individual Models\n",
+    "\n",
+    "The predictor binning for Baysian ADM models is available in Pega Prediction Studio and also in the downloadable, off-line model reports you can create with PDS tools. These reports are available for both the legacy R and the new Python versions of the toolkit.\n",
+    "\n",
+    "You can create these reports directly from the PDS tools app, or work in an IDE, for more information see [the PDS Tools Documentation](https://pegasystems.github.io/pega-datascientist-tools/index.html).\n",
+    "\n",
+    "You can easily recreate all or parts of this in code. For example, to recreate the binning reports use code like shown below. You'll need the model ID that you can pick up from Prediction Studio or from a quick analysis with PDS tools functions."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = dm.plot.predictor_binning(\n",
+    "    model_id=\"08ca1302-9fc0-57bf-9031-d4179d400493\",\n",
+    "    predictor_name=\"Customer.AnnualIncome\",\n",
+    ")\n",
+    "fig.update_layout(height=400, width=700, xaxis_title=\"\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "You can also view these reports in an alternative way, focussing on how each of the bins pushes the propensity above or below the average. This perspective on the \"lift\" of each bin is similar to the yellow line in the above plot but emphasizes it more."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = dm.plot.binning_lift(\n",
+    "    model_id=\"08ca1302-9fc0-57bf-9031-d4179d400493\",\n",
+    "    predictor_name=\"Customer.AnnualIncome\",\n",
+    ")\n",
+    "fig.update_layout(height=400, width=700, xaxis_title=\"\")\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Rolling up individual binning\n",
+    "\n",
+    "While already giving more insight than global predictor importance, being specific to one individual ADM instance means you may have to browse through 100's of individual model reports to get a feel for how, for example, Income is related to Cards acceptance.\n",
+    "\n",
+    "With the \"BinAggregator\" class in PDS Tools you can now \"roll up\" these binning views across actions and even across channels. For example this could show that \"People with income > 60000 and age > 30\" are more likely to respond positively to Cards offers.\n",
+    "\n",
+    "The rolling up is based on the predictor binning from ADM NB models. For a numeric predictor, we first create equi-distance or log-distance bins, for example, 10 bins from 20 to 85 for \"Age\" or 10 bins in a log scale from 10k to 10m for \"income\". \n",
+    "\n",
+    "Then, the predictor binning of all models (in a certain group, issue perhaps) is mapped onto those target bins and the values are mapped proportional to the overlap between the model bin and the target bin. We map the *lift* values, not the *bin counts*. The bin counts are heavily dependent on channel both in absolute numbers as in the ratio between positives and negatives (success rate) so aggregating those does give meaningful results. The lift is an indication of how a certain predictor value range pushes the likelhood to accept up or down.\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To illustrate this, see below. We have a equi-distance target binning for Age, shown in red, from 20 to 80. From one of the models we have binning of Age that has a slightly different range (10 - 75) - shown in blue. The first bin of the target gets a weighted lift from source bins 1 and 2. The second target bin falls completely within the range of bin 2 of the source, so gets the exact same lift value. Same for the target bins 3 and 4, they are both sourced from just source bin 3. The 4th one in not fully covered however, as you see reflected in the \"BinCoverage\" column in the table."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# For PDS tools example keep dm as above but the subset argument is important\n",
+    "myAggregator = dm.bin_aggregator\n",
+    "\n",
+    "target = myAggregator.create_empty_numbinning(\"Customer.Age\", 4, minimum=20, maximum=80)\n",
+    "source = pl.DataFrame(\n",
+    "    {\n",
+    "        \"ModelID\": [1] * 3,\n",
+    "        \"PredictorName\": [\"Customer.Age\"] * 3,\n",
+    "        \"BinIndex\": [1, 2, 3],\n",
+    "        \"BinLowerBound\": [10.0, 25.0, 50.0],\n",
+    "        \"BinUpperBound\": [25.0, 50.0, 75.0],\n",
+    "        # \"BinSymbol\" : [\"20-25\", \"25-50\", \"50-75\"],\n",
+    "        \"Lift\": [0.4, -0.1, 2.0],\n",
+    "        \"BinResponses\": [100, 1000, 400],\n",
+    "    }\n",
+    ")\n",
+    "myAggregator.plot_binning_attribution(source, target).update_layout(width=700)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The result of mapping the source binning onto this target is shown below. \n",
+    "The resulting **Lift** is the average lift of the overlapping segments, weighted by overlap. It is not weighed by response count like we usually do for model performance etc, as this would skew the numbers heavily towards the positive bins (as generally the actions will be selected where the bins are scoring higher). The **BinResponses** is an indication of the number of responses (postive plus negative) for the bin (but is not used, only provided for additional insights). **BinCoverage** is the sum of the coverage by all the models for this new bin. It cannot be higher than the number of models (**Models**) - some models are empty and not taken into account at all, or they have a value range smaller than the combined binning."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "myAggregator.combine_two_numbinnings(source, target)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "So you can roll up Age over all of the models in this sample data set and visualize how age affects propensity across all models:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = myAggregator.roll_up(\"Customer.Age\")\n",
+    "fig.update_layout(height=300, width=600)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The above is a view across *all* models in *all* channels and may not be that meaningful. It roughly says that both young and elderly people are more likely to respond than middle-agers. That in itself may not be that insightful.\n",
+    "\n",
+    "It generally is much more useful to compare this distribution across different issues, groups or other dimensions of interest. For example, showing how Age has a different relation with different groups of actions can be done with the following:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = myAggregator.roll_up(\n",
+    "    \"Customer.Age\", minimum=20, maximum=80, n=5, aggregation=\"Group\"\n",
+    ")\n",
+    "fig.update_layout(height=500)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "If you're interested in the underlying data rather than just the plot, use the 'return_df' argument - like in many of the PDS Tools plot functions."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "myAggregator.roll_up(\n",
+    "    \"Customer.Age\", minimum=20, maximum=80, n=5, aggregation=\"Group\", return_df=True\n",
+    ").head(20)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The boundaries of the bin intervals are by default created automatically, but can be given explicitly. Income, wealth etc are typically distributed very unevenly (with a long right tail) so you can tell the system to use a logarithmic scale, which means the boundaries are a multiple of eachother, unlike the even spacing you can when not specifying the distribution (or using \"lin\"). Below we split by Channel and define a few explicit income boundaries:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = myAggregator.roll_up(\n",
+    "    \"Customer.AnnualIncome\",\n",
+    "    boundaries=[10000, 20000, 30000],\n",
+    "    n=8,\n",
+    "    distribution=\"log\",\n",
+    "    aggregation=\"Channel\",\n",
+    ")\n",
+    "fig.update_layout(height=300)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Symbolic Predictors"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For symbolic ('categorical') predictors the process is conceptually simpler. We first extract the symbols from the bin labels, then aggregate the lift for the symbols up. For both types, the aggregated lift is weighted proportional to the responses of the models.\n",
+    "\n",
+    "While the way symbolic predictors are aggregated is very different, the process to roll them up is similar to that of numeric predictors. You can pass in some explicit symbols to consider, set the maximum and aggregate over some dimension like Issue or Group exactly as you can for numeric predictors."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = myAggregator.roll_up(\"Customer.MaritalStatus\")\n",
+    "fig.update_layout(height=300, width=600)\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Multiple predictors at once\n",
+    "\n",
+    "If you want to look at the aggregated lift of the top-5 predictors you can also do that. Instead of one predictor name, you can pass a list. You can even do this in combination with splitting on e.g. Group or Issue although this may be a little overwhelming.\n",
+    "\n",
+    "Remember that you can always subset to a subset of the models when creating the **BinAggregator**."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "top_predictors = sorted(list(set(dm.plot.predictor_performance(\n",
+    "    top_n=5,\n",
+    "    query=pl.col(\"PredictorCategory\")== \"Customer\",  # skip the \"IH\" predictors, taking only the ones prefixed with \"Customer.\"\n",
+    "    return_df=True,  \n",
+    ")['PredictorName'].to_list())))\n",
+    " \n",
+    "fig = myAggregator.roll_up(top_predictors, n=6, aggregation=\"Group\")\n",
+    "fig.update_layout(height=1000)\n",
+    "fig.for_each_annotation(\n",
+    "    lambda a: a.update(text=a.text.split(\".\")[-1])\n",
+    ")  # trick to show just the part of the predictor names after the dot\n",
+    "\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "pdstools",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

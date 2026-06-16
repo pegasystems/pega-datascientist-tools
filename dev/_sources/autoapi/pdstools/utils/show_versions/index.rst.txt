@@ -1,0 +1,95 @@
+pdstools.utils.show_versions
+============================
+
+.. py:module:: pdstools.utils.show_versions
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.show_versions.package_name
+   pdstools.utils.show_versions.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.show_versions.show_versions
+   pdstools.utils.show_versions.expand_nested_deps
+   pdstools.utils.show_versions.grouped_dependencies
+   pdstools.utils.show_versions.dependency_great_table
+
+
+Module Contents
+---------------
+
+.. py:data:: package_name
+   :value: 'pdstools'
+
+
+.. py:data:: logger
+
+.. py:function:: show_versions(print_output: Literal[True] = True) -> None
+                 show_versions(print_output: Literal[False] = False) -> str
+
+   Get a list of currently installed versions of pdstools and its dependencies.
+
+   :param print_output: If True, print the version information to stdout.
+                        If False, return the version information as a string.
+                        Default is True.
+   :type print_output: bool, optional
+   :param include_dependencies: If True, include the versions of dependencies in the output.
+                                If False, only include the pdstools version and system information.
+                                Default is True.
+   :type include_dependencies: bool, optional
+   :param include_runtime_diagnostics: If True, also report runtime details that are useful when
+                                       diagnosing environment issues: the polars index-type runtime
+                                       (rt64 vs rt32) and the presence/version of external tools
+                                       (``quarto``, ``pandoc``) used by the report-rendering path.
+                                       Default is False (the CLI ``pdstools doctor`` subcommand sets
+                                       this flag).
+   :type include_runtime_diagnostics: bool, optional
+
+   :returns: Version information as a string if print_output is False, else None.
+   :rtype: str | None
+
+   .. rubric:: Examples
+
+   >>> from pdstools import show_versions
+   >>> show_versions()
+   --- Version info ---
+   pdstools: 4.0.0-alpha
+   Platform: macOS-14.7-arm64-arm-64bit
+   Python: 3.12.4 (main, Jun  6 2024, 18:26:44) [Clang 15.0.0 (clang-1500.3.9.4)]
+
+   --- Dependencies ---
+   typing_extensions: 4.12.2
+   polars>=1.9: 1.9.0
+
+   --- Dependency group: adm ---
+   plotly>=5.5.0: 5.24.1
+
+   --- Dependency group: api ---
+   pydantic: 2.9.2
+   httpx: 0.27.2
+
+
+.. py:function:: expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]
+
+   Expand nested deps.
+
+
+.. py:function:: grouped_dependencies() -> dict[str, set[str]]
+
+   Grouped dependencies.
+
+
+.. py:function:: dependency_great_table(public_only: bool = True)
+
+   Dependency great table.
+
+
