@@ -88,20 +88,9 @@ class DecisionAnalyzer:
     - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
     - Direct ``__init__``: Auto-detects format from the data schema.
 
-    Attributes
-    ----------
-    decision_data : pl.LazyFrame
-        Interaction-level decision data (with global filters applied if any).
-    extract_type : str
-        Either ``"explainability_extract"`` or ``"decision_analyzer"``.
-    plot : Plot
-        Plot accessor for visualization methods.
-    aggregates : Aggregates
-        Accessor for aggregation queries (funnel, distribution,
-        optionality, action variation, …).
-    scoring : Scoring
-        Accessor for re-ranking, sensitivity, win/loss and lever
-        analysis.
+    The instance exposes ``decision_data`` and ``extract_type`` for the
+    processed dataset, plus ``plot``, ``aggregates``, and ``scoring``
+    accessors for visualization and analysis helpers.
 
     Examples
     --------

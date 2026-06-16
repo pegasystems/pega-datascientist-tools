@@ -63,12 +63,8 @@ class ImpactAnalyzer:
 
         \\text{Value Lift} = \\frac{\\text{ValueCapture}_{test} - \\text{ValueCapture}_{control}}{\\text{ValueCapture}_{control}}
 
-    Attributes
-    ----------
-    ia_data : pl.LazyFrame
-        The underlying experiment data containing control group metrics.
-    plot : Plots
-        Plot accessor for visualization methods.
+    The instance exposes the normalized experiment dataset as ``ia_data`` and
+    the plotting helpers via the ``plot`` accessor.
 
     See Also
     --------

@@ -41,18 +41,10 @@ class IH:
     engagement, conversion, and open rate metrics through customizable
     outcome label mappings.
 
-    Attributes
-    ----------
-    data : pl.LazyFrame
-        The underlying interaction history data.
-    aggregates : Aggregates
-        Aggregation methods accessor.
-    plot : Plots
-        Plot accessor for visualization methods.
-    positive_outcome_labels : dict
-        Mapping of metric types to positive outcome labels.
-    negative_outcome_labels : dict
-        Mapping of metric types to negative outcome labels.
+    The instance exposes the normalized Interaction History data plus
+    ``aggregates`` and ``plot`` accessors. Outcome label defaults are stored
+    on the class as ``positive_outcome_labels`` and
+    ``negative_outcome_labels``.
 
     See Also
     --------

@@ -33,11 +33,6 @@ class Aggregates(LazyNamespace):
     - Time bucketing via `every` parameter
     - Data filtering via `query` parameter
 
-    Attributes
-    ----------
-    ih : IH
-        Reference to the parent IH instance.
-
     See Also
     --------
     pdstools.ih.IH : Main analysis class.

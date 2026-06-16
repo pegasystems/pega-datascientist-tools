@@ -154,16 +154,8 @@ class ContextOperations(LazyNamespace):
     aggregate : Aggregate
         The aggregate object to operate on.
 
-    Attributes
-    ----------
-    aggregate : Aggregate
-        The aggregate object.
-    _df : pl.DataFrame | None
-        DataFrame containing context information.
-    _context_keys : list[str] | None
-        List of context keys.
-    initialized : bool
-        Flag indicating if the context operations have been initialized.
+    The object keeps a reference to the parent aggregate and lazily caches
+    loaded context data plus the discovered context keys.
 
     Notes
     -----

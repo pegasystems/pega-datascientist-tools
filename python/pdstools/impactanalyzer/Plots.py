@@ -32,11 +32,6 @@ class Plots(LazyNamespace):
     - Faceting by dimension via `facet` parameter
     - Returning underlying data via `return_df=True`
 
-    Attributes
-    ----------
-    ia : ImpactAnalyzer
-        Reference to the parent ImpactAnalyzer instance.
-
     See Also
     --------
     pdstools.impactanalyzer.ImpactAnalyzer : Main analysis class.

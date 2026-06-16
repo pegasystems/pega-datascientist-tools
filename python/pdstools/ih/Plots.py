@@ -32,11 +32,6 @@ class Plots(LazyNamespace):
     - Data filtering via `query` parameter
     - Returning underlying data via `return_df=True`
 
-    Attributes
-    ----------
-    ih : IH
-        Reference to the parent IH instance.
-
     See Also
     --------
     pdstools.ih.IH : Main analysis class.
