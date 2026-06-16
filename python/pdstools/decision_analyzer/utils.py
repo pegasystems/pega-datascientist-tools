@@ -45,12 +45,13 @@ class ColumnResolver:
     - Resolving conflicts when both raw and display_name columns exist
     - Building the final schema with consistent column names
 
-    The resolver keeps the original ``table_definition`` and ``raw_columns``
-    inputs and computes rename/drop/type maps from them.
     """
 
     table_definition: dict
+    """Column definitions with display names, defaults, and target dtypes."""
+
     raw_columns: set[str]
+    """Column names present in the raw data."""
 
     # Results populated by resolve()
     rename_mapping: dict[str, str] = field(default_factory=dict, init=False)

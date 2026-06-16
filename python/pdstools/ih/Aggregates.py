@@ -46,6 +46,9 @@ class Aggregates(LazyNamespace):
 
     """
 
+    ih: "IH_Class"
+    """Reference to the parent IH instance."""
+
     def __init__(self, ih: "IH_Class"):
         """Initialize an Aggregates instance.
 

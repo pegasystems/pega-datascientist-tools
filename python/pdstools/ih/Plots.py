@@ -47,6 +47,8 @@ class Plots(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
+    ih: "IH_Class"
+    """Reference to the parent IH instance."""
 
     def __init__(self, ih: "IH_Class"):
         """Initialize a Plots instance.

@@ -154,9 +154,6 @@ class ContextOperations(LazyNamespace):
     aggregate : Aggregate
         The aggregate object to operate on.
 
-    The object keeps a reference to the parent aggregate and lazily caches
-    loaded context data plus the discovered context keys.
-
     Notes
     -----
     ``get_context_keys()`` returns the list of context keys from loaded data,
@@ -194,6 +191,11 @@ class ContextOperations(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
+    aggregate: "Aggregate"
+    """Parent aggregate object used to load contextual data."""
+
+    initialized: bool
+    """Whether the contextual data cache has been loaded."""
 
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate

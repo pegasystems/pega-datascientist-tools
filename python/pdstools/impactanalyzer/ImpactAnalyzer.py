@@ -63,9 +63,6 @@ class ImpactAnalyzer:
 
         \\text{Value Lift} = \\frac{\\text{ValueCapture}_{test} - \\text{ValueCapture}_{control}}{\\text{ValueCapture}_{control}}
 
-    The instance exposes the normalized experiment dataset as ``ia_data`` and
-    the plotting helpers via the ``plot`` accessor.
-
     See Also
     --------
     pdstools.adm.ADMDatamart : For ADM model analysis.
@@ -81,7 +78,11 @@ class ImpactAnalyzer:
     """
 
     ia_data: pl.LazyFrame
+    """The underlying experiment data containing control group metrics."""
+
     outcome_labels_used: dict | None
+    plot: Plots
+    """Plot accessor for visualization methods."""
 
     default_ia_experiments: ClassVar[dict[str, tuple[str, str]]] = {
         "NBA vs Random Relevant Action": ("NBAPrioritization", "NBA"),

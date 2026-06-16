@@ -41,11 +41,6 @@ class IH:
     engagement, conversion, and open rate metrics through customizable
     outcome label mappings.
 
-    The instance exposes the normalized Interaction History data plus
-    ``aggregates`` and ``plot`` accessors. Outcome label defaults are stored
-    on the class as ``positive_outcome_labels`` and
-    ``negative_outcome_labels``.
-
     See Also
     --------
     pdstools.adm.ADMDatamart : For ADM model analysis.
@@ -61,7 +56,14 @@ class IH:
     """
 
     data: pl.LazyFrame
+    """The underlying interaction history data."""
+
     outcome_labels_used: dict | None
+    aggregates: Aggregates
+    """Aggregation methods accessor."""
+
+    plot: Plots
+    """Plot accessor for visualization methods."""
 
     positive_outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Engagement": ["Accepted", "Accept", "Clicked", "Click"],

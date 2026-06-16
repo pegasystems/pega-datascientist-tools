@@ -46,6 +46,8 @@ class Plots(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
+    ia: "ImpactAnalyzer_Class"
+    """Reference to the parent ImpactAnalyzer instance."""
 
     def __init__(self, ia: "ImpactAnalyzer_Class"):
         """Initialize a Plots instance.

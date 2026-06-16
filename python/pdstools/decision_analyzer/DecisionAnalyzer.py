@@ -30,6 +30,7 @@ from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os
+    from .plots import Plot
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +88,6 @@ class DecisionAnalyzer:
     - :meth:`from_explainability_extract`: Load from an Explainability Extract file.
     - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
     - Direct ``__init__``: Auto-detects format from the data schema.
-
-    The instance exposes ``decision_data`` and ``extract_type`` for the
-    processed dataset, plus ``plot``, ``aggregates``, and ``scoring``
-    accessors for visualization and analysis helpers.
 
     Examples
     --------
@@ -159,6 +156,20 @@ class DecisionAnalyzer:
     # Lazily-set attribute populated when ``sample`` is first accessed.
     # Declared here so type-checkers see it on the class.
     _num_sample_interactions: int
+    decision_data: pl.LazyFrame
+    """Interaction-level decision data (with global filters applied if any)."""
+
+    extract_type: str
+    """Either ``"explainability_extract"`` or ``"decision_analyzer"``."""
+
+    plot: "Plot | _PlotPlotlyMissing"
+    """Plot accessor for visualization methods."""
+
+    aggregates: Aggregates
+    """Accessor for aggregation queries such as funnel and distribution views."""
+
+    scoring: Scoring
+    """Accessor for re-ranking, sensitivity, and win/loss analysis."""
 
     @classmethod
     def from_explainability_extract(

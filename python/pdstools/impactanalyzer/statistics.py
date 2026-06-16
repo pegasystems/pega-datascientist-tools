@@ -62,15 +62,16 @@ Z_95: float = 1.96
 
 @dataclass(frozen=True)
 class Formula:
-    """Structured representation of a statistical formula.
-
-    ``name`` is a short identifier such as ``"accept_rate"``, ``latex`` is
-    the symbolic expression, and ``description`` is the plain-English label.
-    """
+    """Structured representation of a statistical formula."""
 
     name: str
+    """Short identifier, e.g. ``"accept_rate"``."""
+
     latex: str
+    """Raw LaTeX expression for the statistic."""
+
     description: str
+    """One-line plain-English description."""
 
 
 # Registry of all formulas used in IA statistics.
@@ -163,12 +164,25 @@ class LiftResult:
     """
 
     lift: float
+    """Relative lift ``(test - control) / control``."""
+
     se: float
+    """Delta-method standard error for ``lift`` without any z-multiplier."""
+
     significant: bool
+    """Whether the confidence interval excludes zero."""
+
     test_rate: float
+    """Observed test-group rate."""
+
     control_rate: float
+    """Observed control-group rate."""
+
     test_se: float
+    """Standard error of the test rate."""
+
     control_se: float
+    """Standard error of the control rate."""
 
     def ci_95(self) -> float:
         """Return the 95 % confidence-interval half-width.
