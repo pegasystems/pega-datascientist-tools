@@ -471,6 +471,7 @@ class Plots(LazyNamespace):
             yaxis_title="Cumulative gain share",
             yaxis_tickformat=".0%",
             template="none",
+            margin=dict(l=90),
         )
         return fig
 
@@ -536,7 +537,7 @@ class Plots(LazyNamespace):
             title=f"Top {top_n} predictors by total gain",
             labels={"total_gain": "Total gain", "predictor": ""},
             template="none",
-        )
+        ).update_layout(yaxis_automargin=True)
 
     @overload
     def early_vs_late_gain(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
@@ -910,6 +911,7 @@ class Plots(LazyNamespace):
             xaxis_title="Tree index",
             yaxis_title="Δ root sample count",
             template="none",
+            margin=dict(l=90),
         )
         return fig
 
@@ -1012,6 +1014,7 @@ class Plots(LazyNamespace):
             title="Gain decay: tree index vs training age",
             xaxis_title="Tree index",
             template="none",
+            margin=dict(r=120),
         )
         fig.update_yaxes(title_text="Total gain", secondary_y=False)
         fig.update_yaxes(title_text="Total gain (training-age axis)", secondary_y=True)
@@ -1107,7 +1110,7 @@ class Plots(LazyNamespace):
                 showactive=True,
                 x=0.01,
                 xanchor="left",
-                y=1.3,
+                y=1.15,
                 yanchor="top",
             ),
         )
