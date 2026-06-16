@@ -20,7 +20,15 @@ from typing import TYPE_CHECKING, ClassVar, Literal, overload
 import polars as pl
 
 from ...utils.namespaces import LazyNamespace, MissingDependenciesException
+from ...utils.pega_template import colorway as _colorway
 from ._nodes import _iter_nodes
+
+# Fixed color assignments for well-known predictor namespaces.
+# Keyed alphabetically to match the Pega colorway order so the same namespace
+# always gets the same colour across every plot in the notebook.
+_NAMESPACE_COLORMAP: dict[str, str] = {
+    ns: _colorway[i % len(_colorway)] for i, ns in enumerate(sorted(["Customer", "IH", "Param", "py"]))
+}
 
 logger = logging.getLogger(__name__)
 
@@ -528,8 +536,9 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
+        sorted_df = df.sort("total_gain")
         return px.bar(
-            df.sort("total_gain"),
+            sorted_df,
             x="total_gain",
             y="predictor",
             color="namespace",
@@ -537,7 +546,9 @@ class Plots(LazyNamespace):
             title=f"Top {top_n} predictors by total gain",
             labels={"total_gain": "Total gain", "predictor": ""},
             template="none",
-        ).update_layout(yaxis_automargin=True)
+            category_orders={"predictor": sorted_df["predictor"].to_list()},
+            color_discrete_map=_NAMESPACE_COLORMAP,
+        ).update_layout(yaxis_automargin=True, yaxis_autorange="reversed")
 
     @overload
     def early_vs_late_gain(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
@@ -628,6 +639,7 @@ class Plots(LazyNamespace):
                 "late_gain": f"Gain in last {quarter} trees",
             },
             template="none",
+            color_discrete_map=_NAMESPACE_COLORMAP,
         )
         fig.add_shape(
             type="line",
@@ -685,8 +697,9 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
+        sorted_df = df.sort("total_gain")
         fig = px.bar(
-            df.sort("total_gain"),
+            sorted_df,
             x="total_gain",
             y="namespace",
             color="namespace",
@@ -694,8 +707,10 @@ class Plots(LazyNamespace):
             title="Total gain by predictor namespace",
             labels={"total_gain": "Total gain", "namespace": ""},
             template="none",
+            category_orders={"namespace": sorted_df["namespace"].to_list()},
+            color_discrete_map=_NAMESPACE_COLORMAP,
         )
-        fig.update_layout(showlegend=False)
+        fig.update_layout(showlegend=False, yaxis_autorange="reversed")
         return fig
 
     @overload
@@ -771,6 +786,7 @@ class Plots(LazyNamespace):
             title="Feature role map (router vs refiner)",
             labels={"mean_depth": "Mean split depth", "tree_coverage": "Tree coverage (# trees)"},
             template="none",
+            color_discrete_map=_NAMESPACE_COLORMAP,
         )
 
     @overload
