@@ -1,0 +1,17 @@
+[
+  {
+    "version": "dev",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/dev/",
+    "preferred": true
+  },
+  {
+    "version": "Python",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/Python/",
+    "preferred": false
+  },
+  {
+    "version": "R",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/R/",
+    "preferred": false
+  }
+]
