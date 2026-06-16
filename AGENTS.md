@@ -40,6 +40,17 @@ dependencies and execution.
   that Jupyter cannot auto-render (e.g. `pydot.Graph`), unconditionally
   call `display()` when IPython is available, without gating on a
   `show` parameter.
+- **Plotly label/title clipping checklist.** Always do a visual check
+  on exported HTML; Plotly's default margins are tight and common
+  causes of clipping are:
+  - Long y-axis tick labels on horizontal bar charts → add
+    `yaxis_automargin=True` to `update_layout()`.
+  - Left y-axis title (rotated text) cut off → `margin=dict(l=90)`.
+  - Right secondary y-axis title cut off → `margin=dict(r=120)`.
+  - `updatemenus` button bar overlapping the chart title → lower the
+    button `y` anchor (e.g. `1.3` → `1.15`).
+  These are layout defaults that belong in the library method, not
+  caller-side `.update_layout()` patches.
 - **Prefer Polars over Pandas** for all data processing.
 
 ## Quick orientation
