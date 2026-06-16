@@ -135,7 +135,7 @@ Change `sample_trees()` in `python/pdstools/utils/datasets.py` from `from_url(re
 `ADMTreesModel.from_file(_DATA_DIR / "ModelExportWithSampleCount.json")`.
 Keep the `warnings.catch_warnings` + `RuntimeError` wrapper pattern.
 
-### ⏳ Phase 3 — `examples/articles/AGBExplained.ipynb` (TODO)
+### ✅ Phase 3 — `examples/articles/AGBExplained.ipynb` (DONE)
 
 Style: same as `ADMExplained.ipynb` — markdown-heavy, LaTeX formulas,
 code verifies the math, `great_tables.GT` tables, cells **not pre-run**.
@@ -394,7 +394,7 @@ The `Trees.predictor_categorization()` method in the code maps these namespaces.
    - `Trees.plot.splits_per_variable_type()` — usage counts for symbolic vs numeric predictor splits
    - Link to official monitoring: in production, these patterns are tracked via PEGA_ADM05 telemetry and visible in Grafana dashboards and Prediction Studio model reports
 
-### ⏳ Phase 4 — Delete `AGBModelVisualisation.ipynb` (TODO)
+### ✅ Phase 4 — Delete `AGBModelVisualisation.ipynb` (DONE)
 
 `git rm examples/adm/AGBModelVisualisation.ipynb`
 
