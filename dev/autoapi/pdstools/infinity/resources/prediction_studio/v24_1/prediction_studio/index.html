@@ -469,6 +469,23 @@
 <dd class="field-odd"><p><strong>client</strong> (<em>pdstools.infinity.internal._base_client.SyncAPIClient</em>)</p>
 </dd>
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.predictions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.PaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.predictions" title="Link to this definition">¶</a></dt>
+<dd><p>All predictions, addressable by label or id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A lazily-fetched, mapping-style collection. Supports
+<code class="docutils literal notranslate"><span class="pre">ps.predictions['My</span> <span class="pre">Prediction']</span></code> (by label or id),
+<code class="docutils literal notranslate"><span class="pre">'My</span> <span class="pre">Prediction'</span> <span class="pre">in</span> <span class="pre">ps.predictions</span></code>, <code class="docutils literal notranslate"><span class="pre">ps.predictions.keys()</span></code>
+and iteration.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>PaginatedList[<a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction">Prediction</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.list_predictions">
 <span class="sig-name descname"><span class="pre">list_predictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.infinity.internal._pagination.PaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.list_predictions" title="Link to this definition">¶</a></dt>
@@ -501,6 +518,22 @@
 <dd class="field-odd"><p><strong>client</strong> (<em>pdstools.infinity.internal._base_client.AsyncAPIClient</em>)</p>
 </dd>
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.predictions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.AsyncPaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.predictions" title="Link to this definition">¶</a></dt>
+<dd><p>All predictions, addressable by label or id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A lazily-fetched, mapping-style collection. Supports
+<code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">ps.predictions.get(label='My</span> <span class="pre">Prediction')</span></code> and
+<code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">for</span> <span class="pre">p</span> <span class="pre">in</span> <span class="pre">ps.predictions</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>AsyncPaginatedList[<a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction">AsyncPrediction</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.list_predictions">
 <span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">list_predictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.infinity.internal._pagination.AsyncPaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction" title="pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.list_predictions" title="Link to this definition">¶</a></dt>
@@ -592,11 +625,13 @@
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio"><code class="docutils literal notranslate"><span class="pre">PredictionStudio</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.list_predictions"><code class="docutils literal notranslate"><span class="pre">list_predictions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio.repository"><code class="docutils literal notranslate"><span class="pre">repository()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio"><code class="docutils literal notranslate"><span class="pre">AsyncPredictionStudio</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.list_predictions"><code class="docutils literal notranslate"><span class="pre">list_predictions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio.repository"><code class="docutils literal notranslate"><span class="pre">repository()</span></code></a></li>
 </ul>

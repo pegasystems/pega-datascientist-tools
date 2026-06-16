@@ -34,6 +34,20 @@ Module Contents
 
 
 
+   .. py:property:: models
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.Model]
+
+
+      All models, addressable by label or id (``ps.models['My Model']``).
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction]
+
+
+      All predictions, addressable by label or id (``ps.predictions['My Prediction']``).
+
+
    .. py:method:: list_models(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.Model]
                   list_models(return_df: Literal[True]) -> polars.DataFrame
 
@@ -70,6 +84,20 @@ Module Contents
       :type:  str
       :value: '25.1'
 
+
+
+   .. py:property:: models
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel]
+
+
+      All models, addressable by label or id (``await ps.models.get(label=...)``).
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction]
+
+
+      All predictions, addressable by label or id (``await ps.predictions.get(label=...)``).
 
 
    .. py:method:: list_models(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel] | polars.DataFrame

@@ -24,6 +24,19 @@ Module Contents
    v24.1 PredictionStudio business logic — shared parts.
 
 
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+
+
+      All predictions, addressable by label or id.
+
+      :returns: A lazily-fetched, mapping-style collection. Supports
+                ``ps.predictions['My Prediction']`` (by label or id),
+                ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
+                and iteration.
+      :rtype: PaginatedList[Prediction]
+
+
    .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
 
 
@@ -36,6 +49,18 @@ Module Contents
 
 
    v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+
+
+      All predictions, addressable by label or id.
+
+      :returns: A lazily-fetched, mapping-style collection. Supports
+                ``await ps.predictions.get(label='My Prediction')`` and
+                ``async for p in ps.predictions``.
+      :rtype: AsyncPaginatedList[AsyncPrediction]
 
 
    .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]

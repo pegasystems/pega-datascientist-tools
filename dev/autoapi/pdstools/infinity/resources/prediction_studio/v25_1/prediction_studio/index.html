@@ -477,6 +477,28 @@ used to keep those attributes out of <code class="docutils literal notranslate">
 <span class="sig-name descname"><span class="pre">version</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'25.1'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.version" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.models">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">models</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.PaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../model/index.html#pdstools.infinity.resources.prediction_studio.v25_1.model.Model" title="pdstools.infinity.resources.prediction_studio.v25_1.model.Model"><span class="pre">pdstools.infinity.resources.prediction_studio.v25_1.model.Model</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.models" title="Link to this definition">¶</a></dt>
+<dd><p>All models, addressable by label or id (<code class="docutils literal notranslate"><span class="pre">ps.models['My</span> <span class="pre">Model']</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pdstools.infinity.internal._pagination.PaginatedList[<a class="reference internal" href="../model/index.html#pdstools.infinity.resources.prediction_studio.v25_1.model.Model" title="pdstools.infinity.resources.prediction_studio.v25_1.model.Model">pdstools.infinity.resources.prediction_studio.v25_1.model.Model</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.predictions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.PaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction" title="pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.predictions" title="Link to this definition">¶</a></dt>
+<dd><p>All predictions, addressable by label or id (<code class="docutils literal notranslate"><span class="pre">ps.predictions['My</span> <span class="pre">Prediction']</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pdstools.infinity.internal._pagination.PaginatedList[<a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction" title="pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction">pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.list_models">
 <span class="sig-name descname"><span class="pre">list_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.infinity.internal._pagination.PaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../model/index.html#pdstools.infinity.resources.prediction_studio.v25_1.model.Model" title="pdstools.infinity.resources.prediction_studio.v25_1.model.Model"><span class="pre">pdstools.infinity.resources.prediction_studio.v25_1.model.Model</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.list_models" title="Link to this definition">¶</a></dt>
@@ -525,6 +547,28 @@ used to keep those attributes out of <code class="docutils literal notranslate">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.version">
 <span class="sig-name descname"><span class="pre">version</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'25.1'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.version" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.models">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">models</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.AsyncPaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../model/index.html#pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel" title="pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel"><span class="pre">pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.models" title="Link to this definition">¶</a></dt>
+<dd><p>All models, addressable by label or id (<code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">ps.models.get(label=...)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pdstools.infinity.internal._pagination.AsyncPaginatedList[<a class="reference internal" href="../model/index.html#pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel" title="pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel">pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.predictions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.infinity.internal._pagination.AsyncPaginatedList</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction" title="pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction"><span class="pre">pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.predictions" title="Link to this definition">¶</a></dt>
+<dd><p>All predictions, addressable by label or id (<code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">ps.predictions.get(label=...)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pdstools.infinity.internal._pagination.AsyncPaginatedList[<a class="reference internal" href="../prediction/index.html#pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction" title="pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction">pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction</a>]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.list_models">
@@ -660,12 +704,16 @@ used to keep those attributes out of <code class="docutils literal notranslate">
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio"><code class="docutils literal notranslate"><span class="pre">PredictionStudio</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.version"><code class="docutils literal notranslate"><span class="pre">version</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.models"><code class="docutils literal notranslate"><span class="pre">models</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.list_models"><code class="docutils literal notranslate"><span class="pre">list_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio.list_predictions"><code class="docutils literal notranslate"><span class="pre">list_predictions()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio"><code class="docutils literal notranslate"><span class="pre">AsyncPredictionStudio</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.version"><code class="docutils literal notranslate"><span class="pre">version</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.models"><code class="docutils literal notranslate"><span class="pre">models</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.list_models"><code class="docutils literal notranslate"><span class="pre">list_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.list_predictions"><code class="docutils literal notranslate"><span class="pre">list_predictions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio.get_prediction"><code class="docutils literal notranslate"><span class="pre">get_prediction()</span></code></a></li>
