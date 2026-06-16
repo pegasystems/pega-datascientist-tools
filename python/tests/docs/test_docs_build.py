@@ -1,11 +1,4 @@
-"""Smoke test for the docs build, focused on the version-switcher template.
-
-We build a tiny standalone Sphinx project (no autoapi, no nbsphinx) that
-points at the real ``_templates`` and ``_static`` directories, so the
-test stays fast and only exercises what we care about: the switcher
-template renders into every page and references the versions.json
-fetcher.
-"""
+"""Smoke tests for the docs version switcher assets."""
 
 from __future__ import annotations
 
@@ -17,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-DOCS_ROOT = Path(__file__).resolve().parents[3] / "python" / "docs"
+DOCS_ROOT = Path(__file__).resolve().parents[2] / "docs"
 TEMPLATES = DOCS_ROOT / "source" / "_templates"
 STATIC = DOCS_ROOT / "source" / "_static"
 
@@ -26,8 +19,7 @@ pytest.importorskip("sphinx")
 
 
 CONF_PY = """\
-import os, sys
-sys.path.insert(0, os.path.abspath("."))
+import os
 
 project = "pdstools-test"
 author = "tests"
@@ -40,7 +32,7 @@ html_static_path = ["_static"]
 html_css_files = ["version-switcher.css"]
 html_js_files = ["version-switcher.js"]
 
-docs_version = os.environ.get("PDSTOOLS_DOCS_VERSION", "latest")
+docs_version = os.environ.get("PDSTOOLS_DOCS_VERSION", "dev")
 html_context = {"docs_version": docs_version}
 
 html_sidebars = {
@@ -60,16 +52,30 @@ INDEX_RST = """\
 Hello
 =====
 
+.. toctree::
+   :maxdepth: 1
+
+   nested/page
+"""
+
+NESTED_RST = """\
+Nested
+======
+
 Test page.
 """
 
 
-def test_version_switcher_renders(tmp_path: Path) -> None:
+def test_version_switcher_renders_on_nested_pages(tmp_path: Path) -> None:
     src = tmp_path / "src"
     out = tmp_path / "out"
+    nested = src / "nested"
     src.mkdir()
+    nested.mkdir()
+
     (src / "conf.py").write_text(CONF_PY)
     (src / "index.rst").write_text(INDEX_RST)
+    (nested / "page.rst").write_text(NESTED_RST)
     shutil.copytree(TEMPLATES, src / "_templates")
     shutil.copytree(STATIC, src / "_static")
 
@@ -83,10 +89,13 @@ def test_version_switcher_renders(tmp_path: Path) -> None:
     assert result.returncode == 0, f"sphinx failed:\n{result.stdout}\n{result.stderr}"
 
     index_html = (out / "index.html").read_text()
-    assert "version-switcher" in index_html
+    nested_html = (out / "nested" / "page.html").read_text()
     assert 'data-current-version="9.9.9"' in index_html
-    assert "version-switcher.js" in index_html
-    assert "version-switcher.css" in index_html
+    assert 'data-current-version="9.9.9"' in nested_html
+    assert "version-switcher.js" in nested_html
+    assert "version-switcher.css" in nested_html
 
     js = (out / "_static" / "version-switcher.js").read_text()
     assert "versions.json" in js
+    assert "../versions.json" not in js
+    assert "pathname.indexOf(marker)" in js

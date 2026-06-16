@@ -113,20 +113,9 @@ html_static_path = ["_static"]
 html_css_files = ["version-switcher.css"]
 html_js_files = ["version-switcher.js"]
 
-# Versioned-docs support.
-#
-# When the docs are built for publication to GitHub Pages, the workflow sets
-# PDSTOOLS_DOCS_VERSION to the slug under which this build will live (e.g.
-# "latest" for the master branch or "5.1.0" for a tag).  The value is exposed
-# to the Jinja templates via html_context so the version-switcher dropdown can
-# highlight the current entry.  When the variable is unset (typical local
-# build) we fall back to "latest" — the switcher then renders empty unless a
-# versions.json sits next to the build.
-docs_version = os.environ.get("PDSTOOLS_DOCS_VERSION", "latest")
+docs_version = os.environ.get("PDSTOOLS_DOCS_VERSION", "dev")
 html_context = {"docs_version": docs_version}
 
-# Inject the version switcher into Furo's sidebar.  The list mirrors Furo's
-# defaults; we just slot version-switcher.html in just below the brand.
 html_sidebars = {
     "**": [
         "sidebar/scroll-start.html",

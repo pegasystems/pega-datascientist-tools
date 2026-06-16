@@ -1,10 +1,5 @@
 {#-
-    Sidebar version switcher.
-
-    Renders a <select> populated at runtime from a sibling versions.json
-    (see .github/workflows/Docs deploy.yml).  Gracefully no-ops when the
-    manifest is absent — useful for local builds where docs are served
-    standalone.
+    Sidebar version switcher populated at runtime from versions.json.
 -#}
 <div class="version-switcher" data-current-version="{{ docs_version }}">
   <label for="pdstools-version-select">Version</label>
