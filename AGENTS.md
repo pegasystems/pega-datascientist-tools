@@ -31,6 +31,15 @@ dependencies and execution.
   `logger.debug()` / `logger.info()` instead. Never overload `verbose`
   to control non-output behaviour (e.g. cache invalidation, retry
   policy) — that's a separate parameter.
+- **`show` parameters on plot methods are an anti-pattern.** Plot
+  methods must only build and return the figure; the caller decides how
+  to display it. Adding `show: bool = True` that calls `fig.show()`
+  internally causes Jupyter to render the figure twice (once from
+  `fig.show()`, once from the cell's implicit display of the return
+  value). Never add `show` to a plot method. For non-Plotly objects
+  that Jupyter cannot auto-render (e.g. `pydot.Graph`), unconditionally
+  call `display()` when IPython is available, without gating on a
+  `show` parameter.
 - **Prefer Polars over Pandas** for all data processing.
 
 ## Quick orientation

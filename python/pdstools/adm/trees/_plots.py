@@ -52,20 +52,15 @@ class Plots(LazyNamespace):
     # ------------------------------------------------------------------
 
     @overload
-    def splits_per_variable(
-        self, subset: set | None = ..., *, show: bool = ..., return_df: Literal[True]
-    ) -> pl.DataFrame: ...
+    def splits_per_variable(self, subset: set | None = ..., *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def splits_per_variable(
-        self, subset: set | None = ..., *, show: bool = ..., return_df: Literal[False] = ...
-    ) -> list: ...
+    def splits_per_variable(self, subset: set | None = ..., *, return_df: Literal[False] = ...) -> list: ...
 
     def splits_per_variable(
         self,
         subset: set | None = None,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "list[go.Figure] | pl.DataFrame":
         """Box-plot of gains per split, grouped by predictor variable.
@@ -74,8 +69,6 @@ class Plots(LazyNamespace):
         ----------
         subset : set or None, default None
             If provided, only plot predictors whose names are in this set.
-        show : bool, default True
-            If True, call ``fig.show()`` for each figure.
         return_df : bool, default False
             If True, return the underlying gains DataFrame instead of figures.
 
@@ -121,8 +114,6 @@ class Plots(LazyNamespace):
                     xaxis_title="Split",
                     yaxis_title="Number",
                 )
-                if show:
-                    fig.show()  # pragma: no cover
                 figlist.append(fig)
         return figlist
 
@@ -132,7 +123,6 @@ class Plots(LazyNamespace):
         tree_number: int,
         highlighted: dict | list | None = ...,
         *,
-        show: bool = ...,
         return_df: Literal[True],
     ) -> pl.DataFrame: ...
 
@@ -142,7 +132,6 @@ class Plots(LazyNamespace):
         tree_number: int,
         highlighted: dict | list | None = ...,
         *,
-        show: bool = ...,
         return_df: Literal[False] = ...,
     ) -> "pydot.Graph": ...
 
@@ -151,7 +140,6 @@ class Plots(LazyNamespace):
         tree_number: int,
         highlighted: dict | list | None = None,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "pydot.Graph | pl.DataFrame":
         """Visualise one decision tree or return its node structure as a DataFrame.
@@ -164,8 +152,6 @@ class Plots(LazyNamespace):
             If a dict, score it through the tree and highlight the visited
             nodes in green.  If a list, treat it directly as the set of
             node keys to highlight.
-        show : bool, default True
-            If True, render the graph as a PNG via IPython's ``display``.
         return_df : bool, default False
             If True, return the node structure as a DataFrame instead of the
             ``pydot.Graph``.
@@ -255,32 +241,29 @@ class Plots(LazyNamespace):
             if "parent_node" in node:
                 graph.add_edge(pydot.Edge(str(key), str(node["parent_node"])))
 
-        if show:  # pragma: no cover
-            try:
-                from IPython.display import Image, display
-            except ImportError:
-                raise ImportError("IPython is not installed. Install it to display tree plots.") from None
-            try:
-                create_png = getattr(graph, "create_png")
-                display(Image(create_png()))
-            except FileNotFoundError as exc:
-                logger.error(
-                    "Dot/Graphviz not installed; please install it on your machine: %s",
-                    exc,
-                )
+        try:
+            from IPython.display import Image, display
+
+            display(Image(graph.create_png()))
+        except ImportError:
+            pass
+        except FileNotFoundError as exc:
+            logger.error(
+                "Dot/Graphviz not installed; please install it on your machine: %s",
+                exc,
+            )
         return graph
 
     @overload
-    def contribution_per_tree(self, x: dict, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def contribution_per_tree(self, x: dict, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def contribution_per_tree(self, x: dict, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def contribution_per_tree(self, x: dict, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def contribution_per_tree(
         self,
         x: dict,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot the per-tree contribution toward the final propensity.
@@ -290,8 +273,6 @@ class Plots(LazyNamespace):
         x : dict
             Feature values for a single subject, mapping predictor name to
             its observed value.
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying scores DataFrame instead of the
             figure.
@@ -345,8 +326,6 @@ class Plots(LazyNamespace):
             ),
         )
         fig.update_xaxes(zeroline=False)
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     # ------------------------------------------------------------------
@@ -354,23 +333,20 @@ class Plots(LazyNamespace):
     # ------------------------------------------------------------------
 
     @overload
-    def gain_per_tree(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def gain_per_tree(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def gain_per_tree(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def gain_per_tree(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def gain_per_tree(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot total gain per tree as bars with a secondary score line.
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -423,28 +399,23 @@ class Plots(LazyNamespace):
         )
         fig.update_yaxes(title_text="Total gain", secondary_y=False)
         fig.update_yaxes(title_text="Root score", secondary_y=True)
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
-    def cumulative_gain_share(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def cumulative_gain_share(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def cumulative_gain_share(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def cumulative_gain_share(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def cumulative_gain_share(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot the share of total gain accumulated as trees are added.
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -501,8 +472,6 @@ class Plots(LazyNamespace):
             yaxis_tickformat=".0%",
             template="none",
         )
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
@@ -510,7 +479,6 @@ class Plots(LazyNamespace):
         self,
         top_n: int = ...,
         *,
-        show: bool = ...,
         return_df: Literal[True],
     ) -> pl.DataFrame: ...
 
@@ -519,7 +487,6 @@ class Plots(LazyNamespace):
         self,
         top_n: int = ...,
         *,
-        show: bool = ...,
         return_df: Literal[False] = ...,
     ) -> "go.Figure": ...
 
@@ -527,7 +494,6 @@ class Plots(LazyNamespace):
         self,
         top_n: int = 15,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot top predictors ranked by total information gain.
@@ -536,8 +502,6 @@ class Plots(LazyNamespace):
         ----------
         top_n : int, default 15
             Number of top predictors to display.
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -563,7 +527,7 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
-        fig = px.bar(
+        return px.bar(
             df.sort("total_gain"),
             x="total_gain",
             y="predictor",
@@ -573,20 +537,16 @@ class Plots(LazyNamespace):
             labels={"total_gain": "Total gain", "predictor": ""},
             template="none",
         )
-        if show:
-            fig.show()  # pragma: no cover
-        return fig
 
     @overload
-    def early_vs_late_gain(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def early_vs_late_gain(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def early_vs_late_gain(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def early_vs_late_gain(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def early_vs_late_gain(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Compare each predictor's gain in early vs late trees.
@@ -596,8 +556,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -678,20 +636,17 @@ class Plots(LazyNamespace):
             y1=max_val,
             line={"dash": "dash", "color": "grey"},
         )
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
-    def gain_by_namespace(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def gain_by_namespace(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def gain_by_namespace(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def gain_by_namespace(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def gain_by_namespace(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot total information gain broken down by predictor namespace.
@@ -701,8 +656,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -742,20 +695,17 @@ class Plots(LazyNamespace):
             template="none",
         )
         fig.update_layout(showlegend=False)
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
-    def feature_role_map(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def feature_role_map(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def feature_role_map(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def feature_role_map(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def feature_role_map(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Bubble chart mapping each predictor's role: router vs refiner.
@@ -766,8 +716,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -812,7 +760,7 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
-        fig = px.scatter(
+        return px.scatter(
             df,
             x="mean_depth",
             y="tree_coverage",
@@ -823,20 +771,16 @@ class Plots(LazyNamespace):
             labels={"mean_depth": "Mean split depth", "tree_coverage": "Tree coverage (# trees)"},
             template="none",
         )
-        if show:
-            fig.show()  # pragma: no cover
-        return fig
 
     @overload
-    def training_stream_timeline(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def training_stream_timeline(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def training_stream_timeline(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def training_stream_timeline(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def training_stream_timeline(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot the root-node sample count across trees as a training timeline.
@@ -846,8 +790,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -897,20 +839,17 @@ class Plots(LazyNamespace):
             yaxis_title="Root sample count",
             template="none",
         )
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
-    def inter_tree_gaps(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def inter_tree_gaps(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def inter_tree_gaps(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def inter_tree_gaps(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def inter_tree_gaps(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot the change in root sample count between consecutive trees.
@@ -922,8 +861,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -974,20 +911,17 @@ class Plots(LazyNamespace):
             yaxis_title="Δ root sample count",
             template="none",
         )
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
-    def gain_decay_dual_lens(self, *, show: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+    def gain_decay_dual_lens(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def gain_decay_dual_lens(self, *, show: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+    def gain_decay_dual_lens(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def gain_decay_dual_lens(
         self,
         *,
-        show: bool = True,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot gain decay viewed through both tree index and training age.
@@ -1003,8 +937,6 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
-        show : bool, default True
-            If True, call ``fig.show()``.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -1083,8 +1015,6 @@ class Plots(LazyNamespace):
         )
         fig.update_yaxes(title_text="Total gain", secondary_y=False)
         fig.update_yaxes(title_text="Total gain (training-age axis)", secondary_y=True)
-        if show:
-            fig.show()  # pragma: no cover
         return fig
 
     @overload
