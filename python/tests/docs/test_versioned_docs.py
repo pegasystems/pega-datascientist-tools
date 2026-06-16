@@ -57,3 +57,21 @@ def test_write_root_redirect_targets_preferred_release(tmp_path: Path) -> None:
     index_html = (tmp_path / "index.html").read_text()
     assert "url=4.7.1/" in index_html
     assert 'href="4.7.1/"' in index_html
+
+
+def test_remove_legacy_site_content_prunes_old_top_level_entries(tmp_path: Path) -> None:
+    for dirname in versioned_docs.LEGACY_SITE_DIRS:
+        (tmp_path / dirname).mkdir()
+    for filename in versioned_docs.LEGACY_SITE_FILES:
+        (tmp_path / filename).write_text("legacy")
+    (tmp_path / "dev").mkdir()
+    (tmp_path / "4.7.1").mkdir()
+
+    versioned_docs.remove_legacy_site_content(tmp_path)
+
+    for dirname in versioned_docs.LEGACY_SITE_DIRS:
+        assert not (tmp_path / dirname).exists()
+    for filename in versioned_docs.LEGACY_SITE_FILES:
+        assert not (tmp_path / filename).exists()
+    assert (tmp_path / "dev").is_dir()
+    assert (tmp_path / "4.7.1").is_dir()

@@ -5,11 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
+LEGACY_SITE_DIRS = ("Python", "R")
+LEGACY_SITE_FILES = ("README.md", "script.js", "style.css")
 
 
 def normalize_version_slug(ref_type: str, ref_name: str) -> str:
@@ -34,6 +37,20 @@ def fetch_pypi_version(package_name: str, timeout: int = 10) -> str | None:
     except (HTTPError, URLError, TimeoutError):
         return None
     return payload.get("info", {}).get("version")
+
+
+def remove_legacy_site_content(site_root: Path) -> None:
+    """Remove obsolete top-level gh-pages content from pre-versioned docs."""
+
+    for dirname in LEGACY_SITE_DIRS:
+        legacy_dir = site_root / dirname
+        if legacy_dir.is_dir():
+            shutil.rmtree(legacy_dir)
+
+    for filename in LEGACY_SITE_FILES:
+        legacy_file = site_root / filename
+        if legacy_file.exists():
+            legacy_file.unlink()
 
 
 def build_manifest(
@@ -120,6 +137,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     site_root = Path(args.site_root)
+    remove_legacy_site_content(site_root)
     pypi_version = args.pypi_version or fetch_pypi_version(args.package_name)
     manifest, preferred_version = build_manifest(
         site_root,
