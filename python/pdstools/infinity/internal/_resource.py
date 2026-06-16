@@ -132,7 +132,7 @@ class SyncAPIResource(ABC):
         classname = self.__class__.__name__
 
         def format_field(field):
-            value = self.__getattribute__(field)
+            value = getattr(self, field)
             if isinstance(value, (int, float)):
                 return str(value)
             if isinstance(value, bool):
@@ -195,7 +195,7 @@ class AsyncAPIResource(ABC):
         classname = self.__class__.__name__
 
         def format_field(field):
-            value = self.__getattribute__(field)
+            value = getattr(self, field)
             if isinstance(value, (int, float)):
                 return str(value)
             if isinstance(value, bool):

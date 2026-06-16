@@ -4,6 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
 from datetime import datetime
 
 import plotly.io as pio
@@ -108,7 +109,24 @@ html_theme = "furo"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["_static"]
+html_static_path = ["_static"]
+html_css_files = ["version-switcher.css"]
+html_js_files = ["version-switcher.js"]
+
+docs_version = os.environ.get("PDSTOOLS_DOCS_VERSION", "dev")
+html_context = {"docs_version": docs_version}
+
+html_sidebars = {
+    "**": [
+        "sidebar/scroll-start.html",
+        "sidebar/brand.html",
+        "sidebar/version-switcher.html",
+        "sidebar/search.html",
+        "sidebar/navigation.html",
+        "sidebar/ethical-ads.html",
+        "sidebar/scroll-end.html",
+    ]
+}
 
 html_favicon = "../../../images/pegasystems-inc-vector-logo.svg"
 html_logo = "../../../images/pegasystems-inc-vector-logo.svg"

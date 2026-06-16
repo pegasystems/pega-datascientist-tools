@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, cast, overload
 
-import polars as pl
 
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ..v26_1.prediction_studio._async import AsyncPredictionStudio as _AsyncPredictionStudiov26_1
@@ -11,6 +10,8 @@ from .model import AsyncModel, Model
 from .prediction import AsyncPrediction, Prediction
 
 if TYPE_CHECKING:
+    import polars as pl
+
     pass
 
 
@@ -23,6 +24,18 @@ class PredictionStudio(_PredictionStudiov26_1):
     """
 
     version: str = "25.1"
+
+    @property
+    def models(self) -> PaginatedList[Model]:
+        """All models, addressable by label or id (``ps.models['My Model']``)."""
+        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+
+    @property
+    def predictions(self) -> PaginatedList[Prediction]:
+        """All predictions, addressable by label or id (``ps.predictions['My Prediction']``)."""
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        return PaginatedList(Prediction, self._client, "get", endpoint, _root="predictions", pageSize=100)
 
     @overload
     def list_models(self, return_df: Literal[False] = False) -> PaginatedList[Model]: ...
@@ -43,11 +56,10 @@ class PredictionStudio(_PredictionStudiov26_1):
         PaginatedList[Model] or polars.DataFrame
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+        pages = self.models
         if not return_df:
             return pages
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
 
     @overload  # type: ignore[override]
     def list_predictions(self, return_df: Literal[False] = False) -> PaginatedList[Prediction]: ...
@@ -68,19 +80,28 @@ class PredictionStudio(_PredictionStudiov26_1):
         PaginatedList[Prediction] or polars.DataFrame
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
-        pages: PaginatedList[Prediction] = PaginatedList(
-            Prediction, self._client, "get", endpoint, _root="predictions", pageSize=100
-        )
+        pages = self.predictions
         if not return_df:
             return pages
-        return pl.DataFrame([pred._public_dict for pred in pages])
+        return pages.as_df()
 
 
 class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
     """v25 async PredictionStudio — overrides list_models and list_predictions only."""
 
     version: str = "25.1"
+
+    @property
+    def models(self) -> AsyncPaginatedList[AsyncModel]:
+        """All models, addressable by label or id (``await ps.models.get(label=...)``)."""
+        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        return AsyncPaginatedList(AsyncModel, self._client, "get", endpoint, _root="models", pageSize=100)
+
+    @property
+    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+        """All predictions, addressable by label or id (``await ps.predictions.get(label=...)``)."""
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        return AsyncPaginatedList(AsyncPrediction, self._client, "get", endpoint, _root="predictions", pageSize=100)
 
     async def list_models(self, return_df: bool = False) -> AsyncPaginatedList[AsyncModel] | pl.DataFrame:
         """Fetches a list of all models from Prediction Studio.
@@ -95,10 +116,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         AsyncPaginatedList[AsyncModel] or polars.DataFrame
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
-        pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
-            AsyncModel, self._client, "get", endpoint, _root="models", pageSize=100
-        )
+        pages = self.models
         if not return_df:
             return pages
         return await pages.as_df()
@@ -118,10 +136,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         AsyncPaginatedList[AsyncPrediction] or polars.DataFrame
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
-        pages: AsyncPaginatedList[AsyncPrediction] = AsyncPaginatedList(
-            AsyncPrediction, self._client, "get", endpoint, _root="predictions", pageSize=100
-        )
+        pages = self.predictions
         if not return_df:
             return pages
         return await pages.as_df()

@@ -28,6 +28,14 @@ class TestInfinity:
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             Infinity(base_url="x", auth=None, bogus=True)  # type: ignore[call-arg]
 
+    def test_init_stores_application_name(self):
+        client = Infinity(
+            base_url="https://example.com",
+            auth=None,
+            application_name="MyApp",
+        )
+        assert client.application_name == "MyApp"
+
     def test_init_with_explicit_version(self, mocker):
         """When pega_version is passed, _infer_version should NOT be called."""
         mocker.patch.object(
@@ -112,6 +120,14 @@ class TestAsyncInfinity:
     def test_init_rejects_unknown_kwarg(self):
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             AsyncInfinity(base_url="x", auth=None, bogus=True)  # type: ignore[call-arg]
+
+    def test_init_stores_application_name(self):
+        client = AsyncInfinity(
+            base_url="https://example.com",
+            auth=None,
+            application_name="MyApp",
+        )
+        assert client.application_name == "MyApp"
 
     def test_init_with_explicit_version(self, mocker):
         mocker.patch.object(
