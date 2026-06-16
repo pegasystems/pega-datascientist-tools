@@ -1,5 +1,5 @@
 Getting Started with the ADM Health Check Tool
-===============
+==============================================
 
 What is the ADM Health Check Tool?
 -------------------------------------------------

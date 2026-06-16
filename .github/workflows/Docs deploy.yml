@@ -104,6 +104,7 @@ jobs:
         working-directory: ${{ steps.build_tree.outputs.build_root }}/python/docs
         env:
           PDSTOOLS_DOCS_VERSION: ${{ steps.version.outputs.slug }}
+          SPHINXOPTS: -W --keep-going
         run: make html
 
       - name: Stage published tree

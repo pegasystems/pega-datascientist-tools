@@ -498,7 +498,7 @@ def add_rag_columns(
 ) -> pl.DataFrame:
     """Add RAG status columns to a DataFrame.
 
-    For each column, adds a new column with suffix '_RAG' containing the
+    For each column, adds a new column with suffix ``_RAG`` containing the
     RAG status (RED/AMBER/YELLOW/GREEN or None).
 
     Parameters
@@ -509,10 +509,10 @@ def add_rag_columns(
         Mapping from column names (or tuples of column names) to one of:
 
         - **str**: metric ID to look up in MetricLimits.csv
-        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **callable**: ``function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None``
         - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
           that maps column values to metric values before evaluation.
-          Supports tuple keys: {("Yes", "yes"): True, "No": False}
+          Supports tuple keys such as ``{("Yes", "yes"): True, "No": False}``.
 
         If a column is not in this dict, its name is used as the metric ID.
     strict_metric_validation : bool, default True
