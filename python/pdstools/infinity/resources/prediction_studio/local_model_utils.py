@@ -522,7 +522,7 @@ class ONNXModel(LocalModel):
             raise MissingDependenciesException(
                 ["torch"],
                 namespace="ONNXModel.from_pytorch",
-            )
+            ) from None
 
         import io as _io
 
@@ -640,7 +640,7 @@ class ONNXModel(LocalModel):
         except Exception as e:
             raise ONNXModelValidationError(
                 f"Unable to create inference session: {e!s}",
-            )
+            ) from e
         metadata = session.get_modelmeta().custom_metadata_map
 
         if PEGA_METADATA not in metadata:

@@ -33,11 +33,11 @@ def clean_up(root_dir):
 def explanations():
     """Create an Explanations instance with sample data.
 
-    The Explanations constructor automatically runs the preprocessing
+    The ``from_local_directory`` classmethod runs the preprocessing
     and aggregation pipeline, producing the aggregated parquet files
     and unique_contexts.json needed for report generation.
     """
-    exp = Explanations(
+    exp = Explanations.from_local_directory(
         data_folder=f"{basePath}/data/explanations",
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),

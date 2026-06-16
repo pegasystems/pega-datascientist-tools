@@ -6,6 +6,8 @@ installed, an optional-dependency import shim, label abbreviation,
 facet-title cleanup, dynamic facet sizing, and report-layout adjustments.
 """
 
+from __future__ import annotations
+
 import logging
 import math
 from typing import TYPE_CHECKING, Any, TypeAlias

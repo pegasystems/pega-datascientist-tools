@@ -6,7 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(Pre-release notes accumulate here until the next tag.)
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 
 ## [5.0.0] — TBD
 
@@ -25,13 +30,29 @@ guide.
   list of column names for `by`, in addition to the existing single-string
   form — enables grouping by Channel × Direction etc. in Health Check /
   Model Reports (#700).
-- `ImpactAnalyzer.from_excel` classmethod reads PDC Excel exports
-  (`.xlsx`) using polars' built-in calamine engine (no extra deps). The
-  Streamlit app and `--data-path` CLI flag accept `.xlsx` uploads with
-  auto-detection (#685).
+- `ImpactAnalyzer.from_excel` classmethod reads the **Pega Infinity Impact
+  Analyzer Excel export** — specifically the `Data` sheet, which carries
+  one row per (Date × Channel × Direction × Action × Treatment ×
+  Experiment) with pre-paired Test/Control counts. Rows are exploded
+  into the long IA format (`from_vbd`-style); NBA test traffic that
+  appears across multiple NBA-vs-X experiments is deduplicated to avoid
+  double-counting. Date and number parsing is locale-tolerant
+  (handles ISO/US/EU formats and Excel serial dates). Uses polars'
+  built-in calamine engine; no extra deps required. The Streamlit app
+  and `--data-path` CLI flag accept `.xlsx` uploads with auto-detection.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
-  `fastexcel` optional-dependency shim. `ImpactAnalyzer.from_excel`
-  delegates the file load to `read_data` (#694).
+  `fastexcel` optional-dependency shim.
+- `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
+  implemented (was a no-op stub). Mirrors `ADMDatamart.from_s3` for the
+  single-file case; `boto3` is gated via `MissingDependenciesException`
+  on the existing `pega_io` extras group.
+- `Prediction.from_dataflow_export(prediction_data_files, *, query=None,
+  ...)` is now implemented (was a no-op stub). Mirrors
+  `ADMDatamart.from_dataflow_export`; thin wrapper around
+  `pega_io.read_dataflow_output`.
+- `IH.from_s3(bucket, key, *, region=None, ...)` is now implemented
+  (previously raised `NotImplementedError`). Mirrors the single-file
+  flavour of `ADMDatamart.from_s3`.
 - Decision Analyzer auto-detects mandatory actions (priority ≥ 5M) when
   no `mandatory_expr` is passed, and flags them visually in the global
   win/loss distribution pie and on the Global Sensitivity page (#698).
@@ -52,6 +73,27 @@ guide.
 
 ### Changed
 
+- **`Explanations.__init__` no longer accepts filesystem paths.** The
+  `root_dir`, `data_folder`, and `data_file` parameters have moved to a
+  new `Explanations.from_local_directory(...)` classmethod. The
+  constructor now takes only configuration (`model_name`, `from_date`,
+  `to_date`) and performs no I/O — matching the pure-`__init__` pattern
+  used by `ADMDatamart`, `IH`, `Prediction`, and other analyzer classes.
+  All path-keyword arguments are now keyword-only on the classmethod.
+  **Migration:**
+  `Explanations(data_folder="...", model_name="...", from_date=..., to_date=...)`
+  → `Explanations.from_local_directory(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  Quarto report templates that previously did
+  `Explanations(root_dir="...")` followed by manual
+  `aggregate.data_folderpath = "..."` should drop the `root_dir`
+  argument and call `Explanations()` with no arguments.
+- **BREAKING:** `ADMDatamart.from_pdc` and `Prediction.from_pdc` no
+  longer accept `return_df`. Both methods now always return the
+  initialised analyzer; access the transformed frame via
+  `dm.model_data` / `pred.predictions` instead.
+- **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
+  keyword-only. Update positional callers to
+  `IH.from_ds_export(path, query=...)`.
 - `DecisionAnalyzer` reorganised into a namespace facade (matching the
   `ADMDatamart` pattern): 16 aggregation methods moved to
   `da.aggregates.*` and 12 scoring / ranking / lever methods moved to
@@ -186,6 +228,11 @@ guide.
 - `pdstools.infinity.internal._base_client._infer_version` now logs
   warnings via the module logger (with `exc_info`) instead of `print()`
   (#736).
+- `_infer_version` now returns `"26"` (the latest version) for any Pega
+  `'25`+ system instead of `"25"`. Both v25 and v26 resource classes
+  share the same API surface, so the latest version is always a safe
+  default. Users who need the v25 resource explicitly can still pass
+  `pega_version="25"` to `Infinity()` / `AsyncInfinity()`.
 - Optional-dependency handling tightened: `MissingDependenciesException`
   is now raised consistently across pdstools instead of bare
   `ImportError`s, and the Quarto `standalone` flag is now wired through
@@ -220,9 +267,19 @@ guide.
 
 ### Fixed
 
+- `ADMDatamart` now drops AGB models' empty-context "totals" rows at
+  load time (when `ModelTechnique == "GradientBoost"` and all context
+  keys are null). Pega reporting filters these rows out — they
+  duplicate aggregated data and may carry a miscomputed AUC. Doing the
+  filter at the `ADMDatamart` boundary means every downstream consumer
+  (Health Check, Model Reports, Streamlit pages, scripts) sees a
+  consistent view. Older sources without `ModelTechnique` are
+  unaffected — empty-context rows are kept so genuine data-quality
+  issues remain visible (#703, closes #667).
+
 - Better diagnostic information when Health Check report generation
   hits a `PermissionDenied` from Quarto on Windows; Infinity API
-  client now supports Pega `'25.1`; Decision Analyzer no longer
+  client now supports Pega `'25`; Decision Analyzer no longer
   crashes with `ColumnNotFoundError: "Stage Group"` when the dataset
   only contains `Stage` — `__init__` now validates `level` against
   `available_levels` and falls back when needed (#642, closes #439,

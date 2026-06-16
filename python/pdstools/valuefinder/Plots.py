@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
     TypeVar,
     cast,
@@ -15,12 +15,13 @@ from typing_extensions import ParamSpec
 
 from ..utils.cdh_utils import _apply_query, lazy_sample
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import Figure
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from ..utils.plot_utils import Figure
+    from collections.abc import Iterable
     from .ValueFinder import ValueFinder
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
@@ -30,7 +31,9 @@ P = ParamSpec("P")
 
 
 class Plots(LazyNamespace):
-    dependencies = ["plotly"]
+    """Plots."""
+
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
 
     def __init__(self, vf: "ValueFinder"):
@@ -59,6 +62,7 @@ class Plots(LazyNamespace):
         query: QUERY | None = None,
         return_df: bool = False,
     ):
+        """Funnel chart."""
         df = _apply_query(self.vf.df, query)
         df = (
             df.group_by("Stage")
@@ -87,6 +91,7 @@ class Plots(LazyNamespace):
         return fig
 
     def propensity_distribution(self, sample_size: int = 10_000) -> Figure:
+        """Propensity distribution."""
         import plotly.figure_factory as ff
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -143,6 +148,7 @@ class Plots(LazyNamespace):
         sample_size: int = 10_000,
         stage="Eligibility",
     ) -> Figure:
+        """Propensity threshold."""
         import plotly.figure_factory as ff
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -241,6 +247,7 @@ class Plots(LazyNamespace):
         quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
+        """Pie charts."""
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
@@ -342,9 +349,10 @@ class Plots(LazyNamespace):
         quantiles: Iterable[float] | None = None,
         rounding: int = 3,
     ):
+        """Distribution per threshold."""
         import plotly.express as px
 
-        from ..utils import pega_template as pega_template  # noqa: F401
+        from ..utils import pega_template as pega_template
 
         thresholds = self._get_thresholds(
             thresholds,
@@ -365,7 +373,7 @@ class Plots(LazyNamespace):
             "NoActions": "Without actions",
         }
         plot_df = pl.concat(df).rename(col_name_map)
-        fig = (
+        return (
             px.area(
                 plot_df,
                 x="Threshold",
@@ -386,4 +394,3 @@ class Plots(LazyNamespace):
             .update_layout(legend_title_text="Status")
             .update_xaxes(tickformat=",.1%")
         )
-        return fig

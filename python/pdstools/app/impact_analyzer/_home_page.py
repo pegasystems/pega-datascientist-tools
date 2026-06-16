@@ -77,9 +77,56 @@ def _load_with_warning(loader, label: str, *, expected_input_cols=None):
         return None
 
 
-def _show_data_summary(ia, is_sample_data: bool = False):
-    """Display a summary banner for the loaded ImpactAnalyzer."""
+def _banner_prefix(source_kind: str, source_label: str | None) -> str:
+    """Build the banner prefix from source kind and label.
+
+    Parameters
+    ----------
+    source_kind : str
+        One of ``"sample"``, ``"upload"``, ``"cli"``.
+    source_label : str or None
+        Friendly source identifier — filename, path, or descriptor.
+
+    Returns
+    -------
+    str
+        Banner prefix, e.g. ``"Data loaded from `foo.zip`"``.
+    """
+    if source_kind == "sample":
+        return "Sample data loaded"
+    if source_kind in ("upload", "cli"):
+        return f"Data loaded from `{source_label}`" if source_label else "Data loaded successfully"
+    return "Data loaded successfully"
+
+
+def _show_data_summary(
+    ia,
+    *,
+    source_kind: str | None = None,
+    source_label: str | None = None,
+):
+    """Display a summary banner for the loaded ImpactAnalyzer.
+
+    Renders every time the home page runs so that the banner stays
+    visible whenever the user navigates back.
+
+    Parameters
+    ----------
+    ia : ImpactAnalyzer
+        The loaded analyzer.
+    source_kind : str or None
+        Tri-state source identifier (``"sample"``, ``"upload"``,
+        ``"cli"``). Falls back to session state ``ia_data_source_kind``.
+    source_label : str or None
+        Friendly label (filename or path). Falls back to session state
+        ``ia_data_source_label``.
+    """
     import polars as pl
+
+    if source_kind is None:
+        source_kind = st.session_state.get("ia_data_source_kind", "sample")
+    if source_label is None:
+        source_label = st.session_state.get("ia_data_source_label")
 
     try:
         schema_names = set(ia.ia_data.collect_schema().names())
@@ -90,34 +137,42 @@ def _show_data_summary(ia, is_sample_data: bool = False):
 
         if has_vbd_markers:
             format_label = "**VBD Scenario Planner**"
+        elif source_label and source_label.lower().endswith(".xlsx"):
+            format_label = "**Pega Infinity IA Excel export**"
         else:
             format_label = "**PDC Export**"
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         format_label = "**Unknown format**"
+        schema_names = set()
 
     try:
         rows = ia.ia_data.select(pl.len()).collect().item()
+    except (pl.exceptions.PolarsError, AttributeError, KeyError):
+        rows = None
+
+    prefix = _banner_prefix(source_kind, source_label)
+
+    if rows is None:
+        st.success(f"{prefix}. Detected format: {format_label}")
+        return
+
+    try:
         channels = (
             ia.ia_data.select(pl.col("Channel").n_unique()).collect().item() if "Channel" in schema_names else "N/A"
         )
-
-        if is_sample_data:
-            prefix = "Sample data loaded"
-        else:
-            prefix = "Data loaded successfully"
-
-        st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
-        prefix = "Sample data loaded" if is_sample_data else "Data loaded successfully"
-        st.success(f"{prefix}. Detected format: {format_label}")
+        channels = "N/A"
+
+    st.success(f"{prefix}. Detected format: {format_label}\n\n**{rows:,}** rows · **{channels}** channels")
 
 
 def home_page() -> None:
     """Render the Impact Analyzer home page."""
     from pdstools.app.impact_analyzer.ia_streamlit_utils import (
-        ensure_ia_data_loaded,
+        handle_data_path_ia,
         load_from_upload_auto,
         load_pdc_from_uploads,
+        load_sample,
         prepare_and_save_random,
         show_outcome_labels_section,
     )
@@ -142,40 +197,50 @@ def home_page() -> None:
         """
 # Impact Analyzer
 
-Analyze A/B test experiments from your decisioning monitoring exports or
-scenario-planner data. Multiple input formats are supported — the format
-is auto-detected on upload:
+Analyze A/B test experiments from Pega decisioning data. The **preferred**
+input is a **Scenario Planner Export** — a dataset export from Pega
+delivered as a ZIP archive — which carries the full per-experiment
+control-group breakdown that Impact Analyzer needs.
 
-| | **Monitoring Export (JSON)** | **Monitoring Export (Excel)** | **Scenario Planner Export** | **Interaction History** |
-|---|---|---|---|---|
-| Format | JSON/NDJSON | XLSX | ZIP archive | TBD - future |
+Other formats are supported as a fallback when a Scenario Planner Export
+isn't available. The format is auto-detected on upload.
+
+| | **Scenario Planner Export** *(preferred)* | Monitoring Export (JSON) | Export from Impact Analyzer in Pega |
+|---|---|---|---|
+| Format | ZIP archive (dataset export) | JSON / NDJSON | XLSX |
 
 All charts are interactive ([Plotly](https://plotly.com/graphing-libraries/)) — pan,
 zoom, and hover for details.
+
+The bundled Infinity demo dataset (a Scenario Planner Export) is loaded
+by default — upload your own file below to replace it.
 
 ### Data import
 """
     )
 
-    # --- Data loading priority chain: upload > CLI path > sample ---
+    impact_analyzer = None
+    data_source_path = None
+    data_source_kind: str | None = None
+    data_source_label: str | None = None
+    is_sample_data = False
 
-    # File upload — always visible
+    # ── File upload (always shown — uploads replace whatever is loaded) ──
     uploaded_files = st.file_uploader(
         "Upload Impact Analyzer data",
         accept_multiple_files=True,
     )
 
-    impact_analyzer = None
-    data_source_path = None
-    is_sample_data = False
-
-    # 1. Handle file upload
     if uploaded_files:
         # Clear any old data when new upload is attempted
         if "impact_analyzer" in st.session_state:
             del st.session_state["impact_analyzer"]
-        if "ia_is_sample_data" in st.session_state:
-            del st.session_state["ia_is_sample_data"]
+        for key in (
+            "ia_is_sample_data",
+            "ia_data_source_kind",
+            "ia_data_source_label",
+        ):
+            st.session_state.pop(key, None)
 
         # Filter out unwanted files (e.g., MANIFEST.mf from unzipped Pega exports)
         valid_suffixes = {".json", ".ndjson", ".zip", ".xlsx"}
@@ -185,8 +250,7 @@ zoom, and hover for details.
 
         if not filtered_files:
             st.error(
-                "No valid data files found. Upload JSON/NDJSON (monitoring export), "
-                "XLSX (Excel monitoring export), or ZIP (scenario-planner export) files. "
+                "No valid data files found. Upload JSON/NDJSON (PDC), XLSX (Pega Infinity IA Excel export), or ZIP (VBD) files. "
                 "If you dragged a folder, try uploading just the `data.json` file instead."
             )
         else:
@@ -201,41 +265,46 @@ zoom, and hover for details.
                         "uploaded",
                         expected_input_cols=VBD_REQUIRED_COLS if ".zip" in suffixes else None,
                     )
+                if impact_analyzer is not None:
+                    data_source_kind = "upload"
+                    data_source_label = filtered_files[0].name
             # Multiple JSON files: treat as PDC
             elif suffixes.issubset({".json", ".ndjson"}):
-                with st.spinner("Loading data…"):
+                with st.spinner("Loading PDC data"):
                     impact_analyzer = _load_with_warning(
                         lambda: load_pdc_from_uploads(filtered_files),
-                        "uploaded",
+                        "PDC",
                     )
+                if impact_analyzer is not None:
+                    data_source_kind = "upload"
+                    data_source_label = f"{len(filtered_files)} PDC files"
             else:
-                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files.")
+                st.error("Upload a single file (JSON/NDJSON/ZIP) or multiple JSON/NDJSON files (PDC).")
 
-    # 2. Handle --data-path CLI flag + sample fallback via shared helper.
-    # The helper drives the same priority chain used by data-required
-    # sub-pages on deep-link, so home and sub-pages stay in sync.
+    # --- Autoload sample on first visit (no data yet, no upload) ---
+    if impact_analyzer is None and "impact_analyzer" not in st.session_state:
+        with st.spinner("Loading sample data"):
+            impact_analyzer = _load_with_warning(load_sample, "Sample")
+        if impact_analyzer is not None:
+            is_sample_data = True
+            data_source_kind = "sample"
+            st.toast("Loaded bundled sample data — upload your own to replace it.", icon="📊")
+
+    # --- Handle --data-path CLI flag (works with any source tab) ---
     has_existing_data = "impact_analyzer" in st.session_state
     configured_path = get_data_path()
 
-    if impact_analyzer is None and not has_existing_data and not uploaded_files:
-        if ensure_ia_data_loaded():
-            if st.session_state.get("ia_is_sample_data"):
-                # First-run sample path: surface the toast and rerun so the
-                # rest of the home page (data summary, outcome-label section)
-                # renders against populated state in the same user action.
-                st.toast(
-                    "Loaded sample data — upload your own to replace it.",
-                    icon="📊",
-                )
-                st.rerun()
-            else:
-                # CLI path: keep the local ``impact_analyzer`` populated so
-                # the pre-ingestion sampling block (which only runs for CLI
-                # paths) and downstream summary fall through naturally.
-                impact_analyzer = st.session_state["impact_analyzer"]
-                data_source_path = configured_path
-                if configured_path:
-                    st.info(f"Loaded data from configured path: `{configured_path}`")
+    if impact_analyzer is None and configured_path and not has_existing_data:
+        with st.spinner(f"Loading data from configured path: {configured_path}"):
+            impact_analyzer = _load_with_warning(
+                lambda: handle_data_path_ia(),
+                "CLI",
+            )
+            data_source_path = configured_path
+        if impact_analyzer is not None:
+            data_source_kind = "cli"
+            data_source_label = configured_path
+            st.info(f"Loaded data from configured path: `{configured_path}`")
 
     # Pre-ingestion sampling (only for CLI paths)
     sample_limit_raw = get_sample_limit() if data_source_path else None
@@ -275,13 +344,20 @@ zoom, and hover for details.
     if impact_analyzer is not None:
         st.session_state["impact_analyzer"] = impact_analyzer
         st.session_state["ia_is_sample_data"] = is_sample_data
+        if data_source_kind is not None:
+            st.session_state["ia_data_source_kind"] = data_source_kind
+        if data_source_label is not None:
+            st.session_state["ia_data_source_label"] = data_source_label
         if data_source_path:
             st.session_state["ia_data_source_path"] = data_source_path
-        _show_data_summary(impact_analyzer, is_sample_data=is_sample_data)
+        _show_data_summary(
+            impact_analyzer,
+            source_kind=data_source_kind,
+            source_label=data_source_label,
+        )
     elif "impact_analyzer" in st.session_state:
-        # Show summary for previously loaded data (only if no upload was attempted)
-        was_sample = st.session_state.get("ia_is_sample_data", False)
-        _show_data_summary(st.session_state["impact_analyzer"], is_sample_data=was_sample)
+        # Show summary for previously loaded data (gated by render-once fingerprint).
+        _show_data_summary(st.session_state["impact_analyzer"])
 
     # For VBD data: show outcome labels and handle reload
     _active_ia = impact_analyzer or st.session_state.get("impact_analyzer")

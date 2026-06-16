@@ -26,12 +26,15 @@ edits.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
+    from pathlib import Path
 
 # Page 12 (About) is intentionally excluded — it uses the shared
 # `show_about_page()` helper, which is exercised by the HC/IA About

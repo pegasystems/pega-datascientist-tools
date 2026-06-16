@@ -2,7 +2,6 @@
 
 import datetime
 import shutil
-from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -30,6 +29,31 @@ mock_prediction_data = pl.DataFrame(
         "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
     },
 ).lazy()
+
+
+def _make_databricks_prediction_data(configuration_names: list[str]) -> pl.LazyFrame:
+    """Build a small Databricks-style predictions LazyFrame for tests."""
+
+    model_types = ["Prediction_Test", "Prediction_Control", "Prediction_NBA", "Prediction"]
+    rows = []
+    for configuration_name in configuration_names:
+        rows.append(
+            pl.DataFrame(
+                {
+                    "PacID": ["pac1"] * 4,
+                    "EnvironmentName": ["env1"] * 4,
+                    "Configuration": [configuration_name] * 4,
+                    "AppliesToClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 4,
+                    "SnapshotDate": [datetime.datetime(2040, 4, 1)] * 4,
+                    "ModelType": model_types,
+                    "Performance": [65.0] * 4,
+                    "Positives": [400, 100, 500, 1000],
+                    "Negatives": [2000, 1000, 3000, 6000],
+                    "ResponseCount": [2400, 1100, 3500, 7000],
+                }
+            )
+        )
+    return pl.concat(rows, how="vertical").lazy()
 
 
 @pytest.fixture
@@ -332,18 +356,27 @@ def test_plots():
     assert sorted(t.name for t in ctr_fig.data) == expected_trace_names
     assert ctr_fig.layout.yaxis.title.text == "CTR"
 
-    # Period overrides change the row count of the underlying frame.
+    # Period overrides bucket the data via dt.truncate, which aligns to the
+    # Unix epoch — so the exact bucket count for a 70-day window depends on
+    # which calendar day "today" lands on (35 vs 36 buckets for "2d", etc.).
+    # Assert the row count matches the actual unique periods rather than a
+    # hardcoded value that drifts with the calendar.
+    n_channels = 3
+
+    def _expected_rows(df: pl.DataFrame) -> int:
+        return df["Date"].n_unique() * n_channels
+
     perf_w = prediction.plot.performance_trend("1w", return_df=True).collect()
-    assert perf_w.shape == (33, 29)
+    assert perf_w.shape == (_expected_rows(perf_w), 29)
 
     lift_2d = prediction.plot.lift_trend("2d", return_df=True).collect()
-    assert lift_2d.shape == (105, 29)
+    assert lift_2d.shape == (_expected_rows(lift_2d), 29)
 
     rc_1m = prediction.plot.responsecount_trend("1m", return_df=True).collect()
-    assert rc_1m.shape == (210, 29)
+    assert rc_1m.shape == (_expected_rows(rc_1m), 29)
 
     ctr_5d = prediction.plot.ctr_trend("5d", return_df=True).collect()
-    assert ctr_5d.shape == (45, 29)
+    assert ctr_5d.shape == (_expected_rows(ctr_5d), 29)
 
     # Default period (1d): 70 days * 3 channels = 210 rows.
     for method in (
@@ -379,54 +412,112 @@ def test_from_mock_data():
     assert len(unique_dates) == 30
 
 
-def test_from_pdc():
-    """Test the from_pdc class method."""
-    # Create mock PDC data with all required columns
-    pdc_data = pl.DataFrame(
+def test_from_databricks_view_transforms_data():
+    """Test the from_databricks_view class method."""
+
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION"])
+    result = Prediction.from_databricks_view(databricks_data).predictions.collect()
+    assert result.select(
+        [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+            "Performance",
+            "Positives_Test",
+            "Positives_Control",
+            "Positives_NBA",
+            "CTR",
+            "CTR_Test",
+            "CTR_Control",
+            "CTR_NBA",
+            "CTR_Lift",
+            "isValidPrediction",
+        ]
+    ).to_dicts() == [
         {
-            "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 12,
-            "ModelName": ["MYCUSTOMPREDICTION"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4 + ["PREDICTWEBPROPENSITY"] * 4,
-            "ModelID": ["ID1"] * 12,  # Added missing required column
-            "ModelType": [
-                "Prediction_Test",
-                "Prediction_Control",
-                "Prediction_NBA",
-                "Prediction",
-            ]
-            * 3,
-            "Name": ["auc"] * 12,
-            "SnapshotTime": [datetime.datetime(2040, 4, 1)] * 12,
-            "Performance": [65.0] * 4 + [70.0] * 8,
-            "Positives": [400, 100, 500, 1000, 800, 200, 1000, 2000] * 1 + [400, 100, 500, 1000],
-            "Negatives": [2000, 1000, 3000, 6000, 6000, 3000, 9000, 18000] * 1 + [2000, 1000, 3000, 6000],
-            "ResponseCount": [2400, 1100, 3500, 7000, 6800, 3200, 10000, 20000] * 1 + [2400, 1100, 3500, 7000],
-            "ADMModelType": [""] * 12,
-            "TotalPositives": [0] * 12,
-            "TotalResponses": [0] * 12,
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 400.0,
+            "Negatives": 2000.0,
+            "ResponseCount": 2400.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.16666666666666666,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
         },
-    ).lazy()
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 100.0,
+            "Negatives": 1000.0,
+            "ResponseCount": 1100.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.09090909090909091,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 500.0,
+            "Negatives": 3000.0,
+            "ResponseCount": 3500.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.14285714285714285,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+        {
+            "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
+            "SnapshotTime": datetime.date(2040, 4, 1),
+            "Positives": 1000.0,
+            "Negatives": 6000.0,
+            "ResponseCount": 7000.0,
+            "Performance": 0.6499999761581421,
+            "Positives_Test": 400.0,
+            "Positives_Control": 100.0,
+            "Positives_NBA": 500.0,
+            "CTR": 0.14285714285714285,
+            "CTR_Test": 0.16666666666666666,
+            "CTR_Control": 0.09090909090909091,
+            "CTR_NBA": 0.14285714285714285,
+            "CTR_Lift": 0.8333333333333331,
+            "isValidPrediction": True,
+        },
+    ]
 
-    # We need to patch the _read_pdc function to avoid actual processing
-    with patch("pdstools.utils.cdh_utils._read_pdc", return_value=pdc_data):
-        # Test with return_df=True
-        result = Prediction.from_pdc(pdc_data, return_df=True)
-        assert isinstance(result, pl.LazyFrame)
 
-        # For testing initialization and query parameters, we need to patch the __init__ method
-        with patch.object(Prediction, "__init__", return_value=None) as mock_init:
-            # Test normal initialization
-            Prediction.from_pdc(pdc_data)
-            mock_init.assert_called_once()
+def test_from_databricks_view_applies_query():
+    """Test that the from_databricks_view query parameter filters results."""
 
-            # Reset the mock for the next test
-            mock_init.reset_mock()
-
-            # Test with query
-            Prediction.from_pdc(pdc_data, query={"ModelName": ["PREDICTWEBPROPENSITY"]})
-            mock_init.assert_called_once()
-            assert mock_init.call_args[1].get("query") == {
-                "ModelName": ["PREDICTWEBPROPENSITY"],
-            }
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION", "PREDICTWEBPROPENSITY"])
+    pred = Prediction.from_databricks_view(
+        databricks_data,
+        query={"ModelName": ["PREDICTWEBPROPENSITY"]},
+    )
+    result = pred.predictions.collect()
+    assert result.height == 4
+    assert result["ModelName"].unique().to_list() == ["PREDICTWEBPROPENSITY"]
 
 
 def test_prediction_plots_internal_method(preds_singleday):
@@ -573,7 +664,7 @@ def test_performance_range_in_summary_methods(preds_singleday):
     )
 
     # Secondary invariant: a non-degenerate AUC must sit in [0.5, 1.0].
-    for perf in performance_values + [overall_perf] + list(mock_rows.values()):
+    for perf in [*performance_values, overall_perf, *list(mock_rows.values())]:
         assert 0.5 <= perf <= 1.0
 
 
@@ -611,3 +702,79 @@ def test_performance_normalization_from_pega_scale():
 
     # Specifically verify the normalization (65/100 = 0.65, etc.)
     assert abs(performance[0] - 0.65) < 0.001, f"Expected 0.65, got {performance[0]}"
+
+
+def _write_mock_prediction_parquet(path):
+    """Write the module-level mock prediction frame to ``path`` for IO tests."""
+    mock_prediction_data.collect().write_parquet(path) if isinstance(
+        mock_prediction_data, pl.LazyFrame
+    ) else mock_prediction_data.write_parquet(path)
+
+
+def test_from_s3_downloads_and_delegates(tmp_path):
+    """from_s3 downloads the prediction object and delegates to from_ds_export."""
+    pytest.importorskip("moto")
+    pytest.importorskip("boto3")
+    import boto3
+    from moto import mock_aws
+
+    src = tmp_path / "predictions.parquet"
+    _write_mock_prediction_parquet(src)
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="test-bucket")
+        client.upload_file(str(src), "test-bucket", "exports/predictions.parquet")
+
+        pred = Prediction.from_s3(
+            bucket="test-bucket",
+            key="exports/predictions.parquet",
+            boto3_client=client,
+        )
+
+    assert pred.is_available
+    assert pred.is_valid
+
+
+def test_from_s3_missing_boto3_raises(monkeypatch):
+    """from_s3 raises MissingDependenciesException when boto3 is unavailable."""
+    import builtins
+
+    from pdstools.utils.namespaces import MissingDependenciesException
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "boto3":
+            raise ImportError("no boto3")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    with pytest.raises(MissingDependenciesException):
+        Prediction.from_s3(bucket="b", key="k")
+
+
+def test_from_dataflow_export_round_trip(tmp_path):
+    """from_dataflow_export reads .json.gz dataflow files via the cache."""
+    import gzip
+    import json
+
+    df = mock_prediction_data.collect() if isinstance(mock_prediction_data, pl.LazyFrame) else mock_prediction_data
+    raw_path = tmp_path / "predictions_part_0.json.gz"
+    with gzip.open(raw_path, "wt") as fh:
+        for row in df.to_dicts():
+            fh.write(json.dumps(row, default=str) + "\n")
+
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    pred = Prediction.from_dataflow_export(
+        [str(raw_path)],
+        cache_directory=cache_dir,
+    )
+
+    assert pred.is_available
+    assert pred.is_valid
+    # Cache parquet was written for re-runs.
+    assert (cache_dir / "prediction_data.parquet").is_file()

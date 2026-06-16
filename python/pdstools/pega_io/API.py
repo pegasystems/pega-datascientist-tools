@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from os import PathLike
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from os import PathLike
 
 
 def _read_client_credential_file(credential_file: PathLike) -> dict[str, str]:  # pragma: no cover

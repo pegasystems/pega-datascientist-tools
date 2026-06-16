@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncPredictionStudioBase, PredictionStudioBase

@@ -46,8 +46,16 @@ WITH
         SELECT
             {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.decile
-            , LAG({LEFT_PREFIX}.maximum) OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile) AS min_interval
-            , LEAD({LEFT_PREFIX}.minimum) OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile) AS max_interval
+            , COALESCE(
+                LAG({LEFT_PREFIX}.maximum, 1)
+                OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile),
+                {LEFT_PREFIX}.minimum
+            ) AS min_interval
+            , COALESCE(
+                LEAD({LEFT_PREFIX}.minimum, 1)
+                OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile),
+                {LEFT_PREFIX}.maximum
+            ) AS max_interval
         FROM re_grouped_data as {LEFT_PREFIX}
     ),
     result AS (

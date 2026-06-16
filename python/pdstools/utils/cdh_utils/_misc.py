@@ -1,5 +1,7 @@
 """Miscellaneous helpers that don't belong to a single concern."""
 
+from __future__ import annotations
+
 from functools import partial
 from operator import is_not
 

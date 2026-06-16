@@ -7,3 +7,5 @@ Each tool keeps its own per-section sidebar group via
 that share page names. Standalone tool launches keep their original
 URLs intact so existing bookmarks don't break.
 """
+
+from __future__ import annotations

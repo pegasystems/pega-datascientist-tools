@@ -468,6 +468,79 @@ def test_summary_by_configuration(dm_aggregates):
     assert "usesNBAD" in configuration_summary.columns
 
 
+def test_summary_by_configuration_query_filters_models():
+    """summary_by_configuration accepts a query expression and applies it before aggregating.
+
+    Builds a tiny synthetic dataset with two configurations, filters to one with
+    a polars expression, and verifies exact model counts and response totals.
+    """
+    df = modeldata_from_scratch(
+        Name=["A", "A", "B", "B"],
+        SnapshotTime=["20250101", "20250102", "20250101", "20250102"],
+        Configuration=["CfgX", "CfgX", "CfgY", "CfgY"],
+        ResponseCount=[10, 20, 100, 200],
+        Positives=[1, 2, 10, 20],
+    )
+    dm = ADMDatamart(df)
+
+    unfiltered = dm.aggregates.summary_by_configuration().collect().sort("Configuration")
+    assert unfiltered["Configuration"].to_list() == ["CfgX", "CfgY"]
+    assert unfiltered["ModelID"].to_list() == [1, 1]
+
+    filtered = (
+        dm.aggregates.summary_by_configuration(query=pl.col("Configuration") == "CfgX").collect().sort("Configuration")
+    )
+    assert filtered["Configuration"].to_list() == ["CfgX"]
+    assert filtered["ResponseCount"].to_list() == [20]  # latest snapshot only
+    assert filtered["Positives"].to_list() == [2]
+
+
+def test_summary_by_configuration_query_active_models_filter():
+    """The HealthCheck-style ``LastUpdate``-based active-models filter works end-to-end."""
+    from datetime import timedelta
+
+    df = modeldata_from_scratch(
+        Name=["Old", "Old", "Recent", "Recent"],
+        SnapshotTime=["20250101", "20250102", "20250601", "20250602"],
+        ResponseCount=[5, 5, 50, 100],
+        Positives=[0, 0, 5, 10],
+    )
+    dm = ADMDatamart(df)
+
+    # Mirror the HealthCheck `active_models_filter_expr`
+    threshold_days = 30
+    active_filter = (pl.col("LastUpdate") > pl.col("LastUpdate").max() - timedelta(days=threshold_days)).fill_null(True)
+
+    filtered = dm.aggregates.summary_by_configuration(query=active_filter).collect()
+    # Old model's last update is 2025-01-02; Recent is 2025-06-02.
+    # Only the Recent model survives the 30-day window from 2025-06-02.
+    assert filtered["ModelID"].to_list() == [1]
+    assert filtered["ResponseCount"].to_list() == [100]
+    assert filtered["Positives"].to_list() == [10]
+
+
+def test_predictors_global_overview_query_filters_to_active_models(dm_aggregates):
+    """``query`` semi-joins on model_data so model-level expressions filter predictor rows."""
+    full = dm_aggregates.predictors_global_overview().collect()
+    assert full.height == 89
+
+    # Restrict to a single channel; the joined predictor rows now cover only
+    # those models, so per-predictor maxima must drop strictly below the
+    # unfiltered totals.
+    web_only = dm_aggregates.predictors_global_overview(query=pl.col("Channel") == "Web").collect()
+    assert web_only.height > 0
+    assert web_only["Response Count Max"].sum() < full["Response Count Max"].sum()
+
+    # An active-models LastUpdate filter referencing a model-only column also
+    # works thanks to the model-data semi-join — predictor_data has no LastUpdate.
+    from datetime import timedelta
+
+    recent_only = dm_aggregates.predictors_global_overview(
+        query=(pl.col("LastUpdate") > pl.col("LastUpdate").max() - timedelta(days=30)).fill_null(True)
+    ).collect()
+    assert recent_only.height > 0
+
+
 def test_new_actions():
     df = modeldata_from_scratch(
         Name=["A", "A", "B", "B", "E", "E", "C", "C"],

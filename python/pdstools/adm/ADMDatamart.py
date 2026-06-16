@@ -5,10 +5,8 @@ __all__ = ["ADMDatamart"]
 import datetime
 import logging
 import os
-from collections.abc import Iterable
 from functools import cached_property
 from pathlib import Path
-from collections.abc import Callable
 
 import polars as pl
 import polars.selectors as cs
@@ -17,13 +15,19 @@ from .. import pega_io
 from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
-from ..utils.types import QUERY
+from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 from . import Schema
 from .trees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from collections.abc import Callable
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -363,7 +367,7 @@ class ADMDatamart:
                     ["boto3"],
                     namespace="ADMDatamart.from_s3",
                     deps_group="pega_io",
-                )
+                ) from None
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile
@@ -469,90 +473,66 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_pdc(cls, df: pl.LazyFrame, return_df=False):
-        pdc_data = cdh_utils._read_pdc(df)
+    def from_databricks_view(cls, df: pl.LazyFrame) -> "ADMDatamart":
+        """Build an ADMDatamart from the Databricks model snapshots view.
 
-        adm_data = (
-            pdc_data.filter(pl.col("ModelType") == "AdaptiveModel")
-            .with_columns(
-                pl.col("Performance").cast(pl.Float32),
-                # pl.col("Positives").cast(pl.Float64),
-                pl.col("Negatives").cast(pl.Float64),
-                pl.col("TotalPositives").cast(pl.Float64),
-                pl.col("TotalResponses").cast(pl.Float64),
-                # pl.col("ResponseCount").cast(pl.Float64),
-                pyTotalPredictors=pl.lit(None),
-                pyActivePredictors=pl.lit(None),
-                # CTR=(pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives"))),
-                # ElapsedDays=(pl.col("Day").max() - pl.col("Day")).dt.total_days(),
-                # see US-648869 and related items on the model technique
-                pyModelTechnique=pl.when(
-                    pl.col("ADMModelType").is_in(["GRADIENT_BOOST", "GradientBoost"]),
-                )
-                .then(pl.lit("GradientBoost"))
-                .otherwise(pl.lit("NaiveBayes")),
-            )
-            .rename(
-                {
-                    "ModelClass": "pyAppliesToClass",
-                    "ModelID": "pyModelID",
-                    "ModelName": "pyConfigurationName",
-                    # BUG-875332: TotalResponses = Negatives + TotalPositives
-                    # won't be fixed but is confusing
-                    "Negatives": "pyNegatives",
-                    "TotalPositives": "pyPositives",
-                    "TotalResponses": "pyResponseCount",
-                    "SnapshotTime": "pySnapshotTime",
-                    "Performance": "pyPerformance",
-                },
-            )
-            .with_columns(
-                [
-                    (
-                        pl.col(c).alias(f"py{c}")
-                        if c in pdc_data.collect_schema().names()
-                        else pl.lit("").alias(f"py{c}")
-                    )
-                    for c in [
-                        "Channel",
-                        "Direction",
-                        "Issue",
-                        "Group",
-                        "Name",
-                        "Treatment",
-                    ]
-                ],
-            )
-            .drop(
-                [
-                    # "TotalResponses",
-                    # "TotalPositives",
-                    "ResponseCount",
-                    "Positives",
-                    "ModelType",
-                    "ADMModelType",
-                ]
-                + [
-                    c
-                    for c in [
-                        "pxObjClass",
-                        "pzInsKey",
-                        "Channel",
-                        "Direction",
-                        "Issue",
-                        "Group",
-                        "Name",
-                        "Treatment",
-                    ]
-                    if c in pdc_data.collect_schema().names()
-                ],
-            )
+        The input view is validated against the expected Databricks schema,
+        then renamed and cast into the ADM model-data shape used by
+        :class:`ADMDatamart`.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The Polars LazyFrame containing the Databricks data.
+
+        Returns
+        -------
+        ADMDatamart
+            The initialised datamart. Use ``dm.model_data`` for the
+            transformed frame.
+        """
+
+        databricks_to_pdstools = {
+            "AppliesToClass": "pyAppliesToClass",
+            "ModelID": "pyModelID",
+            "Configuration": "pyConfigurationName",
+            "Negatives": "pyNegatives",
+            "Positives": "pyPositives",
+            "ResponseCount": "pyResponseCount",
+            "SnapshotDate": "pySnapshotTime",
+            "Performance": "pyPerformance",
+            "Channel": "pyChannel",
+            "Direction": "pyDirection",
+            "Issue": "pyIssue",
+            "Group": "pyGroup",
+            "Name": "pyName",
+            "Treatment": "pyTreatment",
+        }
+
+        cdh_utils._validate_databricks_rename_map(
+            databricks_to_pdstools,
+            _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+            "model snapshots",
+            "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
         )
 
-        if return_df:
-            return adm_data
-
-        return ADMDatamart(model_df=adm_data, extract_pyname_keys=True)
+        adm_data = (
+            cdh_utils._validate_databricks_model_snapshots(df)
+            .rename(databricks_to_pdstools)
+            .with_columns(
+                pyTotalPredictors=pl.lit(None),
+                pyActivePredictors=pl.lit(None),
+            )
+            .cast(
+                {
+                    "pyPerformance": pl.Float32,
+                    "pyNegatives": pl.Int64,
+                    "pyPositives": pl.Int64,
+                    "pyResponseCount": pl.Int64,
+                }
+            )
+        )
+        return cls(model_df=adm_data, extract_pyname_keys=True)
 
     def _validate_model_data(
         self,
@@ -579,6 +559,20 @@ class ADMDatamart:
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
+        # Issue #667: AGB models emit an additional "totals" row per configuration
+        # with empty context keys. It duplicates aggregated data and can carry a
+        # miscomputed AUC. Pega reporting filters it out — do the same here so all
+        # downstream consumers see consistent data. Only filter when ModelTechnique
+        # is known (not null) — otherwise empty context could be a genuine data
+        # issue worth surfacing.
+        agb_context_cols = [c for c in ("Issue", "Group", "Name", "Treatment") if c in schema.names()]
+        if agb_context_cols:
+            empty_context = pl.all_horizontal(
+                [(pl.col(c).is_null() | (pl.col(c) == "")) for c in agb_context_cols],
+            )
+            is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
+            df = df.filter(~(is_agb & empty_context))
+
         snapshot_type = schema.get("SnapshotTime")
         if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(
@@ -603,9 +597,7 @@ class ADMDatamart:
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
-        df = self._normalize_performance_scale(df)
-
-        return df
+        return self._normalize_performance_scale(df)
 
     def _validate_predictor_data(
         self,
@@ -636,8 +628,7 @@ class ADMDatamart:
             )  # actual categorization not passed in?
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
-        df = self._normalize_performance_scale(df)
-        return df
+        return self._normalize_performance_scale(df)
 
     @staticmethod
     def _normalize_performance_scale(df: pl.LazyFrame) -> pl.LazyFrame:

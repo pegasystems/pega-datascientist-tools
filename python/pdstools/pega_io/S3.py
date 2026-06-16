@@ -95,7 +95,7 @@ class S3Data:
                 ["aioboto3"],
                 namespace="S3Data",
                 deps_group="pega_io",
-            )
+            ) from None
 
         def ensure_path(path: str) -> None:
             if not os.path.exists(path):

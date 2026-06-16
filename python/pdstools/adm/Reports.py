@@ -10,10 +10,8 @@ __all__ = ["ReportOptions", "Reports"]
 
 import logging
 import shutil
-from collections.abc import Callable
-from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import ClassVar, Literal, TYPE_CHECKING
 
 import polars as pl
 from typing_extensions import TypedDict, Unpack
@@ -27,9 +25,11 @@ from ..utils.report_utils import (
     run_quarto,
     serialize_query,
 )
-from ..utils.types import QUERY
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from os import PathLike
+    from collections.abc import Callable
     from ..prediction.Prediction import Prediction
     from .ADMDatamart import ADMDatamart
 
@@ -126,7 +126,7 @@ _HEALTH_CHECK_DEFAULTS: ReportOptions = {
 class Reports(LazyNamespace):
     """Report generation namespace attached to :class:`ADMDatamart` as ``dm.generate``."""
 
-    dependencies = ["yaml"]
+    dependencies: ClassVar[list[str]] = ["yaml"]
     dependency_group = "healthcheck"
 
     def __init__(self, datamart: ADMDatamart):

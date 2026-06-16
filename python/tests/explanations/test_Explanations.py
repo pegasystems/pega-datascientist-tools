@@ -3,9 +3,23 @@
 import os
 import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 from pdstools.explanations import Explanations
+
+basePath = Path(__file__).parent.parent.parent.parent
+
+
+def _clean_up(root_dir):
+    _root_dir = Path(f"{basePath}/{root_dir}")
+    if _root_dir.exists():
+        for file in _root_dir.iterdir():
+            if file.is_file():
+                file.unlink()
+            elif file.is_dir():
+                shutil.rmtree(file)
+        _root_dir.rmdir()
 
 
 @pytest.fixture(scope="module")
@@ -101,3 +115,94 @@ class TestExplanationsDateRange:
 
         assert explanations.from_date.date() == expected_from_date
         assert explanations.to_date.date() == expected_to_date
+
+
+class TestPureInit:
+    """The Explanations constructor must be pure config (no I/O)."""
+
+    def test_init_does_not_touch_filesystem(self, tmp_path, monkeypatch):
+        """Default-constructed Explanations must not create any files."""
+        monkeypatch.chdir(tmp_path)
+        exp = Explanations()
+        # No directories should have been created from a bare construction.
+        assert list(tmp_path.iterdir()) == []
+        # Defaults should be exposed but not acted upon.
+        assert exp.root_dir == ".tmp"
+        assert exp.data_folder == "explanations_data"
+        assert exp.data_file is None
+
+    def test_init_rejects_positional_paths(self):
+        """root_dir / data_folder / data_file must not be constructor params."""
+        with pytest.raises(TypeError):
+            Explanations("some_root_dir")  # type: ignore[misc]
+        with pytest.raises(TypeError):
+            Explanations(data_folder="some_folder")  # type: ignore[call-arg]
+
+    def test_namespaces_attached(self):
+        """The five sub-namespace facades must be present after init."""
+        exp = Explanations()
+        assert exp.preprocess is not None
+        assert exp.aggregate is not None
+        assert exp.plot is not None
+        assert exp.report is not None
+        assert exp.filter is not None
+
+
+class TestFromLocalDirectory:
+    """Exact-value tests for Explanations.from_local_directory."""
+
+    def test_loads_real_sample_parquet(self):
+        """Load the shipped sample data and verify aggregates were produced."""
+        data_folder = f"{basePath}/data/explanations"
+        try:
+            exp = Explanations.from_local_directory(
+                data_folder=data_folder,
+                model_name="AdaptiveBoostCT",
+                from_date=datetime(2025, 3, 28),
+                to_date=datetime(2025, 3, 28),
+            )
+
+            # The classmethod must wire all path config exactly as given.
+            assert exp.root_dir == ".tmp"
+            assert exp.data_folder == data_folder
+            assert exp.data_file is None
+            assert exp.model_name == "AdaptiveBoostCT"
+            assert exp.from_date == datetime(2025, 3, 28)
+            assert exp.to_date == datetime(2025, 3, 28)
+
+            # Pre-aggregation must have produced parquet files in
+            # <root_dir>/aggregated_data/.
+            agg_dir = Path(exp.root_dir) / "aggregated_data"
+            assert agg_dir.is_dir()
+            parquets = sorted(p.name for p in agg_dir.glob("*.parquet"))
+            assert len(parquets) > 0, "Expected at least one aggregated parquet file"
+
+            # The aggregate namespace must be wired to that folder.
+            assert str(exp.aggregate.data_folderpath) == str(agg_dir)
+        finally:
+            _clean_up(".tmp")
+
+    def test_invalid_data_folder_raises(self):
+        with pytest.raises(
+            ValueError,
+            match="Explanations folder invalid_path does not exist or is empty.",
+        ):
+            Explanations.from_local_directory(data_folder="invalid_path")
+
+    def test_data_file_overrides_data_folder(self, tmp_path, monkeypatch):
+        """When data_file is given, data_folder is not consulted."""
+        monkeypatch.chdir(tmp_path)
+        sample = basePath / "data" / "explanations" / "AdaptiveBoostCT_20250328064604.parquet"
+        try:
+            exp = Explanations.from_local_directory(
+                data_file=str(sample),
+                model_name="AdaptiveBoostCT",
+                from_date=datetime(2025, 3, 28),
+                to_date=datetime(2025, 3, 28),
+            )
+            assert exp.data_file == str(sample)
+            agg_dir = Path(exp.root_dir) / "aggregated_data"
+            assert agg_dir.is_dir()
+        finally:
+            if Path(".tmp").exists():
+                shutil.rmtree(".tmp")

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["Reports"]
 
 import logging
@@ -5,7 +7,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
 
 import yaml  # type: ignore[import-untyped]  # types-PyYAML not in project deps
 
@@ -29,7 +31,9 @@ if TYPE_CHECKING:
 
 
 class Reports(LazyNamespace):
-    dependencies = ["yaml"]
+    """Reports."""
+
+    dependencies: ClassVar[list[str]] = ["yaml"]
     dependency_group = "explanations"
 
     def __init__(self, explanations: "Explanations"):

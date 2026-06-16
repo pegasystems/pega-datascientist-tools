@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Literal, cast
+from typing import ClassVar, Literal, TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class BinAggregator(LazyNamespace):
     """A class to generate rolled up insights from ADM predictor binning."""
 
-    dependencies = ["plotly", "numpy"]
+    dependencies: ClassVar[list[str]] = ["plotly", "numpy"]
     dependency_group = "adm"
 
     def __init__(self, datamart: "ADMDatamart") -> None:
@@ -34,6 +34,7 @@ class BinAggregator(LazyNamespace):
 
     @cached_property
     def all_predictorbinning(self):
+        """All predictorbinning."""
         data = self.dm.aggregates.last(table="combined_data")
         return self.normalize_all_binnings(data)
 
@@ -217,6 +218,7 @@ class BinAggregator(LazyNamespace):
         modelids,
         target_binning,
     ) -> pl.DataFrame:
+        """Accumulate num binnings."""
         for id in modelids:
             logger.debug(f"Model ID: {id}")
 
@@ -255,6 +257,7 @@ class BinAggregator(LazyNamespace):
         n_symbols,
         musthave_symbols,
     ) -> list:
+        """Create symbol list."""
         symbol_frequency = (
             self.all_predictorbinning.filter(pl.col("Type") != "numeric")
             .filter(pl.col("PredictorName") == predictor)
@@ -281,6 +284,7 @@ class BinAggregator(LazyNamespace):
         symbollist,
     ) -> pl.DataFrame:
         # All the bins for the given predictor, for the given models
+        """Accumulate sym binnings."""
         symbins = (
             self.all_predictorbinning.filter(pl.col("Type") != "numeric")
             .filter(pl.col("PredictorName") == predictor)
@@ -339,7 +343,7 @@ class BinAggregator(LazyNamespace):
         if "Lift" not in molten.columns:
             molten = molten.with_columns(Lift=pl.lit(0.0))
 
-        aggregate_binning = (
+        return (
             molten
             # take the mean lift for each symbol
             .group_by(["PredictorName", "Symbol"])
@@ -380,8 +384,6 @@ class BinAggregator(LazyNamespace):
         #         (pl.col("Lift") - pl.sum("Lift") / pl.len()).alias("Lift"),
         #     )
 
-        return aggregate_binning
-
     def normalize_all_binnings(self, combined_dm: pl.LazyFrame) -> pl.LazyFrame:
         """Prepare all predictor binning
 
@@ -392,7 +394,7 @@ class BinAggregator(LazyNamespace):
             r"[+\-]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?"  # matches numbers also with scientific notation
         )
 
-        binnings = (
+        return (
             combined_dm.filter(pl.col("EntryType") != "Classifier")
             .filter(pl.col("BinType") != "MISSING")  # ignore those on purpose
             .with_columns(
@@ -474,8 +476,6 @@ class BinAggregator(LazyNamespace):
             )
         ).sort(["ModelID", "PredictorName", "BinIndex"])
 
-        return binnings
-
     def create_empty_numbinning(
         self,
         predictor: str,
@@ -485,6 +485,7 @@ class BinAggregator(LazyNamespace):
         minimum: float | None = None,
         maximum: float | None = None,
     ) -> pl.DataFrame:
+        """Create empty numbinning."""
         import numpy as np
 
         # take min/max across all models
@@ -559,7 +560,7 @@ class BinAggregator(LazyNamespace):
 
         boundaries_arr = np.array(boundaries, dtype=np.float64)
 
-        target_binning = pl.DataFrame(
+        return pl.DataFrame(
             {
                 "PredictorName": predictor,
                 "BinIndex": list(range(1, len(boundaries_arr))),
@@ -579,9 +580,8 @@ class BinAggregator(LazyNamespace):
             pl.lit(0).alias("Models"),
         )
 
-        return target_binning
-
     def get_source_numbinning(self, predictor: str, modelid: str) -> pl.DataFrame:
+        """Get source numbinning."""
         is_model_immature = ((pl.sum("BinPositives") + pl.sum("BinNegatives")) < 200) | (pl.max("BinIndex") < 2)
 
         return (
@@ -611,6 +611,8 @@ class BinAggregator(LazyNamespace):
         source: pl.DataFrame,
         target: pl.DataFrame,
     ) -> pl.DataFrame:
+        """Combine two numbinnings."""
+
         class Interval:
             def __init__(self, lo, hi):
                 self.lo_ = lo
@@ -769,6 +771,7 @@ class BinAggregator(LazyNamespace):
         source: pl.DataFrame,
         target: pl.DataFrame,
     ) -> Figure:
+        """Plot binning attribution."""
         import plotly.express as px
 
         # create "long" dataframe with the upper and lower bounds of source and target
@@ -867,10 +870,14 @@ class BinAggregator(LazyNamespace):
         binning,
         col_facet=None,
         row_facet=None,
-        custom_data=["PredictorName", "BinSymbol"],
+        custom_data: list[str] | None = None,
         return_df=False,
     ) -> pl.DataFrame | Figure:
+        """Plot binning lift."""
         import plotly.express as px
+
+        if custom_data is None:
+            custom_data = ["PredictorName", "BinSymbol"]
 
         if not isinstance(binning, pl.LazyFrame):
             binning = binning.lazy()
@@ -968,6 +975,7 @@ class BinAggregator(LazyNamespace):
         return fig
 
     def plot_lift_binning(self, binning: pl.DataFrame) -> Figure:
+        """Plot lift binning."""
         if binning.columns[-1] == "Models":  # assuming Models is always the last column when not rolled up
             # printing a single binning, not rolled up
             topic = None

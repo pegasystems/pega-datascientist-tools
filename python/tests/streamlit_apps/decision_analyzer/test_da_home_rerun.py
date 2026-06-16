@@ -10,9 +10,12 @@ the transition from "no data" to "have data".
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_sample_auto_load_triggers_rerun_then_unlocks_nav(da_app_dir: Path):

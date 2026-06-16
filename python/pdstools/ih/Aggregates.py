@@ -1,8 +1,8 @@
 """Aggregation methods for Interaction History analysis."""
 
+from __future__ import annotations
+
 import logging
-from collections.abc import Sequence
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import polars as pl
@@ -10,11 +10,13 @@ import polars as pl
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.pega_outcomes import get_openrate_labels as _get_openrate_labels
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from datetime import timedelta
+    from collections.abc import Sequence
     from .IH import IH as IH_Class
 
 
@@ -112,10 +114,7 @@ class Aggregates(LazyNamespace):
         >>> ih.aggregates.summarize_by_interaction(by="Channel").collect()
 
         """
-        if every is not None:
-            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
-        else:
-            source = self.ih.data
+        source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every)) if every is not None else self.ih.data
 
         if by is None:
             by_seq: list[str | pl.Expr] = []
@@ -153,7 +152,7 @@ class Aggregates(LazyNamespace):
             # TODO: reconsider null vs False for non-applicable channel/metric combinations
             pos_or: pl.Expr = pl.lit(False)
             neg_or: pl.Expr = pl.lit(False)
-            for channel_dir, labels in channel_aware.items():
+            for channel_dir, _labels in channel_aware.items():
                 or_labels = _get_openrate_labels(channel_dir)
                 if or_labels is None:
                     continue  # inbound — both stay False → null after agg
@@ -219,20 +218,19 @@ class Aggregates(LazyNamespace):
             if metric not in ("Engagement", "OpenRate")
         ]
 
-        interactions = (
+        return (
             cdh_utils._apply_query(source, query)
             .group_by(
-                (group_by_clause + ["InteractionID"]) if group_by_clause is not None else ["InteractionID"],
+                ([*group_by_clause, "InteractionID"]) if group_by_clause is not None else ["InteractionID"],
             )
             .agg(
-                [engagement_agg, openrate_agg] + other_agg,
+                [engagement_agg, openrate_agg, *other_agg],
                 Propensity=pl.col.Propensity.last(),
                 # for debugging
                 Outcomes=pl.col.Outcome.unique().sort(),
             )
             .drop([] if debug else ["Outcomes"])
         )
-        return interactions
 
     def summary_success_rates(
         self,
@@ -349,7 +347,7 @@ class Aggregates(LazyNamespace):
             .drop([] if debug else ["Outcomes"])
         )
 
-        if group_by_clause is None:
+        if group_by_clause is None:  # noqa: SIM108 — inline comment clarifies the drop
             summary = summary.drop("literal")  # created by empty group_by
         else:
             summary = summary.sort(group_by_clause)
@@ -395,10 +393,7 @@ class Aggregates(LazyNamespace):
         >>> ih.aggregates.summary_outcomes(every="1mo").collect()
 
         """
-        if every is not None:
-            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
-        else:
-            source = self.ih.data
+        source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every)) if every is not None else self.ih.data
 
         if by is None:
             by_seq: list[str | pl.Expr] = []
@@ -413,6 +408,4 @@ class Aggregates(LazyNamespace):
             by_pl_exprs,
         )
 
-        summary = (cdh_utils._apply_query(source, query).group_by(group_by_clause).agg(Count=pl.len())).sort("Count")
-
-        return summary
+        return (cdh_utils._apply_query(source, query).group_by(group_by_clause).agg(Count=pl.len())).sort("Count")

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
+from typing import ClassVar, TYPE_CHECKING
 from functools import cached_property
 import logging
-import os
 import warnings
 
 import polars as pl
@@ -10,7 +12,6 @@ import polars.selectors as cs
 from .data_read_utils import validate_columns
 from ._aggregates import Aggregates
 from ._scoring import Scoring
-from .plots import Plot
 from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
@@ -24,7 +25,11 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_ds_export
+from ..pega_io.File import read_data
+from ..utils.namespaces import LazyNamespace
+
+if TYPE_CHECKING:
+    import os
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +41,34 @@ MANDATORY_PRIORITY_THRESHOLD = 4_999_999
 arbitration engine. Mandatory actions bypass normal ranking and always land in
 the top slot. Used to auto-detect mandatory rows when no explicit
 ``mandatory_expr`` is supplied to :class:`DecisionAnalyzer`."""
+
+
+class _PlotPlotlyMissing(LazyNamespace):
+    """Stand-in for :class:`Plot` when plotly is not installed.
+
+    Inherits :class:`~pdstools.utils.namespaces.LazyNamespace` so any
+    method call or attribute access surfaces the standard
+    :class:`~pdstools.utils.namespaces.MissingDependenciesException`
+    pointing the user at the ``pdstools[adm]`` extras group.
+    """
+
+    dependencies: ClassVar[list[str]] = ["plotly"]
+    dependency_group = "adm"
+
+
+def _make_plot_accessor(da: "DecisionAnalyzer"):
+    """Return a real :class:`Plot` accessor or a missing-dependency stand-in.
+
+    The :mod:`pdstools.decision_analyzer.plots` package eagerly imports
+    plotly; we keep that import lazy here so that
+    ``DecisionAnalyzer`` itself can be used (for aggregation, scoring,
+    etc.) on systems without plotly installed.
+    """
+    try:
+        from .plots import Plot
+    except ImportError:  # pragma: no cover - exercised only without plotly
+        return _PlotPlotlyMissing()
+    return Plot(da)
 
 
 class DecisionAnalyzer:
@@ -76,8 +109,62 @@ class DecisionAnalyzer:
     >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
     >>> da.overview_stats
     >>> da.plot.sensitivity()
-    >>> da.aggregates.get_funnel_data(scope="Action")
+    >>> da.aggregates.get_funnel_data()  # defaults to scope="Action"
     >>> da.scoring.get_sensitivity()
+
+    The ``from_*`` classmethods also accept a directory of parquet
+    (Hive-partitioned layouts work) or a glob pattern, e.g.::
+
+        DecisionAnalyzer.from_decision_analyzer("path/to/extract/")
+        DecisionAnalyzer.from_decision_analyzer("path/**/*.parquet")
+
+    Schema and column renaming
+    --------------------------
+    The class auto-detects whether the input is an Explainability Extract
+    (v1) or Decision Analyzer / EEV2 (v2) export and resolves source
+    column names against the table definition in
+    :mod:`pdstools.decision_analyzer.column_schema`. After ingestion all
+    downstream code uses friendly display names like ``Subject ID``,
+    ``Interaction ID``, ``Issue``, ``Group``, ``Action``, ``Channel``,
+    ``Direction``, ``Stage``, ``Stage Group``, ``Stage Order``,
+    ``Propensity``, ``Priority``, ``Decision Time``, etc.
+
+    Common source-name aliases that get mapped automatically include
+    ``Primary_pySubjectID`` / ``pySubjectID`` → ``Subject ID``,
+    ``pxInteractionID`` → ``Interaction ID``,
+    ``pyName`` → ``Action``, ``pyIssue`` → ``Issue``, ``pyGroup`` →
+    ``Group``, ``pxDecisionTime`` → ``Decision Time``,
+    ``Primary_ContainerPayload_Channel`` / ``pyChannel`` → ``Channel``,
+    ``Stage_pyName`` → ``Stage``, ``Stage_pyStageGroup`` → ``Stage
+    Group``, ``Stage_pyOrder`` → ``Stage Order``. The critical columns
+    that must be resolvable are ``Interaction ID``, ``Issue``,
+    ``Group``, and ``Action``; everything else is best-effort.
+
+    For the full mapping (including v1-only and v2-only columns), inspect
+    :data:`pdstools.decision_analyzer.column_schema.DecisionAnalyzer` and
+    :data:`pdstools.decision_analyzer.column_schema.ExplainabilityExtract`.
+
+    Memory footprint
+    ----------------
+    On instantiation, this class triggers several lazy → eager polars
+    queries (``unique`` interaction count, stage discovery, etc.). For a
+    multi-billion-row Hive-partitioned extract these scans alone can
+    spike memory well past 10 GB. If you only need aggregate views,
+    pre-filter / pre-aggregate the data at the ``pl.scan_parquet`` level
+    before passing it in, or use a downsampled copy. The
+    ``preaggregated_filter_view`` and ``sample`` cached properties
+    additionally materialise data and should be used with care on full
+    datasets.
+
+    Sample vs full-data convention
+    ------------------------------
+    Most :class:`Aggregates` methods that compute pre-aggregates
+    (``get_funnel_data``, ``get_optionality_data``, ...) use the
+    pre-aggregated view of the **full** dataset under the hood, while
+    sensitivity / threshold / win-loss methods on :class:`Scoring`
+    operate on the downsampled ``self.sample`` (≤ ``sample_size``
+    interactions) for performance. ``self.decision_data`` is the full
+    LazyFrame; ``self.sample`` is the small one.
     """
 
     # Lazily-set attribute populated when ``sample`` is first accessed.
@@ -100,7 +187,11 @@ class DecisionAnalyzer:
         Parameters
         ----------
         source : str | os.PathLike
-            Path to the Explainability Extract parquet file, or a URL.
+            Path to the Explainability Extract data. May be:
+
+            * a single parquet/csv/ndjson file (or remote URL),
+            * a directory of parquet files (Hive partitioning supported),
+            * a glob pattern (e.g. ``"path/**/*.parquet"``).
         level, sample_size, mandatory_expr, additional_columns, num_samples
             See :meth:`__init__` for details.
 
@@ -111,10 +202,10 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_explainability_extract("data/sample_explainability_extract.parquet")
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/extract_dir/")
+        >>> da = DecisionAnalyzer.from_explainability_extract("data/**/*.parquet")
         """
-        raw_data = read_ds_export(str(source))
-        if raw_data is None:
-            raise ValueError(f"Could not read data from {source}")
+        raw_data = read_data(source)
         return cls(
             raw_data,
             level=level,
@@ -140,7 +231,11 @@ class DecisionAnalyzer:
         Parameters
         ----------
         source : str | os.PathLike
-            Path to the Decision Analyzer parquet file, or a URL.
+            Path to the Decision Analyzer data. May be:
+
+            * a single parquet/csv/ndjson file (or remote URL),
+            * a directory of parquet files (Hive partitioning supported),
+            * a glob pattern (e.g. ``"path/**/*.parquet"``).
         level, sample_size, mandatory_expr, additional_columns, num_samples
             See :meth:`__init__` for details.
 
@@ -151,10 +246,10 @@ class DecisionAnalyzer:
         Examples
         --------
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/sample_eev2.parquet")
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/eev2_partitioned/")
+        >>> da = DecisionAnalyzer.from_decision_analyzer("data/**/*.parquet")
         """
-        raw_data = read_ds_export(str(source))
-        if raw_data is None:
-            raise ValueError(f"Could not read data from {source}")
+        raw_data = read_data(source)
         return cls(
             raw_data,
             level=level,
@@ -166,7 +261,7 @@ class DecisionAnalyzer:
 
     # Preferred fields for data filtering, in display order.
     # Subsetting to actual available columns happens in __init__.
-    _default_filter_fields = [
+    _default_filter_fields: ClassVar[list[str]] = [
         "Decision Time",
         "Channel",
         "Direction",
@@ -256,7 +351,7 @@ class DecisionAnalyzer:
         >>> mandatory = pl.col("Issue") == "Retention"
         >>> decision_analyzer = DecisionAnalyzer(raw_data, mandatory_expr=mandatory)
         """
-        self.plot = Plot(self)
+        self.plot = _make_plot_accessor(self)
         self.aggregates = Aggregates(self)
         self.scoring = Scoring(self)
         self.level = level
@@ -281,7 +376,7 @@ class DecisionAnalyzer:
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
         if not validation_result and validation_error is not None:
-            warnings.warn(validation_error, UserWarning)
+            warnings.warn(validation_error, UserWarning, stacklevel=2)
         # Bail out early if critical columns are missing — _cleanup_raw_data
         # would crash with an opaque ColumnNotFoundError otherwise.
         # Check using display names; account for both raw keys and display
@@ -954,14 +1049,13 @@ class DecisionAnalyzer:
                 ]
             )
 
-        preproc_df = (
+        return (
             df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
             .with_columns(
                 pl.col(self.level).cast(pl.Categorical),
             )
             .filter(pl.col("Action").is_not_null())  # Drop rows with null Action; this takes some processing time
         )
-        return preproc_df
 
     def get_possible_scope_values(self) -> list[str]:
         """Return scope hierarchy columns present in the data (e.g. Issue, Group, Action)."""
@@ -970,14 +1064,13 @@ class DecisionAnalyzer:
 
     def get_possible_stage_values(self) -> list[str]:
         """Return the list of available stage values for the current level."""
-        options = self.AvailableNBADStages
+        return self.AvailableNBADStages
         # TODO figure out how to get the actual possible values, should be available from the enum directly
         # [
         #     stage
         #     for stage in self.NBADStages_FilterView
         #     if stage in df['pxEgagementStage'].categories
         # ]
-        return options
 
     @property
     def stage_to_group_mapping(self) -> dict[str, str]:

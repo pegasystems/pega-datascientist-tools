@@ -5,7 +5,7 @@ from pathlib import Path
 import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.data_read_utils import read_nested_zip_files
+from pdstools.pega_io import read_nested_zip_files
 from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
 
 from pdstools.decision_analyzer.plots import (
@@ -38,6 +38,7 @@ _DECISION_STATE_KEYS: tuple[str, ...] = (
     "sample_metadata",
     "page_channel_filter",
     "page_channel_expr",
+    "_da_uploaded_file_signature",
 )
 
 
@@ -141,7 +142,7 @@ def stage_selectbox(
     stage_options = options if options is not None else da.get_possible_stage_values()
     mapping = da.stage_to_group_mapping  # empty dict when level != "Stage"
 
-    if mapping:
+    if mapping:  # noqa: SIM108 — lambda assignment reads better as if/else
         format_func = lambda s: f"{mapping.get(s, '?')}  ·  {s}"  # noqa: E731
     else:
         format_func = str
@@ -636,7 +637,9 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
     Filters out ZIP-internal noise files (META-INF/, __MACOSX/, .DS_Store etc.)
     and clears stale session state before processing a new upload.
 
-    Returns:
+    Returns
+    -------
+    tuple[pl.LazyFrame | None, dict | None]
         Tuple of (LazyFrame, metadata dict) where metadata contains sample information if available.
         For single parquet file uploads, metadata is read from the file.
         For other cases, metadata is None.
@@ -649,11 +652,34 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
         type=["zip", "parquet", "json", "csv", "arrow", "gz", "tgz", "tar"],
         accept_multiple_files=True,
     )
+
+    previous_signature = st.session_state.get("_da_uploaded_file_signature")
+
     if not uploaded_files:
+        # User cleared the uploader (or never uploaded). If a previous
+        # upload was processed, drop the now-stale data so the page
+        # falls back to the autoload sample on the next run.
+        if previous_signature is not None:
+            clear_decision_state()
         return None, None
 
-    # Clear stale data/filters before processing the new upload.
+    # Identity of the current upload set. Streamlit's UploadedFile keeps
+    # ``file_id`` stable across reruns for the same upload; size+name
+    # are a defensive fallback for stubs in tests.
+    signature = tuple((getattr(f, "file_id", None) or f.name, f.name, getattr(f, "size", None)) for f in uploaded_files)
+
+    # Same upload as last run and the resulting analyzer is still in
+    # session state — nothing to do. Without this guard, the file
+    # uploader's persistent value would re-trigger ingest on every
+    # rerun (clearing decision_data each time), causing the post-load
+    # ``st.rerun()`` to loop and the upload to never visibly take
+    # effect over a previously auto-loaded sample.
+    if signature == previous_signature and "decision_data" in st.session_state:
+        return None, None
+
+    # New (or replacement) upload: clear stale data/filters, then process.
     clear_decision_state()
+    st.session_state["_da_uploaded_file_signature"] = signature
 
     # Drop noise files that may appear when selecting from extracted archives.
     valid_files = [f for f in uploaded_files if not _is_upload_noise(f.name)]
@@ -737,11 +763,10 @@ def get_available_channel_directions(sample_df: pl.LazyFrame) -> list[str]:
     if "Direction" in schema:
         combos = sample_df.select(pl.struct("Channel", "Direction")).unique().collect().to_series().to_list()
         return sorted([f"{c['Channel']}/{c['Direction']}" for c in combos])
-    elif "Channel" in schema:
+    if "Channel" in schema:
         channels = sample_df.select("Channel").unique().collect().to_series().to_list()
         return sorted(channels)
-    else:
-        return []
+    return []
 
 
 def collect_page_filters() -> list[pl.Expr]:
@@ -814,7 +839,7 @@ def channel_direction_selector():
         st.session_state.page_channel_filter = "Any"
         st.session_state.page_channel_expr = None
 
-    options = ["Any"] + available
+    options = ["Any", *available]
 
     st.selectbox(
         "Channel / Direction",

@@ -140,12 +140,62 @@ python -m build --sdist --wheel --outdir dist/ .
 - Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
-  module-level `try/except ImportError` blocks.
+  module-level `try/except ImportError` blocks. For sub-namespace
+  classes whose **methods** depend on optional packages (plotting, ML
+  extras, cloud SDKs), extend `LazyNamespace`
+  (`pdstools.utils.namespaces`) and declare
+  `dependencies = ["..."]` + `dependency_group = "<extras-group>"`. It
+  wraps every public method with a dependency check that raises
+  `MissingDependenciesException` with a friendly install hint, and
+  attribute access on missing methods triggers the same check — no
+  per-class missing-dep stand-in needed.
 
 ### Formatting
 - Use ruff-format (black-compatible). Do not hand-format.
 - Keep line length conservative; let the formatter decide.
 - Use trailing commas in multi-line literals and call arguments.
+
+### Docstring style: numpy
+- Use **numpy-style docstrings** for all public APIs (and any non-trivial
+  internal helper). Sphinx is configured with the `numpydoc` /
+  `sphinx.ext.napoleon` toolchain and the rest of `pdstools` is written
+  this way; a Google-style (`Args:` / `Returns:`) or Sphinx-RST
+  (`:param x:`) block in the middle of an otherwise numpy-style module
+  is a stylistic break and renders inconsistently in the docs.
+- Sections use a header word followed by a dashed underline of equal
+  length. The common ones:
+
+  ```python
+  def foo(x: int, y: str = "a") -> bool:
+      """One-line summary in the imperative.
+
+      Optional longer description.
+
+      Parameters
+      ----------
+      x : int
+          What x is.
+      y : str, default "a"
+          What y is.
+
+      Returns
+      -------
+      bool
+          What the return value means.
+
+      Raises
+      ------
+      ValueError
+          When x is negative.
+
+      Examples
+      --------
+      >>> foo(1)
+      True
+      """
+  ```
+- Reviewers should flag Google/RST-style blocks in PRs and ask for a
+  conversion before merge — left in place they spread by example.
 
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
@@ -274,6 +324,43 @@ them.
 
 ## Streamlit apps
 
+### Core principle: zero-functionality presentation layers
+
+**All functionality lives in the library. Streamlit apps are zero-functionality
+presentation layers.** Every calculation, transformation, formula, and data
+shape an app exposes must be reproducible in a Jupyter notebook or a short
+script using only `pdstools.<module>` imports. Apps add accessibility (UI,
+no coding required); they never add capability.
+
+Concretely:
+
+- **No business logic in `Home.py` or `pages/*.py`.** Pages compose widgets,
+  read session state, and call into the library. If a page contains a
+  non-trivial calculation, a custom data transform, or a domain formula,
+  lift it into the relevant library module (`pdstools.adm`,
+  `pdstools.ih`, `pdstools.impact_analyzer`, etc.) and call it from
+  the page.
+- **Plot construction lives in the library** (`<module>/Plots.py` or a
+  `plot` namespace on the analyzer). Pages call those functions and may
+  tweak layout via `.update_layout()` before `st.plotly_chart(fig)`.
+- **Excel/CSV/PDF export builders are library code.** A page calls
+  `analyzer.generate.<format>(...)` and hands the bytes to
+  `st.download_button`. No `build_excel`-style functions inside `app/`.
+- **Formulas worth showing in the UI need a first-class library
+  representation** (e.g. a `Formula` dataclass with `.expression`,
+  `.filled(values)`, `.evaluate(values)`). The same object then drives
+  both the calculation and any Markdown/LaTeX rendering — UI and
+  notebook share one source of truth.
+- **Examples directory should not ship parallel Streamlit apps.**
+  `examples/<feature>/` is for notebooks and short scripts that
+  demonstrate the library API. The matching app belongs in
+  `python/pdstools/app/<feature>/`.
+
+**The smell test:** "Can I do exactly the same thing in a Jupyter
+notebook with no `streamlit` import?" If the answer is no, the
+functionality is misplaced — move it into the library and have the
+page call it.
+
 ### Architecture
 - Apps live under `python/pdstools/app/<app_name>/` with a `Home.py`
   entry point and numbered pages in a `pages/` subdirectory.
@@ -333,6 +420,57 @@ sidebar logo and title (sub-pages re-apply it automatically).
 - Use `show_about_page()` from `streamlit_utils.py` for a
   standardised About page. A page file can be as small as two lines
   (page config + `show_about_page()`).
+
+### Testing widget interactions, not just initial renders
+
+`streamlit.testing.v1.AppTest` is the right tool for *both* "page
+renders" smoke tests *and* state-transition tests. The v5.0.0 launcher
+shipped with two P1 upload-flow regressions that the existing AppTest
+suite happily green-lit, because it only covered initial renders:
+
+- HC: switching the data-source dropdown to "Direct file upload"
+  rendered no uploaders at all.
+- DA: dropping a file into the uploader after the sample auto-load
+  did nothing — analyzer kept pointing at the autoloaded data.
+
+Both are pure session-state interactions (an `on_change` callback
+deletes a key, the next-run guard then trips). They're invisible to
+sub-page tests that pre-seed `st.session_state["dm"]` /
+`st.session_state["decision_data"]` to bypass the home page entirely.
+
+**Rule:** any widget whose interaction mutates session state in a
+non-trivial way — `on_change` callbacks, buttons that store results,
+sliders/selectboxes that drive subsequent renders — needs a
+state-transition AppTest. This applies to home pages **and** sub-pages.
+
+Pattern for a selectbox / slider:
+
+```python
+at = AppTest.from_file(str(home_py)).run()
+at.selectbox(key="data_source").set_value("Direct file upload").run()
+assert len(at.file_uploader) >= 1
+```
+
+Pattern for a button that stores results:
+
+```python
+gen_button = next(b for b in at.button if b.label == "Generate Health Check")
+gen_button.click().run()
+assert any("Health Check" in getattr(b, "label", "") for b in at.get("download_button"))
+assert "file" in at.session_state["run"][at.session_state["runID"]]
+```
+
+Reference implementations:
+- Home-page upload flow: `test_upload_replaces_autoload.py`,
+  `test_direct_upload_renders.py`
+- Sub-page sliders: `test_threshold_sliders.py`
+- Sub-page selectbox: `test_arbitration_scope_selectbox.py`
+- Button → download flow: `test_generate_button.py`
+- Multiselect filter pipeline: `test_data_filters.py`
+
+If you change a widget's key, its `on_change` handler, or any session-
+state key it reads/writes, add or update the matching state-transition
+test in the same PR.
 
 ### General Streamlit rules
 - Never use `st.experimental_*` APIs — they have been removed. Use
@@ -456,6 +594,29 @@ network, and S3 I/O lives in alternative constructors named
 `from_dataflow_export`, `from_pdc`). This mirrors the
 `pl.read_csv` / `pl.scan_csv` idiom and makes the class trivially
 testable with synthesized data — no monkey-patching required.
+
+Inside `from_<source>` classmethods, **delegate path resolution to
+`pdstools.pega_io.File.read_data`** for anything path-like. It already
+handles single files, directories (Hive-partitioned layouts),
+archives (zip / tar / gzip), `BytesIO` uploads, and glob patterns
+(`"data/**/*.parquet"`). If you discover a new input shape that isn't
+covered, **extend `read_data`** rather than rolling a local resolver
+on the analyzer class — every analyzer benefits and the entry point
+stays singular. Use the more specialised `read_ds_export` only when
+you need its ADM-specific smart-name lookup (`"model_data"`,
+`"predictor_data"`) or remote-URL fetching.
+
+The whole `pdstools.pega_io` module is the single funnel for
+user-facing path → polars reads (CodeQL `py/path-injection` is
+suppressed there at config level on that basis). Inside the funnel,
+**`_scan_by_extension` is the one place `pl.scan_*` / `pl.read_*` is
+actually called** for a leaf path. New format-specific helpers
+(`scan_parquet_path`, future `scan_csv_path`, …) and reader modules
+(`action_analysis.py`, future per-format helpers) should delegate to
+`_scan_by_extension` rather than calling `pl.scan_*` themselves —
+otherwise we end up with parallel "single sources of truth" and the
+generic CSV/JSON defaults (null values, date parsing, `pxResults`
+fallback) drift between callers.
 
 When the source is a cloud service (S3, GCS, Azure Blob), keep the
 heavy SDK (`boto3`, `google-cloud-storage`, …) as a **lazy import

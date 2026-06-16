@@ -25,7 +25,7 @@ Layout
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
 
 from ...utils.namespaces import LazyNamespace
 from ...utils.plot_utils import fig_update_facet
@@ -74,7 +74,7 @@ class Plots(
     :class:`~pdstools.adm.ADMDatamart` instance.
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
 
     def __init__(self, datamart: "ADMDatamart"):

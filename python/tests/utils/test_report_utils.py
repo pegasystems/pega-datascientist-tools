@@ -176,16 +176,16 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
 
     assert captured_df is not None
     # Check that Model column was renamed to include tooltip
-    model_col = [c for c in captured_df.columns if "Model" in c][0]
+    model_col = next(c for c in captured_df.columns if "Model" in c)
     assert 'title="The predictive model name"' in model_col
     assert "<span" in model_col
 
     # Check that Performance column was renamed to include tooltip
-    perf_col = [c for c in captured_df.columns if "Performance" in c][0]
+    perf_col = next(c for c in captured_df.columns if "Performance" in c)
     assert 'title="Model AUC score (0.5-1.0)"' in perf_col
 
     # Channel was not in column_descriptions, so should not have tooltip
-    channel_col = [c for c in captured_df.columns if "Channel" in c][0]
+    channel_col = next(c for c in captured_df.columns if "Channel" in c)
     assert channel_col == "Channel"  # unchanged
 
 
@@ -981,12 +981,14 @@ class TestGetCmdOutput:
     """Tests for the _get_cmd_output helper."""
 
     def test_returns_lines_on_success(self):
-        lines = report_utils._get_cmd_output(["echo", "hello world"])
+        import sys
+
+        lines = report_utils._get_cmd_output([sys.executable, "-c", "print('hello world')"])
         assert lines[0] == "hello world"
 
     def test_raises_on_missing_executable(self):
         with pytest.raises(FileNotFoundError, match="Command failed"):
-            report_utils._get_cmd_output(["false"])
+            report_utils._get_cmd_output(["__nonexistent_command_xyz__"])
 
 
 class TestGetQuartoAndPandoc:

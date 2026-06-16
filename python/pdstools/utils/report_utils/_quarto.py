@@ -1,5 +1,7 @@
 """Quarto execution helpers: run, version detection, callouts, credits."""
 
+from __future__ import annotations
+
 import datetime
 import os
 import re
@@ -15,7 +17,7 @@ from ._html import _inline_css
 def _write_params_files(
     temp_dir: Path,
     params: dict | None = None,
-    project: dict = {"type": "default"},
+    project: dict | None = None,
     analysis: dict | None = None,
     full_embed: bool = False,
 ) -> None:
@@ -46,6 +48,8 @@ def _write_params_files(
 
     params = params or {}
     analysis = analysis or {}
+    if project is None:
+        project = {"type": "default"}
 
     # Parameters to python code
     with open(temp_dir / "params.yml", "w") as f:
@@ -84,9 +88,9 @@ def run_quarto(
     output_filename: str | None = None,
     output_type: str | None = "html",
     params: dict | None = None,
-    project: dict = {"type": "default"},
+    project: dict | None = None,
     analysis: dict | None = None,
-    temp_dir: Path = Path(),
+    temp_dir: Path | None = None,
     *,
     full_embed: bool = False,
 ) -> int:
@@ -129,6 +133,8 @@ def run_quarto(
         If required files are not found
 
     """
+    if temp_dir is None:
+        temp_dir = Path()
 
     def get_command() -> list[str]:
         quarto_exec, _ = get_quarto_with_version()
@@ -269,11 +275,11 @@ def _get_cmd_output(args: list[str]) -> list[str]:
             check=True,
         )
         return result.stdout.split("\n")
-    except subprocess.CalledProcessError as e:
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.error(f"Failed to run command {' '.join(args)}: {e}")
         raise FileNotFoundError(
             f"Command failed. Make sure {args[0]} is installed and in the system PATH.",
-        )
+        ) from e
 
 
 def _get_version_only(versionstr: str) -> str:
@@ -401,4 +407,4 @@ def show_credits(quarto_source: str | None = None):
         ]
     )
 
-    quarto_print("\n\n    ".join([""] + lines) + "\n\n    ")
+    quarto_print("\n\n    ".join(["", *lines]) + "\n\n    ")

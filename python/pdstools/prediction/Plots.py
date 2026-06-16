@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, overload
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
-from ..utils.types import QUERY
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
     from plotly.graph_objects import Figure
 
     from .Prediction import Prediction
@@ -34,7 +34,7 @@ class PredictionPlots(LazyNamespace):
     lift, CTR, and response counts over time.
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
 
     def __init__(self, prediction: Prediction):
@@ -73,7 +73,7 @@ class PredictionPlots(LazyNamespace):
         """
         import plotly.express as px
 
-        from ..utils import pega_template as pega_template  # noqa: F401  (registers template)
+        from ..utils import pega_template as pega_template
 
         # Calculate date_range FIRST and collect it to avoid Polars lazy query race condition
         # where multiple lazy queries from the same LazyFrame can cause crashes

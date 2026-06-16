@@ -7,6 +7,8 @@ sidebar (one per tool section). Standalone tool launches keep
 their own About page via ``pages(include_about=True)``.
 """
 
+from __future__ import annotations
+
 from pdstools.utils.streamlit_utils import show_about_page, standard_page_config
 
 standard_page_config(page_title="About · pdstools")

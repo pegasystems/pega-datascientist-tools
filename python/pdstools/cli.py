@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
@@ -11,6 +13,10 @@ import logging
 import os
 import sys
 from importlib import resources
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 from pdstools import __version__
 
@@ -50,6 +56,7 @@ ALIASES = {
 
 
 def create_parser():
+    """Create parser."""
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps.",
     )
@@ -92,7 +99,7 @@ def create_parser():
             "(parquet, csv, json, arrow, zip, tar, partitioned folders); "
             "HC — directory or zip containing an ADM Datamart export "
             "(model snapshot + predictor binning, optional prediction table); "
-            "IA — single JSON/NDJSON (PDC), ZIP (VBD), or XLSX file. "
+            "IA — single JSON/NDJSON (PDC), ZIP (VBD), or XLSX (Pega Infinity IA Excel export) file. "
             "Exposed to the app as the PDSTOOLS_DATA_PATH env var."
         ),
     )
@@ -170,12 +177,17 @@ def create_parser():
 def check_for_typos(unknown_args, known_args):
     """Check if unknown arguments might be typos of known pdstools arguments.
 
-    Args:
-        unknown_args: List of unknown arguments from parse_known_args
-        known_args: List of known pdstools argument names (with --)
+    Parameters
+    ----------
+    unknown_args : list[str]
+        List of unknown arguments from ``parse_known_args``.
+    known_args : list[str]
+        List of known pdstools argument names (with ``--``).
 
-    Returns:
-        List of (typo, suggestion, similarity) tuples for likely typos
+    Returns
+    -------
+    list[tuple[str, str, float]]
+        ``(typo, suggestion, similarity)`` tuples for likely typos.
     """
     likely_typos = []
 
@@ -223,6 +235,7 @@ def main():
     # Formalised subcommand shape. Backwards-compat: ``pdstools [app]`` and
     # bare ``pdstools`` (interactive) still work — anything that isn't a
     # known subcommand is routed to ``run``.
+    """Main."""
     if len(sys.argv) > 1 and sys.argv[1] in _SUBCOMMANDS:
         sub = sys.argv[1]
         if sub == "doctor":
@@ -260,7 +273,7 @@ def main():
 
     if typos:
         print("\n⚠️  Warning: Possible typo(s) in pdstools arguments:\n", file=sys.stderr)
-        for typo, suggestion, similarity in typos:
+        for typo, suggestion, _similarity in typos:
             print(f"  '{typo}' → Did you mean '{suggestion}'?", file=sys.stderr)
 
         print("\nAvailable pdstools arguments:", file=sys.stderr)
@@ -275,6 +288,7 @@ def main():
 
 def run(args, unknown):
     # Configure logging based on environment variable
+    """Run."""
     log_level = os.environ.get("PDSTOOLS_LOG_LEVEL", "WARNING").upper()
     numeric_level = getattr(logging, log_level, logging.WARNING)
     logging.basicConfig(
@@ -306,10 +320,11 @@ def run(args, unknown):
     # back to the numeric prompt only when questionary isn't installed
     # or stdin isn't a TTY.
     if args.app is None and sys.stdin.isatty():
+        questionary: ModuleType | None
         try:
             import questionary
         except ImportError:
-            questionary = None  # type: ignore[assignment]
+            questionary = None
         if questionary is not None:
             choice = questionary.select(
                 "Select an app to run:",

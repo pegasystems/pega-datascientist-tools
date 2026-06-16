@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "_COL",
     "_CONTRIBUTION_TYPE",
@@ -13,7 +15,7 @@ __all__ = [
 
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, TypedDict, cast
+from typing import ClassVar, Literal, TYPE_CHECKING, TypedDict, cast
 
 import polars as pl
 
@@ -134,6 +136,8 @@ ContributionType = SortBy
 
 
 class ContextInfo(TypedDict):
+    """Context info."""
+
     context_key: str
     context_value: str
 
@@ -190,7 +194,7 @@ class ContextOperations(LazyNamespace):
 
     """
 
-    dependencies = ["polars"]
+    dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
     def __init__(self, aggregate: "Aggregate"):
@@ -224,6 +228,7 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self) -> list[str]:
+        """Get context keys."""
         self._load()
         assert self._context_keys is not None
         return self._context_keys
@@ -286,4 +291,5 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
+        """Get context info str."""
         return sep.join(f"{value}".strip() for value in context_info.values())

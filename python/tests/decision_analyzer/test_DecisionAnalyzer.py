@@ -1802,7 +1802,7 @@ class TestOfferQualityAnalysis:
         # For stages without propensity, should use atleast_one_action instead of relevant/irrelevant
         stages_without_prop = set(da_v2.AvailableNBADStages) - set(da_v2.stages_with_propensity)
         if stages_without_prop:
-            stage = list(stages_without_prop)[0]
+            stage = next(iter(stages_without_prop))
             stage_df = df.filter(pl.col(da_v2.level) == stage)
             if stage_df.height > 0:
                 # Should have atleast_one_action counts, not relevant/irrelevant

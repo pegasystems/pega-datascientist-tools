@@ -9,7 +9,6 @@ import logging
 import math
 import threading
 import zlib
-from collections.abc import Callable
 from functools import cached_property
 from math import exp
 from pathlib import Path
@@ -17,6 +16,7 @@ from statistics import mean, median, stdev
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     cast,
 )
 
@@ -31,6 +31,7 @@ from ._nodes import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     import pydot
 
 # Pinned to the original module path so existing log filters and the
@@ -154,10 +155,7 @@ class ADMTreesModel:
         context_keys: list | None = None,
     ) -> ADMTreesModel:
         """Load from a base64-encoded zlib-compressed datamart ``Modeldata`` blob."""
-        if isinstance(blob, str):
-            raw_bytes = base64.b64decode(blob)
-        else:
-            raw_bytes = blob
+        raw_bytes = base64.b64decode(blob) if isinstance(blob, str) else blob
         decompressed = zlib.decompress(raw_bytes)
         data = json.loads(decompressed)
         if not data.get("_serialClass", "").endswith("GbModel"):
@@ -211,8 +209,8 @@ class ADMTreesModel:
                 )
             variable = encoderkeys[int(predictor)]
             encoder = encoders[variable]
-            variable_type = list(encoder["encoder"].keys())[0]
-            to_decode = list(encoder["encoder"].values())[0]
+            variable_type = next(iter(encoder["encoder"].keys()))
+            to_decode = next(iter(encoder["encoder"].values()))
             if variable_type == "quantileArray":
                 val = quantile_decoder(to_decode, int(splitval))
             elif variable_type == "stringTranslator":
@@ -304,8 +302,8 @@ class ADMTreesModel:
         raise ValueError(f"Unsupported operator: {operator}")
 
     # Class-level dedupe so repeated per-row scoring failures don't spam logs.
-    _safe_eval_seen_errors: set[tuple[str, str]] = set()
-    _safe_eval_lock: threading.Lock = threading.Lock()
+    _safe_eval_seen_errors: ClassVar[set[tuple[str, str]]] = set()
+    _safe_eval_lock: ClassVar[threading.Lock] = threading.Lock()
 
     @staticmethod
     def _safe_condition_evaluate(
@@ -866,10 +864,7 @@ class ADMTreesModel:
         def _sign_and_values(raw: str) -> dict[str, Any]:
             split = parse_split(raw)
             sign = "in" if split.operator == "is" else split.operator
-            if isinstance(split.value, tuple):
-                values = set(split.value)
-            else:
-                values = {str(split.value)}
+            values = set(split.value) if isinstance(split.value, tuple) else {str(split.value)}
             return {"sign": sign, "values": values}
 
         return (
@@ -896,7 +891,7 @@ class ADMTreesModel:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
         figlist = []
         for (name,), data in self.gains_per_split.group_by("predictor"):
             if subset is None or name in subset:
@@ -1015,7 +1010,7 @@ class ADMTreesModel:
         try:
             import pydot
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm")
+            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm") from None
         if isinstance(highlighted, dict):
             highlighted = self.get_visited_nodes(tree_number, highlighted)[0]
         else:  # pragma: no cover
@@ -1033,7 +1028,7 @@ class ADMTreesModel:
                         members_label: str = str(set(members))
                     else:
                         totallen = len(self.all_values_per_split[split_obj.variable])
-                        members_label = f"{list(members[:2]) + ['...']} ({len(members)}/{totallen})"
+                        members_label = f"{[*list(members[:2]), '...']} ({len(members)}/{totallen})"
                     label += f"\nSplit: {split_obj.variable} in {members_label}\nGain: {node['gain']}"
                 else:
                     label += f"\nSplit: {node['split']}\nGain: {node['gain']}"
@@ -1065,7 +1060,7 @@ class ADMTreesModel:
             except ImportError:
                 raise ValueError(
                     "IPython not installed, please install it using your package manager (e.g. `pip install IPython`).",
-                )
+                ) from None
             try:
                 # pydot.Dot.create_png is generated dynamically (one method per
                 # Graphviz output format) and isn't visible to static type
@@ -1163,7 +1158,7 @@ class ADMTreesModel:
             import plotly.express as px
             import plotly.graph_objects as go
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
 
         scores = (
             self.get_all_visited_nodes(x)
@@ -1242,7 +1237,7 @@ class ADMTreesModel:
         try:
             import plotly.express as px
         except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm")
+            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
         if predictor_categorization is not None:  # pragma: no cover
             to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
         else:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -8,6 +10,8 @@ if TYPE_CHECKING:
 
 
 class Aggregates:
+    """Aggregates."""
+
     def __init__(self, vf: "ValueFinder"):
         self.vf = vf
         self._quantile_from_threshold: dict[float, float] = {}
@@ -44,6 +48,7 @@ class Aggregates:
         )
 
     def get_counts_per_stage(self, *, threshold: float | None = None):
+        """Get counts per stage."""
         threshold = threshold or self.vf.threshold
         customer_summary = self.get_customer_summary(threshold=threshold)
         return (
@@ -58,10 +63,12 @@ class Aggregates:
 
     @cached_property
     def max_propensity_per_customer(self) -> pl.DataFrame:
+        """Max propensity per customer."""
         return self.vf.df.group_by(["CustomerID", "Stage"]).agg(pl.max("ModelPropensity")).collect()
 
-    @cache
+    @cache  # noqa: B019 — VF instances are short-lived analysis objects, not long-running services
     def get_threshold_from_quantile(self, quantile: float) -> float:
+        """Get threshold from quantile."""
         threshold = (
             self.vf.df.filter(pl.col("Stage") == "Eligibility")
             .select(pl.col("ModelPropensity").quantile(quantile))
@@ -75,8 +82,9 @@ class Aggregates:
         self._quantile_from_threshold[threshold] = quantile
         return threshold
 
-    @cache
+    @cache  # noqa: B019 — VF instances are short-lived analysis objects, not long-running services
     def get_counts_for_threshold(self, threshold: float) -> pl.DataFrame:
+        """Get counts for threshold."""
         return (
             self.max_propensity_per_customer.with_columns(
                 RelevantActions=pl.col("ModelPropensity") >= pl.lit(threshold),

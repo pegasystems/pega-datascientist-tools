@@ -251,7 +251,7 @@ class TestValidateColumns:
     def test_display_name_columns_accepted(self):
         """validate_columns should accept display names as well as raw names."""
         cols = {}
-        for raw_col, config in DecisionAnalyzer.items():
+        for _raw_col, config in DecisionAnalyzer.items():
             if config["default"]:
                 display_name = config["display_name"]
                 dtype = config["type"]

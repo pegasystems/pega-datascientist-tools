@@ -21,7 +21,7 @@ class TestAppsDict:
     def test_launcher_is_first_entry(self):
         # Order matters — launcher is the default selection in the
         # interactive picker, so it must be the first key.
-        assert list(APPS.keys())[0] == "launcher"
+        assert next(iter(APPS.keys())) == "launcher"
 
     def test_launcher_path_points_at_launcher_module(self):
         assert APPS["launcher"]["path"] == "pdstools.app.launcher"
@@ -32,12 +32,12 @@ class TestAppsDict:
             assert "path" in value, f"{key} missing 'path'"
 
     def test_display_names_are_strings(self):
-        for key, value in APPS.items():
+        for _key, value in APPS.items():
             assert isinstance(value["display_name"], str)
             assert len(value["display_name"]) > 0
 
     def test_paths_are_dotted_module_paths(self):
-        for key, value in APPS.items():
+        for _key, value in APPS.items():
             path = value["path"]
             assert isinstance(path, str)
             assert path.startswith("pdstools.app.")
@@ -415,7 +415,7 @@ class TestRunInteractivePrompt:
     def test_select_by_number(self):
         args = self._run_with_input(["1"])
         # First entry in APPS is the cross-app launcher
-        assert args.app == list(APPS.keys())[0]
+        assert args.app == next(iter(APPS.keys()))
         assert args.app == "launcher"
 
     def test_launcher_alias_resolves(self, monkeypatch):
@@ -481,7 +481,7 @@ class TestRunQuestionaryPicker:
                 with patch.object(sys, "exit"):
                     args = _make_args(app=None)
                     run(args, [])
-        assert args.app == list(APPS.keys())[0]
+        assert args.app == next(iter(APPS.keys()))
 
     def test_questionary_choice_sets_app(self, monkeypatch):
         """When questionary returns a choice, run() launches that app."""
@@ -551,7 +551,7 @@ class TestRunQuestionaryPicker:
                 with patch.object(sys, "exit"):
                     args = _make_args(app=None)
                     run(args, [])
-        assert args.app == list(APPS.keys())[0]
+        assert args.app == next(iter(APPS.keys()))
 
 
 # ---------------------------------------------------------------------------

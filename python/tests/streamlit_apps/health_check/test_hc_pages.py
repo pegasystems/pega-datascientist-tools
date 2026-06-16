@@ -8,12 +8,15 @@ instead of passing silently.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from pdstools.adm.ADMDatamart import ADMDatamart
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pdstools.adm.ADMDatamart import ADMDatamart
+    from pathlib import Path
 
 
 def test_home_renders_without_data(hc_app_dir: Path):

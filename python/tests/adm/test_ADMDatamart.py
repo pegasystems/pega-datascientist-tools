@@ -1,5 +1,6 @@
 """Testing the functionality of the ADMDatamart functions"""
 
+import datetime
 import os
 import pathlib
 
@@ -8,6 +9,33 @@ import pytest
 from pdstools import ADMDatamart
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+
+
+def _make_databricks_model_snapshots_data() -> pl.LazyFrame:
+    """Build a small Databricks-style model snapshots LazyFrame for tests."""
+
+    return pl.DataFrame(
+        {
+            "PacID": ["pac-1"],
+            "EnvironmentName": ["dev"],
+            "ModelID": ["model-1"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Name"],
+            "Treatment": ["Treatment"],
+            "ExtraContextKeys": [None],
+            "Positives": [10],
+            "Negatives": [3],
+            "ResponseCount": [13],
+            "Performance": [0.75],
+            "SnapshotDate": [datetime.datetime(2024, 1, 2, 3, 4, 5)],
+            "Configuration": ["Config"],
+            "AppliesToClass": ["MyClass"],
+            "ModelTechnique": ["GradientBoost"],
+        }
+    ).lazy()
 
 
 @pytest.fixture
@@ -697,3 +725,97 @@ def test_require_model_data_returns_lazyframe_when_present():
     dm = ADMDatamart(model_df=_minimal_model_df())
     assert isinstance(dm._require_model_data(), pl.LazyFrame)
     assert isinstance(dm._require_first_action_dates(), pl.LazyFrame)
+
+
+def _agb_mixed_modeldata():
+    """Two AGB models per config: one real instance (Issue/Group/Name set)
+    plus a "totals" row with empty context keys (the row issue #667 drops).
+    Plus one NaiveBayes row with empty context (kept — NB does not emit this
+    artefact, so empty context there is genuine data worth surfacing).
+    """
+    return pl.LazyFrame(
+        {
+            "ModelID": ["m_agb_real", "m_agb_empty", "m_nb_empty"],
+            "SnapshotTime": ["20250101"] * 3,
+            "Channel": ["Web", "Web", "Web"],
+            "Direction": ["Inbound", "Inbound", "Inbound"],
+            "Issue": ["Sales", "", None],
+            "Group": ["Cards", "", None],
+            "Name": ["GoldCard", "", None],
+            "Treatment": ["A1", "", None],
+            "Configuration": ["AGBConfig", "AGBConfig", "NBConfig"],
+            "ModelTechnique": ["GradientBoost", "GradientBoost", "NaiveBayes"],
+            "Positives": [10, 100, 5],
+            "ResponseCount": [100, 1000, 50],
+            "Performance": [0.7, 0.55, 0.6],
+        }
+    )
+
+
+def test_agb_empty_context_row_is_dropped():
+    """Issue #667: the AGB "totals" row with empty context keys must be
+    filtered out, while AGB rows with real context and NaiveBayes rows with
+    empty context are kept."""
+    dm = ADMDatamart(model_df=_agb_mixed_modeldata())
+    model_ids = dm.model_data.select("ModelID").collect().get_column("ModelID").to_list()
+    assert "m_agb_empty" not in model_ids
+    assert set(model_ids) == {"m_agb_real", "m_nb_empty"}
+
+
+def test_agb_filter_skipped_when_modeltechnique_unknown():
+    """If ModelTechnique is missing from the source data we cannot identify
+    AGB rows, so empty-context rows must be retained."""
+    df = _agb_mixed_modeldata().drop("ModelTechnique")
+    dm = ADMDatamart(model_df=df)
+    model_ids = dm.model_data.select("ModelID").collect().get_column("ModelID").to_list()
+    assert set(model_ids) == {"m_agb_real", "m_agb_empty", "m_nb_empty"}
+
+
+def test_from_databricks_view():
+    """Test the from_databricks_view classmethod."""
+
+    result = ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data()).model_data.collect()
+    assert result.to_dicts() == [
+        {
+            "PacID": "pac-1",
+            "EnvironmentName": "dev",
+            "ModelID": "model-1",
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "Issue": "Issue",
+            "Group": "Group",
+            "Name": "Name",
+            "Treatment": "Treatment",
+            "ExtraContextKeys": None,
+            "Positives": 10.0,
+            "Negatives": 3.0,
+            "ResponseCount": 13.0,
+            "Performance": 0.75,
+            "SnapshotTime": datetime.datetime(2024, 1, 2, 3, 4, 5),
+            "Configuration": "Config",
+            "AppliesToClass": "MyClass",
+            "ModelTechnique": "GradientBoost",
+            "TotalPredictors": None,
+            "ActivePredictors": None,
+            "SuccessRate": 0.7692307692307693,
+            "IsUpdated": True,
+            "LastUpdate": datetime.datetime(2024, 1, 2, 3, 4, 5),
+        }
+    ]
+
+
+def test_from_databricks_view_validates_rename_keys(monkeypatch):
+    """Test that the Databricks rename map only uses known source columns."""
+
+    from importlib import import_module
+
+    adm_datamart_module = import_module("pdstools.adm.ADMDatamart")
+
+    monkeypatch.setattr(
+        adm_datamart_module,
+        "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        frozenset({"PacID", "EnvironmentName", "Channel"}),
+    )
+
+    with pytest.raises(ValueError, match="rename map contains keys not present"):
+        ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data())

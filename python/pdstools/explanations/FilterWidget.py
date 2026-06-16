@@ -1,20 +1,24 @@
+from __future__ import annotations
+
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast
 
 from IPython.display import display
 from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo, ContextOperations
 
 if TYPE_CHECKING:
+    from .ExplanationsUtils import ContextInfo, ContextOperations
     from .Explanations import Explanations
 
 
 class FilterWidget(LazyNamespace):
-    dependencies = ["ipywidgets"]
+    """Filter widget."""
+
+    dependencies: ClassVar[list[str]] = ["ipywidgets"]
     dependency_group = "explanations"
 
     _ANY_CONTEXT = "Any"
@@ -62,18 +66,19 @@ class FilterWidget(LazyNamespace):
     def set_selected_context(self, context_info: ContextInfo | None = None):
         """Set the selected context information.
 
-        Args:
-            context_info (ContextInfo | None):
-                If None, initializes the selected context with 'Any' for all keys.
-                i.e overall model contributions
-                If provided, sets the selected context to the given context information.
-                Context is passed as a dictionary
-                Eg. context_info =
-                    {
-                        "pyChannel": "channel1",
-                        "pyDirection": "direction1",
-                        ...
-                    }
+        Parameters
+        ----------
+        context_info : ContextInfo | None
+            If None, initializes the selected context with 'Any' for all keys.
+            i.e overall model contributions
+            If provided, sets the selected context to the given context information.
+            Context is passed as a dictionary
+            Eg. context_info =
+                {
+                    "pyChannel": "channel1",
+                    "pyDirection": "direction1",
+                    ...
+                }
 
         """
         if context_info is None:
@@ -161,10 +166,12 @@ class FilterWidget(LazyNamespace):
 
     def _get_context_combobox_widgets(self) -> dict[str, widgets.Combobox]:
         ctx_options = {
-            ctx_key_name: [self._ANY_CONTEXT]
-            + sorted(
-                set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list),
-            )
+            ctx_key_name: [
+                self._ANY_CONTEXT,
+                *sorted(
+                    set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list)
+                ),
+            ]
             for ctx_key_name in (self._selected_context_key or {}).keys()
         }
 

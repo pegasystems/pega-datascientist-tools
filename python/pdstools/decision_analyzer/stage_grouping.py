@@ -7,10 +7,14 @@ If a value from the data has no entry here, ``get_display_name`` falls back
 to the raw value so future pipeline stages are handled gracefully.
 """
 
+from __future__ import annotations
+
 from typing import TypedDict
 
 
 class StageGroupDef(TypedDict):
+    """Stage group def."""
+
     display_name: str
     stages: dict[str, str]  # internal Stage_pyName -> display name
 

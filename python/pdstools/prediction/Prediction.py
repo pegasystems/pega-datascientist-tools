@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import itertools
 import logging
@@ -7,12 +9,18 @@ import polars as pl
 
 from ..pega_io.File import read_ds_export
 from ..utils import cdh_utils
+from ..utils.cdh_utils._io import _DATABRICKS_PREDICTION_COLUMNS
 from ..utils.metric_limits import (
     get_predictions_channel_mapping,
     is_standard_NBAD_prediction,
 )
-from ..utils.types import QUERY
 from .Plots import PredictionPlots
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +146,14 @@ class Prediction:
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
         # TODO we may want to assert that this results in exactly one record for
-        # every combination of model ID and snapshot time.
-        usage_cols = ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        # every combination of model ID and snapshot time and data usage.
+        usage_cols = [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+        ]
         counts_control = prepped.filter(pl.col.pyDataUsage == "Control").select(usage_cols)
         counts_test = prepped.filter(pl.col.pyDataUsage == "Test").select(usage_cols)
         counts_NBA = prepped.filter(pl.col.pyDataUsage == "NBA").select(usage_cols)
@@ -279,115 +293,220 @@ class Prediction:
         return cls(predictions_raw_data, query=query)
 
     @classmethod
-    def from_s3(cls):
-        """Not implemented yet. Please let us know if you would like this functionality!
+    def from_s3(
+        cls,
+        bucket: str,
+        key: str,
+        *,
+        region: str | None = None,
+        boto3_client=None,
+        query: QUERY | None = None,
+        infer_schema_length: int = 10000,
+    ) -> "Prediction":
+        """Import the Prediction class from a single object stored in S3.
+
+        Downloads the prediction snapshot file from the given S3 bucket
+        to a temporary directory, then delegates to
+        :meth:`from_ds_export` for parsing.
+
+        Parameters
+        ----------
+        bucket : str
+            Name of the S3 bucket holding the export file.
+        key : str
+            S3 object key for the prediction snapshot file.
+        region : str | None, optional
+            AWS region name. Ignored if ``boto3_client`` is provided.
+        boto3_client : optional
+            Pre-configured ``boto3`` S3 client. Use this to inject custom
+            credentials, endpoints, or sessions. When omitted, a default
+            client is created via ``boto3.client("s3", region_name=region)``.
+        query : QUERY | None, optional
+            An optional argument to filter the data, by default None.
+        infer_schema_length : int, optional
+            Number of rows to scan when inferring the schema for CSV/JSON
+            files. By default 10000.
 
         Returns
         -------
         Prediction
-            The properly initialized Prediction class
+            The properly initialized Prediction class.
+
+        Examples
+        --------
+        >>> from pdstools import Prediction
+        >>> pred = Prediction.from_s3(
+        ...     bucket="my-pega-exports",
+        ...     key="datamart/prediction_snapshots.parquet",
+        ... )
+
+        Note
+        ----
+        ``boto3`` is an optional dependency; install the ``pega_io`` extra
+        (or install ``boto3`` directly) before calling this method.
+
+        See Also
+        --------
+        Prediction.from_ds_export : Underlying parser for downloaded files.
 
         """
+        if boto3_client is None:
+            try:
+                import boto3
+            except ImportError as err:
+                from ..utils.namespaces import MissingDependenciesException
+
+                raise MissingDependenciesException(
+                    ["boto3"],
+                    namespace="Prediction.from_s3",
+                    deps_group="pega_io",
+                ) from err
+            boto3_client = boto3.client("s3", region_name=region)
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            basename = os.path.basename(key) or key.replace("/", "_")
+            local_path = os.path.join(tmp_dir, basename)
+            boto3_client.download_file(bucket, key, local_path)
+            return cls.from_ds_export(
+                predictions_filename=basename,
+                base_path=tmp_dir,
+                query=query,
+                infer_schema_length=infer_schema_length,
+            )
 
     @classmethod
-    def from_dataflow_export(cls):
-        """Import from a data flow, such as the Prediction Studio export. Not implemented yet. Please let us know if you would like this functionality!
+    def from_dataflow_export(
+        cls,
+        prediction_data_files: Iterable[str] | str,
+        *,
+        query: QUERY | None = None,
+        cache_file_prefix: str = "",
+        cache_directory: os.PathLike | str = "cache",
+    ) -> "Prediction":
+        """Read prediction data generated by a data flow (e.g. Prediction Studio export).
+
+        Dataflows can export data from and to various sources. As they
+        are meant to be used in production, they are highly resilient.
+        For every partition and every node, a dataflow will output a
+        small JSON file every few seconds. While this is great for
+        production loads, it can be tricky to read the data back for
+        smaller-scale and ad-hoc analyses.
+
+        This method reads in every individual small JSON file that the
+        dataflow has output and caches them to a parquet file in the
+        ``cache_directory`` folder. Re-running the method later with
+        more data added since the last export reads from the (much
+        faster) cache rather than the (slow) raw dataflow files.
+
+        Parameters
+        ----------
+        prediction_data_files : Iterable[str] or str
+            A list of files (or a glob pattern string) to read in as
+            the prediction snapshots.
+        query : QUERY, optional
+            An optional argument to filter the data, by default None.
+        cache_file_prefix : str, optional
+            An optional prefix for the cache files, by default "".
+        cache_directory : os.PathLike or str, optional
+            Where to store the cached files, by default ``"cache"``.
 
         Returns
         -------
         Prediction
-            The properly initialized Prediction class
+            An initialized instance of the Prediction class.
+
+        Examples
+        --------
+        >>> from pdstools import Prediction
+        >>> from glob import glob
+        >>> pred = Prediction.from_dataflow_export(glob("data/predictions*"))
+
+        See Also
+        --------
+        pdstools.pega_io.read_dataflow_output : Underlying file reader.
+        pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods.
 
         """
+        from ..pega_io.File import read_dataflow_output
+
+        prediction_data = read_dataflow_output(
+            prediction_data_files,
+            cache_file_prefix + "prediction_data",
+            cache_directory=cache_directory,
+        )
+        return cls(prediction_data, query=query)
 
     @classmethod
-    def from_pdc(
+    def from_databricks_view(
         cls,
         df: pl.LazyFrame,
         *,
-        return_df=False,
         query: QUERY | None = None,
     ):
-        """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
+        """Import from the Databricks predictions summary view.
+
+        The input view is validated against the expected Databricks schema,
+        then renamed and cast into the prediction shape used by
+        :class:`Prediction`.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            The Polars LazyFrame containing the PDC data
-        return_df : bool, optional
-            If True, returns the processed DataFrame instead of initializing the class, by default False
-        query : Optional[QUERY], optional
+            The Polars LazyFrame containing the Databricks data.
+        query : QUERY, optional
             An optional query to apply to the input data, by default None
 
         Returns
         -------
-        Union[Prediction, pl.LazyFrame]
-            Either the initialized Prediction class or the processed DataFrame if return_df is True
-
-        See Also
-        --------
-        pdstools.utils.cdh_utils._read_pdc : More information on PDC data processing
-        pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
+        Prediction
+            The initialized Prediction class. Use ``pred.predictions`` to
+            access the transformed prediction frame directly.
 
         """
-        pdc_data = cdh_utils._read_pdc(df)
 
-        snapshotType = "Daily"
+        databricks_to_pdstools = {
+            "SnapshotDate": "pySnapShotTime",
+            "Positives": "pyPositives",
+            "Negatives": "pyNegatives",
+            "ResponseCount": "pyCount",
+            "Performance": "pyValue",
+        }
+
+        cdh_utils._validate_databricks_rename_map(
+            databricks_to_pdstools,
+            _DATABRICKS_PREDICTION_COLUMNS,
+            "predictions",
+            "_DATABRICKS_PREDICTION_COLUMNS",
+        )
+        cdh_utils._validate_databricks_predictions(df)
+
         prediction_data = (
-            pdc_data.filter(pl.col("ModelType").str.starts_with("Prediction"))
-            .filter(pl.col("Name") == "auc")
+            df.rename(databricks_to_pdstools)
             .with_columns(
-                pyModelId=pl.format("{}!{}", pl.col("ModelClass"), pl.col("ModelName")),
-                # pyUnscaledPerformance=(pl.col("Performance").cast(pl.Float64) / 100), # not unscaled, it's not 'flipped' so can be < 50
+                pyModelId=pl.format("{}!{}", pl.col("AppliesToClass"), pl.col("Configuration")),
                 pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
                 pyModelType=pl.lit("PREDICTION"),
-                # pysnapshotday=pl.col("SnapshotTime").str.slice(0, 8), # I don't think we need that. If we do, be careful that SnapshotTime can be a parsed datetime already.
-                pySnapshotType=pl.lit(snapshotType),
-            )
-            .rename(
-                {
-                    "SnapshotTime": "pySnapShotTime",
-                    "Positives": "pyPositives",
-                    "Negatives": "pyNegatives",
-                    "ResponseCount": "pyCount",
-                    "Name": "pyName",
-                    "Performance": "pyValue",
-                },
+                pySnapshotType=pl.lit("Daily"),
             )
             .cast(
                 {
                     "pyNegatives": pl.Float64,
                     "pyPositives": pl.Float64,
                     "pyCount": pl.Float64,
-                },
+                }
             )
-            .drop(
+            .drop(  # TODO select instead of drop
                 [
-                    "ModelClass",
-                    "ModelID",
-                    "ModelName",
-                    "ModelType",
-                    "ADMModelType",
-                    "TotalPositives",
-                    "TotalResponses",
+                    "PacID",
+                    "EnvironmentName",
+                    "Configuration",
+                    "AppliesToClass",
+                    "ModelType",  # Drop after extracting pyDataUsage
                 ]
-                + [
-                    c
-                    for c in [
-                        "pxObjClass",
-                        "pzInsKey",
-                        "Channel",
-                        "Direction",
-                        "Issue",
-                        "Group",
-                    ]
-                    if c in pdc_data.collect_schema().names()
-                ],
             )
         )
-
-        if return_df:
-            return prediction_data
 
         return cls(prediction_data, query=query)
 
@@ -413,12 +532,11 @@ class Prediction:
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
 
         if self.predictions is not None:
-            predictions_cache = pega_io.cache_to_file(
+            return pega_io.cache_to_file(
                 self.predictions,
                 abs_path,
                 name=f"cached_prediction_data_{time}",
             )
-            return predictions_cache
 
     @classmethod
     def from_processed_data(cls, df: pl.LazyFrame):
@@ -518,14 +636,10 @@ class Prediction:
                                     _interpolate(160, 200, p, days),
                                     _interpolate(120, 120, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(120, 120, p, days),
                                     _interpolate(250, 300, p, days),
                                     _interpolate(150, 150, p, days),
                                     None,
-                                ]
-                                + [
                                     _interpolate(1400, 1400, p, days),
                                     _interpolate(2800, 4000, p, days),
                                     _interpolate(1520, 1520, p, days),
@@ -710,8 +824,8 @@ class Prediction:
                     .then(pl.lit(False))
                     .otherwise(pl.col("isMultiChannel"))
                     .alias("isMultiChannel"),
-                ]
-                + period_expr,
+                    *period_expr,
+                ],
             )
             .group_by(
                 [

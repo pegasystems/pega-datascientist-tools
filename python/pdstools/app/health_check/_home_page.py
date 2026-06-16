@@ -68,7 +68,14 @@ interactive visuals and an Excel export for further exploration.
     # data-required sub-pages can do the same on deep-link.
     # ``st.rerun()`` rebuilds the script with ``dm`` set so the rest of
     # the home page (data summary, etc.) renders in the same user action.
-    if "dm" not in st.session_state:
+    #
+    # Gate on ``data_source`` being absent — i.e. *truly* first visit.
+    # Once the user has interacted with the data-source dropdown (which
+    # also deletes ``dm`` so the chosen branch can repopulate it), we must
+    # NOT silently reload the sample, because that would leave the
+    # uploader branch with ``dm`` set and the "Import Successful!" banner
+    # stuck on screen, while the file_uploader widgets are skipped.
+    if "dm" not in st.session_state and "data_source" not in st.session_state:
         configured_path = get_data_path()
         if ensure_dm_loaded():
             if configured_path and st.session_state.get("data_source") == "Direct file path":

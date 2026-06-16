@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, overload
 
 import polars as pl
 
 from ..utils.cdh_utils import _apply_query
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import Figure
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from ..utils.plot_utils import Figure
     from .ImpactAnalyzer import ImpactAnalyzer as ImpactAnalyzer_Class
 
 
@@ -48,7 +48,7 @@ class Plots(LazyNamespace):
 
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
 
     def __init__(self, ia: "ImpactAnalyzer_Class"):
@@ -65,22 +65,23 @@ class Plots(LazyNamespace):
 
     @staticmethod
     def _get_experiment_color_map() -> list[str]:
-        """Get ordered list of experiment names for consistent coloring.
+        """Get the canonical product-order list of experiment names.
+
+        Used as the ``category_orders`` for plotly so that experiments
+        always render in the same order shown by the Pega Infinity
+        Impact Analyzer UI, and so colour assignment stays consistent
+        across plots.
 
         Returns
         -------
         list[str]
-            Alphabetically ordered list of default experiment names.
+            Experiment names in canonical product order.
 
         """
-        default_experiments = [
-            "Adaptive Models vs Random Propensity",
-            "NBA vs No Levers",
-            "NBA vs Only Eligibility Rules",
-            "NBA vs Propensity Only",
-            "NBA vs Random",
-        ]
-        return default_experiments
+        # Local import avoids a circular import at module load time.
+        from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
+
+        return list(ImpactAnalyzer.default_ia_experiments.keys())
 
     @staticmethod
     def _get_facet_config(data: pl.DataFrame, facet: str | None) -> dict:
@@ -324,6 +325,21 @@ class Plots(LazyNamespace):
         collected_data = plot_data.collect()
         facet_config = self._get_facet_config(collected_data, facet)
 
+        # Stable colour map keyed on ControlGroup so the same group
+        # always renders in the same colour across plots / refreshes.
+        # Categories listed in default_ia_controlgroups["MktValue"]
+        # cover the standard six PDC groups; everything else falls
+        # through to the default qualitative palette.
+        from .ImpactAnalyzer import ImpactAnalyzer as _IA
+
+        _palette = px.colors.qualitative.Plotly
+        _control_groups = [cg.removeprefix("NBAHealth_") for cg in _IA.default_ia_controlgroups["MktValue"]]
+        color_map = {cg: _palette[i % len(_palette)] for i, cg in enumerate(_control_groups)}
+        # NBA is the highlighted "production" arm — give it a clear,
+        # neutral-but-strong colour that doesn't clash with the
+        # qualitative palette.
+        color_map["NBA"] = "#1B2A4A"
+
         fig = px.line(
             collected_data,
             y=metric,
@@ -333,12 +349,23 @@ class Plots(LazyNamespace):
             facet_col_wrap=facet_config["facet_col_wrap"],
             facet_col_spacing=0.1,
             facet_row_spacing=0.15,
-            color_discrete_sequence=px.colors.qualitative.Plotly,
+            color_discrete_map=color_map,
+            category_orders={"ControlGroup": [*[cg for cg in _control_groups if cg != "NBA"], "NBA"]},
             template="pega",
         )
 
+        # Make the NBA arm visually dominant: thicker line and bold
+        # legend entry. Plotly doesn't expose per-trace legend styling
+        # directly, so we wrap the legend label in <b>…</b> markup
+        # (Plotly renders legend text as HTML).
+        for trace in fig.data:
+            if getattr(trace, "name", None) == "NBA":
+                trace.update(line=dict(width=4), name="<b>NBA</b>", legendgroup="<b>NBA</b>")
+            else:
+                trace.update(line=dict(width=1.75))
+
         fig.update_layout(
-            hovermode="x unified",
+            hovermode="closest",
             title=title or f"Trend of {metric} for Impact Analyzer Control Groups",
             margin=dict(l=60, r=60, t=80, b=80),
         )
@@ -348,6 +375,7 @@ class Plots(LazyNamespace):
             tickformat=".1%",
             matches=None if facet is not None else "y",
             showticklabels=True,
+            rangemode="tozero",
         )
         fig.update_xaxes(title="")
 
@@ -472,5 +500,107 @@ class Plots(LazyNamespace):
             showticklabels=True,
         )
         fig.update_xaxes(title="")
+
+        return fig
+
+    @overload
+    def control_fraction_heatmap(
+        self,
+        *,
+        title: str | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure: ...
+
+    @overload
+    def control_fraction_heatmap(
+        self,
+        *,
+        title: str | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
+    def control_fraction_heatmap(
+        self,
+        *,
+        title: str | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame:
+        """Heatmap of control fraction by Channel x Experiment.
+
+        Surfaces mismatches in how control percentages are configured in
+        the Pega product. Each cell shows the fraction of impressions
+        assigned to the control group for that (Channel, Experiment)
+        pair; rows that vary noticeably across channels usually point
+        at a misconfigured experiment in one of the channels.
+
+        Parameters
+        ----------
+        title : str, optional
+            Custom title. If None, a default is used.
+        return_df : bool, default False
+            If True, return the underlying long-form data (one row per
+            non-null Channel x Experiment cell) as a LazyFrame instead
+            of the figure.
+
+        Returns
+        -------
+        Figure or pl.LazyFrame
+            Plotly heatmap, or the underlying LazyFrame when
+            ``return_df=True``.
+
+        """
+        plot_data = (
+            self.ia.summarize_experiments(by="Channel")
+            .filter(pl.col("Control_Fraction").is_not_null())
+            .select("Channel", "Experiment", "Control_Fraction")
+        )
+
+        if return_df:
+            return plot_data
+
+        import plotly.express as px
+
+        df = plot_data.collect()
+        if df.is_empty():
+            fig = px.imshow([[0]], template="pega")
+            fig.update_layout(title=title or "Control Fraction by Channel x Experiment")
+            return fig
+
+        wide = df.pivot(
+            on="Experiment",
+            index="Channel",
+            values="Control_Fraction",
+        ).sort("Channel")
+
+        experiment_order = [e for e in self._get_experiment_color_map() if e in wide.columns]
+        wide = wide.select(["Channel", *experiment_order])
+
+        z = wide.drop("Channel").to_numpy()
+        x_labels = experiment_order
+        y_labels = wide["Channel"].to_list()
+
+        max_cf = float(df["Control_Fraction"].max() or 0)
+        fig = px.imshow(
+            z,
+            x=x_labels,
+            y=y_labels,
+            color_continuous_scale="Blues",
+            zmin=0,
+            zmax=max(0.5, max_cf),
+            text_auto=".1%",
+            aspect="auto",
+            template="pega",
+        )
+        fig.update_layout(
+            title=title or "Control Fraction by Channel x Experiment",
+            xaxis_title="",
+            yaxis_title="",
+            coloraxis_colorbar=dict(title="Control %", tickformat=".0%"),
+            margin=dict(l=60, r=60, t=80, b=60),
+        )
+        fig.update_xaxes(side="top", tickangle=-30)
+        fig.update_traces(
+            hovertemplate="Channel: %{y}<br>Experiment: %{x}<br>Control: %{z:.2%}<extra></extra>",
+        )
 
         return fig
