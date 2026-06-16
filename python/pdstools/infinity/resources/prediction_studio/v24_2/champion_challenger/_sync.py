@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import polars as pl
 
 from .....internal._pagination import PaginatedList
 from ...base import ChampionChallenger as ChampionChallengerBase
 from ._mixin import _ChampionChallengerV24_2Mixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
@@ -37,4 +40,4 @@ class ChampionChallenger(_ChampionChallengerV24_2Mixin, ChampionChallengerBase):
         pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
         if not return_df:
             return pages
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
