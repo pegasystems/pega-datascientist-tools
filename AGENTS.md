@@ -126,6 +126,40 @@ Docs live in `python/docs` and use Sphinx.
 cd python/docs && make html
 ```
 
+### Exporting notebooks to HTML (with plots)
+
+**Problem:** system `jupyter` / `nbconvert` (e.g. from Homebrew) uses a
+different Python than the project venv. The kernel spawned during `--execute`
+won't have `pdstools` installed and will either fail with `AttributeError` or
+die immediately with "Kernel died before replying to kernel_info".
+
+**Solution — one-time setup** (only needed when the venv is freshly created):
+
+```bash
+# 1. Install nbconvert into the project venv
+uv add --dev nbconvert
+
+# 2. Fix the venv kernel spec to use the absolute venv Python path
+python_path=$(realpath .venv/bin/python)
+cat > .venv/share/jupyter/kernels/python3/kernel.json << EOF
+{
+ "argv": ["$python_path", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+ "display_name": "Python 3 (ipykernel)",
+ "language": "python",
+ "metadata": {"debugger": true}
+}
+EOF
+```
+
+**Exporting** (use `.venv/bin/python -m nbconvert`, never the system `jupyter`):
+
+```bash
+.venv/bin/python -m nbconvert --to html --execute \
+  examples/articles/AGBExplained.ipynb \
+  --output AGBExplained.html --output-dir . \
+  --ExecutePreprocessor.timeout=300
+```
+
 ### Package build (release workflow)
 
 ```bash

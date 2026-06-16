@@ -3308,6 +3308,7 @@ torch = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "nbconvert" },
     { name = "python-dotenv" },
 ]
 
@@ -3382,7 +3383,10 @@ requires-dist = [
 provides-extras = ["adm", "pega-io", "api", "healthcheck", "explanations", "app", "onnx", "torch", "all", "dev", "docs", "tests"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "python-dotenv", specifier = ">=1.2.2" }]
+dev = [
+    { name = "nbconvert", specifier = ">=7.17.1" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
 
 [[package]]
 name = "pexpect"

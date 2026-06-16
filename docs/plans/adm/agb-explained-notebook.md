@@ -141,6 +141,36 @@ Style: same as `ADMExplained.ipynb` — markdown-heavy, LaTeX formulas,
 code verifies the math, `great_tables.GT` tables, cells **not pre-run**.
 `datasets.sample_trees()` is the single data source.
 
+#### Required section: Model AUC
+
+Include a dedicated **Model AUC** section (mirror the one added to `ADMExplained.ipynb`).
+Key points to cover:
+
+- AGB uses PAVA to produce a calibrated score distribution, exactly like Naïve Bayes. The
+  ensemble raw score is mapped through this distribution to return a propensity.
+- The validated AUC is computed from those PAVA bins and stored as the top-level `auc`
+  field in the model export (accessed via `Trees.metrics["auc"]`). The
+  field name changed from `performance` to `auc` in more recent export versions;
+  `_model.py` reads both (`props.get("auc") or props.get("performance")`).
+- AUC is validated via **test-then-train**: each incoming response is first scored by
+  the current ensemble (propensity via PAVA), the outcome is compared, and that
+  validated prediction contributes to the running AUC *before* the weights are updated.
+  This makes it a live, unbiased performance estimate.
+- Because each AGB model corresponds to one action / treatment context key combination,
+  the `auc` is inherently per-action. There is no per-action breakdown within a single
+  model export.
+- An overall portfolio AUC = response-count-weighted average of the individual model
+  AUCs. This is not stored anywhere; it must be derived from the datamart
+  (`Performance` × `ResponseCount` weighted average across all models).
+- Code cell: show `Trees.metrics["auc"]` and `Trees.metrics["response_positive_count"]` /
+  `Trees.metrics["response_negative_count"]`; contrast with the NB case where AUC
+  can be re-derived from Classifier bins (not possible here — bins not in the export).
+
+Contrast note to include: for NB the PAVA Classifier bins are exported in the datamart,
+so `auc_from_bincounts()` can re-derive the AUC from scratch. For AGB the PAVA bins are
+internal — only the pre-computed scalar AUC is exported. Both are validated estimates;
+the difference is just observability.
+
 Imports block (mirrors `ADMExplained.ipynb` style):
 ```python
 import polars as pl
