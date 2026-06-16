@@ -206,7 +206,11 @@ def fig_update_facet(
     Figure
         The same figure with adjusted ``height`` and simplified facet titles.
     """
-    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
+    # Count only facet-title annotations (they contain "=", e.g. "Channel=Web").
+    # add_vline/add_hline with annotation_text add one annotation *per subplot*,
+    # which would otherwise inflate n_rows and make the figure extremely tall.
+    facet_annotations = [a for a in fig.layout.annotations if "=" in (a.text or "")]
+    n_rows = max(math.ceil(len(facet_annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
     return simplify_facet_titles(fig).update_layout(autosize=True, height=height)
 
