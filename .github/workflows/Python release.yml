@@ -8,7 +8,8 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Add this line to grant the workflow permission to request an OIDC token
+  actions: write
+  id-token: write
 
 jobs:
   build-n-publish:
@@ -33,3 +34,9 @@ jobs:
 
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Refresh docs default after PyPI publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run "Docs deploy.yml" --ref "${GITHUB_REF_NAME}"
