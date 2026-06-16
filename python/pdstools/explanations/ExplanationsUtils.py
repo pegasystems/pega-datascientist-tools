@@ -151,47 +151,24 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-        aggregate (Aggregate): The aggregate object to operate on.
+    aggregate : Aggregate
+        Aggregate object to operate on.
 
     Attributes
     ----------
-        aggregate (Aggregate): The aggregate object.
-        _df (pl.DataFrame | None): DataFrame containing context information.
-        _context_keys (list[str] | None): list of context keys.
-        initialized (bool): Flag indicating if the context operations have been initialized.
+    aggregate : Aggregate
+        Aggregate object.
+    _df : pl.DataFrame | None
+        Cached frame containing unique context rows.
+    _context_keys : list[str] | None
+        Cached list of context-key column names.
+    initialized : bool
+        Whether the context cache has been populated.
 
-    Methods
-    -------
-        get_context_keys():
-            Returns the list of context keys from loaded data.
-            Eg. ['pyChannel', 'pyDirection', ...]
-
-        get_df(context_infos=None, with_partition_col=False):
-            Returns a DataFrame containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. with partition column:
-            | pyChannel | pyDirection | ... | partition |
-            |-----------|-------------|-----|-----------|
-            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
-            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
-
-        get_list(context_infos=None, with_partition_col=False):
-            Returns a list[ContextInfo] containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. without partition column:
-            [
-                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
-                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
-            ]
-
-        get_context_info_str(context_info, sep="-"):
-            Returns a string representation of a single context information.
-            Eg. channel1-direction1-...
-
+    Notes
+    -----
+    Use :meth:`get_df` to retrieve a dataframe of unique contexts and
+    :meth:`get_list` to retrieve the same information as Python dictionaries.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]

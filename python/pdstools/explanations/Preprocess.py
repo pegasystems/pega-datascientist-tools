@@ -16,10 +16,10 @@ import polars as pl
 from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import _COL, _PREDICTOR_TYPE, _TABLE_NAME
-from .resources import queries as queries_data
 from .Schema import REQUIRED_RAW_COLUMNS, RawExplanationData
 
 logger = logging.getLogger(__name__)
+QUERIES_PACKAGE = "pdstools.explanations.resources.queries"
 
 if TYPE_CHECKING:
     from .Explanations import Explanations
@@ -81,21 +81,14 @@ class Preprocess(LazyNamespace):
         This method reads the explanation data from the provided location and creates
         aggregates for multiple contexts which are used to create global explanation plots.
 
-        The different context aggregates are as follows:
-        i) Overall Numeric Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each numeric predictor value decile.
-        ii) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each symoblic predictor value.
-        iii) Context Specific Numeric Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each numeric predictor value decile, grouped by context key partition.
-        iv) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each symoblic predictor value, grouped by context key partition.
+        The generated aggregates are:
 
-        Each of the aggregates are written to parquet files to a temporary output dirtectory
+        - overall numeric predictor contributions by decile
+        - overall symbolic predictor contributions by value
+        - contextual numeric predictor contributions by decile
+        - contextual symbolic predictor contributions by value
+
+        Each aggregate is written to parquet in the configured output directory.
         """
         if self._is_cached():
             logger.debug("Using cached data for preprocessing.")
@@ -312,7 +305,7 @@ class Preprocess(LazyNamespace):
         predictor_type: _PREDICTOR_TYPE,
     ):
         sql = self._read_resource_file(
-            package_name=queries_data,
+            package_name=QUERIES_PACKAGE,
             filename_w_ext=f"{_TABLE_NAME.CREATE.value}.sql",
         )
 
@@ -392,7 +385,7 @@ class Preprocess(LazyNamespace):
             _TABLE_NAME.NUMERIC_OVERALL if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC_OVERALL
         )
         return self._read_resource_file(
-            package_name=queries_data,
+            package_name=QUERIES_PACKAGE,
             filename_w_ext=f"{sql_file.value}.sql",
         )
 
@@ -400,7 +393,7 @@ class Preprocess(LazyNamespace):
         sql_file = _TABLE_NAME.NUMERIC if predictor_type == _PREDICTOR_TYPE.NUMERIC else _TABLE_NAME.SYMBOLIC
 
         return self._read_resource_file(
-            package_name=queries_data,
+            package_name=QUERIES_PACKAGE,
             filename_w_ext=f"{sql_file.value}.sql",
         )
 
@@ -409,7 +402,7 @@ class Preprocess(LazyNamespace):
 
     def _get_model_contexts_sql_formatted(self, tbl_name: _TABLE_NAME):
         sql = self._read_resource_file(
-            package_name=queries_data,
+            package_name=QUERIES_PACKAGE,
             filename_w_ext=f"{_TABLE_NAME.MODEL_CONTEXTS.value}.sql",
         )
 

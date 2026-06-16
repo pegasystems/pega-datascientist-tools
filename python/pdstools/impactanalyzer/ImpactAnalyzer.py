@@ -837,7 +837,7 @@ class ImpactAnalyzer:
         convention used by :meth:`from_vbd`.
 
         Excel reading is handled by polars' built-in ``calamine`` engine
-        through :func:`pdstools.pega_io.File._read_excel`.
+        through the internal ``pdstools.pega_io.File._read_excel`` helper.
 
         Parameters
         ----------

@@ -102,6 +102,8 @@ class Predictor(BaseModel):
 
 
 class Output(BaseModel):
+    """Output-node metadata for a local ONNX model."""
+
     possible_values: list[str | int | float] = Field(default_factory=list)
     label_name: str | None = Field(default=None, validate_default=True)
     score_name: str | None = Field(default=None)
@@ -118,6 +120,8 @@ class Output(BaseModel):
 
 
 class Metadata(BaseModel):
+    """Pega metadata embedded alongside a local ONNX model."""
+
     type: OutcomeType | None = Field(default=None, validate_default=True)
     predictor_list: list[Predictor] = Field(default_factory=list)
     output: Output | None = Field(default=None, validate_default=True)
@@ -381,6 +385,8 @@ class ONNXModelValidationError(ModelValidationError):
 
 
 class PMMLModel(LocalModel):
+    """Local PMML model artifact."""
+
     file_path: str
 
     def __init__(self, file_path: str):
@@ -391,6 +397,8 @@ class PMMLModel(LocalModel):
 
 
 class H2OModel(LocalModel):
+    """Local H2O model artifact."""
+
     file_path: str
 
     def __init__(self, file_path: str):
@@ -401,6 +409,8 @@ class H2OModel(LocalModel):
 
 
 class ONNXModel(LocalModel):
+    """Local ONNX model artifact with validation helpers."""
+
     _model: ModelProto
 
     def __init__(self, model: ModelProto):
@@ -621,11 +631,15 @@ class ONNXModel(LocalModel):
     def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
         """Validates an ONNX model.
 
+        Returns
+        -------
+        bool
+            ``True`` when the model metadata and tensor shapes are valid.
+
         Raises
         ------
-            ImportError: If the optional dependencies for ONNX Validation are not installed.
-            ONNXModelValidationError: If the model is invalid or if the validation process fails.
-
+        ONNXModelValidationError
+            If the model is invalid or if validation fails.
         """
         session = None
         from io import StringIO
@@ -680,13 +694,8 @@ class ONNXModel(LocalModel):
         Parameters
         ----------
         test_data : dict
-            The test data to be used for prediction. It is a dictionary where each key is a column name from the dataset, and each value is a NumPy array representing the column data as a vector. For example:
-
-            {
-                'column1': array([[value1], [value2], [value3]]),
-                'column2': array([[value4], [value5], [value6]]),
-                'column3': array([[value7], [value8], [value9]])
-            }
+            Mapping of input-node names to NumPy arrays shaped the same way as
+            the model expects at inference time.
 
         Returns
         -------
@@ -709,10 +718,6 @@ class ONNXModel(LocalModel):
         ----------
         onnx_file_path : str
             The file path where the ONNX model should be saved.
-
-        Raises
-        ------
-            ImportError: If the optional dependencies for ONNX Conversion are not installed.
 
         """
         import onnx

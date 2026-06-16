@@ -400,12 +400,8 @@ def create_hierarchical_selectors(
     Returns
     -------
     dict[str, dict[str, list[str] | int]]
-        dict with structure:
-        {
-            "issues": {"options": [...], "index": 0},
-            "groups": {"options": ["All", ...], "index": 0},
-            "actions": {"options": ["All", ...], "index": 0}
-        }
+        Dictionary with ``issues``, ``groups``, and ``actions`` entries, each
+        containing the available ``options`` plus the selected ``index``.
     """
 
     # Step 1: Get all available issues

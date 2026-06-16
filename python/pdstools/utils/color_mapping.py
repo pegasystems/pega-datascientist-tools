@@ -38,16 +38,12 @@ def create_categorical_color_mappings(
         values than colors.
     column_mapping : dict[str, str], optional
         Optional mapping from display names to internal column names.
-        Example: {"Issue": "pyIssue", "Group": "pyGroup"}
+        For example, ``{"Issue": "pyIssue", "Group": "pyGroup"}``.
 
     Returns
     -------
     dict[str, dict[str, str]]
         Nested dictionary mapping column names to color dictionaries.
-        Example: {
-            "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
-            "Group": {"Cards": "#001F5F", "Loans": "#10A5AC"},
-        }
 
     Examples
     --------

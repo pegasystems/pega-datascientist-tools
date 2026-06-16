@@ -13,39 +13,55 @@ if TYPE_CHECKING:
 
 
 class TextInput(TypedDict):
+    """Text input payload for Knowledge Buddy search variables."""
+
     name: str
     value: str
 
 
 class FilterAttributes(TypedDict):
+    """Filter payload for Knowledge Buddy attribute-based search."""
+
     name: str
     values: list[dict[Literal["value"], str]]
 
 
 class AttributeValue(BaseModel):
+    """Single attribute value returned in a Knowledge Buddy chunk."""
+
     value: str
 
 
 class Attribute(BaseModel):
+    """Named attribute attached to a Knowledge Buddy chunk."""
+
     values: list[AttributeValue]
     name: str
 
 
 class Chunk(BaseModel):
+    """A content chunk returned by Knowledge Buddy search results."""
+
     attributes: list[Attribute]
     content: str
 
 
 class SearchResultValue(BaseModel):
+    """Structured Knowledge Buddy search result payload."""
+
     chunks: list[Chunk]
 
 
 class SearchResult(BaseModel):
+    """Single Knowledge Buddy search result entry."""
+
     name: str
     value: Json[SearchResultValue] | SearchResultValue | str
 
 
 class BuddyResponse(BaseModel):
+    """Response returned after asking a Knowledge Buddy question."""
+
     question_id: str = Field(validation_alias=AliasChoices("questionID", "question_id"))
     answer: str
     status: str
@@ -98,32 +114,29 @@ class _KnowledgeBuddyMixin:
 
         Parameters
         ----------
-        question: str: (Required)
-            Input the question.
-        buddy: str (Required)
-            Input the buddy name.
-            If you do not have the required role to access the buddy,
-            an access error will be displayed.
-        include_search_results: bool (Default: False)
-            If set to true, this property returns chunks of data related to each
-            SEARCHRESULTS information variable that is defined for the Knowledge Buddy,
-            which is the same information that is returned during a semantic search.
-        question_source: str (Optional)
-            Input a source for the question based on the use case.
-            This information can be used for reporting purposes.
-        question_tag: str (Optional)
-            Input a tag for the question based on the use case.
-            This information can be used for reporting purposes.
-        additional_text_inputs: list[TextInput]: (Optional)
-            Input the search variable values, where key is the search variable name
-            and value is the data that replaces the variable.
-            Search variables are defined in the Information section of the Knowledge Buddy.
-        filter_attributes: list[FilterAttributes]: (Optional)
-            Input the filter attributes to get the filtered chunks from the vector database.
-            User-defined attributes ingested with content can be used as filters.
-            Filters are recommended to improve the semantic search performance.
-            Database indexes can be used further to enhance the search.
+        question : str
+            Question to send to the buddy.
+        buddy : str
+            Buddy name to target.
+        include_search_results : bool, default False
+            Whether to include the supporting search-result chunks in the response.
+        question_source : str | None, default None
+            Optional source label for reporting.
+        question_tag : str | None, default None
+            Optional tag for reporting.
+        additional_text_inputs : list[TextInput] | None, default None
+            Optional search-variable replacements defined on the buddy.
+        filter_attributes : list[FilterAttributes] | None, default None
+            Optional attribute filters used to narrow vector-database chunks.
+        user_name : str | None, default None
+            Optional end-user name to forward with the request.
+        user_email : str | None, default None
+            Optional end-user email to forward with the request.
 
+        Returns
+        -------
+        BuddyResponse
+            Parsed Knowledge Buddy response payload.
         """
         response = await self._a_post(
             "/prweb/api/knowledgebuddy/v1/question",
@@ -152,14 +165,12 @@ class _KnowledgeBuddyMixin:
 
         Parameters
         ----------
-        question_id: str: (Required)
-            The Knowledge Buddy case Id that is required to capture the feedback.
-        helpful: str (Optional)
-            Was this comment helpful? Valid values are Yes, No and Unsure.
-            Empty value defaults to Unsure.
-        comments: str (Optional)
-            Text of the comment.
-
+        question_id : str
+            Knowledge Buddy case identifier associated with the original question.
+        helpful : Literal["Yes", "No", "Unsure"], default "Unsure"
+            Whether the response was helpful.
+        comments : str | None, default None
+            Optional free-text feedback.
         """
         return await self._a_put(
             "/prweb/api/knowledgebuddy/v1/question/feedback",
@@ -189,12 +200,16 @@ class _KnowledgeBuddyMixin:
 
 
 class KnowledgeBuddy(_KnowledgeBuddyMixin, SyncAPIResource):
+    """Synchronous Knowledge Buddy resource."""
+
     def __init__(self, client):
         super().__init__(client)
         self._install_exception_hook()
 
 
 class AsyncKnowledgeBuddy(_KnowledgeBuddyMixin, AsyncAPIResource):
+    """Asynchronous Knowledge Buddy resource."""
+
     def __init__(self, client):
         super().__init__(client)
         self._install_exception_hook()

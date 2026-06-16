@@ -207,13 +207,20 @@ class ModelValidationError(Exception):
 
 
 class LocalModel(BaseModel):
+    """Base class for locally validated model artifacts."""
+
     def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
         """Validates a model.
 
+        Returns
+        -------
+        bool
+            ``True`` when validation succeeds.
+
         Raises
         ------
-            ModelValidationError: If the model is invalid or if the validation process fails.
-
+        ModelValidationError
+            If the model is invalid or the validation process fails.
         """
         return True
 
@@ -222,8 +229,8 @@ class LocalModel(BaseModel):
 
         Returns
         -------
-            str: The file path of the model.
-
+        str
+            File path of the model artifact.
         """
         raise NotImplementedError
 

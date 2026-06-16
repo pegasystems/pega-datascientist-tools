@@ -581,10 +581,6 @@ class DecisionAnalyzer:
         -------
         dict[str, dict[str, str]]
             Nested dictionary mapping dimension names to color dictionaries.
-            Example: {
-                "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
-                "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
-            }
 
         Notes
         -----
