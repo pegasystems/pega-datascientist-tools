@@ -166,59 +166,6 @@ Module Contents
 
 
 
-   .. py:method:: _read_model(file, **kwargs)
-
-
-   .. py:method:: _decode_trees()
-
-
-   .. py:method:: _post_import_cleanup(decode, **kwargs)
-
-
-   .. py:method:: _depth(d: dict) -> int
-
-      Calculates the depth of the tree, used in TreeStats.
-
-
-
-   .. py:method:: _safe_numeric_compare(left: float, operator: str, right: float) -> bool
-
-      Safely compare two numeric values without using eval().
-
-      This method replaces dangerous eval() calls with safe numeric comparisons.
-
-      :param left: Left operand for comparison
-      :type left: Union[int, float]
-      :param operator: Comparison operator as string ('<', '>', '==', '<=', '>=', '!=')
-      :type operator: str
-      :param right: Right operand for comparison
-      :type right: Union[int, float]
-
-      :returns: Result of the comparison
-      :rtype: bool
-
-      :raises ValueError: If operator is not supported
-
-
-
-   .. py:method:: _safe_condition_evaluate(value: Any, operator: str, comparison_set: set | float | str) -> bool
-
-      Safely evaluate conditions without using eval().
-
-      This method replaces dangerous eval() calls with safe condition evaluation.
-
-      :param value: The value to test
-      :type value: Any
-      :param operator: The operator ('in', '<', '>', '==')
-      :type operator: str
-      :param comparison_set: The value or set to compare against
-      :type comparison_set: Union[set, float, str]
-
-      :returns: Result of the condition evaluation
-      :rtype: bool
-
-
-
    .. py:property:: metrics
       :type: dict[str, Any]
 
@@ -248,42 +195,6 @@ Module Contents
 
       :returns: Metric name → one-line description.
       :rtype: dict[str, str]
-
-
-
-   .. py:method:: _compute_metrics() -> dict[str, Any]
-
-      Walk the trees once to gather all diagnostic metrics.
-
-      For the full list of returned keys and their descriptions, see
-      :meth:`metric_descriptions`.
-
-      For exported (decoded) models, predictor types are inferred from
-      split operators (``<`` → numeric, ``in``/``==`` → symbolic).
-      For encoded models (from datamart blobs with ``inputsEncoder``),
-      the encoder metadata provides authoritative type information.
-
-
-
-   .. py:method:: _accumulate_gain(tree: dict, var_gain: dict[str, float]) -> None
-      :staticmethod:
-
-
-      Recursively accumulate gain per predictor variable.
-
-
-
-   .. py:method:: _get_encoder_info() -> dict[str, dict[str, Any]] | None
-
-      Extract predictor metadata from the inputsEncoder if present.
-
-      Returns a dict mapping predictor name to a dict with keys:
-      - ``type``: ``"numeric"`` or ``"symbolic"``
-      - ``used_bins``: number of bins currently used
-      - ``max_bins``: maximum bins allowed (``None`` if unknown)
-
-      Returns ``None`` if no encoder metadata is available (e.g. for
-      exported/decoded models).
 
 
 
@@ -345,20 +256,6 @@ Module Contents
       ``type``, ``modelVersion``, ``algorithm``, ``trainingStats``,
       ``auc``, etc. at the top level.  In that case, predictor names
       and types are inferred from the tree split nodes instead.
-
-
-
-   .. py:method:: _infer_predictors_from_splits() -> dict | None
-
-      Infer predictor names and types from tree split nodes.
-
-      When no explicit predictor metadata is available (e.g. in exported
-      models without a ``configuration`` section), we walk the trees and
-      derive predictor names from splits. The operator determines the
-      type: ``<`` → numeric, ``in``/``==`` → symbolic.
-
-      :returns: Mapping of predictor name → type ("numeric" or "symbolic").
-      :rtype: dict[str, str] | None
 
 
 
@@ -441,14 +338,6 @@ Module Contents
 
       :returns: * *tuple[dict, list]*
                 * *The dictionary of nodes and the list of child nodes*
-
-
-
-   .. py:method:: _fill_child_node_ids(nodeinfo: dict, childs: dict) -> dict
-      :staticmethod:
-
-
-      Utility function to add child info to nodes
 
 
 

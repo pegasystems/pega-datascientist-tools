@@ -95,14 +95,3 @@ Module Contents
    .. py:attribute:: filter
 
 
-   .. py:method:: _set_date_range(from_date: datetime.datetime | None, to_date: datetime.datetime | None, days: int = 7)
-
-      Set the date range for processing explanation files.
-
-      :param start_date: The start date for the date range. If None, defaults to 7 days before end_date.
-      :type start_date: datetime, optional
-      :param end_date: The end date for the date range. If None, defaults to today.
-      :type end_date: datetime, optional
-
-
-

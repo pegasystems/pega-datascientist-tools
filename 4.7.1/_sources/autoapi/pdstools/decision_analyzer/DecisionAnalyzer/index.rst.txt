@@ -114,11 +114,6 @@ Module Contents
 
 
 
-   .. py:attribute:: _default_filter_fields
-      :value: ['Decision Time', 'Channel', 'Direction', 'Issue', 'Group', 'Action', 'Treatment', 'Stage',...
-
-
-
    .. py:attribute:: plot
 
 
@@ -130,14 +125,6 @@ Module Contents
    .. py:attribute:: sample_size
       :value: 10000
 
-
-
-   .. py:attribute:: _thresholding_cache
-      :type:  dict[tuple[str, tuple[int, Ellipsis]], polars.DataFrame]
-
-
-   .. py:attribute:: _sensitivity_cache
-      :type:  dict[int, polars.LazyFrame]
 
 
    .. py:attribute:: extract_type
@@ -189,19 +176,6 @@ Module Contents
 
       :param level: ``"Stage Group"`` or ``"Stage"``.
       :type level: str
-
-
-
-   .. py:method:: _recompute_available_stages()
-
-      Derive ``AvailableNBADStages`` from the data for the current level.
-
-      At "Stage Group" level, synthetically injects "Arbitration" if it
-      has no data rows (it is used as an anchor point by many analyses).
-
-      At "Stage" level, detects Stage Groups that have no individual
-      stages represented in the data and inserts the group name as a
-      placeholder so the full pipeline is visible.
 
 
 
@@ -277,12 +251,6 @@ Module Contents
 
       Number of unique interactions in the sample.
       Automatically triggers sampling if not yet calculated.
-
-
-   .. py:method:: _invalidate_cached_properties()
-
-      Resets the properties of the class. Needed for global filters.
-
 
 
    .. py:property:: preaggregated_filter_view
@@ -550,30 +518,6 @@ Module Contents
 
 
 
-   .. py:method:: _winning_from(interactions: polars.LazyFrame, win_rank: int, groupby_cols: list[str], top_k: int = 20, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
-
-      Actions beaten by the comparison group in its winning interactions.
-
-      :param interactions: Interaction IDs where the comparison group wins.
-      :param win_rank: Rank threshold used to define "winning".
-      :param groupby_cols: Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
-      :param top_k: Return only the top-k entries.
-      :param additional_filters: Optional extra filters (e.g. channel filter).
-
-
-
-   .. py:method:: _losing_to(interactions: polars.LazyFrame, win_rank: int, groupby_cols: list[str], top_k: int = 20, additional_filters: polars.Expr | list[polars.Expr] | None = None) -> polars.LazyFrame
-
-      Actions that beat the comparison group in its losing interactions.
-
-      :param interactions: Interaction IDs where the comparison group loses.
-      :param win_rank: Rank threshold used to define "winning".
-      :param groupby_cols: Columns to group by (e.g. ``["Issue", "Group", "Action"]``).
-      :param top_k: Return only the top-k entries.
-      :param additional_filters: Optional extra filters (e.g. channel filter).
-
-
-
    .. py:method:: get_optionality_data(df=None, by_day: bool = False) -> polars.LazyFrame
 
       Average number of actions per stage, optionally broken down by day.
@@ -671,16 +615,6 @@ Module Contents
       :type stage: str, optional
       :param additional_filters: Extra filters applied to the sample (e.g. channel filter).
       :type additional_filters: pl.Expr or list[pl.Expr], optional
-
-
-
-   .. py:method:: _remaining_at_stage(stage=None, additional_filters=None)
-
-      Return sample rows remaining at *stage*.
-
-      Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
-      order is >= the selected stage are "remaining" there.  If *stage*
-      is None, falls back to rows with non-null Priority.
 
 
 

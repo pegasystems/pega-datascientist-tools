@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../../../../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../../../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/version-switcher.css?v=6293ef20" />
     
     
 
@@ -186,19 +187,24 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../../index.html">
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../../../index.html">
   <div class="sidebar-logo-container">
     <img class="sidebar-logo" src="../../../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">pdstools</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../../../search.html" role="search">
+</a><div class="version-switcher" data-current-version="4.7.1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">4.7.1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
-<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+<div id="searchbox"></div><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
@@ -281,32 +287,24 @@
 </li>
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../../../index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="../../../client/index.html">pdstools.infinity.client</a></li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../../internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../../internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
-</ul>
-</li>
-<li class="toctree-l4 current has-children"><a class="reference internal" href="../../index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" checked="" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l5 current has-children"><a class="reference internal" href="../index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../../../internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 current has-children"><a class="reference internal" href="../../index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" checked="" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l5 current has-children"><a class="reference internal" href="../index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" checked="" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l6 current current-page"><a class="current reference internal" href="#">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
 </ul>
 </li>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
 </ul>
 </li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
@@ -322,20 +320,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
 </ul>
 </li>
@@ -344,7 +342,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../resources/index.html">pdstools.resources</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
@@ -364,7 +362,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../utils/types/index.html">pdstools.utils.types</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
@@ -379,7 +377,6 @@
 
 </div>
 </div>
-
       </div>
       
     </div>
@@ -459,13 +456,10 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BuddyResponse</span></code></a></p></td>
 <td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowledgeBuddy</span></code></a></p></td>
 <td><p>Knowledge Buddy business logic — defined once.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowledgeBuddy</span></code></a></p></td>
-<td><p>Knowledge Buddy business logic — defined once.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsyncKnowledgeBuddy</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsyncKnowledgeBuddy</span></code></a></p></td>
 <td><p>Knowledge Buddy business logic — defined once.</p></td>
 </tr>
 </tbody>
@@ -888,7 +882,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dl class="py exception">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.UnavailableBuddyError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">UnavailableBuddyError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">httpx.Response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.UnavailableBuddyError" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="../../../internal/_exceptions/index.html#pdstools.infinity.internal._exceptions.PegaException" title="pdstools.infinity.internal._exceptions.PegaException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._exceptions.PegaException</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._exceptions.PegaException</span></code></p>
 <p>Request contains invalid inputs</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -906,7 +900,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dl class="py exception">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.NoAPIAccessError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">NoAPIAccessError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">httpx.Response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.NoAPIAccessError" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="../../../internal/_exceptions/index.html#pdstools.infinity.internal._exceptions.PegaException" title="pdstools.infinity.internal._exceptions.PegaException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._exceptions.PegaException</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._exceptions.PegaException</span></code></p>
 <p>You do not have access to the API. Contact the administrator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -922,101 +916,16 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_KnowledgeBuddyMixin</span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin" title="Link to this definition">¶</a></dt>
-<dd><p>Knowledge Buddy business logic — defined once.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._a_post">
-<span class="sig-name descname"><span class="pre">_a_post</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.14)"><span class="pre">collections.abc.Callable</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Ellipsis</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._a_post" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._install_exception_hook">
-<span class="sig-name descname"><span class="pre">_install_exception_hook</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._install_exception_hook" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.question">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">question</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">buddy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_search_results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question_tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_text_inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput"><span class="pre">TextInput</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_attributes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes"><span class="pre">FilterAttributes</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse"><span class="pre">BuddyResponse</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.question" title="Link to this definition">¶</a></dt>
-<dd><p>Send a question to the Knowledge Buddy.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>question</strong> (<em>str:</em><em> (</em><em>Required</em><em>)</em>) – Input the question.</p></li>
-<li><p><strong>buddy</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> (</em><em>Required</em><em>)</em>) – Input the buddy name.
-If you do not have the required role to access the buddy,
-an access error will be displayed.</p></li>
-<li><p><strong>include_search_results</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em> (</em><em>Default: False</em><em>)</em>) – If set to true, this property returns chunks of data related to each
-SEARCHRESULTS information variable that is defined for the Knowledge Buddy,
-which is the same information that is returned during a semantic search.</p></li>
-<li><p><strong>question_source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> (</em><em>Optional</em><em>)</em>) – Input a source for the question based on the use case.
-This information can be used for reporting purposes.</p></li>
-<li><p><strong>question_tag</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> (</em><em>Optional</em><em>)</em>) – Input a tag for the question based on the use case.
-This information can be used for reporting purposes.</p></li>
-<li><p><strong>additional_text_inputs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput"><em>TextInput</em></a><em>]</em><em>:</em><em> (</em><em>Optional</em><em>)</em>) – Input the search variable values, where key is the search variable name
-and value is the data that replaces the variable.
-Search variables are defined in the Information section of the Knowledge Buddy.</p></li>
-<li><p><strong>filter_attributes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes"><em>FilterAttributes</em></a><em>]</em><em>:</em><em> (</em><em>Optional</em><em>)</em>) – Input the filter attributes to get the filtered chunks from the vector database.
-User-defined attributes ingested with content can be used as filters.
-Filters are recommended to improve the semantic search performance.
-Database indexes can be used further to enhance the search.</p></li>
-<li><p><strong>user_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>user_email</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse">BuddyResponse</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.feedback">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">feedback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">helpful</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'Yes'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'No'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'Unsure'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Unsure'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.feedback" title="Link to this definition">¶</a></dt>
-<dd><p>Capture feedback for a question asked to the Knowledge Buddy.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>question_id</strong> (<em>str:</em><em> (</em><em>Required</em><em>)</em>) – The Knowledge Buddy case Id that is required to capture the feedback.</p></li>
-<li><p><strong>helpful</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> (</em><em>Optional</em><em>)</em>) – Was this comment helpful? Valid values are Yes, No and Unsure.
-Empty value defaults to Unsure.</p></li>
-<li><p><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> (</em><em>Optional</em><em>)</em>) – Text of the comment.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._custom_exception_hook">
-<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_custom_exception_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">httpx.URL</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">httpx.Response</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)"><span class="pre">Exception</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._custom_exception_hook" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>base_url</strong> (<em>httpx.URL</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>endpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
-<li><p><strong>response</strong> (<em>httpx.Response</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None | <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)">Exception</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">KnowledgeBuddy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code></a>, <a class="reference internal" href="../../../internal/_resource/index.html#pdstools.infinity.internal._resource.SyncAPIResource" title="pdstools.infinity.internal._resource.SyncAPIResource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._resource.SyncAPIResource</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._resource.SyncAPIResource</span></code></p>
 <p>Knowledge Buddy business logic — defined once.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">AsyncKnowledgeBuddy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code></a>, <a class="reference internal" href="../../../internal/_resource/index.html#pdstools.infinity.internal._resource.AsyncAPIResource" title="pdstools.infinity.internal._resource.AsyncAPIResource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._resource.AsyncAPIResource</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.internal._resource.AsyncAPIResource</span></code></p>
 <p>Knowledge Buddy business logic — defined once.</p>
 </dd></dl>
 
@@ -1131,14 +1040,6 @@ Empty value defaults to Unsure.</p></li>
 </li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.UnavailableBuddyError"><code class="docutils literal notranslate"><span class="pre">UnavailableBuddyError</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.NoAPIAccessError"><code class="docutils literal notranslate"><span class="pre">NoAPIAccessError</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin"><code class="docutils literal notranslate"><span class="pre">_KnowledgeBuddyMixin</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._a_post"><code class="docutils literal notranslate"><span class="pre">_a_post</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._install_exception_hook"><code class="docutils literal notranslate"><span class="pre">_install_exception_hook()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.question"><code class="docutils literal notranslate"><span class="pre">question()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin.feedback"><code class="docutils literal notranslate"><span class="pre">feedback()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy._KnowledgeBuddyMixin._custom_exception_hook"><code class="docutils literal notranslate"><span class="pre">_custom_exception_hook()</span></code></a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy"><code class="docutils literal notranslate"><span class="pre">KnowledgeBuddy</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy"><code class="docutils literal notranslate"><span class="pre">AsyncKnowledgeBuddy</span></code></a></li>
 </ul>
@@ -1162,5 +1063,6 @@ Empty value defaults to Unsure.</p></li>
     <script src="../../../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

@@ -10,7 +10,6 @@ Attributes
 .. autoapisummary::
 
    pdstools.pega_io.File.logger
-   pdstools.pega_io.File._SUPPORTED_EXTENSIONS
 
 
 Functions
@@ -18,14 +17,8 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.pega_io.File._is_artifact
-   pdstools.pega_io.File._clean_artifacts
-   pdstools.pega_io.File._extract_tar
-   pdstools.pega_io.File._extract_zip
-   pdstools.pega_io.File._read_from_bytesio
    pdstools.pega_io.File.read_data
    pdstools.pega_io.File.read_ds_export
-   pdstools.pega_io.File._fill_context_field_nulls
    pdstools.pega_io.File.import_file
    pdstools.pega_io.File.read_zipped_file
    pdstools.pega_io.File.read_multi_zip
@@ -39,46 +32,6 @@ Module Contents
 ---------------
 
 .. py:data:: logger
-
-.. py:data:: _SUPPORTED_EXTENSIONS
-   :type:  set[str]
-
-.. py:function:: _is_artifact(name: str) -> bool
-
-   Return True for OS-generated junk entries (macOS, Windows, etc.).
-
-
-.. py:function:: _clean_artifacts(directory: str) -> None
-
-   Remove OS-generated artifact files and directories after archive extraction.
-
-   Polars glob patterns (e.g. ``**/*.parquet``) cannot skip hidden files or
-   ``__MACOSX`` resource-fork directories, so we delete them from the
-   extracted tree before scanning.
-
-
-.. py:function:: _extract_tar(archive_path: pathlib.Path) -> str
-
-   Extract a tar archive to a temporary directory and return the path.
-
-
-.. py:function:: _extract_zip(archive_path: pathlib.Path) -> str
-
-   Extract a zip archive to a temporary directory and return the path.
-
-
-.. py:function:: _read_from_bytesio(file: io.BytesIO, extension: str) -> polars.LazyFrame
-
-   Read data from a BytesIO object (e.g., from Streamlit file upload).
-
-   :param file: The BytesIO object containing file data.
-   :type file: BytesIO
-   :param extension: The file extension (e.g., '.csv', '.json', '.zip', '.gz').
-   :type extension: str
-
-   :returns: Lazy DataFrame ready for processing.
-   :rtype: pl.LazyFrame
-
 
 .. py:function:: read_data(path: str | pathlib.Path | io.BytesIO) -> polars.LazyFrame
 
@@ -205,25 +158,6 @@ Module Contents
    Schema control:
 
    >>> df = read_ds_export('export.csv', infer_schema_length=200000)
-
-
-.. py:function:: _fill_context_field_nulls(df: polars.LazyFrame) -> polars.LazyFrame
-
-   Fill nulls in context fields to prevent issues in downstream operations.
-
-   Context fields (Channel, Direction, Issue, Group, Name) often have nulls in
-   source data which can cause errors in group_by, transpose, and concat_str
-   operations. This function fills nulls with "Unknown" to ensure these operations
-   work correctly.
-
-   Note: Treatment is intentionally NOT filled because null Treatment has semantic
-   meaning (no treatment variation exists for that action).
-
-   :param df: Input dataframe
-   :type df: pl.LazyFrame
-
-   :returns: Dataframe with nulls filled in context fields
-   :rtype: pl.LazyFrame
 
 
 .. py:function:: import_file(file: str | io.BytesIO, extension: str, **reading_opts) -> polars.LazyFrame

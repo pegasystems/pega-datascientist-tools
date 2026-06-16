@@ -87,20 +87,6 @@ Module Contents
 
 
 
-   .. py:method:: _infer_types(df: polars.DataFrame)
-      :staticmethod:
-
-
-      Infers the types of columns in a DataFrame.
-
-      :param df (pl.DataFrame): The DataFrame for which to infer column types.
-
-      :returns: A dictionary mapping column names to their inferred types.
-                The inferred types can be either "numeric" or "symbolic".
-      :rtype: dict
-
-
-
    .. py:method:: chunker(files: list[str], size: int)
       :staticmethod:
 

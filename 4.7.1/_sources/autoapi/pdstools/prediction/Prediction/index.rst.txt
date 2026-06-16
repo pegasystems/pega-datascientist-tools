@@ -51,26 +51,6 @@ Module Contents
    .. py:attribute:: prediction
 
 
-   .. py:method:: _prediction_trend(period: str, query: pdstools.utils.types.QUERY | None, metric: str, title: str, **kwargs)
-
-      Internal method to create trend plots for various metrics.
-
-      :param period: Time period for aggregation (e.g., "1d", "1w", "1mo")
-      :type period: str
-      :param query: Optional query to filter the data
-      :type query: Optional[QUERY]
-      :param metric: The metric to plot (e.g., "Performance", "Lift", "CTR")
-      :type metric: str
-      :param title: Plot title
-      :type title: str
-      :param \*\*kwargs: Additional keyword arguments passed directly to plotly.express.line
-                         See plotly.express.line documentation for all available options
-
-      :returns: (plotly figure, dataframe with plot data)
-      :rtype: tuple
-
-
-
    .. py:method:: performance_trend(period: str = '1d', *, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False, **kwargs)
 
       Create a performance trend plot showing AUC over time.

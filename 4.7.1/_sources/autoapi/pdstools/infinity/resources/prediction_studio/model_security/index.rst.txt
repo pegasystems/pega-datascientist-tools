@@ -102,9 +102,6 @@ Module Contents
 
 
 
-   .. py:method:: _add(msg: str, *, fail: bool = False) -> None
-
-
    .. py:method:: __str__() -> str
 
 
@@ -128,11 +125,6 @@ Module Contents
    .. py:method:: sanitize_metadata(metadata: dict[str, Any]) -> dict[str, Any]
 
       Return a copy of *metadata* with only allowed keys retained.
-
-
-
-   .. py:method:: _check_string_lengths(data: Any, result: SecurityResult, path: str = '') -> None
-      :staticmethod:
 
 
 

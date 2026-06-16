@@ -26,12 +26,10 @@ Attributes
    pdstools.utils.metric_limits.RAGValue
    pdstools.utils.metric_limits.ValueMapping
    pdstools.utils.metric_limits.MetricSpec
-   pdstools.utils.metric_limits._LIMIT_COLUMNS
    pdstools.utils.metric_limits.SINGLE_CHANNEL_NBAD_CONFIGURATIONS
    pdstools.utils.metric_limits.POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
    pdstools.utils.metric_limits.ALL_NBAD_CONFIGURATIONS
    pdstools.utils.metric_limits.STANDARD_NBAD_CHANNELS
-   pdstools.utils.metric_limits._NBAD_PREDICTION_DATA
    pdstools.utils.metric_limits.SINGLE_CHANNEL_NBAD_PREDICTIONS
    pdstools.utils.metric_limits.MULTI_CHANNEL_NBAD_PREDICTIONS
    pdstools.utils.metric_limits.ALL_NBAD_PREDICTIONS
@@ -51,8 +49,6 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.utils.metric_limits._normalize_name
-   pdstools.utils.metric_limits._matches_NBAD_configuration
    pdstools.utils.metric_limits.is_standard_NBAD_configuration
    pdstools.utils.metric_limits.standard_NBAD_configurations_rag
    pdstools.utils.metric_limits.get_standard_NBAD_channels
@@ -76,24 +72,9 @@ Module Contents
 
 .. py:data:: MetricSpec
 
-.. py:data:: _LIMIT_COLUMNS
-   :value: ['Minimum', 'Best Practice Min', 'Best Practice Max', 'Maximum']
-
-
-.. py:function:: _normalize_name(name: str) -> str
-
-   Normalize a name by removing whitespace, dashes, underscores and lowercasing.
-
-
 .. py:class:: MetricLimits
 
    Singleton for accessing metric limits from MetricLimits.csv.
-
-
-   .. py:attribute:: _instance
-      :type:  Optional[MetricLimits]
-      :value: None
-
 
 
    .. py:method:: get_limits() -> polars.DataFrame
@@ -112,14 +93,6 @@ Module Contents
 
 
       Get limits for a specific metric. Returns empty dict if not found.
-
-
-
-   .. py:method:: _get_limit_or_raise(metric_id: str) -> dict
-      :classmethod:
-
-
-      Get limits for a metric, raising KeyError if not found.
 
 
 
@@ -210,14 +183,6 @@ Module Contents
    :value: ['Web_Click_Through_Rate', 'WebTreatmentClickModel', 'Mobile_Click_Through_Rate',...
 
 
-.. py:function:: _matches_NBAD_configuration(item: str, config_list: list) -> bool
-
-   Check if item matches any config in the list.
-
-   Matches with optional prefix (e.g., MyApp_) and postfix (e.g., _GB).
-   Pattern: ^(?:\w+_)?{config}(?:_GB)?$
-
-
 .. py:function:: is_standard_NBAD_configuration(field: str = 'Configuration') -> polars.Expr
 
    Polars expression to check if a configuration is a known NBAD config.
@@ -250,11 +215,6 @@ Module Contents
 .. py:function:: standard_NBAD_directions_rag(value: str) -> RAGValue | None
 
    RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise.
-
-
-.. py:data:: _NBAD_PREDICTION_DATA
-   :type:  list[list[str | bool]]
-   :value: [['PredictWebPropensity', 'Web', 'Inbound', False], ['PredictMobilePropensity', 'Mobile',...
 
 
 .. py:data:: SINGLE_CHANNEL_NBAD_PREDICTIONS
@@ -340,10 +300,6 @@ Module Contents
    >>> MetricFormats.has_format("CTR")
    True
    >>> MetricFormats.register("Custom", NumberFormat(decimals=4))
-
-
-   .. py:attribute:: _FORMATS
-      :type:  dict[str, pdstools.utils.number_format.NumberFormat]
 
 
    .. py:attribute:: DEFAULT_FORMAT

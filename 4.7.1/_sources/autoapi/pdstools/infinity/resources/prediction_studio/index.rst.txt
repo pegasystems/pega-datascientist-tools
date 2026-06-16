@@ -26,15 +26,6 @@ Attributes
    pdstools.infinity.resources.prediction_studio.logger
 
 
-Classes
--------
-
-.. autoapisummary::
-
-   pdstools.infinity.resources.prediction_studio.AsyncPredictionStudioBase
-   pdstools.infinity.resources.prediction_studio.PredictionStudioBase
-
-
 Functions
 ---------
 
@@ -46,24 +37,6 @@ Functions
 
 Package Contents
 ----------------
-
-.. py:class:: AsyncPredictionStudioBase(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
-
-   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
-
-
-   Helper class that provides a standard way to create an ABC using
-   inheritance.
-
-
-.. py:class:: PredictionStudioBase(client: pdstools.infinity.internal._base_client.SyncAPIClient)
-
-   Bases: :py:obj:`_PredictionStudioBaseMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
-
-
-   Helper class that provides a standard way to create an ABC using
-   inheritance.
-
 
 .. py:data:: logger
 

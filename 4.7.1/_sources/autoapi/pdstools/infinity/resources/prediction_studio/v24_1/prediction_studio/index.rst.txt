@@ -9,31 +9,12 @@ Classes
 
 .. autoapisummary::
 
-   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio._PredictionStudioV24_1Mixin
    pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio
    pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio
 
 
 Module Contents
 ---------------
-
-.. py:class:: _PredictionStudioV24_1Mixin
-
-   v24.1 PredictionStudio business logic — shared parts.
-
-
-   .. py:attribute:: version
-      :type:  str
-      :value: '24.1'
-
-
-
-   .. py:method:: upload_model(model, file_name)
-      :abstractmethod:
-
-      :async:
-
-
 
 .. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
 

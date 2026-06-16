@@ -19,13 +19,9 @@ Functions
 
    pdstools.utils.report_utils.get_output_filename
    pdstools.utils.report_utils.copy_quarto_file
-   pdstools.utils.report_utils._write_params_files
    pdstools.utils.report_utils.run_quarto
-   pdstools.utils.report_utils._set_command_options
    pdstools.utils.report_utils.copy_report_resources
    pdstools.utils.report_utils.generate_zipped_report
-   pdstools.utils.report_utils._get_cmd_output
-   pdstools.utils.report_utils._get_version_only
    pdstools.utils.report_utils.get_quarto_with_version
    pdstools.utils.report_utils.get_pandoc_with_version
    pdstools.utils.report_utils.quarto_print
@@ -71,27 +67,6 @@ Module Contents
    :rtype: None
 
 
-.. py:function:: _write_params_files(temp_dir: pathlib.Path, params: dict | None = None, project: dict = {'type': 'default'}, analysis: dict | None = None, full_embed: bool = False) -> None
-
-   Write parameters to YAML files for Quarto processing.
-
-   :param temp_dir: Directory where YAML files will be written
-   :type temp_dir: Path
-   :param params: Parameters to write to params.yml, by default None
-   :type params: dict, optional
-   :param project: Project configuration to write to _quarto.yml, by default {"type": "default"}
-   :type project: dict, optional
-   :param analysis: Analysis configuration to write to _quarto.yml, by default None
-   :type analysis: dict, optional
-   :param full_embed: When True, embeds all resources (JavaScript libraries like Plotly,
-                      itables, etc.) for a fully standalone HTML (larger output).
-                      When False, loads JavaScript libraries from CDN and skips esbuild
-                      bundling (smaller output, but requires internet).
-   :type full_embed: bool, default=False
-
-   :rtype: None
-
-
 .. py:function:: run_quarto(qmd_file: str | None = None, output_filename: str | None = None, output_type: str | None = 'html', params: dict | None = None, project: dict = {'type': 'default'}, analysis: dict | None = None, temp_dir: pathlib.Path = Path(), verbose: bool = False, *, full_embed: bool = False) -> int
 
    Run the Quarto command to generate the report.
@@ -126,21 +101,6 @@ Module Contents
    :raises FileNotFoundError: If required files are not found
 
 
-.. py:function:: _set_command_options(output_type: str | None = None, output_filename: str | None = None, execute_params: bool = False) -> list[str]
-
-   Set the options for the Quarto command.
-
-   :param output_type: Output format type (html, pdf, etc.), by default None
-   :type output_type: str, optional
-   :param output_filename: Name of the output file, by default None
-   :type output_filename: str, optional
-   :param execute_params: Whether to include parameter execution flag, by default False
-   :type execute_params: bool, optional
-
-   :returns: list of command line options for Quarto
-   :rtype: list[str]
-
-
 .. py:function:: copy_report_resources(resource_dict: list[tuple[str, str]])
 
    Copy report resources from the reports directory to specified destinations.
@@ -172,16 +132,6 @@ Module Contents
 
    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
    >>> generate_zipped_report("report_2023", "/tmp/report_output")
-
-
-.. py:function:: _get_cmd_output(args: list[str]) -> list[str]
-
-   Get command output in an OS-agnostic way.
-
-
-.. py:function:: _get_version_only(versionstr: str) -> str
-
-   Extract version number from version string.
 
 
 .. py:function:: get_quarto_with_version(verbose: bool = True) -> tuple[pathlib.Path, str]

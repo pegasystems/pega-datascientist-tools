@@ -36,20 +36,6 @@ Module Contents
 
 
 
-   .. py:method:: _combine_data(model_df: polars.LazyFrame | None, predictor_df: polars.LazyFrame | None) -> polars.LazyFrame | None
-
-      Combines the model and predictor tables to the `combined_data` attribute
-
-      :param model_df: The model snapshots table
-      :type model_df: pl.LazyFrame
-      :param predictor_df: The predictor binning snapshots table
-      :type predictor_df: pl.LazyFrame
-
-      :returns: The resulting data, joined on the ModelID column
-      :rtype: pl.LazyFrame
-
-
-
    .. py:method:: predictor_performance_pivot(*, query: pdstools.utils.types.QUERY | None = None, active_only: bool = False, by='Name', top_predictors: int | None = None, top_groups: int | None = None) -> polars.LazyFrame
 
       Creates a pivot table of the predictor performance per 'group'
@@ -88,41 +74,6 @@ Module Contents
       :returns: A LazyFrame, with one row for each context key combination
       :rtype: pl.LazyFrame
 
-
-
-   .. py:method:: _top_n(df: polars.LazyFrame | polars.DataFrame, top_n: int, metric: str = 'PredictorPerformance', facets: list | None = None)
-      :staticmethod:
-
-
-      Subsets DataFrame to contain only top_n predictors.
-
-      :param df: Table to subset
-      :type df: pl.DataFrame
-      :param top_n: Number of top predictors
-      :type top_n: int
-      :param metric: Metric to use for comparing predictors
-      :type metric: str
-      :param facets: Subsets top_n predictors over facets. Seperate top predictors for each facet
-      :type facets: list
-
-      :returns: Subsetted dataframe
-      :rtype: pl.DataFrame
-
-
-
-   .. py:method:: _adm_model_summary(*, query: pdstools.utils.types.QUERY | None = None, every: str | None, by_channel: bool = False, debug: bool = False, custom_channels: dict[str, str] | None = None) -> polars.LazyFrame
-
-
-   .. py:method:: _summarize_meta_info(grouping: list[str] | None, model_data: polars.LazyFrame, debug: bool) -> polars.LazyFrame
-
-
-   .. py:method:: _summarize_model_analytics(grouping: list[str] | None, model_data: polars.LazyFrame, debug: bool) -> polars.LazyFrame
-
-
-   .. py:method:: _summarize_action_analytics(grouping: list[str] | None, model_data: polars.LazyFrame, debug: bool) -> polars.LazyFrame
-
-
-   .. py:method:: _summarize_model_usage(grouping: list[str] | None, model_data: polars.LazyFrame, debug: bool) -> polars.LazyFrame
 
 
    .. py:method:: summary_by_channel(*, query: pdstools.utils.types.QUERY | None = None, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, every: str | None = None, custom_channels: dict[str, str] | None = None, debug: bool = False, format_flags: bool = False) -> polars.LazyFrame

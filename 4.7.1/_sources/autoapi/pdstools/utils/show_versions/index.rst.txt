@@ -21,8 +21,6 @@ Functions
    pdstools.utils.show_versions.show_versions
    pdstools.utils.show_versions.expand_nested_deps
    pdstools.utils.show_versions.grouped_dependencies
-   pdstools.utils.show_versions._get_dependency_version
-   pdstools.utils.show_versions._dependency_table
    pdstools.utils.show_versions.dependency_great_table
 
 
@@ -76,10 +74,6 @@ Module Contents
 .. py:function:: expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]
 
 .. py:function:: grouped_dependencies() -> dict[str, set[str]]
-
-.. py:function:: _get_dependency_version(dep_name: str) -> str
-
-.. py:function:: _dependency_table(public_only: bool = False)
 
 .. py:function:: dependency_great_table(public_only: bool = True)
 

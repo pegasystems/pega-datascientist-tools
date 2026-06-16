@@ -4,22 +4,11 @@ pdstools.utils.streamlit_utils
 .. py:module:: pdstools.utils.streamlit_utils
 
 
-Attributes
-----------
-
-.. autoapisummary::
-
-   pdstools.utils.streamlit_utils._MENU_ITEMS
-   pdstools.utils.streamlit_utils._ASSETS_DIR
-
-
 Functions
 ---------
 
 .. autoapisummary::
 
-   pdstools.utils.streamlit_utils._is_newer_version_available
-   pdstools.utils.streamlit_utils._apply_sidebar_logo
    pdstools.utils.streamlit_utils.standard_page_config
    pdstools.utils.streamlit_utils.show_sidebar_branding
    pdstools.utils.streamlit_utils.show_version_header
@@ -48,24 +37,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:data:: _MENU_ITEMS
-
-.. py:data:: _ASSETS_DIR
-
-.. py:function:: _is_newer_version_available(installed: str, latest: str) -> bool
-
-   Return True only when *latest* is strictly newer than *installed*.
-
-   Uses PEP 440 parsing so that pre-release / dev versions of *installed*
-   (e.g. ``4.6.0rc1``) are correctly recognised as newer than an older
-   stable release on PyPI (e.g. ``4.5.2``).
-
-
-.. py:function:: _apply_sidebar_logo()
-
-   Re-apply the sidebar logo from session state (for sub-pages).
-
 
 .. py:function:: standard_page_config(page_title: str, layout: str = 'wide', **kwargs)
 

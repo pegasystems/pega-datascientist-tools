@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/version-switcher.css?v=6293ef20" />
     
     
 
@@ -186,19 +187,24 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../index.html">
   <div class="sidebar-logo-container">
     <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">pdstools</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+</a><div class="version-switcher" data-current-version="4.7.1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">4.7.1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
-<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+<div id="searchbox"></div><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
@@ -281,32 +287,24 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
-</ul>
-</li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
 </ul>
 </li>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
 </ul>
 </li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
@@ -322,20 +320,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
 </ul>
 </li>
@@ -344,7 +342,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
@@ -364,7 +362,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
@@ -379,7 +377,6 @@
 
 </div>
 </div>
-
       </div>
       
     </div>
@@ -432,18 +429,6 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.logger" title="pdstools.decision_analyzer.utils.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY" title="pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_INTERACTION_ID_RAW_KEY</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._NUMERIC_OPS" title="pdstools.decision_analyzer.utils._NUMERIC_OPS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_NUMERIC_OPS</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._OP_PREFIXES" title="pdstools.decision_analyzer.utils._OP_PREFIXES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_OP_PREFIXES</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._DATE_RE" title="pdstools.decision_analyzer.utils._DATE_RE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_DATE_RE</span></code></a></p></td>
-<td><p></p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -486,26 +471,14 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.rename_and_cast_types" title="pdstools.decision_analyzer.utils.rename_and_cast_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_and_cast_types</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Rename columns and cast data types based on table definition.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._cast_columns" title="pdstools.decision_analyzer.utils._cast_columns"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_cast_columns</span></code></a>(→ polars.LazyFrame)</p></td>
-<td><p>Cast columns to their target types.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_table_definition" title="pdstools.decision_analyzer.utils.get_table_definition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_definition</span></code></a>(table)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_table_definition" title="pdstools.decision_analyzer.utils.get_table_definition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_definition</span></code></a>(table)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.create_hierarchical_selectors" title="pdstools.decision_analyzer.utils.create_hierarchical_selectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_hierarchical_selectors</span></code></a>(→ dict[str, dict[str, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.create_hierarchical_selectors" title="pdstools.decision_analyzer.utils.create_hierarchical_selectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_hierarchical_selectors</span></code></a>(→ dict[str, dict[str, ...)</p></td>
 <td><p>Create hierarchical filter options and calculate indices for selectbox widgets.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_scope_config" title="pdstools.decision_analyzer.utils.get_scope_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scope_config</span></code></a>(→ dict[str, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_scope_config" title="pdstools.decision_analyzer.utils.get_scope_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scope_config</span></code></a>(→ dict[str, ...)</p></td>
 <td><p>Generate scope configuration for lever application and plotting based on user selections.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._get_interaction_id_candidates" title="pdstools.decision_analyzer.utils._get_interaction_id_candidates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_interaction_id_candidates</span></code></a>(→ list[str])</p></td>
-<td><p>Build the set of possible interaction ID column names from the schema.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._find_interaction_id_column" title="pdstools.decision_analyzer.utils._find_interaction_id_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_find_interaction_id_column</span></code></a>(→ str)</p></td>
-<td><p>Return the first matching interaction ID column name from the data.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._determine_output_directory" title="pdstools.decision_analyzer.utils._determine_output_directory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_determine_output_directory</span></code></a>(→ pathlib.Path)</p></td>
-<td><p>Determine the best output directory for cached/sampled files.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.sample_interactions" title="pdstools.decision_analyzer.utils.sample_interactions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_interactions</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Sample interactions from a LazyFrame before ingestion.</p></td>
@@ -522,17 +495,11 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.parse_filter_specs" title="pdstools.decision_analyzer.utils.parse_filter_specs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_filter_specs</span></code></a>(→ polars.Expr)</p></td>
 <td><p>Parse <code class="docutils literal notranslate"><span class="pre">--filter</span></code> specs into a combined Polars filter expression.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._parse_single_spec" title="pdstools.decision_analyzer.utils._parse_single_spec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_parse_single_spec</span></code></a>(→ polars.Expr)</p></td>
-<td><p>Parse one filter spec string into a Polars expression.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.format_count_for_filename" title="pdstools.decision_analyzer.utils.format_count_for_filename"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_count_for_filename</span></code></a>(→ str)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.format_count_for_filename" title="pdstools.decision_analyzer.utils.format_count_for_filename"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_count_for_filename</span></code></a>(→ str)</p></td>
 <td><p>Format an interaction count for use in filenames.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.should_cache_source" title="pdstools.decision_analyzer.utils.should_cache_source"><code class="xref py py-obj docutils literal notranslate"><span class="pre">should_cache_source</span></code></a>(→ bool)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.should_cache_source" title="pdstools.decision_analyzer.utils.should_cache_source"><code class="xref py py-obj docutils literal notranslate"><span class="pre">should_cache_source</span></code></a>(→ bool)</p></td>
 <td><p>Return True if source should be cached as parquet.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils._read_source_metadata" title="pdstools.decision_analyzer.utils._read_source_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_read_source_metadata</span></code></a>(→ dict[str, str | float] | None)</p></td>
-<td><p>Read pdstools metadata from a parquet file if it exists.</p></td>
 </tr>
 </tbody>
 </table>
@@ -606,11 +573,6 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.ColumnResolver.final_columns">
 <span class="sig-name descname"><span class="pre">final_columns</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.ColumnResolver.final_columns" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.ColumnResolver._resolved">
-<span class="sig-name descname"><span class="pre">_resolved</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.ColumnResolver._resolved" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -780,26 +742,6 @@ and ‘type’ keys</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._cast_columns">
-<span class="sig-name descname"><span class="pre">_cast_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html#pdstools.infinity.resources.prediction_studio.base.ModelAttributes.type" title="pdstools.infinity.resources.prediction_studio.base.ModelAttributes.type"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._cast_columns" title="Link to this definition">¶</a></dt>
-<dd><p>Cast columns to their target types.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The dataframe to process</p></li>
-<li><p><strong>type_mapping</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html#pdstools.infinity.resources.prediction_studio.base.ModelAttributes.type" title="pdstools.infinity.resources.prediction_studio.base.ModelAttributes.type"><em>type</em></a><em>[</em><em>pl.DataType</em><em>]</em><em>]</em>) – Mapping of column names to their target types</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dataframe with columns cast to target types</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.get_table_definition">
 <span class="sig-name descname"><span class="pre">get_table_definition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.utils.get_table_definition" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -875,63 +817,6 @@ selected_action: Currently selected action (optional)</p>
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.logger">
 <span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.logger" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY">
-<span class="sig-name descname"><span class="pre">_INTERACTION_ID_RAW_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pxInteractionID'</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._get_interaction_id_candidates">
-<span class="sig-name descname"><span class="pre">_get_interaction_id_candidates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._get_interaction_id_candidates" title="Link to this definition">¶</a></dt>
-<dd><p>Build the set of possible interaction ID column names from the schema.</p>
-<p>Collects the raw key, display name, and aliases from both table
-definitions so this stays in sync with <code class="docutils literal notranslate"><span class="pre">column_schema.py</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._find_interaction_id_column">
-<span class="sig-name descname"><span class="pre">_find_interaction_id_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._find_interaction_id_column" title="Link to this definition">¶</a></dt>
-<dd><p>Return the first matching interaction ID column name from the data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><em>set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._determine_output_directory">
-<span class="sig-name descname"><span class="pre">_determine_output_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._determine_output_directory" title="Link to this definition">¶</a></dt>
-<dd><p>Determine the best output directory for cached/sampled files.</p>
-<p>Priority order:
-1. If output_dir is explicitly provided, use that
-2. Otherwise, if source_path is a file, use its parent directory (if writeable)
-3. Otherwise, if source_path is a directory, use its parent directory (if writeable)
-4. Otherwise, fall back to current directory</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>source_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – Path to the source file or directory.</p></li>
-<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – Explicitly requested output directory (takes precedence if provided).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Directory to use for output.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path</p>
-</dd>
-</dl>
-</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.sample_interactions">
@@ -1110,21 +995,6 @@ Resolution is case-insensitive.</p>
 </dl>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._NUMERIC_OPS">
-<span class="sig-name descname"><span class="pre">_NUMERIC_OPS</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._NUMERIC_OPS" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._OP_PREFIXES">
-<span class="sig-name descname"><span class="pre">_OP_PREFIXES</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._OP_PREFIXES" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._DATE_RE">
-<span class="sig-name descname"><span class="pre">_DATE_RE</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._DATE_RE" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.parse_filter_specs">
 <span class="sig-name descname"><span class="pre">parse_filter_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filter_specs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.parse_filter_specs" title="Link to this definition">¶</a></dt>
@@ -1155,23 +1025,6 @@ date range (detected when the value matches the <code class="docutils literal no
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If a spec is malformed or references an unknown column.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._parse_single_spec">
-<span class="sig-name descname"><span class="pre">_parse_single_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._parse_single_spec" title="Link to this definition">¶</a></dt>
-<dd><p>Parse one filter spec string into a Polars expression.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>available_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><em>set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.Expr</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1231,24 +1084,6 @@ but unnecessary for single parquet files which are already optimized.</p>
 <span class="go">False</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils._read_source_metadata">
-<span class="sig-name descname"><span class="pre">_read_source_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils._read_source_metadata" title="Link to this definition">¶</a></dt>
-<dd><p>Read pdstools metadata from a parquet file if it exists.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>source_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to the parquet file to check.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dictionary with keys: source_file, sample_percentage, method
-Returns None if file doesn’t exist, is not parquet, or lacks metadata.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a> or None</p>
-</dd>
-</dl>
 </dd></dl>
 
 </section>
@@ -1330,7 +1165,6 @@ Returns None if file doesn’t exist, is not parquet, or lacks metadata.</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.type_mapping"><code class="docutils literal notranslate"><span class="pre">type_mapping</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.columns_to_drop"><code class="docutils literal notranslate"><span class="pre">columns_to_drop</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.final_columns"><code class="docutils literal notranslate"><span class="pre">final_columns</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver._resolved"><code class="docutils literal notranslate"><span class="pre">_resolved</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.__post_init__"><code class="docutils literal notranslate"><span class="pre">__post_init__()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.resolve"><code class="docutils literal notranslate"><span class="pre">resolve()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ColumnResolver.get_missing_columns"><code class="docutils literal notranslate"><span class="pre">get_missing_columns()</span></code></a></li>
@@ -1346,27 +1180,17 @@ Returns None if file doesn’t exist, is not parquet, or lacks metadata.</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.resolve_aliases"><code class="docutils literal notranslate"><span class="pre">resolve_aliases()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.determine_extract_type"><code class="docutils literal notranslate"><span class="pre">determine_extract_type()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.rename_and_cast_types"><code class="docutils literal notranslate"><span class="pre">rename_and_cast_types()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._cast_columns"><code class="docutils literal notranslate"><span class="pre">_cast_columns()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_table_definition"><code class="docutils literal notranslate"><span class="pre">get_table_definition()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.create_hierarchical_selectors"><code class="docutils literal notranslate"><span class="pre">create_hierarchical_selectors()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_scope_config"><code class="docutils literal notranslate"><span class="pre">get_scope_config()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY"><code class="docutils literal notranslate"><span class="pre">_INTERACTION_ID_RAW_KEY</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._get_interaction_id_candidates"><code class="docutils literal notranslate"><span class="pre">_get_interaction_id_candidates()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._find_interaction_id_column"><code class="docutils literal notranslate"><span class="pre">_find_interaction_id_column()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._determine_output_directory"><code class="docutils literal notranslate"><span class="pre">_determine_output_directory()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.sample_interactions"><code class="docutils literal notranslate"><span class="pre">sample_interactions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.prepare_and_save"><code class="docutils literal notranslate"><span class="pre">prepare_and_save()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.parse_sample_flag"><code class="docutils literal notranslate"><span class="pre">parse_sample_flag()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.resolve_filter_column"><code class="docutils literal notranslate"><span class="pre">resolve_filter_column()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._NUMERIC_OPS"><code class="docutils literal notranslate"><span class="pre">_NUMERIC_OPS</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._OP_PREFIXES"><code class="docutils literal notranslate"><span class="pre">_OP_PREFIXES</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._DATE_RE"><code class="docutils literal notranslate"><span class="pre">_DATE_RE</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.parse_filter_specs"><code class="docutils literal notranslate"><span class="pre">parse_filter_specs()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._parse_single_spec"><code class="docutils literal notranslate"><span class="pre">_parse_single_spec()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.format_count_for_filename"><code class="docutils literal notranslate"><span class="pre">format_count_for_filename()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.should_cache_source"><code class="docutils literal notranslate"><span class="pre">should_cache_source()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils._read_source_metadata"><code class="docutils literal notranslate"><span class="pre">_read_source_metadata()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1388,5 +1212,6 @@ Returns None if file doesn’t exist, is not parquet, or lacks metadata.</p>
     <script src="../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

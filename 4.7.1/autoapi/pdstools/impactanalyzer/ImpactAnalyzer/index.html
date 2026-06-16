@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/version-switcher.css?v=6293ef20" />
     
     
 
@@ -186,19 +187,24 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../index.html">
   <div class="sidebar-logo-container">
     <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">pdstools</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+</a><div class="version-switcher" data-current-version="4.7.1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">4.7.1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
-<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+<div id="searchbox"></div><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
@@ -281,32 +287,24 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
-</ul>
-</li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
 </ul>
 </li>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
 </ul>
 </li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
@@ -322,20 +320,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
 </ul>
 </li>
@@ -344,7 +342,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
@@ -364,7 +362,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
@@ -379,7 +377,6 @@
 
 </div>
 </div>
-
       </div>
       
     </div>
@@ -440,13 +437,13 @@ NBA strategies including adaptive models, propensity prioritization, lever usage
 and engagement policies.</p>
 <p>Data can be loaded from three sources:</p>
 <ul class="simple">
-<li><p><strong>PDC exports</strong> via <a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.from_pdc" title="pdstools.impactanalyzer.ImpactAnalyzer.from_pdc"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_pdc()</span></code></a>: Uses pre-aggregated experiment data from
+<li><p><strong>PDC exports</strong> via <a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_pdc" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_pdc"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_pdc()</span></code></a>: Uses pre-aggregated experiment data from
 PDC JSON exports. Value Lift is copied from PDC data as it cannot be
 re-calculated from the available numbers.</p></li>
-<li><p><strong>VBD exports</strong> via <a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.from_vbd" title="pdstools.impactanalyzer.ImpactAnalyzer.from_vbd"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_vbd()</span></code></a>: Reconstructs experiment metrics from raw
+<li><p><strong>VBD exports</strong> via <a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_vbd()</span></code></a>: Reconstructs experiment metrics from raw
 VBD Actuals or Scenario Planner Actuals data. Allows flexible time ranges and
 data selection. Value Lift is calculated from ValuePerImpression.</p></li>
-<li><p><strong>Interaction History</strong> via <a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.from_ih" title="pdstools.impactanalyzer.ImpactAnalyzer.from_ih"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_ih()</span></code></a>: Loads experiment metrics from
+<li><p><strong>Interaction History</strong> via <a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_ih" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_ih"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_ih()</span></code></a>: Loads experiment metrics from
 Interaction History data. Not yet implemented.</p></li>
 </ul>
 <div class="math-wrapper docutils container">
@@ -489,7 +486,7 @@ Interaction History data. Not yet implemented.</p></li>
 <dl class="simple">
 <dt><a class="reference internal" href="../../adm/ADMDatamart/index.html#module-pdstools.adm.ADMDatamart" title="pdstools.adm.ADMDatamart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></dt><dd><p>For ADM model analysis.</p>
 </dd>
-<dt><a class="reference internal" href="../../ih/index.html#pdstools.ih.IH" title="pdstools.ih.IH"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.ih.IH</span></code></a></dt><dd><p>For Interaction History analysis.</p>
+<dt><a class="reference internal" href="../../ih/IH/index.html#module-pdstools.ih.IH" title="pdstools.ih.IH"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.ih.IH</span></code></a></dt><dd><p>For Interaction History analysis.</p>
 </dd>
 </dl>
 </div>
@@ -574,25 +571,6 @@ is True.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._build_outcome_filter">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_build_outcome_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">outcome_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._build_outcome_filter" title="Link to this definition">¶</a></dt>
-<dd><p>Return a boolean Polars expression for the given metric.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – “Impressions” or “Accepts”</p></li>
-<li><p><strong>outcome_labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em> or </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">{&quot;Impressions&quot;:</span> <span class="pre">[...],</span> <span class="pre">&quot;Accepts&quot;:</span> <span class="pre">[...]}</span></code> → global override applied to all channels.
-<code class="docutils literal notranslate"><span class="pre">{&quot;Channel/Dir&quot;:</span> <span class="pre">{&quot;Impressions&quot;:</span> <span class="pre">[...],</span> <span class="pre">&quot;Accepts&quot;:</span> <span class="pre">[...]},</span> <span class="pre">...}</span></code> → per-channel.
-Channels absent from a per-channel config return False for this metric.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.Expr</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_vbd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vbd_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">os.PathLike</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">outcome_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd" title="Link to this definition">¶</a></dt>
 <dt class="sig sig-object py">
@@ -622,7 +600,7 @@ to the class-level defaults:</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Default is None (use <a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.outcome_labels" title="pdstools.impactanalyzer.ImpactAnalyzer.outcome_labels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">outcome_labels</span></code></a> class attribute).</p>
+<p>Default is None (use <a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.outcome_labels" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.outcome_labels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">outcome_labels</span></code></a> class attribute).</p>
 </p></li>
 <li><p><strong>return_df</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, return processed data as LazyFrame instead of
 ImpactAnalyzer instance. Default is False.</p></li>
@@ -677,31 +655,6 @@ or None if the source contains no data.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._normalize_pdc_ia_data">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">_normalize_pdc_ia_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_wide_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._normalize_pdc_ia_data" title="Link to this definition">¶</a></dt>
-<dd><p>Transform PDC Impact Analyzer JSON into normalized long format.</p>
-<p>Converts the hierarchical PDC JSON structure (organized by experiments)
-into a flat structure organized by control groups with impression and
-accept counts.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>json_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Parsed JSON data from PDC export.</p></li>
-<li><p><strong>query</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>]</em><em>, </em><em>optional</em>) – Polars expression to filter the data. Default is None.</p></li>
-<li><p><strong>return_wide_df</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, return intermediate wide-format data. Default is False.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Normalized data with columns: SnapshotTime, Channel, ControlGroup,
-Impressions, Accepts, ValuePerImpression, Pega_ValueLift.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel">
 <span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel" title="Link to this definition">¶</a></dt>
 <dd><p>Get experiment summary pivoted by channel.</p>
@@ -724,9 +677,9 @@ experiment, with one row per channel.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.overall_summary" title="pdstools.impactanalyzer.ImpactAnalyzer.overall_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overall_summary</span></code></a></dt><dd><p>Summary without channel breakdown.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.overall_summary" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.overall_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overall_summary</span></code></a></dt><dd><p>Summary without channel breakdown.</p>
 </dd>
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.summarize_experiments" title="pdstools.impactanalyzer.ImpactAnalyzer.summarize_experiments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_experiments</span></code></a></dt><dd><p>Long-format experiment summary.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_experiments</span></code></a></dt><dd><p>Long-format experiment summary.</p>
 </dd>
 </dl>
 </div>
@@ -758,9 +711,9 @@ experiment, aggregated across all data.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.summary_by_channel" title="pdstools.impactanalyzer.ImpactAnalyzer.summary_by_channel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary_by_channel</span></code></a></dt><dd><p>Summary with channel breakdown.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary_by_channel</span></code></a></dt><dd><p>Summary with channel breakdown.</p>
 </dd>
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.summarize_experiments" title="pdstools.impactanalyzer.ImpactAnalyzer.summarize_experiments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_experiments</span></code></a></dt><dd><p>Long-format experiment summary.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_experiments</span></code></a></dt><dd><p>Long-format experiment summary.</p>
 </dd>
 </dl>
 </div>
@@ -838,11 +791,11 @@ for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.summarize_control_groups" title="pdstools.impactanalyzer.ImpactAnalyzer.summarize_control_groups"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_control_groups</span></code></a></dt><dd><p>Lower-level control group aggregation.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_control_groups" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_control_groups"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_control_groups</span></code></a></dt><dd><p>Lower-level control group aggregation.</p>
 </dd>
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.overall_summary" title="pdstools.impactanalyzer.ImpactAnalyzer.overall_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overall_summary</span></code></a></dt><dd><p>Pivoted overall summary.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.overall_summary" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.overall_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overall_summary</span></code></a></dt><dd><p>Pivoted overall summary.</p>
 </dd>
-<dt><a class="reference internal" href="../index.html#pdstools.impactanalyzer.ImpactAnalyzer.summary_by_channel" title="pdstools.impactanalyzer.ImpactAnalyzer.summary_by_channel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary_by_channel</span></code></a></dt><dd><p>Pivoted summary by channel.</p>
+<dt><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary_by_channel</span></code></a></dt><dd><p>Pivoted summary by channel.</p>
 </dd>
 </dl>
 </div>
@@ -933,10 +886,8 @@ for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).</p>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_controlgroups"><code class="docutils literal notranslate"><span class="pre">default_ia_controlgroups</span></code></a></li>
 <li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_pdc"><code class="docutils literal notranslate"><span class="pre">from_pdc()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._build_outcome_filter"><code class="docutils literal notranslate"><span class="pre">_build_outcome_filter()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd"><code class="docutils literal notranslate"><span class="pre">from_vbd()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_ih"><code class="docutils literal notranslate"><span class="pre">from_ih()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer._normalize_pdc_ia_data"><code class="docutils literal notranslate"><span class="pre">_normalize_pdc_ia_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summary_by_channel"><code class="docutils literal notranslate"><span class="pre">summary_by_channel()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.overall_summary"><code class="docutils literal notranslate"><span class="pre">overall_summary()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_control_groups"><code class="docutils literal notranslate"><span class="pre">summarize_control_groups()</span></code></a></li>
@@ -966,5 +917,6 @@ for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).</p>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

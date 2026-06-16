@@ -9,105 +9,12 @@ Classes
 
 .. autoapisummary::
 
-   pdstools.infinity.resources.prediction_studio.v24_2.prediction._PredictionV24_2Mixin
    pdstools.infinity.resources.prediction_studio.v24_2.prediction.Prediction
    pdstools.infinity.resources.prediction_studio.v24_2.prediction.AsyncPrediction
 
 
 Module Contents
 ---------------
-
-.. py:class:: _PredictionV24_2Mixin
-
-   v24.2 Prediction business logic — shared parts.
-
-
-   .. py:attribute:: prediction_id
-      :type:  str
-
-
-   .. py:method:: _get_models() -> list[dict[str, str]]
-      :async:
-
-
-      Internal function to fetch models linked to a specific prediction.
-
-      This function gathers all models that are connected to a particular
-      prediction.  It organizes these models into three groups: default
-      models, category models, and supporting models, each serving a
-      unique role in making the prediction.
-
-      :returns: A collection of model dicts associated with the prediction.
-      :rtype: list of dict
-
-
-
-   .. py:method:: get_metric(*, metric: pdstools.infinity.internal._constants.METRIC, start_date: datetime.date | None = None, end_date: datetime.date | None = None, frequency: Literal['Daily', 'Weekly', 'Monthly'] = 'Daily') -> polars.DataFrame
-      :async:
-
-
-      Fetches and returns metric data for a prediction within a specified
-      date range, using datetime objects for dates.
-
-      This method retrieves metric data, such as performance or usage
-      statistics, for a given prediction. The data can be fetched for a
-      specific period and at a defined frequency (daily, weekly, or monthly).
-
-      :param metric: The type of metric to retrieve.
-      :type metric: METRIC
-      :param start_date: The start date for the data retrieval.
-      :type start_date: datetime
-      :param end_date: The end date for the data retrieval. If not provided, data is
-                       fetched until the current date.
-      :type end_date: datetime, optional
-      :param frequency: The frequency at which to retrieve the data. Defaults to "Daily".
-      :type frequency: {"Daily", "Weekly", "Monthly"}, optional
-
-      :returns: A DataFrame containing the requested metric data, including
-                values, snapshot times, and data usage.
-      :rtype: pl.DataFrame
-
-      :raises NoMonitoringInfo: If no monitoring data is available for the given parameters.
-
-
-
-   .. py:method:: package_staged_changes(message: str | None = None)
-      :async:
-
-
-      Initiates the deployment of pending changes for a prediction model
-      into the production setting.
-
-      This function initiates a Change Request (CR) to either deploy pending
-      changes directly to a Revision Manager, if available, or to create a
-      branch with all pending changes in Prediction Studio.  An optional
-      message can be included to detail the nature of the changes being
-      deployed.
-
-      :param message: Descriptive message about the changes being deployed. Defaults to
-                      "Approving the changes" if not specified.
-      :type message: str, optional
-
-      :returns: Details the result of the deployment process.
-      :rtype: dict
-
-
-
-   .. py:method:: get_staged_changes()
-      :async:
-
-
-      Retrieves a list of changes for a specific prediction.
-
-      This method is used to fetch the list of changes that have been made
-      to a prediction but not yet deployed to the production environment.
-      The changes are staged and pending deployment.
-
-      :returns: A list of changes staged for the prediction, detailing each
-                modification pending deployment.
-      :rtype: list
-
-
 
 .. py:class:: Prediction(client, *, predictionId: str, label: str, status: str, lastUpdateTime: str, objective: str | None = None, subject: str | None = None)
 

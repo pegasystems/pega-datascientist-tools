@@ -215,58 +215,6 @@ Module Contents
 
 
 
-   .. py:method:: _log_params()
-
-
-   .. py:method:: _read_params()
-
-
-   .. py:method:: _get_context_dict(context_info: str) -> dict
-      :staticmethod:
-
-
-
-   .. py:method:: _get_context_string(context_info: str) -> str
-
-
-   .. py:method:: _read_template(template_filename: str) -> str
-      :staticmethod:
-
-
-      Read a template file and return its content.
-
-      Templates contain placeholder strings (e.g., {ROOT_DIR}, {TOP_N}) that
-      will be substituted with actual values during report generation.
-
-      :param template_filename: Name of the template file in the templates folder
-      :type template_filename: str
-
-      :returns: Template content with placeholders intact
-      :rtype: str
-
-
-
-   .. py:method:: _write_single_context_file(embed_path_for_batch: str, filename: str, template: str, context_str: str, context_label: str)
-
-
-   .. py:method:: _write_header_to_file(file_batch_nb: str, filename: str)
-
-
-   .. py:method:: _append_content_to_file(filename: str, template: str, context_dict: dict, context_label: str)
-
-
-   .. py:method:: _get_unique_contexts()
-
-
-   .. py:method:: _generate_by_context_qmds()
-
-
-   .. py:method:: _generate_overview_qmd()
-
-
-   .. py:method:: _generate_introduction_qmd()
-
-
    .. py:method:: run()
 
       Main method to generate the report files.

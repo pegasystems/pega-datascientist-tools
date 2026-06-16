@@ -9,15 +9,12 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.pega_io.API._read_client_credential_file
    pdstools.pega_io.API.get_url
    pdstools.pega_io.API.get_token
 
 
 Module Contents
 ---------------
-
-.. py:function:: _read_client_credential_file(credential_file: os.PathLike)
 
 .. py:function:: get_url(credential_file: os.PathLike)
 

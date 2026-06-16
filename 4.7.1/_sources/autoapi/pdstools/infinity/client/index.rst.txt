@@ -31,9 +31,6 @@ Module Contents
    .. py:attribute:: knowledge_buddy
 
 
-   .. py:attribute:: _VERSION_DEPENDENT_RESOURCES
-
-
    .. py:method:: __getattr__(name: str)
 
 
@@ -54,9 +51,6 @@ Module Contents
 
 
    .. py:attribute:: knowledge_buddy
-
-
-   .. py:attribute:: _VERSION_DEPENDENT_RESOURCES
 
 
    .. py:method:: __getattr__(name: str)

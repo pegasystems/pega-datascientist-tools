@@ -20,10 +20,6 @@ Module Contents
    .. py:attribute:: vf
 
 
-   .. py:attribute:: _quantile_from_threshold
-      :type:  dict[float, float]
-
-
    .. py:method:: get_customer_summary(*, threshold: float | None = None) -> polars.LazyFrame
 
       Computes the summary of propensities for all customers

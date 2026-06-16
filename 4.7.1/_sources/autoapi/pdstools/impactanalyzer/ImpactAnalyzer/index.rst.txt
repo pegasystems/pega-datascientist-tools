@@ -134,21 +134,6 @@ Module Contents
 
 
 
-   .. py:method:: _build_outcome_filter(metric: str, outcome_labels: dict | None) -> polars.Expr
-      :classmethod:
-
-
-      Return a boolean Polars expression for the given metric.
-
-      :param metric: "Impressions" or "Accepts"
-      :type metric: str
-      :param outcome_labels: ``{"Impressions": [...], "Accepts": [...]}`` → global override applied to all channels.
-                             ``{"Channel/Dir": {"Impressions": [...], "Accepts": [...]}, ...}`` → per-channel.
-                             Channels absent from a per-channel config return False for this metric.
-      :type outcome_labels: dict or None
-
-
-
    .. py:method:: from_vbd(vbd_source: os.PathLike | str, *, outcome_labels: dict | None = None, return_df: Literal[True]) -> polars.LazyFrame | None
                   from_vbd(vbd_source: os.PathLike | str, *, outcome_labels: dict | None = None) -> ImpactAnalyzer | None
       :classmethod:
@@ -222,29 +207,6 @@ Module Contents
       :rtype: ImpactAnalyzer or pl.LazyFrame or None
 
       :raises NotImplementedError: This method is not yet implemented.
-
-
-
-   .. py:method:: _normalize_pdc_ia_data(json_data: dict, *, query: pdstools.utils.types.QUERY | None = None, return_wide_df: bool = False) -> polars.LazyFrame
-      :classmethod:
-
-
-      Transform PDC Impact Analyzer JSON into normalized long format.
-
-      Converts the hierarchical PDC JSON structure (organized by experiments)
-      into a flat structure organized by control groups with impression and
-      accept counts.
-
-      :param json_data: Parsed JSON data from PDC export.
-      :type json_data: dict
-      :param query: Polars expression to filter the data. Default is None.
-      :type query: Optional[QUERY], optional
-      :param return_wide_df: If True, return intermediate wide-format data. Default is False.
-      :type return_wide_df: bool, optional
-
-      :returns: Normalized data with columns: SnapshotTime, Channel, ControlGroup,
-                Impressions, Accepts, ValuePerImpression, Pega_ValueLift.
-      :rtype: pl.LazyFrame
 
 
 

@@ -13,10 +13,6 @@ Attributes
    pdstools.decision_analyzer.utils.PRIO_FACTORS
    pdstools.decision_analyzer.utils.PRIO_COMPONENTS
    pdstools.decision_analyzer.utils.logger
-   pdstools.decision_analyzer.utils._INTERACTION_ID_RAW_KEY
-   pdstools.decision_analyzer.utils._NUMERIC_OPS
-   pdstools.decision_analyzer.utils._OP_PREFIXES
-   pdstools.decision_analyzer.utils._DATE_RE
 
 
 Classes
@@ -39,22 +35,16 @@ Functions
    pdstools.decision_analyzer.utils.resolve_aliases
    pdstools.decision_analyzer.utils.determine_extract_type
    pdstools.decision_analyzer.utils.rename_and_cast_types
-   pdstools.decision_analyzer.utils._cast_columns
    pdstools.decision_analyzer.utils.get_table_definition
    pdstools.decision_analyzer.utils.create_hierarchical_selectors
    pdstools.decision_analyzer.utils.get_scope_config
-   pdstools.decision_analyzer.utils._get_interaction_id_candidates
-   pdstools.decision_analyzer.utils._find_interaction_id_column
-   pdstools.decision_analyzer.utils._determine_output_directory
    pdstools.decision_analyzer.utils.sample_interactions
    pdstools.decision_analyzer.utils.prepare_and_save
    pdstools.decision_analyzer.utils.parse_sample_flag
    pdstools.decision_analyzer.utils.resolve_filter_column
    pdstools.decision_analyzer.utils.parse_filter_specs
-   pdstools.decision_analyzer.utils._parse_single_spec
    pdstools.decision_analyzer.utils.format_count_for_filename
    pdstools.decision_analyzer.utils.should_cache_source
-   pdstools.decision_analyzer.utils._read_source_metadata
 
 
 Module Contents
@@ -117,12 +107,6 @@ Module Contents
    .. py:attribute:: final_columns
       :type:  list[str]
       :value: []
-
-
-
-   .. py:attribute:: _resolved
-      :type:  bool
-      :value: False
 
 
 
@@ -222,19 +206,6 @@ Module Contents
    :rtype: pl.LazyFrame
 
 
-.. py:function:: _cast_columns(df: polars.LazyFrame, type_mapping: dict[str, type[polars.DataType]]) -> polars.LazyFrame
-
-   Cast columns to their target types.
-
-   :param df: The dataframe to process
-   :type df: pl.LazyFrame
-   :param type_mapping: Mapping of column names to their target types
-   :type type_mapping: dict[str, type[pl.DataType]]
-
-   :returns: Dataframe with columns cast to target types
-   :rtype: pl.LazyFrame
-
-
 .. py:function:: get_table_definition(table: str)
 
 .. py:function:: create_hierarchical_selectors(data: polars.LazyFrame, selected_issue: str | None = None, selected_group: str | None = None, selected_action: str | None = None) -> dict[str, dict[str, list[str] | int]]
@@ -278,42 +249,6 @@ Module Contents
 
 
 .. py:data:: logger
-
-.. py:data:: _INTERACTION_ID_RAW_KEY
-   :value: 'pxInteractionID'
-
-
-.. py:function:: _get_interaction_id_candidates() -> list[str]
-
-   Build the set of possible interaction ID column names from the schema.
-
-   Collects the raw key, display name, and aliases from both table
-   definitions so this stays in sync with ``column_schema.py``.
-
-
-.. py:function:: _find_interaction_id_column(columns: set[str]) -> str
-
-   Return the first matching interaction ID column name from the data.
-
-
-.. py:function:: _determine_output_directory(source_path: str | None, output_dir: str | None) -> pathlib.Path
-
-   Determine the best output directory for cached/sampled files.
-
-   Priority order:
-   1. If output_dir is explicitly provided, use that
-   2. Otherwise, if source_path is a file, use its parent directory (if writeable)
-   3. Otherwise, if source_path is a directory, use its parent directory (if writeable)
-   4. Otherwise, fall back to current directory
-
-   :param source_path: Path to the source file or directory.
-   :type source_path: str | None
-   :param output_dir: Explicitly requested output directory (takes precedence if provided).
-   :type output_dir: str | None
-
-   :returns: Directory to use for output.
-   :rtype: Path
-
 
 .. py:function:: sample_interactions(df: polars.LazyFrame, n: int | None = None, fraction: float | None = None, id_column: str | None = None, use_random: bool = False, total_interactions: int | None = None) -> polars.LazyFrame
 
@@ -475,12 +410,6 @@ Module Contents
    :raises ValueError: If *name* cannot be resolved to any column in *available_columns*.
 
 
-.. py:data:: _NUMERIC_OPS
-
-.. py:data:: _OP_PREFIXES
-
-.. py:data:: _DATE_RE
-
 .. py:function:: parse_filter_specs(filter_specs: list[str], available_columns: set[str]) -> polars.Expr
 
    Parse ``--filter`` specs into a combined Polars filter expression.
@@ -506,11 +435,6 @@ Module Contents
    :rtype: pl.Expr
 
    :raises ValueError: If a spec is malformed or references an unknown column.
-
-
-.. py:function:: _parse_single_spec(spec: str, available_columns: set[str]) -> polars.Expr
-
-   Parse one filter spec string into a Polars expression.
 
 
 .. py:function:: format_count_for_filename(count: int) -> str
@@ -558,17 +482,5 @@ Module Contents
    False
    >>> should_cache_source(None)
    False
-
-
-.. py:function:: _read_source_metadata(source_path: str) -> dict[str, str | float] | None
-
-   Read pdstools metadata from a parquet file if it exists.
-
-   :param source_path: Path to the parquet file to check.
-   :type source_path: str
-
-   :returns: Dictionary with keys: source_file, sample_percentage, method
-             Returns None if file doesn't exist, is not parquet, or lacks metadata.
-   :rtype: dict or None
 
 

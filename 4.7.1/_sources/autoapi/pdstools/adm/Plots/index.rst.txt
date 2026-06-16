@@ -164,9 +164,6 @@ Module Contents
 
 
 
-   .. py:method:: _boxplot_pre_aggregated(df: polars.LazyFrame, *, y_col: str, metric_col: str, metric_weight_col: str | None = None, legend_col: str | None = None, return_df: bool = False)
-
-
    .. py:method:: predictor_performance(*, metric: str = 'Performance', top_n: int | None = None, active_only: bool = False, query: pdstools.utils.types.QUERY | None = None, return_df: bool = False)
 
       Plots a box plot of the performance of the predictors

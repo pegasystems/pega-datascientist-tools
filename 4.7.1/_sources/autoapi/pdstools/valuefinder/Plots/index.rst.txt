@@ -60,9 +60,6 @@ Module Contents
    .. py:method:: propensity_threshold(sample_size: int = 10000, stage='Eligibility') -> Figure
 
 
-   .. py:method:: _get_thresholds(thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, default: collections.abc.Iterable[float] | None = None) -> collections.abc.Iterable[float]
-
-
    .. py:method:: pie_charts(*, thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, rounding: int = 3)
 
 

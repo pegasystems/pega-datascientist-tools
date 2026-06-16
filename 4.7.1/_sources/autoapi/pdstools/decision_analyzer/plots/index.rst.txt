@@ -10,7 +10,6 @@ Attributes
 .. autoapisummary::
 
    pdstools.decision_analyzer.plots.DEFAULT_BOXPLOT_POINT_CAP
-   pdstools.decision_analyzer.plots._ECDF_MAX_ROWS
 
 
 Classes
@@ -43,12 +42,6 @@ Module Contents
 
 
 .. py:class:: Plot(decision_data)
-
-   .. py:attribute:: _decision_data
-
-
-   .. py:method:: _boxplot_point_cap() -> int
-
 
    .. py:method:: threshold_deciles(thresholding_on, thresholding_name, return_df=False)
 
@@ -190,10 +183,6 @@ Module Contents
 
 
 .. py:function:: getTrendChart(df: polars.LazyFrame, stage: str = 'Output', return_df=False, level='Stage Group')
-
-.. py:data:: _ECDF_MAX_ROWS
-   :value: 50000
-
 
 .. py:function:: plot_priority_component_distribution(value_data: polars.LazyFrame, component: str, granularity: str, color_discrete_map: dict[str, str] | None = None)
 

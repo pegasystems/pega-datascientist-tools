@@ -101,14 +101,6 @@ Module Contents
    .. py:attribute:: plot
 
 
-   .. py:method:: _scan_outcome_labels() -> dict | None
-
-      Scan data for channel/outcome combinations and resolve defaults.
-
-      Returns None if the required columns are not present.
-
-
-
    .. py:method:: from_ds_export(ih_filename: os.PathLike | str, query: pdstools.utils.types.QUERY | None = None) -> IH
       :classmethod:
 

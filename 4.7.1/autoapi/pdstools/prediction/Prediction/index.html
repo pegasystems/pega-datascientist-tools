@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/version-switcher.css?v=6293ef20" />
     
     
 
@@ -186,19 +187,24 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../index.html">
   <div class="sidebar-logo-container">
     <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">pdstools</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+</a><div class="version-switcher" data-current-version="4.7.1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">4.7.1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
-<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+<div id="searchbox"></div><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
@@ -281,32 +287,24 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a><input aria-label="Toggle navigation of pdstools.infinity.internal" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_auth/index.html">pdstools.infinity.internal._auth</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_base_client/index.html">pdstools.infinity.internal._base_client</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_constants/index.html">pdstools.infinity.internal._constants</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_exceptions/index.html">pdstools.infinity.internal._exceptions</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_pagination/index.html">pdstools.infinity.internal._pagination</a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../infinity/internal/_resource/index.html">pdstools.infinity.internal._resource</a></li>
-</ul>
-</li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
 </ul>
 </li>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
 </ul>
 </li>
-<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
@@ -322,20 +320,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" checked="" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" checked="" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.prediction.Prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
 </ul>
 </li>
@@ -344,7 +342,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
@@ -364,7 +362,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
@@ -379,7 +377,6 @@
 
 </div>
 </div>
-
       </div>
       
     </div>
@@ -481,30 +478,6 @@ lift, CTR, and response counts over time.</p>
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.PredictionPlots.prediction">
 <span class="sig-name descname"><span class="pre">prediction</span></span><a class="headerlink" href="#pdstools.prediction.Prediction.PredictionPlots.prediction" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.prediction.Prediction.PredictionPlots._prediction_trend">
-<span class="sig-name descname"><span class="pre">_prediction_trend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.prediction.Prediction.PredictionPlots._prediction_trend" title="Link to this definition">¶</a></dt>
-<dd><p>Internal method to create trend plots for various metrics.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>period</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Time period for aggregation (e.g., “1d”, “1w”, “1mo”)</p></li>
-<li><p><strong>query</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>]</em>) – Optional query to filter the data</p></li>
-<li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The metric to plot (e.g., “Performance”, “Lift”, “CTR”)</p></li>
-<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Plot title</p></li>
-<li><p><strong>**kwargs</strong> – Additional keyword arguments passed directly to plotly.express.line
-See plotly.express.line documentation for all available options</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>(plotly figure, dataframe with plot data)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a></p>
-</dd>
-</dl>
-</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.PredictionPlots.performance_trend">
@@ -700,7 +673,7 @@ for further analysis, and apply correct typing and useful renaming.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The Polars LazyFrame representation of the prediction data.</p></li>
 <li><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – An optional query to apply to the input data.
-For details, see <a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils._apply_query" title="pdstools.utils.cdh_utils._apply_query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query()</span></code></a>.</p></li>
+For details, see <code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query()</span></code>.</p></li>
 </ul>
 </dd>
 </dl>
@@ -720,7 +693,7 @@ For details, see <a class="reference internal" href="../../utils/cdh_utils/index
 <dl class="simple">
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.prediction.PredictionPlots</span></code></dt><dd><p>The out of the box plots on the Prediction data</p>
 </dd>
-<dt><a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils._apply_query" title="pdstools.utils.cdh_utils._apply_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></a></dt><dd><p>How to query the Prediction class and methods</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></dt><dd><p>How to query the Prediction class and methods</p>
 </dd>
 </dl>
 </div>
@@ -786,7 +759,7 @@ and this method will be able to read in the underlying data.</p>
 <dl class="simple">
 <dt><a class="reference internal" href="../../pega_io/File/index.html#pdstools.pega_io.File.read_ds_export" title="pdstools.pega_io.File.read_ds_export"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.pega_io.File.read_ds_export</span></code></a></dt><dd><p>More information on file compatibility</p>
 </dd>
-<dt><a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils._apply_query" title="pdstools.utils.cdh_utils._apply_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></a></dt><dd><p>How to query the Prediction class and methods</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></dt><dd><p>How to query the Prediction class and methods</p>
 </dd>
 </dl>
 </div>
@@ -842,9 +815,9 @@ and this method will be able to read in the underlying data.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils._read_pdc" title="pdstools.utils.cdh_utils._read_pdc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._read_pdc</span></code></a></dt><dd><p>More information on PDC data processing</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._read_pdc</span></code></dt><dd><p>More information on PDC data processing</p>
 </dd>
-<dt><a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils._apply_query" title="pdstools.utils.cdh_utils._apply_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></a></dt><dd><p>How to query the Prediction class and methods</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils._apply_query</span></code></dt><dd><p>How to query the Prediction class and methods</p>
 </dd>
 </dl>
 </div>
@@ -1139,7 +1112,6 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots"><code class="docutils literal notranslate"><span class="pre">PredictionPlots</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots.dependencies"><code class="docutils literal notranslate"><span class="pre">dependencies</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots.prediction"><code class="docutils literal notranslate"><span class="pre">prediction</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots._prediction_trend"><code class="docutils literal notranslate"><span class="pre">_prediction_trend()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots.performance_trend"><code class="docutils literal notranslate"><span class="pre">performance_trend()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots.lift_trend"><code class="docutils literal notranslate"><span class="pre">lift_trend()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.PredictionPlots.ctr_trend"><code class="docutils literal notranslate"><span class="pre">ctr_trend()</span></code></a></li>
@@ -1184,5 +1156,6 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
     <script src="../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

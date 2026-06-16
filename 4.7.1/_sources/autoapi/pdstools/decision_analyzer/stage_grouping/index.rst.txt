@@ -21,8 +21,6 @@ Attributes
 .. autoapisummary::
 
    pdstools.decision_analyzer.stage_grouping.NBAD_PIPELINE
-   pdstools.decision_analyzer.stage_grouping._STAGE_DISPLAY_NAMES
-   pdstools.decision_analyzer.stage_grouping._STAGE_TO_GROUP
 
 
 Classes
@@ -73,12 +71,6 @@ Module Contents
 
 .. py:data:: NBAD_PIPELINE
    :type:  dict[str, StageGroupDef]
-
-.. py:data:: _STAGE_DISPLAY_NAMES
-   :type:  dict[str, str]
-
-.. py:data:: _STAGE_TO_GROUP
-   :type:  dict[str, str]
 
 .. py:function:: get_stage_group_display_name(internal_name: str) -> str
 

@@ -123,9 +123,6 @@ Module Contents
 
 
 
-   .. py:method:: _get_first_action_dates(df: polars.LazyFrame | None) -> polars.LazyFrame | None
-
-
    .. py:method:: from_ds_export(model_filename: str | None = None, predictor_filename: str | None = None, base_path: os.PathLike | str = '.', *, query: pdstools.utils.types.QUERY | None = None, extract_pyname_keys: bool = True, infer_schema_length: int = 10000)
       :classmethod:
 
@@ -258,18 +255,6 @@ Module Contents
 
 
 
-   .. py:method:: _validate_model_data(df: polars.LazyFrame | None, extract_pyname_keys: bool = True) -> polars.LazyFrame | None
-
-      Internal method to validate model data
-
-
-
-   .. py:method:: _validate_predictor_data(df: polars.LazyFrame | None) -> polars.LazyFrame | None
-
-      Internal method to validate predictor data
-
-
-
    .. py:method:: apply_predictor_categorization(categorization: polars.Expr | collections.abc.Callable[Ellipsis, polars.Expr] | dict[str, str | list[str]] = cdh_utils.default_predictor_categorization, *, use_regexp: bool = False, df: polars.LazyFrame | None = None)
 
       Apply a new predictor categorization to the datamart tables
@@ -393,11 +378,6 @@ Module Contents
       >>> last_data = datamart.get_last_data_for_report()
       >>> # Use in reports without additional processing
       >>> active_models = last_data.filter(pl.col("ResponseCount") > 1000)
-
-
-
-   .. py:method:: _minMaxScoresPerModel(bin_data: polars.LazyFrame) -> polars.LazyFrame
-      :classmethod:
 
 
 

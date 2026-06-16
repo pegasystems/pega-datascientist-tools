@@ -85,39 +85,3 @@ Module Contents
    .. py:method:: plot_contributions_by_context(context: dict[str, str], top_n: int = defaults.top_n, top_k: int = defaults.top_k, **filter_kwargs) -> tuple[plotly.graph_objects.Figure, plotly.graph_objects.Figure, list[plotly.graph_objects.Figure]]
 
 
-   .. py:method:: _resolve_kwargs(**filter_kwargs) -> tuple[pdstools.explanations.ExplanationsUtils._CONTRIBUTION_TYPE, dict]
-      :staticmethod:
-
-
-      Resolve plot filter kwargs into a display_by enum and aggregate kwargs.
-
-      Returns the ``display_by`` enum member and a dict suitable for spreading
-      into ``Aggregate`` methods (``sort_by`` as a string, plus ``descending``,
-      ``missing``, ``remaining``).
-
-
-
-   .. py:method:: _build_hover_customdata(df: polars.DataFrame, x_col: str)
-      :staticmethod:
-
-
-      Build customdata array and hovertemplate for contribution plots.
-
-      Expects df to contain a ``frequency_pct`` column.
-
-      Returns (customdata, hovertemplate) with columns:
-      predictor_name, predictor_type, contribution (x_col value), frequency_pct.
-
-
-
-   .. py:method:: _plot_overall_contributions(df: polars.DataFrame, x_col: str, y_col: str, x_title: str = X_AXIS_TITLE_DEFAULT, y_title: str = Y_AXIS_TITLE_DEFAULT, context: pdstools.explanations.ExplanationsUtils.ContextInfo | None = None) -> plotly.graph_objects.Figure
-
-
-   .. py:method:: _plot_predictor_contributions(df: polars.DataFrame, x_col: str, y_col: str, x_title: str = X_AXIS_TITLE_DEFAULT, y_title: str = Y_AXIS_TITLE_DEFAULT) -> list[plotly.graph_objects.Figure]
-
-
-   .. py:method:: _plot_context_table(context_info: pdstools.explanations.ExplanationsUtils.ContextInfo) -> plotly.graph_objects.Figure
-      :staticmethod:
-
-
-

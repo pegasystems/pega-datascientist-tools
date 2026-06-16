@@ -17,18 +17,6 @@ pdstools.utils.pega_outcomes
 
 
 
-Attributes
-----------
-
-.. autoapisummary::
-
-   pdstools.utils.pega_outcomes._CHANNEL_OUTCOME_DEFAULTS
-   pdstools.utils.pega_outcomes._DEFAULT_IMPRESSIONS
-   pdstools.utils.pega_outcomes._DEFAULT_ACCEPTS
-   pdstools.utils.pega_outcomes._OPENRATE_POSITIVE
-   pdstools.utils.pega_outcomes._OPENRATE_NEGATIVE
-
-
 Functions
 ---------
 
@@ -41,19 +29,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:data:: _CHANNEL_OUTCOME_DEFAULTS
-   :type:  dict[str, tuple[list[str], list[str]]]
-
-.. py:data:: _DEFAULT_IMPRESSIONS
-   :type:  list[str]
-   :value: ['Impression']
-
-
-.. py:data:: _DEFAULT_ACCEPTS
-   :type:  list[str]
-   :value: ['Click', 'Clicked']
-
 
 .. py:function:: resolve_outcome_labels(channels_with_outcomes: dict[str, list[str]]) -> dict[str, dict[str, list[str]]]
 
@@ -102,16 +77,6 @@ Module Contents
    :returns: ``{"Impressions": [...], "Accepts": [...]}`` with all standard
              candidate values for this channel type.
    :rtype: dict[str, list[str]]
-
-
-.. py:data:: _OPENRATE_POSITIVE
-   :type:  list[str]
-   :value: ['Opened', 'Open']
-
-
-.. py:data:: _OPENRATE_NEGATIVE
-   :type:  list[str]
-   :value: ['Impression', 'Pending']
 
 
 .. py:function:: get_openrate_labels(channel: str) -> dict[str, list[str]] | None

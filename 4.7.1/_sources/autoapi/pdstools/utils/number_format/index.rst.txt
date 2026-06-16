@@ -98,18 +98,6 @@ Module Contents
 
 
 
-   .. py:method:: _format_standard(num: float) -> str
-
-      Format with locale-aware thousand/decimal separators.
-
-
-
-   .. py:method:: _format_compact(num: float) -> str
-
-      Format in compact notation (K/M/B/T).
-
-
-
    .. py:method:: to_pandas_format() -> str | collections.abc.Callable[[NumericValue], str]
 
       Convert to pandas Styler format specification.

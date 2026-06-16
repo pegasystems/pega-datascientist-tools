@@ -155,17 +155,6 @@ Module Contents
 
 
 
-   .. py:method:: _derive_name_from_pega_property(data)
-      :classmethod:
-
-
-      Auto‑derive ``name`` from the leaf of ``pega_property``.
-
-      Runs before individual field validators so that every
-      downstream validator already sees a resolved ``name``.
-
-
-
    .. py:method:: validate_input_name(v)
 
 
@@ -479,86 +468,6 @@ Module Contents
 
 
 
-   .. py:method:: _convert_keys(data: dict, conversion_func) -> dict
-      :staticmethod:
-
-
-
-   .. py:method:: _to_snake_case(string: str) -> str
-      :staticmethod:
-
-
-
-   .. py:method:: _to_camel_case(string: str) -> str
-      :staticmethod:
-
-
-
-   .. py:class:: _ONNXMetadataEncoder(*, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, sort_keys=False, indent=None, separators=None, default=None)
-
-      Bases: :py:obj:`json.JSONEncoder`
-
-
-      Extensible JSON <https://json.org> encoder for Python data structures.
-
-      Supports the following objects and types by default:
-
-      +-------------------+---------------+
-      | Python            | JSON          |
-      +===================+===============+
-      | dict              | object        |
-      +-------------------+---------------+
-      | list, tuple       | array         |
-      +-------------------+---------------+
-      | str               | string        |
-      +-------------------+---------------+
-      | int, float        | number        |
-      +-------------------+---------------+
-      | True              | true          |
-      +-------------------+---------------+
-      | False             | false         |
-      +-------------------+---------------+
-      | None              | null          |
-      +-------------------+---------------+
-
-      To extend this to recognize other objects, subclass and implement a
-      ``.default()`` method with another method that returns a serializable
-      object for ``o`` if possible, otherwise it should call the superclass
-      implementation (to raise ``TypeError``).
-
-
-
-      .. py:method:: default(o)
-
-         Implement this method in a subclass such that it returns
-         a serializable object for ``o``, or calls the base implementation
-         (to raise a ``TypeError``).
-
-         For example, to support arbitrary iterators, you could
-         implement default like this::
-
-             def default(self, o):
-                 try:
-                     iterable = iter(o)
-                 except TypeError:
-                     pass
-                 else:
-                     return list(iterable)
-                 # Let the base class default method raise the TypeError
-                 return super().default(o)
-
-
-
-
-
-   .. py:method:: _strip_empty(data)
-      :staticmethod:
-
-
-      Recursively remove keys whose value is ``[]``.
-
-
-
 .. py:exception:: ONNXModelCreationError
 
    Bases: :py:obj:`Exception`
@@ -718,10 +627,6 @@ Module Contents
        __pydantic_private__: Values of private attributes set on the model instance.
 
 
-   .. py:attribute:: _model
-      :type:  onnx.ModelProto
-
-
    .. py:method:: from_onnx_proto(model: onnx.ModelProto) -> ONNXModel
       :classmethod:
 
@@ -782,22 +687,6 @@ Module Contents
 
 
 
-   .. py:method:: _fix_dynamic_shapes(proto: onnx.ModelProto, batch_size: int = 1) -> None
-      :staticmethod:
-
-
-      Replace dynamic (symbolic) dimensions with a fixed *batch_size*.
-
-      Pega Prediction Studio rejects ONNX models whose input or output
-      nodes contain symbolic dimension parameters (e.g. ``"batch"``).
-      This helper iterates every dimension on every input/output and
-      replaces symbolic dims with the given integer value.
-
-      :param proto: An ``onnx.ModelProto`` — **modified in place**.
-      :param batch_size: The integer value to substitute.  Default ``1``.
-
-
-
    .. py:method:: get_metadata() -> Metadata | None
 
       Return the embedded ``Metadata`` or ``None`` if absent.
@@ -853,186 +742,6 @@ Module Contents
       :type onnx_file_path: str
 
       :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.:
-
-
-
-   .. py:method:: __check_for_valid_input_node_structure(error_stream, session, metadata) -> bool
-
-      Checks if the output node structure of the ONNX model is valid.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param session: The ONNX runtime session containing the model.
-      :type session: onnxruntime.InferenceSession
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if the output node structure is valid, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_input_nodes(error_stream, model_input_info, metadata) -> bool
-
-      Validates the input nodes of the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if the input nodes are valid, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __check_for_valid_output_node_structure(error_stream, session, metadata) -> bool
-
-      Checks if the output node structure of the ONNX model is valid.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param session: The ONNX runtime session containing the model.
-      :type session: onnxruntime.InferenceSession
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if the output node structure is valid, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_tensor_output_node_structure(error_stream, node_name, value_info) -> bool
-
-      Validates the tensor output node structure of the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param node_name: The name of the output node.
-      :type node_name: str
-      :param value_info: The value information of the output node.
-      :type value_info: Any
-
-      :returns: True if the output node is of type Tensor, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_label_output_node_exist(error_stream, model_output_info, metadata) -> bool
-
-      Validates the existence of the label output node in the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_output_info: A dictionary containing information about the model's output nodes.
-      :type model_output_info: dict
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if the label output node exists, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_input_node_dimensions(error_stream, model_input_info) -> bool
-
-      Validates the dimensions of the input nodes in the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-
-      :returns: True if all input nodes have valid dimensions, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_input_node_shapes(error_stream, model_input_info) -> bool
-
-      Validates the dimensions of the input nodes in the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-
-      :returns: True if all input nodes have valid dimensions, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_predictor_mappings(error_stream, model_input_info, metadata) -> bool
-
-      Validates the predictor mappings in the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if all predictor mappings are valid, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __validate_predictor_index_mappings(error_stream, metadata) -> bool
-
-      Validates the predictor index mappings in the ONNX model's metadata.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param metadata: The metadata associated with the model.
-      :type metadata: Meta
-
-      :returns: True if the predictor index mappings are valid, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __create_predictor_map(metadata)
-
-      Creates a mapping of input names to their corresponding predictors.
-
-      :param metadata: The metadata associated with the model, containing the predictor list.
-      :type metadata: Meta
-
-      :returns: A dictionary where the keys are input names and the values are lists of predictors.
-      :rtype: dict
-
-
-
-   .. py:method:: __validate_input_node_sizes(error_stream, model_input_info, metadata) -> bool
-
-      Validates the sizes of the input nodes in the ONNX model.
-
-      :param error_stream: The stream to which error messages are written.
-      :type error_stream: Any
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-      :param metadata: The metadata associated with the model, containing the predictor list.
-      :type metadata: Meta
-
-      :returns: True if all input nodes have valid sizes, False otherwise.
-      :rtype: bool
-
-
-
-   .. py:method:: __get_missing_predictors(model_input_info, predictor_input_names) -> str
-
-      Identifies the missing predictors in the ONNX model's input nodes.
-
-      :param model_input_info: A dictionary containing information about the model's input nodes.
-      :type model_input_info: dict
-      :param predictor_input_names: A list of predictor input names.
-      :type predictor_input_names: list
-
-      :returns: A comma-separated string of missing predictor names.
-      :rtype: str
 
 
 

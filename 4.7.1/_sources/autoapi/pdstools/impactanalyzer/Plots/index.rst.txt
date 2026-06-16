@@ -68,36 +68,6 @@ Module Contents
    .. py:attribute:: ia
 
 
-   .. py:method:: _get_experiment_color_map() -> list[str]
-      :staticmethod:
-
-
-      Get ordered list of experiment names for consistent coloring.
-
-      :returns: Alphabetically ordered list of default experiment names.
-      :rtype: list[str]
-
-
-
-   .. py:method:: _get_facet_config(data: polars.DataFrame, facet: str | None) -> dict
-      :staticmethod:
-
-
-      Determine optimal faceting configuration.
-
-      Automatically selects column wrapping based on the number of
-      distinct facet values for better layout.
-
-      :param data: The collected plot data.
-      :type data: pl.DataFrame
-      :param facet: Column name for faceting, or None for no faceting.
-      :type facet: str or None
-
-      :returns: Configuration with keys 'facet_col' and 'facet_col_wrap'.
-      :rtype: dict
-
-
-
    .. py:method:: overview(*, title: str | None = None, query: pdstools.utils.types.QUERY | None = None, metric: str = 'CTR_Lift', facet: str | None = None, return_df: bool = False) -> Union[plotly.graph_objs.Figure, polars.LazyFrame]
 
       Create a bar chart comparing experiment performance.

@@ -59,15 +59,7 @@ Module Contents
       :type:  str | None
 
 
-   .. py:attribute:: _dependencies_checked
-      :value: False
-
-
-
    .. py:method:: check_dependencies()
-
-
-   .. py:method:: _check_dependencies()
 
 
 .. py:exception:: MissingDependenciesException(deps: list[str], namespace: str | None = None, deps_group: str | None = None)

@@ -21,10 +21,7 @@ Functions
 .. autoapisummary::
 
    pdstools.utils.cdh_utils.is_valid_polars_duration
-   pdstools.utils.cdh_utils._apply_query
-   pdstools.utils.cdh_utils._combine_queries
    pdstools.utils.cdh_utils.default_predictor_categorization
-   pdstools.utils.cdh_utils._extract_keys
    pdstools.utils.cdh_utils.parse_pega_date_time_formats
    pdstools.utils.cdh_utils.safe_range_auc
    pdstools.utils.cdh_utils.auc_from_probs
@@ -32,8 +29,6 @@ Functions
    pdstools.utils.cdh_utils.aucpr_from_probs
    pdstools.utils.cdh_utils.aucpr_from_bincounts
    pdstools.utils.cdh_utils.auc_to_gini
-   pdstools.utils.cdh_utils._capitalize
-   pdstools.utils.cdh_utils._polars_capitalize
    pdstools.utils.cdh_utils.from_prpc_date_time
    pdstools.utils.cdh_utils.to_prpc_date_time
    pdstools.utils.cdh_utils.weighted_average_polars
@@ -45,7 +40,6 @@ Functions
    pdstools.utils.cdh_utils.bin_log_odds
    pdstools.utils.cdh_utils.log_odds_polars
    pdstools.utils.cdh_utils.feature_importance
-   pdstools.utils.cdh_utils._apply_schema_types
    pdstools.utils.cdh_utils.gains_table
    pdstools.utils.cdh_utils.lazy_sample
    pdstools.utils.cdh_utils.legend_color_order
@@ -54,8 +48,6 @@ Functions
    pdstools.utils.cdh_utils.setup_logger
    pdstools.utils.cdh_utils.create_working_and_temp_dir
    pdstools.utils.cdh_utils.safe_flatten_list
-   pdstools.utils.cdh_utils._get_start_end_date_args
-   pdstools.utils.cdh_utils._read_pdc
 
 
 Module Contents
@@ -99,11 +91,6 @@ Module Contents
    False
 
 
-.. py:function:: _apply_query(df: polars.LazyFrame, query: pdstools.utils.types.QUERY | None = None, allow_empty: bool = False) -> polars.LazyFrame
-                 _apply_query(df: polars.DataFrame, query: pdstools.utils.types.QUERY | None = None, allow_empty: bool = False) -> polars.DataFrame
-
-.. py:function:: _combine_queries(existing_query: pdstools.utils.types.QUERY, new_query: polars.Expr) -> pdstools.utils.types.QUERY
-
 .. py:function:: default_predictor_categorization(x: str | polars.Expr = pl.col('PredictorName')) -> polars.Expr
 
    Function to determine the 'category' of a predictor.
@@ -120,42 +107,6 @@ Module Contents
 
    :param x: The column to parse
    :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
-
-
-.. py:function:: _extract_keys(df: F, key: str = 'Name', capitalize: bool = True) -> F
-
-   Extracts keys out of the pyName column
-
-   This is not a lazy operation as we don't know the possible keys
-   in advance. For that reason, we select only the key column,
-   extract the keys from that, and then collect the resulting dataframe.
-   This dataframe is then joined back to the original dataframe.
-
-   This is relatively efficient, but we still do need the whole
-   pyName column in memory to do this, so it won't work completely
-   lazily from e.g. s3. That's why it only works with eager mode.
-
-   The data in column for which the JSON is extract is normalized a
-   little by taking out non-space, non-printable characters. Not just
-   ASCII of course. This may be relatively expensive.
-
-   JSON extraction only happens on the unique values so saves a lot
-   of time with multiple snapshots of the same models, it also only
-   processes rows for which the key column appears to be valid JSON.
-   It will break when you "trick" it with malformed JSON.
-
-   Column values for columns that are also encoded in the key column
-   will be overwritten with values from the key column, but only for
-   rows that are JSON. In previous versions all values were overwritten
-   resulting in many nulls.
-
-   :param df: The dataframe to extract the keys from
-   :type df: Union[pl.DataFrame, pl.LazyFrame]
-   :param key: The column with embedded JSON
-   :type key: str
-   :param capitalize: If True (default) normalizes the names of the embedded columns
-                      otherwise keeps the names as-is.
-   :type capitalize: bool
 
 
 .. py:function:: parse_pega_date_time_formats(timestamp_col='SnapshotTime', timestamp_fmt: str | None = None, timestamp_dtype: polars._typing.PolarsTemporalType = pl.Datetime) -> polars.Expr
@@ -292,26 +243,6 @@ Module Contents
 
    >>> auc2GINI(0.8232)
 
-
-.. py:function:: _capitalize(fields: str | collections.abc.Iterable[str], extra_endwords: collections.abc.Iterable[str] | None = None) -> list[str]
-
-   Applies automatic capitalization, aligned with the R counterpart.
-
-   :param fields: A list of names
-   :type fields: list
-
-   :returns: **fields** -- The input list, but each value properly capitalized
-   :rtype: list
-
-   .. rubric:: Notes
-
-   The capitalize_endwords list contains atomic word parts that are commonly
-   found in Pega field names. Compound words (like "ResponseCount") don't need
-   to be listed separately because the algorithm processes words by length,
-   allowing shorter components ("Response", "Count") to handle them.
-
-
-.. py:function:: _polars_capitalize(df: F, extra_endwords: collections.abc.Iterable[str] | None = None) -> F
 
 .. py:function:: from_prpc_date_time(x: str, return_string: bool = False, use_timezones: bool = True) -> datetime.datetime | str
 
@@ -597,24 +528,6 @@ Module Contents
    - ADM Explained: Feature Importance section
 
 
-.. py:function:: _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
-
-   This function is used to convert the data types of columns in a DataFrame to a desired types.
-   The desired types are defined in a `PegaDefaultTables` class.
-
-   :param df: The DataFrame whose columns' data types need to be converted.
-   :type df: pl.LazyFrame
-   :param definition: A `PegaDefaultTables` object that contains the desired data types for the columns.
-   :type definition: PegaDefaultTables
-   :param verbose: If True, the function will print a message when a column is not in the default table schema.
-   :type verbose: bool
-   :param timestamp_opts: Additional arguments for timestamp parsing.
-   :type timestamp_opts: str
-
-   :returns: A list with polars expressions for casting data types.
-   :rtype: list
-
-
 .. py:function:: gains_table(df, value: str, index=None, by=None)
 
    Calculates cumulative gains from any data frame.
@@ -686,8 +599,4 @@ Module Contents
 
 
 .. py:function:: safe_flatten_list(alist: list, extras: list | None = None) -> list
-
-.. py:function:: _get_start_end_date_args(data: polars.Series | polars.LazyFrame | polars.DataFrame, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, datetime_field='SnapshotTime')
-
-.. py:function:: _read_pdc(pdc_data: polars.LazyFrame)
 
