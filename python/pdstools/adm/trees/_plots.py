@@ -23,12 +23,31 @@ from ...utils.namespaces import LazyNamespace, MissingDependenciesException
 from ...utils.pega_template import colorway as _colorway
 from ._nodes import _iter_nodes
 
-# Fixed color assignments for well-known predictor namespaces.
-# Keyed alphabetically to match the Pega colorway order so the same namespace
+# Fixed color assignments for well-known predictor groups.
+# Keyed alphabetically to match the Pega colorway order so the same group
 # always gets the same colour across every plot in the notebook.
-_NAMESPACE_COLORMAP: dict[str, str] = {
-    ns: _colorway[i % len(_colorway)] for i, ns in enumerate(sorted(["Customer", "IH", "Param", "py"]))
+_PREDICTOR_GROUP_COLORMAP: dict[str, str] = {
+    grp: _colorway[i % len(_colorway)]
+    for i, grp in enumerate(sorted(["Context Keys", "Customer", "External Models", "IH", "Param"]))
 }
+
+# Un-aliased value expression — import and extend this in notebooks to add
+# custom predictor groups before calling plot methods.
+# Example (in a notebook cell):
+#   from pdstools.adm.trees._plots import _PREDICTOR_GROUP_VALUE
+#   AGBModel.plot.predictor_group_expr = (
+#       pl.when(pl.col("predictor").str.starts_with("MyPrefix"))
+#       .then(pl.lit("External Models"))
+#       .otherwise(_PREDICTOR_GROUP_VALUE)
+#       .alias("Predictor Group")
+#   )
+_PREDICTOR_GROUP_VALUE: pl.Expr = (
+    pl.when(pl.col("predictor").str.splitn(".", 2).struct.field("field_0").str.starts_with("py"))
+    .then(pl.lit("Context Keys"))
+    .otherwise(pl.col("predictor").str.splitn(".", 2).struct.field("field_0"))
+)
+
+_PREDICTOR_GROUP_EXPR: pl.Expr = _PREDICTOR_GROUP_VALUE.alias("Predictor Group")
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +72,26 @@ class Plots(LazyNamespace):
 
     def __init__(self, trees_model: "ADMTreesModel") -> None:
         self.trees_model = trees_model
+        self.predictor_group_expr: pl.Expr = _PREDICTOR_GROUP_EXPR
+        """Polars expression producing the ``"Predictor Group"`` column.
+
+        Set this attribute to a custom expression to override the default
+        grouping (e.g., to map external-score predictors to their own group).
+        See :data:`_PREDICTOR_GROUP_VALUE` for a composable base expression.
+        """
+        self.predictor_group_colormap: dict[str, str] = _PREDICTOR_GROUP_COLORMAP
+        """Color map from predictor group name to hex color string.
+
+        Extend this dict when you introduce a custom predictor group so the new
+        group always gets a consistent color across all plots.
+        """
+        self.predictor_group_order: list[str] = list(_PREDICTOR_GROUP_COLORMAP)
+        """Fixed display order of predictor groups in plot legends and axes.
+
+        Defaults to alphabetical order (the key order of
+        :data:`_PREDICTOR_GROUP_COLORMAP`).  Extend or reorder this list when
+        you add custom groups so legends remain consistent across all plots.
+        """
         super().__init__()
 
     # ------------------------------------------------------------------
@@ -518,7 +557,7 @@ class Plots(LazyNamespace):
         -------
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
-            ``predictor``, ``total_gain``, ``namespace`` when
+            ``predictor``, ``total_gain``, ``Predictor Group`` when
             ``return_df=True``.
         """
         try:
@@ -531,7 +570,7 @@ class Plots(LazyNamespace):
             .agg(pl.col("gains").sum().alias("total_gain"))
             .sort("total_gain", descending=True)
             .head(top_n)
-            .with_columns(pl.col("predictor").str.splitn(".", 2).struct.field("field_0").alias("namespace"))
+            .with_columns(self.predictor_group_expr)
         )
         if return_df:
             return df
@@ -541,13 +580,16 @@ class Plots(LazyNamespace):
             sorted_df,
             x="total_gain",
             y="predictor",
-            color="namespace",
+            color="Predictor Group",
             orientation="h",
             title=f"Top {top_n} predictors by total gain",
-            labels={"total_gain": "Total gain", "predictor": ""},
+            labels={"total_gain": "Total gain", "predictor": "", "Predictor Group": "Predictor Group"},
             template="none",
-            category_orders={"predictor": sorted_df["predictor"].to_list()},
-            color_discrete_map=_NAMESPACE_COLORMAP,
+            category_orders={
+                "predictor": sorted_df["predictor"].to_list(),
+                "Predictor Group": self.predictor_group_order,
+            },
+            color_discrete_map=self.predictor_group_colormap,
         ).update_layout(yaxis_automargin=True, yaxis_autorange="reversed")
 
     @overload
@@ -576,7 +618,7 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``predictor``, ``early_gain``, ``late_gain``, ``total_gain``,
-            ``namespace`` when ``return_df=True``.
+            ``Predictor Group`` when ``return_df=True``.
         """
         try:
             import plotly.express as px
@@ -617,7 +659,7 @@ class Plots(LazyNamespace):
             )
             .with_columns(
                 (pl.col("early_gain") + pl.col("late_gain")).alias("total_gain"),
-                pl.col("predictor").str.splitn(".", 2).struct.field("field_0").alias("namespace"),
+                self.predictor_group_expr,
             )
         )
         if return_df:
@@ -628,7 +670,7 @@ class Plots(LazyNamespace):
             df,
             x="early_gain",
             y="late_gain",
-            color="namespace",
+            color="Predictor Group",
             size="total_gain",
             hover_name="predictor",
             log_x=True,
@@ -637,9 +679,11 @@ class Plots(LazyNamespace):
             labels={
                 "early_gain": f"Gain in first {quarter} trees",
                 "late_gain": f"Gain in last {quarter} trees",
+                "Predictor Group": "Predictor Group",
             },
             template="none",
-            color_discrete_map=_NAMESPACE_COLORMAP,
+            category_orders={"Predictor Group": self.predictor_group_order},
+            color_discrete_map=self.predictor_group_colormap,
         )
         fig.add_shape(
             type="line",
@@ -662,10 +706,12 @@ class Plots(LazyNamespace):
         *,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
-        """Plot total information gain broken down by predictor namespace.
+        """Plot total information gain broken down by predictor group.
 
-        The namespace is the first dot-separated segment of the predictor
-        name, e.g. ``IH``, ``Customer``, ``py*``.
+        The predictor group is the first dot-separated segment of the predictor
+        name (e.g. ``IH``, ``Customer``, ``Param``), with Pega context-key
+        predictors (``py*``) collapsed into ``Context Keys``.  Override
+        ``AGBModel.plot.predictor_group_expr`` to define custom groups.
 
         Parameters
         ----------
@@ -676,7 +722,7 @@ class Plots(LazyNamespace):
         -------
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
-            ``namespace``, ``total_gain``, ``gain_share`` when
+            ``Predictor Group``, ``total_gain``, ``gain_share`` when
             ``return_df=True``.
         """
         try:
@@ -685,10 +731,8 @@ class Plots(LazyNamespace):
             raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
 
         df = (
-            self.trees_model.gains_per_split.with_columns(
-                pl.col("predictor").str.splitn(".", 2).struct.field("field_0").alias("namespace")
-            )
-            .group_by("namespace")
+            self.trees_model.gains_per_split.with_columns(self.predictor_group_expr)
+            .group_by("Predictor Group")
             .agg(pl.col("gains").sum().alias("total_gain"))
             .sort("total_gain", descending=True)
         )
@@ -701,14 +745,14 @@ class Plots(LazyNamespace):
         fig = px.bar(
             sorted_df,
             x="total_gain",
-            y="namespace",
-            color="namespace",
+            y="Predictor Group",
+            color="Predictor Group",
             orientation="h",
-            title="Total gain by predictor namespace",
-            labels={"total_gain": "Total gain", "namespace": ""},
+            title="Total gain by predictor group",
+            labels={"total_gain": "Total gain", "Predictor Group": ""},
             template="none",
-            category_orders={"namespace": sorted_df["namespace"].to_list()},
-            color_discrete_map=_NAMESPACE_COLORMAP,
+            category_orders={"Predictor Group": self.predictor_group_order},
+            color_discrete_map=self.predictor_group_colormap,
         )
         fig.update_layout(showlegend=False, yaxis_autorange="reversed")
         return fig
@@ -740,7 +784,7 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``predictor``, ``mean_depth``, ``tree_coverage``, ``total_gain``,
-            ``namespace`` when ``return_df=True``.
+            ``Predictor Group`` when ``return_df=True``.
         """
         try:
             import plotly.express as px
@@ -771,7 +815,7 @@ class Plots(LazyNamespace):
                 pl.col("treeID").n_unique().alias("tree_coverage"),
                 pl.col("gain").sum().alias("total_gain"),
             )
-            .with_columns(pl.col("predictor").str.splitn(".", 2).struct.field("field_0").alias("namespace"))
+            .with_columns(self.predictor_group_expr)
         )
         if return_df:
             return df
@@ -781,12 +825,17 @@ class Plots(LazyNamespace):
             x="mean_depth",
             y="tree_coverage",
             size="total_gain",
-            color="namespace",
+            color="Predictor Group",
             hover_name="predictor",
             title="Feature role map (router vs refiner)",
-            labels={"mean_depth": "Mean split depth", "tree_coverage": "Tree coverage (# trees)"},
+            labels={
+                "mean_depth": "Mean split depth",
+                "tree_coverage": "Tree coverage (# trees)",
+                "Predictor Group": "Predictor Group",
+            },
             template="none",
-            color_discrete_map=_NAMESPACE_COLORMAP,
+            category_orders={"Predictor Group": self.predictor_group_order},
+            color_discrete_map=self.predictor_group_colormap,
         )
 
     @overload
@@ -1095,8 +1144,9 @@ class Plots(LazyNamespace):
         fig = px.area(
             df,
             title="Variable types per tree",
-            labels={"index": "Tree number", "value": "Number of splits"},
+            labels={"index": "Tree number", "value": "Number of splits", "variable": "Predictor Group"},
             template="none",
+            color_discrete_map=self.predictor_group_colormap,
             **kwargs,
         )
         fig.layout["updatemenus"] += (

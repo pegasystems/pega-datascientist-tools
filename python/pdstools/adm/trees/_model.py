@@ -1049,8 +1049,8 @@ class ADMTreesModel:
             context_keys = []  # pragma: no cover
         if len(x.split(".")) > 1:
             return x.split(".")[0]
-        if x in context_keys:
-            return x
+        if x.startswith("py"):
+            return "Context Keys"
         return "Primary"  # pragma: no cover
 
     def compute_categorization_over_time(

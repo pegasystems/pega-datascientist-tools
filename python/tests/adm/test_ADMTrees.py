@@ -983,12 +983,13 @@ def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_importance_by_gain(return_df=True)
-    assert df.columns == ["predictor", "total_gain", "namespace"]
+    assert df.columns == ["predictor", "total_gain", "Predictor Group"]
     assert df.height == 15
     # Top predictor must be pyGroup.
     assert df["predictor"][0] == "pyGroup"
     assert df["total_gain"][0] == pytest.approx(48305.23435, rel=1e-4)
-    assert df["namespace"][0] == "pyGroup"
+    # py* predictors are grouped under "Context Keys".
+    assert df["Predictor Group"][0] == "Context Keys"
     # All rows are sorted descending by total_gain.
     gains = df["total_gain"].to_list()
     assert gains == sorted(gains, reverse=True)
@@ -1013,7 +1014,7 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.early_vs_late_gain(return_df=True)
-    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "namespace"]
+    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "Predictor Group"]
     assert df.height == 179
     # Every predictor that appears has non-negative gains in each bucket.
     assert (df["early_gain"] >= 0).all()
@@ -1026,7 +1027,8 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["early_gain"] == pytest.approx(15286.858930, rel=1e-4)
     assert row["late_gain"] == pytest.approx(6791.741500, rel=1e-4)
-    assert row["namespace"] == "pyGroup"
+    # py* predictors are grouped under "Context Keys".
+    assert row["Predictor Group"] == "Context Keys"
 
 
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
@@ -1043,14 +1045,14 @@ def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_gain_by_namespace_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.gain_by_namespace(return_df=True)
-    assert df.columns == ["namespace", "total_gain", "gain_share"]
-    # 7 distinct namespaces in the anonymized model.
-    assert df.height == 7
+    assert df.columns == ["Predictor Group", "total_gain", "gain_share"]
+    # 4 distinct predictor groups (IH, Context Keys, Customer, Param).
+    assert df.height == 4
     # gain_share must sum to 1.
     assert df["gain_share"].sum() == pytest.approx(1.0, abs=1e-9)
-    # IH is the dominant namespace.
+    # IH is the dominant predictor group.
     top = df.sort("total_gain", descending=True).row(0, named=True)
-    assert top["namespace"] == "IH"
+    assert top["Predictor Group"] == "IH"
     assert top["gain_share"] == pytest.approx(0.45146, abs=1e-4)
 
 
@@ -1068,16 +1070,17 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_role_map(return_df=True)
-    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "namespace"]
+    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "Predictor Group"]
     assert df.height == 194
     # pyGroup is used in 63 distinct trees.
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
     assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
-    assert row["namespace"] == "pyGroup"
-    # Exactly 7 namespaces present.
-    assert df["namespace"].n_unique() == 7
+    # py* predictors are grouped under "Context Keys".
+    assert row["Predictor Group"] == "Context Keys"
+    # Exactly 4 predictor groups present.
+    assert df["Predictor Group"].n_unique() == 4
 
 
 def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):
