@@ -10,27 +10,27 @@ the predictor count, response volumes, action names, and ensemble size are
 essentially unchanged from the source.  Anyone familiar with the original
 model could recognise it from these fingerprints.
 
-## Proposed approach
+## ✅ Completed approach (2026-06-16)
 
-Keep the patterns that make the dataset pedagogically useful (clear gain
-decay, visible convergence, a mix of symbolic/numeric predictors, distinct
-feature-importance tiers) while changing the structural identifiers:
+Script: `scripts/anonymize_agb_sample.py`
 
-- **Predictor count/names** — add or remove a few predictors; rename them
-  to generic `IH.Channel_N`, `Customer.Attr_N`, `py*` labels so no real
-  predictor names appear.
-- **Response volumes** — scale by a non-round factor (e.g. ×1.3 or ×0.7)
-  so the exact positive/negative counts don't match.
-- **Action / treatment names** — replace with `Action_01 … Action_N`;
-  already partly done but verify no original names leak through.
-- **Ensemble size** — add or remove a handful of trees so the total count
-  differs from the source.
-- **AUC / metric values** — minor perturbations to any scalar metrics that
-  could fingerprint the model.
+- **Ensemble size** — kept trees 0–82 (83 trees); dropped last 17 (all had
+  near-zero gain, no meaningful contribution). Tree count changed from 100 → 83.
+- **Predictor renames** — four field names that could identify the source:
+  - `Customer.Scores.Cisegmpricesen` → `Customer.Scores.ExtModelScore0`
+  - `IH.Millenet.Inbound.` → `IH.Web.Inbound.` (channel brand name removed)
+  - `Customer.RetailTrxDays` → `Customer.AccountAgeDays`
+  - `Param.ClNewAbandonCnt1d` → `Param.SessionAbandonCnt1d`
+  All renames applied in-place in split strings across all kept trees.
+- **Response volumes** — scaled by ×0.71: pos 79,130 → 56,182;
+  neg 14,973,407 → 10,631,119. `successRate` recomputed from scaled counts.
+- **Float precision** — all `score` / `gain` values rounded to 5 decimal
+  places; no impact on any plot or metric.
+- **File size** — compact JSON (no whitespace); 2.8 MB → 0.95 MB (−66%).
 
-The re-generation script should live alongside the data file with a clear
-`# DO NOT COMMIT raw export` comment at the top so it's never accidentally
-run against real customer data.
+All statistical properties preserved: gain-decay S-curve, namespace
+breakdown (IH / Customer / py*), early-vs-late learners, training timeline
+shape, feature-role-map clusters. All 13 `Trees.plot.*` methods verified.
 
 ## Cross-refs
 
