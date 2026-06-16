@@ -1506,7 +1506,7 @@ if datamart.predictor_data is not None:
                 ("Response Count Min", "Response Count Max"): "TotalResponseCount"
             },
         )
-        .tab_options(container_height="400px", container_overflow_y=True)
+        .tab_options(container_height="400px", container_overflow_y="auto")
         .tab_spanner(
             label=html("<b>Performance</b>"),
             columns=["Min", "Mean", "Median", "Max"],
