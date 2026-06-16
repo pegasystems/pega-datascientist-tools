@@ -2,6 +2,11 @@
   {
     "version": "dev",
     "url": "https://pegasystems.github.io/pega-datascientist-tools/dev/",
+    "preferred": false
+  },
+  {
+    "version": "4.7.1",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/4.7.1/",
     "preferred": true
   },
   {
