@@ -154,11 +154,6 @@ class ImpactAnalyzer:
         ValueError
             If required columns are missing from the input data.
 
-        Notes
-        -----
-        Use the class methods :meth:`from_pdc`, :meth:`from_vbd`, or :meth:`from_ih`
-        to create instances from raw data exports.
-
         """
         self.plot = Plots(ia=self)
         self.ia_data = self._validate_ia_data(raw_data)
