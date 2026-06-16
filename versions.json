@@ -8,15 +8,5 @@
     "version": "4.7.1",
     "url": "https://pegasystems.github.io/pega-datascientist-tools/4.7.1/",
     "preferred": true
-  },
-  {
-    "version": "Python",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/Python/",
-    "preferred": false
-  },
-  {
-    "version": "R",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/R/",
-    "preferred": false
   }
 ]
