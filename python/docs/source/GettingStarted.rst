@@ -1,5 +1,5 @@
 Getting Started for Data Scientists
-===============
+===================================
 
 Installation
 ------------
@@ -186,7 +186,7 @@ Python compatibility
 Even though *uv* takes care of installing your python version, sometimes you have no choice of available versions. For this reason, we try to be as supportive in Python versions as we can; so our latest supported python version depends on our core dependencies, particularly `Polars <https://github.com/pola-rs/polars>`_. We currently support Python versions 3.10 through 3.14.
 
 Checking the Installation
----------------
+-------------------------
 
 With ``pdstools[adm]`` installed, you can test that it's installed.
 

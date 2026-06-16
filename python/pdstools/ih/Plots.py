@@ -27,14 +27,10 @@ class Plots(LazyNamespace):
     :class:`~pdstools.ih.IH.IH` instance.
 
     All plot methods support:
+
     - Custom titles via `title` parameter
     - Data filtering via `query` parameter
     - Returning underlying data via `return_df=True`
-
-    Attributes
-    ----------
-    ih : IH
-        Reference to the parent IH instance.
 
     See Also
     --------
@@ -51,6 +47,8 @@ class Plots(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
+    ih: "IH_Class"
+    """Reference to the parent IH instance."""
 
     def __init__(self, ih: "IH_Class"):
         """Initialize a Plots instance.

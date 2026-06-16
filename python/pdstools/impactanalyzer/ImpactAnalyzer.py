@@ -63,13 +63,6 @@ class ImpactAnalyzer:
 
         \\text{Value Lift} = \\frac{\\text{ValueCapture}_{test} - \\text{ValueCapture}_{control}}{\\text{ValueCapture}_{control}}
 
-    Attributes
-    ----------
-    ia_data : pl.LazyFrame
-        The underlying experiment data containing control group metrics.
-    plot : Plots
-        Plot accessor for visualization methods.
-
     See Also
     --------
     pdstools.adm.ADMDatamart : For ADM model analysis.
@@ -85,7 +78,11 @@ class ImpactAnalyzer:
     """
 
     ia_data: pl.LazyFrame
+    """The underlying experiment data containing control group metrics."""
+
     outcome_labels_used: dict | None
+    plot: Plots
+    """Plot accessor for visualization methods."""
 
     default_ia_experiments: ClassVar[dict[str, tuple[str, str]]] = {
         "NBA vs Random Relevant Action": ("NBAPrioritization", "NBA"),
@@ -104,7 +101,7 @@ class ImpactAnalyzer:
 
     Names and ordering match the Pega Infinity Impact Analyzer product UI.
     Insertion order is the canonical display order — see
-    `summarize_experiments` for how it is preserved through aggregation."""
+    :meth:`summarize_experiments` for how it is preserved through aggregation."""
 
     outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Impressions": ["Impression"],
@@ -156,11 +153,6 @@ class ImpactAnalyzer:
         ------
         ValueError
             If required columns are missing from the input data.
-
-        Notes
-        -----
-        Use the class methods :meth:`from_pdc`, :meth:`from_vbd`, or :meth:`from_ih`
-        to create instances from raw data exports.
 
         """
         self.plot = Plots(ia=self)
@@ -836,8 +828,8 @@ class ImpactAnalyzer:
         The Channel field is built as ``"<Channel>/<Direction>"`` to match the
         convention used by :meth:`from_vbd`.
 
-        Excel reading is handled by polars' built-in ``calamine`` engine
-        through :func:`pdstools.pega_io.File._read_excel`.
+        Excel reading is handled by the internal Excel reader built on
+        polars' ``calamine`` engine.
 
         Parameters
         ----------
@@ -1171,7 +1163,7 @@ class ImpactAnalyzer:
             Column name(s) or expression(s) to group by in addition to
             ControlGroup. Default is None (aggregate all data).
         drop_internal_cols : bool, optional
-            If True, drop internal columns prefixed with 'Pega_'.
+            If True, drop internal columns prefixed with ``Pega_``.
             Default is True.
 
         Returns

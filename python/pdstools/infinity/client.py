@@ -23,7 +23,7 @@ class Infinity(SyncAPIClient):
     ``Infinity(...)`` directly — they handle auth construction for you.
 
     The Pega version is resolved lazily on first access of
-    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
     ``client.version`` (or any version-dependent resource such as
     ``client.prediction_studio``) issues a single
@@ -114,7 +114,7 @@ class AsyncInfinity(AsyncAPIClient):
     ``AsyncInfinity(...)`` directly.
 
     The Pega version is resolved lazily on first access of
-    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
     ``client.version`` (or any version-dependent resource such as
     ``client.prediction_studio``) issues a single HTTP probe and caches
