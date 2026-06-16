@@ -26,6 +26,7 @@ class Plots(LazyNamespace):
     :class:`~pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer` instance.
 
     All plot methods support:
+
     - Custom titles via `title` parameter
     - Data filtering via `query` parameter
     - Faceting by dimension via `facet` parameter

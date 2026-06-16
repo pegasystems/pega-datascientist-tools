@@ -82,20 +82,28 @@ class Preprocess(LazyNamespace):
         aggregates for multiple contexts which are used to create global explanation plots.
 
         The different context aggregates are as follows:
-        i) Overall Numeric Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each numeric predictor value decile.
-        ii) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each symoblic predictor value.
-        iii) Context Specific Numeric Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each numeric predictor value decile, grouped by context key partition.
-        iv) Overal Symbolic Predictor Contributions
-            The average contribution towards predicted model propensity
-            for each symoblic predictor value, grouped by context key partition.
 
-        Each of the aggregates are written to parquet files to a temporary output dirtectory
+        1. Overall Numeric Predictor Contributions
+
+           The average contribution towards predicted model propensity
+           for each numeric predictor value decile.
+
+        2. Overall Symbolic Predictor Contributions
+
+           The average contribution towards predicted model propensity
+           for each symbolic predictor value.
+
+        3. Context Specific Numeric Predictor Contributions
+
+           The average contribution towards predicted model propensity
+           for each numeric predictor value decile, grouped by context key partition.
+
+        4. Overall Symbolic Predictor Contributions
+
+           The average contribution towards predicted model propensity
+           for each symbolic predictor value, grouped by context key partition.
+
+        Each aggregate is written to parquet files in a temporary output directory.
         """
         if self._is_cached():
             logger.debug("Using cached data for preprocessing.")

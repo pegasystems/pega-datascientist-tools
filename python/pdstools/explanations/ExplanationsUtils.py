@@ -151,46 +151,52 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-        aggregate (Aggregate): The aggregate object to operate on.
+    aggregate : Aggregate
+        The aggregate object to operate on.
 
     Attributes
     ----------
-        aggregate (Aggregate): The aggregate object.
-        _df (pl.DataFrame | None): DataFrame containing context information.
-        _context_keys (list[str] | None): list of context keys.
-        initialized (bool): Flag indicating if the context operations have been initialized.
+    aggregate : Aggregate
+        The aggregate object.
+    _df : pl.DataFrame | None
+        DataFrame containing context information.
+    _context_keys : list[str] | None
+        List of context keys.
+    initialized : bool
+        Flag indicating if the context operations have been initialized.
 
-    Methods
-    -------
-        get_context_keys():
-            Returns the list of context keys from loaded data.
-            Eg. ['pyChannel', 'pyDirection', ...]
+    Notes
+    -----
+    ``get_context_keys()`` returns the list of context keys from loaded data,
+    for example ``["pyChannel", "pyDirection", ...]``.
 
-        get_df(context_infos=None, with_partition_col=False):
-            Returns a DataFrame containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. with partition column:
-            | pyChannel | pyDirection | ... | partition |
-            |-----------|-------------|-----|-----------|
-            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
-            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
+    ``get_df(context_infos=None, with_partition_col=False)`` returns a DataFrame
+    containing unique contexts. If ``with_partition_col`` is True, the partition
+    column is included. If ``context_infos`` is None, the full set of unique
+    contexts is returned; otherwise it is filtered by the provided context.
 
-        get_list(context_infos=None, with_partition_col=False):
-            Returns a list[ContextInfo] containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. without partition column:
-            [
-                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
-                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
-            ]
+    Example with partition column::
 
-        get_context_info_str(context_info, sep="-"):
-            Returns a string representation of a single context information.
-            Eg. channel1-direction1-...
+        pyChannel | pyDirection | ... | partition
+        channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}}
+        channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}}
+
+    ``get_list(context_infos=None, with_partition_col=False)`` returns a
+    ``list[ContextInfo]`` containing unique contexts. If ``with_partition_col``
+    is True, the partition column is included. If ``context_infos`` is None,
+    the full list of unique contexts is returned; otherwise it is filtered by
+    the provided context.
+
+    Example without partition column::
+
+        [
+            {"pyChannel": "channel1", "pyDirection": "direction1", ...},
+            {"pyChannel": "channel1", "pyDirection": "direction2", ...},
+        ]
+
+    ``get_context_info_str(context_info, sep="-")`` returns a string
+    representation of a single context information, for example
+    ``channel1-direction1-...``.
 
     """
 

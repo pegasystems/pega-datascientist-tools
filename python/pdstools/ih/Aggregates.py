@@ -28,6 +28,7 @@ class Aggregates(LazyNamespace):
     :class:`~pdstools.ih.IH.IH` instance.
 
     All aggregation methods support:
+
     - Grouping by dimensions via `by` parameter
     - Time bucketing via `every` parameter
     - Data filtering via `query` parameter

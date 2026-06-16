@@ -104,7 +104,7 @@ class ImpactAnalyzer:
 
     Names and ordering match the Pega Infinity Impact Analyzer product UI.
     Insertion order is the canonical display order — see
-    `summarize_experiments` for how it is preserved through aggregation."""
+    :meth:`summarize_experiments` for how it is preserved through aggregation."""
 
     outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Impressions": ["Impression"],
@@ -836,8 +836,8 @@ class ImpactAnalyzer:
         The Channel field is built as ``"<Channel>/<Direction>"`` to match the
         convention used by :meth:`from_vbd`.
 
-        Excel reading is handled by polars' built-in ``calamine`` engine
-        through :func:`pdstools.pega_io.File._read_excel`.
+        Excel reading is handled by the internal Excel reader built on
+        polars' ``calamine`` engine.
 
         Parameters
         ----------
@@ -1171,7 +1171,7 @@ class ImpactAnalyzer:
             Column name(s) or expression(s) to group by in addition to
             ControlGroup. Default is None (aggregate all data).
         drop_internal_cols : bool, optional
-            If True, drop internal columns prefixed with 'Pega_'.
+            If True, drop internal columns prefixed with ``Pega_``.
             Default is True.
 
         Returns

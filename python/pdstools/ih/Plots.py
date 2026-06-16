@@ -27,6 +27,7 @@ class Plots(LazyNamespace):
     :class:`~pdstools.ih.IH.IH` instance.
 
     All plot methods support:
+
     - Custom titles via `title` parameter
     - Data filtering via `query` parameter
     - Returning underlying data via `return_df=True`
