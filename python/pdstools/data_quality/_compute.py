@@ -153,9 +153,17 @@ class Compute(LazyNamespace):
         labels = self.parent.df.get_column(self.parent.topic_col).to_list()
         texts = self.parent.df.get_column(self.parent.text_col).to_list()
 
+        # cross_val_predict defaults to 5-fold stratified CV, which fails on
+        # rare classes (< 5 members). Clamp to the smallest class so we
+        # degrade gracefully on imbalanced or tiny datasets.
+        from collections import Counter
+
+        min_class_count = min(Counter(labels).values())
+        cv = max(2, min(5, min_class_count))
+
         # Out-of-sample predicted probabilities via cross-validation
         model = LogisticRegression(max_iter=400)
-        pred_probs = cross_val_predict(model, embeddings, labels, method="predict_proba")
+        pred_probs = cross_val_predict(model, embeddings, labels, cv=cv, method="predict_proba")
 
         # Cleanlab Datalab audit
         data_dict = {"texts": texts, "labels": labels}
@@ -203,7 +211,12 @@ class Compute(LazyNamespace):
         y = le.fit_transform(labels)
         classes = le.classes_
 
-        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        # StratifiedKFold needs at least n_splits members in every class.
+        # Clamp to the smallest class size so we degrade gracefully on
+        # imbalanced or tiny datasets instead of raising ValueError.
+        min_class_count = int(np.bincount(y).min())
+        effective_folds = max(2, min(n_folds, min_class_count))
+        skf = StratifiedKFold(n_splits=effective_folds, shuffle=True, random_state=42)
         # per-class F1 per fold: shape (n_folds, n_classes)
         fold_f1s = []
 
