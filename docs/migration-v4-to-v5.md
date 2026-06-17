@@ -300,6 +300,32 @@ that logger (or the root logger at `INFO`/`WARNING`) if you relied on
 the stdout output — e.g. the "Data exported to …" message and the
 Excel size / row-limit warnings.
 
+### Public `verbose=` flags that only controlled internal noise were removed
+
+Several public helpers exposed `verbose=` even though it only toggled
+subprocess output, schema warnings, decoded values, or raw file-listing
+noise. In v5 those call sites now log via the module logger instead.
+
+```python
+# Before (v4.x):
+dm.generate.health_check(verbose=True)
+dm.generate.model_reports(verbose=True)
+read_ds_export("export.zip", verbose=True)
+read_zipped_file("export.zip", verbose=True)
+get_latest_file("data/", target="model_data", verbose=True)
+
+# After (v5):
+dm.generate.health_check()
+dm.generate.model_reports()
+read_ds_export("export.zip")
+read_zipped_file("export.zip")
+get_latest_file("data/", target="model_data")
+```
+
+If you relied on that output, configure logging instead of passing a
+flag. `verbose=` is still supported on genuinely user-facing progress
+paths such as `S3Data`, `read_multi_zip`, and `Anonymization`.
+
 ### `S3Data` — snake_case method and parameter names
 
 ```python
@@ -403,6 +429,21 @@ Anonymization(path_to_files="*.json", temporary_path="/my/cache")
 `Anonymization.__init__` is now pure — no filesystem side effects.
 `Anonymization.min_max` parameter `range` was renamed to
 `value_range` (it was shadowing the Python builtin).
+
+### `BinAggregator(dm=...)` → `BinAggregator(datamart=...)`
+
+The constructor parameter was renamed for consistency with the rest of
+the `ADMDatamart` sub-namespace classes.
+
+```python
+# Before (v4.x):
+BinAggregator(dm=dm)
+
+# After (v5):
+BinAggregator(datamart=dm)
+```
+
+There is no deprecated alias.
 
 ---
 
@@ -514,7 +555,7 @@ is unchanged.
 - `pdstools.ADMDatamart`, `pdstools.IH`, `pdstools.Prediction`,
   `pdstools.ImpactAnalyzer`, `pdstools.ValueFinder`, `pdstools.Infinity`,
   `pdstools.AsyncInfinity` — all still importable from the top level.
-- All `from_<source>` classmethods on the top-level analysis classes.
+- Most `from_<source>` classmethods on the top-level analysis classes.
 - All public plot methods (`return_df` parameter remains opt-in).
 - The Streamlit apps (`pdstools-app health-check`, etc.) — same UX.
 - Polars version requirements — unchanged.
