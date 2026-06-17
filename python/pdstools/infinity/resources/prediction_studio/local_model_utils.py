@@ -696,18 +696,24 @@ class ONNXModel(LocalModel):
         test_data : dict
             The test data to be used for prediction. It is a dictionary where
             each key is a column name from the dataset, and each value is a
-            NumPy array representing the column data as a vector. For example::
-
-                {
-                    "column1": array([[value1], [value2], [value3]]),
-                    "column2": array([[value4], [value5], [value6]]),
-                    "column3": array([[value7], [value8], [value9]]),
-                }
+            NumPy array representing the column data as a vector.
 
         Returns
         -------
         Any
             The prediction result.
+
+        Examples
+        --------
+        ``test_data`` should look like:
+
+        .. code-block:: python
+
+            {
+                "column1": array([[value1], [value2], [value3]]),
+                "column2": array([[value4], [value5], [value6]]),
+                "column3": array([[value7], [value8], [value9]]),
+            }
 
         """
         session = None
